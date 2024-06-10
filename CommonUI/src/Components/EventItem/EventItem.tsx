@@ -86,7 +86,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="mt-5">
                     <h2
-                        className="active-event-box-body-title"
+                        className={`active-event-box-body-title event-${props.eventType.toLowerCase()}-box-body-title`}
                         style={{
                             fontSize: props.isDetailItem ? '20px' : '16px',
                         }}
@@ -95,7 +95,9 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </h2>
                 </div>
                 {props.eventDescription && (
-                    <div className="mt-2 text-sm active-event-box-body-description">
+                    <div
+                        className={`mt-2 text-sm active-event-box-body-description event-${props.eventType.toLowerCase()}-box-body-description`}
+                    >
                         <MarkdownViewer text={props.eventDescription || ''} />
                     </div>
                 )}

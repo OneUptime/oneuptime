@@ -1,7 +1,12 @@
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Metric from 'Model/AnalyticsModels/Metric';
+import Metric, { AggregationTemporality } from 'Model/AnalyticsModels/Metric';
+
+export enum OtelAggregationTemporality {
+    Cumulative = 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+    Delta = 'AGGREGATION_TEMPORALITY_DELTA',
+}
 
 export default class OTelIngestService {
     public static getAttributes(items: JSONArray): JSONObject {
@@ -28,10 +33,15 @@ export default class OTelIngestService {
         return JSONFunctions.flattenObject(finalObj);
     }
 
-    public static getMetricFromDatapoint(
-        dbMetric: Metric,
-        datapoint: JSONObject
-    ): Metric {
+    public static getMetricFromDatapoint(data: {
+        dbMetric: Metric;
+        datapoint: JSONObject;
+        aggregationTemporality: OtelAggregationTemporality;
+        isMonotonic: boolean | undefined;
+    }): Metric {
+        const { dbMetric, datapoint, aggregationTemporality, isMonotonic } =
+            data;
+
         const newDbMetric: Metric = Metric.fromJSON(
             dbMetric.toJSON(),
             Metric
@@ -83,6 +93,26 @@ export default class OTelIngestService {
             newDbMetric.attributes = JSONFunctions.flattenObject(
                 newDbMetric.attributes
             );
+        }
+
+        // aggregationTemporality
+
+        if (aggregationTemporality) {
+            if (
+                aggregationTemporality === OtelAggregationTemporality.Cumulative
+            ) {
+                newDbMetric.aggregationTemporality =
+                    AggregationTemporality.Cumulative;
+            }
+
+            if (aggregationTemporality === OtelAggregationTemporality.Delta) {
+                newDbMetric.aggregationTemporality =
+                    AggregationTemporality.Delta;
+            }
+        }
+
+        if (isMonotonic !== undefined) {
+            newDbMetric.isMonotonic = isMonotonic;
         }
 
         return newDbMetric;

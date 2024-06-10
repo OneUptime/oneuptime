@@ -7,6 +7,18 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 
+export enum AggregationTemporality {
+    Delta = 'Delta',
+    Cumulative = 'Cumulative',
+}
+
+export enum MetricPointType {
+    Sum = 'Sum',
+    Gauge = 'Gauge',
+    Histogram = 'Histogram',
+    ExponentialHistogram = 'ExponentialHistogram',
+}
+
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
         super({
@@ -160,6 +172,52 @@ export default class Metric extends AnalyticsBaseModel {
                     },
                 }),
 
+                new AnalyticsTableColumn({
+                    key: 'aggregationTemporality',
+                    title: 'Aggregation Temporality',
+                    description: 'Aggregation Temporality of this Metric',
+                    required: false,
+                    type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'metricPointType',
+                    title: 'Metric Point Type',
+                    description: 'Metric Point Type of this Metric',
+                    required: false,
+                    type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
                 // this is end time.
                 new AnalyticsTableColumn({
                     key: 'time',
@@ -261,6 +319,29 @@ export default class Metric extends AnalyticsBaseModel {
                     required: true,
                     type: TableColumnType.JSON,
                     defaultValue: {},
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'isMonotonic',
+                    title: 'Is Monotonic',
+                    description: 'Is Monotonic',
+                    required: false,
+                    type: TableColumnType.Boolean,
                     accessControl: {
                         read: [
                             Permission.ProjectOwner,
@@ -465,6 +546,26 @@ export default class Metric extends AnalyticsBaseModel {
         this.setColumnValue('name', v);
     }
 
+    public get aggregationTemporality(): AggregationTemporality | undefined {
+        return this.getColumnValue('aggregationTemporality') as
+            | AggregationTemporality
+            | undefined;
+    }
+
+    public set aggregationTemporality(v: AggregationTemporality | undefined) {
+        this.setColumnValue('aggregationTemporality', v);
+    }
+
+    public get metricPointType(): MetricPointType | undefined {
+        return this.getColumnValue('metricPointType') as
+            | MetricPointType
+            | undefined;
+    }
+
+    public set metricPointType(v: MetricPointType | undefined) {
+        this.setColumnValue('metricPointType', v);
+    }
+
     public get description(): string | undefined {
         return this.getColumnValue('description') as string | undefined;
     }
@@ -479,6 +580,14 @@ export default class Metric extends AnalyticsBaseModel {
 
     public set unit(v: string | undefined) {
         this.setColumnValue('unit', v);
+    }
+
+    public get isMonotonic(): boolean | undefined {
+        return this.getColumnValue('isMonotonic') as boolean | undefined;
+    }
+
+    public set isMonotonic(v: boolean | undefined) {
+        this.setColumnValue('isMonotonic', v);
     }
 
     public set serviceId(v: ObjectID | undefined) {

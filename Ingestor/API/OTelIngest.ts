@@ -1,7 +1,9 @@
 import TelemetryIngest, {
     TelemetryRequest,
 } from '../Middleware/TelemetryIngest';
-import OTelIngestService from '../Service/OTelIngest';
+import OTelIngestService, {
+    OtelAggregationTemporality,
+} from '../Service/OTelIngest';
 import OneUptimeDate from 'Common/Types/Date';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -19,7 +21,7 @@ import Express, {
 import logger from 'CommonServer/Utils/Logger';
 import Response from 'CommonServer/Utils/Response';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import Metric from 'Model/AnalyticsModels/Metric';
+import Metric, { MetricPointType } from 'Model/AnalyticsModels/Metric';
 import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import protobuf from 'protobufjs';
 
@@ -436,10 +438,20 @@ router.post(
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const sumMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (
+                                            metric['sum'] as JSONObject
+                                        )[
+                                            'aggregationTemporality'
+                                        ] as OtelAggregationTemporality,
+                                        isMonotonic: (
+                                            metric['sum'] as JSONObject
+                                        )['isMonotonic'] as boolean | undefined,
+                                    });
+
+                                sumMetric.metricPointType = MetricPointType.Sum;
 
                                 dbMetrics.push(sumMetric);
                             }
@@ -456,10 +468,21 @@ router.post(
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const guageMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (
+                                            metric['gauge'] as JSONObject
+                                        )[
+                                            'aggregationTemporality'
+                                        ] as OtelAggregationTemporality,
+                                        isMonotonic: (
+                                            metric['gauge'] as JSONObject
+                                        )['isMonotonic'] as boolean | undefined,
+                                    });
+
+                                guageMetric.metricPointType =
+                                    MetricPointType.Gauge;
 
                                 dbMetrics.push(guageMetric);
                             }
@@ -476,10 +499,21 @@ router.post(
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const histogramMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (
+                                            metric['histogram'] as JSONObject
+                                        )[
+                                            'aggregationTemporality'
+                                        ] as OtelAggregationTemporality,
+                                        isMonotonic: (
+                                            metric['histogram'] as JSONObject
+                                        )['isMonotonic'] as boolean | undefined,
+                                    });
+
+                                histogramMetric.metricPointType =
+                                    MetricPointType.Histogram;
 
                                 dbMetrics.push(histogramMetric);
                             }
