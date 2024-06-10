@@ -19,7 +19,7 @@ import Express, {
 import logger from 'CommonServer/Utils/Logger';
 import Response from 'CommonServer/Utils/Response';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import Metric from 'Model/AnalyticsModels/Metric';
+import Metric, { MetricPointType } from 'Model/AnalyticsModels/Metric';
 import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import protobuf from 'protobufjs';
 
@@ -441,6 +441,8 @@ router.post(
                                         datapoint
                                     );
 
+                                sumMetric.metricPointType = MetricPointType.Sum;
+
                                 dbMetrics.push(sumMetric);
                             }
                         } else if (
@@ -461,6 +463,9 @@ router.post(
                                         datapoint
                                     );
 
+                                guageMetric.metricPointType =
+                                    MetricPointType.Gauge;
+
                                 dbMetrics.push(guageMetric);
                             }
                         } else if (
@@ -480,6 +485,9 @@ router.post(
                                         dbMetric,
                                         datapoint
                                     );
+
+                                histogramMetric.metricPointType =
+                                    MetricPointType.Histogram;
 
                                 dbMetrics.push(histogramMetric);
                             }

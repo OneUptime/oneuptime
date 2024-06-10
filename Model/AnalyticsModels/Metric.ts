@@ -12,6 +12,13 @@ export enum AggregationTemporality {
     Cumulative = 'Cumulative',
 }
 
+export enum MetricPointType {
+    Sum = 'Sum',
+    Gauge = 'Gauge',
+    Histogram = 'Histogram',
+    ExponentialHistogram = 'ExponentialHistogram',
+}
+
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
         super({
@@ -169,7 +176,30 @@ export default class Metric extends AnalyticsBaseModel {
                     key: 'aggregationTemporality',
                     title: 'Aggregation Temporality',
                     description: 'Aggregation Temporality of this Metric',
-                    required: true,
+                    required: false,
+                    type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'metricPointType',
+                    title: 'Metric Point Type',
+                    description: 'Metric Point Type of this Metric',
+                    required: false,
                     type: TableColumnType.Text,
                     accessControl: {
                         read: [
@@ -501,6 +531,16 @@ export default class Metric extends AnalyticsBaseModel {
 
     public set aggregationTemporality(v: AggregationTemporality | undefined) {
         this.setColumnValue('aggregationTemporality', v);
+    }
+
+    public get metricPointType(): MetricPointType | undefined {
+        return this.getColumnValue('metricPointType') as
+            | MetricPointType
+            | undefined;
+    }
+
+    public set metricPointType(v: MetricPointType | undefined) {
+        this.setColumnValue('metricPointType', v);
     }
 
     public get description(): string | undefined {

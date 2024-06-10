@@ -10,6 +10,7 @@ import AddEndDateToScheduledEventsStateTimeline from './AddEndDateToScheduledEve
 import AddEndedState from './AddEndedState';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
+import AddPointTypeToMetric from './AddPointTypeToMetric';
 import AddPostedAtToPublicNotes from './AddPostedAtToPublicNotes';
 import AddSecretKeyToIncomingRequestMonitor from './AddSecretKeyToIncomingRequestMonitor';
 import AddStartDateToIncidentStateTimeline from './AddStartDateToIncidentStateTimeline';
@@ -63,6 +64,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new AddUnitColumnToMetricsTable(),
     new ChangeMetricColumnTypeToDecimal(),
     new AddAggregationTemporalityToMetric(),
+    new AddPointTypeToMetric(),
 ];
 
 export default DataMigrations;
