@@ -191,7 +191,7 @@ export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
 export const LogLevel: ConfigLogLevel =
-    (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.ERROR;
+    (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.INFO;
 
 export const HttpProtocol: Protocol =
     process.env['HTTP_PROTOCOL'] === 'https' ? Protocol.HTTPS : Protocol.HTTP;

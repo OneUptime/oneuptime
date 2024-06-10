@@ -7,6 +7,14 @@ import { JSONObject } from 'Common/Types/JSON';
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
 export default class logger {
+    public static getLogLevel(): ConfigLogLevel {
+        if (!LogLevel) {
+            return ConfigLogLevel.INFO;
+        }
+
+        return LogLevel;
+    }
+
     public static serializeLogBody(body: LogBody): string {
         if (typeof body === 'string') {
             return body;
@@ -17,9 +25,11 @@ export default class logger {
     }
 
     public static info(message: LogBody): void {
+        const logLevel: ConfigLogLevel = this.getLogLevel();
+
         if (
-            LogLevel === ConfigLogLevel.DEBUG ||
-            LogLevel === ConfigLogLevel.INFO
+            logLevel === ConfigLogLevel.DEBUG ||
+            logLevel === ConfigLogLevel.INFO
         ) {
             // eslint-disable-next-line no-console
             console.info(message);
@@ -32,11 +42,13 @@ export default class logger {
     }
 
     public static error(message: LogBody): void {
+        const logLevel: ConfigLogLevel = this.getLogLevel();
+
         if (
-            LogLevel === ConfigLogLevel.DEBUG ||
-            LogLevel === ConfigLogLevel.INFO ||
-            LogLevel === ConfigLogLevel.WARN ||
-            LogLevel === ConfigLogLevel.ERROR
+            logLevel === ConfigLogLevel.DEBUG ||
+            logLevel === ConfigLogLevel.INFO ||
+            logLevel === ConfigLogLevel.WARN ||
+            logLevel === ConfigLogLevel.ERROR
         ) {
             // eslint-disable-next-line no-console
             console.error(message);
@@ -49,10 +61,12 @@ export default class logger {
     }
 
     public static warn(message: LogBody): void {
+        const logLevel: ConfigLogLevel = this.getLogLevel();
+
         if (
-            LogLevel === ConfigLogLevel.DEBUG ||
-            LogLevel === ConfigLogLevel.INFO ||
-            LogLevel === ConfigLogLevel.WARN
+            logLevel === ConfigLogLevel.DEBUG ||
+            logLevel === ConfigLogLevel.INFO ||
+            logLevel === ConfigLogLevel.WARN
         ) {
             // eslint-disable-next-line no-console
             console.warn(message);
@@ -65,7 +79,9 @@ export default class logger {
     }
 
     public static debug(message: LogBody): void {
-        if (LogLevel === ConfigLogLevel.DEBUG) {
+        const logLevel: ConfigLogLevel = this.getLogLevel();
+
+        if (logLevel === ConfigLogLevel.DEBUG) {
             // eslint-disable-next-line no-console
             console.debug(message);
 
