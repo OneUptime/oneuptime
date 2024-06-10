@@ -45,16 +45,6 @@ export default class StatusAPI {
         description: 'Live check counter',
     });
 
-    public static statusGuage = Telemetry.getGauge({
-        name: 'status.guage',
-        description: 'Status guage',
-    });
-
-    public static stausHistogram = Telemetry.getHistogram({
-        name: 'status.histogram',
-        description: 'Status histogram',
-    });
-
     public static init(options: StatusAPIOptions): ExpressRouter {
         const router: ExpressRouter = Express.getRouter();
 
@@ -68,14 +58,6 @@ export default class StatusAPI {
         // General status
         router.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
             this.statusCheckSuccessCounter.add(1);
-
-            this.statusGuage.addCallback((observableResult)=>{
-                console.log(observableResult);
-                observableResult.observe(1.354);
-            });
-
-
-            this.stausHistogram.record(1.354);
 
             logger.info('Status check: ok');
 

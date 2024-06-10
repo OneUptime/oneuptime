@@ -8,6 +8,7 @@ import AddEndDateToMonitorStatusTimeline from './AddEndDateToMonitorStatusTimeli
 import AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing from './AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing';
 import AddEndDateToScheduledEventsStateTimeline from './AddEndDateToScheduledEventsStateTimeline';
 import AddEndedState from './AddEndedState';
+import AddIsMonotonicToMetric from './AddIsMonotonicToMetric';
 import AddMonitoringDatesToMonitor from './AddMonitoringDatesToMonitors';
 import AddOwnerInfoToProjects from './AddOwnerInfoToProject';
 import AddPointTypeToMetric from './AddPointTypeToMetric';
@@ -65,6 +66,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new ChangeMetricColumnTypeToDecimal(),
     new AddAggregationTemporalityToMetric(),
     new AddPointTypeToMetric(),
+    new AddIsMonotonicToMetric(),
 ];
 
 export default DataMigrations;

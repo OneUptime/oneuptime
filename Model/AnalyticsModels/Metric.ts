@@ -336,7 +336,6 @@ export default class Metric extends AnalyticsBaseModel {
                     },
                 }),
 
-
                 new AnalyticsTableColumn({
                     key: 'isMonotonic',
                     title: 'Is Monotonic',
