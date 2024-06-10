@@ -71,7 +71,7 @@ RUN npm install
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Ingestor /usr/src/app
+COPY ./Copilot /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
