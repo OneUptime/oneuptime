@@ -13,10 +13,8 @@ const MetricViewPage: FunctionComponent<PageComponentProps> = (
 
     return (
         <MetricView
-            metricDetails={{
-                serviceId,
-                metricName,
-            }}
+            serviceId={serviceId}
+            metricName={metricName}
         />
     );
 };

@@ -1,9 +1,8 @@
 import DashboardNavigation from '../../Utils/Navigation';
-import MetricViewDetail, {
-    ComponentProps as MetricViewDetailProps,
-} from './MetricVIewDetail';
+import MetricViewDetail from './MetricVIewDetail';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import IconProp from 'Common/Types/Icon/IconProp';
+import ObjectID from 'Common/Types/ObjectID';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Card from 'CommonUI/src/Components/Card/Card';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
@@ -15,9 +14,8 @@ import Metric from 'Model/AnalyticsModels/Metric';
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
-    metricDetails: MetricViewDetailProps;
-    title: string;
-    description: string;
+    metricName: string;
+    serviceId: ObjectID;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
@@ -38,7 +36,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             const metrics: ListResult<Metric> = await ModelAPI.getList<Metric>({
                 modelType: Metric,
                 query: {
-                    name: props.metricDetails.metricName,
+                    name: props.metricName,
                     projectId: DashboardNavigation.getProjectId(),
                 },
                 skip: 0,
@@ -53,7 +51,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             });
 
             if (metrics.data.length === 0) {
-                setError(`Metric ${props.metricDetails.metricName} not found`);
+                setError(`Metric ${props.metricName} not found`);
                 setIsLoading(false);
                 return;
             }
@@ -98,7 +96,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
             description={metricDescription}
         >
             <MetricViewDetail
-                {...props.metricDetails}
+                metricName={props.metricName}
+                serviceId={props.serviceId}
                 showFilterModal={showFilterModal}
                 onFilterModalClose={() => {
                     setShowFilterModal(false);
