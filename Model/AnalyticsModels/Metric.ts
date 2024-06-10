@@ -336,6 +336,30 @@ export default class Metric extends AnalyticsBaseModel {
                     },
                 }),
 
+
+                new AnalyticsTableColumn({
+                    key: 'isMonotonic',
+                    title: 'Is Monotonic',
+                    description: 'Is Monotonic',
+                    required: false,
+                    type: TableColumnType.Boolean,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
                 new AnalyticsTableColumn({
                     key: 'count',
                     title: 'Count',
@@ -557,6 +581,14 @@ export default class Metric extends AnalyticsBaseModel {
 
     public set unit(v: string | undefined) {
         this.setColumnValue('unit', v);
+    }
+
+    public get isMonotonic(): boolean | undefined {
+        return this.getColumnValue('isMonotonic') as boolean | undefined;
+    }
+
+    public set isMonotonic(v: boolean | undefined) {
+        this.setColumnValue('isMonotonic', v);
     }
 
     public set serviceId(v: ObjectID | undefined) {

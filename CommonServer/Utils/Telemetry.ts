@@ -2,7 +2,9 @@ import OpenTelemetryAPI, { Meter } from '@opentelemetry/api';
 import { Logger, logs } from '@opentelemetry/api-logs';
 import {
     Counter,
+    Histogram,
     MetricOptions,
+    ObservableGauge,
 } from '@opentelemetry/api/build/src/metrics/Metric';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
@@ -231,6 +233,52 @@ export default class Telemetry {
             this.getMeter().createCounter(name, metricOptions);
 
         return counter;
+    }
+
+    // guage
+
+    public static getGauge(data: {
+        name: string;
+        description: string;
+        unit?: string;
+    }): ObservableGauge {
+        const { name, description } = data;
+
+        const metricOptions: MetricOptions = {
+            description: description,
+        };
+
+        if (data.unit) {
+            metricOptions.unit = data.unit;
+        }
+
+        const guage: ObservableGauge<opentelemetry.api.Attributes> =
+            this.getMeter().createObservableGauge(name, metricOptions);
+
+        return guage;
+    }
+
+    // histogram
+
+    public static getHistogram(data: {
+        name: string;
+        description: string;
+        unit?: string;
+    }): Histogram {
+        const { name, description } = data;
+
+        const metricOptions: MetricOptions = {
+            description: description,
+        };
+
+        if (data.unit) {
+            metricOptions.unit = data.unit;
+        }
+
+        const histogram: Histogram<opentelemetry.api.Attributes> =
+            this.getMeter().createHistogram(name, metricOptions);
+
+        return histogram;
     }
 }
 

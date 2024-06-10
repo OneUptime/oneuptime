@@ -1,7 +1,7 @@
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Metric from 'Model/AnalyticsModels/Metric';
+import Metric, { AggregationTemporality } from 'Model/AnalyticsModels/Metric';
 
 export default class OTelIngestService {
     public static getAttributes(items: JSONArray): JSONObject {
@@ -28,10 +28,16 @@ export default class OTelIngestService {
         return JSONFunctions.flattenObject(finalObj);
     }
 
-    public static getMetricFromDatapoint(
+    public static getMetricFromDatapoint(data: {
         dbMetric: Metric,
-        datapoint: JSONObject
+        datapoint: JSONObject,
+        aggregationTemporality: AggregationTemporality,
+        isMonotonic: boolean | undefined
+    }
     ): Metric {
+
+        const { dbMetric, datapoint, aggregationTemporality, isMonotonic } = data;
+
         const newDbMetric: Metric = Metric.fromJSON(
             dbMetric.toJSON(),
             Metric
@@ -83,6 +89,17 @@ export default class OTelIngestService {
             newDbMetric.attributes = JSONFunctions.flattenObject(
                 newDbMetric.attributes
             );
+        }
+
+
+        // aggregationTemporality
+
+        if (aggregationTemporality) {
+            newDbMetric.aggregationTemporality = aggregationTemporality;
+        }
+
+        if(isMonotonic !== undefined) {
+            newDbMetric.isMonotonic = isMonotonic;
         }
 
         return newDbMetric;

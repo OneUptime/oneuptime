@@ -19,7 +19,7 @@ import Express, {
 import logger from 'CommonServer/Utils/Logger';
 import Response from 'CommonServer/Utils/Response';
 import Log, { LogSeverity } from 'Model/AnalyticsModels/Log';
-import Metric, { MetricPointType } from 'Model/AnalyticsModels/Metric';
+import Metric, { AggregationTemporality, MetricPointType } from 'Model/AnalyticsModels/Metric';
 import Span, { SpanKind, SpanStatus } from 'Model/AnalyticsModels/Span';
 import protobuf from 'protobufjs';
 
@@ -134,18 +134,18 @@ router.post(
                         if (
                             resourceSpan['resource'] &&
                             (resourceSpan['resource'] as JSONObject)[
-                                'attributes'
+                            'attributes'
                             ] &&
                             (
                                 (resourceSpan['resource'] as JSONObject)[
-                                    'attributes'
+                                'attributes'
                                 ] as JSONArray
                             ).length > 0
                         ) {
                             attributesObject['resource'] =
                                 OTelIngestService.getAttributes(
                                     (resourceSpan['resource'] as JSONObject)[
-                                        'attributes'
+                                    'attributes'
                                     ] as JSONArray
                                 );
                         }
@@ -193,7 +193,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                                'number'
+                            'number'
                         ) {
                             spanStatusCode = (span['status'] as JSONObject)?.[
                                 'code'
@@ -204,7 +204,7 @@ router.post(
                             span['status'] &&
                             (span['status'] as JSONObject)?.['code'] &&
                             typeof (span['status'] as JSONObject)?.['code'] ===
-                                'string'
+                            'string'
                         ) {
                             if (
                                 (span['status'] as JSONObject)?.['code'] ===
@@ -388,14 +388,14 @@ router.post(
                         if (
                             resourceMetric['resource'] &&
                             (resourceMetric['resource'] as JSONObject)[
-                                'attributes'
+                            'attributes'
                             ] &&
                             ((resourceMetric['resource'] as JSONObject)[
                                 'attributes'
                             ] as JSONArray) instanceof Array &&
                             (
                                 (resourceMetric['resource'] as JSONObject)[
-                                    'attributes'
+                                'attributes'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -403,7 +403,7 @@ router.post(
                                 ...attributesObject,
                                 resource: OTelIngestService.getAttributes(
                                     (resourceMetric['resource'] as JSONObject)[
-                                        'attributes'
+                                    'attributes'
                                     ] as JSONArray
                                 ),
                             };
@@ -428,7 +428,7 @@ router.post(
                             (metric['sum'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['sum'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -436,10 +436,12 @@ router.post(
                                 metric['sum'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const sumMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (metric['sum'] as JSONObject)['aggregationTemporality'] as AggregationTemporality,
+                                        isMonotonic: (metric['sum'] as JSONObject)['isMonotonic'] as boolean | undefined
+                                    });
 
                                 sumMetric.metricPointType = MetricPointType.Sum;
 
@@ -450,7 +452,7 @@ router.post(
                             (metric['gauge'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['gauge'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -458,10 +460,12 @@ router.post(
                                 metric['gauge'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const guageMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (metric['gauge'] as JSONObject)['aggregationTemporality'] as AggregationTemporality,
+                                        isMonotonic: (metric['gauge'] as JSONObject)['isMonotonic'] as boolean | undefined
+                                    });
 
                                 guageMetric.metricPointType =
                                     MetricPointType.Gauge;
@@ -473,7 +477,7 @@ router.post(
                             (metric['histogram'] as JSONObject)['dataPoints'] &&
                             (
                                 (metric['histogram'] as JSONObject)[
-                                    'dataPoints'
+                                'dataPoints'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -481,10 +485,12 @@ router.post(
                                 metric['histogram'] as JSONObject
                             )['dataPoints'] as JSONArray) {
                                 const histogramMetric: Metric =
-                                    OTelIngestService.getMetricFromDatapoint(
-                                        dbMetric,
-                                        datapoint
-                                    );
+                                    OTelIngestService.getMetricFromDatapoint({
+                                        dbMetric: dbMetric,
+                                        datapoint: datapoint,
+                                        aggregationTemporality: (metric['histogram'] as JSONObject)['aggregationTemporality'] as AggregationTemporality,
+                                        isMonotonic: (metric['histogram'] as JSONObject)['isMonotonic'] as boolean | undefined
+                                    });
 
                                 histogramMetric.metricPointType =
                                     MetricPointType.Histogram;
@@ -576,11 +582,11 @@ router.post(
                         if (
                             resourceLog['resource'] &&
                             (resourceLog['resource'] as JSONObject)[
-                                'attributes'
+                            'attributes'
                             ] &&
                             (
                                 (resourceLog['resource'] as JSONObject)[
-                                    'attributes'
+                                'attributes'
                                 ] as JSONArray
                             ).length > 0
                         ) {
@@ -588,7 +594,7 @@ router.post(
                                 ...attributesObject,
                                 resource: OTelIngestService.getAttributes(
                                     (resourceLog['resource'] as JSONObject)[
-                                        'attributes'
+                                    'attributes'
                                     ] as JSONArray
                                 ),
                             };
