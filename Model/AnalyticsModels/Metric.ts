@@ -7,6 +7,11 @@ import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 
+export enum AggregationTemporality {
+    Delta = 'Delta',
+    Cumulative = 'Cumulative',
+}
+
 export default class Metric extends AnalyticsBaseModel {
     public constructor() {
         super({
@@ -142,6 +147,29 @@ export default class Metric extends AnalyticsBaseModel {
                     title: 'Unit',
                     description: 'Unit of the Metric',
                     required: false,
+                    type: TableColumnType.Text,
+                    accessControl: {
+                        read: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.ReadTelemetryServiceLog,
+                        ],
+                        create: [
+                            Permission.ProjectOwner,
+                            Permission.ProjectAdmin,
+                            Permission.ProjectMember,
+                            Permission.CreateTelemetryServiceLog,
+                        ],
+                        update: [],
+                    },
+                }),
+
+                new AnalyticsTableColumn({
+                    key: 'aggregationTemporality',
+                    title: 'Aggregation Temporality',
+                    description: 'Aggregation Temporality of this Metric',
+                    required: true,
                     type: TableColumnType.Text,
                     accessControl: {
                         read: [
@@ -463,6 +491,16 @@ export default class Metric extends AnalyticsBaseModel {
 
     public set name(v: string | undefined) {
         this.setColumnValue('name', v);
+    }
+
+    public get aggregationTemporality(): AggregationTemporality | undefined {
+        return this.getColumnValue('aggregationTemporality') as
+            | AggregationTemporality
+            | undefined;
+    }
+
+    public set aggregationTemporality(v: AggregationTemporality | undefined) {
+        this.setColumnValue('aggregationTemporality', v);
     }
 
     public get description(): string | undefined {

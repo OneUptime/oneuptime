@@ -1,3 +1,4 @@
+import AddAggregationTemporalityToMetric from './AddAggregationTemporalityToMetric';
 import AddAttributeColumnToSpanAndLog from './AddAttributesColumnToSpanAndLog';
 import AddDefaultGlobalConfig from './AddDefaultGlobalConfig';
 import AddDowntimeMonitorStatusToStatusPage from './AddDowntimeMonitorStatusToStatusPage';
@@ -61,6 +62,7 @@ const DataMigrations: Array<DataMigrationBase> = [
     new RemoveCanFromPermissions(),
     new AddUnitColumnToMetricsTable(),
     new ChangeMetricColumnTypeToDecimal(),
+    new AddAggregationTemporalityToMetric(),
 ];
 
 export default DataMigrations;
