@@ -11,12 +11,7 @@ const MetricViewPage: FunctionComponent<PageComponentProps> = (
     const metricName: string = URL.decode(Navigation.getLastParamAsString());
     const serviceId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
-    return (
-        <MetricView
-            serviceId={serviceId}
-            metricName={metricName}
-        />
-    );
+    return <MetricView serviceId={serviceId} metricName={metricName} />;
 };
 
 export default MetricViewPage;

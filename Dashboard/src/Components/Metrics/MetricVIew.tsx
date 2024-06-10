@@ -1,6 +1,7 @@
 import DashboardNavigation from '../../Utils/Navigation';
 import MetricViewDetail from './MetricVIewDetail';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ObjectID from 'Common/Types/ObjectID';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
@@ -29,7 +30,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
     const [error, setError] = React.useState<string>('');
 
-    const fetchFirstMetric = async () => {
+    const fetchFirstMetric: PromiseVoidFunction = async (): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -59,6 +60,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             setMetricName(metrics.data[0]?.name || '');
             setMetricDescription(metrics.data[0]?.description || '');
             setIsLoading(false);
+            setError('');
         } catch (error) {
             setError(API.getFriendlyMessage(error));
             setIsLoading(false);
@@ -66,7 +68,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        fetchFirstMetric().catch((error) => {
+        fetchFirstMetric().catch((error: Error) => {
             setError(API.getFriendlyMessage(error));
             setIsLoading(false);
         });
