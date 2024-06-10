@@ -1,6 +1,7 @@
 import DashboardNavigation from '../../../../../Utils/Navigation';
 import PageComponentProps from '../../../../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
 import ObjectID from 'Common/Types/ObjectID';
 import AnalyticsModelTable from 'CommonUI/src/Components/ModelTable/AnalyticsModelTable';
@@ -36,8 +37,16 @@ const ServiceDelete: FunctionComponent<PageComponentProps> = (
                 groupBy={{
                     name: true,
                 }}
-                onViewPage={async (_item: Metric) => {
-                    return Promise.resolve(new Route(''));
+                onViewPage={async (item: Metric) => {
+                    let metricName: string = item.name?.toString() || '';
+                    metricName = URL.encode(metricName);
+                    return Promise.resolve(
+                        new Route(
+                            Navigation.getCurrentPath().toString() +
+                                '/' +
+                                metricName
+                        )
+                    );
                 }}
                 query={{
                     projectId: DashboardNavigation.getProjectId(),

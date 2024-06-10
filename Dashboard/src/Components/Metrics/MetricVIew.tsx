@@ -1,99 +1,113 @@
-import ObjectID from 'Common/Types/ObjectID';
-import LineChart, {
-    AxisType,
-    XScalePrecision,
-    XScaleType,
-    YScaleType,
-} from 'CommonUI/src/Components/Charts/Line/LineChart';
-import FiltersForm from 'CommonUI/src/Components/Filters/FiltersForm';
-import FilterData from 'CommonUI/src/Components/Filters/Types/FilterData';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DashboardNavigation from '../../Utils/Navigation';
+import MetricViewDetail, {
+    ComponentProps as MetricViewDetailProps,
+} from './MetricVIewDetail';
+import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import IconProp from 'Common/Types/Icon/IconProp';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Card from 'CommonUI/src/Components/Card/Card';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
+import API from 'CommonUI/src/Utils/API/API';
+import ModelAPI from 'CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI';
+import ListResult from 'CommonUI/src/Utils/BaseDatabase/ListResult';
 import Metric from 'Model/AnalyticsModels/Metric';
-import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 
 export interface ComponentProps {
-    metricName: string;
-    serviceId: ObjectID;
+    metricDetails: MetricViewDetailProps;
+    title: string;
+    description: string;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [filterData, setFilterData] = React.useState<FilterData<Metric>>({
-        name: props.metricName,
-        serviceId: props.serviceId,
-    });
+    const [showFilterModal, setShowFilterModal] =
+        React.useState<boolean>(false);
+    const [metricName, setMetricName] = React.useState<string>('');
+    const [metricDescription, setMetricDescription] =
+        React.useState<string>('');
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [error, setError] = React.useState<string>('');
 
-    // const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const fetchFirstMetric = async () => {
+        try {
+            setIsLoading(true);
 
-    // const [values, setValues] = React.useState<Metric[]>([]);
+            const metrics: ListResult<Metric> = await ModelAPI.getList<Metric>({
+                modelType: Metric,
+                query: {
+                    name: props.metricDetails.metricName,
+                    projectId: DashboardNavigation.getProjectId(),
+                },
+                skip: 0,
+                limit: 1,
+                sort: {
+                    createdAt: SortOrder.Descending,
+                },
+                select: {
+                    description: true,
+                    name: true,
+                },
+            });
 
-    useEffect(() => {}, []);
+            if (metrics.data.length === 0) {
+                setError(`Metric ${props.metricDetails.metricName} not found`);
+                setIsLoading(false);
+                return;
+            }
+
+            setMetricName(metrics.data[0]?.name || '');
+            setMetricDescription(metrics.data[0]?.description || '');
+            setIsLoading(false);
+        } catch (error) {
+            setError(API.getFriendlyMessage(error));
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchFirstMetric().catch((error) => {
+            setError(API.getFriendlyMessage(error));
+            setIsLoading(false);
+        });
+    }, []);
+
+    if (isLoading) {
+        return <PageLoader isVisible={true} />;
+    }
+
+    if (error) {
+        return <ErrorMessage error={error} />;
+    }
 
     return (
-        <Fragment>
-            <div>
-                <FiltersForm<Metric>
-                    showFilter={true}
-                    id="metrics-filter"
-                    filterData={filterData}
-                    onFilterChanged={(filterData: FilterData<Metric>) => {
-                        setFilterData(filterData);
-                    }}
-                    filters={[
-                        {
-                            key: 'name',
-                            title: 'Name',
-                            type: FieldType.Text,
-                        },
-                        {
-                            key: 'createdAt',
-                            title: 'Created At',
-                            type: FieldType.Date,
-                        },
-                        {
-                            key: 'serviceId',
-                            title: 'Service',
-                            type: FieldType.Dropdown,
-                            filterDropdownOptions: [],
-                        },
-                    ]}
-                />
-
-                <LineChart
-                    xScale={{
-                        type: XScaleType.TIME,
-                        max: 'auto',
-                        min: 'auto',
-                        precision: XScalePrecision.MINUTE,
-                    }}
-                    yScale={{
-                        type: YScaleType.LINEAR,
-                        min: 'auto',
-                        max: 'auto',
-                    }}
-                    axisBottom={{
-                        type: AxisType.Time,
-                        legend: 'Time',
-                    }}
-                    axisLeft={{
-                        type: AxisType.Number,
-                        legend: 'Value',
-                    }}
-                    data={[
-                        {
-                            seriesName: props.metricName,
-                            data: [{ x: new Date(), y: 0 }],
-                        },
-                    ]}
-                />
-            </div>
-        </Fragment>
+        <Card
+            buttons={[
+                {
+                    title: 'Filter',
+                    onClick: () => {
+                        return setShowFilterModal(true);
+                    },
+                    icon: IconProp.Filter,
+                    buttonStyle: ButtonStyleType.ICON,
+                },
+            ]}
+            title={metricName}
+            description={metricDescription}
+        >
+            <MetricViewDetail
+                {...props.metricDetails}
+                showFilterModal={showFilterModal}
+                onFilterModalClose={() => {
+                    setShowFilterModal(false);
+                }}
+                onFilterModalOpen={() => {
+                    setShowFilterModal(true);
+                }}
+            />
+        </Card>
     );
 };
 
