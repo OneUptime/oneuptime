@@ -104,7 +104,7 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                             serviceCatalog: true,
                         },
                         type: FieldType.Entity,
-                        title: 'Service Catalog',
+                        title: 'Service',
                         filterEntityType: ServiceCatalog,
                         filterQuery: {
                             projectId:
@@ -131,13 +131,13 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                                 serviceColor: true,
                             },
                         },
-                        title: 'Service Catalog',
+                        title: 'Service',
                         type: FieldType.Entity,
 
                         getElement: (item: ServiceRepository): ReactElement => {
                             if (!item['serviceCatalog']) {
                                 throw new BadDataException(
-                                    'Service Catalog not found'
+                                    'Service not found'
                                 );
                             }
 
