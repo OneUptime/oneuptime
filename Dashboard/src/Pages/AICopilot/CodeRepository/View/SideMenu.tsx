@@ -30,6 +30,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Info}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Services',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
+                            ] as Route,
+                            { modelId: props.modelId }
+                        ),
+                    }}
+                    icon={IconProp.SquareStack}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">

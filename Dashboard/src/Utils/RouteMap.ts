@@ -34,6 +34,7 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: `code-repository/${RouteParams.ModelID}`,
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: `code-repository/${RouteParams.ModelID}/delete`,
     [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: `code-repository/${RouteParams.ModelID}/settings`,
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES]: `code-repository/${RouteParams.ModelID}/services`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -458,6 +459,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
             CodeRepositoryRoutePath[
                 PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+            ]
+        }`
+    ),
+
+    [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
+            CodeRepositoryRoutePath[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
             ]
         }`
     ),
