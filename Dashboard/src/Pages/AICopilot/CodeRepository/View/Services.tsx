@@ -61,6 +61,7 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
+                        doNotShowWhenEditing: true,
                     },
                     {
                         field: {
