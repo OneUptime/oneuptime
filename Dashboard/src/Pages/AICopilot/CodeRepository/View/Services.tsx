@@ -25,6 +25,7 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 createVerb={'Add'}
                 isCreateable={true}
+                isEditable={true}
                 isViewable={false}
                 showViewIdButton={true}
                 query={{
