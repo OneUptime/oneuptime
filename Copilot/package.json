@@ -17,6 +17,7 @@
     "dependencies": {
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
+        "CommonUI": "file:../CommonUI",
         "Model": "file:../Model",
         "ts-node": "^10.9.1"
     },
