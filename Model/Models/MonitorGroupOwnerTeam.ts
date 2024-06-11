@@ -4,8 +4,10 @@ import Team from './Team';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
@@ -21,6 +23,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
 @EnableDocumentation()
 @TenantColumn('projectId')
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Free,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Free,
+})
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
