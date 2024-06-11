@@ -2,18 +2,29 @@ import Execute from '../Execute';
 import CodeRepositoryFile from './CodeRepositoryFile';
 
 export default class CodeRepositoryUtil {
-    public static async getGitCommitHashForFile(
+    public static async getGitCommitHashForFile(data: {
+        repoPath: string, 
         filePath: string
+    }
     ): Promise<string> {
+
+        const { repoPath, filePath } = data;
+
         return await Execute.executeCommand(
-            `git log -1 --pretty=format:"%H" ${filePath}`
+            `cd ${repoPath} && git log -1 --pretty=format:"%H" "${filePath}"`
         );
     }
 
-    public static async getFilesInDirectory(directoryPath: string): Promise<{
+    public static async getFilesInDirectory(data: {
+        directoryPath: string,
+        repoPath: string
+    }): Promise<{
         files: Array<CodeRepositoryFile>;
         subDirectories: Array<string>;
     }> {
+
+        const { directoryPath, repoPath } = data;
+
         const files: Array<CodeRepositoryFile> = [];
         const output: string = await Execute.executeCommand(
             `ls ${directoryPath}`
@@ -40,9 +51,10 @@ export default class CodeRepositoryUtil {
             }
 
             const filePath: string = `${directoryPath}/${fileName}`;
-            const gitCommitHash: string = await this.getGitCommitHashForFile(
-                filePath
-            );
+            const gitCommitHash: string = await this.getGitCommitHashForFile({
+                filePath,
+                repoPath 
+        });
             const fileExtension: string = fileName.split('.').pop() || '';
             files.push({
                 filePath,
@@ -58,18 +70,25 @@ export default class CodeRepositoryUtil {
         };
     }
 
-    public static async getFilesInDirectoryRecursive(
+    public static async getFilesInDirectoryRecursive(data: {
+        repoPath: string,
         directoryPath: string
-    ): Promise<Array<CodeRepositoryFile>> {
+    }): Promise<Array<CodeRepositoryFile>> {
         const files: Array<CodeRepositoryFile> = [];
 
         const { files: filesInDirectory, subDirectories } =
-            await this.getFilesInDirectory(directoryPath);
+            await this.getFilesInDirectory({
+                directoryPath: data.directoryPath,
+                repoPath: data.repoPath
+            });
         files.push(...filesInDirectory);
 
         for (const subDirectory of subDirectories) {
             files.push(
-                ...(await this.getFilesInDirectoryRecursive(subDirectory))
+                ...(await this.getFilesInDirectoryRecursive({
+                    repoPath: data.repoPath,
+                    directoryPath: subDirectory
+                }))
             );
         }
 
