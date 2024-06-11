@@ -1,3 +1,4 @@
+import CodeRepository from './CodeRepository';
 import Project from './Project';
 import ServiceCatalog from './ServiceCatalog';
 import User from './User';
@@ -8,6 +9,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import EnableDocumentation from 'Common/Types/Database/EnableDocumentation';
@@ -21,37 +23,40 @@ import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
-@CanAccessIfCanReadOn('serviceCatalog')
+@CanAccessIfCanReadOn('codeRepositoryId')
 @EnableDocumentation()
 @TenantColumn('projectId')
 @TableBillingAccessControl({
     create: PlanSelect.Growth,
-    read: PlanSelect.Free,
+    read: PlanSelect.Growth,
     update: PlanSelect.Growth,
-    delete: PlanSelect.Free,
+    delete: PlanSelect.Growth,
 })
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.CreateServiceCatalogOwnerUser,
+        Permission.CreateCopilotService,
     ],
     read: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.ProjectMember,
-        Permission.ReadServiceCatalogOwnerUser,
+        Permission.ProjectMember,
+        Permission.ReadCopilotService,
     ],
     delete: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.DeleteServiceCatalogOwnerUser,
+        Permission.ProjectMember,
+        Permission.DeleteCopilotService,
     ],
     update: [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
-        Permission.EditServiceCatalogOwnerUser,
+        Permission.ProjectMember,
+        Permission.EditCopilotService,
     ],
 })
 @EnableWorkflow({
@@ -60,30 +65,32 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
     update: true,
     read: true,
 })
-@CrudApiEndpoint(new Route('/service-catalog-owner-user'))
+@CrudApiEndpoint(new Route('/copilot-service'))
 @TableMetadata({
-    tableName: 'ServiceCatalogOwnerUser',
-    singularName: 'Service Catalog User Owner',
-    pluralName: 'Service Catalog User Owners',
-    icon: IconProp.Signal,
-    tableDescription: 'Add users as owners to your Service Catalog.',
+    tableName: 'CopilotService',
+    singularName: 'Service',
+    pluralName: 'Services',
+    icon: IconProp.SquareStack,
+    tableDescription:
+        'Add services to your code repository to categorize and manage them easily. This will help copilot understand and generate code.',
 })
 @Entity({
-    name: 'ServiceCatalogOwnerUser',
+    name: 'CopilotService',
 })
-export default class ServiceCatalogOwnerUser extends BaseModel {
+export default class CopilotService extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -101,7 +108,7 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
         },
         {
             eager: false,
-            nullable: false,
+            nullable: true,
             onDelete: 'CASCADE',
             orphanedRowAction: 'nullify',
         }
@@ -114,13 +121,14 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -145,148 +153,89 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'userId',
-        type: TableColumnType.Entity,
-        modelType: User,
-        title: 'User',
-        description:
-            'User that is the owner. This user will receive notifications. ',
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return User;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'userId' })
-    public user?: User = undefined;
-
-    @ColumnAccessControl({
-        create: [
+        update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.EditCopilotService,
         ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
-        ],
-        update: [],
     })
-    @Index()
     @TableColumn({
-        type: TableColumnType.ObjectID,
         required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.LongText,
         canReadOnRelationQuery: true,
-        title: 'User ID',
-        description: 'ID of your OneUptime User in which this object belongs',
+        title: 'Path in Repository',
+        description:
+            'Path in your code repository where this service is located',
     })
     @Column({
-        type: ColumnType.ObjectID,
         nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        default: '/',
     })
-    public userId?: ObjectID = undefined;
+    public servicePathInRepository?: string = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'serviceCatalogId',
-        type: TableColumnType.Entity,
-        modelType: ServiceCatalog,
-        title: 'Service Catalog',
-        description:
-            'Relation to Service Catalog Resource in which this object belongs',
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return ServiceCatalog;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'serviceCatalogId' })
-    public serviceCatalog?: ServiceCatalog = undefined;
-
-    @ColumnAccessControl({
-        create: [
+        update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.EditCopilotService,
         ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
-        ],
-        update: [],
     })
-    @Index()
     @TableColumn({
-        type: TableColumnType.ObjectID,
-        required: true,
+        required: false,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Number,
         canReadOnRelationQuery: true,
-        title: 'Service Catalog ID',
+        title: 'Limit Number of Open Pull Requests Count',
         description:
-            'ID of your OneUptime Service Catalog in which this object belongs',
+            'Limit Number of Open Pull Requests Count for this service',
     })
     @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
+        nullable: true,
+        type: ColumnType.Number,
+        default: 3,
     })
-    public serviceCatalogId?: ObjectID = undefined;
+    public limitNumberOfOpenPullRequestsCount?: string = undefined;
 
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -317,13 +266,14 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.CreateServiceCatalogOwnerUser,
+            Permission.CreateCopilotService,
         ],
         read: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -346,7 +296,8 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -378,7 +329,8 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.ProjectMember,
-            Permission.ReadServiceCatalogOwnerUser,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
         ],
         update: [],
     })
@@ -394,4 +346,164 @@ export default class ServiceCatalogOwnerUser extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCopilotService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCopilotService,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'codeRepositoryId',
+        type: TableColumnType.Entity,
+        modelType: CodeRepository,
+        title: 'Code Repository',
+        description:
+            'Relation to CodeRepository Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return CodeRepository;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'codeRepositoryId' })
+    public codeRepository?: CodeRepository = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCopilotService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCopilotService,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Code Repository ID',
+        description:
+            'ID of your OneUptime Code Repository in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public codeRepositoryId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCopilotService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCopilotService,
+        ],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'serviceCatalogId',
+        type: TableColumnType.Entity,
+        modelType: ServiceCatalog,
+        title: 'Service Catalog',
+        description:
+            'Relation to Service Catalog Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ServiceCatalog;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'serviceCatalogId' })
+    public serviceCatalog?: ServiceCatalog = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCopilotService,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCopilotService,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCopilotService,
+        ],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Service Catalog ID',
+        description:
+            'ID of your OneUptime ServiceCatalog in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public serviceCatalogId?: ObjectID = undefined;
 }

@@ -466,6 +466,11 @@ enum Permission {
     ReadCodeRepository = 'ReadCodeRepository',
 
     ReadCopilotEvent = 'ReadCopilotEvent',
+
+    CreateCopilotService = 'CreateCopilotService',
+    DeleteCopilotService = 'DeleteCopilotService',
+    EditCopilotService = 'EditCopilotService',
+    ReadCopilotService = 'ReadCopilotService',
 }
 
 export class PermissionHelper {
@@ -2478,6 +2483,39 @@ export class PermissionHelper {
                 title: 'Read Code Repository',
                 description:
                     'This permission can read Code Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
+            {
+                permission: Permission.CreateCopilotService,
+                title: 'Create Copilot Service',
+                description:
+                    'This permission can create Copilot Service this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.DeleteCopilotService,
+                title: 'Delete Copilot Service',
+                description:
+                    'This permission can delete Copilot Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.EditCopilotService,
+                title: 'Edit Copilot Service',
+                description:
+                    'This permission can edit Copilot Service of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.ReadCopilotService,
+                title: 'Read Copilot Service',
+                description:
+                    'This permission can read Copilot Service of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },

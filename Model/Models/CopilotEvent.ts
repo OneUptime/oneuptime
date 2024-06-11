@@ -1,5 +1,7 @@
 import CodeRepository from './CodeRepository';
+import CopilotService from './CopilotService';
 import Project from './Project';
+import ServiceCatalog from './ServiceCatalog';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
@@ -343,4 +345,120 @@ export default class CopilotEvent extends BaseModel {
         nullable: false,
     })
     public copilotEventType?: CopilotEventType = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'serviceCatalogId',
+        type: TableColumnType.Entity,
+        modelType: ServiceCatalog,
+        title: 'Service Catalog',
+        description:
+            'Relation to Service Catalog Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return ServiceCatalog;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'serviceCatalogId' })
+    public serviceCatalog?: ServiceCatalog = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Service Catalog ID',
+        description:
+            'ID of your OneUptime ServiceCatalog in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public serviceCatalogId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'copilotServiceId',
+        type: TableColumnType.Entity,
+        modelType: CopilotService,
+        title: 'Copilot Service',
+        description:
+            'Relation to CopilotService Resource in which this object belongs',
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return CopilotService;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'copilotServiceId' })
+    public copilotService?: CopilotService = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnRelationQuery: true,
+        title: 'Copilot Service ID',
+        description:
+            'ID of your OneUptime CopilotService in which this object belongs',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public copilotServiceId?: ObjectID = undefined;
 }

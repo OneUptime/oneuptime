@@ -227,9 +227,9 @@ export default class ServiceCatalogOwnerTeam extends BaseModel {
         manyToOneRelationColumn: 'serviceCatalogId',
         type: TableColumnType.Entity,
         modelType: ServiceCatalog,
-        title: 'ServiceCatalog',
+        title: 'Service Catalog',
         description:
-            'Relation to ServiceCatalog Resource in which this object belongs',
+            'Relation to Service Catalog Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -265,9 +265,9 @@ export default class ServiceCatalogOwnerTeam extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'ServiceCatalog ID',
+        title: 'Service Catalog ID',
         description:
-            'ID of your OneUptime ServiceCatalog in which this object belongs',
+            'ID of your OneUptime Service Catalog in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
