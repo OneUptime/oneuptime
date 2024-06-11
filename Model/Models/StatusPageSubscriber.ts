@@ -483,6 +483,35 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectMember,
             Permission.ReadStatusPageSubscriber,
         ],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        title: 'Send You Have Subscribed Message',
+        description:
+            'Send You Have Subscribed Message when subscriber is created?',
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public sendYouHaveSubscribedMessage?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateStatusPageSubscriber,
+            Permission.Public,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadStatusPageSubscriber,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,

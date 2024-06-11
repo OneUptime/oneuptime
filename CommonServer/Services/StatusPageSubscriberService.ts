@@ -7,7 +7,9 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import logger from '../Utils/Logger';
 import DatabaseService from './DatabaseService';
 import MailService from './MailService';
+import ProjectCallSMSConfigService from './ProjectCallSMSConfigService';
 import ProjectService from './ProjectService';
+import SmsService from './SmsService';
 import StatusPageService from './StatusPageService';
 import { FileRoute } from 'Common/ServiceRoute';
 import Hostname from 'Common/Types/API/Hostname';
@@ -144,30 +146,85 @@ export class Service extends DatabaseService<Model> {
         onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
+        if (!createdItem.statusPageId) {
+            return createdItem;
+        }
+
+        const statusPageURL: string = await StatusPageService.getStatusPageURL(
+            createdItem.statusPageId
+        );
+
+        const statusPageName: string =
+            onCreate.carryForward.pageTitle ||
+            onCreate.carryForward.name ||
+            'Status Page';
+
+        const host: Hostname = await DatabaseConfig.getHost();
+
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        const unsubscribeLink: string = this.getUnsubscribeLink(
+            URL.fromString(statusPageURL),
+            createdItem.id!
+        ).toString();
+
+        if (
+            createdItem.statusPageId &&
+            createdItem.subscriberPhone &&
+            createdItem._id &&
+            createdItem.sendYouHaveSubscribedMessage
+        ) {
+            const statusPage: StatusPage | null =
+                await StatusPageService.findOneBy({
+                    query: {
+                        _id: createdItem.statusPageId.toString(),
+                    },
+                    select: {
+                        callSmsConfig: {
+                            _id: true,
+                            twilioAccountSID: true,
+                            twilioAuthToken: true,
+                            twilioPhoneNumber: true,
+                        },
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                });
+
+            if (!statusPage) {
+                return createdItem;
+            }
+
+            SmsService.sendSms(
+                {
+                    to: createdItem.subscriberPhone,
+                    message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${unsubscribeLink}`,
+                },
+                {
+                    projectId: createdItem.projectId,
+                    isSensitive: false,
+                    customTwilioConfig:
+                        ProjectCallSMSConfigService.toTwilioConfig(
+                            statusPage.callSmsConfig
+                        ),
+                }
+            ).catch((err: Error) => {
+                logger.error(err);
+            });
+        }
+
         if (
             createdItem.statusPageId &&
             createdItem.subscriberEmail &&
-            createdItem._id
+            createdItem._id &&
+            createdItem.sendYouHaveSubscribedMessage
         ) {
             // Call mail service and send an email.
 
             // get status page domain for this status page.
             // if the domain is not found, use the internal status page preview link.
-
-            const statusPageURL: string =
-                await StatusPageService.getStatusPageURL(
-                    createdItem.statusPageId
-                );
-
-            const statusPageName: string =
-                onCreate.carryForward.pageTitle ||
-                onCreate.carryForward.name ||
-                'Status Page';
-
-            const host: Hostname = await DatabaseConfig.getHost();
-
-            const httpProtocol: Protocol =
-                await DatabaseConfig.getHttpProtocol();
 
             MailService.sendMail(
                 {
@@ -189,10 +246,7 @@ export class Service extends DatabaseService<Model> {
                             .isPublicStatusPage
                             ? 'true'
                             : 'false',
-                        unsubscribeUrl: this.getUnsubscribeLink(
-                            URL.fromString(statusPageURL),
-                            createdItem.id!
-                        ).toString(),
+                        unsubscribeUrl: unsubscribeLink,
                     },
                     subject: 'You have been subscribed to ' + statusPageName,
                 },

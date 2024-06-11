@@ -117,7 +117,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder: 'subscriber@company.com',
             },
-
+            {
+                field: {
+                    sendYouHaveSubscribedMessage: true,
+                },
+                title: 'Send Subscription Email',
+                description:
+                    'Send "You have subscribed to this status page" email to this subscriber?',
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+            },
             {
                 field: {
                     isUnsubscribed: true,
