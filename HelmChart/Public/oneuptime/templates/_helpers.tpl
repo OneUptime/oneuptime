@@ -17,7 +17,7 @@ Usage:
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
-  value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan }}
+  value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
 - name: OTEL_COLLECTOR_HOST
   value: {{ $.Values.openTelemetryCollectorHost }}
 - name: LOG_LEVEL
