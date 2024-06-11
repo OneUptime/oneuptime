@@ -33,6 +33,9 @@ import CallLogService, {
 import CopilotEventService, {
     Service as CopilotEventServiceType,
 } from 'CommonServer/Services/CopilotEventService';
+import CopilotServiceService, {
+    Service as CopilotServiceType,
+} from 'CommonServer/Services/CopilotServiceService';
 import DomainService, {
     Service as DomainServiceType,
 } from 'CommonServer/Services/DomainService';
@@ -295,6 +298,7 @@ import ApiKey from 'Model/Models/ApiKey';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import CallLog from 'Model/Models/CallLog';
 import CopilotEvent from 'Model/Models/CopilotEvent';
+import CopilotService from 'Model/Models/CopilotService';
 import Domain from 'Model/Models/Domain';
 import EmailLog from 'Model/Models/EmailLog';
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
@@ -475,6 +479,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
             new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
+        );
+
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new BaseAPI<CopilotService, CopilotServiceType>(
+                CopilotService,
+                CopilotServiceService
+            ).getRouter()
         );
 
         app.use(
