@@ -226,8 +226,8 @@ const MonitorCriteria: FunctionComponent<PageComponentProps> = (
                                 title: 'Disable Monitor',
                                 description:
                                     'Should the new monitor be disabled when its duplicated?',
-                                defaultValue: true,
                                 fieldType: FormFieldSchemaType.Toggle,
+                                defaultValue: true,
                                 required: false,
                             },
                         ]}
