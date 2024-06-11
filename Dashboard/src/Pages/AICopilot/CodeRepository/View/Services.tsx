@@ -22,7 +22,6 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                 modelType={ServiceRepository}
                 id="table-service-repository-page"
                 name="Code Repository > Service Repository"
-                singularName="Team"
                 isDeleteable={true}
                 createVerb={'Add'}
                 isCreateable={true}
@@ -129,7 +128,7 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                         field: {
                             serviceCatalog: {
                                 name: true,
-                                color: true,
+                                serviceColor: true,
                             },
                         },
                         title: 'Service Catalog',
