@@ -191,7 +191,7 @@ export const GitSha: string = process.env['GIT_SHA'] || 'unknown';
 export const AppVersion: string = process.env['APP_VERSION'] || 'unknown';
 
 export const LogLevel: ConfigLogLevel =
-    (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.ERROR;
+    (process.env['LOG_LEVEL'] as ConfigLogLevel) || ConfigLogLevel.INFO;
 
 export const HttpProtocol: Protocol =
     process.env['HTTP_PROTOCOL'] === 'https' ? Protocol.HTTPS : Protocol.HTTP;
@@ -203,3 +203,11 @@ export const WorkflowScriptTimeoutInMS: number = process.env[
 ]
     ? parseInt(process.env['WORKFLOW_SCRIPT_TIMEOUT_IN_MS'].toString())
     : 5000;
+
+export const AllowedActiveMonitorCountInFreePlan: number = process.env[
+    'ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN'
+]
+    ? parseInt(
+          process.env['ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN'].toString()
+      )
+    : 10;

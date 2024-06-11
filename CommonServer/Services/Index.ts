@@ -12,6 +12,7 @@ import BillingService from './BillingService';
 import CallLogService from './CallLogService';
 import CallService from './CallService';
 import CodeRepositoryService from './CodeRepositoryService';
+import CopilotEventService from './CopilotEventService';
 import DataMigrationService from './DataMigrationService';
 import DomainService from './DomainService';
 import EmailLogService from './EmailLogService';
@@ -83,6 +84,7 @@ import ScheduledMaintenanceStateTimelineService from './ScheduledMaintenanceStat
 import ServiceCatalogOwnerTeamService from './ServiceCatalogOwnerTeamService';
 import ServiceCatalogOwnerUserService from './ServiceCatalogOwnerUserService';
 import ServiceCatalogService from './ServiceCatalogService';
+import ServiceRepositoryService from './ServiceRepositoryService';
 import ShortLinkService from './ShortLinkService';
 // SMS Log Service
 import SmsLogService from './SmsLogService';
@@ -256,6 +258,8 @@ const services: Array<BaseService> = [
     ServiceCatalogOwnerUserService,
 
     CodeRepositoryService,
+    CopilotEventService,
+    ServiceRepositoryService,
 ];
 
 export const AnalyticsServices: Array<

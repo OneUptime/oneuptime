@@ -24,6 +24,10 @@ export function getCodeRepositoryBreadcrumbs(
             PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS,
             ['Project', 'AI Copilot', 'View Git Repository', 'Settings']
         ),
+        ...BuildBreadcrumbLinksByTitles(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES,
+            ['Project', 'AI Copilot', 'View Git Repository', 'Services']
+        ),
     };
     return breadcrumpLinksMap[path];
 }

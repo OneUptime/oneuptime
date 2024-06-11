@@ -2040,6 +2040,7 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         statusPageSubscriber.statusPageId = objectId;
+        statusPageSubscriber.sendYouHaveSubscribedMessage = true;
         statusPageSubscriber.projectId = statusPage.projectId!;
         statusPageSubscriber.isSubscribedToAllResources = Boolean(
             req.body.data['isSubscribedToAllResources']

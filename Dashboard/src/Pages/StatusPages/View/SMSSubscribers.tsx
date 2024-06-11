@@ -118,7 +118,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 required: true,
                 placeholder: '+11234567890',
             },
-
+            {
+                field: {
+                    sendYouHaveSubscribedMessage: true,
+                },
+                title: 'Send Subscription SMS',
+                description:
+                    'Send "You have subscribed to this status page" SMS to this subscriber?',
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+                doNotShowWhenEditing: true,
+            },
             {
                 field: {
                     isUnsubscribed: true,
@@ -128,6 +138,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     'Unsubscribe this phone number from the status page.',
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
+                doNotShowWhenCreating: true,
             },
         ];
 

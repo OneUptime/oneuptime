@@ -7,6 +7,7 @@ import BillingInvoice from './BillingInvoice';
 import BillingPaymentMethods from './BillingPaymentMethod';
 import CallLog from './CallLog';
 import CodeRepository from './CodeRepository';
+import CopilotEvent from './CopilotEvent';
 // Date migration
 import DataMigration from './DataMigration';
 import Domain from './Domain';
@@ -83,6 +84,7 @@ import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeli
 import ServiceCatalog from './ServiceCatalog';
 import ServiceCatalogOwnerTeam from './ServiceCatalogOwnerTeam';
 import ServiceCatalogOwnerUser from './ServiceCatalogOwnerUser';
+import ServiceRepository from './ServiceRepository';
 // Short link.
 import ShortLink from './ShortLink';
 // SMS
@@ -264,4 +266,6 @@ export default [
     ServiceCatalogOwnerUser,
 
     CodeRepository,
+    CopilotEvent,
+    ServiceRepository,
 ];

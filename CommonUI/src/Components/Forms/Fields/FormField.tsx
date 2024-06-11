@@ -632,7 +632,8 @@ const FormField: <T extends GenericObject>(
                                     ? (props.currentValues as any)[
                                           props.fieldName
                                       ]
-                                    : false
+                                    : (props.field.defaultValue as boolean) ||
+                                      false
                             }
                         />
                     )}

@@ -17,7 +17,7 @@ const CodeRepositoryViewLayout: FunctionComponent<PageComponentProps> = (
     const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
     return (
         <ModelPage
-            title="Service"
+            title="Repository"
             modelType={CodeRepository}
             modelId={modelId}
             modelNameField="name"

@@ -20,6 +20,20 @@
     ],
     "configurations": [
         {
+            "name": "Debug: Copilot Locally",
+            "request": "launch",
+            "localRoot": "${workspaceFolder}/Copilot",
+            "runtimeArgs": [
+                "run-script",
+                "start"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Debug Infrastructure Agent",
             "type": "go",
             "request": "launch",

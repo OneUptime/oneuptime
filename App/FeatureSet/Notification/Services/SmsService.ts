@@ -59,6 +59,18 @@ export default class SmsService {
                 smsCost = smsCost * smsSegments;
             }
 
+            smsLog.toNumber = to;
+
+            smsLog.smsText =
+                options && options.isSensitive
+                    ? 'This message is sensitive and is not logged'
+                    : message;
+            smsLog.smsCostInUSDCents = 0;
+
+            if (options.projectId) {
+                smsLog.projectId = options.projectId;
+            }
+
             const twilioConfig: TwilioConfig | null =
                 options.customTwilioConfig || (await getTwilioConfig());
 
@@ -71,17 +83,7 @@ export default class SmsService {
                 twilioConfig.authToken
             );
 
-            smsLog.toNumber = to;
             smsLog.fromNumber = twilioConfig.phoneNumber;
-            smsLog.smsText =
-                options && options.isSensitive
-                    ? 'This message is sensitive and is not logged'
-                    : message;
-            smsLog.smsCostInUSDCents = 0;
-
-            if (options.projectId) {
-                smsLog.projectId = options.projectId;
-            }
 
             let project: Project | null = null;
 

@@ -161,10 +161,14 @@ const ModelTable: <TBaseModel extends BaseModel>(
                                     props.formFields?.filter(
                                         (field: ModelField<TBaseModel>) => {
                                             // If the field has doNotShowWhenEditing set to true, then don't show it when editing
-                                            return !(
-                                                field.doNotShowWhenEditing &&
-                                                modelIdToEdit
-                                            );
+
+                                            if (modelIdToEdit) {
+                                                return !field.doNotShowWhenEditing;
+                                            }
+
+                                            // If the field has doNotShowWhenCreating set to true, then don't show it when creating
+
+                                            return !field.doNotShowWhenCreating;
                                         }
                                     ) || [],
                                 steps: props.formSteps || [],

@@ -94,6 +94,12 @@ RunCron(
                             fromName: true,
                             secure: true,
                         },
+                        callSmsConfig: {
+                            _id: true,
+                            twilioAccountSID: true,
+                            twilioAuthToken: true,
+                            twilioPhoneNumber: true,
+                        },
                     },
                 });
 

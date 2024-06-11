@@ -464,6 +464,13 @@ enum Permission {
     DeleteCodeRepository = 'DeleteCodeRepository',
     EditCodeRepository = 'EditCodeRepository',
     ReadCodeRepository = 'ReadCodeRepository',
+
+    ReadCopilotEvent = 'ReadCopilotEvent',
+
+    CreateServiceRepository = 'CreateServiceRepository',
+    DeleteServiceRepository = 'DeleteServiceRepository',
+    EditServiceRepository = 'EditServiceRepository',
+    ReadServiceRepository = 'ReadServiceRepository',
 }
 
 export class PermissionHelper {
@@ -2478,6 +2485,48 @@ export class PermissionHelper {
                     'This permission can read Code Repository of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
+            },
+
+            {
+                permission: Permission.CreateServiceRepository,
+                title: 'Create Service Repository',
+                description:
+                    'This permission can create Service Repository this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.DeleteServiceRepository,
+                title: 'Delete Service Repository',
+                description:
+                    'This permission can delete Service Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.EditServiceRepository,
+                title: 'Edit Service Repository',
+                description:
+                    'This permission can edit Service Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.ReadServiceRepository,
+                title: 'Read Service Repository',
+                description:
+                    'This permission can read Service Repository of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
+            {
+                permission: Permission.ReadCopilotEvent,
+                title: 'Read Copilot Event',
+                description:
+                    'This permission can read Copilot Event of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
             },
 
             {

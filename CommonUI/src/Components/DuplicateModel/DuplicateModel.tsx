@@ -86,7 +86,10 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
                 Navigation.navigate(
                     new Route(props.navigateToOnSuccess.toString()).addRoute(
                         `/${newItem.data.id!.toString()}`
-                    )
+                    ),
+                    {
+                        forceNavigate: true,
+                    }
                 );
             }
         } catch (err) {

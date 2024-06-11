@@ -114,6 +114,7 @@ billing:
   callDefaultValueInCentsPerMinute:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute: 
+  allowedActiveMonitorCountInFreePlan: 10
 
 subscriptionPlan: 
   basic: 

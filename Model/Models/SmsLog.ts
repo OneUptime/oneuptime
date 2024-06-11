@@ -148,14 +148,14 @@ export default class SmsLog extends BaseModel {
     })
     @Index()
     @TableColumn({
-        required: true,
+        required: false, // false because we may not have a from number if you dont have a twilio config.
         type: TableColumnType.Phone,
         title: 'From Number',
         description: 'Phone Number SMS was sent from',
         canReadOnRelationQuery: false,
     })
     @Column({
-        nullable: false,
+        nullable: true,
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
         transformer: Phone.getDatabaseTransformer(),

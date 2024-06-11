@@ -33,6 +33,24 @@ import {
     ManyToOne,
 } from 'typeorm';
 
+export enum ServiceLanguage {
+    NodeJS = 'NodeJS',
+    Python = 'Python',
+    Ruby = 'Ruby',
+    Go = 'Go',
+    Java = 'Java',
+    PHP = 'PHP',
+    CSharp = 'C#',
+    CPlusPlus = 'C++',
+    Rust = 'Rust',
+    Swift = 'Swift',
+    Kotlin = 'Kotlin',
+    TypeScript = 'TypeScript',
+    JavaScript = 'JavaScript',
+    Shell = 'Shell',
+    Other = 'Other',
+}
+
 @AccessControlColumn('labels')
 @EnableDocumentation()
 @TenantColumn('projectId')
@@ -459,4 +477,39 @@ export default class ServiceCatalog extends BaseModel {
         transformer: Color.getDatabaseTransformer(),
     })
     public serviceColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateServiceCatalog,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadServiceCatalog,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditServiceCatalog,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Service Language',
+        description: 'Language in which this service is written',
+    })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public serviceLanguage?: ServiceLanguage = undefined;
 }

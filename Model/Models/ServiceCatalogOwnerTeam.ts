@@ -4,8 +4,10 @@ import Team from './Team';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -23,6 +25,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 @CanAccessIfCanReadOn('serviceCatalog')
 @EnableDocumentation()
 @TenantColumn('projectId')
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Free,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Free,
+})
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
@@ -219,9 +227,9 @@ export default class ServiceCatalogOwnerTeam extends BaseModel {
         manyToOneRelationColumn: 'serviceCatalogId',
         type: TableColumnType.Entity,
         modelType: ServiceCatalog,
-        title: 'ServiceCatalog',
+        title: 'Service Catalog',
         description:
-            'Relation to ServiceCatalog Resource in which this object belongs',
+            'Relation to Service Catalog Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
@@ -257,9 +265,9 @@ export default class ServiceCatalogOwnerTeam extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'ServiceCatalog ID',
+        title: 'Service Catalog ID',
         description:
-            'ID of your OneUptime ServiceCatalog in which this object belongs',
+            'ID of your OneUptime Service Catalog in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
