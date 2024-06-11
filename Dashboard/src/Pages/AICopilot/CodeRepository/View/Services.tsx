@@ -85,6 +85,17 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                             'OneUptime will not create a new pull request if the number of open pull requests for this service is more than the limit specified here.',
                         placeholder: '/',
                     },
+                    {
+                        field: {
+                            enablePullRequests: true,
+                        },
+                        title: 'Enable Pull Requests',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        defaultValue: true,
+                        required: false,
+                        description:
+                            'If enabled, OneUptime will create pull requests for this service and automatically improve code.',
+                    },
                 ]}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -153,6 +164,13 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Number of Open Pull Requests',
                         type: FieldType.Number,
+                    },
+                    {
+                        field: {
+                            enablePullRequests: true,
+                        },
+                        title: 'Enable Pull Requests',
+                        type: FieldType.Boolean,
                     },
                 ]}
             />
