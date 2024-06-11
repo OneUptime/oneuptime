@@ -17,7 +17,7 @@ export default class CodeRepositoryAPI extends BaseAPI<CodeRepository, CodeRepos
     public constructor() {
         super(CodeRepository, CodeRepositoryService);
 
-        this.router.post(
+        this.router.get(
             `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/get-code-repository/:secretkey`,

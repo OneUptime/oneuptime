@@ -1,21 +1,31 @@
 import CodeRepositoryModel from 'Model/Models/CodeRepository';
-import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import URL from 'Common/Types/API/URL';
-import { OneUptimeURL, RepositorySecretKey } from '../Config';
-import ObjectID from 'Common/Types/ObjectID';
+import { GetOneUptimeURL, GetRepositorySecretKey } from '../Config';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import API from 'Common/Utils/API';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class CodeRepositoryUtil {
     public static async getCodeRepository(): Promise<CodeRepositoryModel> {
-        const codeRepository: CodeRepositoryModel | null =  await ModelAPI.getItem<CodeRepositoryModel>({
-            modelType: CodeRepositoryModel,
-            select: {},
-            requestOptions: {
-                overrideRequestUrl: URL.fromString(OneUptimeURL.toString()+'/api').addRoute(`${new CodeRepositoryModel().getCrudApiPath()
-                    ?.toString()}/get-code-repository/${RepositorySecretKey}`),
-            },
-            id: ObjectID.getZeroObjectID() // we dont care about this id. 
-        });
+
+        const repositorySecretKey = GetRepositorySecretKey();
+
+        if (!repositorySecretKey) {
+            throw new BadDataException('Repository Secret Key is required');
+        }
+
+        const url: URL = URL.fromString(GetOneUptimeURL().toString()+'/api').addRoute(`${new CodeRepositoryModel().getCrudApiPath()?.toString()}/get-code-repository/${repositorySecretKey}`);
+
+        const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =  await API.get(url);        
+
+
+        if(codeRepositoryResult instanceof HTTPErrorResponse) {
+            throw codeRepositoryResult; 
+        }
+
+        const codeRepository = CodeRepositoryModel.fromJSON(codeRepositoryResult.data as JSONObject, CodeRepositoryModel) as CodeRepositoryModel;
 
         if(!codeRepository) {
             throw new BadDataException('Code Repository not found with the secret key provided.');

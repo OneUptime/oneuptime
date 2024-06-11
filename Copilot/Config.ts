@@ -1,13 +1,19 @@
 import URL from 'Common/Types/API/URL';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 
-export const OneUptimeURL: URL = URL.fromString(
-    process.env['ONEUPTIME_URL'] || 'https://oneuptime.com'
-);
+type GetStringFunction = () => string;
+type GetURLFunction = () => URL;
 
-export const RepositorySecretKey: string =
-    process.env['ONEUPTIME_REPOSITORY_SECRET_KEY'] || '';
+export const GetOneUptimeURL: GetURLFunction = () => {
+    return URL.fromString(
+        process.env['ONEUPTIME_URL'] || 'https://oneuptime.com'
+    );
+} 
 
-if (!RepositorySecretKey) {
-    throw new BadDataException('Repository Secret Key is required');
+export const GetRepositorySecretKey: GetStringFunction = (): string => {
+    return process.env['ONEUPTIME_REPOSITORY_SECRET_KEY'] || '';
 }
+
+export const GetLocalRepositoryPath: GetStringFunction = (): string => {
+    return process.env['ONEUPTIME_LOCAL_REPOSITORY_PATH'] || '/repository';
+};
+
