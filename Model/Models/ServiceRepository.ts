@@ -237,6 +237,43 @@ export default class ServiceRepository extends BaseModel {
             Permission.ProjectMember,
             Permission.ReadServiceRepository,
         ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditServiceRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
+        title: 'Enable Pull Requests',
+        description:
+            'Copilot will automatically improve your code by creating pull requests for this service',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public enablePullRequests?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateServiceRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadServiceRepository,
+        ],
         update: [],
     })
     @TableColumn({
