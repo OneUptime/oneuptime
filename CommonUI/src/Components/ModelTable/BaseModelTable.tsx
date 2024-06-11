@@ -154,7 +154,7 @@ export interface BaseTableProps<
     disablePagination?: undefined | boolean;
     formFields?: undefined | Array<ModelField<TBaseModel>>;
     formSteps?: undefined | Array<FormStep<TBaseModel>>;
-    noItemsMessage?: undefined | string;
+    noItemsMessage?: undefined | string | ReactElement;
     showRefreshButton?: undefined | boolean;
     isViewable?: undefined | boolean;
     showViewIdButton?: undefined | boolean;

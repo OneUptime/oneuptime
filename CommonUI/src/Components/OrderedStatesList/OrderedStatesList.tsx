@@ -10,7 +10,7 @@ import React, { ReactElement } from 'react';
 export interface ComponentProps<T extends GenericObject> {
     data: Array<T>;
     onCreateNewItem?: ((order: number) => void) | undefined;
-    noItemsMessage?: string | undefined;
+    noItemsMessage?: string | ReactElement | undefined;
     error?: string | undefined;
     isLoading?: boolean | undefined;
     onRefreshClick?: (() => void) | undefined;

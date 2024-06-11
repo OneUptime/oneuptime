@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
-    error: string;
+    error: string | ReactElement;
     onRefreshClick?: undefined | (() => void);
 }
 
