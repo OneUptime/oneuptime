@@ -84,6 +84,7 @@ import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeli
 import ServiceCatalog from './ServiceCatalog';
 import ServiceCatalogOwnerTeam from './ServiceCatalogOwnerTeam';
 import ServiceCatalogOwnerUser from './ServiceCatalogOwnerUser';
+import ServiceRepository from './ServiceRepository';
 // Short link.
 import ShortLink from './ShortLink';
 // SMS
@@ -123,7 +124,6 @@ import UserSms from './UserSMS';
 import Workflow from './Workflow';
 import WorkflowLog from './WorkflowLog';
 import WorkflowVariables from './WorkflowVariable';
-import ServiceRepository from './ServiceRepository';
 
 export default [
     User,

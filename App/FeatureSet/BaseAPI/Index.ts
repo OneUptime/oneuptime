@@ -33,9 +33,6 @@ import CallLogService, {
 import CopilotEventService, {
     Service as CopilotEventServiceType,
 } from 'CommonServer/Services/CopilotEventService';
-import CopilotServiceService, {
-    Service as CopilotServiceType,
-} from 'CommonServer/Services/CopilotServiceService';
 import DomainService, {
     Service as DomainServiceType,
 } from 'CommonServer/Services/DomainService';
@@ -210,6 +207,9 @@ import ServiceCatalogOwnerUserService, {
 import ServiceCatalogService, {
     Service as ServiceCatalogServiceType,
 } from 'CommonServer/Services/ServiceCatalogService';
+import ServiceRepositoryService, {
+    Service as ServiceRepositoryType,
+} from 'CommonServer/Services/ServiceRepositoryService';
 import ShortLinkService, {
     Service as ShortLinkServiceType,
 } from 'CommonServer/Services/ShortLinkService';
@@ -298,7 +298,6 @@ import ApiKey from 'Model/Models/ApiKey';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import CallLog from 'Model/Models/CallLog';
 import CopilotEvent from 'Model/Models/CopilotEvent';
-import CopilotService from 'Model/Models/CopilotService';
 import Domain from 'Model/Models/Domain';
 import EmailLog from 'Model/Models/EmailLog';
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
@@ -354,6 +353,7 @@ import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenance
 import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import ServiceCatalogOwnerTeam from 'Model/Models/ServiceCatalogOwnerTeam';
 import ServiceCatalogOwnerUser from 'Model/Models/ServiceCatalogOwnerUser';
+import ServiceRepository from 'Model/Models/ServiceRepository';
 import ShortLink from 'Model/Models/ShortLink';
 import SmsLog from 'Model/Models/SmsLog';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -483,9 +483,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
-            new BaseAPI<CopilotService, CopilotServiceType>(
-                CopilotService,
-                CopilotServiceService
+            new BaseAPI<ServiceRepository, ServiceRepositoryType>(
+                ServiceRepository,
+                ServiceRepositoryService
             ).getRouter()
         );
 

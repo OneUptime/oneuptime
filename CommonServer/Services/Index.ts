@@ -259,7 +259,7 @@ const services: Array<BaseService> = [
 
     CodeRepositoryService,
     CopilotEventService,
-    ServiceRepositoryService
+    ServiceRepositoryService,
 ];
 
 export const AnalyticsServices: Array<
