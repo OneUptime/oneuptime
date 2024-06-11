@@ -8,7 +8,6 @@ import BillingPaymentMethods from './BillingPaymentMethod';
 import CallLog from './CallLog';
 import CodeRepository from './CodeRepository';
 import CopilotEvent from './CopilotEvent';
-import CopilotService from './CopilotService';
 // Date migration
 import DataMigration from './DataMigration';
 import Domain from './Domain';
@@ -124,6 +123,7 @@ import UserSms from './UserSMS';
 import Workflow from './Workflow';
 import WorkflowLog from './WorkflowLog';
 import WorkflowVariables from './WorkflowVariable';
+import ServiceRepository from './ServiceRepository';
 
 export default [
     User,
@@ -267,5 +267,5 @@ export default [
 
     CodeRepository,
     CopilotEvent,
-    CopilotService,
+    ServiceRepository,
 ];

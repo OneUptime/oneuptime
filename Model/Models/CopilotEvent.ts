@@ -1,5 +1,5 @@
 import CodeRepository from './CodeRepository';
-import CopilotService from './CopilotService';
+import ServiceRepository from './ServiceRepository';
 import Project from './Project';
 import ServiceCatalog from './ServiceCatalog';
 import User from './User';
@@ -415,16 +415,16 @@ export default class CopilotEvent extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'copilotServiceId',
+        manyToOneRelationColumn: 'serviceRepositoryId',
         type: TableColumnType.Entity,
-        modelType: CopilotService,
-        title: 'Copilot Service',
+        modelType: ServiceRepository,
+        title: 'Service Repository',
         description:
-            'Relation to CopilotService Resource in which this object belongs',
+            'Relation to Service Repository Resource in which this object belongs',
     })
     @ManyToOne(
         (_type: string) => {
-            return CopilotService;
+            return ServiceRepository;
         },
         {
             eager: false,
@@ -433,8 +433,8 @@ export default class CopilotEvent extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'copilotServiceId' })
-    public copilotService?: CopilotService = undefined;
+    @JoinColumn({ name: 'serviceRepositoryId' })
+    public serviceRepository?: ServiceRepository = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -451,14 +451,14 @@ export default class CopilotEvent extends BaseModel {
         type: TableColumnType.ObjectID,
         required: true,
         canReadOnRelationQuery: true,
-        title: 'Copilot Service ID',
+        title: 'Service Repository ID',
         description:
-            'ID of your OneUptime CopilotService in which this object belongs',
+            'ID of your OneUptime Service Repository in which this object belongs',
     })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public copilotServiceId?: ObjectID = undefined;
+    public serviceRepositoryId?: ObjectID = undefined;
 }

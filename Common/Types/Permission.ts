@@ -467,10 +467,10 @@ enum Permission {
 
     ReadCopilotEvent = 'ReadCopilotEvent',
 
-    CreateCopilotService = 'CreateCopilotService',
-    DeleteCopilotService = 'DeleteCopilotService',
-    EditCopilotService = 'EditCopilotService',
-    ReadCopilotService = 'ReadCopilotService',
+    CreateServiceRepository = 'CreateServiceRepository',
+    DeleteServiceRepository = 'DeleteServiceRepository',
+    EditServiceRepository = 'EditServiceRepository',
+    ReadServiceRepository = 'ReadServiceRepository',
 }
 
 export class PermissionHelper {
@@ -2488,34 +2488,34 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CreateCopilotService,
-                title: 'Create Copilot Service',
+                permission: Permission.CreateServiceRepository,
+                title: 'Create Service Repository',
                 description:
-                    'This permission can create Copilot Service this project.',
+                    'This permission can create Service Repository this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.DeleteCopilotService,
-                title: 'Delete Copilot Service',
+                permission: Permission.DeleteServiceRepository,
+                title: 'Delete Service Repository',
                 description:
-                    'This permission can delete Copilot Service of this project.',
+                    'This permission can delete Service Repository of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.EditCopilotService,
-                title: 'Edit Copilot Service',
+                permission: Permission.EditServiceRepository,
+                title: 'Edit Service Repository',
                 description:
-                    'This permission can edit Copilot Service of this project.',
+                    'This permission can edit Service Repository of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
             {
-                permission: Permission.ReadCopilotService,
-                title: 'Read Copilot Service',
+                permission: Permission.ReadServiceRepository,
+                title: 'Read Service Repository',
                 description:
-                    'This permission can read Copilot Service of this project.',
+                    'This permission can read Service Repository of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
