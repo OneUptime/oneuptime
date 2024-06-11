@@ -165,7 +165,9 @@ describe('DuplicateModel', () => {
         await waitFor(() => {
             return expect(
                 require('../../Utils/Navigation').navigate
-            ).toBeCalledWith(new Route('/done/foobar'));
+            ).toBeCalledWith(new Route('/done/foobar'), {
+                forceNavigate: true,
+            });
         });
     });
     it('closes confirmation dialog when close button is clicked', () => {

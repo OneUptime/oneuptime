@@ -1,13 +1,12 @@
 import Execute from '../Execute';
 import CodeRepositoryFile from './CodeRepositoryFile';
+import Dictionary from 'Common/Types/Dictionary';
 
 export default class CodeRepositoryUtil {
     public static async getGitCommitHashForFile(data: {
-        repoPath: string, 
-        filePath: string
-    }
-    ): Promise<string> {
-
+        repoPath: string;
+        filePath: string;
+    }): Promise<string> {
         const { repoPath, filePath } = data;
 
         return await Execute.executeCommand(
@@ -16,16 +15,15 @@ export default class CodeRepositoryUtil {
     }
 
     public static async getFilesInDirectory(data: {
-        directoryPath: string,
-        repoPath: string
+        directoryPath: string;
+        repoPath: string;
     }): Promise<{
-        files: Array<CodeRepositoryFile>;
+        files: Dictionary<CodeRepositoryFile>;
         subDirectories: Array<string>;
     }> {
-
         const { directoryPath, repoPath } = data;
 
-        const files: Array<CodeRepositoryFile> = [];
+        const files: Dictionary<CodeRepositoryFile> = {};
         const output: string = await Execute.executeCommand(
             `ls ${directoryPath}`
         );
@@ -41,7 +39,7 @@ export default class CodeRepositoryUtil {
 
             const isDirectory: boolean = (
                 await Execute.executeCommand(
-                    `file ${directoryPath}/${fileName}`
+                    `file "${directoryPath}/${fileName}"`
                 )
             ).includes('directory');
 
@@ -53,15 +51,15 @@ export default class CodeRepositoryUtil {
             const filePath: string = `${directoryPath}/${fileName}`;
             const gitCommitHash: string = await this.getGitCommitHashForFile({
                 filePath,
-                repoPath 
-        });
+                repoPath,
+            });
             const fileExtension: string = fileName.split('.').pop() || '';
-            files.push({
+            files[filePath] = {
                 filePath,
                 gitCommitHash,
                 fileExtension,
                 fileName,
-            });
+            };
         }
 
         return {
@@ -71,25 +69,30 @@ export default class CodeRepositoryUtil {
     }
 
     public static async getFilesInDirectoryRecursive(data: {
-        repoPath: string,
-        directoryPath: string
-    }): Promise<Array<CodeRepositoryFile>> {
-        const files: Array<CodeRepositoryFile> = [];
+        repoPath: string;
+        directoryPath: string;
+    }): Promise<Dictionary<CodeRepositoryFile>> {
+        let files: Dictionary<CodeRepositoryFile> = {};
 
         const { files: filesInDirectory, subDirectories } =
             await this.getFilesInDirectory({
                 directoryPath: data.directoryPath,
-                repoPath: data.repoPath
+                repoPath: data.repoPath,
             });
-        files.push(...filesInDirectory);
+
+        files = {
+            ...files,
+            ...filesInDirectory,
+        };
 
         for (const subDirectory of subDirectories) {
-            files.push(
+            files = {
+                ...files,
                 ...(await this.getFilesInDirectoryRecursive({
                     repoPath: data.repoPath,
-                    directoryPath: subDirectory
-                }))
-            );
+                    directoryPath: subDirectory,
+                })),
+            };
         }
 
         return files;
