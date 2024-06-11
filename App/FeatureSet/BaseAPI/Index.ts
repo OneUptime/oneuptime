@@ -4,6 +4,7 @@ import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 import FileAPI from 'CommonServer/API/FileAPI';
 import GlobalConfigAPI from 'CommonServer/API/GlobalConfigAPI';
+import CodeRepositoryAPI from 'CommonServer/API/CodeRepositoryAPI';
 import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 import Ingestor from 'CommonServer/API/ProbeAPI';
@@ -29,9 +30,6 @@ import ApiKeyService, {
 import CallLogService, {
     Service as CallLogServiceType,
 } from 'CommonServer/Services/CallLogService';
-import CodeRepositoryService, {
-    Service as CodeRepositoryServiceType,
-} from 'CommonServer/Services/CodeRepositoryService';
 import CopilotEventService, {
     Service as CopilotEventServiceType,
 } from 'CommonServer/Services/CopilotEventService';
@@ -296,7 +294,6 @@ import Span from 'Model/AnalyticsModels/Span';
 import ApiKey from 'Model/Models/ApiKey';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import CallLog from 'Model/Models/CallLog';
-import CodeRepository from 'Model/Models/CodeRepository';
 import CopilotEvent from 'Model/Models/CopilotEvent';
 import Domain from 'Model/Models/Domain';
 import EmailLog from 'Model/Models/EmailLog';
@@ -493,14 +490,6 @@ const BaseAPIFeatureSet: FeatureSet = {
             new BaseAPI<ServiceCatalog, ServiceCatalogServiceType>(
                 ServiceCatalog,
                 ServiceCatalogService
-            ).getRouter()
-        );
-
-        app.use(
-            `/${APP_NAME.toLocaleLowerCase()}`,
-            new BaseAPI<CodeRepository, CodeRepositoryServiceType>(
-                CodeRepository,
-                CodeRepositoryService
             ).getRouter()
         );
 
@@ -1055,6 +1044,9 @@ const BaseAPIFeatureSet: FeatureSet = {
             `/${APP_NAME.toLocaleLowerCase()}`,
             new GlobalConfigAPI().getRouter()
         );
+
+        app.use( `/${APP_NAME.toLocaleLowerCase()}`,
+        new CodeRepositoryAPI().getRouter())
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
