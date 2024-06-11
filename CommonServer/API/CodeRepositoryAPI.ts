@@ -1,4 +1,3 @@
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import CodeRepositoryService, {
     Service as CodeRepositoryServiceType,
@@ -10,10 +9,14 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
-import CodeRepository from 'Model/Models/CodeRepository';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
+import CodeRepository from 'Model/Models/CodeRepository';
 
-export default class CodeRepositoryAPI extends BaseAPI<CodeRepository, CodeRepositoryServiceType> {
+export default class CodeRepositoryAPI extends BaseAPI<
+    CodeRepository,
+    CodeRepositoryServiceType
+> {
     public constructor() {
         super(CodeRepository, CodeRepositoryService);
 
@@ -28,26 +31,31 @@ export default class CodeRepositoryAPI extends BaseAPI<CodeRepository, CodeRepos
                 next: NextFunction
             ) => {
                 try {
-
                     const secretkey: string = req.params['secretkey']!;
 
-                    if(!secretkey) {
+                    if (!secretkey) {
                         throw new BadDataException('Secret key is required');
                     }
 
-                    const codeRepository: CodeRepository | null = await CodeRepositoryService.findOneBy({
-                        query: {
-                            secretToken: new ObjectID(secretkey),
-                        },
-                        select: {
-                            name: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const codeRepository: CodeRepository | null =
+                        await CodeRepositoryService.findOneBy({
+                            query: {
+                                secretToken: new ObjectID(secretkey),
+                            },
+                            select: {
+                                name: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
-                    return Response.sendEntityResponse(req, res, codeRepository, CodeRepository);
+                    return Response.sendEntityResponse(
+                        req,
+                        res,
+                        codeRepository,
+                        CodeRepository
+                    );
                 } catch (err) {
                     next(err);
                 }

@@ -2,9 +2,9 @@ import BaseAPI from 'CommonServer/API/BaseAPI';
 import BaseAnalyticsAPI from 'CommonServer/API/BaseAnalyticsAPI';
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
+import CodeRepositoryAPI from 'CommonServer/API/CodeRepositoryAPI';
 import FileAPI from 'CommonServer/API/FileAPI';
 import GlobalConfigAPI from 'CommonServer/API/GlobalConfigAPI';
-import CodeRepositoryAPI from 'CommonServer/API/CodeRepositoryAPI';
 import MonitorGroupAPI from 'CommonServer/API/MonitorGroupAPI';
 import NotificationAPI from 'CommonServer/API/NotificationAPI';
 import Ingestor from 'CommonServer/API/ProbeAPI';
@@ -1045,8 +1045,10 @@ const BaseAPIFeatureSet: FeatureSet = {
             new GlobalConfigAPI().getRouter()
         );
 
-        app.use( `/${APP_NAME.toLocaleLowerCase()}`,
-        new CodeRepositoryAPI().getRouter())
+        app.use(
+            `/${APP_NAME.toLocaleLowerCase()}`,
+            new CodeRepositoryAPI().getRouter()
+        );
 
         app.use(
             `/${APP_NAME.toLocaleLowerCase()}`,
