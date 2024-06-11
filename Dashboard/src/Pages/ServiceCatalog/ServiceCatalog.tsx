@@ -9,9 +9,10 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import ServiceCatalog from 'Model/Models/ServiceCatalog';
+import ServiceCatalog, { ServiceLanguage } from 'Model/Models/ServiceCatalog';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
@@ -75,6 +76,21 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            serviceLanguage: true,
+                        },
+                        title: 'Service Language / Framework',
+                        description:
+                            'The language or framework used to build this service.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Service Language',
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                ServiceLanguage
+                            ),
+                    },
                 ]}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -135,6 +151,13 @@ const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            serviceLanguage: true,
+                        },
+                        title: 'Service Language / Framework',
                         type: FieldType.Text,
                     },
                     {

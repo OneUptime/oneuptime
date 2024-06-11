@@ -4,9 +4,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import ServiceCatalog from 'Model/Models/ServiceCatalog';
+import ServiceCatalog, { ServiceLanguage } from 'Model/Models/ServiceCatalog';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
@@ -60,6 +61,22 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            serviceLanguage: true,
+                        },
+                        stepId: 'service-info',
+                        title: 'Service Language / Framework',
+                        description:
+                            'The language or framework used to build this service.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Service Language',
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                ServiceLanguage
+                            ),
+                    },
+                    {
+                        field: {
                             labels: true,
                         },
                         title: 'Labels ',
@@ -92,6 +109,12 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                             title: 'Service Name',
+                        },
+                        {
+                            field: {
+                                serviceLanguage: true,
+                            },
+                            title: 'Service Language / Framework',
                         },
                         {
                             field: {
