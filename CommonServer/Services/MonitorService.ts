@@ -1,6 +1,8 @@
 import DatabaseConfig from '../DatabaseConfig';
-import { IsBillingEnabled } from '../EnvironmentConfig';
-import { AllowedActiveMonitorCountInFreePlan } from '../EnvironmentConfig';
+import {
+    AllowedActiveMonitorCountInFreePlan,
+    IsBillingEnabled,
+} from '../EnvironmentConfig';
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import CreateBy from '../Types/Database/CreateBy';
@@ -108,7 +110,10 @@ export class Service extends DatabaseService<Model> {
                 );
             }
 
-            if (currentPlan.plan === PlanSelect.Free && createBy.data.monitorType !== MonitorType.Manual) {
+            if (
+                currentPlan.plan === PlanSelect.Free &&
+                createBy.data.monitorType !== MonitorType.Manual
+            ) {
                 const monitorCount: PositiveNumber = await this.countBy({
                     query: {
                         projectId: createBy.props.tenantId,
