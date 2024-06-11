@@ -148,6 +148,21 @@ export class MonitorTypeHelper {
         return isProbeableMonitor;
     }
 
+    public static getActiveMonitorTypes(): Array<MonitorType> {
+        return [
+            MonitorType.API,
+            MonitorType.Website,
+            MonitorType.IP,
+            MonitorType.Ping,
+            MonitorType.Port,
+            MonitorType.SSLCertificate,
+            MonitorType.SyntheticMonitor,
+            MonitorType.CustomJavaScriptCode,
+            MonitorType.IncomingRequest,
+            MonitorType.Server,
+        ];
+    }
+
     public static doesMonitorTypeHaveDocumentation(
         monitorType: MonitorType
     ): boolean {

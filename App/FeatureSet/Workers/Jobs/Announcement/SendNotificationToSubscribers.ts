@@ -99,7 +99,7 @@ RunCron(
                             twilioAccountSID: true,
                             twilioAuthToken: true,
                             twilioPhoneNumber: true,
-                        }
+                        },
                     },
                 });
 

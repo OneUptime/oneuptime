@@ -1,9 +1,11 @@
 import DatabaseConfig from '../DatabaseConfig';
 import { IsBillingEnabled } from '../EnvironmentConfig';
+import { AllowedActiveMonitorCountInFreePlan } from '../EnvironmentConfig';
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/AllMeteredPlans';
 import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
+import QueryHelper from '../Types/Database/QueryHelper';
 import DatabaseService from './DatabaseService';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
@@ -11,10 +13,12 @@ import MonitorProbeService from './MonitorProbeService';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import ProbeService from './ProbeService';
+import ProjectService, { CurrentPlan } from './ProjectService';
 import TeamMemberService from './TeamMemberService';
 import URL from 'Common/Types/API/URL';
 import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
 import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
@@ -22,6 +26,7 @@ import MonitorType, {
     MonitorTypeHelper,
 } from 'Common/Types/Monitor/MonitorType';
 import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import Typeof from 'Common/Types/Typeof';
 import Model from 'Model/Models/Monitor';
 import MonitorOwnerTeam from 'Model/Models/MonitorOwnerTeam';
@@ -91,6 +96,40 @@ export class Service extends DatabaseService<Model> {
                     ', '
                 )}.`
             );
+        }
+
+        if (IsBillingEnabled && createBy.props.tenantId) {
+            const currentPlan: CurrentPlan =
+                await ProjectService.getCurrentPlan(createBy.props.tenantId);
+
+            if (currentPlan.isSubscriptionUnpaid) {
+                throw new BadDataException(
+                    'Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.'
+                );
+            }
+
+            if (currentPlan.plan === PlanSelect.Free && createBy.data.monitorType !== MonitorType.Manual) {
+                const monitorCount: PositiveNumber = await this.countBy({
+                    query: {
+                        projectId: createBy.props.tenantId,
+                        monitorType: QueryHelper.any(
+                            MonitorTypeHelper.getActiveMonitorTypes()
+                        ),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                if (
+                    monitorCount.toNumber() >=
+                    AllowedActiveMonitorCountInFreePlan
+                ) {
+                    throw new BadDataException(
+                        `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`
+                    );
+                }
+            }
         }
 
         if (createBy.data.monitorType === MonitorType.Server) {

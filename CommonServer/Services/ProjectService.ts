@@ -50,6 +50,11 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import User from 'Model/Models/User';
 import { In } from 'typeorm';
 
+export interface CurrentPlan {
+    plan: PlanSelect | null;
+    isSubscriptionUnpaid: boolean;
+}
+
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
@@ -959,9 +964,7 @@ export class Service extends DatabaseService<Model> {
         return onDelete;
     }
 
-    public async getCurrentPlan(
-        projectId: ObjectID
-    ): Promise<{ plan: PlanSelect | null; isSubscriptionUnpaid: boolean }> {
+    public async getCurrentPlan(projectId: ObjectID): Promise<CurrentPlan> {
         if (!IsBillingEnabled) {
             return { plan: null, isSubscriptionUnpaid: false };
         }
