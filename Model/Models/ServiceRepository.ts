@@ -221,7 +221,7 @@ export default class ServiceRepository extends BaseModel {
         type: ColumnType.Number,
         default: 3,
     })
-    public limitNumberOfOpenPullRequestsCount?: string = undefined;
+    public limitNumberOfOpenPullRequestsCount?: number = undefined;
 
     @ColumnAccessControl({
         create: [

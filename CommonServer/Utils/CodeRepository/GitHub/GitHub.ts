@@ -72,16 +72,17 @@ export default class GitHubUtil extends HostedCodeRepository {
         });
     }
 
-    public override async getPullRequests(data: {
-        pullRequestState: PullRequestState;
-        baseBranchName: string;
+    private async getPullRequestsByPage(data: {
         organizationName: string;
         repositoryName: string;
+        pullRequestState: PullRequestState;
+        baseBranchName: string;
+        page: number;
     }): Promise<Array<PullRequest>> {
         const gitHubToken: string = this.authToken;
 
         const url: URL = URL.fromString(
-            `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls?base=${data.baseBranchName}&state=${data.pullRequestState}`
+            `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls?base=${data.baseBranchName}&state=${data.pullRequestState}&per_page=100&page=${data.page}`
         );
 
         const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
@@ -110,5 +111,42 @@ export default class GitHubUtil extends HostedCodeRepository {
         );
 
         return pullRequests;
+    }
+
+    public override async getPullRequests(data: {
+        pullRequestState: PullRequestState;
+        baseBranchName: string;
+        organizationName: string;
+        repositoryName: string;
+    }): Promise<Array<PullRequest>> {
+        const allPullRequests: Array<PullRequest> = [];
+
+        let page: number = 1;
+
+        let pullRequests: Array<PullRequest> = await this.getPullRequestsByPage(
+            {
+                organizationName: data.organizationName,
+                repositoryName: data.repositoryName,
+                pullRequestState: data.pullRequestState,
+                baseBranchName: data.baseBranchName,
+                page: page,
+            }
+        );
+
+        // Fetch all pull requests by paginating through the results
+        // 100 pull requests per page is the limit of the GitHub API
+        while (pullRequests.length === page * 100) {
+            allPullRequests.push(...pullRequests);
+            page++;
+            pullRequests = await this.getPullRequestsByPage({
+                organizationName: data.organizationName,
+                repositoryName: data.repositoryName,
+                pullRequestState: data.pullRequestState,
+                baseBranchName: data.baseBranchName,
+                page: page,
+            });
+        }
+
+        return allPullRequests;
     }
 }

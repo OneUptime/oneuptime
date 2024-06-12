@@ -534,4 +534,75 @@ export default class CodeRepository extends BaseModel {
         default: CodeRepositoryType.GitHub,
     })
     public repositoryHostedAt?: CodeRepositoryType = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Organization Name',
+        description:
+            'Name of the organization where this repo belongs. Eg: Your GitHub Organization Name',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public organizationName?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Repository Name',
+        description: 'Name of the repository. Eg: Your GitHub Repository Name',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public repositoryName?: string = undefined;
 }

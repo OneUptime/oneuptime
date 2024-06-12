@@ -15,7 +15,7 @@ export default class HostedCodeRepository {
 
     public authToken: string = '';
 
-    public async numberOfPullRequestsExistForService(data: {
+    public async getNumberOfPullRequestsExistForService(data: {
         serviceRepository: ServiceRepository;
         pullRequestState: PullRequestState;
         baseBranchName: string | undefined;
