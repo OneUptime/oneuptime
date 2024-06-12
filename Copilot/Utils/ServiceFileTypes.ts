@@ -1,6 +1,15 @@
 import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 
 export default class ServiceFileTypesUtil {
+
+    public static getCommonDirectoriesToIgnore(): string[] {
+        return ['node_modules', '.git', 'build', 'dist', 'coverage'];
+    }
+
+    public static getCommonFilesToIgnore(): string[] {
+        return ['.DS_Store', 'Thumbs.db', '.gitignore', '.gitattributes'];
+    }
+
     public static getCommonFilesExtentions(): string[] {
         // return markdown, dockerfile, etc.
         return ['.md', 'dockerfile', '.yml', '.yaml', '.sh', '.gitignore'];
