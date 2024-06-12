@@ -57,23 +57,7 @@ export default class CodeRepositoryUtil {
                 continue;
             }
 
-            if (
-                data.acceptedFileExtensions &&
-                data.acceptedFileExtensions.length > 0
-            ) {
-                let shouldSkip: boolean = true;
-
-                for (const fileExtension of data.acceptedFileExtensions) {
-                    if (fileName.endsWith(fileExtension)) {
-                        shouldSkip = false;
-                        break;
-                    }
-                }
-
-                if (shouldSkip) {
-                    continue;
-                }
-            }
+            
 
             const filePath: string = LocalFile.sanitizeFilePath(
                 `${directoryPath}/${fileName}`
@@ -92,6 +76,24 @@ export default class CodeRepositoryUtil {
                     LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`)
                 );
                 continue;
+            }else{
+                if (
+                    data.acceptedFileExtensions &&
+                    data.acceptedFileExtensions.length > 0
+                ) {
+                    let shouldSkip: boolean = true;
+    
+                    for (const fileExtension of data.acceptedFileExtensions) {
+                        if (fileName.endsWith(fileExtension)) {
+                            shouldSkip = false;
+                            break;
+                        }
+                    }
+    
+                    if (shouldSkip) {
+                        continue;
+                    }
+                }
             }
 
             const gitCommitHash: string = await this.getGitCommitHashForFile({
@@ -127,6 +129,7 @@ export default class CodeRepositoryUtil {
             await this.getFilesInDirectory({
                 directoryPath: data.directoryPath,
                 repoPath: data.repoPath,
+                acceptedFileExtensions: data.acceptedFileExtensions,
             });
 
         files = {
