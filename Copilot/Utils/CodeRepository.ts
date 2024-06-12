@@ -15,7 +15,13 @@ export interface CodeRepositoryResult {
 }
 
 export default class CodeRepositoryUtil {
-    public static async getCodeRepository(): Promise<CodeRepositoryResult> {
+    public static codeRepositoryResult: CodeRepositoryResult | null = null;
+
+    public static async getCodeRepositoryResult(): Promise<CodeRepositoryResult> {
+        if (this.codeRepositoryResult) {
+            return this.codeRepositoryResult;
+        }
+
         const repositorySecretKey: string = GetRepositorySecretKey();
 
         if (!repositorySecretKey) {
@@ -44,14 +50,14 @@ export default class CodeRepositoryUtil {
                 CodeRepositoryModel
             ) as CodeRepositoryModel;
 
-        const servicesRepository: Array<ServiceRepository> =
-            (codeRepositoryResult.data['servicesRepository'] as JSONArray).map(
-                (serviceRepository: JSONObject) =>
-                    ServiceRepository.fromJSON(
-                        serviceRepository,
-                        ServiceRepository
-                    ) as ServiceRepository
-            );
+        const servicesRepository: Array<ServiceRepository> = (
+            codeRepositoryResult.data['servicesRepository'] as JSONArray
+        ).map((serviceRepository: JSONObject) => {
+            return ServiceRepository.fromJSON(
+                serviceRepository,
+                ServiceRepository
+            ) as ServiceRepository;
+        });
 
         if (!codeRepository) {
             throw new BadDataException(
@@ -68,14 +74,38 @@ export default class CodeRepositoryUtil {
         logger.info(`Code Repository found: ${codeRepository.name}`);
 
         logger.info('Services found in the repository:');
-        
+
         servicesRepository.forEach((serviceRepository: ServiceRepository) => {
             logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
         });
 
-        return {
+        this.codeRepositoryResult = {
             codeRepository,
             servicesRepository,
         };
+
+        return this.codeRepositoryResult;
+    }
+
+    public static async getCodeRepository(): Promise<CodeRepositoryModel> {
+        if (!this.codeRepositoryResult) {
+            const result: CodeRepositoryResult =
+                await this.getCodeRepositoryResult();
+            return result.codeRepository;
+        }
+
+        return this.codeRepositoryResult.codeRepository;
+    }
+
+    public static async getServiceRepositories(): Promise<
+        Array<ServiceRepository>
+    > {
+        if (!this.codeRepositoryResult) {
+            const result: CodeRepositoryResult =
+                await this.getCodeRepositoryResult();
+            return result.servicesRepository;
+        }
+
+        return this.codeRepositoryResult.servicesRepository;
     }
 }
