@@ -48,6 +48,9 @@ export default class CodeRepositoryAPI extends BaseAPI<
                             select: {
                                 name: true,
                                 mainBranchName: true,
+                                organizationName: true,
+                                repositoryHostedAt: true,
+                                repositoryName: true,
                             },
                             props: {
                                 isRoot: true,
@@ -55,7 +58,9 @@ export default class CodeRepositoryAPI extends BaseAPI<
                         });
 
                     if (!codeRepository) {
-                        throw new BadDataException('Code repository not found');
+                        throw new BadDataException(
+                            'Code repository not found. Secret key is invalid.'
+                        );
                     }
 
                     const servicesRepository: Array<ServiceRepository> =

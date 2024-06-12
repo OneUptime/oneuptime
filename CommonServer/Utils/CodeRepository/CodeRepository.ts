@@ -1,4 +1,5 @@
 import Execute from '../Execute';
+import LocalFile from '../LocalFile';
 import CodeRepositoryFile from './CodeRepositoryFile';
 import Dictionary from 'Common/Types/Dictionary';
 
@@ -7,10 +8,18 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         filePath: string;
     }): Promise<string> {
+        if (!data.filePath.startsWith('/')) {
+            data.filePath = '/' + data.filePath;
+        }
+
+        if (!data.repoPath.startsWith('/')) {
+            data.repoPath = '/' + data.repoPath;
+        }
+
         const { repoPath, filePath } = data;
 
         return await Execute.executeCommand(
-            `cd ${repoPath} && git log -1 --pretty=format:"%H" "${filePath}"`
+            `cd ${repoPath} && git log -1 --pretty=format:"%H" ".${filePath}"`
         );
     }
 
@@ -21,9 +30,19 @@ export default class CodeRepositoryUtil {
         files: Dictionary<CodeRepositoryFile>;
         subDirectories: Array<string>;
     }> {
+        if (!data.directoryPath.startsWith('/')) {
+            data.directoryPath = '/' + data.directoryPath;
+        }
+
+        if (!data.repoPath.startsWith('/')) {
+            data.repoPath = '/' + data.repoPath;
+        }
+
         const { directoryPath, repoPath } = data;
 
-        const totalPath: string = `${repoPath}/${directoryPath}`;
+        let totalPath: string = `${repoPath}/${directoryPath}`;
+
+        totalPath = LocalFile.sanitizeFilePath(totalPath); // clean up the path
 
         const files: Dictionary<CodeRepositoryFile> = {};
         const output: string = await Execute.executeCommand(`ls ${totalPath}`);
@@ -37,23 +56,35 @@ export default class CodeRepositoryUtil {
                 continue;
             }
 
+            const filePath: string = LocalFile.sanitizeFilePath(
+                `${directoryPath}/${fileName}`
+            );
+
             const isDirectory: boolean = (
-                await Execute.executeCommand(`file "${totalPath}/${fileName}"`)
+                await Execute.executeCommand(
+                    `file "${LocalFile.sanitizeFilePath(
+                        `${totalPath}/${fileName}`
+                    )}"`
+                )
             ).includes('directory');
 
             if (isDirectory) {
-                subDirectories.push(`${totalPath}/${fileName}`);
+                subDirectories.push(
+                    LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`)
+                );
                 continue;
             }
 
-            const filePath: string = `${totalPath}/${fileName}`;
             const gitCommitHash: string = await this.getGitCommitHashForFile({
                 filePath,
                 repoPath,
             });
+
             const fileExtension: string = fileName.split('.').pop() || '';
             files[filePath] = {
-                filePath,
+                filePath: LocalFile.sanitizeFilePath(
+                    `${directoryPath}/${fileName}`
+                ),
                 gitCommitHash,
                 fileExtension,
                 fileName,
