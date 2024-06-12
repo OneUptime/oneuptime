@@ -119,6 +119,26 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                             ),
                         stepId: 'details',
                     },
+                    {
+                        field: {
+                            organizationName: true,
+                        },
+                        title: 'Organization Name (on GitHub, GitLab, etc.)',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'org-name',
+                        stepId: 'details',
+                    },
+                    {
+                        field: {
+                            repositoryName: true,
+                        },
+                        title: 'Repository Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'repo-name',
+                        stepId: 'details',
+                    },
                 ]}
                 showRefreshButton={true}
                 filters={[

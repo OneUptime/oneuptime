@@ -94,6 +94,26 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            organizationName: true,
+                        },
+                        title: 'Organization Name (on GitHub, GitLab, etc.)',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'org-name',
+                        stepId: 'details',
+                    },
+                    {
+                        field: {
+                            repositoryName: true,
+                        },
+                        title: 'Repository Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'repo-name',
+                        stepId: 'details',
+                    }
+                    {
+                        field: {
                             labels: true,
                         },
                         title: 'Labels ',
@@ -157,6 +177,18 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                 mainBranchName: true,
                             },
                             title: 'Main Branch Name',
+                        },
+                        {
+                            field: {
+                                organizationName: true,
+                            },
+                            title: 'Organization Name',
+                        },
+                        {
+                            field: {
+                                repositoryName: true,
+                            },
+                            title: 'Repository Name',
                         },
                         {
                             field: {
