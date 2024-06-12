@@ -28,6 +28,7 @@ export interface ComponentProps<T extends GenericObject> {
     onFilterModalOpen: () => void;
     isModalLoading?: boolean;
     onFilterRefreshClick?: undefined | (() => void);
+    initialFilterData?: FilterData<T>;
 }
 
 type FilterComponentFunction = <T extends GenericObject>(
@@ -37,7 +38,9 @@ type FilterComponentFunction = <T extends GenericObject>(
 const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const [filterData, setFilterData] = useState<FilterData<T>>({});
+    const [filterData, setFilterData] = useState<FilterData<T>>(
+        props.initialFilterData || {}
+    );
     const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
         FilterData<T>
     >({});
