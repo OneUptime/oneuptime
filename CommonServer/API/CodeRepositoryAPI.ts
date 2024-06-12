@@ -73,6 +73,7 @@ export default class CodeRepositoryAPI extends BaseAPI<
                                 serviceCatalog: {
                                     name: true,
                                     _id: true,
+                                    serviceLanguage: true,
                                 },
                                 servicePathInRepository: true,
                                 limitNumberOfOpenPullRequestsCount: true,

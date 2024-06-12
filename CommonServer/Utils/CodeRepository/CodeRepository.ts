@@ -26,6 +26,7 @@ export default class CodeRepositoryUtil {
     public static async getFilesInDirectory(data: {
         directoryPath: string;
         repoPath: string;
+        acceptedFileExtensions?: Array<string>;
     }): Promise<{
         files: Dictionary<CodeRepositoryFile>;
         subDirectories: Array<string>;
@@ -54,6 +55,24 @@ export default class CodeRepositoryUtil {
         for (const fileName of fileNames) {
             if (fileName === '') {
                 continue;
+            }
+
+            if (
+                data.acceptedFileExtensions &&
+                data.acceptedFileExtensions.length > 0
+            ) {
+                let shouldSkip: boolean = true;
+
+                for (const fileExtension of data.acceptedFileExtensions) {
+                    if (fileName.endsWith(fileExtension)) {
+                        shouldSkip = false;
+                        break;
+                    }
+                }
+
+                if (shouldSkip) {
+                    continue;
+                }
             }
 
             const filePath: string = LocalFile.sanitizeFilePath(
@@ -100,6 +119,7 @@ export default class CodeRepositoryUtil {
     public static async getFilesInDirectoryRecursive(data: {
         repoPath: string;
         directoryPath: string;
+        acceptedFileExtensions: Array<string>;
     }): Promise<Dictionary<CodeRepositoryFile>> {
         let files: Dictionary<CodeRepositoryFile> = {};
 
@@ -120,6 +140,7 @@ export default class CodeRepositoryUtil {
                 ...(await this.getFilesInDirectoryRecursive({
                     repoPath: data.repoPath,
                     directoryPath: subDirectory,
+                    acceptedFileExtensions: data.acceptedFileExtensions,
                 })),
             };
         }

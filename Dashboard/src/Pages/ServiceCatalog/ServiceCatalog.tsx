@@ -5,6 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
@@ -12,7 +13,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import ServiceCatalog, { ServiceLanguage } from 'Model/Models/ServiceCatalog';
+import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
