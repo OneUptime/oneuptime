@@ -3,7 +3,6 @@ import CodeRepositoryFile from './CodeRepositoryFile';
 import Dictionary from 'Common/Types/Dictionary';
 
 export default class CodeRepositoryUtil {
-
     public static async getGitCommitHashForFile(data: {
         repoPath: string;
         filePath: string;
@@ -27,9 +26,7 @@ export default class CodeRepositoryUtil {
         const totalPath: string = `${repoPath}/${directoryPath}`;
 
         const files: Dictionary<CodeRepositoryFile> = {};
-        const output: string = await Execute.executeCommand(
-            `ls ${totalPath}`
-        );
+        const output: string = await Execute.executeCommand(`ls ${totalPath}`);
 
         const fileNames: Array<string> = output.split('\n');
 
@@ -41,9 +38,7 @@ export default class CodeRepositoryUtil {
             }
 
             const isDirectory: boolean = (
-                await Execute.executeCommand(
-                    `file "${totalPath}/${fileName}"`
-                )
+                await Execute.executeCommand(`file "${totalPath}/${fileName}"`)
             ).includes('directory');
 
             if (isDirectory) {
@@ -75,7 +70,6 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         directoryPath: string;
     }): Promise<Dictionary<CodeRepositoryFile>> {
-
         let files: Dictionary<CodeRepositoryFile> = {};
 
         const { files: filesInDirectory, subDirectories } =
