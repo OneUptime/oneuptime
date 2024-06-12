@@ -1,12 +1,11 @@
-import { GetLocalRepositoryPath } from './Config';
 import { CodeRepositoryResult } from './Utils/CodeRepository';
 import InitUtil from './Utils/Init';
 import Dictionary from 'Common/Types/Dictionary';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import CodeRepositoryCommonServerUtil from 'CommonServer/Utils/CodeRepository/CodeRepository';
 import CodeRepositoryFile from 'CommonServer/Utils/CodeRepository/CodeRepositoryFile';
 import logger from 'CommonServer/Utils/Logger';
 import dotenv from 'dotenv';
+import ServiceRepositoryUtil from './Utils/ServiceRepository';
 
 dotenv.config();
 
@@ -15,13 +14,13 @@ logger.info('OneUptime Copilot is starting...');
 const init: PromiseVoidFunction = async (): Promise<void> => {
     const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
-    const allFiles: Dictionary<CodeRepositoryFile> =
-        await CodeRepositoryCommonServerUtil.getFilesInDirectoryRecursive({
-            repoPath: GetLocalRepositoryPath(),
-            directoryPath: GetLocalRepositoryPath(),
+    for(const serviceRepository of codeRepositoryResult.servicesRepository) {
+        const filesInService: Dictionary<CodeRepositoryFile> = await ServiceRepositoryUtil.getFilesInServiceDirectory({
+            serviceRepository,
         });
 
-    logger.info(`All files found: ${Object.keys(allFiles).length}`);
+        logger.info(`Files found in ${serviceRepository.serviceCatalog?.name}: ${Object.keys(filesInService).length}`);
+    }
 };
 
 init()
