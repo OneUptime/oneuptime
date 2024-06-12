@@ -460,4 +460,39 @@ export default class CodeRepository extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public secretToken?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Main Branch Name',
+        description: 'Name of the main branch of this repository',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public mainBranchName?: string = undefined;
 }

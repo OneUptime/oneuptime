@@ -138,9 +138,7 @@ const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
 
                         getElement: (item: ServiceRepository): ReactElement => {
                             if (!item['serviceCatalog']) {
-                                throw new BadDataException(
-                                    'Service not found'
-                                );
+                                throw new BadDataException('Service not found');
                             }
 
                             return (

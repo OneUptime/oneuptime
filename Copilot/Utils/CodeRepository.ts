@@ -3,12 +3,19 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
+import logger from 'CommonServer/Utils/Logger';
 import CodeRepositoryModel from 'Model/Models/CodeRepository';
+import ServiceRepository from 'Model/Models/ServiceRepository';
+
+export interface CodeRepositoryResult {
+    codeRepository: CodeRepositoryModel;
+    servicesRepository: Array<ServiceRepository>;
+}
 
 export default class CodeRepositoryUtil {
-    public static async getCodeRepository(): Promise<CodeRepositoryModel> {
+    public static async getCodeRepository(): Promise<CodeRepositoryResult> {
         const repositorySecretKey: string = GetRepositorySecretKey();
 
         if (!repositorySecretKey) {
@@ -33,9 +40,18 @@ export default class CodeRepositoryUtil {
 
         const codeRepository: CodeRepositoryModel =
             CodeRepositoryModel.fromJSON(
-                codeRepositoryResult.data as JSONObject,
+                codeRepositoryResult.data['codeRepository'] as JSONObject,
                 CodeRepositoryModel
             ) as CodeRepositoryModel;
+
+        const servicesRepository: Array<ServiceRepository> =
+            (codeRepositoryResult.data['servicesRepository'] as JSONArray).map(
+                (serviceRepository: JSONObject) =>
+                    ServiceRepository.fromJSON(
+                        serviceRepository,
+                        ServiceRepository
+                    ) as ServiceRepository
+            );
 
         if (!codeRepository) {
             throw new BadDataException(
@@ -43,6 +59,23 @@ export default class CodeRepositoryUtil {
             );
         }
 
-        return codeRepository;
+        if (!servicesRepository || servicesRepository.length === 0) {
+            throw new BadDataException(
+                'No services attached to this repository. Please attach services to this repository on OneUptime Dashboard.'
+            );
+        }
+
+        logger.info(`Code Repository found: ${codeRepository.name}`);
+
+        logger.info('Services found in the repository:');
+        
+        servicesRepository.forEach((serviceRepository: ServiceRepository) => {
+            logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
+        });
+
+        return {
+            codeRepository,
+            servicesRepository,
+        };
     }
 }
