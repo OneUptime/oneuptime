@@ -15,17 +15,17 @@ echo ""
 echo ""
 
 
-bash $scriptDir/endpoint-status.sh "App" $HOST_TO_CHECK/status
+bash $scriptDir/endpoint-status.sh "App" $HOST_TO_CHECK/status/ready
 
-bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard/status
+bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard/ready
 
-bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page/status
+bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page/ready
 
-bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts/status
+bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts/status/ready
 
-bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status
+bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status/ready
 
-bash $scriptDir/endpoint-status.sh "Ingestor" $HOST_TO_CHECK/ingestor/status
+bash $scriptDir/endpoint-status.sh "Ingestor" $HOST_TO_CHECK/ingestor/status/ready
 
 echo "🚀 OneUptime is up! 🚀"
 echo ""
