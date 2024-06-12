@@ -1,9 +1,11 @@
 import LabelsElement from '../../../../Components/Label/Labels';
 import PageComponentProps from '../../../PageComponentProps';
+import CodeRepositoryType from 'Common/Types/CodeRepository/CodeRepositoryType';
 import ObjectID from 'Common/Types/ObjectID';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import CodeRepository from 'Model/Models/CodeRepository';
 import Label from 'Model/Models/Label';
@@ -27,6 +29,10 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     {
                         title: 'Repository Info',
                         id: 'repository-info',
+                    },
+                    {
+                        title: 'Details',
+                        id: 'details',
                     },
                     {
                         title: 'Labels',
@@ -57,6 +63,34 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+                    {
+                        field: {
+                            mainBranchName: true,
+                        },
+                        title: 'Main Branch Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'master',
+                        validation: {
+                            minLength: 2,
+                            noSpaces: true,
+                            noSpecialCharacters: true,
+                        },
+                        stepId: 'details',
+                    },
+                    {
+                        field: {
+                            repositoryHostedAt: true,
+                        },
+                        title: 'Repository Hosted At',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                CodeRepositoryType
+                            ),
+                        stepId: 'details',
                     },
                     {
                         field: {
@@ -117,6 +151,18 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                 description: true,
                             },
                             title: 'Description',
+                        },
+                        {
+                            field: {
+                                mainBranchName: true,
+                            },
+                            title: 'Main Branch Name',
+                        },
+                        {
+                            field: {
+                                repositoryHostedAt: true,
+                            },
+                            title: 'Repository Hosted At',
                         },
                         {
                             field: {

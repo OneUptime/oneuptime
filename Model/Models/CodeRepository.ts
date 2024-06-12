@@ -4,6 +4,7 @@ import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import CodeRepositoryType from 'Common/Types/CodeRepository/CodeRepositoryType';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
@@ -460,4 +461,148 @@ export default class CodeRepository extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public secretToken?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Main Branch Name',
+        description: 'Name of the main branch of this repository',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        default: 'master',
+    })
+    public mainBranchName?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Repository Hosted At',
+        description:
+            'Where is this repository hosted at? GitHub, GitLab, Bitbucket, etc.',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        default: CodeRepositoryType.GitHub,
+    })
+    public repositoryHostedAt?: CodeRepositoryType = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Organization Name',
+        description:
+            'Name of the organization where this repo belongs. Eg: Your GitHub Organization Name',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public organizationName?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateCodeRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadCodeRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditCodeRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnRelationQuery: true,
+        title: 'Repository Name',
+        description: 'Name of the repository. Eg: Your GitHub Repository Name',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public repositoryName?: string = undefined;
 }

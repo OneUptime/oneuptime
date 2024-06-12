@@ -23,10 +23,10 @@ export default class CodeRepositoryUtil {
     }> {
         const { directoryPath, repoPath } = data;
 
+        const totalPath: string = `${repoPath}/${directoryPath}`;
+
         const files: Dictionary<CodeRepositoryFile> = {};
-        const output: string = await Execute.executeCommand(
-            `ls ${directoryPath}`
-        );
+        const output: string = await Execute.executeCommand(`ls ${totalPath}`);
 
         const fileNames: Array<string> = output.split('\n');
 
@@ -38,17 +38,15 @@ export default class CodeRepositoryUtil {
             }
 
             const isDirectory: boolean = (
-                await Execute.executeCommand(
-                    `file "${directoryPath}/${fileName}"`
-                )
+                await Execute.executeCommand(`file "${totalPath}/${fileName}"`)
             ).includes('directory');
 
             if (isDirectory) {
-                subDirectories.push(`${directoryPath}/${fileName}`);
+                subDirectories.push(`${totalPath}/${fileName}`);
                 continue;
             }
 
-            const filePath: string = `${directoryPath}/${fileName}`;
+            const filePath: string = `${totalPath}/${fileName}`;
             const gitCommitHash: string = await this.getGitCommitHashForFile({
                 filePath,
                 repoPath,

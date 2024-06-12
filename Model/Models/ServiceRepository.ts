@@ -68,8 +68,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 @CrudApiEndpoint(new Route('/servic-repository'))
 @TableMetadata({
     tableName: 'ServiceRepository',
-    singularName: 'Service Repository',
-    pluralName: 'Service Repositories',
+    singularName: 'Service',
+    pluralName: 'Services',
     icon: IconProp.SquareStack,
     tableDescription:
         'Add services to your code repository to categorize and manage them easily. This will help copilot understand and generate code.',
@@ -221,7 +221,44 @@ export default class ServiceRepository extends BaseModel {
         type: ColumnType.Number,
         default: 3,
     })
-    public limitNumberOfOpenPullRequestsCount?: string = undefined;
+    public limitNumberOfOpenPullRequestsCount?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateServiceRepository,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ProjectMember,
+            Permission.ReadServiceRepository,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.EditServiceRepository,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        isDefaultValueColumn: true,
+        type: TableColumnType.Boolean,
+        canReadOnRelationQuery: true,
+        title: 'Enable Pull Requests',
+        description:
+            'Copilot will automatically improve your code by creating pull requests for this service',
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public enablePullRequests?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [

@@ -4,10 +4,12 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import Route from 'Common/Types/API/Route';
+import CodeRepositoryType from 'Common/Types/CodeRepository/CodeRepositoryType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import CodeRepository from 'Model/Models/CodeRepository';
 import Label from 'Model/Models/Label';
@@ -55,6 +57,16 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                 }
                 showViewIdButton={true}
                 noItemsMessage={'No repositories found.'}
+                formSteps={[
+                    {
+                        title: 'Repository Info',
+                        id: 'repository-info',
+                    },
+                    {
+                        title: 'Details',
+                        id: 'details',
+                    },
+                ]}
                 formFields={[
                     {
                         field: {
@@ -67,6 +79,7 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                         validation: {
                             minLength: 2,
                         },
+                        stepId: 'repository-info',
                     },
                     {
                         field: {
@@ -76,6 +89,35 @@ const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                        stepId: 'repository-info',
+                    },
+                    {
+                        field: {
+                            mainBranchName: true,
+                        },
+                        title: 'Main Branch Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'master',
+                        validation: {
+                            minLength: 2,
+                            noSpaces: true,
+                            noSpecialCharacters: true,
+                        },
+                        stepId: 'details',
+                    },
+                    {
+                        field: {
+                            repositoryHostedAt: true,
+                        },
+                        title: 'Repository Hosted At',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                CodeRepositoryType
+                            ),
+                        stepId: 'details',
                     },
                 ]}
                 showRefreshButton={true}

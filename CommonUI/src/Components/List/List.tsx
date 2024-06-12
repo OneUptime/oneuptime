@@ -32,7 +32,7 @@ export interface ComponentProps<T extends GenericObject> {
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
-    noItemsMessage?: undefined | string;
+    noItemsMessage?: undefined | string | ReactElement;
     listDetailOptions?: undefined | ListDetailProps;
 
     isFilterLoading?: undefined | boolean;

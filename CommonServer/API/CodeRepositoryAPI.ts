@@ -2,6 +2,7 @@ import UserMiddleware from '../Middleware/UserAuthorization';
 import CodeRepositoryService, {
     Service as CodeRepositoryServiceType,
 } from '../Services/CodeRepositoryService';
+import ServiceRepositoryService from '../Services/ServiceRepositoryService';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -9,9 +10,11 @@ import {
 } from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import CodeRepository from 'Model/Models/CodeRepository';
+import ServiceRepository from 'Model/Models/ServiceRepository';
 
 export default class CodeRepositoryAPI extends BaseAPI<
     CodeRepository,
@@ -44,18 +47,48 @@ export default class CodeRepositoryAPI extends BaseAPI<
                             },
                             select: {
                                 name: true,
+                                mainBranchName: true,
                             },
                             props: {
                                 isRoot: true,
                             },
                         });
 
-                    return Response.sendEntityResponse(
-                        req,
-                        res,
-                        codeRepository,
-                        CodeRepository
-                    );
+                    if (!codeRepository) {
+                        throw new BadDataException('Code repository not found');
+                    }
+
+                    const servicesRepository: Array<ServiceRepository> =
+                        await ServiceRepositoryService.findBy({
+                            query: {
+                                codeRepositoryId: codeRepository.id!,
+                                enablePullRequests: true,
+                            },
+                            select: {
+                                serviceCatalog: {
+                                    name: true,
+                                    _id: true,
+                                },
+                                servicePathInRepository: true,
+                                limitNumberOfOpenPullRequestsCount: true,
+                            },
+                            limit: LIMIT_PER_PROJECT,
+                            skip: 0,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    return Response.sendJsonObjectResponse(req, res, {
+                        codeRepository: CodeRepository.toJSON(
+                            codeRepository,
+                            CodeRepository
+                        ),
+                        servicesRepository: ServiceRepository.toJSONArray(
+                            servicesRepository,
+                            ServiceRepository
+                        ),
+                    });
                 } catch (err) {
                     next(err);
                 }

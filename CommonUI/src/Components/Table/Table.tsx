@@ -38,7 +38,7 @@ export interface ComponentProps<T extends GenericObject> {
     actionButtons?: undefined | Array<ActionButtonSchema<T>>;
     onRefreshClick?: undefined | (() => void);
 
-    noItemsMessage?: undefined | string;
+    noItemsMessage?: undefined | string | ReactElement;
     onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
     isFilterLoading?: undefined | boolean;
