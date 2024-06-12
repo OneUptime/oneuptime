@@ -111,7 +111,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'repo-name',
                         stepId: 'details',
-                    }
+                    },
                     {
                         field: {
                             labels: true,
