@@ -8,7 +8,8 @@
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
-    "compile": "tsc"
+    "compile": "tsc",
+    "debug-tests": "playwright test --debug"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

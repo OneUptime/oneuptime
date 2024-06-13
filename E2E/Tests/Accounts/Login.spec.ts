@@ -9,7 +9,7 @@ import URL from 'Common/Types/API/URL';
 
 test.describe('Login', () => {
     test('should be able to login', async ({ page }: { page: Page }) => {
-        if (!IS_USER_REGISTERED) {
+        if (!IS_USER_REGISTERED || !REGISTERED_USER_EMAIL || !REGISTERED_USER_PASSWORD) {
             // pass this test if the user is not registered
             return;
         }
