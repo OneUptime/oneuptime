@@ -78,4 +78,15 @@ export default class HostedCodeRepository {
     }): Promise<Array<PullRequest>> {
         throw new NotImplementedException();
     }
+
+    public async createPullRequest(_data: {
+        baseBranchName: string;
+        headBranchName: string;
+        organizationName: string;
+        repositoryName: string;
+        title: string;
+        body: string;
+    }): Promise<PullRequest> {
+        throw new NotImplementedException();
+    }
 }

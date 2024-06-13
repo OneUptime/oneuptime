@@ -1,4 +1,4 @@
-import { CodeRepositoryResult } from './Utils/CodeRepository';
+import CodeRepositoryUtil, { CodeRepositoryResult } from './Utils/CodeRepository';
 import InitUtil from './Utils/Init';
 import ServiceRepositoryUtil from './Utils/ServiceRepository';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -22,10 +22,45 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             });
 
         logger.info(
-            `Files found in ${serviceRepository.serviceCatalog?.name}: ${
-                Object.keys(filesInService).length
+            `Files found in ${serviceRepository.serviceCatalog?.name}: ${Object.keys(filesInService).length
             }`
         );
+
+
+        await CodeRepositoryUtil.createBranch({
+            branchName: 'test-branch',
+        });
+
+        // test code from here. 
+        const file = filesInService[Object.keys(filesInService)[0]!];
+
+        await CodeRepositoryUtil.writeToFile({
+            filePath: file?.filePath!,
+            content: 'Hello World',
+        });
+
+        // commit the changes
+
+        await CodeRepositoryUtil.addFilesToGit({
+            filePaths: [file?.filePath!],
+        });
+
+        await CodeRepositoryUtil.commitChanges({
+            message: 'Test commit',
+        });
+
+        await CodeRepositoryUtil.pushChanges({
+            branchName: 'test-branch',
+        });
+
+        // create a pull request
+
+        await CodeRepositoryUtil.createPullRequest({
+            title: 'Test PR',
+            body: 'Test PR body',
+            branchName: 'test-branch',
+        });
+
     }
 };
 
@@ -33,7 +68,19 @@ init()
     .then(() => {
         process.exit(0);
     })
-    .catch((error: Error | HTTPErrorResponse) => {
+    .catch(async (error: Error | HTTPErrorResponse) => {
+        try {
+
+            await CodeRepositoryUtil.discardChanges();
+
+            // change back to main branch. 
+            await CodeRepositoryUtil.checkoutBranch({
+                branchName: 'main',
+            });
+        } catch (e) {
+           // do nothing.
+        }
+
         logger.error('Error in starting OneUptime Copilot: ');
 
         if (error instanceof HTTPErrorResponse) {

@@ -9,6 +9,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
 
 export default class GitHubUtil extends HostedCodeRepository {
+
     private getPullRequestFromJSONObject(data: {
         pullRequest: JSONObject;
         organizationName: string;
@@ -148,5 +149,47 @@ export default class GitHubUtil extends HostedCodeRepository {
         }
 
         return allPullRequests;
+    }
+
+
+    public override async createPullRequest(data: {
+        baseBranchName: string;
+        headBranchName: string;
+        organizationName: string;
+        repositoryName: string;
+        title: string;
+        body: string;
+    }): Promise<PullRequest> {
+        const gitHubToken: string = this.authToken;
+
+        const url: URL = URL.fromString(
+            `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls`
+        );
+
+        const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post(
+                url,
+                {
+                    base: data.baseBranchName,
+                    head: data.headBranchName,
+                    title: data.title,
+                    body: data.body,
+                },
+                {
+                    Authorization: `Bearer ${gitHubToken}`,
+                    Accept: 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28',
+                }
+            );
+
+        if (result instanceof HTTPErrorResponse) {
+            throw result;
+        }
+
+        return this.getPullRequestFromJSONObject({
+            pullRequest: result.data,
+            organizationName: data.organizationName,
+            repositoryName: data.repositoryName,
+        });
     }
 }

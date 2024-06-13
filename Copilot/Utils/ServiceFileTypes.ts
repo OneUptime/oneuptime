@@ -2,15 +2,76 @@ import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 
 export default class ServiceFileTypesUtil {
 
-    public static getCommonDirectoriesToIgnore(): string[] {
-        return ['node_modules', '.git', 'build', 'dist', 'coverage'];
+    private static getCommonDirectoriesToIgnore(): string[] {
+        return ['node_modules', '.git', 'build', 'dist', 'coverage', 'logs', 'tmp', 'temp', 'temporal', 'tempfiles', 'tempfiles'];
     }
 
-    public static getCommonFilesToIgnore(): string[] {
+    private static getCommonFilesToIgnore(): string[] {
         return ['.DS_Store', 'Thumbs.db', '.gitignore', '.gitattributes'];
     }
 
-    public static getCommonFilesExtentions(): string[] {
+    public static getCommonFilesToIgnoreByServiceLanguage(
+        serviceLanguage: ServiceLanguage
+    ): string[] {
+        let filesToIgnore: string[] = [];
+
+        switch (serviceLanguage) {
+            case ServiceLanguage.NodeJS:
+                filesToIgnore = ['package-lock.json'];
+                break;
+            case ServiceLanguage.Python:
+                filesToIgnore = ['__pycache__'];
+                break;
+            case ServiceLanguage.Ruby:
+                filesToIgnore = ['Gemfile.lock'];
+                break;
+            case ServiceLanguage.Go:
+                filesToIgnore = ['go.sum', 'go.mod'];
+                break;
+            case ServiceLanguage.Java:
+                filesToIgnore = ['pom.xml'];
+                break;
+            case ServiceLanguage.PHP:
+                filesToIgnore = ['composer.lock'];
+                break;
+            case ServiceLanguage.CSharp:
+                filesToIgnore = ['packages', 'bin', 'obj'];
+                break;
+            case ServiceLanguage.CPlusPlus:
+                filesToIgnore = ['build', 'CMakeFiles', 'CMakeCache.txt', 'Makefile'];
+                break;
+            case ServiceLanguage.Rust:
+                filesToIgnore = ['Cargo.lock'];
+                break;
+            case ServiceLanguage.Swift:
+                filesToIgnore = ['Podfile.lock'];
+                break;
+            case ServiceLanguage.Kotlin:
+                filesToIgnore = ['gradle', 'build', 'gradlew', 'gradlew.bat', 'gradle.properties'];
+                break;
+            case ServiceLanguage.TypeScript:
+                filesToIgnore = ['node_modules', 'package-lock.json'];
+                break;
+            case ServiceLanguage.JavaScript:
+                filesToIgnore = ['node_modules', 'package-lock.json'];
+                break;
+            case ServiceLanguage.Shell:
+                filesToIgnore = [];
+                break;
+            case ServiceLanguage.React:
+                filesToIgnore = ['node_modules', 'package-lock.json'];
+                break;
+            case ServiceLanguage.Other:
+                filesToIgnore = [];
+                break;
+            default:
+                filesToIgnore = [];
+        }
+
+        return filesToIgnore.concat(this.getCommonFilesToIgnore()).concat(this.getCommonDirectoriesToIgnore());
+    }
+
+    private static getCommonFilesExtentions(): string[] {
         // return markdown, dockerfile, etc.
         return ['.md', 'dockerfile', '.yml', '.yaml', '.sh', '.gitignore'];
     }
