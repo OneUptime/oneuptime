@@ -24,3 +24,8 @@ export const GetGitHubToken: GetStringOrNullFunction = (): string | null => {
     const token: string | null = process.env['GITHUB_TOKEN'] || null;
     return token;
 };
+
+export const GetGitHubUsername: GetStringOrNullFunction = (): string | null => {
+    const username: string | null = process.env['GITHUB_USERNAME'] || null;
+    return username;
+};

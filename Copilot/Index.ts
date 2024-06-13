@@ -1,6 +1,9 @@
-import { CodeRepositoryResult } from './Utils/CodeRepository';
+import CodeRepositoryUtil, {
+    CodeRepositoryResult,
+} from './Utils/CodeRepository';
 import InitUtil from './Utils/Init';
 import ServiceRepositoryUtil from './Utils/ServiceRepository';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Dictionary from 'Common/Types/Dictionary';
 import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
 import CodeRepositoryFile from 'CommonServer/Utils/CodeRepository/CodeRepositoryFile';
@@ -32,8 +35,25 @@ init()
     .then(() => {
         process.exit(0);
     })
-    .catch((error: Error) => {
+    .catch(async (error: Error | HTTPErrorResponse) => {
+        try {
+            await CodeRepositoryUtil.discardChanges();
+
+            // change back to main branch.
+            await CodeRepositoryUtil.checkoutMainBranch();
+        } catch (e) {
+            // do nothing.
+        }
+
         logger.error('Error in starting OneUptime Copilot: ');
-        logger.error(error);
+
+        if (error instanceof HTTPErrorResponse) {
+            logger.error(error.message);
+        } else if (error instanceof Error) {
+            logger.error(error.message);
+        } else {
+            logger.error(error);
+        }
+
         process.exit(1);
     });

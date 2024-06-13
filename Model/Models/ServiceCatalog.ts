@@ -23,6 +23,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import IconProp from 'Common/Types/Icon/IconProp';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
+import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 import {
     Column,
     Entity,
@@ -32,24 +33,6 @@ import {
     ManyToMany,
     ManyToOne,
 } from 'typeorm';
-
-export enum ServiceLanguage {
-    NodeJS = 'NodeJS',
-    Python = 'Python',
-    Ruby = 'Ruby',
-    Go = 'Go',
-    Java = 'Java',
-    PHP = 'PHP',
-    CSharp = 'C#',
-    CPlusPlus = 'C++',
-    Rust = 'Rust',
-    Swift = 'Swift',
-    Kotlin = 'Kotlin',
-    TypeScript = 'TypeScript',
-    JavaScript = 'JavaScript',
-    Shell = 'Shell',
-    Other = 'Other',
-}
 
 @AccessControlColumn('labels')
 @EnableDocumentation()

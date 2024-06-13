@@ -2,6 +2,11 @@ import { PromiseRejectErrorFunction } from 'Common/Types/FunctionTypes';
 import fs from 'fs';
 
 export default class LocalFile {
+    public static sanitizeFilePath(filePath: string): string {
+        // remove double slashes
+        return filePath.replace(/\/\//g, '/');
+    }
+
     public static async makeDirectory(path: string): Promise<void> {
         return new Promise(
             (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {

@@ -5,6 +5,7 @@ import ServiceRepository from './ServiceRepository';
 import User from './User';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
+import CopilotEventStatus from 'Common/Types/Copilot/CopilotEventStatus';
 import CopilotEventType from 'Common/Types/Copilot/CopilotEventType';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
@@ -293,6 +294,7 @@ export default class CopilotEvent extends BaseModel {
     @TableColumn({
         type: TableColumnType.LongText,
         title: 'File Path in Code Repository',
+        required: true,
         description:
             'File Path in Code Repository where this event was triggered',
     })
@@ -461,4 +463,50 @@ export default class CopilotEvent extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public serviceRepositoryId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        required: false,
+        isDefaultValueColumn: false,
+        title: 'Pull Request ID',
+        description:
+            'ID of Pull Request in the repository where this event was executed and then PR was created.',
+    })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: true,
+    })
+    public pullRequestId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadCopilotEvent,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.ShortText,
+        title: 'Copilot Event Status',
+        description:
+            'Status of Copilot Event that was triggered for this file in Code Repository',
+    })
+    @Column({
+        type: ColumnType.ShortText,
+        nullable: false,
+    })
+    public copilotEventStatus?: CopilotEventStatus = undefined;
 }

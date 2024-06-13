@@ -1,13 +1,14 @@
 import LabelsElement from '../../../Components/Label/Labels';
 import PageComponentProps from '../../PageComponentProps';
 import ObjectID from 'Common/Types/ObjectID';
+import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Label from 'Model/Models/Label';
-import ServiceCatalog, { ServiceLanguage } from 'Model/Models/ServiceCatalog';
+import ServiceCatalog from 'Model/Models/ServiceCatalog';
 import React, { Fragment, FunctionComponent, ReactElement } from 'react';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
