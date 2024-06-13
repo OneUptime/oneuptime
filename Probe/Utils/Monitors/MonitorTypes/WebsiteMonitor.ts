@@ -8,6 +8,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Sleep from 'Common/Types/Sleep';
 import WebsiteRequest, { WebsiteResponse } from 'Common/Types/WebsiteRequest';
+import API from 'Common/Utils/API';
 import logger from 'CommonServer/Utils/Logger';
 import { AxiosError } from 'axios';
 
@@ -136,7 +137,7 @@ export default class WebsiteMonitor {
                     statusCode: err.response?.status,
                     responseBody: err.response?.data,
                     responseHeaders: (err.response?.headers as Headers) || {},
-                    failureCause: err.message || err.toString(),
+                    failureCause: API.getFriendlyErrorMessage(err),
                 };
             } else {
                 probeWebsiteResponse = {
@@ -148,7 +149,7 @@ export default class WebsiteMonitor {
                     statusCode: undefined,
                     responseBody: undefined,
                     responseHeaders: undefined,
-                    failureCause: (err as Error).toString(),
+                    failureCause: API.getFriendlyErrorMessage(err as Error),
                 };
             }
 

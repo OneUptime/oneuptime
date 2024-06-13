@@ -6,6 +6,7 @@ import SSLMonitorReponse from 'Common/Types/Monitor/SSLMonitor/SslMonitorRespons
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Sleep from 'Common/Types/Sleep';
+import API from 'Common/Utils/API';
 import ObjectUtil from 'Common/Utils/ObjectUtil';
 import logger from 'CommonServer/Utils/Logger';
 import { ClientRequest, IncomingMessage } from 'http';
@@ -105,7 +106,7 @@ export default class SSLMonitor {
 
             return {
                 isOnline: false,
-                failureCause: (err as any).toString(),
+                failureCause: API.getFriendlyErrorMessage(err as Error),
             };
         }
     }
@@ -135,7 +136,7 @@ export default class SSLMonitor {
             } catch (err) {
                 return {
                     isOnline: false,
-                    failureCause: (err as any).toString(),
+                    failureCause: API.getFriendlyErrorMessage(err as Error),
                 };
             }
         }

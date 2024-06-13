@@ -166,7 +166,7 @@ export default class ApiMonitor {
                 statusCode: 0,
                 responseBody: '',
                 responseHeaders: {},
-                failureCause: (err as any).toString(),
+                failureCause: API.getFriendlyErrorMessage(err as Error),
             };
 
             // check if timeout exceeded and if yes, return null

@@ -911,7 +911,7 @@ export default class ProbeMonitorResponseService {
                     (
                         (input.dataToProcess as ProbeMonitorResponse)
                             .failureCause || ''
-                    ).replace('Error:', '');
+                    );
                 break;
             }
         }

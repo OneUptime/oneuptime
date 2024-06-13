@@ -21,6 +21,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'ingestor';
 
+
 app.use([`/${APP_NAME}`, '/'], AliveAPI);
 app.use([`/${APP_NAME}`, '/'], RegisterAPI);
 app.use([`/${APP_NAME}`, '/'], MonitorAPI);

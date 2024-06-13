@@ -348,4 +348,62 @@ export default class API {
 
         throw new APIException(`URL ${url ? url + ' ' : ''}is not available.`);
     }
+
+    public static getFriendlyErrorMessage(error: AxiosError | Error): string {
+        const errorString: string = error.message || error.toString();
+
+        if(errorString.toLocaleLowerCase().includes('network error')) {
+            return 'Network Error';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('timeout')) {
+            return 'Timeout Error';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('request aborted')) {
+            return 'Request Aborted';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('canceled')) {
+            return 'Request Canceled';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('connection refused')) {
+            return 'Connection Refused';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('connection reset')) {
+            return 'Connection Reset';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('connection closed')) {
+            return 'Connection Closed';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('connection failed')) {
+            return 'Connection Failed';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('enotfound')) {
+            return 'Cannot Find Host';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('econnreset')) {
+            return 'Connection Reset';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('econnrefused')) {
+            return 'Connection Refused';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('econnaborted')) {
+            return 'Connection Aborted';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('certificate has expired')) {
+            return 'SSL Certificate Expired';
+        }
+
+        return errorString;
+    }
 }

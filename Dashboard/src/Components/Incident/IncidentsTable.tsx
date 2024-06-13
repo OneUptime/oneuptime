@@ -3,6 +3,7 @@ import MonitorsElement from '../../Components/Monitor/Monitors';
 import EventName from '../../Utils/EventName';
 import DashboardNavigation from '../../Utils/Navigation';
 import ProjectUser from '../../Utils/ProjectUser';
+import IncidentElement from './Incident';
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import { Black } from 'Common/Types/BrandColors';
@@ -524,7 +525,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             title: true,
                         },
                         title: 'Title',
-                        type: FieldType.Text,
+                        type: FieldType.Element,
+                        getElement: (item: Incident): ReactElement => {
+                            return <IncidentElement incident={item} />;
+                        },
                     },
                     {
                         field: {
