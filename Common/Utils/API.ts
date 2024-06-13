@@ -353,57 +353,65 @@ export default class API {
         const errorString: string = error.message || error.toString();
 
         if (errorString.toLocaleLowerCase().includes('network error')) {
-            return 'Network Error';
+            return 'Network Error.';
         }
 
         if (errorString.toLocaleLowerCase().includes('timeout')) {
-            return 'Timeout Error';
+            return 'Timeout Error.';
         }
 
         if (errorString.toLocaleLowerCase().includes('request aborted')) {
-            return 'Request Aborted';
+            return 'Request Aborted.';
         }
 
         if (errorString.toLocaleLowerCase().includes('canceled')) {
-            return 'Request Canceled';
+            return 'Request Canceled.';
         }
 
         if (errorString.toLocaleLowerCase().includes('connection refused')) {
-            return 'Connection Refused';
+            return 'Connection Refused.';
         }
 
         if (errorString.toLocaleLowerCase().includes('connection reset')) {
-            return 'Connection Reset';
+            return 'Connection Reset.';
         }
 
         if (errorString.toLocaleLowerCase().includes('connection closed')) {
-            return 'Connection Closed';
+            return 'Connection Closed.';
         }
 
         if (errorString.toLocaleLowerCase().includes('connection failed')) {
-            return 'Connection Failed';
+            return 'Connection Failed.';
         }
 
         if (errorString.toLocaleLowerCase().includes('enotfound')) {
-            return 'Cannot Find Host';
+            return 'Cannot Find Host.';
         }
 
         if (errorString.toLocaleLowerCase().includes('econnreset')) {
-            return 'Connection Reset';
+            return 'Connection Reset.';
         }
 
         if (errorString.toLocaleLowerCase().includes('econnrefused')) {
-            return 'Connection Refused';
+            return 'Connection Refused.';
         }
 
         if (errorString.toLocaleLowerCase().includes('econnaborted')) {
-            return 'Connection Aborted';
+            return 'Connection Aborted.';
         }
 
         if (
             errorString.toLocaleLowerCase().includes('certificate has expired')
         ) {
-            return 'SSL Certificate Expired';
+            return 'SSL Certificate Expired.';
+        }
+
+        if(errorString.toLocaleLowerCase().includes('certificate signed by unknown authority')) {
+            return 'SSL Certificate Signed By Unknown Authority.';
+        }
+
+        if (errorString.toLocaleLowerCase().includes('self-signed certificate')) {
+            return 'Self Signed Certificate.';
         }
 
         return errorString;
