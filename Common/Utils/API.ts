@@ -406,11 +406,17 @@ export default class API {
             return 'SSL Certificate Expired.';
         }
 
-        if(errorString.toLocaleLowerCase().includes('certificate signed by unknown authority')) {
+        if (
+            errorString
+                .toLocaleLowerCase()
+                .includes('certificate signed by unknown authority')
+        ) {
             return 'SSL Certificate Signed By Unknown Authority.';
         }
 
-        if (errorString.toLocaleLowerCase().includes('self-signed certificate')) {
+        if (
+            errorString.toLocaleLowerCase().includes('self-signed certificate')
+        ) {
             return 'Self Signed Certificate.';
         }
 
