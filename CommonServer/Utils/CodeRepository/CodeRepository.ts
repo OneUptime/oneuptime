@@ -5,36 +5,28 @@ import CodeRepositoryFile from './CodeRepositoryFile';
 import Dictionary from 'Common/Types/Dictionary';
 
 export default class CodeRepositoryUtil {
-
     public static async createOrCheckoutBranch(data: {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-
         const command: string = `cd ${data.repoPath} && git checkout ${data.branchName} || git checkout -b ${data.branchName}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
-
 
     // discard all changes in the working directory
     public static async discardChanges(data: {
         repoPath: string;
     }): Promise<void> {
-
         const command: string = `cd ${data.repoPath} && git checkout .`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -44,16 +36,15 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         content: string;
     }): Promise<void> {
-
-        const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
+        const totalPath: string = LocalFile.sanitizeFilePath(
+            `${data.repoPath}/${data.filePath}`
+        );
 
         const command: string = `echo "${data.content}" > ${totalPath}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -62,16 +53,15 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         directoryPath: string;
     }): Promise<void> {
+        const totalPath: string = LocalFile.sanitizeFilePath(
+            `${data.repoPath}/${data.directoryPath}`
+        );
 
-        const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.directoryPath}`);
-        
         const command: string = `mkdir ${totalPath}`;
 
-        logger.debug("Executing command: " + command);
-        
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        logger.debug('Executing command: ' + command);
+
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -80,17 +70,15 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         filePath: string;
     }): Promise<void> {
-
-        const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
-
+        const totalPath: string = LocalFile.sanitizeFilePath(
+            `${data.repoPath}/${data.filePath}`
+        );
 
         const command: string = `rm ${totalPath}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -99,33 +87,28 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         directoryPath: string;
     }): Promise<void> {
-
-        const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.directoryPath}`);
+        const totalPath: string = LocalFile.sanitizeFilePath(
+            `${data.repoPath}/${data.directoryPath}`
+        );
 
         const command: string = `rm -rf ${totalPath}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
-
 
     public static async createBranch(data: {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-
         const command: string = `cd ${data.repoPath} && git checkout -b ${data.branchName}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -134,14 +117,11 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-
         const command: string = `cd ${data.repoPath} && git checkout ${data.branchName}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -150,24 +130,24 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         filePaths: Array<string>;
     }): Promise<void> {
+        const filePaths: Array<string> = data.filePaths.map(
+            (filePath: string) => {
+                if (filePath.startsWith('/')) {
+                    // remove the leading slash and return
+                    return filePath.substring(1);
+                }
 
-        const filePaths = data.filePaths.map((filePath) => {
-            if(filePath.startsWith('/')){
-                // remove the leading slash and return
-                return filePath.substring(1);
-            }else{
                 return filePath;
             }
-        });
-
-
-        const command: string = `cd ${data.repoPath} && git add ${filePaths.join(' ')}`;
-
-        logger.debug("Executing command: " + command);
-
-        const stdout = await Execute.executeCommand(
-            command
         );
+
+        const command: string = `cd ${
+            data.repoPath
+        } && git add ${filePaths.join(' ')}`;
+
+        logger.debug('Executing command: ' + command);
+
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -176,14 +156,11 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         message: string;
     }): Promise<void> {
-
         const command: string = `cd ${data.repoPath} && git commit -m "${data.message}"`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const stdout = await Execute.executeCommand(
-            command
-        );
+        const stdout: string = await Execute.executeCommand(command);
 
         logger.debug(stdout);
     }
@@ -204,11 +181,9 @@ export default class CodeRepositoryUtil {
 
         const command: string = `cd ${repoPath} && git log -1 --pretty=format:"%H" ".${filePath}"`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
-        const hash: string =  await Execute.executeCommand(
-            command
-        );
+        const hash: string = await Execute.executeCommand(command);
 
         logger.debug(hash);
 
@@ -250,15 +225,14 @@ export default class CodeRepositoryUtil {
                 continue;
             }
 
-        
             const filePath: string = LocalFile.sanitizeFilePath(
                 `${directoryPath}/${fileName}`
             );
 
-            if(data.ignoreFilesOrDirectories.includes(fileName)){
+            if (data.ignoreFilesOrDirectories.includes(fileName)) {
                 continue;
             }
-            
+
             const isDirectory: boolean = (
                 await Execute.executeCommand(
                     `file "${LocalFile.sanitizeFilePath(
@@ -272,23 +246,21 @@ export default class CodeRepositoryUtil {
                     LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`)
                 );
                 continue;
-            }else{
-                if (
-                    data.acceptedFileExtensions &&
-                    data.acceptedFileExtensions.length > 0
-                ) {
-                    let shouldSkip: boolean = true;
-    
-                    for (const fileExtension of data.acceptedFileExtensions) {
-                        if (fileName.endsWith(fileExtension)) {
-                            shouldSkip = false;
-                            break;
-                        }
+            } else if (
+                data.acceptedFileExtensions &&
+                data.acceptedFileExtensions.length > 0
+            ) {
+                let shouldSkip: boolean = true;
+
+                for (const fileExtension of data.acceptedFileExtensions) {
+                    if (fileName.endsWith(fileExtension)) {
+                        shouldSkip = false;
+                        break;
                     }
-    
-                    if (shouldSkip) {
-                        continue;
-                    }
+                }
+
+                if (shouldSkip) {
+                    continue;
                 }
             }
 

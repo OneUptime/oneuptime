@@ -5,10 +5,7 @@ import NotImplementedException from 'Common/Types/Exception/NotImplementedExcept
 import ServiceRepository from 'Model/Models/ServiceRepository';
 
 export default class HostedCodeRepository {
-    public constructor(data: { 
-        authToken: string,
-        username: string,
-    }) {
+    public constructor(data: { authToken: string; username: string }) {
         if (!data.authToken) {
             throw new BadDataException('authToken is required');
         }
@@ -103,7 +100,7 @@ export default class HostedCodeRepository {
     public async pushChanges(_data: {
         branchName: string;
         organizationName: string;
-        repoName: string;
+        repositoryName: string;
     }): Promise<void> {
         throw new NotImplementedException();
     }

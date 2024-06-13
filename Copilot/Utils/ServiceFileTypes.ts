@@ -1,9 +1,20 @@
 import ServiceLanguage from 'Common/Types/ServiceCatalog/ServiceLanguage';
 
 export default class ServiceFileTypesUtil {
-
     private static getCommonDirectoriesToIgnore(): string[] {
-        return ['node_modules', '.git', 'build', 'dist', 'coverage', 'logs', 'tmp', 'temp', 'temporal', 'tempfiles', 'tempfiles'];
+        return [
+            'node_modules',
+            '.git',
+            'build',
+            'dist',
+            'coverage',
+            'logs',
+            'tmp',
+            'temp',
+            'temporal',
+            'tempfiles',
+            'tempfiles',
+        ];
     }
 
     private static getCommonFilesToIgnore(): string[] {
@@ -38,7 +49,12 @@ export default class ServiceFileTypesUtil {
                 filesToIgnore = ['packages', 'bin', 'obj'];
                 break;
             case ServiceLanguage.CPlusPlus:
-                filesToIgnore = ['build', 'CMakeFiles', 'CMakeCache.txt', 'Makefile'];
+                filesToIgnore = [
+                    'build',
+                    'CMakeFiles',
+                    'CMakeCache.txt',
+                    'Makefile',
+                ];
                 break;
             case ServiceLanguage.Rust:
                 filesToIgnore = ['Cargo.lock'];
@@ -47,7 +63,13 @@ export default class ServiceFileTypesUtil {
                 filesToIgnore = ['Podfile.lock'];
                 break;
             case ServiceLanguage.Kotlin:
-                filesToIgnore = ['gradle', 'build', 'gradlew', 'gradlew.bat', 'gradle.properties'];
+                filesToIgnore = [
+                    'gradle',
+                    'build',
+                    'gradlew',
+                    'gradlew.bat',
+                    'gradle.properties',
+                ];
                 break;
             case ServiceLanguage.TypeScript:
                 filesToIgnore = ['node_modules', 'package-lock.json'];
@@ -68,7 +90,9 @@ export default class ServiceFileTypesUtil {
                 filesToIgnore = [];
         }
 
-        return filesToIgnore.concat(this.getCommonFilesToIgnore()).concat(this.getCommonDirectoriesToIgnore());
+        return filesToIgnore
+            .concat(this.getCommonFilesToIgnore())
+            .concat(this.getCommonDirectoriesToIgnore());
     }
 
     private static getCommonFilesExtentions(): string[] {

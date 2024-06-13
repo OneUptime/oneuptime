@@ -1,3 +1,5 @@
+import Execute from '../../Execute';
+import logger from '../../Logger';
 import HostedCodeRepository from '../HostedCodeRepository/HostedCodeRepository';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
@@ -7,11 +9,8 @@ import PullRequestState from 'Common/Types/CodeRepository/PullRequestState';
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
-import Execute from '../../Execute';
-import logger from '../../Logger';
 
 export default class GitHubUtil extends HostedCodeRepository {
-
     private getPullRequestFromJSONObject(data: {
         pullRequest: JSONObject;
         organizationName: string;
@@ -153,44 +152,47 @@ export default class GitHubUtil extends HostedCodeRepository {
         return allPullRequests;
     }
 
-
-    public override async addRemote(data: { remoteName: string; organizationName: string; repositoryName: string; }): Promise<void> {
-
+    public override async addRemote(data: {
+        remoteName: string;
+        organizationName: string;
+        repositoryName: string;
+    }): Promise<void> {
         const url: URL = URL.fromString(
             `https://github.com/${data.organizationName}/${data.repositoryName}.git`
         );
 
-        const command: string = `git remote add ${data.remoteName} ${url.toString()}`;
+        const command: string = `git remote add ${
+            data.remoteName
+        } ${url.toString()}`;
 
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
         const result: string = await Execute.executeCommand(command);
 
         logger.debug(result);
     }
-
 
     public override async pushChanges(data: {
         branchName: string;
         organizationName: string;
-        repoName: string;
-    }){
-
+        repositoryName: string;
+    }): Promise<void> {
         const branchName: string = data.branchName;
 
-        const username: string = this.username; 
+        const username: string = this.username;
         const password: string = this.authToken;
 
-        logger.debug("Pushing changes to remote repository with username: " + username);
+        logger.debug(
+            'Pushing changes to remote repository with username: ' + username
+        );
 
         const command: string = `git push -u https://${username}:${password}@github.com/${data.organizationName}/${data.repositoryName}.git ${branchName}`;
-        logger.debug("Executing command: " + command);
+        logger.debug('Executing command: ' + command);
 
         const result: string = await Execute.executeCommand(command);
 
         logger.debug(result);
     }
-
 
     public override async createPullRequest(data: {
         baseBranchName: string;

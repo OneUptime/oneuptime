@@ -26,9 +26,10 @@ export default class ServiceRepositoryUtil {
                     ServiceFileTypesUtil.getFileExtentionsByServiceLanguage(
                         serviceRepository.serviceCatalog!.serviceLanguage!
                     ),
-                    ignoreFilesOrDirectories: ServiceFileTypesUtil.getCommonFilesToIgnoreByServiceLanguage(
+                ignoreFilesOrDirectories:
+                    ServiceFileTypesUtil.getCommonFilesToIgnoreByServiceLanguage(
                         serviceRepository.serviceCatalog!.serviceLanguage!
-                    )
+                    ),
             });
 
         return allFiles;

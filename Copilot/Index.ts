@@ -1,4 +1,6 @@
-import CodeRepositoryUtil, { CodeRepositoryResult } from './Utils/CodeRepository';
+import CodeRepositoryUtil, {
+    CodeRepositoryResult,
+} from './Utils/CodeRepository';
 import InitUtil from './Utils/Init';
 import ServiceRepositoryUtil from './Utils/ServiceRepository';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -22,30 +24,31 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             });
 
         logger.info(
-            `Files found in ${serviceRepository.serviceCatalog?.name}: ${Object.keys(filesInService).length
+            `Files found in ${serviceRepository.serviceCatalog?.name}: ${
+                Object.keys(filesInService).length
             }`
         );
 
-        const branchName = 'test-branch-4';
-
+        const branchName: string = 'test-branch-5';
 
         await CodeRepositoryUtil.createOrCheckoutBranch({
             serviceRepository: serviceRepository,
             branchName: branchName,
         });
 
-        // test code from here. 
-        const file = filesInService[Object.keys(filesInService)[0]!];
+        // test code from here.
+        const file: CodeRepositoryFile | undefined =
+            filesInService[Object.keys(filesInService)[0]!];
 
         await CodeRepositoryUtil.writeToFile({
-            filePath: file?.filePath!,
+            filePath: file!.filePath!,
             content: 'Hello World',
         });
 
         // commit the changes
 
         await CodeRepositoryUtil.addFilesToGit({
-            filePaths: [file?.filePath!],
+            filePaths: [file!.filePath!],
         });
 
         await CodeRepositoryUtil.commitChanges({
@@ -54,6 +57,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
         await CodeRepositoryUtil.pushChanges({
             branchName: branchName,
+            serviceRepository: serviceRepository,
         });
 
         // create a pull request
@@ -62,8 +66,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             title: 'Test PR',
             body: 'Test PR body',
             branchName: branchName,
+            serviceRepository: serviceRepository,
         });
-
     }
 };
 
@@ -73,15 +77,12 @@ init()
     })
     .catch(async (error: Error | HTTPErrorResponse) => {
         try {
-
             await CodeRepositoryUtil.discardChanges();
 
-            // change back to main branch. 
-            await CodeRepositoryUtil.checkoutBranch({
-                branchName: 'main',
-            });
+            // change back to main branch.
+            await CodeRepositoryUtil.checkoutMainBranch();
         } catch (e) {
-           // do nothing.
+            // do nothing.
         }
 
         logger.error('Error in starting OneUptime Copilot: ');
