@@ -83,16 +83,18 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
                 />
             </div>
 
-            {props.probeMonitorResponse.failureCause && <div className="flex space-x-3">
-                <InfoCard
-                    className="w-full shadow-none border-2 border-gray-100 "
-                    title="Error"
-                    value={
-                        props.probeMonitorResponse.failureCause?.toString() ||
-                        '-'
-                    }
-                />
-            </div>}
+            {props.probeMonitorResponse.failureCause && (
+                <div className="flex space-x-3">
+                    <InfoCard
+                        className="w-full shadow-none border-2 border-gray-100 "
+                        title="Error"
+                        value={
+                            props.probeMonitorResponse.failureCause?.toString() ||
+                            '-'
+                        }
+                    />
+                </div>
+            )}
 
             {showMoreDetails && fields.length > 0 && (
                 <div>

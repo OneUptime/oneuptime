@@ -908,10 +908,8 @@ export default class ProbeMonitorResponseService {
                 input.probeApiIngestResponse.rootCause =
                     rootCause +
                     ' ' +
-                    (
-                        (input.dataToProcess as ProbeMonitorResponse)
-                            .failureCause || ''
-                    );
+                    ((input.dataToProcess as ProbeMonitorResponse)
+                        .failureCause || '');
                 break;
             }
         }
