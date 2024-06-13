@@ -1,5 +1,6 @@
 import Execute from '../Execute';
 import LocalFile from '../LocalFile';
+import logger from '../Logger';
 import CodeRepositoryFile from './CodeRepositoryFile';
 import Dictionary from 'Common/Types/Dictionary';
 
@@ -9,9 +10,16 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git checkout ${data.branchName} || git checkout -b ${data.branchName}`
+
+        const command: string = `cd ${data.repoPath} && git checkout ${data.branchName} || git checkout -b ${data.branchName}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
 
@@ -19,9 +27,16 @@ export default class CodeRepositoryUtil {
     public static async discardChanges(data: {
         repoPath: string;
     }): Promise<void> {
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git checkout .`
+
+        const command: string = `cd ${data.repoPath} && git checkout .`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async writeToFile(data: {
@@ -32,9 +47,15 @@ export default class CodeRepositoryUtil {
 
         const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
 
-        await Execute.executeCommand(
-            `echo "${data.content}" > ${totalPath}`
+        const command: string = `echo "${data.content}" > ${totalPath}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async createDirectory(data: {
@@ -44,9 +65,15 @@ export default class CodeRepositoryUtil {
 
         const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.directoryPath}`);
         
-        await Execute.executeCommand(
-            `mkdir ${totalPath}`
+        const command: string = `mkdir ${totalPath}`;
+
+        logger.debug("Executing command: " + command);
+        
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async deleteFile(data: {
@@ -56,9 +83,16 @@ export default class CodeRepositoryUtil {
 
         const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
 
-        await Execute.executeCommand(
-            `rm ${totalPath}`
+
+        const command: string = `rm ${totalPath}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async deleteDirectory(data: {
@@ -68,9 +102,15 @@ export default class CodeRepositoryUtil {
 
         const totalPath: string = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.directoryPath}`);
 
-        await Execute.executeCommand(
-            `rm -rf ${totalPath}`
+        const command: string = `rm -rf ${totalPath}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
 
@@ -78,18 +118,32 @@ export default class CodeRepositoryUtil {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git checkout -b ${data.branchName}`
+
+        const command: string = `cd ${data.repoPath} && git checkout -b ${data.branchName}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async checkoutBranch(data: {
         repoPath: string;
         branchName: string;
     }): Promise<void> {
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git checkout ${data.branchName}`
+
+        const command: string = `cd ${data.repoPath} && git checkout ${data.branchName}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async addFilesToGit(data: {
@@ -106,18 +160,32 @@ export default class CodeRepositoryUtil {
             }
         });
 
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git add ${filePaths.join(' ')}`
+
+        const command: string = `cd ${data.repoPath} && git add ${filePaths.join(' ')}`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async commitChanges(data: {
         repoPath: string;
         message: string;
     }): Promise<void> {
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git commit -m "${data.message}"`
+
+        const command: string = `cd ${data.repoPath} && git commit -m "${data.message}"`;
+
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async pushChanges(data: {
@@ -128,9 +196,15 @@ export default class CodeRepositoryUtil {
 
         const remoteName: string = data.remoteName || 'origin';
 
-        await Execute.executeCommand(
-            `cd ${data.repoPath} && git push ${remoteName} ${data.branchName}`
+        const command: string = `cd ${data.repoPath} && git push ${remoteName} ${data.branchName}`;
+        
+        logger.debug("Executing command: " + command);
+
+        const stdout = await Execute.executeCommand(
+            command
         );
+
+        logger.debug(stdout);
     }
 
     public static async getGitCommitHashForFile(data: {
@@ -147,9 +221,17 @@ export default class CodeRepositoryUtil {
 
         const { repoPath, filePath } = data;
 
-        return await Execute.executeCommand(
-            `cd ${repoPath} && git log -1 --pretty=format:"%H" ".${filePath}"`
+        const command: string = `cd ${repoPath} && git log -1 --pretty=format:"%H" ".${filePath}"`;
+
+        logger.debug("Executing command: " + command);
+
+        const hash: string =  await Execute.executeCommand(
+            command
         );
+
+        logger.debug(hash);
+
+        return hash;
     }
 
     public static async getFilesInDirectory(data: {

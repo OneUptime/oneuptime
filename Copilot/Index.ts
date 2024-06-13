@@ -26,9 +26,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             }`
         );
 
+        const branchName = 'test-branch-3';
 
-        await CodeRepositoryUtil.createBranch({
-            branchName: 'test-branch',
+
+        await CodeRepositoryUtil.createOrCheckoutBranch({
+            serviceRepository: serviceRepository,
+            branchName: branchName,
         });
 
         // test code from here. 
@@ -50,7 +53,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         });
 
         await CodeRepositoryUtil.pushChanges({
-            branchName: 'test-branch',
+            branchName: branchName,
         });
 
         // create a pull request
@@ -58,7 +61,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         await CodeRepositoryUtil.createPullRequest({
             title: 'Test PR',
             body: 'Test PR body',
-            branchName: 'test-branch',
+            branchName: branchName,
         });
 
     }

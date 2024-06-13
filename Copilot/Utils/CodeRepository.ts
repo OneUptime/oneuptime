@@ -46,19 +46,27 @@ export default class CodeRepositoryUtil {
 
     public static async createBranch(data: {
         branchName: string;
+        serviceRepository: ServiceRepository;
     }): Promise<void> {
+
+        const branchName = 'oneuptime-'+(data.serviceRepository.serviceCatalog?.name?.toLowerCase())+'-'+data.branchName;
+
         await CodeRepositoryServerUtil.createBranch({
             repoPath: GetLocalRepositoryPath(),
-            branchName: data.branchName,
+            branchName: branchName,
         })
     }
 
     public static async createOrCheckoutBranch(data: {
+        serviceRepository: ServiceRepository;
         branchName: string;
     }): Promise<void> {
+
+        const branchName = 'oneuptime-'+(data.serviceRepository.serviceCatalog?.name?.toLowerCase())+'-'+data.branchName;
+
         await CodeRepositoryServerUtil.createOrCheckoutBranch({
             repoPath: GetLocalRepositoryPath(),
-            branchName: data.branchName,
+            branchName: branchName,
         })
     }
 
