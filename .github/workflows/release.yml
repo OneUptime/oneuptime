@@ -1088,8 +1088,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E/playwright-report
-            ./E2E/test-results
+            ./E2E
       
         
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1142,8 +1141,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E/playwright-report
-            ./E2E/test-results
+            ./E2E
       
         
           # Duration after which artifact will expire in days. 0 means using default retention.
