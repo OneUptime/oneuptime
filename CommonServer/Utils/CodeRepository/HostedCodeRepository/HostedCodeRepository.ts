@@ -5,15 +5,25 @@ import NotImplementedException from 'Common/Types/Exception/NotImplementedExcept
 import ServiceRepository from 'Model/Models/ServiceRepository';
 
 export default class HostedCodeRepository {
-    public constructor(data: { authToken: string }) {
+    public constructor(data: { 
+        authToken: string,
+        username: string,
+    }) {
         if (!data.authToken) {
             throw new BadDataException('authToken is required');
         }
+
+        if (!data.username) {
+            throw new BadDataException('username is required');
+        }
+
+        this.username = data.username;
 
         this.authToken = data.authToken;
     }
 
     public authToken: string = '';
+    public username: string = '';
 
     public async getNumberOfPullRequestsExistForService(data: {
         serviceRepository: ServiceRepository;
@@ -87,6 +97,22 @@ export default class HostedCodeRepository {
         title: string;
         body: string;
     }): Promise<PullRequest> {
+        throw new NotImplementedException();
+    }
+
+    public async pushChanges(_data: {
+        branchName: string;
+        organizationName: string;
+        repoName: string;
+    }): Promise<void> {
+        throw new NotImplementedException();
+    }
+
+    public async addRemote(_data: {
+        remoteName: string;
+        organizationName: string;
+        repositoryName: string;
+    }): Promise<void> {
         throw new NotImplementedException();
     }
 }

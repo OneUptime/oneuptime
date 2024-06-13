@@ -26,7 +26,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             }`
         );
 
-        const branchName = 'test-branch-3';
+        const branchName = 'test-branch-4';
 
 
         await CodeRepositoryUtil.createOrCheckoutBranch({

@@ -188,25 +188,6 @@ export default class CodeRepositoryUtil {
         logger.debug(stdout);
     }
 
-    public static async pushChanges(data: {
-        repoPath: string;
-        branchName: string;
-        remoteName?: string | undefined;
-    }): Promise<void> {
-
-        const remoteName: string = data.remoteName || 'origin';
-
-        const command: string = `cd ${data.repoPath} && git push ${remoteName} ${data.branchName}`;
-        
-        logger.debug("Executing command: " + command);
-
-        const stdout = await Execute.executeCommand(
-            command
-        );
-
-        logger.debug(stdout);
-    }
-
     public static async getGitCommitHashForFile(data: {
         repoPath: string;
         filePath: string;
