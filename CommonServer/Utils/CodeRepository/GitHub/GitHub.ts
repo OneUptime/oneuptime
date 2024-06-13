@@ -137,9 +137,7 @@ export default class GitHubUtil extends HostedCodeRepository {
 
         // Fetch all pull requests by paginating through the results
         // 100 pull requests per page is the limit of the GitHub API
-        while (pullRequests.length === page * 100) {
-            allPullRequests.push(...pullRequests);
-            page++;
+        while (pullRequests.length === page * 100 || page === 1) {
             pullRequests = await this.getPullRequestsByPage({
                 organizationName: data.organizationName,
                 repositoryName: data.repositoryName,
@@ -147,6 +145,8 @@ export default class GitHubUtil extends HostedCodeRepository {
                 baseBranchName: data.baseBranchName,
                 page: page,
             });
+            page++;
+            allPullRequests.push(...pullRequests);
         }
 
         return allPullRequests;
@@ -176,6 +176,7 @@ export default class GitHubUtil extends HostedCodeRepository {
         branchName: string;
         organizationName: string;
         repositoryName: string;
+        repoPath: string;
     }): Promise<void> {
         const branchName: string = data.branchName;
 
@@ -186,7 +187,7 @@ export default class GitHubUtil extends HostedCodeRepository {
             'Pushing changes to remote repository with username: ' + username
         );
 
-        const command: string = `git push -u https://${username}:${password}@github.com/${data.organizationName}/${data.repositoryName}.git ${branchName}`;
+        const command: string = `cd ${data.repoPath} && git push -u https://${username}:${password}@github.com/${data.organizationName}/${data.repositoryName}.git ${branchName}`;
         logger.debug('Executing command: ' + command);
 
         const result: string = await Execute.executeCommand(command);

@@ -178,9 +178,23 @@ export default class CodeRepositoryUtil {
     public static async commitChanges(data: {
         message: string;
     }): Promise<void> {
+        let username: string | null = null;
+
+        if (
+            this.codeRepositoryResult?.codeRepository.repositoryHostedAt ===
+            CodeRepositoryType.GitHub
+        ) {
+            username = GetGitHubUsername();
+        }
+
+        if (!username) {
+            throw new BadDataException('Username is required');
+        }
+
         await CodeRepositoryServerUtil.commitChanges({
             repoPath: GetLocalRepositoryPath(),
             message: data.message,
+            username: username,
         });
     }
 
@@ -210,6 +224,7 @@ export default class CodeRepositoryUtil {
 
         if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
             return await this.getGitHubUtil().pushChanges({
+                repoPath: GetLocalRepositoryPath(),
                 branchName: branchName,
                 organizationName: codeRepository.organizationName,
                 repositoryName: codeRepository.repositoryName,
