@@ -8,7 +8,14 @@ import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableE
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import GenericObject from "Common/Types/GenericObject";
-import { describe, expect, beforeEach, test, afterEach, jest } from "@jest/globals";
+import {
+  describe,
+  expect,
+  beforeEach,
+  test,
+  afterEach,
+  jest,
+} from "@jest/globals";
 
 describe("AnalyticsDatabaseService", () => {
   class TestModel extends AnalyticsBaseModel {
