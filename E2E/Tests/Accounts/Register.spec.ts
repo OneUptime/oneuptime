@@ -1,5 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED, IS_USER_REGISTERED } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 
@@ -10,11 +10,17 @@ test.describe("Account Registration", () => {
       return;
     }
 
-    await page.goto(
+    const pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString())
         .addRoute("/accounts/register")
         .toString(),
     );
+
+    if (pageResult?.status() === 504 || pageResult?.status() === 502) {
+      // reload page if it fails to load
+      await page.reload();
+    }
+
     await page.getByTestId("email").click();
     await page.getByTestId("email").fill(Faker.generateEmail().toString());
     await page.getByTestId("email").press("Tab");

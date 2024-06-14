@@ -4,7 +4,7 @@ import {
   REGISTERED_USER_EMAIL,
   REGISTERED_USER_PASSWORD,
 } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("Login", () => {
@@ -19,9 +19,14 @@ test.describe("Login", () => {
     }
 
     // go to login page
-    await page.goto(
+    const pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString()).addRoute("/accounts/").toString(),
     );
+
+    if (pageResult?.status() === 504 || pageResult?.status() === 502) {
+      // reload page if it fails to load
+      await page.reload();
+    }
 
     await page.locator('input[type="email"]').click();
     await page
