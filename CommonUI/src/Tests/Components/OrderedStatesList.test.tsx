@@ -5,7 +5,7 @@ import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect } from "@jest/globals";
+import { describe, expect, jest } from "@jest/globals";
 
 describe("OrderedSateList", () => {
   interface ItemData {

@@ -2,6 +2,7 @@ import Badge, { BadgeType } from "../../Components/Badge/Badge";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import React from "react";
+import { describe, expect, test } from "@jest/globals";
 
 describe("Badge", () => {
   test("it should render all props", () => {

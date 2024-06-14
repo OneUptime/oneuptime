@@ -2,6 +2,7 @@ import Alert, { AlertType } from "../../Components/Alerts/Alert";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
+import { describe, expect, jest } from "@jest/globals";
 
 describe("alert tests", () => {
   test("it should render all props passed", () => {

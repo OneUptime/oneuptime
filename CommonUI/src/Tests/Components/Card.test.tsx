@@ -7,6 +7,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { ReactElement } from "react";
+import { describe, expect, jest } from "@jest/globals";
 
 describe("Card", () => {
   const props: ComponentProps = {

@@ -3,8 +3,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import Color from "Common/Types/Color";
 import React from "react";
-import { describe, expect } from "@jest/globals";
-
+import { describe, expect, test } from "@jest/globals";
 
 describe("Loader tests", () => {
   test("it should render if bar loader show up", () => {

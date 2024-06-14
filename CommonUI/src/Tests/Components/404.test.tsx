@@ -5,6 +5,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import * as React from "react";
+import { describe, expect, jest } from "@jest/globals";
 
 // Mock the Navigation module to avoid real navigation
 jest.mock("../../Utils/Navigation", () => {

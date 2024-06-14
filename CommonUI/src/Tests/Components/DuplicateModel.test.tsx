@@ -1,7 +1,7 @@
 import DuplicateModel from "../../Components/DuplicateModel/DuplicateModel";
 import { ModelField } from "../../Components/Forms/ModelForm";
 import Select from "../../Utils/BaseDatabase/Select";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import {
   fireEvent,
   render,

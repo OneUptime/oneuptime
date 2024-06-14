@@ -194,6 +194,7 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         ...globals.node,
+        JSX: true,
       },
       parserOptions: {
         project: ["./tsconfig.json"], // Specify it only for TypeScript files

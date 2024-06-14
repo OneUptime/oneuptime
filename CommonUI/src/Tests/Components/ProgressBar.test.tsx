@@ -2,7 +2,7 @@ import ProgressBar from "../../Components/ProgressBar/ProgressBar";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import * as React from "react";
-import { describe, expect } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 describe("ProgressBar Component", () => {
   function getProgressBar(): HTMLElement {

@@ -4,7 +4,7 @@ import RadioButtons, {
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
-import { describe, expect } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 
 describe("RadioButtons", () => {
   const options: RadioButton[] = [

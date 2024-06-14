@@ -10,7 +10,6 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import React from "react";
 
-
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 
 type GetComponentMetadataFunction = (category?: string) => ComponentMetadata;

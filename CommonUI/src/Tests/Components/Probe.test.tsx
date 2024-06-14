@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import ObjectID from "Common/Types/ObjectID";
 import Probe from "Model/Models/Probe";
 import * as React from "react";
-import { describe, expect } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 describe("ProbeElement Component", () => {
   const mockProbe: Probe = new Probe();
