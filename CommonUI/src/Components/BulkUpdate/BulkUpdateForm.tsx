@@ -128,7 +128,8 @@ const BulkUpdateForm: <T extends GenericObject>(
                                 />
                                 <div className="ml-1 font-medium">
                                     {progressInfo.failed.length}{' '}
-                                    {props.pluralLabel} Failed More information:
+                                    {props.pluralLabel} Failed. Here is more
+                                    information:
                                 </div>
                             </div>
                             <div>
@@ -139,7 +140,10 @@ const BulkUpdateForm: <T extends GenericObject>(
                                             i: number
                                         ) => {
                                             return (
-                                                <div className="flex" key={i}>
+                                                <div
+                                                    className="flex mb-2"
+                                                    key={i}
+                                                >
                                                     {actionName}{' '}
                                                     {props.itemToString
                                                         ? props.itemToString(
@@ -219,16 +223,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                         {props.buttons?.map(
                             (button: BulkActionButtonSchema<T>, i: number) => {
                                 return (
-                                    <div
-                                        style={
-                                            i > 0
-                                                ? {
-                                                      marginLeft: '10px',
-                                                  }
-                                                : {}
-                                        }
-                                        key={i}
-                                    >
+                                    <div key={i}>
                                         <Button
                                             key={i}
                                             title={button.title}

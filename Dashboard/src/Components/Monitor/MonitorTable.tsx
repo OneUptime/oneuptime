@@ -6,8 +6,14 @@ import MonitorSteps from '../Form/Monitor/MonitorSteps';
 import Route from 'Common/Types/API/Route';
 import { Black, Gray500 } from 'Common/Types/BrandColors';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import IconProp from 'Common/Types/Icon/IconProp';
 import MonitorStepsType from 'Common/Types/Monitor/MonitorSteps';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import {
+    BulkActionFailed,
+    BulkActionOnClickProps,
+} from 'CommonUI/src/Components/BulkUpdate/BulkUpdateForm';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 import {
     CustomElementProps,
@@ -20,7 +26,9 @@ import { ModalTableBulkDefaultActions } from 'CommonUI/src/Components/ModelTable
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import API from 'CommonUI/src/Utils/API/API';
 import Query from 'CommonUI/src/Utils/BaseDatabase/Query';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Label from 'Model/Models/Label';
 import Monitor from 'Model/Models/Monitor';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -43,7 +51,145 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             name="Monitors"
             id="Monitors-table"
             bulkActions={{
-                buttons: [ModalTableBulkDefaultActions.Delete],
+                buttons: [
+                    {
+                        title: 'Disable Monitor',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        onClick: async (
+                            props: BulkActionOnClickProps<Monitor>
+                        ) => {
+                            const inProgressItems: Array<Monitor> = [
+                                ...props.items,
+                            ]; // items to be disabled
+                            const totalItems: Array<Monitor> = [...props.items]; // total items
+                            const successItems: Array<Monitor> = []; // items that are disabled
+                            const failedItems: Array<
+                                BulkActionFailed<Monitor>
+                            > = []; // items that failed to disable
+
+                            props.onBulkActionStart();
+
+                            for (const monitor of totalItems) {
+                                // remove this item from inProgressItems
+
+                                inProgressItems.splice(
+                                    inProgressItems.indexOf(monitor),
+                                    1
+                                );
+
+                                try {
+                                    if (!monitor.id) {
+                                        throw new BadDataException(
+                                            'Monitor ID not found'
+                                        );
+                                    }
+
+                                    await ModelAPI.updateById<Monitor>({
+                                        id: monitor.id,
+                                        modelType: Monitor,
+                                        data: {
+                                            disableActiveMonitoring: true,
+                                        },
+                                    });
+
+                                    successItems.push(monitor);
+                                } catch (err) {
+                                    failedItems.push({
+                                        item: monitor,
+                                        failedMessage:
+                                            API.getFriendlyMessage(err),
+                                    });
+                                }
+
+                                props.onProgressInfo({
+                                    totalItems: totalItems,
+                                    failed: failedItems,
+                                    successItems: successItems,
+                                    inProgressItems: inProgressItems,
+                                });
+                            }
+
+                            props.onBulkActionEnd();
+                        },
+
+                        icon: IconProp.Stop,
+                        confirmTitle: (items: Array<Monitor>) => {
+                            return `Disable ${items.length} Monitor(s)`;
+                        },
+                        confirmMessage: (items: Array<Monitor>) => {
+                            return `Are you sure you want to disable ${items.length} monitor(s)?`;
+                        },
+                    },
+                    {
+                        title: 'Enable Monitor',
+                        buttonStyleType: ButtonStyleType.NORMAL,
+                        onClick: async (
+                            props: BulkActionOnClickProps<Monitor>
+                        ) => {
+                            const inProgressItems: Array<Monitor> = [
+                                ...props.items,
+                            ]; // items to be disabled
+                            const totalItems: Array<Monitor> = [...props.items]; // total items
+                            const successItems: Array<Monitor> = []; // items that are disabled
+                            const failedItems: Array<
+                                BulkActionFailed<Monitor>
+                            > = []; // items that failed to disable
+
+                            props.onBulkActionStart();
+
+                            for (const monitor of totalItems) {
+                                // remove this item from inProgressItems
+
+                                inProgressItems.splice(
+                                    inProgressItems.indexOf(monitor),
+                                    1
+                                );
+
+                                try {
+                                    if (!monitor.id) {
+                                        throw new BadDataException(
+                                            'Monitor ID not found'
+                                        );
+                                    }
+
+                                    await ModelAPI.updateById<Monitor>({
+                                        id: monitor.id,
+                                        modelType: Monitor,
+                                        data: {
+                                            disableActiveMonitoring: false,
+                                        },
+                                    });
+
+                                    successItems.push(monitor);
+                                } catch (err) {
+                                    failedItems.push({
+                                        item: monitor,
+                                        failedMessage:
+                                            API.getFriendlyMessage(err),
+                                    });
+                                }
+
+                                props.onProgressInfo({
+                                    totalItems: totalItems,
+                                    failed: failedItems,
+                                    successItems: successItems,
+                                    inProgressItems: inProgressItems,
+                                });
+                            }
+
+                            props.onBulkActionEnd();
+                        },
+
+                        icon: IconProp.Play,
+                        confirmTitle: (items: Array<Monitor>) => {
+                            return `Enable ${items.length} Monitor(s)`;
+                        },
+                        confirmMessage: (items: Array<Monitor>) => {
+                            return `Are you sure you want to enable ${items.length} monitor(s) for active monitoring?`;
+                        },
+                    },
+                    ModalTableBulkDefaultActions.Delete,
+                ],
             }}
             isDeleteable={false}
             showViewIdButton={true}

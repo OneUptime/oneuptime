@@ -8,6 +8,7 @@ import { ActiveMonitoringMeteredPlan } from '../Types/Billing/MeteredPlan/AllMet
 import CreateBy from '../Types/Database/CreateBy';
 import { OnCreate, OnDelete, OnUpdate } from '../Types/Database/Hooks';
 import QueryHelper from '../Types/Database/QueryHelper';
+import UpdateBy from '../Types/Database/UpdateBy';
 import DatabaseService from './DatabaseService';
 import MonitorOwnerTeamService from './MonitorOwnerTeamService';
 import MonitorOwnerUserService from './MonitorOwnerUserService';
@@ -79,6 +80,43 @@ export class Service extends DatabaseService<Model> {
         }
 
         return onUpdate;
+    }
+
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
+        if (updateBy.data.disableActiveMonitoring !== undefined) {
+            const items: Array<Model> = await this.findBy({
+                query: updateBy.query,
+                props: updateBy.props,
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                select: {
+                    monitorType: true,
+                },
+            });
+
+            // check if the monitor type is not manual.
+
+            for (const item of items) {
+                if (
+                    item.monitorType &&
+                    item.monitorType === MonitorType.Manual
+                ) {
+                    if (updateBy.data.disableActiveMonitoring === true) {
+                        throw new BadDataException(
+                            'You can only disable monitoring for active monitors. Disabling monitoring for manual monitors is not allowed.'
+                        );
+                    } else {
+                        throw new BadDataException(
+                            'You can only enable monitoring for active monitors. Enabling monitoring for manual monitors is not allowed.'
+                        );
+                    }
+                }
+            }
+        }
+
+        return { updateBy, carryForward: null };
     }
 
     protected override async onBeforeCreate(
