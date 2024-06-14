@@ -17,7 +17,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
-import getJestMockFunction from "Common/Tests/MockType";
 
 @TableMetaData({
   tableName: "Foo",
@@ -33,7 +32,7 @@ class TestModel extends BaseModel {
 
 jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
   return {
-    getItem: getJestMockFunction()
+    getItem: (jest.fn() as jest.Mock)
       .mockResolvedValueOnce({
         changeThis: "changed",
         setValue: function (key: "changeThis", value: string) {
@@ -49,7 +48,7 @@ jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
         removeValue: jest.fn(),
       })
       .mockResolvedValueOnce(undefined),
-    create: getJestMockFunction()
+    create: (jest.fn() as jest.Mock)
       .mockResolvedValueOnce({
         data: {
           id: "foobar",
