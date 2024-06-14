@@ -1,4 +1,4 @@
-import { jest } from "globals";
+import jest from "jest";
 
 jest.mock("remark-gfm", () => {
   return () => {};
