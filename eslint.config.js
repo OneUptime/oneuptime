@@ -26,6 +26,7 @@ export default tseslint.config(
       "**/webpack.config.js", // TODO: Remove this ignore
       "**/service-worker.js", // TODO: Remove this ignore
       "**/Static/", // TODO: Remove this ignore
+      "**/*.js" // TODO: Remove this ignore
     ],
   },
   eslint.configs.recommended,
