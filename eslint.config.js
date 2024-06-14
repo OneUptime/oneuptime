@@ -36,7 +36,7 @@ export default tseslint.config(
       "unused-imports": unusedImports,
       react: react,
     },
-    
+
     rules: {
       "react/prop-types": "off", // TODO: Remove this rule
       "no-control-regex": "off", // TODO: Remove this rule
