@@ -54,7 +54,7 @@ class UserNotificationSetting extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -121,7 +121,7 @@ class UserNotificationSetting extends BaseModel {
         description: 'Relation to User who this email belongs to',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -166,7 +166,7 @@ class UserNotificationSetting extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -210,7 +210,7 @@ class UserNotificationSetting extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

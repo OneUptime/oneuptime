@@ -68,7 +68,7 @@ export default class UserOnCallLog extends BaseModel {
         description: 'Relation to User who this log belongs to',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -112,7 +112,7 @@ export default class UserOnCallLog extends BaseModel {
             'Which team did the user belong to when the alert was sent?',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Team;
         },
         {
@@ -157,7 +157,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -205,7 +205,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to On-Call Policy which belongs to this execution log event.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicy;
         },
         {
@@ -253,7 +253,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to On-Call Policy Execution Log which belongs to this execution log event.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicyExecutionLog;
         },
         {
@@ -301,7 +301,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to On-Call Policy Escalation Rule which belongs to this execution log event.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicyEscalationRule;
         },
         {
@@ -349,7 +349,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to Incident which triggered this on-call duty policy.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Incident;
         },
         {
@@ -432,7 +432,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to On-Call Policy Execution Log Timeline where this timeline event belongs.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicyExecutionLogTimeline;
         },
         {
@@ -500,7 +500,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -544,7 +544,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -589,7 +589,7 @@ export default class UserOnCallLog extends BaseModel {
             'Relation to User who acknowledged this policy execution (if this policy was acknowledged by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -669,7 +669,7 @@ export default class UserOnCallLog extends BaseModel {
             'Which schedule did the user belong to when the alert was sent?',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicySchedule;
         },
         {

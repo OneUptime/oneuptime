@@ -110,7 +110,7 @@ export default class StatusPage extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -344,7 +344,7 @@ export default class StatusPage extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -445,7 +445,7 @@ export default class StatusPage extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -507,7 +507,7 @@ export default class StatusPage extends BaseModel {
         description: 'Status Page Favicon',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return File;
         },
         {
@@ -580,7 +580,7 @@ export default class StatusPage extends BaseModel {
         description: 'Status Page Logo',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return File;
         },
         {
@@ -653,7 +653,7 @@ export default class StatusPage extends BaseModel {
         description: 'Status Page Cover Image',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return File;
         },
         {
@@ -1227,7 +1227,7 @@ export default class StatusPage extends BaseModel {
             'Relation to SMTP Config Resource which is used to send email to subscribers.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return ProjectSmtpConfig;
         },
         {
@@ -1305,7 +1305,7 @@ export default class StatusPage extends BaseModel {
             'Relation to Call/SMS Config Resource which is used to send SMS to subscribers.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return ProjectCallSMSConfig;
         },
         {

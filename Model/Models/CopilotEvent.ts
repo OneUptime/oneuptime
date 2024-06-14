@@ -74,7 +74,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -132,7 +132,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to CodeRepository Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return CodeRepository;
         },
         {
@@ -190,7 +190,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -244,7 +244,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -367,7 +367,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to Service Catalog Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return ServiceCatalog;
         },
         {
@@ -425,7 +425,7 @@ export default class CopilotEvent extends BaseModel {
             'Relation to Service Repository Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return ServiceRepository;
         },
         {

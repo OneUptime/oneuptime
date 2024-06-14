@@ -83,7 +83,7 @@ export default class GreenlockCertificate extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

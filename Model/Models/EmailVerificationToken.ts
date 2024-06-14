@@ -44,7 +44,7 @@ export default class EmailVerificationToken extends BaseModel {
         modelType: User,
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -129,7 +129,7 @@ export default class EmailVerificationToken extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

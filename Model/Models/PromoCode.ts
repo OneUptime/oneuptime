@@ -121,7 +121,7 @@ export default class PromoCode extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -179,7 +179,7 @@ export default class PromoCode extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -230,7 +230,7 @@ export default class PromoCode extends BaseModel {
             'Relation to Reseller Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Reseller;
         },
         {
@@ -278,7 +278,7 @@ export default class PromoCode extends BaseModel {
             'Relation to ResellerPlan Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return ResellerPlan;
         },
         {
@@ -380,7 +380,7 @@ export default class PromoCode extends BaseModel {
             'If promo code is used for a specific project, please specify here.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {

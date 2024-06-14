@@ -235,7 +235,7 @@ export default class Probe extends BaseModel {
         description: 'Probe Icon',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return File;
         },
         {
@@ -297,7 +297,7 @@ export default class Probe extends BaseModel {
         modelType: Project,
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -340,7 +340,7 @@ export default class Probe extends BaseModel {
     })
     @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -384,7 +384,7 @@ export default class Probe extends BaseModel {
     })
     @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

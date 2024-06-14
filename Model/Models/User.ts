@@ -245,7 +245,7 @@ class User extends UserModel {
         modelType: File,
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return File;
         },
         {
@@ -670,7 +670,7 @@ class User extends UserModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

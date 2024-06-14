@@ -84,7 +84,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -152,7 +152,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to On-Call Policy where this escalation rule belongs.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicy;
         },
         {
@@ -220,7 +220,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to On Call Policy Schedule who is in this escalation rule.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicySchedule;
         },
         {
@@ -285,7 +285,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to On-Call Policy Escalation Rule where this user belongs.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return OnCallDutyPolicyEscalationRule;
         },
         {
@@ -353,7 +353,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -407,7 +407,7 @@ export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {

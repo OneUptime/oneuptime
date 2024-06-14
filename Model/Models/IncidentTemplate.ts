@@ -107,7 +107,7 @@ export default class IncidentTemplate extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -342,7 +342,7 @@ export default class IncidentTemplate extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -396,7 +396,7 @@ export default class IncidentTemplate extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -596,7 +596,7 @@ export default class IncidentTemplate extends BaseModel {
             'How severe is this incident. Is it critical? or a minor incident?. This is related to Incident Severity.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return IncidentSeverity;
         },
         {
@@ -666,7 +666,7 @@ export default class IncidentTemplate extends BaseModel {
             'Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return MonitorStatus;
         },
         {

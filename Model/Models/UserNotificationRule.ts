@@ -58,7 +58,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -125,7 +125,7 @@ class UserNotificationRule extends BaseModel {
         description: 'Relation to User who this email belongs to',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -170,7 +170,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -214,7 +214,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -260,7 +260,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to User Call Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return UserCall;
         },
         {
@@ -307,7 +307,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to User SMS Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return UserSMS;
         },
         {
@@ -354,7 +354,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to User Email Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return UserEmail;
         },
         {
@@ -423,7 +423,7 @@ class UserNotificationRule extends BaseModel {
             'Relation to Incident Severity Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return IncidentSeverity;
         },
         {

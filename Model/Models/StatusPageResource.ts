@@ -103,7 +103,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to Project Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Project;
         },
         {
@@ -171,7 +171,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to Status Page Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return StatusPage;
         },
         {
@@ -243,7 +243,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to Monitor Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return Monitor;
         },
         {
@@ -320,7 +320,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to Monitor Group Resource in which this object belongs',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return MonitorGroup;
         },
         {
@@ -397,7 +397,7 @@ export default class StatusPageResource extends BaseModel {
             'Does this monitor belong to a status page group? If so - which one is it?',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return StatusPageGroup;
         },
         {
@@ -697,7 +697,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to User who created this object (if this object was created by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
@@ -782,7 +782,7 @@ export default class StatusPageResource extends BaseModel {
             'Relation to User who deleted this object (if this object was deleted by a User)',
     })
     @ManyToOne(
-        (_type: string) => {
+        () => {
             return User;
         },
         {
