@@ -15,7 +15,6 @@ const MonitorIncidents: FunctionComponent<
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       <IncidentsTable
-        viewPageRoute={Navigation.getCurrentRoute()}
         query={{
           projectId: DashboardNavigation.getProjectId()?.toString(),
           monitors: [modelId.toString()],

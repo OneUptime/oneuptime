@@ -5,7 +5,6 @@ import DashboardNavigation from "../../Utils/Navigation";
 import ProjectUser from "../../Utils/ProjectUser";
 import IncidentElement from "./Incident";
 import BaseModel from "Common/Models/BaseModel";
-import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -37,10 +36,11 @@ import MonitorStatus from "Model/Models/MonitorStatus";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import Team from "Model/Models/Team";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
-  viewPageRoute?: Route;
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
@@ -410,7 +410,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         ]}
         showRefreshButton={true}
         showViewIdButton={true}
-        viewPageRoute={props.viewPageRoute}
+        viewPageRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INCIDENTS]!,
+        )}
         filters={[
           {
             field: {

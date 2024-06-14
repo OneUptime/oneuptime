@@ -75,7 +75,6 @@ const MonitorIncidents: FunctionComponent<
   return (
     <Fragment>
       <IncidentsTable
-        viewPageRoute={Navigation.getCurrentRoute()}
         query={{
           projectId: DashboardNavigation.getProjectId()?.toString(),
           monitors: monitorIds,

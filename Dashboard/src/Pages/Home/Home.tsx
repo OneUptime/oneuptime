@@ -91,9 +91,6 @@ const Home: FunctionComponent<ComponentProps> = (
 
         {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
           <IncidentsTable
-            viewPageRoute={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS] as Route,
-            )}
             query={{
               projectId: DashboardNavigation.getProjectId()?.toString(),
               currentIncidentStateId: new Includes(

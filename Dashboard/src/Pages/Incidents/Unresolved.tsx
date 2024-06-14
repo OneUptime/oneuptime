@@ -1,9 +1,6 @@
 import IncidentsTable from "../../Components/Incident/IncidentsTable";
 import DashboardNavigation from "../../Utils/Navigation";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const IncidentsPage: FunctionComponent<
@@ -11,9 +8,6 @@ const IncidentsPage: FunctionComponent<
 > = (): ReactElement => {
   return (
     <IncidentsTable
-      viewPageRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.INCIDENTS] as Route,
-      )}
       query={{
         projectId: DashboardNavigation.getProjectId()?.toString(),
         currentIncidentState: {

@@ -3,7 +3,6 @@ import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import DashboardNavigation from "../../Utils/Navigation";
 import MonitorSteps from "../Form/Monitor/MonitorSteps";
-import Route from "Common/Types/API/Route";
 import { Black, Gray500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,10 +32,11 @@ import Label from "Model/Models/Label";
 import Monitor from "Model/Models/Monitor";
 import MonitorStatus from "Model/Models/MonitorStatus";
 import React, { FunctionComponent, ReactElement } from "react";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
-  viewPageRoute?: Route;
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
@@ -308,7 +308,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       showRefreshButton={true}
-      viewPageRoute={props.viewPageRoute}
+      viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS]!)}
       filters={[
         {
           title: "Name",
