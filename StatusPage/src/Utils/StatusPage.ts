@@ -47,10 +47,13 @@ export default class StatusPageUtil {
     }
 
     public static checkIfUserHasLoggedIn(): void {
+
+        const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+
         if (
-            StatusPageUtil.getStatusPageId() &&
+            statusPageId &&
             StatusPageUtil.isPrivateStatusPage() &&
-            !UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
+            !UserUtil.isLoggedIn(statusPageId)
         ) {
             StatusPageUtil.navigateToLoginPage();
         }
