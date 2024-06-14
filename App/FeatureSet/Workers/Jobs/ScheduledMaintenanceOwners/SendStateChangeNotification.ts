@@ -7,6 +7,7 @@ import { EmailEnvelope } from 'Common/Types/Email/EmailMessage';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
+import Text from 'Common/Types/Text';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
@@ -119,9 +120,9 @@ RunCron(
                     templateType:
                         EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
                     vars: vars,
-                    subject:
-                        'Scheduled maintenance event state changed to - ' +
-                        scheduledMaintenanceState!.name!,
+                    subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+                        scheduledMaintenanceState!.name!
+                    )}] - ${scheduledMaintenance.title}`,
                 };
 
                 const sms: SMSMessage = {

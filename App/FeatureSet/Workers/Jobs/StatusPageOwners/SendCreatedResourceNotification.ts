@@ -93,7 +93,7 @@ RunCron(
                     templateType:
                         EmailTemplateType.StatusPageOwnerResourceCreated,
                     vars: vars,
-                    subject: 'New status page created - ' + statusPage.name!,
+                    subject: '[Status Page Created]' + statusPage.name!,
                 };
 
                 const sms: SMSMessage = {

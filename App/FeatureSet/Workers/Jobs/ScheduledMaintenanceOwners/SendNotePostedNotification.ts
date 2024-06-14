@@ -176,7 +176,7 @@ RunCron(
                         EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
                     vars: vars,
                     subject:
-                        'New note posted on scheduled maintenance event - ' +
+                        '[Scheduled Maintenance Update] ' +
                         scheduledMaintenance.title,
                 };
 

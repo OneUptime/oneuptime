@@ -9,6 +9,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import ObjectID from 'Common/Types/ObjectID';
 import SMS from 'Common/Types/SMS/SMS';
+import Text from 'Common/Types/Text';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import MailService from 'CommonServer/Services/MailService';
@@ -283,9 +284,10 @@ RunCron(
                                     eventDescription: event.description || '',
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject:
-                                    statusPageName +
-                                    ` - Scheduled maintenance state changed to ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}`,
+                                subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+                                    scheduledEventStateTimeline
+                                        .scheduledMaintenanceState?.name
+                                )}] ${statusPageName}`,
                             },
                             {
                                 mailServer:

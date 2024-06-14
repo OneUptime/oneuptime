@@ -8,6 +8,7 @@ import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import NotificationSettingEventType from 'Common/Types/NotificationSetting/NotificationSettingEventType';
 import ObjectID from 'Common/Types/ObjectID';
 import { SMSMessage } from 'Common/Types/SMS/SMS';
+import Text from 'Common/Types/Text';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
@@ -168,8 +169,9 @@ RunCron(
                 const emailMessage: EmailEnvelope = {
                     templateType: EmailTemplateType.IncidentOwnerStateChanged,
                     vars: vars,
-                    subject:
-                        'Incident state changed to - ' + incidentState!.name!,
+                    subject: `[Incident ${Text.uppercaseFirstLetter(
+                        incidentState!.name!
+                    )}] ${incident.title!}`,
                 };
 
                 const sms: SMSMessage = {

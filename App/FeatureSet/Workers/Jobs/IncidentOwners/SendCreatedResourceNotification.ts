@@ -115,7 +115,7 @@ RunCron(
                     templateType:
                         EmailTemplateType.IncidentOwnerResourceCreated,
                     vars: vars,
-                    subject: 'New incident created - ' + incident.title!,
+                    subject: '[Incident] ' + incident.title!,
                 };
 
                 const sms: SMSMessage = {

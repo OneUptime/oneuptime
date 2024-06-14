@@ -268,8 +268,8 @@ RunCron(
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
-                                    statusPageName +
-                                    ` - New note has been posted to maintenance event`,
+                                    '[Scheduled Maintenance Update] ' +
+                                    statusPageName,
                             },
                             {
                                 mailServer:

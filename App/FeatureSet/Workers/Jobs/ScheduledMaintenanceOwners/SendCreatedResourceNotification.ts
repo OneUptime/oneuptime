@@ -104,7 +104,7 @@ RunCron(
                         EmailTemplateType.ScheduledMaintenanceOwnerResourceCreated,
                     vars: vars,
                     subject:
-                        'New scheduled maintenance created - ' +
+                        '[Scheduled Maintenance Created] ' +
                         scheduledMaintenance.title!,
                 };
 

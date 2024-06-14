@@ -96,8 +96,7 @@ RunCron(
                         templateType:
                             EmailTemplateType.StatusPageOwnerAnnouncementPosted,
                         vars: vars,
-                        subject:
-                            'New announcement posted - ' + announcement.title!,
+                        subject: `[Announcement] ${announcement.title!}`,
                     };
 
                     const sms: SMSMessage = {
