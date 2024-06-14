@@ -9,7 +9,7 @@ import ComponentMetadata, {
   ComponentType,
 } from "Common/Types/Workflow/Component";
 import React from "react";
-import getJestMockFunction, { MockFunction } from "../../Types/MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 

@@ -24,6 +24,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { UserPermission } from "Common/Types/Permission";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import UserType from "Common/Types/UserType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 jest.mock("../../Utils/Express", () => {
   return {

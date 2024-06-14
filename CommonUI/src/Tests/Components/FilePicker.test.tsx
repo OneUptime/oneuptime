@@ -18,7 +18,7 @@ import ObjectID from "Common/Types/ObjectID";
 import FileModel from "Model/Models/File";
 import React from "react";
 import { act } from "react-test-renderer";
-import getJestMockFunction, { MockFunction } from "../../Types/MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 const mockOnChange: MockFunction = getJestMockFunction();
 const mockOnBlur: MockFunction = getJestMockFunction();

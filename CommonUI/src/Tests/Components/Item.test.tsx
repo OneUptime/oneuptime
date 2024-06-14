@@ -5,7 +5,7 @@ import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";
 import React from "react";
-import getJestMockFunction from "../../Types/MockType";
+import getJestMockFunction from "Common/Tests/MockType";
 
 describe("Item component", () => {
   interface ItemData {

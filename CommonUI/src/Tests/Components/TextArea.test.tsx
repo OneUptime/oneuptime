@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "../../Types/MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 describe("TextArea", () => {
   test("renders textarea element with initialValue only", () => {

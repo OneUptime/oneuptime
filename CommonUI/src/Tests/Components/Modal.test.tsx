@@ -6,7 +6,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";
 import React from "react";
-import getJestMockFunction, { MockFunction } from "../../Types/MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 describe("Modal", () => {
   test("renders the modal with the title and description", () => {

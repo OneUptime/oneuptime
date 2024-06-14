@@ -32,6 +32,9 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
+import { getJestSpyOn } from "Common/Tests/Spy";
+import getJestMockFunction from "Common/Tests/MockType";
+
 
 jest.mock("../../Utils/Logger");
 jest.mock("../../Middleware/ProjectAuthorization");
@@ -99,12 +102,11 @@ describe("UserMiddleware", () => {
 
     test("should return an empty object when ssoToken cannot be decoded", () => {
       const error: Error = new Error("Invalid token");
-      const spyDecode: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "decode")
+      const spyDecode: jest.SpyInstance = getJestSpyOn(JSONWebToken, "decode")
         .mockImplementationOnce((_: string) => {
           throw error;
-        });
-      const spyErrorLogger: jest.SpyInstance = jest.spyOn(logger, "error");
+        }) as jest.SpyInstance;
+      const spyErrorLogger: jest.SpyInstance = getJestSpyOn(logger, "error") as jest.SpyInstance;
 
       const result: Dictionary<string> = UserMiddleware.getSsoTokens(
         req as ExpressRequest,
@@ -116,10 +118,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should return an empty object when the decoded sso-token object doesn't have projectId property", () => {
-      const spyDecode: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "decode")
-        .mockReturnValueOnce({} as JSONWebTokenData);
-      const spyErrorLogger: jest.SpyInstance = jest.spyOn(logger, "error");
+      const spyDecode: jest.SpyInstance = getJestSpyOn(JSONWebToken, "decode")
+        .mockReturnValueOnce({} as JSONWebTokenData) as jest.SpyInstance;
+      const spyErrorLogger: jest.SpyInstance = getJestSpyOn(logger, "error") as jest.SpyInstance;
 
       const result: Dictionary<string> = UserMiddleware.getSsoTokens(
         req as ExpressRequest,
@@ -131,7 +132,7 @@ describe("UserMiddleware", () => {
     });
 
     test("should return a dictionary of string with projectId key", () => {
-      jest.spyOn(JSONWebToken, "decode").mockReturnValueOnce({
+      getJestSpyOn(JSONWebToken, "decode").mockReturnValueOnce({
         projectId,
       } as JSONWebTokenData);
 
@@ -149,14 +150,13 @@ describe("UserMiddleware", () => {
     const req: ExpressRequest = {} as ExpressRequest;
 
     beforeAll(() => {
-      jest.spyOn(UserMiddleware, "getSsoTokens").mockReturnValue({
+      getJestSpyOn(UserMiddleware, "getSsoTokens").mockReturnValue({
         [projectId.toString()]: mockedAccessToken,
       });
     });
 
     test("should return false, when getSsoTokens does not return a value", () => {
-      const spyGetSsoTokens: jest.SpyInstance = jest
-        .spyOn(UserMiddleware, "getSsoTokens")
+      const spyGetSsoTokens: jest.SpyInstance = getJestSpyOn(UserMiddleware, "getSsoTokens")
         .mockImplementationOnce(jest.fn().mockReturnValue(null));
 
       const result: boolean = UserMiddleware.doesSsoTokenForProjectExist(
@@ -170,9 +170,8 @@ describe("UserMiddleware", () => {
     });
 
     test("should return false, when getSsoTokens returns a dictionary that does not contain the projectId's value as key", () => {
-      const spyGetSsoTokens: jest.SpyInstance = jest
-        .spyOn(UserMiddleware, "getSsoTokens")
-        .mockReturnValueOnce({});
+      const spyGetSsoTokens: jest.SpyInstance = getJestSpyOn(UserMiddleware, "getSsoTokens")
+        .mockReturnValueOnce({}) as jest.SpyInstance;
 
       const result: boolean = UserMiddleware.doesSsoTokenForProjectExist(
         req,
@@ -187,12 +186,11 @@ describe("UserMiddleware", () => {
     test("should return false, when decoded JWT object's projectId value does not match with projectId passed as parameter", () => {
       const objectId: ObjectID = ObjectID.generate();
 
-      const spyDecode: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "decode")
+      const spyDecode: jest.SpyInstance = getJestSpyOn(JSONWebToken, "decode")
         .mockReturnValueOnce({
           projectId: objectId,
           userId,
-        } as JSONWebTokenData);
+        } as JSONWebTokenData) as jest.SpyInstance;
 
       const result: boolean = UserMiddleware.doesSsoTokenForProjectExist(
         req,
@@ -207,8 +205,7 @@ describe("UserMiddleware", () => {
     test("should return false, when decoded JWT object's userId does not match with userId passed as parameter", () => {
       const objectId: ObjectID = ObjectID.generate();
 
-      const spyDecode: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "decode")
+      const spyDecode: jest.SpyInstance = getJestSpyOn(JSONWebToken, "decode")
         .mockReturnValueOnce({
           userId: objectId,
           projectId,
@@ -225,7 +222,7 @@ describe("UserMiddleware", () => {
     });
 
     test("should return true", () => {
-      jest.spyOn(JSONWebToken, "decode").mockReturnValueOnce({
+      getJestSpyOn(JSONWebToken, "decode").mockReturnValueOnce({
         userId,
         projectId,
       } as JSONWebTokenData);
@@ -243,7 +240,7 @@ describe("UserMiddleware", () => {
   describe("getUserMiddleware", () => {
     let req: ExpressRequest;
     let res: ExpressResponse;
-    const next: NextFunction = jest.fn();
+    const next: NextFunction = getJestMockFunction();
 
     const hashValue: string = "hash-value";
     const mockedTenantAccessPermission: UserTenantAccessPermission = {
@@ -261,13 +258,12 @@ describe("UserMiddleware", () => {
     };
 
     beforeAll(() => {
-      jest.spyOn(ProjectMiddleware, "getProjectId").mockReturnValue(projectId);
-      jest.spyOn(ProjectMiddleware, "hasApiKey").mockReturnValue(false);
-      jest
-        .spyOn(UserMiddleware, "getAccessToken")
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValue(projectId);
+      getJestSpyOn(ProjectMiddleware, "hasApiKey").mockReturnValue(false);
+      getJestSpyOn(UserMiddleware, "getAccessToken")
         .mockReturnValue(mockedAccessToken);
-      jest.spyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
-      jest.spyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
+      getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
+      getJestSpyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
     });
 
     beforeEach(() => {
@@ -282,9 +278,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should call isValidProjectIdAndApiKeyMiddleware and return when hasApiKey returns true", async () => {
-      jest.spyOn(ProjectMiddleware, "hasApiKey").mockReturnValueOnce(true);
+      getJestSpyOn(ProjectMiddleware, "hasApiKey").mockReturnValueOnce(true);
 
-      const spyGetAccessToken: jest.SpyInstance = jest.spyOn(
+      const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(
         UserMiddleware,
         "getAccessToken",
       );
@@ -298,8 +294,7 @@ describe("UserMiddleware", () => {
     });
 
     test("should call function 'next' and return, when getAccessToken returns a null value", async () => {
-      const spyGetAccessToken: jest.SpyInstance = jest
-        .spyOn(UserMiddleware, "getAccessToken")
+      const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(UserMiddleware, "getAccessToken")
         .mockReturnValueOnce(undefined);
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -312,8 +307,7 @@ describe("UserMiddleware", () => {
     test("should call function 'next' and return, when accessToken can not be decoded", async () => {
       const error: Error = new Error("Invalid access token");
 
-      const spyJWTDecode: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "decode")
+      const spyJWTDecode: jest.SpyInstance = getJestSpyOn(JSONWebToken, "decode")
         .mockImplementationOnce((_: string) => {
           throw error;
         });
@@ -326,10 +320,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should set global-permissions and global-permissions-hash in the response header, when user has global access permission", async () => {
-      jest.spyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
-      jest.spyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
-      const spyGetUserGlobalAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
+      getJestSpyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserGlobalAccessPermission")
         .mockResolvedValueOnce(mockedGlobalAccessPermission);
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -347,9 +340,8 @@ describe("UserMiddleware", () => {
     });
 
     test("should not set global-permissions and global-permissions-hash in the response header, when user does not have global access permission", async () => {
-      jest.spyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
-      const spyGetUserGlobalAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserGlobalAccessPermission")
         .mockResolvedValueOnce(null);
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -368,8 +360,7 @@ describe("UserMiddleware", () => {
 
     test("should call Response.sendErrorResponse, when tenantId is passed in the header and getUserTenantAccessPermissionWithTenantId throws an exception", async () => {
       const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
-        jest
-          .spyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
+       getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
           .mockRejectedValueOnce(new SsoAuthorizationException());
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -391,10 +382,9 @@ describe("UserMiddleware", () => {
     });
 
     test("should set project-permissions and project-permissions-hash in the response header, when tenantId is passed in the header and user has tenant access permission", async () => {
-      jest.spyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
+      getJestSpyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
       const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
-        jest
-          .spyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
+       getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
           .mockResolvedValueOnce(mockedTenantAccessPermission);
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -424,17 +414,15 @@ describe("UserMiddleware", () => {
         headers: { "is-multi-tenant-query": "yes" },
       };
 
-      jest
-        .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      getJestSpyOn(AccessTokenService, "getUserGlobalAccessPermission")
         .mockResolvedValueOnce({
           ...mockedGlobalAccessPermission,
           projectIds: [],
         });
-      jest
-        .spyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
+      getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
         .mockResolvedValueOnce(null);
       const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
-        jest.spyOn(
+        getJestSpyOn(
           UserMiddleware,
           "getUserTenantAccessPermissionForMultiTenant",
         );
@@ -464,16 +452,13 @@ describe("UserMiddleware", () => {
         headers: { "is-multi-tenant-query": "yes" },
       };
 
-      jest.spyOn(JSONFunctions, "serialize").mockReturnValue({});
-      jest
-        .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      getJestSpyOn(JSONFunctions, "serialize").mockReturnValue({});
+      getJestSpyOn(AccessTokenService, "getUserGlobalAccessPermission")
         .mockResolvedValueOnce(mockedGlobalAccessPermission);
-      jest
-        .spyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
+      getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
         .mockResolvedValueOnce(null);
       const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
-        jest
-          .spyOn(UserMiddleware, "getUserTenantAccessPermissionForMultiTenant")
+       getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionForMultiTenant")
           .mockResolvedValueOnce({
             [projectId.toString()]: mockedTenantAccessPermission,
           });
@@ -508,8 +493,7 @@ describe("UserMiddleware", () => {
       };
 
       const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
-        jest
-          .spyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
+       getJestSpyOn(UserMiddleware, "getUserTenantAccessPermissionWithTenantId")
           .mockResolvedValueOnce(mockedTenantAccessPermission);
 
       await UserMiddleware.getUserMiddleware(
@@ -542,11 +526,11 @@ describe("UserMiddleware", () => {
   describe("getUserTenantAccessPermissionWithTenantId", () => {
     const req: ExpressRequest = {} as ExpressRequest;
 
-    const spyFindOneById: jest.SpyInstance = jest.spyOn(
+    const spyFindOneById: jest.SpyInstance = getJestSpyOn(
       ProjectService,
       "findOneById",
     );
-    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = jest.spyOn(
+    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
       "doesSsoTokenForProjectExist",
     );
@@ -603,8 +587,7 @@ describe("UserMiddleware", () => {
     test("should return null when getUserTenantAccessPermission returns null", async () => {
       spyFindOneById.mockResolvedValueOnce(mockedProject);
 
-      const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(null);
 
       const result: UserTenantAccessPermission | null =
@@ -629,8 +612,7 @@ describe("UserMiddleware", () => {
 
       spyFindOneById.mockResolvedValueOnce(mockedProject);
 
-      const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
       const result: UserTenantAccessPermission | null =
@@ -655,8 +637,8 @@ describe("UserMiddleware", () => {
       projectId,
     } as UserTenantAccessPermission;
 
-    const spyFindBy: jest.SpyInstance = jest.spyOn(ProjectService, "findBy");
-    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = jest.spyOn(
+    const spyFindBy: jest.SpyInstance = getJestSpyOn(ProjectService, "findBy");
+    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
       "doesSsoTokenForProjectExist",
     );
@@ -683,8 +665,7 @@ describe("UserMiddleware", () => {
         { ...mockedProject, requireSsoForLogin: true },
       ]);
 
-      const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getDefaultUserTenantAccessPermission")
+      const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getDefaultUserTenantAccessPermission")
         .mockReturnValueOnce(mockedUserTenantAccessPermission);
 
       const result: Dictionary<UserTenantAccessPermission> | null =
@@ -710,8 +691,7 @@ describe("UserMiddleware", () => {
     test("should return user tenant access permission, when project for a projectId is found, sso is not required for login and project level permission exist for the projectId", async () => {
       spyFindBy.mockResolvedValueOnce([mockedProject]);
 
-      const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
       const result: Dictionary<UserTenantAccessPermission> | null =
@@ -734,8 +714,7 @@ describe("UserMiddleware", () => {
     test("should return null, when project for a projectId is found, sso is not required for login but project level permission does not exist for the projectId", async () => {
       spyFindBy.mockResolvedValueOnce([mockedProject]);
 
-      const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(null);
 
       const result: Dictionary<UserTenantAccessPermission> | null =
@@ -755,8 +734,7 @@ describe("UserMiddleware", () => {
     test("should return user tenant access permission, when project for a projectId is not found, but project level permission exist for the projectId", async () => {
       spyFindBy.mockResolvedValueOnce([]);
 
-      jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(mockedUserTenantAccessPermission);
 
       const result: Dictionary<UserTenantAccessPermission> | null =
@@ -774,8 +752,7 @@ describe("UserMiddleware", () => {
     test("should return null, when project for a projectId is not found, and project level permission does not exist for the projectId", async () => {
       spyFindBy.mockResolvedValueOnce([]);
 
-      const spyGetUserTenantAccessPermission: jest.SpyInstance = jest
-        .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getUserTenantAccessPermission")
         .mockResolvedValueOnce(null);
 
       const result: Dictionary<UserTenantAccessPermission> | null =

@@ -3,6 +3,7 @@ import { ExpressResponse, OneUptimeRequest } from "../../Utils/Express";
 import JSONWebToken from "../../Utils/JsonWebToken";
 import { describe, expect, it } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 describe("BearerTokenAuthorization", () => {
   describe("isAuthorizedBearerToken", () => {

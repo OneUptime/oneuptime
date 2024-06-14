@@ -4,7 +4,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "../../Types/MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 describe("Tabs", () => {
   const activeClass: string = "bg-gray-100 text-gray-700";

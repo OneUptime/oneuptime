@@ -17,7 +17,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
-import getJestMockFunction from "../../Types/MockType";
+import getJestMockFunction from "Common/Tests/MockType";
 
 @TableMetaData({
   tableName: "Foo",
