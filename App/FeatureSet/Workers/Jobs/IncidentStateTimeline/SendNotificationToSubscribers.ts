@@ -9,6 +9,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import ObjectID from 'Common/Types/ObjectID';
 import SMS from 'Common/Types/SMS/SMS';
+import Text from 'Common/Types/Text';
 import { EVERY_MINUTE } from 'Common/Utils/CronTime';
 import DatabaseConfig from 'CommonServer/DatabaseConfig';
 import IncidentService from 'CommonServer/Services/IncidentService';
@@ -213,11 +214,7 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - ${
-                                incident.title || ''
-                            } state changed to ${
-                                incidentStateTimeline.incidentState.name
-                            }
+                            Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)} - ${statusPageName}
 
                             To view this incident, visit ${statusPageURL}
 
@@ -280,10 +277,7 @@ RunCron(
                                             .name,
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject:
-                                    statusPageName +
-                                    ' - Incident state changed to ' +
-                                    incidentStateTimeline.incidentState.name,
+                                subject:`[Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)}] ${statusPageName}`
                             },
                             {
                                 mailServer:

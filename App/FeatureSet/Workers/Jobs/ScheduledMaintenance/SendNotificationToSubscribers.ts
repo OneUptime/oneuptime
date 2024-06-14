@@ -189,7 +189,7 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - New Scheduled Maintenance
+                            Scheduled Maintenance - ${statusPageName}
 
                             ${event.title || ''}
 
@@ -256,8 +256,7 @@ RunCron(
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
-                                    statusPageName +
-                                    ` - 'New Scheduled Maintenance`,
+                                    '[Scheduled Maintenance] '+statusPageName,
                             },
                             {
                                 mailServer:

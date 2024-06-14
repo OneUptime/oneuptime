@@ -205,7 +205,9 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - New note has been added to an incident.
+                            Incident Update - ${statusPageName} 
+                            
+                            New note has been added to an incident.
 
                             Incident Title: ${incident.title || ' - '}
 
@@ -271,8 +273,7 @@ RunCron(
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
-                                    statusPageName +
-                                    ' - New note has been added to an incident',
+                                    '[Incident Update] '+statusPageName,
                             },
                             {
                                 mailServer:

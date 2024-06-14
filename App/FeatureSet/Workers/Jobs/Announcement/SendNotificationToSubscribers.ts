@@ -149,7 +149,7 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            ${statusPageName} - New Announcement
+                            Announcement - ${statusPageName}
 
                             ${announcement.title || ''}
 
@@ -204,7 +204,7 @@ RunCron(
                                         ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject: statusPageName + ' - New Announcement',
+                                subject: '[Announcement] '+statusPageName ,
                             },
                             {
                                 mailServer:
