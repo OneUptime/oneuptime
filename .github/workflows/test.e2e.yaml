@@ -37,7 +37,7 @@ jobs:
       - name: Wait for server to start
         run:  bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        run: export $(grep -v '^#' config.env | xargs) && docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: export $(grep -v '^#' config.env | xargs) && docker-compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker-compose -f docker-compose.dev.yml logs && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
