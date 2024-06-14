@@ -1,6 +1,8 @@
 export type MockFunction = jest.Mock<any, any>;
 
-const getJestMockFunction = (): MockFunction => {
+type GetJestMockFunction = () => MockFunction;
+
+const getJestMockFunction: GetJestMockFunction = (): MockFunction => {
   return jest.fn() as MockFunction;
 };
 

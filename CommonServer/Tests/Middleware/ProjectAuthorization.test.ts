@@ -170,8 +170,10 @@ describe("ProjectMiddleware", () => {
     });
 
     test("should throw BadDataException when getProjectId returns null", async () => {
-      const spyFindOneBy: jest.SpyInstance = getJestSpyOn(GlobalConfigService, "findOneBy")
-        .mockResolvedValue(null);
+      const spyFindOneBy: jest.SpyInstance = getJestSpyOn(
+        GlobalConfigService,
+        "findOneBy",
+      ).mockResolvedValue(null);
 
       req.headers["tenantid"] = undefined;
       req.headers["apikey"] = mockedObjectId.toString();
@@ -216,8 +218,10 @@ describe("ProjectMiddleware", () => {
     });
 
     test("should call Response.sendErrorResponse when apiKeyModel is null", async () => {
-      const spyFindOneBy: jest.SpyInstance = getJestSpyOn(ApiKeyService, "findOneBy")
-        .mockResolvedValue(null);
+      const spyFindOneBy: jest.SpyInstance = getJestSpyOn(
+        ApiKeyService,
+        "findOneBy",
+      ).mockResolvedValue(null);
 
       jest.spyOn(QueryHelper, "greaterThan").mockImplementation(jest.fn());
 
@@ -246,8 +250,10 @@ describe("ProjectMiddleware", () => {
 
     test("should call Response.sendErrorResponse when apiKeyModel is not null but getApiTenantAccessPermission returned null", async () => {
       jest.spyOn(ApiKeyService, "findOneBy").mockResolvedValue(mockedApiModel);
-      const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getApiTenantAccessPermission")
-        .mockImplementationOnce(getJestMockFunction().mockResolvedValue(null));
+      const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getApiTenantAccessPermission",
+      ).mockImplementationOnce(getJestMockFunction().mockResolvedValue(null));
 
       await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
         req,
@@ -266,8 +272,10 @@ describe("ProjectMiddleware", () => {
       const mockedUserTenantAccessPermission: UserTenantAccessPermission =
         {} as UserTenantAccessPermission;
       jest.spyOn(ApiKeyService, "findOneBy").mockResolvedValue(mockedApiModel);
-      const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(AccessTokenService, "getApiTenantAccessPermission")
-        .mockResolvedValue(mockedUserTenantAccessPermission);
+      const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getApiTenantAccessPermission",
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
 
       await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
         req,

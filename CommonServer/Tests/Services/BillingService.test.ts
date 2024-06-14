@@ -51,7 +51,8 @@ describe("BillingService", () => {
   describe("Customer Management", () => {
     describe("createCustomer", () => {
       it("should create a customer when valid data is provided", async () => {
-        mockStripe.customers.create = getJestMockFunction().mockResolvedValue(mockCustomer);
+        mockStripe.customers.create =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         const result: string = await billingService.createCustomer(customer);
 
@@ -134,8 +135,8 @@ describe("BillingService", () => {
 
     describe("subscribeToMeteredPlan", () => {
       it("should successfully create a metered plan subscription with all required parameters", async () => {
-        mockStripe.subscriptions.create = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         const result: {
           meteredSubscriptionId: string;
@@ -158,8 +159,8 @@ describe("BillingService", () => {
         futureDate.setDate(futureDate.getDate() + 10); // 10 days in the future
         subscription.trialDate = futureDate;
 
-        mockStripe.subscriptions.create = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await billingService.subscribeToMeteredPlan(subscription);
 
@@ -174,8 +175,8 @@ describe("BillingService", () => {
         const pastDate: Date = new Date("2020-01-01");
         subscription.trialDate = pastDate;
 
-        mockStripe.subscriptions.create = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await billingService.subscribeToMeteredPlan(subscription);
 
@@ -187,9 +188,10 @@ describe("BillingService", () => {
       });
 
       it("should handle API errors during subscription creation", async () => {
-        mockStripe.subscriptions.create = getJestMockFunction().mockImplementation(() => {
-          throw new Error("Stripe API error");
-        });
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockImplementation(() => {
+            throw new Error("Stripe API error");
+          });
 
         await expect(
           billingService.subscribeToMeteredPlan(subscription),
@@ -199,8 +201,8 @@ describe("BillingService", () => {
       it("should correctly handle the promo code", async () => {
         subscription.promoCode = "VALIDPROMO";
 
-        mockStripe.subscriptions.create = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await billingService.subscribeToMeteredPlan(subscription);
 
@@ -214,8 +216,8 @@ describe("BillingService", () => {
       it("should set the default payment method if provided", async () => {
         subscription.defaultPaymentMethodId = "pm_123";
 
-        mockStripe.subscriptions.create = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await billingService.subscribeToMeteredPlan(subscription);
 
@@ -415,9 +417,10 @@ describe("BillingService", () => {
       it("should successfully change the quantity of a subscription", async () => {
         const newQuantity: number = 2;
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptions.update = getJestMockFunction().mockResolvedValue({});
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.changeQuantity(mockSubscription.id, newQuantity);
 
@@ -433,7 +436,8 @@ describe("BillingService", () => {
       });
 
       it("should handle subscription not found scenario in change quantity", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.changeQuantity("invalid_id", 2),
@@ -442,8 +446,8 @@ describe("BillingService", () => {
 
       it("should not change quantity if the subscription is canceled", async () => {
         mockSubscription.status = "canceled";
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await billingService.changeQuantity(mockSubscription.id, 2);
 
@@ -453,8 +457,8 @@ describe("BillingService", () => {
 
       it("should handle missing subscription item ID in the subscription", async () => {
         mockSubscription.items.data = [];
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         await expect(
           billingService.changeQuantity(mockSubscription.id, 2),
@@ -475,10 +479,12 @@ describe("BillingService", () => {
 
       it("should successfully change the plan", async () => {
         // mocks
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
-        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue({});
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
+          {},
+        );
 
         const newMockSubscription: Stripe.Subscription =
           getStripeSubscription();
@@ -497,8 +503,8 @@ describe("BillingService", () => {
             isDefault: true,
           },
         ];
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockPaymentMethods);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
 
         const result: {
           subscriptionId: string;
@@ -517,7 +523,8 @@ describe("BillingService", () => {
       });
 
       it("should handle errors when the current subscription is not found", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(billingService.changePlan(newPlan)).rejects.toThrow(
           Errors.BillingService.SUBSCRIPTION_NOT_FOUND,
@@ -525,12 +532,12 @@ describe("BillingService", () => {
       });
 
       it("should check for active payment methods before changing the plan", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         const mockPaymentMethods: Array<PaymentMethod> = Array<PaymentMethod>();
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockPaymentMethods);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
 
         await expect(billingService.changePlan(newPlan)).rejects.toThrow(
           Errors.BillingService.NO_PAYMENTS_METHODS,
@@ -591,12 +598,12 @@ describe("BillingService", () => {
 
         mockSubscription.items.data = [];
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptionItems.create = getJestMockFunction()
-          .mockResolvedValue({ id: "sub_item_123" });
-        mockStripe.subscriptionItems.createUsageRecord = getJestMockFunction()
-          .mockResolvedValue({});
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.create =
+          getJestMockFunction().mockResolvedValue({ id: "sub_item_123" });
+        mockStripe.subscriptionItems.createUsageRecord =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.addOrUpdateMeteredPricingOnSubscription(
           mockSubscription.id,
@@ -620,10 +627,10 @@ describe("BillingService", () => {
         const subscriptionItem: SubscriptionItem | undefined =
           mockSubscription.items.data[0];
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptionItems.createUsageRecord = getJestMockFunction()
-          .mockResolvedValue({});
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.createUsageRecord =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.addOrUpdateMeteredPricingOnSubscription(
           mockSubscription.id,
@@ -643,7 +650,8 @@ describe("BillingService", () => {
 
       it("should handle non-existent subscription", async () => {
         const subscriptionId: string = "sub_nonexistent";
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.addOrUpdateMeteredPricingOnSubscription(
@@ -668,7 +676,8 @@ describe("BillingService", () => {
         const promoCode: string = "VALIDPROMO";
         const mockCoupon: { valid: boolean } = { valid: true };
 
-        mockStripe.coupons.retrieve = getJestMockFunction().mockResolvedValue(mockCoupon);
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
 
         const isValid: boolean =
           await billingService.isPromoCodeValid(promoCode);
@@ -682,7 +691,8 @@ describe("BillingService", () => {
         const mockCoupon: { valid: boolean } = {
           valid: false,
         };
-        mockStripe.coupons.retrieve = getJestMockFunction().mockResolvedValue(mockCoupon);
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
 
         const isValid: boolean =
           await billingService.isPromoCodeValid(promoCode);
@@ -694,7 +704,8 @@ describe("BillingService", () => {
       it("should handle non-existent promo code", async () => {
         const promoCode: string = "NONEXISTENTPROMO";
 
-        mockStripe.coupons.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.coupons.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.isPromoCodeValid(promoCode),
@@ -706,9 +717,11 @@ describe("BillingService", () => {
       it("should handle errors from the Stripe API", async () => {
         const promoCode: string = "ERRORPROMO";
 
-        mockStripe.coupons.retrieve = getJestMockFunction().mockImplementation(() => {
-          throw new Error();
-        });
+        mockStripe.coupons.retrieve = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error();
+          },
+        );
 
         await expect(
           billingService.isPromoCodeValid(promoCode),
@@ -736,9 +749,10 @@ describe("BillingService", () => {
       it("should successfully remove a metered subscription item", async () => {
         const isMeteredSubscriptionItem: boolean = true;
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptionItems.del = getJestMockFunction().mockResolvedValue({});
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.removeSubscriptionItem(
           subscriptionId,
@@ -759,9 +773,10 @@ describe("BillingService", () => {
         const subscriptionItemId: string =
           mockSubscription.items.data[0]?.id || "";
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptionItems.del = getJestMockFunction().mockResolvedValue({});
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.removeSubscriptionItem(
           mockSubscription.id,
@@ -776,7 +791,8 @@ describe("BillingService", () => {
       });
 
       it("should handle non-existent subscription or subscription item", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.removeSubscriptionItem(
@@ -788,11 +804,12 @@ describe("BillingService", () => {
       });
 
       it("should handle errors from the Stripe API", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
-        mockStripe.subscriptionItems.del = getJestMockFunction().mockImplementation(() => {
-          throw new Error("Stripe API error");
-        });
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+        mockStripe.subscriptionItems.del =
+          getJestMockFunction().mockImplementation(() => {
+            throw new Error("Stripe API error");
+          });
 
         await expect(
           billingService.removeSubscriptionItem(
@@ -807,8 +824,8 @@ describe("BillingService", () => {
         const isMeteredSubscriptionItem: boolean = false;
         mockSubscription.status = "canceled";
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
         mockStripe.subscriptionItems.del = getJestMockFunction();
 
         await billingService.removeSubscriptionItem(
@@ -836,8 +853,8 @@ describe("BillingService", () => {
           // @ts-ignore
           { id: "item_2", price: { id: "price_456" } },
         ];
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         const items: SubscriptionItem[] =
           await billingService.getSubscriptionItems(mockSubscription.id);
@@ -851,7 +868,8 @@ describe("BillingService", () => {
       it("should handle the case where the subscription does not exist", async () => {
         const subscriptionId: string = "sub_nonexistent";
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.getSubscriptionItems(subscriptionId),
@@ -889,7 +907,8 @@ describe("BillingService", () => {
       };
 
       it("should successfully generate a coupon code", async () => {
-        mockStripe.coupons.create = getJestMockFunction().mockResolvedValue(mockCoupon);
+        mockStripe.coupons.create =
+          getJestMockFunction().mockResolvedValue(mockCoupon);
 
         const result: string =
           await billingService.generateCouponCode(couponData);
@@ -918,10 +937,11 @@ describe("BillingService", () => {
       });
 
       it("should successfully delete a payment method", async () => {
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockPaymentMethods);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
 
-        mockStripe.paymentMethods.detach = getJestMockFunction().mockResolvedValue({});
+        mockStripe.paymentMethods.detach =
+          getJestMockFunction().mockResolvedValue({});
 
         await billingService.deletePaymentMethod(customerId, paymentMethodId);
 
@@ -940,8 +960,8 @@ describe("BillingService", () => {
             isDefault: true,
           },
         ];
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockSinglePaymentMethod);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockSinglePaymentMethod);
 
         await expect(
           billingService.deletePaymentMethod(customerId, paymentMethodId),
@@ -953,8 +973,8 @@ describe("BillingService", () => {
 
     describe("hasPaymentMethods", () => {
       it("should return true if the customer has payment methods", async () => {
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockPaymentMethods);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
@@ -967,8 +987,8 @@ describe("BillingService", () => {
 
       it("should return false if the customer does not have payment methods", async () => {
         const mockEmptyPaymentMethods: PaymentMethod[] = Array<PaymentMethod>();
-        billingService.getPaymentMethods = getJestMockFunction()
-          .mockResolvedValue(mockEmptyPaymentMethods);
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockEmptyPaymentMethods);
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
@@ -1013,8 +1033,8 @@ describe("BillingService", () => {
         mockStripe.paymentMethods.list = getJestMockFunction()
           .mockResolvedValueOnce(mockPaymentMethodsResponse)
           .mockResolvedValue({ data: [] });
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         const paymentMethods: PaymentMethod[] =
           await billingService.getPaymentMethods(customerId);
@@ -1034,10 +1054,12 @@ describe("BillingService", () => {
           data: Array<PaymentMethod>;
         } = { data: [] };
 
-        mockStripe.paymentMethods.list = getJestMockFunction()
-          .mockResolvedValue(mockEmptyPaymentMethodsResponse);
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue(
+            mockEmptyPaymentMethodsResponse,
+          );
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         const paymentMethods: PaymentMethod[] =
           await billingService.getPaymentMethods(customerId);
@@ -1055,8 +1077,8 @@ describe("BillingService", () => {
         const mockSetupIntent: { client_secret: string } = {
           client_secret: "seti_123_secret_xyz",
         };
-        mockStripe.setupIntents.create = getJestMockFunction()
-          .mockResolvedValue(mockSetupIntent);
+        mockStripe.setupIntents.create =
+          getJestMockFunction().mockResolvedValue(mockSetupIntent);
 
         const secret: string =
           await billingService.getSetupIntentSecret(customerId);
@@ -1068,7 +1090,8 @@ describe("BillingService", () => {
       });
 
       it("should handle missing client secret in the response", async () => {
-        mockStripe.setupIntents.create = getJestMockFunction().mockResolvedValue({});
+        mockStripe.setupIntents.create =
+          getJestMockFunction().mockResolvedValue({});
 
         await expect(
           billingService.getSetupIntentSecret(customerId),
@@ -1094,9 +1117,11 @@ describe("BillingService", () => {
         const subscriptionId: string = "sub_123";
 
         // mock an error response from the Stripe API
-        mockStripe.subscriptions.del = getJestMockFunction().mockImplementation(() => {
-          throw new Error("Stripe API error");
-        });
+        mockStripe.subscriptions.del = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error("Stripe API error");
+          },
+        );
 
         await billingService.cancelSubscription(subscriptionId);
         // todo: we could expect the error to be logged
@@ -1117,10 +1142,11 @@ describe("BillingService", () => {
       const expectedStatus: SubscriptionStatus = SubscriptionStatus.Active;
 
       it("should successfully retrieve the subscription status", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue({
-          id: subscriptionId,
-          status: expectedStatus,
-        });
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: subscriptionId,
+            status: expectedStatus,
+          });
 
         const status: SubscriptionStatus =
           await billingService.getSubscriptionStatus(subscriptionId);
@@ -1132,10 +1158,11 @@ describe("BillingService", () => {
       });
 
       it("should successfully retrieve the subscription status", async () => {
-        mockStripe.subscriptions.retrieve = getJestMockFunction().mockResolvedValue({
-          id: subscriptionId,
-          status: expectedStatus,
-        });
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: subscriptionId,
+            status: expectedStatus,
+          });
 
         const status: SubscriptionStatus =
           await billingService.getSubscriptionStatus(subscriptionId);
@@ -1160,8 +1187,8 @@ describe("BillingService", () => {
         const subscriptionId: string = "sub_123";
         const mockSubscription: Stripe.Subscription = getStripeSubscription();
 
-        mockStripe.subscriptions.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockSubscription);
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
 
         const subscription: Stripe.Subscription =
           await billingService.getSubscription(subscriptionId);
@@ -1178,7 +1205,8 @@ describe("BillingService", () => {
         const mockInvoices: { data: Array<Stripe.Invoice> } = {
           data: [getStripeInvoice(), getStripeInvoice()],
         };
-        mockStripe.invoices.list = getJestMockFunction().mockResolvedValue(mockInvoices);
+        mockStripe.invoices.list =
+          getJestMockFunction().mockResolvedValue(mockInvoices);
 
         const invoices: Array<Invoice> =
           await billingService.getInvoices(customerId);
@@ -1204,8 +1232,8 @@ describe("BillingService", () => {
 
       it("should return an empty array if no invoices are found for the customer", async () => {
         const mockEmptyInvoices: { data: Invoice[] } = { data: [] };
-        mockStripe.invoices.list = getJestMockFunction()
-          .mockResolvedValue(mockEmptyInvoices);
+        mockStripe.invoices.list =
+          getJestMockFunction().mockResolvedValue(mockEmptyInvoices);
 
         const invoices: Array<Invoice> =
           await billingService.getInvoices(customerId);
@@ -1236,14 +1264,17 @@ describe("BillingService", () => {
         mockStripe.paymentMethods.list = getJestMockFunction()
           .mockResolvedValueOnce(mockPaymentMethodsResponse)
           .mockResolvedValue({ data: [] });
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         // mock responses for invoice creation, adding an item, and finalizing
         const mockInvoice: any = getStripeInvoice();
-        mockStripe.invoices.create = getJestMockFunction().mockResolvedValue(mockInvoice);
-        mockStripe.invoiceItems.create = getJestMockFunction().mockResolvedValue({});
-        mockStripe.invoices.finalizeInvoice = getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(mockInvoice);
+        mockStripe.invoiceItems.create =
+          getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.finalizeInvoice =
+          getJestMockFunction().mockResolvedValue({});
 
         // mock response for paying the invoice
         mockStripe.invoices.pay = getJestMockFunction().mockResolvedValue({});
@@ -1269,7 +1300,8 @@ describe("BillingService", () => {
       });
 
       it("should handle payment method errors when creating the invoice", async () => {
-        mockStripe.invoices.create = getJestMockFunction().mockResolvedValue(null);
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(null);
 
         await expect(
           billingService.generateInvoiceAndChargeCustomer(
@@ -1284,21 +1316,26 @@ describe("BillingService", () => {
         mockStripe.paymentMethods.list = getJestMockFunction()
           .mockResolvedValueOnce(mockPaymentMethodsResponse)
           .mockResolvedValue({ data: [] });
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         // mock successful invoice creation and finalization
         const mockInvoice: any = getStripeInvoice();
-        mockStripe.invoices.create = getJestMockFunction().mockResolvedValue(mockInvoice);
-        mockStripe.invoiceItems.create = getJestMockFunction().mockResolvedValue({});
-        mockStripe.invoices.finalizeInvoice = getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.create =
+          getJestMockFunction().mockResolvedValue(mockInvoice);
+        mockStripe.invoiceItems.create =
+          getJestMockFunction().mockResolvedValue({});
+        mockStripe.invoices.finalizeInvoice =
+          getJestMockFunction().mockResolvedValue({});
 
         billingService.voidInvoice = getJestMockFunction();
 
         // mock an error during invoice payment
-        mockStripe.invoices.pay = getJestMockFunction().mockImplementation(() => {
-          throw new Error("Payment method error");
-        });
+        mockStripe.invoices.pay = getJestMockFunction().mockImplementation(
+          () => {
+            throw new Error("Payment method error");
+          },
+        );
 
         await expect(
           billingService.generateInvoiceAndChargeCustomer(
@@ -1316,8 +1353,8 @@ describe("BillingService", () => {
         const mockVoidedInvoice: Stripe.Invoice = getStripeInvoice();
         mockVoidedInvoice.status = "void";
 
-        mockStripe.invoices.voidInvoice = getJestMockFunction()
-          .mockResolvedValue(mockVoidedInvoice);
+        mockStripe.invoices.voidInvoice =
+          getJestMockFunction().mockResolvedValue(mockVoidedInvoice);
 
         const voidedInvoice: Stripe.Invoice =
           await billingService.voidInvoice(invoiceId);
@@ -1348,10 +1385,10 @@ describe("BillingService", () => {
       });
 
       it("should throw if no payments methods exist", async () => {
-        mockStripe.paymentMethods.list = getJestMockFunction()
-          .mockResolvedValue({ data: [] });
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({ data: [] });
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         await expect(
           billingService.payInvoice(customerId, invoiceId),
@@ -1362,11 +1399,12 @@ describe("BillingService", () => {
         mockStripe.paymentMethods.list = getJestMockFunction()
           .mockResolvedValueOnce(mockPaymentMethodsResponse)
           .mockResolvedValue({ data: [] });
-        mockStripe.customers.retrieve = getJestMockFunction()
-          .mockResolvedValue(mockCustomer);
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(mockCustomer);
 
         const mockPaidInvoice: Stripe.Invoice = getStripeInvoice();
-        mockStripe.invoices.pay = getJestMockFunction().mockResolvedValue(mockPaidInvoice);
+        mockStripe.invoices.pay =
+          getJestMockFunction().mockResolvedValue(mockPaidInvoice);
 
         const paidInvoice: Invoice = await billingService.payInvoice(
           customerId,

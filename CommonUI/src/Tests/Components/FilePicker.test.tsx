@@ -216,7 +216,9 @@ describe("FilePicker", () => {
 
   it('should throw an "File too large" when uploading a file that fails on arrayBuffer()', async () => {
     const file: File = mockFile();
-    file.arrayBuffer = getJestMockFunction().mockRejectedValue(new Error("File too large"));
+    file.arrayBuffer = getJestMockFunction().mockRejectedValue(
+      new Error("File too large"),
+    );
     const data: DataTransfer = {
       dataTransfer: {
         files: [file],
