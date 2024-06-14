@@ -1,7 +1,7 @@
 import { ButtonStyleType } from "../../Components/Button/Button";
 import ButtonType from "../../Components/Button/ButtonTypes";
 import Modal, { ModalWidth } from "../../Components/Modal/Modal";
-import { describe, expect, it } from "@jest/globals";
+import { jest, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";

@@ -2,6 +2,7 @@ import SideOver, { ComponentProps } from "../../Components/SideOver/SideOver";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
+import { describe, expect } from "@jest/globals";
 
 describe("SideOver", () => {
   const childElementText: string = "child element";

@@ -3,7 +3,7 @@
 import DictionaryOfStrings, {
   ComponentProps,
 } from "../../Components/Dictionary/DictionaryOfStrings";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Dictionary from "Common/Types/Dictionary";

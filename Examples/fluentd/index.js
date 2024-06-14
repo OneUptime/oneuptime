@@ -15,13 +15,13 @@ const logger = new FluentClient("fluentd.test", {
   },
 });
 
-app.get("/", function (request, response) {
+app.get("/", (request, response) => {
   logger.emit("follow", { from: "userA", to: "userB" });
   response.send("Hello World!");
 });
 
 const port = 7856;
 
-app.listen(port, function () {
+app.listen(port, () => {
   console.log("Listening on " + port);
 });

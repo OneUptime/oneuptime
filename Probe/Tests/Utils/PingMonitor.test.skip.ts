@@ -5,6 +5,7 @@ import Hostname from "Common/Types/API/Hostname";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IPv4 from "Common/Types/IP/IPv4";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import { describe, expect } from "@jest/globals";
 
 describe("Ping", () => {
   jest.setTimeout(240000);
