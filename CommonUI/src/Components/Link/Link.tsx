@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import Navigation from "../../Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";

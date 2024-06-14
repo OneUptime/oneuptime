@@ -84,8 +84,8 @@ class Express {
 
     return new Promise<express.Application>((resolve: ResolveFunction) => {
       this.httpServer.listen(port?.toNumber() || this.app.get("port"), () => {
-        // eslint-disable-next-line
-                logger.debug(`${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`);
+        logger.debug(
+          `${appName} server started on port: ${port?.toNumber() || this.app.get("port")}`,
         );
         return resolve(this.app);
       });

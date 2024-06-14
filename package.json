@@ -6,6 +6,7 @@
     "type": "module",
     "dependencies": {
         "@types/lodash": "^4.17.1",
+        "globals": "^15.4.0",
         "jest": "^29.7.0",
         "mailparser": "^3.7.1",
         "ts-node": "^10.9.2",
