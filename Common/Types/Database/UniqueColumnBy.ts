@@ -3,7 +3,7 @@ import Dictionary from '../Dictionary';
 import { ReflectionMetadataType } from '../Reflection';
 import 'reflect-metadata';
 
-const uniqueColumnBy: Symbol = Symbol('UniqueColumnBy');
+const uniqueColumnBy: symbol = Symbol('UniqueColumnBy');
 
 export default (columnName: string | Array<string>): ReflectionMetadataType => {
     return Reflect.metadata(uniqueColumnBy, columnName);

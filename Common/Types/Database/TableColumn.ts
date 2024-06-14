@@ -4,7 +4,7 @@ import { ReflectionMetadataType } from '../Reflection';
 import TableColumnType from './TableColumnType';
 import 'reflect-metadata';
 
-const tableColumn: Symbol = Symbol('TableColumn');
+const tableColumn: symbol = Symbol('TableColumn');
 
 export interface TableColumnMetadata {
     title?: string;

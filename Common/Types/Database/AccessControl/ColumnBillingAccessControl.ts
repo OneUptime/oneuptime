@@ -4,7 +4,7 @@ import Dictionary from '../../Dictionary';
 import { ReflectionMetadataType } from '../../Reflection';
 import 'reflect-metadata';
 
-const accessControlSymbol: Symbol = Symbol('ColumnBillingAccessControl');
+const accessControlSymbol: symbol = Symbol('ColumnBillingAccessControl');
 
 export default (
     accessControl: ColumnBillingAccessControl
