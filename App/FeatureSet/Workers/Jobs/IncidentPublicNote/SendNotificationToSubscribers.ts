@@ -272,8 +272,7 @@ RunCron(
                                         incident.description || '',
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject:
-                                    '[Incident Update] '+statusPageName,
+                                subject: '[Incident Update] ' + statusPageName,
                             },
                             {
                                 mailServer:

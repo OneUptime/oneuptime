@@ -216,7 +216,7 @@ RunCron(
                                         ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject: '[Incident] '+statusPageName,
+                                subject: '[Incident] ' + statusPageName,
                             },
                             {
                                 mailServer:

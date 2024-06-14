@@ -204,7 +204,7 @@ RunCron(
                                         ),
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject: '[Announcement] '+statusPageName ,
+                                subject: '[Announcement] ' + statusPageName,
                             },
                             {
                                 mailServer:

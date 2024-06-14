@@ -214,7 +214,9 @@ RunCron(
                     if (subscriber.subscriberPhone) {
                         const sms: SMS = {
                             message: `
-                            Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)} - ${statusPageName}
+                            Incident ${Text.uppercaseFirstLetter(
+                                incidentStateTimeline.incidentState.name
+                            )} - ${statusPageName}
 
                             To view this incident, visit ${statusPageURL}
 
@@ -277,7 +279,9 @@ RunCron(
                                             .name,
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
-                                subject:`[Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)}] ${statusPageName}`
+                                subject: `[Incident ${Text.uppercaseFirstLetter(
+                                    incidentStateTimeline.incidentState.name
+                                )}] ${statusPageName}`,
                             },
                             {
                                 mailServer:

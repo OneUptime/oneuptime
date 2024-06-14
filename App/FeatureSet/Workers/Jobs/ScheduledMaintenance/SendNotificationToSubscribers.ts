@@ -256,7 +256,7 @@ RunCron(
                                     unsubscribeUrl: unsubscribeUrl,
                                 },
                                 subject:
-                                    '[Scheduled Maintenance] '+statusPageName,
+                                    '[Scheduled Maintenance] ' + statusPageName,
                             },
                             {
                                 mailServer:
