@@ -102,11 +102,12 @@ class BaseAPI extends API {
       (error.statusCode === 401 || error.statusCode === 405)
     ) {
       const loginRoute: Route = this.getLoginRoute();
-
+      
+      User.clear();
       const cookies: Cookies = new Cookies();
       cookies.remove("admin-data", { path: "/" });
       cookies.remove("data", { path: "/" });
-      User.clear();
+      
 
       if (Navigation.getQueryStringByName("token")) {
         Navigation.navigate(loginRoute.addRouteParam("sso", "true"), {
