@@ -2,6 +2,7 @@ import Toggle from "../../Components/Toggle/Toggle";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
+import { describe, expect, beforeEach, test, afterEach, jest } from "@jest/globals";
 
 describe("Toggle", () => {
   test("renders toggle element with required props only", () => {

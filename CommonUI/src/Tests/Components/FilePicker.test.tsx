@@ -1,7 +1,7 @@
 import FilePicker from "../../Components/FilePicker/FilePicker";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { faker } from "@faker-js/faker";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import {
   fireEvent,
