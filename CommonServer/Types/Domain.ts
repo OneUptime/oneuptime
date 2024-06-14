@@ -15,7 +15,7 @@ export default class Domain extends DomainCommon {
       ) => {
         dns.resolveTxt(
           domain.toString(),
-          (err: NodeJS.ErrnoException | null, data: Array<Array<string>>) => {
+          (err: Error | null, data: Array<Array<string>>) => {
             if (err) {
               return reject(err);
             }

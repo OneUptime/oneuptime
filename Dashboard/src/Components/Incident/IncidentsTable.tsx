@@ -415,6 +415,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         )}
         filters={[
           {
+            title: "Incident ID",
+            type: FieldType.Text,
+            field: {
+              _id: true,
+            },
+          },
+          {
             field: {
               title: true,
             },

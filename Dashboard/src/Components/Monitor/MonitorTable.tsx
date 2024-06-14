@@ -311,6 +311,13 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS]!)}
       filters={[
         {
+          title: "Monitor ID",
+          type: FieldType.Text,
+          field: {
+            _id: true,
+          },
+        },
+        {
           title: "Name",
           type: FieldType.Text,
           field: {

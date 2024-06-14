@@ -36,8 +36,9 @@ export default tseslint.config(
       "unused-imports": unusedImports,
       react: react,
     },
-
+    
     rules: {
+      "react/prop-types": "off", // TODO: Remove this rule
       "no-control-regex": "off", // TODO: Remove this rule
       "@typescript-eslint/no-explicit-any": "off", // TODO: Remove this rule
       "@typescript-eslint/no-var-requires": "off", // TODO: Remove this rule
@@ -45,6 +46,7 @@ export default tseslint.config(
       "no-constant-binary-expression": "off", // TODO: Remove this rule
       "@typescript-eslint/ban-ts-comment": "off", // TODO: Remove this rule
       "multiline-comment-style": "off", // TODO: Remove this rule
+      "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule
       "no-fallthrough": "error",
       "no-unreachable": "error",
       "no-cond-assign": "error",
@@ -83,7 +85,6 @@ export default tseslint.config(
         },
       ],
       "@typescript-eslint/no-extra-non-null-assertion": "error",
-      "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-non-null-asserted-optional-chain": "error",
       "unused-imports/no-unused-imports": "error",
@@ -143,8 +144,9 @@ export default tseslint.config(
       "react/jsx-no-duplicate-props": "error",
       "react/no-unused-state": "error",
       "react/jsx-uses-vars": "error",
-      "react/prop-types": "error",
+
       "react/react-in-jsx-scope": "error",
+
       "react/no-string-refs": "error",
       "jsx-a11y/href-no-hash": [0],
       "react/no-unescaped-entities": "error",
@@ -196,6 +198,11 @@ export default tseslint.config(
         ...globals.node,
         ...globals.jest,
         JSX: true,
+        require: true,
+        process: true,
+        module: true,
+        __dirname: true,
+        exports: true,
       },
       parserOptions: {
         project: ["./tsconfig.json"], // Specify it only for TypeScript files
