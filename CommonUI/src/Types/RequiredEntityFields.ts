@@ -1,11 +1,11 @@
-import FormFieldSchemaTypes from './EntityFieldType';
+import FormFieldSchemaTypes from "./EntityFieldType";
 
 type RequiredFormField<Property> = Property extends FormFieldSchemaTypes
-    ? boolean
-    : unknown;
+  ? boolean
+  : unknown;
 
 declare type RequiredFormFields<Entity> = {
-    [P in keyof Entity]?: RequiredFormField<NonNullable<Entity[P]>>;
+  [P in keyof Entity]?: RequiredFormField<NonNullable<Entity[P]>>;
 };
 
 export default RequiredFormFields;

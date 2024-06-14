@@ -1,244 +1,239 @@
-import Page from '../../Components/Page/Page';
-import API from '../../Utils/API';
-import { STATUS_PAGE_API_URL } from '../../Utils/Config';
-import StatusPageUtil from '../../Utils/StatusPage';
-import { SubscribePageProps } from './SubscribePageUtils';
-import URL from 'Common/Types/API/URL';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { PromiseVoidFunction } from 'Common/Types/FunctionTypes';
-import ObjectID from 'Common/Types/ObjectID';
-import Card from 'CommonUI/src/Components/Card/Card';
-import { CategoryCheckboxOptionsAndCategories } from 'CommonUI/src/Components/CategoryCheckbox/Index';
-import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import Page from "../../Components/Page/Page";
+import API from "../../Utils/API";
+import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import StatusPageUtil from "../../Utils/StatusPage";
+import { SubscribePageProps } from "./SubscribePageUtils";
+import URL from "Common/Types/API/URL";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ObjectID from "Common/Types/ObjectID";
+import Card from "CommonUI/src/Components/Card/Card";
+import { CategoryCheckboxOptionsAndCategories } from "CommonUI/src/Components/CategoryCheckbox/Index";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import ModelForm, {
-    FormType,
-    ModelField,
-} from 'CommonUI/src/Components/Forms/ModelForm';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
-import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import SubscriberUtil from 'CommonUI/src/Utils/StatusPage';
-import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+  FormType,
+  ModelField,
+} from "CommonUI/src/Components/Forms/ModelForm";
+import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
+import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import LocalStorage from "CommonUI/src/Utils/LocalStorage";
+import Navigation from "CommonUI/src/Utils/Navigation";
+import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
+import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
 import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
-    props: SubscribePageProps
+  props: SubscribePageProps,
 ): ReactElement => {
-    const statusPageSubscriberId: string | undefined =
-        Navigation.getLastParamAsObjectID().toString();
+  const statusPageSubscriberId: string | undefined =
+    Navigation.getLastParamAsObjectID().toString();
 
-    const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-    const statusPageId: ObjectID = LocalStorage.getItem(
-        'statusPageId'
-    ) as ObjectID;
+  const statusPageId: ObjectID = LocalStorage.getItem(
+    "statusPageId",
+  ) as ObjectID;
 
-    const updateApiUrl: URL = URL.fromString(
-        URL.fromString(STATUS_PAGE_API_URL.toString())
-            .addRoute(`/update-subscription/${statusPageId.toString()}`)
-            .addRoute('/' + statusPageSubscriberId.toString())
-            .toString()
-    );
+  const updateApiUrl: URL = URL.fromString(
+    URL.fromString(STATUS_PAGE_API_URL.toString())
+      .addRoute(`/update-subscription/${statusPageId.toString()}`)
+      .addRoute("/" + statusPageSubscriberId.toString())
+      .toString(),
+  );
 
-    const getSubscriptionUrl: URL = URL.fromString(
-        URL.fromString(STATUS_PAGE_API_URL.toString())
-            .addRoute(`/get-subscription/${statusPageId.toString()}`)
-            .addRoute('/' + statusPageSubscriberId.toString())
-            .toString()
-    );
+  const getSubscriptionUrl: URL = URL.fromString(
+    URL.fromString(STATUS_PAGE_API_URL.toString())
+      .addRoute(`/get-subscription/${statusPageId.toString()}`)
+      .addRoute("/" + statusPageSubscriberId.toString())
+      .toString(),
+  );
 
-    const [
-        categoryCheckboxOptionsAndCategories,
-        setCategoryCheckboxOptionsAndCategories,
-    ] = useState<CategoryCheckboxOptionsAndCategories>({
-        categories: [],
-        options: [],
+  const [
+    categoryCheckboxOptionsAndCategories,
+    setCategoryCheckboxOptionsAndCategories,
+  ] = useState<CategoryCheckboxOptionsAndCategories>({
+    categories: [],
+    options: [],
+  });
+
+  const [isLaoding, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+
+        const result: CategoryCheckboxOptionsAndCategories =
+          await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
+            statusPageId,
+            URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+              `/resources/${statusPageId.toString()}`,
+            ),
+          );
+
+        setCategoryCheckboxOptionsAndCategories(result);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    };
+
+  useEffect(() => {
+    fetchCheckboxOptionsAndCategories().catch((error: Error) => {
+      setError(error.message);
     });
+  }, []);
 
-    const [isLaoding, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | undefined>(undefined);
+  if (!statusPageId) {
+    throw new BadDataException("Status Page ID is required");
+  }
 
-    const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
-        async (): Promise<void> => {
-            try {
-                setIsLoading(true);
+  if (!statusPageSubscriberId) {
+    throw new BadDataException("Status Page Subscriber ID is required");
+  }
 
-                const result: CategoryCheckboxOptionsAndCategories =
-                    await SubscriberUtil.getCategoryCheckboxPropsBasedOnResources(
-                        statusPageId,
-                        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
-                            `/resources/${statusPageId.toString()}`
-                        )
-                    );
+  StatusPageUtil.checkIfUserHasLoggedIn();
 
-                setCategoryCheckboxOptionsAndCategories(result);
-            } catch (err) {
-                setError(API.getFriendlyMessage(err));
-            }
+  const fields: Array<ModelField<StatusPageSubscriber>> = [
+    {
+      field: {
+        subscriberEmail: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Your Email",
+      fieldType: FormFieldSchemaType.Email,
+      required: (model: FormValues<StatusPageSubscriber>) => {
+        return model && Boolean(model.subscriberEmail);
+      },
+      disabled: true,
+      placeholder: "subscriber@company.com",
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return model && Boolean(model.subscriberEmail);
+      },
+    },
+    {
+      field: {
+        subscriberPhone: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Your Phone Number",
+      fieldType: FormFieldSchemaType.Email,
+      required: (model: FormValues<StatusPageSubscriber>) => {
+        return model && Boolean(model.subscriberPhone);
+      },
+      placeholder: "+15853641376",
+      disabled: true,
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return model && Boolean(model.subscriberPhone);
+      },
+    },
+  ];
 
-            setIsLoading(false);
-        };
-
-    useEffect(() => {
-        fetchCheckboxOptionsAndCategories().catch((error: Error) => {
-            setError(error.message);
-        });
-    }, []);
-
-    if (!statusPageId) {
-        throw new BadDataException('Status Page ID is required');
-    }
-
-    if (!statusPageSubscriberId) {
-        throw new BadDataException('Status Page Subscriber ID is required');
-    }
-
-    StatusPageUtil.checkIfUserHasLoggedIn();
-
-    const fields: Array<ModelField<StatusPageSubscriber>> = [
-        {
-            field: {
-                subscriberEmail: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: 'Your Email',
-            fieldType: FormFieldSchemaType.Email,
-            required: (model: FormValues<StatusPageSubscriber>) => {
-                return model && Boolean(model.subscriberEmail);
-            },
-            disabled: true,
-            placeholder: 'subscriber@company.com',
-            showIf: (model: FormValues<StatusPageSubscriber>) => {
-                return model && Boolean(model.subscriberEmail);
-            },
-        },
-        {
-            field: {
-                subscriberPhone: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: 'Your Phone Number',
-            fieldType: FormFieldSchemaType.Email,
-            required: (model: FormValues<StatusPageSubscriber>) => {
-                return model && Boolean(model.subscriberPhone);
-            },
-            placeholder: '+15853641376',
-            disabled: true,
-            showIf: (model: FormValues<StatusPageSubscriber>) => {
-                return model && Boolean(model.subscriberPhone);
-            },
-        },
-    ];
-
-    if (props.allowSubscribersToChooseResources) {
-        fields.push({
-            field: {
-                isSubscribedToAllResources: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: 'Subscribe to All Resources',
-            description:
-                'Select this option if you want to subscribe to all resources.',
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
-            defaultValue: true,
-        });
-
-        fields.push({
-            field: {
-                statusPageResources: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: 'Select Resources to Subscribe',
-            description:
-                'Please select the resources you want to subscribe to.',
-            fieldType: FormFieldSchemaType.CategoryCheckbox,
-            required: false,
-            categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-            showIf: (model: FormValues<StatusPageSubscriber>) => {
-                return !model || !model.isSubscribedToAllResources;
-            },
-        });
-    }
+  if (props.allowSubscribersToChooseResources) {
+    fields.push({
+      field: {
+        isSubscribedToAllResources: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Subscribe to All Resources",
+      description:
+        "Select this option if you want to subscribe to all resources.",
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
 
     fields.push({
-        field: {
-            isUnsubscribed: true,
-        },
-        showEvenIfPermissionDoesNotExist: true,
-        title: 'Unsubscribe',
-        description:
-            'Please select this if you would like to unsubscribe from all resources.',
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
+      field: {
+        statusPageResources: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: "Select Resources to Subscribe",
+      description: "Please select the resources you want to subscribe to.",
+      fieldType: FormFieldSchemaType.CategoryCheckbox,
+      required: false,
+      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllResources;
+      },
     });
+  }
 
-    return (
-        <Page>
-            {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
+  fields.push({
+    field: {
+      isUnsubscribed: true,
+    },
+    showEvenIfPermissionDoesNotExist: true,
+    title: "Unsubscribe",
+    description:
+      "Please select this if you would like to unsubscribe from all resources.",
+    fieldType: FormFieldSchemaType.Toggle,
+    required: false,
+  });
 
-            {error ? <ErrorMessage error={error} /> : <></>}
+  return (
+    <Page>
+      {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
-            {!isLaoding && !error ? (
-                <div className="justify-center">
-                    <div>
-                        {isSuccess && (
-                            <p className="text-center text-gray-400 mb-20 mt-20">
-                                {' '}
-                                Your changes have been saved.{' '}
-                            </p>
-                        )}
+      {error ? <ErrorMessage error={error} /> : <></>}
 
-                        {!isSuccess ? (
-                            <div className="">
-                                <Card
-                                    title="Update Subscription"
-                                    description={
-                                        'You can update your subscription preferences or unsubscribe here.'
-                                    }
-                                >
-                                    <ModelForm<StatusPageSubscriber>
-                                        modelType={StatusPageSubscriber}
-                                        id="email-form"
-                                        name="Status Page > Update Subscription"
-                                        fields={fields}
-                                        createOrUpdateApiUrl={updateApiUrl}
-                                        requestHeaders={API.getDefaultHeaders(
-                                            StatusPageUtil.getStatusPageId()!
-                                        )}
-                                        fetchItemApiUrl={getSubscriptionUrl}
-                                        formType={FormType.Update}
-                                        modelIdToEdit={
-                                            new ObjectID(statusPageSubscriberId)
-                                        }
-                                        submitButtonText={'Update Subscription'}
-                                        onSuccess={(
-                                            _value: StatusPagePrivateUser
-                                        ) => {
-                                            setIsSuccess(true);
-                                        }}
-                                        maxPrimaryButtonWidth={true}
-                                    />
-                                </Card>
-                            </div>
-                        ) : (
-                            <></>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <></>
+      {!isLaoding && !error ? (
+        <div className="justify-center">
+          <div>
+            {isSuccess && (
+              <p className="text-center text-gray-400 mb-20 mt-20">
+                {" "}
+                Your changes have been saved.{" "}
+              </p>
             )}
-        </Page>
-    );
+
+            {!isSuccess ? (
+              <div className="">
+                <Card
+                  title="Update Subscription"
+                  description={
+                    "You can update your subscription preferences or unsubscribe here."
+                  }
+                >
+                  <ModelForm<StatusPageSubscriber>
+                    modelType={StatusPageSubscriber}
+                    id="email-form"
+                    name="Status Page > Update Subscription"
+                    fields={fields}
+                    createOrUpdateApiUrl={updateApiUrl}
+                    requestHeaders={API.getDefaultHeaders(
+                      StatusPageUtil.getStatusPageId()!,
+                    )}
+                    fetchItemApiUrl={getSubscriptionUrl}
+                    formType={FormType.Update}
+                    modelIdToEdit={new ObjectID(statusPageSubscriberId)}
+                    submitButtonText={"Update Subscription"}
+                    onSuccess={(_value: StatusPagePrivateUser) => {
+                      setIsSuccess(true);
+                    }}
+                    maxPrimaryButtonWidth={true}
+                  />
+                </Card>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+    </Page>
+  );
 };
 
 export default SubscribePage;

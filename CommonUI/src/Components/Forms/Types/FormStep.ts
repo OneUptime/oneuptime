@@ -1,13 +1,13 @@
-import FormValues from './FormValues';
+import FormValues from "./FormValues";
 
 export enum FormStepState {
-    ACTIVE,
-    INACTIVE,
-    COMPLETED,
+  ACTIVE,
+  INACTIVE,
+  COMPLETED,
 }
 
 export interface FormStep<TEntity> {
-    id: string;
-    title: string;
-    showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
+  id: string;
+  title: string;
+  showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
 }

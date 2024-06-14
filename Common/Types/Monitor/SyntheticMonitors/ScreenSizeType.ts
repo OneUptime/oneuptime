@@ -1,3 +1,3 @@
-import ScreenSizeType from '../../ScreenSizeType';
+import ScreenSizeType from "../../ScreenSizeType";
 
 export default ScreenSizeType;

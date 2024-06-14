@@ -1,52 +1,48 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DeleteBy from '../Types/Database/DeleteBy';
-import FindBy from '../Types/Database/FindBy';
-import { OnDelete, OnFind, OnUpdate } from '../Types/Database/Hooks';
-import UpdateBy from '../Types/Database/UpdateBy';
-import DatabaseService from './DatabaseService';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
-import File from 'Model/Models/File';
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import DatabaseService from "./DatabaseService";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import File from "Model/Models/File";
 
 export class Service extends DatabaseService<File> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(File, postgresDatabase);
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(File, postgresDatabase);
+  }
+
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<File>,
+  ): Promise<OnUpdate<File>> {
+    if (!updateBy.props.isRoot) {
+      throw new NotAuthorizedException("Not authorized to update a file.");
     }
 
-    protected override async onBeforeUpdate(
-        updateBy: UpdateBy<File>
-    ): Promise<OnUpdate<File>> {
-        if (!updateBy.props.isRoot) {
-            throw new NotAuthorizedException(
-                'Not authorized to update a file.'
-            );
-        }
+    return { updateBy, carryForward: null };
+  }
 
-        return { updateBy, carryForward: null };
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<File>,
+  ): Promise<OnDelete<File>> {
+    if (!deleteBy.props.isRoot) {
+      throw new NotAuthorizedException("Not authorized to delete a file.");
     }
 
-    protected override async onBeforeDelete(
-        deleteBy: DeleteBy<File>
-    ): Promise<OnDelete<File>> {
-        if (!deleteBy.props.isRoot) {
-            throw new NotAuthorizedException(
-                'Not authorized to delete a file.'
-            );
-        }
+    return { deleteBy, carryForward: null };
+  }
 
-        return { deleteBy, carryForward: null };
+  protected override async onBeforeFind(
+    findBy: FindBy<File>,
+  ): Promise<OnFind<File>> {
+    if (!findBy.props.isRoot) {
+      findBy.query = {
+        ...findBy.query,
+        isPublic: true,
+      };
     }
 
-    protected override async onBeforeFind(
-        findBy: FindBy<File>
-    ): Promise<OnFind<File>> {
-        if (!findBy.props.isRoot) {
-            findBy.query = {
-                ...findBy.query,
-                isPublic: true,
-            };
-        }
-
-        return { findBy, carryForward: null };
-    }
+    return { findBy, carryForward: null };
+  }
 }
 export default new Service();

@@ -1,146 +1,132 @@
-import Loader from '../Components/Loader/Loader';
-import ComponentProps from '../Pages/PageComponentProps';
-import StatusPageViewLayout from '../Pages/ServiceCatalog/View/Layout';
-import PageMap from '../Utils/PageMap';
+import Loader from "../Components/Loader/Loader";
+import ComponentProps from "../Pages/PageComponentProps";
+import StatusPageViewLayout from "../Pages/ServiceCatalog/View/Layout";
+import PageMap from "../Utils/PageMap";
 import RouteMap, {
-    RouteUtil,
-    ServiceCatalogRoutePath,
-} from '../Utils/RouteMap';
-import Route from 'Common/Types/API/Route';
+  RouteUtil,
+  ServiceCatalogRoutePath,
+} from "../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, {
-    FunctionComponent,
-    LazyExoticComponent,
-    ReactElement,
-    Suspense,
-    lazy,
-} from 'react';
-import { Route as PageRoute, Routes } from 'react-router-dom';
+  FunctionComponent,
+  LazyExoticComponent,
+  ReactElement,
+  Suspense,
+  lazy,
+} from "react";
+import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 const ServiceCatalog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import('../Pages/ServiceCatalog/ServiceCatalog');
-    });
+  lazy(() => {
+    return import("../Pages/ServiceCatalog/ServiceCatalog");
+  });
 const ServiceCatalogView: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Index');
+  return import("../Pages/ServiceCatalog/View/Index");
 });
 const ServiceCatalogViewDelete: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Delete');
+  return import("../Pages/ServiceCatalog/View/Delete");
 });
 
 const ServiceCatalogViewSettings: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Settings');
+  return import("../Pages/ServiceCatalog/View/Settings");
 });
 
 const ServiceCatalogViewOwners: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/ServiceCatalog/View/Owners');
+  return import("../Pages/ServiceCatalog/View/Owners");
 });
 
 const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <Routes>
-            <PageRoute
-                path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ''}
-                element={
-                    <Suspense fallback={Loader}>
-                        <ServiceCatalog
-                            {...props}
-                            pageRoute={
-                                RouteMap[PageMap.SERVICE_CATALOG] as Route
-                            }
-                        />
-                    </Suspense>
-                }
+  return (
+    <Routes>
+      <PageRoute
+        path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <ServiceCatalog
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_CATALOG] as Route}
             />
+          </Suspense>
+        }
+      />
 
-            <PageRoute
-                path={
-                    ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ''
+      <PageRoute
+        path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ""}
+        element={<StatusPageViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogView
+                {...props}
+                pageRoute={RouteMap[PageMap.SERVICE_CATALOG_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_DELETE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewDelete
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_DELETE] as Route
                 }
-                element={<StatusPageViewLayout {...props} />}
-            >
-                <PageRoute
-                    index
-                    element={
-                        <Suspense fallback={Loader}>
-                            <ServiceCatalogView
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
+              />
+            </Suspense>
+          }
+        />
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_DELETE
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <ServiceCatalogViewDelete
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_DELETE
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_SETTINGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewSettings
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_SETTINGS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <ServiceCatalogViewSettings
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_SETTINGS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.SERVICE_CATALOG_VIEW_OWNERS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <ServiceCatalogViewOwners
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.SERVICE_CATALOG_VIEW_OWNERS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-            </PageRoute>
-        </Routes>
-    );
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_OWNERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewOwners
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_OWNERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+    </Routes>
+  );
 };
 
 export default ServiceCatalogRoutes;

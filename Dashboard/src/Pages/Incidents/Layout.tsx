@@ -1,25 +1,25 @@
-import { getIncidentsBreadcrumbs } from '../../Utils/Breadcrumbs/IncidentBreadcrumbs';
-import { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import SideMenu from './SideMenu';
-import Page from 'CommonUI/src/Components/Page/Page';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import React, { FunctionComponent, ReactElement } from 'react';
-import { Outlet } from 'react-router-dom';
+import { getIncidentsBreadcrumbs } from "../../Utils/Breadcrumbs/IncidentBreadcrumbs";
+import { RouteUtil } from "../../Utils/RouteMap";
+import PageComponentProps from "../PageComponentProps";
+import SideMenu from "./SideMenu";
+import Page from "CommonUI/src/Components/Page/Page";
+import Navigation from "CommonUI/src/Utils/Navigation";
+import React, { FunctionComponent, ReactElement } from "react";
+import { Outlet } from "react-router-dom";
 
 const IncidentsLayout: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+  props: PageComponentProps,
 ): ReactElement => {
-    const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
-    return (
-        <Page
-            title={'Incidents'}
-            sideMenu={<SideMenu project={props.currentProject || undefined} />}
-            breadcrumbLinks={getIncidentsBreadcrumbs(path)}
-        >
-            <Outlet />
-        </Page>
-    );
+  const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+  return (
+    <Page
+      title={"Incidents"}
+      sideMenu={<SideMenu project={props.currentProject || undefined} />}
+      breadcrumbLinks={getIncidentsBreadcrumbs(path)}
+    >
+      <Outlet />
+    </Page>
+  );
 };
 
 export default IncidentsLayout;

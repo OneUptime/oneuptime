@@ -1,48 +1,46 @@
-import { Gray500 } from 'Common/Types/BrandColors';
-import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import { Gray500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    placeholder?: undefined | string;
-    className?: undefined | string;
-    value?: Color | undefined;
-    dataTestId?: string;
-    onClick?: (() => void) | undefined;
+  placeholder?: undefined | string;
+  className?: undefined | string;
+  value?: Color | undefined;
+  dataTestId?: string;
+  onClick?: (() => void) | undefined;
 }
 
 const ColorInput: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return (
+  return (
+    <div
+      className={`flex ${props.className}`}
+      onClick={() => {
+        props.onClick && props.onClick();
+      }}
+      data-testid={props.dataTestId}
+    >
+      {props.value && (
         <div
-            className={`flex ${props.className}`}
-            onClick={() => {
-                props.onClick && props.onClick();
-            }}
-            data-testid={props.dataTestId}
-        >
-            {props.value && (
-                <div
-                    style={{
-                        backgroundColor: props.value.toString(),
-                        height: '20px',
-                        borderWidth: '1px',
-                        borderColor: Gray500.toString(),
-                        width: '20px',
-                        borderRadius: '300px',
-                        boxShadow: 'rgb(149 157 165 / 20%) 0px 8px 24px',
-                        marginRight: '7px',
-                        borderStyle: 'solid',
-                    }}
-                ></div>
-            )}
-            <div>
-                {props.value?.toString() ||
-                    props.placeholder ||
-                    'No Color Selected'}
-            </div>
-        </div>
-    );
+          style={{
+            backgroundColor: props.value.toString(),
+            height: "20px",
+            borderWidth: "1px",
+            borderColor: Gray500.toString(),
+            width: "20px",
+            borderRadius: "300px",
+            boxShadow: "rgb(149 157 165 / 20%) 0px 8px 24px",
+            marginRight: "7px",
+            borderStyle: "solid",
+          }}
+        ></div>
+      )}
+      <div>
+        {props.value?.toString() || props.placeholder || "No Color Selected"}
+      </div>
+    </div>
+  );
 };
 
 export default ColorInput;

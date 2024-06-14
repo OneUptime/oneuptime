@@ -1,65 +1,65 @@
 // Taiwind
-import Route from 'Common/Types/API/Route';
-import URLFromProject from 'Common/Types/API/URL';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import File from 'Model/Models/File';
-import React, { FunctionComponent, ReactElement } from 'react';
+import Route from "Common/Types/API/Route";
+import URLFromProject from "Common/Types/API/URL";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import File from "Model/Models/File";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    onClick?: () => void | undefined;
-    imageUrl?: URLFromProject | Route | ReactElement | undefined;
-    height?: number | undefined;
-    file?: File | undefined;
-    className?: string | undefined;
-    alt?: string | undefined;
-    style?: React.CSSProperties | undefined;
-    'data-testid'?: string;
+  onClick?: () => void | undefined;
+  imageUrl?: URLFromProject | Route | ReactElement | undefined;
+  height?: number | undefined;
+  file?: File | undefined;
+  className?: string | undefined;
+  alt?: string | undefined;
+  style?: React.CSSProperties | undefined;
+  "data-testid"?: string;
 }
 
 export class ImageFunctions {
-    public static getImageURL(file: File): string {
-        const blob: Blob = new Blob([file.file as Uint8Array], {
-            type: (file as File).type as string,
-        });
+  public static getImageURL(file: File): string {
+    const blob: Blob = new Blob([file.file as Uint8Array], {
+      type: (file as File).type as string,
+    });
 
-        const url: string = URL.createObjectURL(blob);
-        return url;
-    }
+    const url: string = URL.createObjectURL(blob);
+    return url;
+  }
 }
 
 const Image: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    type GetImageElementFunction = (url: string) => ReactElement;
+  type GetImageElementFunction = (url: string) => ReactElement;
 
-    const getImageElement: GetImageElementFunction = (
-        url: string
-    ): ReactElement => {
-        return (
-            <img
-                onClick={() => {
-                    props.onClick && props.onClick();
-                }}
-                data-testid={props['data-testid']}
-                alt={props.alt}
-                src={url}
-                height={props.height}
-                className={props.className}
-                style={props.style}
-            />
-        );
-    };
+  const getImageElement: GetImageElementFunction = (
+    url: string,
+  ): ReactElement => {
+    return (
+      <img
+        onClick={() => {
+          props.onClick && props.onClick();
+        }}
+        data-testid={props["data-testid"]}
+        alt={props.alt}
+        src={url}
+        height={props.height}
+        className={props.className}
+        style={props.style}
+      />
+    );
+  };
 
-    if (props.imageUrl) {
-        return getImageElement(props.imageUrl.toString());
-    }
+  if (props.imageUrl) {
+    return getImageElement(props.imageUrl.toString());
+  }
 
-    if (props.file && props.file.file && props.file.type) {
-        const url: string = ImageFunctions.getImageURL(props.file);
-        return getImageElement(url);
-    }
+  if (props.file && props.file.file && props.file.type) {
+    const url: string = ImageFunctions.getImageURL(props.file);
+    return getImageElement(url);
+  }
 
-    throw new BadDataException('file or imageUrl required for <Image>');
+  throw new BadDataException("file or imageUrl required for <Image>");
 };
 
 export default Image;

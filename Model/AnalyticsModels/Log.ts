@@ -1,373 +1,373 @@
-import AnalyticsBaseModel from 'Common/AnalyticsModels/BaseModel';
-import Route from 'Common/Types/API/Route';
-import AnalyticsTableEngine from 'Common/Types/AnalyticsDatabase/AnalyticsTableEngine';
-import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
-import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import Permission from 'Common/Types/Permission';
+import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import Route from "Common/Types/API/Route";
+import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
+import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 
 export enum LogSeverity {
-    Unspecified = 'Unspecified',
-    Information = 'Information',
-    Warning = 'Warning',
-    Error = 'Error',
-    Trace = 'Trace',
-    Debug = 'Debug',
-    Fatal = 'Fatal',
+  Unspecified = "Unspecified",
+  Information = "Information",
+  Warning = "Warning",
+  Error = "Error",
+  Trace = "Trace",
+  Debug = "Debug",
+  Fatal = "Fatal",
 }
 
 export default class Log extends AnalyticsBaseModel {
-    public constructor() {
-        super({
-            tableName: 'Log',
-            tableEngine: AnalyticsTableEngine.MergeTree,
-            singularName: 'Log',
-            enableRealtimeEventsOn: {
-                create: true,
-            },
-            accessControl: {
-                read: [
-                    Permission.ProjectOwner,
-                    Permission.ProjectAdmin,
-                    Permission.ProjectMember,
-                    Permission.ReadTelemetryServiceLog,
-                ],
-                create: [
-                    Permission.ProjectOwner,
-                    Permission.ProjectAdmin,
-                    Permission.ProjectMember,
-                    Permission.CreateTelemetryServiceLog,
-                ],
-                update: [
-                    Permission.ProjectOwner,
-                    Permission.ProjectAdmin,
-                    Permission.ProjectMember,
-                    Permission.EditTelemetryServiceLog,
-                ],
-                delete: [
-                    Permission.ProjectOwner,
-                    Permission.ProjectAdmin,
-                    Permission.ProjectMember,
-                    Permission.DeleteTelemetryServiceLog,
-                ],
-            },
-            pluralName: 'Logs',
-            crudApiPath: new Route('/logs'),
-            tableColumns: [
-                new AnalyticsTableColumn({
-                    key: 'projectId',
-                    title: 'Project ID',
-                    description: 'ID of project',
-                    required: true,
-                    type: TableColumnType.ObjectID,
-                    isTenantId: true,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'serviceId',
-                    title: 'Service ID',
-                    description: 'ID of the Service which created the log',
-                    required: true,
-                    type: TableColumnType.ObjectID,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'time',
-                    title: 'Time',
-                    description: 'When was the log created?',
-                    required: true,
-                    type: TableColumnType.Date,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'timeUnixNano',
-                    title: 'Time (in Unix Nano)',
-                    description: 'When was the log created?',
-                    required: true,
-                    type: TableColumnType.LongNumber,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'severityText',
-                    title: 'Severity Text',
-                    description: 'Log Severity Text',
-                    required: true,
-                    type: TableColumnType.Text,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'severityNumber',
-                    title: 'Severity Number',
-                    description: 'Log Severity Number',
-                    required: true,
-                    type: TableColumnType.Number,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'attributes',
-                    title: 'Attributes',
-                    description: 'Attributes',
-                    required: true,
-                    defaultValue: {},
-                    type: TableColumnType.JSON,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'traceId',
-                    title: 'Trace ID',
-                    description: 'ID of the trace',
-                    required: false,
-                    type: TableColumnType.Text,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'spanId',
-                    title: 'Span ID',
-                    description: 'ID of the span',
-                    required: false,
-                    type: TableColumnType.Text,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
-
-                new AnalyticsTableColumn({
-                    key: 'body',
-                    title: 'Log Body',
-                    description: 'Body of the Log',
-                    required: false,
-                    type: TableColumnType.Text,
-                    accessControl: {
-                        read: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.ReadTelemetryServiceLog,
-                        ],
-                        create: [
-                            Permission.ProjectOwner,
-                            Permission.ProjectAdmin,
-                            Permission.ProjectMember,
-                            Permission.CreateTelemetryServiceLog,
-                        ],
-                        update: [],
-                    },
-                }),
+  public constructor() {
+    super({
+      tableName: "Log",
+      tableEngine: AnalyticsTableEngine.MergeTree,
+      singularName: "Log",
+      enableRealtimeEventsOn: {
+        create: true,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.EditTelemetryServiceLog,
+        ],
+        delete: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.DeleteTelemetryServiceLog,
+        ],
+      },
+      pluralName: "Logs",
+      crudApiPath: new Route("/logs"),
+      tableColumns: [
+        new AnalyticsTableColumn({
+          key: "projectId",
+          title: "Project ID",
+          description: "ID of project",
+          required: true,
+          type: TableColumnType.ObjectID,
+          isTenantId: true,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
             ],
-            primaryKeys: ['projectId', 'serviceId', 'time'],
-        });
-    }
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public get projectId(): ObjectID | undefined {
-        return this.getColumnValue('projectId') as ObjectID | undefined;
-    }
+        new AnalyticsTableColumn({
+          key: "serviceId",
+          title: "Service ID",
+          description: "ID of the Service which created the log",
+          required: true,
+          type: TableColumnType.ObjectID,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public set projectId(v: ObjectID | undefined) {
-        this.setColumnValue('projectId', v);
-    }
+        new AnalyticsTableColumn({
+          key: "time",
+          title: "Time",
+          description: "When was the log created?",
+          required: true,
+          type: TableColumnType.Date,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public get serviceId(): ObjectID | undefined {
-        return this.getColumnValue('serviceId') as ObjectID | undefined;
-    }
+        new AnalyticsTableColumn({
+          key: "timeUnixNano",
+          title: "Time (in Unix Nano)",
+          description: "When was the log created?",
+          required: true,
+          type: TableColumnType.LongNumber,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public set serviceId(v: ObjectID | undefined) {
-        this.setColumnValue('serviceId', v);
-    }
+        new AnalyticsTableColumn({
+          key: "severityText",
+          title: "Severity Text",
+          description: "Log Severity Text",
+          required: true,
+          type: TableColumnType.Text,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public set body(v: string | undefined) {
-        this.setColumnValue('body', v);
-    }
+        new AnalyticsTableColumn({
+          key: "severityNumber",
+          title: "Severity Number",
+          description: "Log Severity Number",
+          required: true,
+          type: TableColumnType.Number,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public get body(): string | undefined {
-        return this.getColumnValue('body');
-    }
+        new AnalyticsTableColumn({
+          key: "attributes",
+          title: "Attributes",
+          description: "Attributes",
+          required: true,
+          defaultValue: {},
+          type: TableColumnType.JSON,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public get time(): Date | undefined {
-        return this.getColumnValue('time') as Date | undefined;
-    }
+        new AnalyticsTableColumn({
+          key: "traceId",
+          title: "Trace ID",
+          description: "ID of the trace",
+          required: false,
+          type: TableColumnType.Text,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public set time(v: Date | undefined) {
-        this.setColumnValue('time', v);
-    }
+        new AnalyticsTableColumn({
+          key: "spanId",
+          title: "Span ID",
+          description: "ID of the span",
+          required: false,
+          type: TableColumnType.Text,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
 
-    public get timeUnixNano(): number | undefined {
-        return this.getColumnValue('timeUnixNano') as number | undefined;
-    }
+        new AnalyticsTableColumn({
+          key: "body",
+          title: "Log Body",
+          description: "Body of the Log",
+          required: false,
+          type: TableColumnType.Text,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
+      ],
+      primaryKeys: ["projectId", "serviceId", "time"],
+    });
+  }
 
-    public set timeUnixNano(v: number | undefined) {
-        this.setColumnValue('timeUnixNano', v);
-    }
+  public get projectId(): ObjectID | undefined {
+    return this.getColumnValue("projectId") as ObjectID | undefined;
+  }
 
-    public get severityText(): LogSeverity | undefined {
-        return this.getColumnValue('severityText') as LogSeverity | undefined;
-    }
+  public set projectId(v: ObjectID | undefined) {
+    this.setColumnValue("projectId", v);
+  }
 
-    public set severityText(v: LogSeverity | undefined) {
-        this.setColumnValue('severityText', v);
-    }
+  public get serviceId(): ObjectID | undefined {
+    return this.getColumnValue("serviceId") as ObjectID | undefined;
+  }
 
-    public get severityNumber(): number | undefined {
-        return this.getColumnValue('severityNumber') as number | undefined;
-    }
+  public set serviceId(v: ObjectID | undefined) {
+    this.setColumnValue("serviceId", v);
+  }
 
-    public set severityNumber(v: number | undefined) {
-        this.setColumnValue('severityNumber', v);
-    }
+  public set body(v: string | undefined) {
+    this.setColumnValue("body", v);
+  }
 
-    public get attributes(): JSONObject | undefined {
-        return this.getColumnValue('attributes') as JSONObject | undefined;
-    }
+  public get body(): string | undefined {
+    return this.getColumnValue("body");
+  }
 
-    public set attributes(v: JSONObject | undefined) {
-        this.setColumnValue('attributes', v);
-    }
+  public get time(): Date | undefined {
+    return this.getColumnValue("time") as Date | undefined;
+  }
 
-    public get traceId(): string | undefined {
-        return this.getColumnValue('traceId') as string | undefined;
-    }
+  public set time(v: Date | undefined) {
+    this.setColumnValue("time", v);
+  }
 
-    public set traceId(v: string | undefined) {
-        this.setColumnValue('traceId', v);
-    }
+  public get timeUnixNano(): number | undefined {
+    return this.getColumnValue("timeUnixNano") as number | undefined;
+  }
 
-    public get spanId(): string | undefined {
-        return this.getColumnValue('spanId') as string | undefined;
-    }
+  public set timeUnixNano(v: number | undefined) {
+    this.setColumnValue("timeUnixNano", v);
+  }
 
-    public set spanId(v: string | undefined) {
-        this.setColumnValue('spanId', v);
-    }
+  public get severityText(): LogSeverity | undefined {
+    return this.getColumnValue("severityText") as LogSeverity | undefined;
+  }
+
+  public set severityText(v: LogSeverity | undefined) {
+    this.setColumnValue("severityText", v);
+  }
+
+  public get severityNumber(): number | undefined {
+    return this.getColumnValue("severityNumber") as number | undefined;
+  }
+
+  public set severityNumber(v: number | undefined) {
+    this.setColumnValue("severityNumber", v);
+  }
+
+  public get attributes(): JSONObject | undefined {
+    return this.getColumnValue("attributes") as JSONObject | undefined;
+  }
+
+  public set attributes(v: JSONObject | undefined) {
+    this.setColumnValue("attributes", v);
+  }
+
+  public get traceId(): string | undefined {
+    return this.getColumnValue("traceId") as string | undefined;
+  }
+
+  public set traceId(v: string | undefined) {
+    this.setColumnValue("traceId", v);
+  }
+
+  public get spanId(): string | undefined {
+    return this.getColumnValue("spanId") as string | undefined;
+  }
+
+  public set spanId(v: string | undefined) {
+    this.setColumnValue("spanId", v);
+  }
 }

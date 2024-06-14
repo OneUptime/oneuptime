@@ -1,224 +1,217 @@
-import CustomSMTPElement from '../../Components/CustomSMTP/CustomSMTPView';
-import DashboardNavigation from '../../Utils/Navigation';
-import PageComponentProps from '../PageComponentProps';
-import { Green, Red } from 'Common/Types/BrandColors';
-import IconProp from 'Common/Types/Icon/IconProp';
-import EmailStatus from 'Common/Types/Mail/MailStatus';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import Filter from 'CommonUI/src/Components/ModelFilter/Filter';
-import Columns from 'CommonUI/src/Components/ModelTable/Columns';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import EmailLog from 'Model/Models/EmailLog';
-import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+import CustomSMTPElement from "../../Components/CustomSMTP/CustomSMTPView";
+import DashboardNavigation from "../../Utils/Navigation";
+import PageComponentProps from "../PageComponentProps";
+import { Green, Red } from "Common/Types/BrandColors";
+import IconProp from "Common/Types/Icon/IconProp";
+import EmailStatus from "Common/Types/Mail/MailStatus";
+import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+import Filter from "CommonUI/src/Components/ModelFilter/Filter";
+import Columns from "CommonUI/src/Components/ModelTable/Columns";
+import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
+import Pill from "CommonUI/src/Components/Pill/Pill";
+import FieldType from "CommonUI/src/Components/Types/FieldType";
+import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import EmailLog from "Model/Models/EmailLog";
+import ProjectSmtpConfig from "Model/Models/ProjectSmtpConfig";
 import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 const EmailLogs: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+  _props: PageComponentProps,
 ): ReactElement => {
-    const [showViewEmailTextModal, setShowViewEmailTextModal] =
-        useState<boolean>(false);
-    const [EmailText, setEmailText] = useState<string>('');
-    const [EmailModelTitle, setEmailModalTitle] = useState<string>('');
+  const [showViewEmailTextModal, setShowViewEmailTextModal] =
+    useState<boolean>(false);
+  const [EmailText, setEmailText] = useState<string>("");
+  const [EmailModelTitle, setEmailModalTitle] = useState<string>("");
 
-    const filters: Array<Filter<EmailLog>> = [
-        {
-            field: {
-                _id: true,
-            },
-            title: 'Log ID',
-            type: FieldType.ObjectID,
+  const filters: Array<Filter<EmailLog>> = [
+    {
+      field: {
+        _id: true,
+      },
+      title: "Log ID",
+      type: FieldType.ObjectID,
+    },
+    {
+      field: {
+        fromEmail: true,
+      },
+      title: "From Email",
+      type: FieldType.Email,
+    },
+    {
+      field: {
+        toEmail: true,
+      },
+      title: "To Email",
+      type: FieldType.Email,
+    },
+    {
+      field: {
+        createdAt: true,
+      },
+      title: "Sent at",
+      type: FieldType.Date,
+    },
+    {
+      field: {
+        status: true,
+      },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(EmailStatus),
+    },
+  ];
+
+  const modelTableColumns: Columns<EmailLog> = [
+    {
+      field: {
+        projectSmtpConfig: {
+          name: true,
         },
-        {
-            field: {
-                fromEmail: true,
-            },
-            title: 'From Email',
-            type: FieldType.Email,
-        },
-        {
-            field: {
-                toEmail: true,
-            },
-            title: 'To Email',
-            type: FieldType.Email,
-        },
-        {
-            field: {
-                createdAt: true,
-            },
-            title: 'Sent at',
-            type: FieldType.Date,
-        },
-        {
-            field: {
-                status: true,
-            },
-            title: 'Status',
-            type: FieldType.Dropdown,
-            filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(EmailStatus),
-        },
-    ];
+      },
+      title: "SMTP Server",
+      type: FieldType.Element,
+      getElement: (item: EmailLog): ReactElement => {
+        return (
+          <CustomSMTPElement
+            smtp={item["projectSmtpConfig"] as ProjectSmtpConfig}
+          />
+        );
+      },
+    },
+    {
+      field: {
+        fromEmail: true,
+      },
 
-    const modelTableColumns: Columns<EmailLog> = [
-        {
-            field: {
-                projectSmtpConfig: {
-                    name: true,
-                },
+      title: "From Email",
+      type: FieldType.Email,
+    },
+
+    {
+      field: {
+        toEmail: true,
+      },
+
+      title: "To Email",
+      type: FieldType.Email,
+    },
+    {
+      field: {
+        createdAt: true,
+      },
+      title: "Sent at",
+      type: FieldType.DateTime,
+    },
+    {
+      field: {
+        status: true,
+      },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: EmailLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === EmailStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+
+        return <></>;
+      },
+    },
+  ];
+
+  return (
+    <Fragment>
+      <>
+        <ModelTable<EmailLog>
+          modelType={EmailLog}
+          id="Email-logs-table"
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={false}
+          showViewIdButton={true}
+          name="Email Logs"
+          query={{
+            projectId: DashboardNavigation.getProjectId()?.toString(),
+          }}
+          selectMoreFields={{
+            subject: true,
+            statusMessage: true,
+          }}
+          actionButtons={[
+            {
+              title: "View Subject",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.List,
+              onClick: async (
+                item: EmailLog,
+                onCompleteAction: VoidFunction,
+              ) => {
+                setEmailText(JSON.stringify(item["subject"]) as string);
+
+                setEmailModalTitle("Subject of Email Message");
+                setShowViewEmailTextModal(true);
+
+                onCompleteAction();
+              },
             },
-            title: 'SMTP Server',
-            type: FieldType.Element,
-            getElement: (item: EmailLog): ReactElement => {
-                return (
-                    <CustomSMTPElement
-                        smtp={item['projectSmtpConfig'] as ProjectSmtpConfig}
-                    />
-                );
+            {
+              title: "View Status Message",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Error,
+              onClick: async (
+                item: EmailLog,
+                onCompleteAction: VoidFunction,
+              ) => {
+                setEmailText(item["statusMessage"] as string);
+
+                setEmailModalTitle("Status Message");
+                setShowViewEmailTextModal(true);
+
+                onCompleteAction();
+              },
             },
-        },
-        {
-            field: {
-                fromEmail: true,
-            },
+          ]}
+          filters={filters}
+          isViewable={false}
+          cardProps={{
+            title: "Email Logs",
+            description:
+              "Logs of all the emails sent by this project in the last 30 days.",
+          }}
+          noItemsMessage={
+            "Looks like no email is sent by this project in the last 30 days."
+          }
+          showRefreshButton={true}
+          columns={modelTableColumns}
+        />
 
-            title: 'From Email',
-            type: FieldType.Email,
-        },
-
-        {
-            field: {
-                toEmail: true,
-            },
-
-            title: 'To Email',
-            type: FieldType.Email,
-        },
-        {
-            field: {
-                createdAt: true,
-            },
-            title: 'Sent at',
-            type: FieldType.DateTime,
-        },
-        {
-            field: {
-                status: true,
-            },
-            title: 'Status',
-            type: FieldType.Text,
-            getElement: (item: EmailLog): ReactElement => {
-                if (item['status']) {
-                    return (
-                        <Pill
-                            isMinimal={false}
-                            color={
-                                item['status'] === EmailStatus.Success
-                                    ? Green
-                                    : Red
-                            }
-                            text={item['status'] as string}
-                        />
-                    );
-                }
-
-                return <></>;
-            },
-        },
-    ];
-
-    return (
-        <Fragment>
-            <>
-                <ModelTable<EmailLog>
-                    modelType={EmailLog}
-                    id="Email-logs-table"
-                    isDeleteable={false}
-                    isEditable={false}
-                    isCreateable={false}
-                    showViewIdButton={true}
-                    name="Email Logs"
-                    query={{
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                    }}
-                    selectMoreFields={{
-                        subject: true,
-                        statusMessage: true,
-                    }}
-                    actionButtons={[
-                        {
-                            title: 'View Subject',
-                            buttonStyleType: ButtonStyleType.NORMAL,
-                            icon: IconProp.List,
-                            onClick: async (
-                                item: EmailLog,
-                                onCompleteAction: VoidFunction
-                            ) => {
-                                setEmailText(
-                                    JSON.stringify(item['subject']) as string
-                                );
-
-                                setEmailModalTitle('Subject of Email Message');
-                                setShowViewEmailTextModal(true);
-
-                                onCompleteAction();
-                            },
-                        },
-                        {
-                            title: 'View Status Message',
-                            buttonStyleType: ButtonStyleType.NORMAL,
-                            icon: IconProp.Error,
-                            onClick: async (
-                                item: EmailLog,
-                                onCompleteAction: VoidFunction
-                            ) => {
-                                setEmailText(item['statusMessage'] as string);
-
-                                setEmailModalTitle('Status Message');
-                                setShowViewEmailTextModal(true);
-
-                                onCompleteAction();
-                            },
-                        },
-                    ]}
-                    filters={filters}
-                    isViewable={false}
-                    cardProps={{
-                        title: 'Email Logs',
-                        description:
-                            'Logs of all the emails sent by this project in the last 30 days.',
-                    }}
-                    noItemsMessage={
-                        'Looks like no email is sent by this project in the last 30 days.'
-                    }
-                    showRefreshButton={true}
-                    columns={modelTableColumns}
-                />
-
-                {showViewEmailTextModal && (
-                    <ConfirmModal
-                        title={EmailModelTitle}
-                        description={EmailText}
-                        onSubmit={() => {
-                            setShowViewEmailTextModal(false);
-                        }}
-                        submitButtonText="Close"
-                        submitButtonType={ButtonStyleType.NORMAL}
-                    />
-                )}
-            </>
-        </Fragment>
-    );
+        {showViewEmailTextModal && (
+          <ConfirmModal
+            title={EmailModelTitle}
+            description={EmailText}
+            onSubmit={() => {
+              setShowViewEmailTextModal(false);
+            }}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+      </>
+    </Fragment>
+  );
 };
 
 export default EmailLogs;

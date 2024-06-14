@@ -1,138 +1,135 @@
-import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Icon from '../../Icon/Icon';
-import Input, { InputType } from '../../Input/Input';
-import Color from 'Common/Types/Color';
-import IconProp from 'Common/Types/Icon/IconProp';
+import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import Icon from "../../Icon/Icon";
+import Input, { InputType } from "../../Input/Input";
+import Color from "Common/Types/Color";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import { ChromePicker, ColorResult } from 'react-color';
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import { ChromePicker, ColorResult } from "react-color";
 
 export interface ComponentProps {
-    onChange: (value: Color | null) => void;
-    initialValue?: undefined | Color;
-    placeholder: string;
-    onFocus?: (() => void) | undefined;
-    tabIndex?: number | undefined;
-    value?: string | undefined;
-    readOnly?: boolean | undefined;
-    disabled?: boolean | undefined;
-    onBlur?: (() => void) | undefined;
-    dataTestId?: string | undefined;
-    onEnterPress?: (() => void) | undefined;
-    error?: string | undefined;
+  onChange: (value: Color | null) => void;
+  initialValue?: undefined | Color;
+  placeholder: string;
+  onFocus?: (() => void) | undefined;
+  tabIndex?: number | undefined;
+  value?: string | undefined;
+  readOnly?: boolean | undefined;
+  disabled?: boolean | undefined;
+  onBlur?: (() => void) | undefined;
+  dataTestId?: string | undefined;
+  onEnterPress?: (() => void) | undefined;
+  error?: string | undefined;
 }
 
 const ColorPicker: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    const [color, setColor] = useState<string>('');
-    const { ref, isComponentVisible, setIsComponentVisible } =
-        useComponentOutsideClick(false);
+  const [color, setColor] = useState<string>("");
+  const { ref, isComponentVisible, setIsComponentVisible } =
+    useComponentOutsideClick(false);
 
-    const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
-        useState<boolean>(false);
+  const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
+    useState<boolean>(false);
 
-    useEffect(() => {
-        if (props.initialValue && !isInitialValuesInitialized) {
-            setColor(props.initialValue.toString());
-            setIsInitialValuesInitialized(true);
-        }
-    }, [props.initialValue]);
+  useEffect(() => {
+    if (props.initialValue && !isInitialValuesInitialized) {
+      setColor(props.initialValue.toString());
+      setIsInitialValuesInitialized(true);
+    }
+  }, [props.initialValue]);
 
-    type HandleChangeFunction = (color: string) => void;
+  type HandleChangeFunction = (color: string) => void;
 
-    const handleChange: HandleChangeFunction = (color: string): void => {
-        setColor(color);
-        if (!color) {
-            return props.onChange(null);
-        }
-        props.onChange(new Color(color));
-    };
+  const handleChange: HandleChangeFunction = (color: string): void => {
+    setColor(color);
+    if (!color) {
+      return props.onChange(null);
+    }
+    props.onChange(new Color(color));
+  };
 
-    return (
-        <div>
-            <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
-                <div
-                    onClick={() => {
-                        if (!props.readOnly) {
-                            setIsComponentVisible(!isComponentVisible);
-                        }
-                    }}
-                    className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
-                    style={{ backgroundColor: color.toString() }}
-                ></div>
+  return (
+    <div>
+      <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
+        <div
+          onClick={() => {
+            if (!props.readOnly) {
+              setIsComponentVisible(!isComponentVisible);
+            }
+          }}
+          className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
+          style={{ backgroundColor: color.toString() }}
+        ></div>
 
-                <Input
-                    onClick={() => {
-                        if (!props.readOnly) {
-                            setIsComponentVisible(!isComponentVisible);
-                        }
-                    }}
-                    disabled={props.disabled}
-                    dataTestId={props.dataTestId}
-                    onBlur={props.onBlur}
-                    onEnterPress={props.onEnterPress}
-                    className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
-                    outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
-                    placeholder={props.placeholder}
-                    value={color || props.value}
-                    readOnly={true}
-                    type={InputType.TEXT}
-                    tabIndex={props.tabIndex}
-                    onChange={(value: string) => {
-                        if (!value) {
-                            return handleChange('');
-                        }
-                    }}
-                    onFocus={props.onFocus || undefined}
-                />
-                {color && !props.disabled && (
-                    <Icon
-                        icon={IconProp.Close}
-                        className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
-                        onClick={() => {
-                            setColor('#FFFFFF');
-                            if (props.onChange) {
-                                props.onChange(null);
-                            }
-                        }}
-                    />
-                )}
-                {isComponentVisible ? (
-                    <div
-                        ref={ref}
-                        style={{
-                            position: 'absolute',
-                        }}
-                    >
-                        <ChromePicker
-                            color={color}
-                            onChange={(color: ColorResult) => {
-                                setColor(color.hex);
-                            }}
-                            onChangeComplete={(color: ColorResult) => {
-                                return handleChange(color.hex);
-                            }}
-                        />
-                    </div>
-                ) : (
-                    <></>
-                )}
-            </div>
-            {props.error && (
-                <p
-                    data-testid="error-message"
-                    className="mt-1 text-sm text-red-400"
-                >
-                    {props.error}
-                </p>
-            )}
-        </div>
-    );
+        <Input
+          onClick={() => {
+            if (!props.readOnly) {
+              setIsComponentVisible(!isComponentVisible);
+            }
+          }}
+          disabled={props.disabled}
+          dataTestId={props.dataTestId}
+          onBlur={props.onBlur}
+          onEnterPress={props.onEnterPress}
+          className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
+          outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
+          placeholder={props.placeholder}
+          value={color || props.value}
+          readOnly={true}
+          type={InputType.TEXT}
+          tabIndex={props.tabIndex}
+          onChange={(value: string) => {
+            if (!value) {
+              return handleChange("");
+            }
+          }}
+          onFocus={props.onFocus || undefined}
+        />
+        {color && !props.disabled && (
+          <Icon
+            icon={IconProp.Close}
+            className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
+            onClick={() => {
+              setColor("#FFFFFF");
+              if (props.onChange) {
+                props.onChange(null);
+              }
+            }}
+          />
+        )}
+        {isComponentVisible ? (
+          <div
+            ref={ref}
+            style={{
+              position: "absolute",
+            }}
+          >
+            <ChromePicker
+              color={color}
+              onChange={(color: ColorResult) => {
+                setColor(color.hex);
+              }}
+              onChangeComplete={(color: ColorResult) => {
+                return handleChange(color.hex);
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+      {props.error && (
+        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+          {props.error}
+        </p>
+      )}
+    </div>
+  );
 };
 
 export default ColorPicker;

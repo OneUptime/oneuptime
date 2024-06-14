@@ -1,7 +1,7 @@
 enum ResponseType {
-    HTML = 'html',
-    JSON = 'json',
-    CSV = 'csv',
+  HTML = "html",
+  JSON = "json",
+  CSV = "csv",
 }
 
 export default ResponseType;

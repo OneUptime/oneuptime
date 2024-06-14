@@ -1,176 +1,164 @@
-import { IsBillingEnabled } from '../EnvironmentConfig';
-import UserMiddleware from '../Middleware/UserAuthorization';
+import { IsBillingEnabled } from "../EnvironmentConfig";
+import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingInvoiceService, {
-    Service as BillingInvoiceServiceType,
-} from '../Services/BillingInvoiceService';
-import BillingService, { Invoice } from '../Services/BillingService';
-import ProjectService from '../Services/ProjectService';
+  Service as BillingInvoiceServiceType,
+} from "../Services/BillingInvoiceService";
+import BillingService, { Invoice } from "../Services/BillingService";
+import ProjectService from "../Services/ProjectService";
 import {
-    ExpressRequest,
-    ExpressResponse,
-    NextFunction,
-} from '../Utils/Express';
-import Response from '../Utils/Response';
-import BaseAPI from './BaseAPI';
-import BaseModel from 'Common/Models/BaseModel';
-import SubscriptionStatus from 'Common/Types/Billing/SubscriptionStatus';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
-import Permission, { UserPermission } from 'Common/Types/Permission';
-import BillingInvoice, { InvoiceStatus } from 'Model/Models/BillingInvoice';
-import Project from 'Model/Models/Project';
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../Utils/Express";
+import Response from "../Utils/Response";
+import BaseAPI from "./BaseAPI";
+import BaseModel from "Common/Models/BaseModel";
+import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
+import Permission, { UserPermission } from "Common/Types/Permission";
+import BillingInvoice, { InvoiceStatus } from "Model/Models/BillingInvoice";
+import Project from "Model/Models/Project";
 
 export default class UserAPI extends BaseAPI<
-    BillingInvoice,
-    BillingInvoiceServiceType
+  BillingInvoice,
+  BillingInvoiceServiceType
 > {
-    public constructor() {
-        super(BillingInvoice, BillingInvoiceService);
+  public constructor() {
+    super(BillingInvoice, BillingInvoiceService);
 
-        this.router.post(
-            `${new this.entityType().getCrudApiPath()?.toString()}/pay`,
-            UserMiddleware.getUserMiddleware,
-            async (
-                req: ExpressRequest,
-                res: ExpressResponse,
-                next: NextFunction
-            ) => {
-                try {
-                    if (!IsBillingEnabled) {
-                        throw new BadDataException(
-                            'Billing is not enabled for this server'
-                        );
-                    }
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/pay`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(
+              "Billing is not enabled for this server",
+            );
+          }
 
-                    if (req.body['projectId']) {
-                        throw new BadDataException(
-                            'projectId is required in request body'
-                        );
-                    }
+          if (req.body["projectId"]) {
+            throw new BadDataException("projectId is required in request body");
+          }
 
-                    const userPermissions: Array<UserPermission> = (
-                        await this.getPermissionsForTenant(req)
-                    ).filter((permission: UserPermission) => {
-                        return (
-                            permission.permission.toString() ===
-                                Permission.ProjectOwner.toString() ||
-                            permission.permission.toString() ===
-                                Permission.EditInvoices.toString()
-                        );
-                    });
+          const userPermissions: Array<UserPermission> = (
+            await this.getPermissionsForTenant(req)
+          ).filter((permission: UserPermission) => {
+            return (
+              permission.permission.toString() ===
+                Permission.ProjectOwner.toString() ||
+              permission.permission.toString() ===
+                Permission.EditInvoices.toString()
+            );
+          });
 
-                    if (userPermissions.length === 0) {
-                        throw new BadDataException(
-                            `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`
-                        );
-                    }
+          if (userPermissions.length === 0) {
+            throw new BadDataException(
+              `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`,
+            );
+          }
 
-                    const project: Project | null =
-                        await ProjectService.findOneById({
-                            id: this.getTenantId(req)!,
-                            props: {
-                                isRoot: true,
-                            },
-                            select: {
-                                _id: true,
-                                paymentProviderCustomerId: true,
-                                paymentProviderSubscriptionId: true,
-                                paymentProviderMeteredSubscriptionId: true,
-                            },
-                        });
+          const project: Project | null = await ProjectService.findOneById({
+            id: this.getTenantId(req)!,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+              paymentProviderCustomerId: true,
+              paymentProviderSubscriptionId: true,
+              paymentProviderMeteredSubscriptionId: true,
+            },
+          });
 
-                    if (!project) {
-                        throw new BadDataException('Project not found');
-                    }
+          if (!project) {
+            throw new BadDataException("Project not found");
+          }
 
-                    if (!project.paymentProviderCustomerId) {
-                        throw new BadDataException(
-                            'Payment Provider customer not found'
-                        );
-                    }
+          if (!project.paymentProviderCustomerId) {
+            throw new BadDataException("Payment Provider customer not found");
+          }
 
-                    if (!project.paymentProviderSubscriptionId) {
-                        throw new BadDataException(
-                            'Payment Provider subscription not found'
-                        );
-                    }
+          if (!project.paymentProviderSubscriptionId) {
+            throw new BadDataException(
+              "Payment Provider subscription not found",
+            );
+          }
 
-                    const body: JSONObject = req.body;
+          const body: JSONObject = req.body;
 
-                    const item: BillingInvoice =
-                        BaseModel.fromJSON<BillingInvoice>(
-                            body['data'] as JSONObject,
-                            this.entityType
-                        ) as BillingInvoice;
+          const item: BillingInvoice = BaseModel.fromJSON<BillingInvoice>(
+            body["data"] as JSONObject,
+            this.entityType,
+          ) as BillingInvoice;
 
-                    if (!item.paymentProviderInvoiceId) {
-                        throw new BadDataException('Invoice ID not found');
-                    }
+          if (!item.paymentProviderInvoiceId) {
+            throw new BadDataException("Invoice ID not found");
+          }
 
-                    if (!item.paymentProviderCustomerId) {
-                        throw new BadDataException('Customer ID not found');
-                    }
+          if (!item.paymentProviderCustomerId) {
+            throw new BadDataException("Customer ID not found");
+          }
 
-                    const invoice: Invoice = await BillingService.payInvoice(
-                        item.paymentProviderCustomerId!,
-                        item.paymentProviderInvoiceId!
-                    );
+          const invoice: Invoice = await BillingService.payInvoice(
+            item.paymentProviderCustomerId!,
+            item.paymentProviderInvoiceId!,
+          );
 
-                    // save updated status.
+          // save updated status.
 
-                    await this.service.updateOneBy({
-                        query: {
-                            paymentProviderInvoiceId: invoice.id!,
-                        },
-                        props: {
-                            isRoot: true,
-                            ignoreHooks: true,
-                        },
-                        data: {
-                            status: invoice.status as InvoiceStatus,
-                        },
-                    });
+          await this.service.updateOneBy({
+            query: {
+              paymentProviderInvoiceId: invoice.id!,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+            data: {
+              status: invoice.status as InvoiceStatus,
+            },
+          });
 
-                    // refresh subscription status.
-                    const subscriptionState: SubscriptionStatus =
-                        await BillingService.getSubscriptionStatus(
-                            project.paymentProviderSubscriptionId as string
-                        );
+          // refresh subscription status.
+          const subscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+              project.paymentProviderSubscriptionId as string,
+            );
 
-                    const meteredSubscriptionState: SubscriptionStatus =
-                        await BillingService.getSubscriptionStatus(
-                            project.paymentProviderMeteredSubscriptionId as string
-                        );
+          const meteredSubscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+              project.paymentProviderMeteredSubscriptionId as string,
+            );
 
-                    // if subscription is cancelled, create a new subscription and update project.
+          // if subscription is cancelled, create a new subscription and update project.
 
-                    if (
-                        meteredSubscriptionState ===
-                            SubscriptionStatus.Canceled ||
-                        subscriptionState === SubscriptionStatus.Canceled
-                    ) {
-                        await ProjectService.reactiveSubscription(project.id!);
-                    }
+          if (
+            meteredSubscriptionState === SubscriptionStatus.Canceled ||
+            subscriptionState === SubscriptionStatus.Canceled
+          ) {
+            await ProjectService.reactiveSubscription(project.id!);
+          }
 
-                    await ProjectService.updateOneById({
-                        id: project.id!,
-                        data: {
-                            paymentProviderSubscriptionStatus:
-                                subscriptionState,
-                            paymentProviderMeteredSubscriptionStatus:
-                                meteredSubscriptionState,
-                        },
-                        props: {
-                            isRoot: true,
-                            ignoreHooks: true,
-                        },
-                    });
+          await ProjectService.updateOneById({
+            id: project.id!,
+            data: {
+              paymentProviderSubscriptionStatus: subscriptionState,
+              paymentProviderMeteredSubscriptionStatus:
+                meteredSubscriptionState,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
 
-                    return Response.sendEmptySuccessResponse(req, res);
-                } catch (err) {
-                    next(err);
-                }
-            }
-        );
-    }
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
 }

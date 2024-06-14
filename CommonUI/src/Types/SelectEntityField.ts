@@ -1,11 +1,11 @@
-import FormFieldSchemaTypes from './EntityFieldType';
+import FormFieldSchemaTypes from "./EntityFieldType";
 
 export type SelectFormField<Property> = Property extends FormFieldSchemaTypes
-    ? boolean
-    : unknown;
+  ? boolean
+  : unknown;
 
 declare type SelectFormFields<Entity> = {
-    [P in keyof Entity]?: SelectFormField<NonNullable<Entity[P]>>;
+  [P in keyof Entity]?: SelectFormField<NonNullable<Entity[P]>>;
 };
 
 export default SelectFormFields;

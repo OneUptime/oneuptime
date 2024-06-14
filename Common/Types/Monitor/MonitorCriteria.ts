@@ -1,191 +1,180 @@
-import DatabaseProperty from '../Database/DatabaseProperty';
-import BadDataException from '../Exception/BadDataException';
-import { JSONArray, JSONObject, ObjectType } from '../JSON';
-import JSONFunctions from '../JSONFunctions';
-import ObjectID from '../ObjectID';
-import MonitorCriteriaInstance from './MonitorCriteriaInstance';
-import MonitorType from './MonitorType';
-import { FindOperator } from 'typeorm';
+import DatabaseProperty from "../Database/DatabaseProperty";
+import BadDataException from "../Exception/BadDataException";
+import { JSONArray, JSONObject, ObjectType } from "../JSON";
+import JSONFunctions from "../JSONFunctions";
+import ObjectID from "../ObjectID";
+import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
+import MonitorType from "./MonitorType";
+import { FindOperator } from "typeorm";
 
 export interface MonitorCriteriaType {
-    monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
+  monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
 }
 
 export default class MonitorCriteria extends DatabaseProperty {
-    public data: MonitorCriteriaType | undefined = undefined;
+  public data: MonitorCriteriaType | undefined = undefined;
 
-    public constructor() {
-        super();
-        this.data = {
-            monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
-        };
+  public constructor() {
+    super();
+    this.data = {
+      monitorCriteriaInstanceArray: [new MonitorCriteriaInstance()],
+    };
+  }
+
+  public static getDefaultMonitorCriteria(arg: {
+    monitorType: MonitorType;
+    monitorName: string;
+    onlineMonitorStatusId: ObjectID;
+    offlineMonitorStatusId: ObjectID;
+    defaultIncidentSeverityId: ObjectID;
+  }): MonitorCriteria {
+    const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+    const offlineCriteria: MonitorCriteriaInstance =
+      MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
+        monitorType: arg.monitorType,
+        monitorStatusId: arg.offlineMonitorStatusId,
+        incidentSeverityId: arg.defaultIncidentSeverityId,
+        monitorName: arg.monitorName,
+      });
+
+    const onlineCriteria: MonitorCriteriaInstance | null =
+      MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+        monitorType: arg.monitorType,
+        monitorStatusId: arg.onlineMonitorStatusId,
+        monitorName: arg.monitorName,
+      });
+
+    monitorCriteria.data = {
+      monitorCriteriaInstanceArray: [],
+    };
+
+    if (offlineCriteria) {
+      monitorCriteria.data.monitorCriteriaInstanceArray.push(offlineCriteria);
     }
 
-    public static getDefaultMonitorCriteria(arg: {
-        monitorType: MonitorType;
-        monitorName: string;
-        onlineMonitorStatusId: ObjectID;
-        offlineMonitorStatusId: ObjectID;
-        defaultIncidentSeverityId: ObjectID;
-    }): MonitorCriteria {
-        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
-        const offlineCriteria: MonitorCriteriaInstance =
-            MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
-                monitorType: arg.monitorType,
-                monitorStatusId: arg.offlineMonitorStatusId,
-                incidentSeverityId: arg.defaultIncidentSeverityId,
-                monitorName: arg.monitorName,
-            });
-
-        const onlineCriteria: MonitorCriteriaInstance | null =
-            MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
-                monitorType: arg.monitorType,
-                monitorStatusId: arg.onlineMonitorStatusId,
-                monitorName: arg.monitorName,
-            });
-
-        monitorCriteria.data = {
-            monitorCriteriaInstanceArray: [],
-        };
-
-        if (offlineCriteria) {
-            monitorCriteria.data.monitorCriteriaInstanceArray.push(
-                offlineCriteria
-            );
-        }
-
-        if (onlineCriteria) {
-            monitorCriteria.data.monitorCriteriaInstanceArray.push(
-                onlineCriteria
-            );
-        }
-
-        return monitorCriteria;
+    if (onlineCriteria) {
+      monitorCriteria.data.monitorCriteriaInstanceArray.push(onlineCriteria);
     }
 
-    public static getValidationError(
-        value: MonitorCriteria,
-        monitorType: MonitorType
-    ): string | null {
-        if (!value.data) {
-            return 'Monitor Criteria is required';
-        }
+    return monitorCriteria;
+  }
 
-        if (value.data.monitorCriteriaInstanceArray.length === 0) {
-            return 'Monitor Criteria is required';
-        }
-
-        for (const criteria of value.data.monitorCriteriaInstanceArray) {
-            if (
-                MonitorCriteriaInstance.getValidationError(
-                    criteria,
-                    monitorType
-                )
-            ) {
-                return MonitorCriteriaInstance.getValidationError(
-                    criteria,
-                    monitorType
-                );
-            }
-        }
-
-        return null;
+  public static getValidationError(
+    value: MonitorCriteria,
+    monitorType: MonitorType,
+  ): string | null {
+    if (!value.data) {
+      return "Monitor Criteria is required";
     }
 
-    public static getNewMonitorCriteriaAsJSON(): JSONObject {
-        return {
-            _type: 'MonitorCriteria',
-            value: {
-                monitorCriteriaInstanceArray: [
-                    new MonitorCriteriaInstance().toJSON(),
-                ],
+    if (value.data.monitorCriteriaInstanceArray.length === 0) {
+      return "Monitor Criteria is required";
+    }
+
+    for (const criteria of value.data.monitorCriteriaInstanceArray) {
+      if (MonitorCriteriaInstance.getValidationError(criteria, monitorType)) {
+        return MonitorCriteriaInstance.getValidationError(
+          criteria,
+          monitorType,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  public static getNewMonitorCriteriaAsJSON(): JSONObject {
+    return {
+      _type: "MonitorCriteria",
+      value: {
+        monitorCriteriaInstanceArray: [new MonitorCriteriaInstance().toJSON()],
+      },
+    };
+  }
+
+  public override toJSON(): JSONObject {
+    if (!this.data) {
+      return MonitorCriteria.getNewMonitorCriteriaAsJSON();
+    }
+
+    return JSONFunctions.serialize({
+      _type: ObjectType.MonitorCriteria,
+      value: {
+        monitorCriteriaInstanceArray:
+          this.data.monitorCriteriaInstanceArray.map(
+            (criteria: MonitorCriteriaInstance) => {
+              return criteria.toJSON();
             },
-        };
+          ),
+      },
+    });
+  }
+
+  public static override fromJSON(json: JSONObject): MonitorCriteria {
+    if (json instanceof MonitorCriteria) {
+      return json;
     }
 
-    public override toJSON(): JSONObject {
-        if (!this.data) {
-            return MonitorCriteria.getNewMonitorCriteriaAsJSON();
-        }
-
-        return JSONFunctions.serialize({
-            _type: ObjectType.MonitorCriteria,
-            value: {
-                monitorCriteriaInstanceArray:
-                    this.data.monitorCriteriaInstanceArray.map(
-                        (criteria: MonitorCriteriaInstance) => {
-                            return criteria.toJSON();
-                        }
-                    ),
-            },
-        });
+    if (!json || json["_type"] !== ObjectType.MonitorCriteria) {
+      throw new BadDataException("Invalid monitor criteria");
     }
 
-    public static override fromJSON(json: JSONObject): MonitorCriteria {
-        if (json instanceof MonitorCriteria) {
-            return json;
-        }
-
-        if (!json || json['_type'] !== ObjectType.MonitorCriteria) {
-            throw new BadDataException('Invalid monitor criteria');
-        }
-
-        if (!json) {
-            throw new BadDataException('Invalid monitor criteria');
-        }
-
-        if (!json['value']) {
-            throw new BadDataException('Invalid monitor criteria');
-        }
-
-        if (!(json['value'] as JSONObject)['monitorCriteriaInstanceArray']) {
-            throw new BadDataException('Invalid monitor criteria');
-        }
-
-        const monitorCriteriaInstanceArray: JSONArray = (
-            json['value'] as JSONObject
-        )['monitorCriteriaInstanceArray'] as JSONArray;
-
-        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
-
-        monitorCriteria.data = {
-            monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(
-                (json: JSONObject) => {
-                    return MonitorCriteriaInstance.fromJSON(json);
-                }
-            ),
-        };
-
-        return monitorCriteria;
+    if (!json) {
+      throw new BadDataException("Invalid monitor criteria");
     }
 
-    public static isValid(_json: JSONObject): boolean {
-        return true;
+    if (!json["value"]) {
+      throw new BadDataException("Invalid monitor criteria");
     }
 
-    protected static override toDatabase(
-        value: MonitorCriteria | FindOperator<MonitorCriteria>
-    ): JSONObject | null {
-        if (value && value instanceof MonitorCriteria) {
-            return (value as MonitorCriteria).toJSON();
-        } else if (value) {
-            return JSONFunctions.serialize(value as any);
-        }
-
-        return null;
+    if (!(json["value"] as JSONObject)["monitorCriteriaInstanceArray"]) {
+      throw new BadDataException("Invalid monitor criteria");
     }
 
-    protected static override fromDatabase(
-        value: JSONObject
-    ): MonitorCriteria | null {
-        if (value) {
-            return MonitorCriteria.fromJSON(value);
-        }
+    const monitorCriteriaInstanceArray: JSONArray = (
+      json["value"] as JSONObject
+    )["monitorCriteriaInstanceArray"] as JSONArray;
 
-        return null;
+    const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+
+    monitorCriteria.data = {
+      monitorCriteriaInstanceArray: monitorCriteriaInstanceArray.map(
+        (json: JSONObject) => {
+          return MonitorCriteriaInstance.fromJSON(json);
+        },
+      ),
+    };
+
+    return monitorCriteria;
+  }
+
+  public static isValid(_json: JSONObject): boolean {
+    return true;
+  }
+
+  protected static override toDatabase(
+    value: MonitorCriteria | FindOperator<MonitorCriteria>,
+  ): JSONObject | null {
+    if (value && value instanceof MonitorCriteria) {
+      return (value as MonitorCriteria).toJSON();
+    } else if (value) {
+      return JSONFunctions.serialize(value as any);
     }
 
-    public override toString(): string {
-        return JSON.stringify(this.toJSON());
+    return null;
+  }
+
+  protected static override fromDatabase(
+    value: JSONObject,
+  ): MonitorCriteria | null {
+    if (value) {
+      return MonitorCriteria.fromJSON(value);
     }
+
+    return null;
+  }
+
+  public override toString(): string {
+    return JSON.stringify(this.toJSON());
+  }
 }

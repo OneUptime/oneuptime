@@ -1,7 +1,7 @@
-import GenericFunction from '../GenericFunction';
+import GenericFunction from "../GenericFunction";
 
 export default (columnName: string) => {
-    return (ctr: GenericFunction) => {
-        ctr.prototype.currentUserCanAccessColumnBy = columnName;
-    };
+  return (ctr: GenericFunction) => {
+    ctr.prototype.currentUserCanAccessColumnBy = columnName;
+  };
 };

@@ -1,82 +1,84 @@
-require('ts-loader');
-require('file-loader');
-require('style-loader');
-require('css-loader');
-require('sass-loader');
+require("ts-loader");
+require("file-loader");
+require("style-loader");
+require("css-loader");
+require("sass-loader");
 const path = require("path");
 const webpack = require("webpack");
-const dotenv = require('dotenv');
-const express = require('express');
+const dotenv = require("dotenv");
+const express = require("express");
 
 const readEnvFile = (pathToFile) => {
+  const parsed = dotenv.config({ path: pathToFile }).parsed;
 
-    const parsed = dotenv.config({ path: pathToFile }).parsed;
+  const env = {};
 
-    const env = {};
+  for (const key in parsed) {
+    env[key] = JSON.stringify(parsed[key]);
+  }
 
-    for (const key in parsed) {
-        env[key] = JSON.stringify(parsed[key]);
-    }
-
-    return env;
-}
+  return env;
+};
 
 module.exports = {
-    entry: "./src/Index.tsx",
-    mode: "development",
-    output: {
-        filename: "bundle.js",
-        path: path.resolve(__dirname, "public", "dist"),
-        publicPath: "/admin/dist/",
+  entry: "./src/Index.tsx",
+  mode: "development",
+  output: {
+    filename: "bundle.js",
+    path: path.resolve(__dirname, "public", "dist"),
+    publicPath: "/admin/dist/",
+  },
+  resolve: {
+    extensions: [".ts", ".tsx", ".js", ".jsx", ".json", ".css", ".scss"],
+    alias: {
+      react: path.resolve("./node_modules/react"),
     },
-    resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss'],
-        alias: {
-            react: path.resolve('./node_modules/react'),
-        }
-    },
-    externals: {
-        'react-native-sqlite-storage': 'react-native-sqlite-storage'
-    },
-    plugins: [
-        new webpack.DefinePlugin({
-            'process': {
-                'env': {
-                    ...readEnvFile('/usr/src/app/dev-env/.env')
-                }
-            }
-        }),
-    ],
-    module: {
-        rules: [
-            {
-                test: /\.(ts|tsx)$/,
-                use: 'ts-loader'
-            },
-            {
-                test: /\.s[ac]ss$/i,
-                use: ['style-loader', 'css-loader', "sass-loader"]
-            },
-            {
-                test: /\.css$/i,
-                use: ['style-loader', 'css-loader']
-            },
-            {
-                test: /\.(jpe?g|png|gif|svg)$/i,
-                loader: 'file-loader'
-            }
-        ],
-    },
-    devServer: {
-        historyApiFallback: true,
-        devMiddleware: {
-            writeToDisk: true,
+  },
+  externals: {
+    "react-native-sqlite-storage": "react-native-sqlite-storage",
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      process: {
+        env: {
+          ...readEnvFile("/usr/src/app/dev-env/.env"),
         },
-        allowedHosts: "all",
-        setupMiddlewares: (middlewares, devServer) => {
-            devServer.app.use('/admin/assets', express.static(path.resolve(__dirname, 'public', 'assets')));
-            return middlewares;
-        }
+      },
+    }),
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.(ts|tsx)$/,
+        use: "ts-loader",
+      },
+      {
+        test: /\.s[ac]ss$/i,
+        use: ["style-loader", "css-loader", "sass-loader"],
+      },
+      {
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"],
+      },
+      {
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        loader: "file-loader",
+      },
+    ],
+  },
+  devServer: {
+    historyApiFallback: true,
+    devMiddleware: {
+      writeToDisk: true,
     },
-    devtool: 'eval-source-map',
-}
+    allowedHosts: "all",
+    setupMiddlewares: (middlewares, devServer) => {
+      devServer.app.use(
+        "/admin/assets",
+        express.static(path.resolve(__dirname, "public", "assets")),
+      );
+      return middlewares;
+    },
+  },
+  devtool: "eval-source-map",
+};

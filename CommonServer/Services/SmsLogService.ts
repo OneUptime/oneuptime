@@ -1,12 +1,12 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-import Model from 'Model/Models/SmsLog';
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import DatabaseService from "./DatabaseService";
+import Model from "Model/Models/SmsLog";
 
 export class Service extends DatabaseService<Model> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
-        this.hardDeleteItemsOlderThanInDays('createdAt', 3);
-    }
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(Model, postgresDatabase);
+    this.hardDeleteItemsOlderThanInDays("createdAt", 3);
+  }
 }
 
 export default new Service();

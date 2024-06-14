@@ -1,7 +1,7 @@
 enum CustomFieldType {
-    Text = 'Text',
-    Number = 'Number',
-    Boolean = 'Boolean',
+  Text = "Text",
+  Number = "Number",
+  Boolean = "Boolean",
 }
 
 export default CustomFieldType;

@@ -1,39 +1,39 @@
-import DataMigrationBase from './DataMigrationBase';
-import AnalyticsTableColumn from 'Common/Types/AnalyticsDatabase/TableColumn';
-import TableColumnType from 'Common/Types/AnalyticsDatabase/TableColumnType';
-import MetricService from 'CommonServer/Services/MetricService';
-import Metric from 'Model/AnalyticsModels/Metric';
+import DataMigrationBase from "./DataMigrationBase";
+import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
+import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import MetricService from "CommonServer/Services/MetricService";
+import Metric from "Model/AnalyticsModels/Metric";
 
 export default class AddUnitColumnToMetricsTable extends DataMigrationBase {
-    public constructor() {
-        super('AddUnitColumnToMetricsTable');
+  public constructor() {
+    super("AddUnitColumnToMetricsTable");
+  }
+
+  public override async migrate(): Promise<void> {
+    await this.addUnitColumnToMetricsTable();
+  }
+
+  public async addUnitColumnToMetricsTable(): Promise<void> {
+    // logs
+    const unitColumn: AnalyticsTableColumn | undefined =
+      new Metric().tableColumns.find((column: AnalyticsTableColumn) => {
+        return column.key === "unit";
+      });
+
+    if (!unitColumn) {
+      return;
     }
 
-    public override async migrate(): Promise<void> {
-        await this.addUnitColumnToMetricsTable();
+    const columnType: TableColumnType | null =
+      await MetricService.getColumnTypeInDatabase(unitColumn);
+
+    if (!columnType) {
+      await MetricService.dropColumnInDatabase("unit");
+      await MetricService.addColumnInDatabase(unitColumn);
     }
+  }
 
-    public async addUnitColumnToMetricsTable(): Promise<void> {
-        // logs
-        const unitColumn: AnalyticsTableColumn | undefined =
-            new Metric().tableColumns.find((column: AnalyticsTableColumn) => {
-                return column.key === 'unit';
-            });
-
-        if (!unitColumn) {
-            return;
-        }
-
-        const columnType: TableColumnType | null =
-            await MetricService.getColumnTypeInDatabase(unitColumn);
-
-        if (!columnType) {
-            await MetricService.dropColumnInDatabase('unit');
-            await MetricService.addColumnInDatabase(unitColumn);
-        }
-    }
-
-    public override async rollback(): Promise<void> {
-        return;
-    }
+  public override async rollback(): Promise<void> {
+    return;
+  }
 }

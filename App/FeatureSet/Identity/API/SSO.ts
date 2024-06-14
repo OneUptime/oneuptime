@@ -1,471 +1,436 @@
-import AuthenticationEmail from '../Utils/AuthenticationEmail';
-import SSOUtil from '../Utils/SSO';
-import { DashboardRoute } from 'Common/ServiceRoute';
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import OneUptimeDate from 'Common/Types/Date';
-import Email from 'Common/Types/Email';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import Exception from 'Common/Types/Exception/Exception';
-import ServerException from 'Common/Types/Exception/ServerException';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import DatabaseConfig from 'CommonServer/DatabaseConfig';
-import { Host, HttpProtocol } from 'CommonServer/EnvironmentConfig';
-import AccessTokenService from 'CommonServer/Services/AccessTokenService';
-import ProjectSSOService from 'CommonServer/Services/ProjectSsoService';
-import TeamMemberService from 'CommonServer/Services/TeamMemberService';
-import UserService from 'CommonServer/Services/UserService';
-import CookieUtil from 'CommonServer/Utils/Cookie';
+import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import SSOUtil from "../Utils/SSO";
+import { DashboardRoute } from "Common/ServiceRoute";
+import Hostname from "Common/Types/API/Hostname";
+import Protocol from "Common/Types/API/Protocol";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
+import Email from "Common/Types/Email";
+import BadRequestException from "Common/Types/Exception/BadRequestException";
+import Exception from "Common/Types/Exception/Exception";
+import ServerException from "Common/Types/Exception/ServerException";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import DatabaseConfig from "CommonServer/DatabaseConfig";
+import { Host, HttpProtocol } from "CommonServer/EnvironmentConfig";
+import AccessTokenService from "CommonServer/Services/AccessTokenService";
+import ProjectSSOService from "CommonServer/Services/ProjectSsoService";
+import TeamMemberService from "CommonServer/Services/TeamMemberService";
+import UserService from "CommonServer/Services/UserService";
+import CookieUtil from "CommonServer/Utils/Cookie";
 import Express, {
-    ExpressRequest,
-    ExpressResponse,
-    ExpressRouter,
-    NextFunction,
-} from 'CommonServer/Utils/Express';
-import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import logger from 'CommonServer/Utils/Logger';
-import Response from 'CommonServer/Utils/Response';
-import ProjectSSO from 'Model/Models/ProjectSso';
-import TeamMember from 'Model/Models/TeamMember';
-import User from 'Model/Models/User';
-import xml2js from 'xml2js';
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+  NextFunction,
+} from "CommonServer/Utils/Express";
+import JSONWebToken from "CommonServer/Utils/JsonWebToken";
+import logger from "CommonServer/Utils/Logger";
+import Response from "CommonServer/Utils/Response";
+import ProjectSSO from "Model/Models/ProjectSso";
+import TeamMember from "Model/Models/TeamMember";
+import User from "Model/Models/User";
+import xml2js from "xml2js";
 
 const router: ExpressRouter = Express.getRouter();
 
 router.get(
-    '/sso/:projectId/:projectSsoId',
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
-            if (!req.params['projectId']) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Project ID not found')
-                );
-            }
+  "/sso/:projectId/:projectSsoId",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.params["projectId"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Project ID not found"),
+        );
+      }
 
-            if (!req.params['projectSsoId']) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Project SSO ID not found')
-                );
-            }
+      if (!req.params["projectSsoId"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Project SSO ID not found"),
+        );
+      }
 
-            const projectSSO: ProjectSSO | null =
-                await ProjectSSOService.findOneBy({
-                    query: {
-                        projectId: new ObjectID(req.params['projectId']),
-                        _id: req.params['projectSsoId'],
-                        isEnabled: true,
-                    },
-                    select: {
-                        _id: true,
-                        signOnURL: true,
-                        issuerURL: true,
-                        projectId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
+      const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy({
+        query: {
+          projectId: new ObjectID(req.params["projectId"]),
+          _id: req.params["projectSsoId"],
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          signOnURL: true,
+          issuerURL: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-            if (!projectSSO) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('SSO Config not found')
-                );
-            }
+      if (!projectSSO) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("SSO Config not found"),
+        );
+      }
 
-            // redirect to Identity Provider.
+      // redirect to Identity Provider.
 
-            if (!projectSSO.signOnURL) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Sign On URL not found')
-                );
-            }
+      if (!projectSSO.signOnURL) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Sign On URL not found"),
+        );
+      }
 
-            if (!projectSSO.issuerURL) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException('Issuer not found')
-                );
-            }
+      if (!projectSSO.issuerURL) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Issuer not found"),
+        );
+      }
 
-            const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
-                acsUrl: URL.fromString(
-                    `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`
-                ),
-                signOnUrl: projectSSO.signOnURL!,
-                issuerUrl: URL.fromString(
-                    `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`
-                ),
-            });
+      const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
+        acsUrl: URL.fromString(
+          `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
+        ),
+        signOnUrl: projectSSO.signOnURL!,
+        issuerUrl: URL.fromString(
+          `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
+        ),
+      });
 
-            return Response.redirect(req, res, samlRequestUrl);
-        } catch (err) {
-            return next(err);
-        }
+      return Response.redirect(req, res, samlRequestUrl);
+    } catch (err) {
+      return next(err);
     }
+  },
 );
 
 router.get(
-    '/idp-login/:projectId/:projectSsoId',
-    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-        return await loginUserWithSso(req, res);
-    }
+  "/idp-login/:projectId/:projectSsoId",
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+    return await loginUserWithSso(req, res);
+  },
 );
 
 router.post(
-    '/idp-login/:projectId/:projectSsoId',
-    async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-        return await loginUserWithSso(req, res);
-    }
+  "/idp-login/:projectId/:projectSsoId",
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+    return await loginUserWithSso(req, res);
+  },
 );
 
 type LoginUserWithSsoFunction = (
-    req: ExpressRequest,
-    res: ExpressResponse
+  req: ExpressRequest,
+  res: ExpressResponse,
 ) => Promise<void>;
 
 const loginUserWithSso: LoginUserWithSsoFunction = async (
-    req: ExpressRequest,
-    res: ExpressResponse
+  req: ExpressRequest,
+  res: ExpressResponse,
 ): Promise<void> => {
-    try {
-        const samlResponseBase64: string = req.body.SAMLResponse;
+  try {
+    const samlResponseBase64: string = req.body.SAMLResponse;
 
-        if (!samlResponseBase64) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('SAMLResponse not found')
-            );
-        }
-
-        const samlResponse: string = Buffer.from(
-            samlResponseBase64,
-            'base64'
-        ).toString();
-
-        const response: JSONObject = await xml2js.parseStringPromise(
-            samlResponse
-        );
-
-        let issuerUrl: string = '';
-        let email: Email | null = null;
-
-        if (!req.params['projectId']) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Project ID not found')
-            );
-        }
-
-        if (!req.params['projectSsoId']) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Project SSO ID not found')
-            );
-        }
-
-        const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy(
-            {
-                query: {
-                    projectId: new ObjectID(req.params['projectId']),
-                    _id: req.params['projectSsoId'],
-                    isEnabled: true,
-                },
-                select: {
-                    signOnURL: true,
-                    issuerURL: true,
-                    publicCertificate: true,
-                    teams: {
-                        _id: true,
-                    },
-                },
-                props: {
-                    isRoot: true,
-                },
-            }
-        );
-
-        if (!projectSSO) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('SSO Config not found')
-            );
-        }
-
-        // redirect to Identity Provider.
-
-        if (!projectSSO.issuerURL) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Issuer URL not found')
-            );
-        }
-
-        // redirect to Identity Provider.
-
-        if (!projectSSO.signOnURL) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Sign on URL not found')
-            );
-        }
-
-        if (!projectSSO.publicCertificate) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Public Certificate not found')
-            );
-        }
-
-        try {
-            SSOUtil.isPayloadValid(response);
-
-            if (
-                !SSOUtil.isSignatureValid(
-                    samlResponse,
-                    projectSSO.publicCertificate
-                )
-            ) {
-                return Response.sendErrorResponse(
-                    req,
-                    res,
-                    new BadRequestException(
-                        'Signature is not valid or Public Certificate configured with this SSO provider is not valid'
-                    )
-                );
-            }
-
-            issuerUrl = SSOUtil.getIssuer(response);
-            email = SSOUtil.getEmail(response);
-        } catch (err: unknown) {
-            if (err instanceof Exception) {
-                return Response.sendErrorResponse(req, res, err);
-            }
-            return Response.sendErrorResponse(req, res, new ServerException());
-        }
-
-        if (projectSSO.issuerURL.toString() !== issuerUrl) {
-            logger.error(
-                'Issuer URL does not match. It should be ' +
-                    projectSSO.issuerURL.toString() +
-                    ' but it is ' +
-                    issuerUrl.toString()
-            );
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException('Issuer URL does not match')
-            );
-        }
-
-        // Check if he already belongs to the project, If he does - then log in.
-
-        let alreadySavedUser: User | null = await UserService.findOneBy({
-            query: { email: email },
-            select: {
-                _id: true,
-                name: true,
-                email: true,
-                isMasterAdmin: true,
-                isEmailVerified: true,
-                profilePictureId: true,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
-
-        let isNewUser: boolean = false;
-
-        if (!alreadySavedUser) {
-            // this should never happen because user is logged in before he signs in with SSO UNLESS he initiates the login though the IDP.
-
-            /// Create a user.
-
-            alreadySavedUser = await UserService.createByEmail({
-                email,
-                isEmailVerified: true,
-                generateRandomPassword: true,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            isNewUser = true;
-        }
-
-        // If he does not then add him to teams that he should belong and log in.
-        // This should never happen because email is verified before he logs in with SSO.
-        if (!alreadySavedUser.isEmailVerified && !isNewUser) {
-            await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
-
-            return Response.render(
-                req,
-                res,
-                '/usr/src/app/FeatureSet/Identity/Views/Message.ejs',
-                {
-                    title: 'Email not verified.',
-                    message:
-                        'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.',
-                }
-            );
-        }
-
-        // check if the user already belongs to the project
-        const teamMemberCount: PositiveNumber = await TeamMemberService.countBy(
-            {
-                query: {
-                    projectId: new ObjectID(req.params['projectId'] as string),
-                    userId: alreadySavedUser!.id!,
-                },
-                props: {
-                    isRoot: true,
-                },
-            }
-        );
-
-        if (teamMemberCount.toNumber() === 0) {
-            // user not in project, add him to default teams.
-
-            if (!projectSSO.teams || projectSSO.teams.length === 0) {
-                return Response.render(
-                    req,
-                    res,
-                    '/usr/src/app/FeatureSet/Identity/Views/Message.ejs',
-                    {
-                        title: 'No teams added.',
-                        message:
-                            'No teams have been added to this SSO config. Please contact your admin and have default teams added.',
-                    }
-                );
-            }
-
-            for (const team of projectSSO.teams) {
-                // add user to team
-                let teamMember: TeamMember = new TeamMember();
-                teamMember.projectId = new ObjectID(
-                    req.params['projectId'] as string
-                );
-                teamMember.userId = alreadySavedUser.id!;
-                teamMember.hasAcceptedInvitation = true;
-                teamMember.invitationAcceptedAt =
-                    OneUptimeDate.getCurrentDate();
-                teamMember.teamId = team.id!;
-
-                teamMember = await TeamMemberService.create({
-                    data: teamMember,
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-            }
-        }
-
-        const projectId: ObjectID = new ObjectID(
-            req.params['projectId'] as string
-        );
-
-        const ssoToken: string = JSONWebToken.sign({
-            data: {
-                userId: alreadySavedUser.id!,
-                projectId: projectId,
-                name: alreadySavedUser.name!,
-                email: email,
-                isMasterAdmin: false,
-                isGeneralLogin: false,
-            },
-            expiresInSeconds: OneUptimeDate.getSecondsInDays(
-                new PositiveNumber(30)
-            ),
-        });
-
-        const oneUptimeToken: string = JSONWebToken.signUserLoginToken({
-            tokenData: {
-                userId: alreadySavedUser.id!,
-                email: alreadySavedUser.email!,
-                name: alreadySavedUser.name!,
-                isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                isGlobalLogin: false, // This is a general login without SSO. So, we will set this to false. This will give access to all the projects that dont require SSO.
-            },
-            expiresInSeconds: OneUptimeDate.getSecondsInDays(
-                new PositiveNumber(30)
-            ),
-        });
-
-        // Set a cookie with token.
-        CookieUtil.setCookie(
-            res,
-            CookieUtil.getUserTokenKey(),
-            oneUptimeToken,
-            {
-                maxAge: OneUptimeDate.getMillisecondsInDays(
-                    new PositiveNumber(30)
-                ),
-                httpOnly: true,
-            }
-        );
-
-        CookieUtil.setCookie(
-            res,
-            CookieUtil.getUserSSOKey(projectId),
-            ssoToken,
-            {
-                maxAge: OneUptimeDate.getMillisecondsInDays(
-                    new PositiveNumber(30)
-                ),
-                httpOnly: true,
-            }
-        );
-
-        // Refresh Permissions for this user here.
-        await AccessTokenService.refreshUserAllPermissions(
-            alreadySavedUser.id!
-        );
-
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        logger.info('User logged in with SSO' + email.toString());
-
-        return Response.redirect(
-            req,
-            res,
-            new URL(
-                httpProtocol,
-                host,
-                new Route(DashboardRoute.toString()).addRoute(
-                    '/' + req.params['projectId']
-                )
-            )
-        );
-    } catch (err) {
-        logger.error(err);
-        Response.sendErrorResponse(req, res, new ServerException());
+    if (!samlResponseBase64) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("SAMLResponse not found"),
+      );
     }
+
+    const samlResponse: string = Buffer.from(
+      samlResponseBase64,
+      "base64",
+    ).toString();
+
+    const response: JSONObject = await xml2js.parseStringPromise(samlResponse);
+
+    let issuerUrl: string = "";
+    let email: Email | null = null;
+
+    if (!req.params["projectId"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Project ID not found"),
+      );
+    }
+
+    if (!req.params["projectSsoId"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Project SSO ID not found"),
+      );
+    }
+
+    const projectSSO: ProjectSSO | null = await ProjectSSOService.findOneBy({
+      query: {
+        projectId: new ObjectID(req.params["projectId"]),
+        _id: req.params["projectSsoId"],
+        isEnabled: true,
+      },
+      select: {
+        signOnURL: true,
+        issuerURL: true,
+        publicCertificate: true,
+        teams: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!projectSSO) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("SSO Config not found"),
+      );
+    }
+
+    // redirect to Identity Provider.
+
+    if (!projectSSO.issuerURL) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Issuer URL not found"),
+      );
+    }
+
+    // redirect to Identity Provider.
+
+    if (!projectSSO.signOnURL) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Sign on URL not found"),
+      );
+    }
+
+    if (!projectSSO.publicCertificate) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Public Certificate not found"),
+      );
+    }
+
+    try {
+      SSOUtil.isPayloadValid(response);
+
+      if (
+        !SSOUtil.isSignatureValid(samlResponse, projectSSO.publicCertificate)
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException(
+            "Signature is not valid or Public Certificate configured with this SSO provider is not valid",
+          ),
+        );
+      }
+
+      issuerUrl = SSOUtil.getIssuer(response);
+      email = SSOUtil.getEmail(response);
+    } catch (err: unknown) {
+      if (err instanceof Exception) {
+        return Response.sendErrorResponse(req, res, err);
+      }
+      return Response.sendErrorResponse(req, res, new ServerException());
+    }
+
+    if (projectSSO.issuerURL.toString() !== issuerUrl) {
+      logger.error(
+        "Issuer URL does not match. It should be " +
+          projectSSO.issuerURL.toString() +
+          " but it is " +
+          issuerUrl.toString(),
+      );
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Issuer URL does not match"),
+      );
+    }
+
+    // Check if he already belongs to the project, If he does - then log in.
+
+    let alreadySavedUser: User | null = await UserService.findOneBy({
+      query: { email: email },
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+        isMasterAdmin: true,
+        isEmailVerified: true,
+        profilePictureId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let isNewUser: boolean = false;
+
+    if (!alreadySavedUser) {
+      // this should never happen because user is logged in before he signs in with SSO UNLESS he initiates the login though the IDP.
+
+      /// Create a user.
+
+      alreadySavedUser = await UserService.createByEmail({
+        email,
+        isEmailVerified: true,
+        generateRandomPassword: true,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      isNewUser = true;
+    }
+
+    // If he does not then add him to teams that he should belong and log in.
+    // This should never happen because email is verified before he logs in with SSO.
+    if (!alreadySavedUser.isEmailVerified && !isNewUser) {
+      await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
+
+      return Response.render(
+        req,
+        res,
+        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+        {
+          title: "Email not verified.",
+          message:
+            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
+        },
+      );
+    }
+
+    // check if the user already belongs to the project
+    const teamMemberCount: PositiveNumber = await TeamMemberService.countBy({
+      query: {
+        projectId: new ObjectID(req.params["projectId"] as string),
+        userId: alreadySavedUser!.id!,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (teamMemberCount.toNumber() === 0) {
+      // user not in project, add him to default teams.
+
+      if (!projectSSO.teams || projectSSO.teams.length === 0) {
+        return Response.render(
+          req,
+          res,
+          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+          {
+            title: "No teams added.",
+            message:
+              "No teams have been added to this SSO config. Please contact your admin and have default teams added.",
+          },
+        );
+      }
+
+      for (const team of projectSSO.teams) {
+        // add user to team
+        let teamMember: TeamMember = new TeamMember();
+        teamMember.projectId = new ObjectID(req.params["projectId"] as string);
+        teamMember.userId = alreadySavedUser.id!;
+        teamMember.hasAcceptedInvitation = true;
+        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+        teamMember.teamId = team.id!;
+
+        teamMember = await TeamMemberService.create({
+          data: teamMember,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
+    }
+
+    const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
+
+    const ssoToken: string = JSONWebToken.sign({
+      data: {
+        userId: alreadySavedUser.id!,
+        projectId: projectId,
+        name: alreadySavedUser.name!,
+        email: email,
+        isMasterAdmin: false,
+        isGeneralLogin: false,
+      },
+      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    });
+
+    const oneUptimeToken: string = JSONWebToken.signUserLoginToken({
+      tokenData: {
+        userId: alreadySavedUser.id!,
+        email: alreadySavedUser.email!,
+        name: alreadySavedUser.name!,
+        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+        isGlobalLogin: false, // This is a general login without SSO. So, we will set this to false. This will give access to all the projects that dont require SSO.
+      },
+      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    });
+
+    // Set a cookie with token.
+    CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), oneUptimeToken, {
+      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      httpOnly: true,
+    });
+
+    CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
+      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      httpOnly: true,
+    });
+
+    // Refresh Permissions for this user here.
+    await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    logger.info("User logged in with SSO" + email.toString());
+
+    return Response.redirect(
+      req,
+      res,
+      new URL(
+        httpProtocol,
+        host,
+        new Route(DashboardRoute.toString()).addRoute(
+          "/" + req.params["projectId"],
+        ),
+      ),
+    );
+  } catch (err) {
+    logger.error(err);
+    Response.sendErrorResponse(req, res, new ServerException());
+  }
 };
 
 export default router;

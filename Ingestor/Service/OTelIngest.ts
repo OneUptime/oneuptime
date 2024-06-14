@@ -1,120 +1,111 @@
-import OneUptimeDate from 'Common/Types/Date';
-import { JSONArray, JSONObject, JSONValue } from 'Common/Types/JSON';
-import JSONFunctions from 'Common/Types/JSONFunctions';
-import Metric, { AggregationTemporality } from 'Model/AnalyticsModels/Metric';
+import OneUptimeDate from "Common/Types/Date";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import Metric, { AggregationTemporality } from "Model/AnalyticsModels/Metric";
 
 export enum OtelAggregationTemporality {
-    Cumulative = 'AGGREGATION_TEMPORALITY_CUMULATIVE',
-    Delta = 'AGGREGATION_TEMPORALITY_DELTA',
+  Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
+  Delta = "AGGREGATION_TEMPORALITY_DELTA",
 }
 
 export default class OTelIngestService {
-    public static getAttributes(items: JSONArray): JSONObject {
-        const finalObj: JSONObject = {};
-        // We need to convert this to date.
-        const attributes: JSONArray = items;
+  public static getAttributes(items: JSONArray): JSONObject {
+    const finalObj: JSONObject = {};
+    // We need to convert this to date.
+    const attributes: JSONArray = items;
 
-        if (attributes) {
-            for (const attribute of attributes) {
-                if (attribute['key'] && typeof attribute['key'] === 'string') {
-                    let value: JSONValue = attribute['value'] as JSONObject;
+    if (attributes) {
+      for (const attribute of attributes) {
+        if (attribute["key"] && typeof attribute["key"] === "string") {
+          let value: JSONValue = attribute["value"] as JSONObject;
 
-                    if (value['stringValue']) {
-                        value = value['stringValue'] as string;
-                    } else if (value['intValue']) {
-                        value = value['intValue'] as number;
-                    }
+          if (value["stringValue"]) {
+            value = value["stringValue"] as string;
+          } else if (value["intValue"]) {
+            value = value["intValue"] as number;
+          }
 
-                    finalObj[attribute['key']] = value;
-                }
-            }
+          finalObj[attribute["key"]] = value;
         }
-
-        return JSONFunctions.flattenObject(finalObj);
+      }
     }
 
-    public static getMetricFromDatapoint(data: {
-        dbMetric: Metric;
-        datapoint: JSONObject;
-        aggregationTemporality: OtelAggregationTemporality;
-        isMonotonic: boolean | undefined;
-    }): Metric {
-        const { dbMetric, datapoint, aggregationTemporality, isMonotonic } =
-            data;
+    return JSONFunctions.flattenObject(finalObj);
+  }
 
-        const newDbMetric: Metric = Metric.fromJSON(
-            dbMetric.toJSON(),
-            Metric
-        ) as Metric;
+  public static getMetricFromDatapoint(data: {
+    dbMetric: Metric;
+    datapoint: JSONObject;
+    aggregationTemporality: OtelAggregationTemporality;
+    isMonotonic: boolean | undefined;
+  }): Metric {
+    const { dbMetric, datapoint, aggregationTemporality, isMonotonic } = data;
 
-        newDbMetric.startTimeUnixNano = datapoint[
-            'startTimeUnixNano'
-        ] as number;
-        newDbMetric.startTime = OneUptimeDate.fromUnixNano(
-            datapoint['startTimeUnixNano'] as number
-        );
+    const newDbMetric: Metric = Metric.fromJSON(
+      dbMetric.toJSON(),
+      Metric,
+    ) as Metric;
 
-        newDbMetric.timeUnixNano = datapoint['timeUnixNano'] as number;
-        newDbMetric.time = OneUptimeDate.fromUnixNano(
-            datapoint['timeUnixNano'] as number
-        );
+    newDbMetric.startTimeUnixNano = datapoint["startTimeUnixNano"] as number;
+    newDbMetric.startTime = OneUptimeDate.fromUnixNano(
+      datapoint["startTimeUnixNano"] as number,
+    );
 
-        if (Object.keys(datapoint).includes('asInt')) {
-            newDbMetric.value = datapoint['asInt'] as number;
-        } else if (Object.keys(datapoint).includes('asDouble')) {
-            newDbMetric.value = datapoint['asDouble'] as number;
-        }
+    newDbMetric.timeUnixNano = datapoint["timeUnixNano"] as number;
+    newDbMetric.time = OneUptimeDate.fromUnixNano(
+      datapoint["timeUnixNano"] as number,
+    );
 
-        newDbMetric.count = datapoint['count'] as number;
-        newDbMetric.sum = datapoint['sum'] as number;
-
-        newDbMetric.min = datapoint['min'] as number;
-        newDbMetric.max = datapoint['max'] as number;
-
-        newDbMetric.bucketCounts = datapoint['bucketCounts'] as Array<number>;
-        newDbMetric.explicitBounds = datapoint[
-            'explicitBounds'
-        ] as Array<number>;
-
-        // attrbutes
-
-        if (Object.keys(datapoint).includes('attributes')) {
-            if (!newDbMetric.attributes) {
-                newDbMetric.attributes = {};
-            }
-
-            newDbMetric.attributes = {
-                ...(newDbMetric.attributes || {}),
-                ...this.getAttributes(datapoint['attributes'] as JSONArray),
-            };
-        }
-
-        if (newDbMetric.attributes) {
-            newDbMetric.attributes = JSONFunctions.flattenObject(
-                newDbMetric.attributes
-            );
-        }
-
-        // aggregationTemporality
-
-        if (aggregationTemporality) {
-            if (
-                aggregationTemporality === OtelAggregationTemporality.Cumulative
-            ) {
-                newDbMetric.aggregationTemporality =
-                    AggregationTemporality.Cumulative;
-            }
-
-            if (aggregationTemporality === OtelAggregationTemporality.Delta) {
-                newDbMetric.aggregationTemporality =
-                    AggregationTemporality.Delta;
-            }
-        }
-
-        if (isMonotonic !== undefined) {
-            newDbMetric.isMonotonic = isMonotonic;
-        }
-
-        return newDbMetric;
+    if (Object.keys(datapoint).includes("asInt")) {
+      newDbMetric.value = datapoint["asInt"] as number;
+    } else if (Object.keys(datapoint).includes("asDouble")) {
+      newDbMetric.value = datapoint["asDouble"] as number;
     }
+
+    newDbMetric.count = datapoint["count"] as number;
+    newDbMetric.sum = datapoint["sum"] as number;
+
+    newDbMetric.min = datapoint["min"] as number;
+    newDbMetric.max = datapoint["max"] as number;
+
+    newDbMetric.bucketCounts = datapoint["bucketCounts"] as Array<number>;
+    newDbMetric.explicitBounds = datapoint["explicitBounds"] as Array<number>;
+
+    // attrbutes
+
+    if (Object.keys(datapoint).includes("attributes")) {
+      if (!newDbMetric.attributes) {
+        newDbMetric.attributes = {};
+      }
+
+      newDbMetric.attributes = {
+        ...(newDbMetric.attributes || {}),
+        ...this.getAttributes(datapoint["attributes"] as JSONArray),
+      };
+    }
+
+    if (newDbMetric.attributes) {
+      newDbMetric.attributes = JSONFunctions.flattenObject(
+        newDbMetric.attributes,
+      );
+    }
+
+    // aggregationTemporality
+
+    if (aggregationTemporality) {
+      if (aggregationTemporality === OtelAggregationTemporality.Cumulative) {
+        newDbMetric.aggregationTemporality = AggregationTemporality.Cumulative;
+      }
+
+      if (aggregationTemporality === OtelAggregationTemporality.Delta) {
+        newDbMetric.aggregationTemporality = AggregationTemporality.Delta;
+      }
+    }
+
+    if (isMonotonic !== undefined) {
+      newDbMetric.isMonotonic = isMonotonic;
+    }
+
+    return newDbMetric;
+  }
 }

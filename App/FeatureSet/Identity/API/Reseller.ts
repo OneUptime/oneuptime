@@ -1,79 +1,79 @@
-import OneUptimeDate from 'Common/Types/Date';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ResellerService from 'CommonServer/Services/ResellerService';
+import OneUptimeDate from "Common/Types/Date";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ResellerService from "CommonServer/Services/ResellerService";
 import Express, {
-    ExpressRequest,
-    ExpressResponse,
-    ExpressRouter,
-    NextFunction,
-} from 'CommonServer/Utils/Express';
-import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
-import Response from 'CommonServer/Utils/Response';
-import Reseller from 'Model/Models/Reseller';
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+  NextFunction,
+} from "CommonServer/Utils/Express";
+import JSONWebToken from "CommonServer/Utils/JsonWebToken";
+import Response from "CommonServer/Utils/Response";
+import Reseller from "Model/Models/Reseller";
 
 const router: ExpressRouter = Express.getRouter();
 
 router.post(
-    '/reseller/auth/:resellerid',
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
-            const resellerId: string | undefined = req.params['resellerid'];
+  "/reseller/auth/:resellerid",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const resellerId: string | undefined = req.params["resellerid"];
 
-            if (!resellerId) {
-                throw new BadDataException('Reseller ID not found');
-            }
+      if (!resellerId) {
+        throw new BadDataException("Reseller ID not found");
+      }
 
-            const username: string = req.body['username'];
-            const password: string = req.body['password'];
+      const username: string = req.body["username"];
+      const password: string = req.body["password"];
 
-            if (!username) {
-                throw new BadDataException('Username not found');
-            }
+      if (!username) {
+        throw new BadDataException("Username not found");
+      }
 
-            if (!password) {
-                throw new BadDataException('Password not found');
-            }
+      if (!password) {
+        throw new BadDataException("Password not found");
+      }
 
-            // get the reseller user.
-            const reseller: Reseller | null = await ResellerService.findOneBy({
-                query: {
-                    resellerId: resellerId,
-                    username: username,
-                    password: password,
-                },
-                select: {
-                    _id: true,
-                    resellerId: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+      // get the reseller user.
+      const reseller: Reseller | null = await ResellerService.findOneBy({
+        query: {
+          resellerId: resellerId,
+          username: username,
+          password: password,
+        },
+        select: {
+          _id: true,
+          resellerId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-            if (!reseller) {
-                throw new BadDataException(
-                    'Reseller not found or username and password is incorrect'
-                );
-            }
+      if (!reseller) {
+        throw new BadDataException(
+          "Reseller not found or username and password is incorrect",
+        );
+      }
 
-            // if found then generate a token and return it.
+      // if found then generate a token and return it.
 
-            const token: string = JSONWebToken.sign({
-                data: { resellerId: resellerId },
-                expiresInSeconds: OneUptimeDate.getDayInSeconds(365),
-            });
+      const token: string = JSONWebToken.sign({
+        data: { resellerId: resellerId },
+        expiresInSeconds: OneUptimeDate.getDayInSeconds(365),
+      });
 
-            return Response.sendJsonObjectResponse(req, res, {
-                access: token,
-            });
-        } catch (err) {
-            return next(err);
-        }
+      return Response.sendJsonObjectResponse(req, res, {
+        access: token,
+      });
+    } catch (err) {
+      return next(err);
     }
+  },
 );
 
 export default router;

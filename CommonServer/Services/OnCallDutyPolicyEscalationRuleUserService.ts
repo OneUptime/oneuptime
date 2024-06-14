@@ -1,10 +1,10 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-import Model from 'Model/Models/OnCallDutyPolicyEscalationRuleUser';
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import DatabaseService from "./DatabaseService";
+import Model from "Model/Models/OnCallDutyPolicyEscalationRuleUser";
 
 export class Service extends DatabaseService<Model> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
-    }
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(Model, postgresDatabase);
+  }
 }
 export default new Service();

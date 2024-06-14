@@ -1,29 +1,29 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    children: ReactElement | Array<ReactElement>;
+  children: ReactElement | Array<ReactElement>;
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <div
-            tabIndex={-1}
-            role="menu"
-            aria-hidden="true"
-            className="dropdown-menu-end dropdown-menu show"
-            style={{
-                position: 'absolute',
-                willChange: 'transform',
-                top: '0px',
-                left: '0px',
-                transform: 'tranblue3d(0px, 70px, 0px)',
-            }}
-        >
-            {props.children}
-        </div>
-    );
+  return (
+    <div
+      tabIndex={-1}
+      role="menu"
+      aria-hidden="true"
+      className="dropdown-menu-end dropdown-menu show"
+      style={{
+        position: "absolute",
+        willChange: "transform",
+        top: "0px",
+        left: "0px",
+        transform: "tranblue3d(0px, 70px, 0px)",
+      }}
+    >
+      {props.children}
+    </div>
+  );
 };
 
 export default UserProfile;

@@ -1,4 +1,4 @@
-import Dictionary from '../../Dictionary';
+import Dictionary from "../../Dictionary";
 
 export type Screenshot = string; // base 64 encoded screenshots
 

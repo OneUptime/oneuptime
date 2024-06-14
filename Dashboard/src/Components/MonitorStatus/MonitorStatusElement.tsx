@@ -1,14 +1,14 @@
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import React, { FunctionComponent, ReactElement } from 'react';
+import MonitorStatus from "Model/Models/MonitorStatus";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    monitorStatus: MonitorStatus;
+  monitorStatus: MonitorStatus;
 }
 
 const TeamElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return <span>{props.monitorStatus.name}</span>;
+  return <span>{props.monitorStatus.name}</span>;
 };
 
 export default TeamElement;

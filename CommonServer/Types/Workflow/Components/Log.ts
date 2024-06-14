@@ -1,47 +1,47 @@
-import ComponentCode, { RunOptions, RunReturnType } from '../ComponentCode';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
-import ComponentMetadata, { Port } from 'Common/Types/Workflow/Component';
-import ComponentID from 'Common/Types/Workflow/ComponentID';
-import LogComponents from 'Common/Types/Workflow/Components/Log';
+import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
+import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
+import ComponentID from "Common/Types/Workflow/ComponentID";
+import LogComponents from "Common/Types/Workflow/Components/Log";
 
 export default class Log extends ComponentCode {
-    public constructor() {
-        super();
+  public constructor() {
+    super();
 
-        const LogComponent: ComponentMetadata | undefined = LogComponents.find(
-            (i: ComponentMetadata) => {
-                return i.id === ComponentID.Log;
-            }
-        );
+    const LogComponent: ComponentMetadata | undefined = LogComponents.find(
+      (i: ComponentMetadata) => {
+        return i.id === ComponentID.Log;
+      },
+    );
 
-        if (!LogComponent) {
-            throw new BadDataException('Component not found.');
-        }
-
-        this.setMetadata(LogComponent);
+    if (!LogComponent) {
+      throw new BadDataException("Component not found.");
     }
 
-    public override async run(
-        args: JSONObject,
-        options: RunOptions
-    ): Promise<RunReturnType> {
-        const outPort: Port | undefined = this.getMetadata().outPorts.find(
-            (p: Port) => {
-                return p.id === 'out';
-            }
-        );
+    this.setMetadata(LogComponent);
+  }
 
-        if (!outPort) {
-            throw options.onError(new BadDataException('Out port not found'));
-        }
+  public override async run(
+    args: JSONObject,
+    options: RunOptions,
+  ): Promise<RunReturnType> {
+    const outPort: Port | undefined = this.getMetadata().outPorts.find(
+      (p: Port) => {
+        return p.id === "out";
+      },
+    );
 
-        options.log('Value: ');
-        options.log(args['value']);
-
-        return Promise.resolve({
-            returnValues: {},
-            executePort: outPort,
-        });
+    if (!outPort) {
+      throw options.onError(new BadDataException("Out port not found"));
     }
+
+    options.log("Value: ");
+    options.log(args["value"]);
+
+    return Promise.resolve({
+      returnValues: {},
+      executePort: outPort,
+    });
+  }
 }

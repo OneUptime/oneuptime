@@ -1,364 +1,316 @@
-import Loader from '../Components/Loader/Loader';
-import OnCallDutyLayout from '../Pages/OnCallDuty/Layout';
-import OnCallDutyPolicyViewLayout from '../Pages/OnCallDuty/OnCallDutyPolicy/Layout';
-import OnCallDutyScheduleViewLayout from '../Pages/OnCallDuty/OnCallDutySchedule/Layout';
-import ComponentProps from '../Pages/PageComponentProps';
-import PageMap from '../Utils/PageMap';
-import RouteMap, { OnCallDutyRoutePath, RouteUtil } from '../Utils/RouteMap';
-import Route from 'Common/Types/API/Route';
+import Loader from "../Components/Loader/Loader";
+import OnCallDutyLayout from "../Pages/OnCallDuty/Layout";
+import OnCallDutyPolicyViewLayout from "../Pages/OnCallDuty/OnCallDutyPolicy/Layout";
+import OnCallDutyScheduleViewLayout from "../Pages/OnCallDuty/OnCallDutySchedule/Layout";
+import ComponentProps from "../Pages/PageComponentProps";
+import PageMap from "../Utils/PageMap";
+import RouteMap, { OnCallDutyRoutePath, RouteUtil } from "../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, {
-    FunctionComponent,
-    LazyExoticComponent,
-    ReactElement,
-    Suspense,
-    lazy,
-} from 'react';
-import { Route as PageRoute, Routes } from 'react-router-dom';
+  FunctionComponent,
+  LazyExoticComponent,
+  ReactElement,
+  Suspense,
+  lazy,
+} from "react";
+import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Polcies
 const OnCallDutyPoliciesPage: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicies');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicies");
 });
 const OnCallDutyExecutionLogs: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyExecutionLogs');
+  return import("../Pages/OnCallDuty/OnCallDutyExecutionLogs");
 });
 const OnCallDutyPolicyExecutionLogTimeline: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyExecutionLogView');
+  return import("../Pages/OnCallDuty/OnCallDutyExecutionLogView");
 });
 const OnCallDutyPolicyView: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/Index');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/Index");
 });
 const OnCallDutyPolicyViewDelete: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/Delete');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/Delete");
 });
 const OnCallDutyPolicyViewLogs: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogs");
 });
 const OnCallDutyPolicyViewLogsView: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView");
 });
 const OnCallDutyPolicyViewEscalation: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/Escalation');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/Escalation");
 });
 const OnCallDutyPolicyViewCustomFields: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutyPolicy/CustomFields');
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/CustomFields");
 });
 
 // Schedules
 const OnCallDutySchedules: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutySchedules');
+  return import("../Pages/OnCallDuty/OnCallDutySchedules");
 });
 const OnCallDutyScheduleView: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutySchedule/Index');
+  return import("../Pages/OnCallDuty/OnCallDutySchedule/Index");
 });
 const OnCallDutyScheduleViewDelete: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutySchedule/Delete');
+  return import("../Pages/OnCallDuty/OnCallDutySchedule/Delete");
 });
 const OnCallDutyScheduleViewLayers: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import('../Pages/OnCallDuty/OnCallDutySchedule/Layers');
+  return import("../Pages/OnCallDuty/OnCallDutySchedule/Layers");
 });
 
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <Routes>
-            <PageRoute element={<OnCallDutyLayout {...props} />}>
-                <PageRoute
-                    path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY] || ''}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPoliciesPage
-                                {...props}
-                                pageRoute={
-                                    RouteMap[PageMap.ON_CALL_DUTY] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-                <PageRoute
-                    path={
-                        OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES] || ''
-                    }
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPoliciesPage
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_POLICIES
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-                <PageRoute
-                    path={
-                        OnCallDutyRoutePath[
-                            PageMap.ON_CALL_DUTY_EXECUTION_LOGS
-                        ] || ''
-                    }
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyExecutionLogs
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_EXECUTION_LOGS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        OnCallDutyRoutePath[
-                            PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
-                        ] || ''
-                    }
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyExecutionLogTimeline
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={
-                        OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULES] ||
-                        ''
-                    }
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutySchedules
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_SCHEDULES
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-            </PageRoute>
-
-            <PageRoute
-                path={
-                    OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW] || ''
+  return (
+    <Routes>
+      <PageRoute element={<OnCallDutyLayout {...props} />}>
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPoliciesPage
+                {...props}
+                pageRoute={RouteMap[PageMap.ON_CALL_DUTY] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPoliciesPage
+                {...props}
+                pageRoute={RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyExecutionLogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS] as Route
                 }
-                element={<OnCallDutyPolicyViewLayout {...props} />}
-            >
-                <PageRoute
-                    index
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyView
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_POLICY_VIEW
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
+              />
+            </Suspense>
+          }
+        />
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyViewDelete
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyViewEscalation
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_POLICY_VIEW_ESCALATION
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyViewCustomFields
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyPolicyViewLogs
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW,
-                        2
-                    )}
-                    element={
-                        <OnCallDutyPolicyViewLogsView
-                            {...props}
-                            pageRoute={
-                                RouteMap[
-                                    PageMap
-                                        .ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
-                                ] as Route
-                            }
-                        />
-                    }
-                />
-            </PageRoute>
-            <PageRoute
-                path={
-                    OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] ||
-                    ''
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyExecutionLogTimeline
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
+                  ] as Route
                 }
-                element={<OnCallDutyScheduleViewLayout {...props} />}
-            >
-                <PageRoute
-                    index
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyScheduleView
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap.ON_CALL_DUTY_SCHEDULE_VIEW
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
+              />
+            </Suspense>
+          }
+        />
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyScheduleViewDelete
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_SCHEDULE_VIEW_DELETE
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutySchedules
+                {...props}
+                pageRoute={RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(
-                        PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
-                    )}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <OnCallDutyScheduleViewLayers
-                                {...props}
-                                pageRoute={
-                                    RouteMap[
-                                        PageMap
-                                            .ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
-                                    ] as Route
-                                }
-                            />
-                        </Suspense>
-                    }
-                />
-            </PageRoute>
-        </Routes>
-    );
+      <PageRoute
+        path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW] || ""}
+        element={<OnCallDutyPolicyViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyView
+                {...props}
+                pageRoute={RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewDelete
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewEscalation
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewLogs
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW,
+            2,
+          )}
+          element={
+            <OnCallDutyPolicyViewLogsView
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                ] as Route
+              }
+            />
+          }
+        />
+      </PageRoute>
+      <PageRoute
+        path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] || ""}
+        element={<OnCallDutyScheduleViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyScheduleView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyScheduleViewDelete
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyScheduleViewLayers
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+    </Routes>
+  );
 };
 
 export default OnCallDutyRoutes;

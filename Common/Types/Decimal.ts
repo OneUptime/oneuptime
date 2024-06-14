@@ -1,78 +1,78 @@
 // This is for Object ID for all the things in our database.
-import DatabaseProperty from './Database/DatabaseProperty';
-import BadDataException from './Exception/BadDataException';
-import { JSONObject, ObjectType } from './JSON';
-import { FindOperator } from 'typeorm';
+import DatabaseProperty from "./Database/DatabaseProperty";
+import BadDataException from "./Exception/BadDataException";
+import { JSONObject, ObjectType } from "./JSON";
+import { FindOperator } from "typeorm";
 
 export default class Decimal extends DatabaseProperty {
-    private _value: number = 0;
-    public get value(): number {
-        return this._value;
-    }
-    public set value(v: number) {
-        this._value = v;
-    }
+  private _value: number = 0;
+  public get value(): number {
+    return this._value;
+  }
+  public set value(v: number) {
+    this._value = v;
+  }
 
-    public constructor(value: number | Decimal | string) {
-        super();
+  public constructor(value: number | Decimal | string) {
+    super();
 
-        if (typeof value === 'string') {
-            value = parseFloat(value);
-        }
-
-        if (value instanceof Decimal) {
-            value = value.value;
-        }
-
-        this.value = value;
+    if (typeof value === "string") {
+      value = parseFloat(value);
     }
 
-    public equals(other: Decimal): boolean {
-        return this.value.toString() === other.value.toString();
+    if (value instanceof Decimal) {
+      value = value.value;
     }
 
-    public override toString(): string {
-        return this.value.toString();
+    this.value = value;
+  }
+
+  public equals(other: Decimal): boolean {
+    return this.value.toString() === other.value.toString();
+  }
+
+  public override toString(): string {
+    return this.value.toString();
+  }
+
+  protected static override toDatabase(
+    value: Decimal | FindOperator<Decimal>,
+  ): string | null {
+    if (value) {
+      if (typeof value === "string") {
+        value = new Decimal(value);
+      }
+
+      return value.toString();
     }
 
-    protected static override toDatabase(
-        value: Decimal | FindOperator<Decimal>
-    ): string | null {
-        if (value) {
-            if (typeof value === 'string') {
-                value = new Decimal(value);
-            }
+    return null;
+  }
 
-            return value.toString();
-        }
+  public override toJSON(): JSONObject {
+    return {
+      _type: ObjectType.Decimal,
+      value: (this as Decimal).toString(),
+    };
+  }
 
-        return null;
+  public static override fromJSON(json: JSONObject): Decimal {
+    if (json["_type"] === ObjectType.Decimal) {
+      return new Decimal((json["value"] as number) || 0);
     }
 
-    public override toJSON(): JSONObject {
-        return {
-            _type: ObjectType.Decimal,
-            value: (this as Decimal).toString(),
-        };
+    throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+  }
+
+  protected static override fromDatabase(_value: number): Decimal | null {
+    if (_value) {
+      return new Decimal(_value);
     }
 
-    public static override fromJSON(json: JSONObject): Decimal {
-        if (json['_type'] === ObjectType.Decimal) {
-            return new Decimal((json['value'] as number) || 0);
-        }
+    return null;
+  }
 
-        throw new BadDataException('Invalid JSON: ' + JSON.stringify(json));
-    }
-
-    protected static override fromDatabase(_value: number): Decimal | null {
-        if (_value) {
-            return new Decimal(_value);
-        }
-
-        return null;
-    }
-
-    public static fromString(value: string): Decimal {
-        return new Decimal(value);
-    }
+  public static fromString(value: string): Decimal {
+    return new Decimal(value);
+  }
 }

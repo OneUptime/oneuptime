@@ -1,266 +1,249 @@
-import MonitorStepElement from './MonitorStep';
-import SortOrder from 'Common/Types/BaseDatabase/SortOrder';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import MonitorStep from 'Common/Types/Monitor/MonitorStep';
-import MonitorSteps from 'Common/Types/Monitor/MonitorSteps';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
-import ObjectID from 'Common/Types/ObjectID';
-import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import MonitorStepElement from "./MonitorStep";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import ObjectID from "Common/Types/ObjectID";
+import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
-    DropdownOption,
-    DropdownValue,
-} from 'CommonUI/src/Components/Dropdown/Dropdown';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import { CustomElementProps } from 'CommonUI/src/Components/Forms/Types/Field';
-import HorizontalRule from 'CommonUI/src/Components/HorizontalRule/HorizontalRule';
-import API from 'CommonUI/src/Utils/API/API';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import OnCallDutyPolicy from 'Model/Models/OnCallDutyPolicy';
-import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import useAsyncEffect from 'use-async-effect';
+  DropdownOption,
+  DropdownValue,
+} from "CommonUI/src/Components/Dropdown/Dropdown";
+import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
+import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
+import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
+import API from "CommonUI/src/Utils/API/API";
+import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import IncidentSeverity from "Model/Models/IncidentSeverity";
+import MonitorStatus from "Model/Models/MonitorStatus";
+import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import useAsyncEffect from "use-async-effect";
 
 export interface ComponentProps extends CustomElementProps {
-    error?: string | undefined;
-    onChange?: ((value: MonitorSteps) => void) | undefined;
-    onBlur?: () => void;
-    initialValue?: MonitorSteps;
-    monitorType: MonitorType;
-    monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
+  error?: string | undefined;
+  onChange?: ((value: MonitorSteps) => void) | undefined;
+  onBlur?: () => void;
+  initialValue?: MonitorSteps;
+  monitorType: MonitorType;
+  monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
-        React.useState<Array<DropdownOption>>([]);
+  const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
+    React.useState<Array<DropdownOption>>([]);
 
-    const [
-        incidentSeverityDropdownOptions,
-        setIncidentSeverityDropdownOptions,
-    ] = React.useState<Array<DropdownOption>>([]);
+  const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =
+    React.useState<Array<DropdownOption>>([]);
 
-    const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
-        React.useState<Array<DropdownOption>>([]);
+  const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
+    React.useState<Array<DropdownOption>>([]);
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [error, setError] = React.useState<string>();
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<string>();
 
-    useEffect(() => {
-        setError(props.error);
-    }, [props.error]);
+  useEffect(() => {
+    setError(props.error);
+  }, [props.error]);
 
-    const fetchDropdownOptions: () => Promise<void> =
-        async (): Promise<void> => {
-            setIsLoading(true);
+  const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
+    setIsLoading(true);
 
-            try {
-                const monitorStatusList: ListResult<MonitorStatus> =
-                    await ModelAPI.getList({
-                        modelType: MonitorStatus,
-                        query: {},
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            name: true,
-                            isOperationalState: true,
-                            isOfflineState: true,
-                        },
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            isOperationalState: true,
+            isOfflineState: true,
+          },
 
-                        sort: {},
-                    });
+          sort: {},
+        });
 
-                if (monitorStatusList.data) {
-                    setMonitorStatusDropdownOptions(
-                        monitorStatusList.data.map((i: MonitorStatus) => {
-                            return {
-                                value: i._id!,
-                                label: i.name!,
-                            };
-                        })
-                    );
-                }
+      if (monitorStatusList.data) {
+        setMonitorStatusDropdownOptions(
+          monitorStatusList.data.map((i: MonitorStatus) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
 
-                const incidentSeverityList: ListResult<IncidentSeverity> =
-                    await ModelAPI.getList({
-                        modelType: IncidentSeverity,
-                        query: {},
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            name: true,
-                            order: true,
-                        },
-                        sort: {
-                            order: SortOrder.Ascending,
-                        },
-                    });
+      const incidentSeverityList: ListResult<IncidentSeverity> =
+        await ModelAPI.getList({
+          modelType: IncidentSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            order: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
 
-                const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-                    await ModelAPI.getList({
-                        modelType: OnCallDutyPolicy,
-                        query: {},
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                            name: true,
-                        },
-                        sort: {},
-                    });
+      const onCallPolicyList: ListResult<OnCallDutyPolicy> =
+        await ModelAPI.getList({
+          modelType: OnCallDutyPolicy,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+          },
+          sort: {},
+        });
 
-                if (incidentSeverityList.data) {
-                    setIncidentSeverityDropdownOptions(
-                        incidentSeverityList.data.map((i: IncidentSeverity) => {
-                            return {
-                                value: i._id!,
-                                label: i.name!,
-                            };
-                        })
-                    );
-                }
+      if (incidentSeverityList.data) {
+        setIncidentSeverityDropdownOptions(
+          incidentSeverityList.data.map((i: IncidentSeverity) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
 
-                if (onCallPolicyList.data) {
-                    setOnCallPolicyDropdownOptions(
-                        onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
-                            return {
-                                value: i._id!,
-                                label: i.name!,
-                            };
-                        })
-                    );
-                }
+      if (onCallPolicyList.data) {
+        setOnCallPolicyDropdownOptions(
+          onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
 
-                // if there is no initial value then....
+      // if there is no initial value then....
 
-                if (!monitorSteps) {
-                    setMonitorSteps(
-                        MonitorSteps.getDefaultMonitorSteps({
-                            monitorType: props.monitorType,
-                            monitorName: props.monitorName || '',
-                            defaultMonitorStatusId: monitorStatusList.data.find(
-                                (i: MonitorStatus) => {
-                                    return i.isOperationalState;
-                                }
-                            )!.id!,
-                            onlineMonitorStatusId: monitorStatusList.data.find(
-                                (i: MonitorStatus) => {
-                                    return i.isOperationalState;
-                                }
-                            )!.id!,
-                            offlineMonitorStatusId: monitorStatusList.data.find(
-                                (i: MonitorStatus) => {
-                                    return i.isOfflineState;
-                                }
-                            )!.id!,
-                            defaultIncidentSeverityId:
-                                incidentSeverityList.data[0]!.id!,
-                        })
-                    );
-                }
-            } catch (err) {
-                setError(API.getFriendlyMessage(err));
-            }
-
-            setIsLoading(false);
-        };
-    useAsyncEffect(async () => {
-        await fetchDropdownOptions();
-    }, []);
-
-    const [monitorSteps, setMonitorSteps] = React.useState<
-        MonitorSteps | undefined
-    >(props.initialValue);
-
-    useEffect(() => {
-        if (monitorSteps && props.onChange) {
-            props.onChange(monitorSteps);
-        }
-
-        if (props.onBlur) {
-            props.onBlur();
-        }
-    }, [monitorSteps]);
-
-    if (isLoading) {
-        return <ComponentLoader></ComponentLoader>;
+      if (!monitorSteps) {
+        setMonitorSteps(
+          MonitorSteps.getDefaultMonitorSteps({
+            monitorType: props.monitorType,
+            monitorName: props.monitorName || "",
+            defaultMonitorStatusId: monitorStatusList.data.find(
+              (i: MonitorStatus) => {
+                return i.isOperationalState;
+              },
+            )!.id!,
+            onlineMonitorStatusId: monitorStatusList.data.find(
+              (i: MonitorStatus) => {
+                return i.isOperationalState;
+              },
+            )!.id!,
+            offlineMonitorStatusId: monitorStatusList.data.find(
+              (i: MonitorStatus) => {
+                return i.isOfflineState;
+              },
+            )!.id!,
+            defaultIncidentSeverityId: incidentSeverityList.data[0]!.id!,
+          }),
+        );
+      }
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
     }
 
-    return (
-        <div>
-            {monitorSteps?.data?.monitorStepsInstanceArray.map(
-                (i: MonitorStep, index: number) => {
-                    return (
-                        <MonitorStepElement
-                            monitorType={props.monitorType}
-                            key={index}
-                            monitorStatusDropdownOptions={
-                                monitorStatusDropdownOptions
-                            }
-                            incidentSeverityDropdownOptions={
-                                incidentSeverityDropdownOptions
-                            }
-                            onCallPolicyDropdownOptions={
-                                onCallPolicyDropdownOptions
-                            }
-                            initialValue={i}
-                            // onDelete={() => {
-                            //     // remove the criteria filter
-                            // const index: number | undefined =
-                            // monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
-                            //     return item.data?.id === value.data?.id;
-                            // })
+    setIsLoading(false);
+  };
+  useAsyncEffect(async () => {
+    await fetchDropdownOptions();
+  }, []);
 
-                            // if (index === undefined) {
-                            //     return;
-                            // }
-                            //     const newMonitorSteps: Array<MonitorStep> = [
-                            //         ...(monitorSteps.data
-                            //             ?.monitorStepsInstanceArray || []),
-                            //     ];
-                            //     newMonitorSteps.splice(index, 1);
-                            //     setMonitorSteps(
-                            //         new MonitorSteps().fromJSON({
-                            //             _type: 'MonitorSteps',
-                            //             value: {
-                            //                 monitorStepsInstanceArray:
-                            //                     newMonitorSteps,
-                            //             },
-                            //         })
-                            //     );
-                            // }}
-                            onChange={(value: MonitorStep) => {
-                                const index: number | undefined =
-                                    monitorSteps.data?.monitorStepsInstanceArray.findIndex(
-                                        (item: MonitorStep) => {
-                                            return (
-                                                item.data?.id === value.data?.id
-                                            );
-                                        }
-                                    );
+  const [monitorSteps, setMonitorSteps] = React.useState<
+    MonitorSteps | undefined
+  >(props.initialValue);
 
-                                if (index === undefined) {
-                                    return;
-                                }
+  useEffect(() => {
+    if (monitorSteps && props.onChange) {
+      props.onChange(monitorSteps);
+    }
 
-                                const newMonitorSteps: Array<MonitorStep> = [
-                                    ...(monitorSteps.data
-                                        ?.monitorStepsInstanceArray || []),
-                                ];
-                                newMonitorSteps[index] = value;
-                                monitorSteps.setMonitorStepsInstanceArray(
-                                    newMonitorSteps
-                                );
-                                setMonitorSteps(
-                                    MonitorSteps.clone(monitorSteps)
-                                );
-                            }}
-                        />
-                    );
+    if (props.onBlur) {
+      props.onBlur();
+    }
+  }, [monitorSteps]);
+
+  if (isLoading) {
+    return <ComponentLoader></ComponentLoader>;
+  }
+
+  return (
+    <div>
+      {monitorSteps?.data?.monitorStepsInstanceArray.map(
+        (i: MonitorStep, index: number) => {
+          return (
+            <MonitorStepElement
+              monitorType={props.monitorType}
+              key={index}
+              monitorStatusDropdownOptions={monitorStatusDropdownOptions}
+              incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
+              onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
+              initialValue={i}
+              // onDelete={() => {
+              //     // remove the criteria filter
+              // const index: number | undefined =
+              // monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
+              //     return item.data?.id === value.data?.id;
+              // })
+
+              // if (index === undefined) {
+              //     return;
+              // }
+              //     const newMonitorSteps: Array<MonitorStep> = [
+              //         ...(monitorSteps.data
+              //             ?.monitorStepsInstanceArray || []),
+              //     ];
+              //     newMonitorSteps.splice(index, 1);
+              //     setMonitorSteps(
+              //         new MonitorSteps().fromJSON({
+              //             _type: 'MonitorSteps',
+              //             value: {
+              //                 monitorStepsInstanceArray:
+              //                     newMonitorSteps,
+              //             },
+              //         })
+              //     );
+              // }}
+              onChange={(value: MonitorStep) => {
+                const index: number | undefined =
+                  monitorSteps.data?.monitorStepsInstanceArray.findIndex(
+                    (item: MonitorStep) => {
+                      return item.data?.id === value.data?.id;
+                    },
+                  );
+
+                if (index === undefined) {
+                  return;
                 }
-            )}
 
-            {/* <Button
+                const newMonitorSteps: Array<MonitorStep> = [
+                  ...(monitorSteps.data?.monitorStepsInstanceArray || []),
+                ];
+                newMonitorSteps[index] = value;
+                monitorSteps.setMonitorStepsInstanceArray(newMonitorSteps);
+                setMonitorSteps(MonitorSteps.clone(monitorSteps));
+              }}
+            />
+          );
+        },
+      )}
+
+      {/* <Button
                 title="Add Step"
                 onClick={() => {
                     const newMonitorSteps: Array<MonitorStep> = [
@@ -278,53 +261,44 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }}
             /> */}
 
-            <HorizontalRule />
+      <HorizontalRule />
 
-            <div className="mt-4">
-                <FieldLabelElement
-                    title="Default Monitor Status"
-                    description="What should the monitor status be when none of the above criteria is met?"
-                    required={true}
-                />
+      <div className="mt-4">
+        <FieldLabelElement
+          title="Default Monitor Status"
+          description="What should the monitor status be when none of the above criteria is met?"
+          required={true}
+        />
 
-                <Dropdown
-                    value={monitorStatusDropdownOptions.find(
-                        (i: DropdownOption) => {
-                            return (
-                                i.value ===
-                                    monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
-                                undefined
-                            );
-                        }
-                    )}
-                    options={monitorStatusDropdownOptions}
-                    onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null
-                    ) => {
-                        monitorSteps?.setDefaultMonitorStatusId(
-                            value ? new ObjectID(value.toString()) : undefined
-                        );
-                        setMonitorSteps(
-                            MonitorSteps.clone(
-                                monitorSteps || new MonitorSteps()
-                            )
-                        );
-                    }}
-                />
-            </div>
+        <Dropdown
+          value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
+            return (
+              i.value ===
+                monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
+              undefined
+            );
+          })}
+          options={monitorStatusDropdownOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            monitorSteps?.setDefaultMonitorStatusId(
+              value ? new ObjectID(value.toString()) : undefined,
+            );
+            setMonitorSteps(
+              MonitorSteps.clone(monitorSteps || new MonitorSteps()),
+            );
+          }}
+        />
+      </div>
 
-            {error ? (
-                <p
-                    data-testid="error-message"
-                    className="mt-3 text-sm text-red-400"
-                >
-                    {error}
-                </p>
-            ) : (
-                <></>
-            )}
-        </div>
-    );
+      {error ? (
+        <p data-testid="error-message" className="mt-3 text-sm text-red-400">
+          {error}
+        </p>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
 };
 
 export default MonitorStepsElement;

@@ -1,7 +1,7 @@
-import { v1 as uuidv1 } from 'uuid';
+import { v1 as uuidv1 } from "uuid";
 
 export default class UUID {
-    public static generate(): string {
-        return uuidv1();
-    }
+  public static generate(): string {
+    return uuidv1();
+  }
 }

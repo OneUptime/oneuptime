@@ -1,30 +1,28 @@
 import EventHistoryDayList, {
-    ComponentProps as EventHistoryDayListComponentProps,
-} from './EventHistoryDayList';
-import React, { FunctionComponent, ReactElement } from 'react';
+  ComponentProps as EventHistoryDayListComponentProps,
+} from "./EventHistoryDayList";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    items: Array<EventHistoryDayListComponentProps>;
+  items: Array<EventHistoryDayListComponentProps>;
 }
 
 const ActiveEvent: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <div className="event-history-box">
-            {props.items.map(
-                (item: EventHistoryDayListComponentProps, i: number) => {
-                    return (
-                        <EventHistoryDayList
-                            key={i}
-                            isLastItem={props.items.length - 1 === i}
-                            {...item}
-                        />
-                    );
-                }
-            )}
-        </div>
-    );
+  return (
+    <div className="event-history-box">
+      {props.items.map((item: EventHistoryDayListComponentProps, i: number) => {
+        return (
+          <EventHistoryDayList
+            key={i}
+            isLastItem={props.items.length - 1 === i}
+            {...item}
+          />
+        );
+      })}
+    </div>
+  );
 };
 
 export default ActiveEvent;

@@ -1,122 +1,120 @@
-import UserMiddleware from '../Middleware/UserAuthorization';
+import UserMiddleware from "../Middleware/UserAuthorization";
 import UserCallService, {
-    Service as UserCallServiceType,
-} from '../Services/UserCallService';
+  Service as UserCallServiceType,
+} from "../Services/UserCallService";
 import {
-    ExpressRequest,
-    ExpressResponse,
-    OneUptimeRequest,
-} from '../Utils/Express';
-import Response from '../Utils/Response';
-import BaseAPI from './BaseAPI';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import UserCall from 'Model/Models/UserCall';
-import UserSMS from 'Model/Models/UserSMS';
+  ExpressRequest,
+  ExpressResponse,
+  OneUptimeRequest,
+} from "../Utils/Express";
+import Response from "../Utils/Response";
+import BaseAPI from "./BaseAPI";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import UserCall from "Model/Models/UserCall";
+import UserSMS from "Model/Models/UserSMS";
 
 export default class UserCallAPI extends BaseAPI<
-    UserCall,
-    UserCallServiceType
+  UserCall,
+  UserCallServiceType
 > {
-    public constructor() {
-        super(UserCall, UserCallService);
+  public constructor() {
+    super(UserCall, UserCallService);
 
-        this.router.post(
-            `/user-call/verify`,
-            UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                req = req as OneUptimeRequest;
+    this.router.post(
+      `/user-call/verify`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        req = req as OneUptimeRequest;
 
-                if (!req.body.itemId) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Invalid item ID')
-                    );
-                }
+        if (!req.body.itemId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid item ID"),
+          );
+        }
 
-                if (!req.body.code) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Invalid code')
-                    );
-                }
+        if (!req.body.code) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid code"),
+          );
+        }
 
-                // Check if the code matches and verify the phone number.
-                const item: UserSMS | null = await this.service.findOneById({
-                    id: req.body['itemId'],
-                    props: {
-                        isRoot: true,
-                    },
-                    select: {
-                        userId: true,
-                        verificationCode: true,
-                    },
-                });
+        // Check if the code matches and verify the phone number.
+        const item: UserSMS | null = await this.service.findOneById({
+          id: req.body["itemId"],
+          props: {
+            isRoot: true,
+          },
+          select: {
+            userId: true,
+            verificationCode: true,
+          },
+        });
 
-                if (!item) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Item not found')
-                    );
-                }
+        if (!item) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Item not found"),
+          );
+        }
 
-                //check user id
+        //check user id
 
-                if (
-                    item.userId?.toString() !==
-                    (
-                        req as OneUptimeRequest
-                    )?.userAuthorization?.userId?.toString()
-                ) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Invalid user ID')
-                    );
-                }
+        if (
+          item.userId?.toString() !==
+          (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
+        ) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid user ID"),
+          );
+        }
 
-                if (item.verificationCode !== req.body['code']) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Invalid code')
-                    );
-                }
+        if (item.verificationCode !== req.body["code"]) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid code"),
+          );
+        }
 
-                await this.service.updateOneById({
-                    id: item.id!,
-                    props: {
-                        isRoot: true,
-                    },
-                    data: {
-                        isVerified: true,
-                    },
-                });
+        await this.service.updateOneById({
+          id: item.id!,
+          props: {
+            isRoot: true,
+          },
+          data: {
+            isVerified: true,
+          },
+        });
 
-                return Response.sendEmptySuccessResponse(req, res);
-            }
-        );
+        return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
 
-        this.router.post(
-            `/user-call/resend-verification-code`,
-            UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                req = req as OneUptimeRequest;
+    this.router.post(
+      `/user-call/resend-verification-code`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        req = req as OneUptimeRequest;
 
-                if (!req.body.itemId) {
-                    return Response.sendErrorResponse(
-                        req,
-                        res,
-                        new BadDataException('Invalid item ID')
-                    );
-                }
+        if (!req.body.itemId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid item ID"),
+          );
+        }
 
-                await this.service.resendVerificationCode(req.body.itemId);
+        await this.service.resendVerificationCode(req.body.itemId);
 
-                return Response.sendEmptySuccessResponse(req, res);
-            }
-        );
-    }
+        return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+  }
 }

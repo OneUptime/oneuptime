@@ -1,148 +1,146 @@
-import { Blue500, BrightColors } from 'Common/Types/BrandColors';
-import CalendarEvent from 'Common/Types/Calendar/CalendarEvent';
-import Color from 'Common/Types/Color';
-import OneUptimeDate from 'Common/Types/Date';
-import Dictionary from 'Common/Types/Dictionary';
-import HashCode from 'Common/Types/HashCode';
-import LayerUtil, { LayerProps } from 'Common/Types/OnCallDutyPolicy/Layer';
-import StartAndEndTime from 'Common/Types/Time/StartAndEndTime';
-import Calendar from 'CommonUI/src/Components/Calendar/Calendar';
-import FieldLabelElement from 'CommonUI/src/Components/Forms/Fields/FieldLabel';
-import OnCallDutyPolicyScheduleLayer from 'Model/Models/OnCallDutyPolicyScheduleLayer';
-import OnCallDutyPolicyScheduleLayerUser from 'Model/Models/OnCallDutyPolicyScheduleLayerUser';
-import User from 'Model/Models/User';
+import { Blue500, BrightColors } from "Common/Types/BrandColors";
+import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
+import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import HashCode from "Common/Types/HashCode";
+import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
+import Calendar from "CommonUI/src/Components/Calendar/Calendar";
+import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
+import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import User from "Model/Models/User";
 import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 export interface ComponentProps {
-    layers: Array<OnCallDutyPolicyScheduleLayer>;
-    allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
-    showFieldLabel?: boolean;
-    id?: string | undefined;
+  layers: Array<OnCallDutyPolicyScheduleLayer>;
+  allLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
+  showFieldLabel?: boolean;
+  id?: string | undefined;
 }
 
 const LayersPreview: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    const [startTime, setStartTime] = useState<Date>(
-        OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate())
-    );
-    const [endTime, setEndTime] = useState<Date>(
-        OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate())
-    );
+  const [startTime, setStartTime] = useState<Date>(
+    OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate()),
+  );
+  const [endTime, setEndTime] = useState<Date>(
+    OneUptimeDate.getEndOfDay(OneUptimeDate.getCurrentDate()),
+  );
 
-    const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
-        []
-    );
+  const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
+    [],
+  );
 
-    useEffect(() => {
-        setCalendarEvents(getCalendarEvents(startTime, endTime));
-    }, [props.layers, props.allLayerUsers, startTime, endTime]);
+  useEffect(() => {
+    setCalendarEvents(getCalendarEvents(startTime, endTime));
+  }, [props.layers, props.allLayerUsers, startTime, endTime]);
 
-    type GetCalendarEventsFunction = (
-        calendarStartTime: Date,
-        calendarEndTime: Date
-    ) => Array<CalendarEvent>;
+  type GetCalendarEventsFunction = (
+    calendarStartTime: Date,
+    calendarEndTime: Date,
+  ) => Array<CalendarEvent>;
 
-    const getCalendarEvents: GetCalendarEventsFunction = (
-        calendarStartTime: Date,
-        calendarEndTime: Date
-    ): Array<CalendarEvent> => {
-        const layerProps: Array<LayerProps> = [];
+  const getCalendarEvents: GetCalendarEventsFunction = (
+    calendarStartTime: Date,
+    calendarEndTime: Date,
+  ): Array<CalendarEvent> => {
+    const layerProps: Array<LayerProps> = [];
 
-        const users: Array<User> = [];
+    const users: Array<User> = [];
 
-        for (const key in props.allLayerUsers) {
-            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
-                props.allLayerUsers[key] || [];
+    for (const key in props.allLayerUsers) {
+      const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+        props.allLayerUsers[key] || [];
 
-            for (const layerUser of layerUsers) {
-                users.push(layerUser.user!);
-            }
-        }
+      for (const layerUser of layerUsers) {
+        users.push(layerUser.user!);
+      }
+    }
 
-        for (const layer of props.layers) {
-            const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
-                props.allLayerUsers[layer.id?.toString() || ''] || [];
+    for (const layer of props.layers) {
+      const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+        props.allLayerUsers[layer.id?.toString() || ""] || [];
 
-            layerProps.push({
-                users: layerUsers.map(
-                    (layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-                        return layerUser.user!;
-                    }
-                ),
-                startDateTimeOfLayer: layer.startsAt!,
-                handOffTime: layer.handOffTime!,
-                rotation: layer.rotation!,
-                restrictionTimes: layer.restrictionTimes!,
-            });
-        }
+      layerProps.push({
+        users: layerUsers.map(
+          (layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+            return layerUser.user!;
+          },
+        ),
+        startDateTimeOfLayer: layer.startsAt!,
+        handOffTime: layer.handOffTime!,
+        rotation: layer.rotation!,
+        restrictionTimes: layer.restrictionTimes!,
+      });
+    }
 
-        const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents({
-            calendarEndDate: calendarEndTime,
-            calendarStartDate: calendarStartTime,
-            layers: layerProps,
-        });
+    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents({
+      calendarEndDate: calendarEndTime,
+      calendarStartDate: calendarStartTime,
+      layers: layerProps,
+    });
 
-        // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
+    // Assign colors to each user based on id. Hash the id and mod it by the length of the color list.
 
-        const colorListLength: number = BrightColors.length;
+    const colorListLength: number = BrightColors.length;
 
-        events.forEach((event: CalendarEvent) => {
-            const userId: string = event.title;
+    events.forEach((event: CalendarEvent) => {
+      const userId: string = event.title;
 
-            const user: User | undefined = users.find((user: User) => {
-                return user.id?.toString() === userId;
-            });
+      const user: User | undefined = users.find((user: User) => {
+        return user.id?.toString() === userId;
+      });
 
-            if (!user) {
-                return;
-            }
+      if (!user) {
+        return;
+      }
 
-            const colorIndex: number =
-                HashCode.fromString(userId) % colorListLength;
+      const colorIndex: number = HashCode.fromString(userId) % colorListLength;
 
-            event.color =
-                (BrightColors[colorIndex] as Color)?.toString() ||
-                Blue500.toString();
+      event.color =
+        (BrightColors[colorIndex] as Color)?.toString() || Blue500.toString();
 
-            event.title = `${
-                (user.name?.toString() || '') +
-                ' ' +
-                '(' +
-                (user.email?.toString() || '') +
-                ')'
-            }`;
-        });
+      event.title = `${
+        (user.name?.toString() || "") +
+        " " +
+        "(" +
+        (user.email?.toString() || "") +
+        ")"
+      }`;
+    });
 
-        return events;
-    };
+    return events;
+  };
 
-    return (
-        <div id={props.id}>
-            {props.showFieldLabel && (
-                <FieldLabelElement
-                    required={true}
-                    title="Layer Preview"
-                    description={
-                        'Here is a preview of who is on call and when. This is based on your local timezone - ' +
-                        OneUptimeDate.getCurrentTimezoneString()
-                    }
-                />
-            )}
-            <Calendar
-                events={calendarEvents}
-                onRangeChange={(startEndTime: StartAndEndTime) => {
-                    setStartTime(startEndTime.startTime);
-                    setEndTime(startEndTime.endTime);
-                }}
-            />
-        </div>
-    );
+  return (
+    <div id={props.id}>
+      {props.showFieldLabel && (
+        <FieldLabelElement
+          required={true}
+          title="Layer Preview"
+          description={
+            "Here is a preview of who is on call and when. This is based on your local timezone - " +
+            OneUptimeDate.getCurrentTimezoneString()
+          }
+        />
+      )}
+      <Calendar
+        events={calendarEvents}
+        onRangeChange={(startEndTime: StartAndEndTime) => {
+          setStartTime(startEndTime.startTime);
+          setEndTime(startEndTime.endTime);
+        }}
+      />
+    </div>
+  );
 };
 
 export default LayersPreview;

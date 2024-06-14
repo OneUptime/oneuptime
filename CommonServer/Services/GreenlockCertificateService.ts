@@ -1,11 +1,11 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService from './DatabaseService';
-import Model from 'Model/Models/GreenlockCertificate';
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import DatabaseService from "./DatabaseService";
+import Model from "Model/Models/GreenlockCertificate";
 
 export class Service extends DatabaseService<Model> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
-    }
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(Model, postgresDatabase);
+  }
 }
 
 export default new Service();

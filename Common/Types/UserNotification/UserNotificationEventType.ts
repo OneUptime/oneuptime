@@ -1,5 +1,5 @@
 enum UserNotificationEventType {
-    IncidentCreated = 'Incident Created',
+  IncidentCreated = "Incident Created",
 }
 
 export default UserNotificationEventType;

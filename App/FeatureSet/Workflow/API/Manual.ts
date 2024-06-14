@@ -1,45 +1,45 @@
-import QueueWorkflow from '../Services/QueueWorkflow';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
+import QueueWorkflow from "../Services/QueueWorkflow";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
 import Express, {
-    ExpressRequest,
-    ExpressResponse,
-    ExpressRouter,
-} from 'CommonServer/Utils/Express';
-import Response from 'CommonServer/Utils/Response';
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+} from "CommonServer/Utils/Express";
+import Response from "CommonServer/Utils/Response";
 
 export default class ManualAPI {
-    public router!: ExpressRouter;
+  public router!: ExpressRouter;
 
-    public constructor() {
-        this.router = Express.getRouter();
+  public constructor() {
+    this.router = Express.getRouter();
 
-        this.router.get(`/run/:workflowId`, this.manuallyRunWorkflow);
+    this.router.get(`/run/:workflowId`, this.manuallyRunWorkflow);
 
-        this.router.post(`/run/:workflowId`, this.manuallyRunWorkflow);
+    this.router.post(`/run/:workflowId`, this.manuallyRunWorkflow);
+  }
+
+  public async manuallyRunWorkflow(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    // add this workflow to the run queue and return the 200 response.
+
+    if (!req.params["workflowId"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("workflowId not found in URL"),
+      );
     }
 
-    public async manuallyRunWorkflow(
-        req: ExpressRequest,
-        res: ExpressResponse
-    ): Promise<void> {
-        // add this workflow to the run queue and return the 200 response.
+    await QueueWorkflow.addWorkflowToQueue({
+      workflowId: new ObjectID(req.params["workflowId"] as string),
+      returnValues: req.body.data || {},
+    });
 
-        if (!req.params['workflowId']) {
-            return Response.sendErrorResponse(
-                req,
-                res,
-                new BadDataException('workflowId not found in URL')
-            );
-        }
-
-        await QueueWorkflow.addWorkflowToQueue({
-            workflowId: new ObjectID(req.params['workflowId'] as string),
-            returnValues: req.body.data || {},
-        });
-
-        return Response.sendJsonObjectResponse(req, res, {
-            status: 'Scheduled',
-        });
-    }
+    return Response.sendJsonObjectResponse(req, res, {
+      status: "Scheduled",
+    });
+  }
 }

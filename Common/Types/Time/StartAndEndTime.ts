@@ -1,4 +1,4 @@
 export default interface StartAndEndTime {
-    startTime: Date;
-    endTime: Date;
+  startTime: Date;
+  endTime: Date;
 }

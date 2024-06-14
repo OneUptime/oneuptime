@@ -1,26 +1,22 @@
-import Loader, { LoaderType } from './Loader';
-import { VeryLightGray } from 'Common/Types/BrandColors';
-import React, { FunctionComponent, ReactElement } from 'react';
+import Loader, { LoaderType } from "./Loader";
+import { VeryLightGray } from "Common/Types/BrandColors";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    isVisible: boolean;
+  isVisible: boolean;
 }
 
 const PageLoader: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    if (props.isVisible) {
-        return (
-            <div className="m-auto w-full text-center w-max mt-52 align-middle flex items-center">
-                <Loader
-                    loaderType={LoaderType.Bar}
-                    color={VeryLightGray}
-                    size={200}
-                />
-            </div>
-        );
-    }
-    return <></>;
+  if (props.isVisible) {
+    return (
+      <div className="m-auto w-full text-center w-max mt-52 align-middle flex items-center">
+        <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
+      </div>
+    );
+  }
+  return <></>;
 };
 
 export default PageLoader;

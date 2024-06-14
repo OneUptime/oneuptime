@@ -1,25 +1,25 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import CreateBy from '../Types/Database/CreateBy';
-import { OnCreate } from '../Types/Database/Hooks';
-import DatabaseService from './DatabaseService';
-import ObjectID from 'Common/Types/ObjectID';
-import Model from 'Model/Models/CodeRepository';
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
+import DatabaseService from "./DatabaseService";
+import ObjectID from "Common/Types/ObjectID";
+import Model from "Model/Models/CodeRepository";
 
 export class Service extends DatabaseService<Model> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
-    }
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(Model, postgresDatabase);
+  }
 
-    protected override async onBeforeCreate(
-        createBy: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
-        createBy.data.secretToken = ObjectID.generate();
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    createBy.data.secretToken = ObjectID.generate();
 
-        return {
-            carryForward: null,
-            createBy: createBy,
-        };
-    }
+    return {
+      carryForward: null,
+      createBy: createBy,
+    };
+  }
 }
 
 export default new Service();

@@ -1,11 +1,11 @@
-import DatabaseService from '../../../../Services/DatabaseService';
-import OnTriggerBaseModel from './OnTriggerBaseModel';
-import BaseModel from 'Common/Models/BaseModel';
+import DatabaseService from "../../../../Services/DatabaseService";
+import OnTriggerBaseModel from "./OnTriggerBaseModel";
+import BaseModel from "Common/Models/BaseModel";
 
 export default class OnCreateBaseModel<
-    TBaseModel extends BaseModel
+  TBaseModel extends BaseModel,
 > extends OnTriggerBaseModel<TBaseModel> {
-    public constructor(modelService: DatabaseService<TBaseModel>) {
-        super(modelService, 'on-create');
-    }
+  public constructor(modelService: DatabaseService<TBaseModel>) {
+    super(modelService, "on-create");
+  }
 }

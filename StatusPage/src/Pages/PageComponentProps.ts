@@ -1,6 +1,6 @@
-import Route from 'Common/Types/API/Route';
+import Route from "Common/Types/API/Route";
 
 export default interface ComponentProps {
-    pageRoute: Route;
-    onLoadComplete: () => void;
+  pageRoute: Route;
+  onLoadComplete: () => void;
 }

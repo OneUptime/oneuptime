@@ -1,135 +1,125 @@
 import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import 'react-toggle/style.css';
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import "react-toggle/style.css";
 
 export interface RadioButton {
-    title: string;
-    description?: string | undefined;
-    value: string;
-    sideTitle?: string | undefined;
-    sideDescription?: string | undefined;
+  title: string;
+  description?: string | undefined;
+  value: string;
+  sideTitle?: string | undefined;
+  sideDescription?: string | undefined;
 }
 
 export interface ComponentProps {
-    onChange: (value: string) => void;
-    initialValue?: string | undefined;
-    options: Array<RadioButton>;
-    error?: string | undefined;
-    dataTestId?: string | undefined;
+  onChange: (value: string) => void;
+  initialValue?: string | undefined;
+  options: Array<RadioButton>;
+  error?: string | undefined;
+  dataTestId?: string | undefined;
 }
 
 const RadioButtons: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+  props: ComponentProps,
 ): ReactElement => {
-    const [value, setValue] = useState<string>('');
+  const [value, setValue] = useState<string>("");
 
-    useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue);
-            props.onChange(props.initialValue);
-        } else {
-            setValue('');
-            props.onChange('');
-        }
-    }, [props.initialValue]);
+  useEffect(() => {
+    if (props.initialValue) {
+      setValue(props.initialValue);
+      props.onChange(props.initialValue);
+    } else {
+      setValue("");
+      props.onChange("");
+    }
+  }, [props.initialValue]);
 
-    type HandleChangeFunction = (content: string) => void;
+  type HandleChangeFunction = (content: string) => void;
 
-    const handleChange: HandleChangeFunction = (content: string): void => {
-        setValue(content);
-        props.onChange(content);
-    };
+  const handleChange: HandleChangeFunction = (content: string): void => {
+    setValue(content);
+    props.onChange(content);
+  };
 
-    return (
-        <div>
-            <fieldset role="radiogroup" data-testid={props.dataTestId}>
-                <div className="space-y-2 mt-2">
-                    {props.options &&
-                        props.options.map(
-                            (radioButton: RadioButton, i: number) => {
-                                let className: string =
-                                    'relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between';
+  return (
+    <div>
+      <fieldset role="radiogroup" data-testid={props.dataTestId}>
+        <div className="space-y-2 mt-2">
+          {props.options &&
+            props.options.map((radioButton: RadioButton, i: number) => {
+              let className: string =
+                "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between";
 
-                                if (value === radioButton.value) {
-                                    className =
-                                        'relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between border-indigo-500 ring-2 ring-indigo-500';
-                                }
+              if (value === radioButton.value) {
+                className =
+                  "relative block cursor-pointer rounded-lg border bg-white px-6 py-4 shadow-sm focus:outline-none sm:flex sm:justify-between border-indigo-500 ring-2 ring-indigo-500";
+              }
 
-                                return (
-                                    <label
-                                        key={i}
-                                        className={className}
-                                        onClick={() => {
-                                            handleChange(radioButton.value);
-                                        }}
-                                    >
-                                        <input
-                                            type="radio"
-                                            className="sr-only"
-                                            aria-labelledby={`server-size-${i}-label`}
-                                            aria-describedby={`server-size-${i}-description-0 server-size-${i}-description-1`}
-                                            defaultChecked={
-                                                props.initialValue ===
-                                                radioButton.value
-                                            }
-                                        />
-                                        <span className="flex items-center">
-                                            <span className="flex flex-col text-sm">
-                                                <span
-                                                    id={`server-size-${i}-label`}
-                                                    className="font-medium text-gray-900"
-                                                >
-                                                    {radioButton.title}
-                                                </span>
-                                                <span
-                                                    id={`server-size-${i}-description-0`}
-                                                    className="text-gray-500"
-                                                >
-                                                    <span className="block sm:inline">
-                                                        {' '}
-                                                        {
-                                                            radioButton.description
-                                                        }
-                                                    </span>
-                                                </span>
-                                            </span>
-                                        </span>
-                                        <span
-                                            id={`server-size-${i}-description-1`}
-                                            className="mt-2 flex text-sm sm:mt-0 sm:ml-4 sm:flex-col sm:text-right"
-                                        >
-                                            <span className="font-medium text-gray-900">
-                                                {radioButton.sideTitle}
-                                            </span>
-                                            <span className="ml-1 text-gray-500 sm:ml-0">
-                                                {radioButton.sideDescription}
-                                            </span>
-                                        </span>
-
-                                        <span
-                                            className="pointer-events-none absolute -inset-px rounded-lg border-2"
-                                            aria-hidden="true"
-                                        ></span>
-                                    </label>
-                                );
-                            }
-                        )}
-                </div>
-            </fieldset>
-            {props.error && (
-                <p
-                    data-testid="error-message"
-                    className="mt-1 text-sm text-red-400"
+              return (
+                <label
+                  key={i}
+                  className={className}
+                  onClick={() => {
+                    handleChange(radioButton.value);
+                  }}
                 >
-                    {props.error}
-                </p>
-            )}
+                  <input
+                    type="radio"
+                    className="sr-only"
+                    aria-labelledby={`server-size-${i}-label`}
+                    aria-describedby={`server-size-${i}-description-0 server-size-${i}-description-1`}
+                    defaultChecked={props.initialValue === radioButton.value}
+                  />
+                  <span className="flex items-center">
+                    <span className="flex flex-col text-sm">
+                      <span
+                        id={`server-size-${i}-label`}
+                        className="font-medium text-gray-900"
+                      >
+                        {radioButton.title}
+                      </span>
+                      <span
+                        id={`server-size-${i}-description-0`}
+                        className="text-gray-500"
+                      >
+                        <span className="block sm:inline">
+                          {" "}
+                          {radioButton.description}
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                  <span
+                    id={`server-size-${i}-description-1`}
+                    className="mt-2 flex text-sm sm:mt-0 sm:ml-4 sm:flex-col sm:text-right"
+                  >
+                    <span className="font-medium text-gray-900">
+                      {radioButton.sideTitle}
+                    </span>
+                    <span className="ml-1 text-gray-500 sm:ml-0">
+                      {radioButton.sideDescription}
+                    </span>
+                  </span>
+
+                  <span
+                    className="pointer-events-none absolute -inset-px rounded-lg border-2"
+                    aria-hidden="true"
+                  ></span>
+                </label>
+              );
+            })}
         </div>
-    );
+      </fieldset>
+      {props.error && (
+        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+          {props.error}
+        </p>
+      )}
+    </div>
+  );
 };
 
 export default RadioButtons;

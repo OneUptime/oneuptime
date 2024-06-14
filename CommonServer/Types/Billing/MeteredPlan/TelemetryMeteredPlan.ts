@@ -1,137 +1,134 @@
-import BillingService from '../../../Services/BillingService';
-import ProjectService from '../../../Services/ProjectService';
-import TelemetryUsageBillingService from '../../../Services/TelemetryUsageBillingService';
-import ServerMeteredPlan from './ServerMeteredPlan';
-import OneUptimeDate from 'Common/Types/Date';
-import ProductType from 'Common/Types/MeteredPlan/ProductType';
-import ObjectID from 'Common/Types/ObjectID';
-import Project from 'Model/Models/Project';
-import TelemetryUsageBilling from 'Model/Models/TelemetryUsageBilling';
+import BillingService from "../../../Services/BillingService";
+import ProjectService from "../../../Services/ProjectService";
+import TelemetryUsageBillingService from "../../../Services/TelemetryUsageBillingService";
+import ServerMeteredPlan from "./ServerMeteredPlan";
+import OneUptimeDate from "Common/Types/Date";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import ObjectID from "Common/Types/ObjectID";
+import Project from "Model/Models/Project";
+import TelemetryUsageBilling from "Model/Models/TelemetryUsageBilling";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
-    private _productType!: ProductType;
-    public get productType(): ProductType {
-        return this._productType;
+  private _productType!: ProductType;
+  public get productType(): ProductType {
+    return this._productType;
+  }
+  public set productType(v: ProductType) {
+    this._productType = v;
+  }
+
+  private _unitCostInUSD: number = 0;
+  public get unitCostInUSD(): number {
+    return this._unitCostInUSD;
+  }
+  public set unitCostInUSD(v: number) {
+    this._unitCostInUSD = v;
+  }
+
+  public constructor(data: {
+    productType: ProductType;
+    unitCostInUSD: number;
+  }) {
+    super();
+    this.productType = data.productType;
+    this.unitCostInUSD = data.unitCostInUSD;
+  }
+
+  public getTotalCostInUSD(data: {
+    dataIngestedInGB: number;
+    retentionInDays: number;
+  }): number {
+    return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;
+  }
+
+  public override getProductType(): ProductType {
+    return this.productType;
+  }
+
+  public override async reportQuantityToBillingProvider(
+    projectId: ObjectID,
+    options?: {
+      meteredPlanSubscriptionId?: string | undefined;
+    },
+  ): Promise<void> {
+    // get all unreported logs
+
+    const usageBillings: Array<TelemetryUsageBilling> =
+      await TelemetryUsageBillingService.getUnreportedUsageBilling({
+        projectId: projectId,
+        productType: this.productType,
+      });
+
+    if (usageBillings.length === 0) {
+      return;
     }
-    public set productType(v: ProductType) {
-        this._productType = v;
+
+    // calculate all the total usage count and report it to billing provider.
+
+    let totalCostInUSD: number = 0;
+
+    for (const usageBilling of usageBillings) {
+      if (
+        usageBilling?.totalCostInUSD?.value &&
+        usageBilling?.totalCostInUSD.value > 0
+      ) {
+        totalCostInUSD += usageBilling.totalCostInUSD.value;
+      }
     }
 
-    private _unitCostInUSD: number = 0;
-    public get unitCostInUSD(): number {
-        return this._unitCostInUSD;
-    }
-    public set unitCostInUSD(v: number) {
-        this._unitCostInUSD = v;
+    if (totalCostInUSD < 1) {
+      return; // too low to report.
     }
 
-    public constructor(data: {
-        productType: ProductType;
-        unitCostInUSD: number;
-    }) {
-        super();
-        this.productType = data.productType;
-        this.unitCostInUSD = data.unitCostInUSD;
-    }
+    // convert USD to cents.
 
-    public getTotalCostInUSD(data: {
-        dataIngestedInGB: number;
-        retentionInDays: number;
-    }): number {
-        return (
-            data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD
-        );
-    }
+    let totalCostInCents: number = totalCostInUSD * 100;
 
-    public override getProductType(): ProductType {
-        return this.productType;
-    }
+    // convert this to integer.
 
-    public override async reportQuantityToBillingProvider(
-        projectId: ObjectID,
-        options?: {
-            meteredPlanSubscriptionId?: string | undefined;
-        }
-    ): Promise<void> {
-        // get all unreported logs
+    totalCostInCents = Math.ceil(totalCostInCents);
 
-        const usageBillings: Array<TelemetryUsageBilling> =
-            await TelemetryUsageBillingService.getUnreportedUsageBilling({
-                projectId: projectId,
-                productType: this.productType,
-            });
+    // update this count in project as well.
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        paymentProviderMeteredSubscriptionId: true,
+        paymentProviderPlanId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-        if (usageBillings.length === 0) {
-            return;
-        }
+    if (
+      project &&
+      (options?.meteredPlanSubscriptionId ||
+        project.paymentProviderMeteredSubscriptionId) &&
+      project.paymentProviderPlanId
+    ) {
+      await BillingService.addOrUpdateMeteredPricingOnSubscription(
+        (options?.meteredPlanSubscriptionId as string) ||
+          (project.paymentProviderMeteredSubscriptionId as string),
+        this,
+        totalCostInCents,
+      );
 
-        // calculate all the total usage count and report it to billing provider.
+      for (const usageBilling of usageBillings) {
+        if (usageBilling.id) {
+          // now mark it as reported.
 
-        let totalCostInUSD: number = 0;
-
-        for (const usageBilling of usageBillings) {
-            if (
-                usageBilling?.totalCostInUSD?.value &&
-                usageBilling?.totalCostInUSD.value > 0
-            ) {
-                totalCostInUSD += usageBilling.totalCostInUSD.value;
-            }
-        }
-
-        if (totalCostInUSD < 1) {
-            return; // too low to report.
-        }
-
-        // convert USD to cents.
-
-        let totalCostInCents: number = totalCostInUSD * 100;
-
-        // convert this to integer.
-
-        totalCostInCents = Math.ceil(totalCostInCents);
-
-        // update this count in project as well.
-        const project: Project | null = await ProjectService.findOneById({
-            id: projectId,
-            select: {
-                paymentProviderMeteredSubscriptionId: true,
-                paymentProviderPlanId: true,
+          await TelemetryUsageBillingService.updateOneById({
+            id: usageBilling.id,
+            data: {
+              isReportedToBillingProvider: true,
+              reportedToBillingProviderAt: OneUptimeDate.getCurrentDate(),
             },
             props: {
-                isRoot: true,
+              isRoot: true,
             },
-        });
-
-        if (
-            project &&
-            (options?.meteredPlanSubscriptionId ||
-                project.paymentProviderMeteredSubscriptionId) &&
-            project.paymentProviderPlanId
-        ) {
-            await BillingService.addOrUpdateMeteredPricingOnSubscription(
-                (options?.meteredPlanSubscriptionId as string) ||
-                    (project.paymentProviderMeteredSubscriptionId as string),
-                this,
-                totalCostInCents
-            );
-
-            for (const usageBilling of usageBillings) {
-                if (usageBilling.id) {
-                    // now mark it as reported.
-
-                    await TelemetryUsageBillingService.updateOneById({
-                        id: usageBilling.id,
-                        data: {
-                            isReportedToBillingProvider: true,
-                            reportedToBillingProviderAt:
-                                OneUptimeDate.getCurrentDate(),
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-                }
-            }
+          });
         }
+      }
     }
+  }
 }

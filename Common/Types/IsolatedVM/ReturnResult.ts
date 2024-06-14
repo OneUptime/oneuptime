@@ -1,4 +1,4 @@
 export default interface ReturnResult {
-    returnValue: any;
-    logMessages: string[];
+  returnValue: any;
+  logMessages: string[];
 }

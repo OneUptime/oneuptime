@@ -1,283 +1,281 @@
-import Input, { ComponentProps, InputType } from '../../Components/Input/Input';
-import '@testing-library/jest-dom/extend-expect';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
-
-describe('Input', () => {
-    afterEach(() => {
-        cleanup();
-    });
-
-    test('renders input element with no props', () => {
-        const { getByRole } = render(<Input />);
-        const input: HTMLElement = getByRole('textbox');
-
-        expect(input).toBeInTheDocument();
-    });
-
-    test('renders input element with all props set', () => {
-        const props: ComponentProps = {
-            initialValue: 'initial value',
-            onClick: () => {},
-            placeholder: 'placeholder',
-            className: 'className',
-            onChange: () => {},
-            value: 'value',
-            readOnly: true,
-            disabled: true,
-            type: InputType.TEXT,
-            onFocus: () => {},
-            onBlur: () => {},
-            dataTestId: 'testid',
-            tabIndex: 0,
-            onEnterPress: () => {},
-            error: 'error',
-            outerDivClassName: 'outerDivClassName',
-            autoFocus: true,
-        };
-
-        const { getByRole } = render(<Input {...props} />);
-        const input: HTMLElement = getByRole('textbox');
+import Input, { ComponentProps, InputType } from "../../Components/Input/Input";
+import "@testing-library/jest-dom/extend-expect";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import React from "react";
+
+describe("Input", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("renders input element with no props", () => {
+    const { getByRole } = render(<Input />);
+    const input: HTMLElement = getByRole("textbox");
+
+    expect(input).toBeInTheDocument();
+  });
+
+  test("renders input element with all props set", () => {
+    const props: ComponentProps = {
+      initialValue: "initial value",
+      onClick: () => {},
+      placeholder: "placeholder",
+      className: "className",
+      onChange: () => {},
+      value: "value",
+      readOnly: true,
+      disabled: true,
+      type: InputType.TEXT,
+      onFocus: () => {},
+      onBlur: () => {},
+      dataTestId: "testid",
+      tabIndex: 0,
+      onEnterPress: () => {},
+      error: "error",
+      outerDivClassName: "outerDivClassName",
+      autoFocus: true,
+    };
+
+    const { getByRole } = render(<Input {...props} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(input).toBeInTheDocument();
-    });
+    expect(input).toBeInTheDocument();
+  });
 
-    test('calls onChange when input value changes', () => {
-        const onChange: jest.Mock = jest.fn();
-        const newValue: string = 'new value';
+  test("calls onChange when input value changes", () => {
+    const onChange: jest.Mock = jest.fn();
+    const newValue: string = "new value";
 
-        const { getByRole } = render(<Input {...{ onChange }} />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.change(input, { target: { value: newValue } });
+    const { getByRole } = render(<Input {...{ onChange }} />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.change(input, { target: { value: newValue } });
 
-        expect(onChange).toHaveBeenCalledWith(newValue);
-    });
+    expect(onChange).toHaveBeenCalledWith(newValue);
+  });
 
-    test('changes input value on input', () => {
-        const newValue: string = 'new value';
+  test("changes input value on input", () => {
+    const newValue: string = "new value";
 
-        const { getByRole } = render(<Input />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.change(input, { target: { value: newValue } });
+    const { getByRole } = render(<Input />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.change(input, { target: { value: newValue } });
 
-        expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
+  });
 
-    test('calls onClick when input is clicked', () => {
-        const onClick: jest.Mock = jest.fn();
+  test("calls onClick when input is clicked", () => {
+    const onClick: jest.Mock = jest.fn();
 
-        const { getByRole } = render(<Input {...{ onClick }} />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.click(input);
+    const { getByRole } = render(<Input {...{ onClick }} />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.click(input);
 
-        expect(onClick).toHaveBeenCalled();
-    });
+    expect(onClick).toHaveBeenCalled();
+  });
 
-    test('calls onFocus when input is focused', () => {
-        const onFocus: jest.Mock = jest.fn();
+  test("calls onFocus when input is focused", () => {
+    const onFocus: jest.Mock = jest.fn();
 
-        const { getByRole } = render(<Input {...{ onFocus }} />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.focus(input);
+    const { getByRole } = render(<Input {...{ onFocus }} />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.focus(input);
 
-        expect(onFocus).toHaveBeenCalled();
-    });
+    expect(onFocus).toHaveBeenCalled();
+  });
 
-    test('calls onBlur when input loses focus', () => {
-        const onBlur: jest.Mock = jest.fn();
+  test("calls onBlur when input loses focus", () => {
+    const onBlur: jest.Mock = jest.fn();
 
-        const { getByRole } = render(<Input {...{ onBlur }} />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.blur(input);
+    const { getByRole } = render(<Input {...{ onBlur }} />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.blur(input);
 
-        expect(onBlur).toHaveBeenCalled();
-    });
+    expect(onBlur).toHaveBeenCalled();
+  });
 
-    test('calls onEnterPress when Enter key is pressed', () => {
-        const onEnterPress: jest.Mock = jest.fn();
+  test("calls onEnterPress when Enter key is pressed", () => {
+    const onEnterPress: jest.Mock = jest.fn();
 
-        const { getByRole } = render(<Input {...{ onEnterPress }} />);
-        const input: HTMLElement = getByRole('textbox');
-        fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    const { getByRole } = render(<Input {...{ onEnterPress }} />);
+    const input: HTMLElement = getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
 
-        expect(onEnterPress).toHaveBeenCalled();
-    });
+    expect(onEnterPress).toHaveBeenCalled();
+  });
 
-    test('sets initialValue', () => {
-        const initialValue: string = 'initial value';
-        render(<Input {...{ initialValue }} />);
+  test("sets initialValue", () => {
+    const initialValue: string = "initial value";
+    render(<Input {...{ initialValue }} />);
 
-        expect(screen.getByDisplayValue(initialValue)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(initialValue)).toBeInTheDocument();
+  });
 
-    test('sets value', () => {
-        const value: string = 'value';
-        render(<Input {...{ value }} />);
+  test("sets value", () => {
+    const value: string = "value";
+    render(<Input {...{ value }} />);
 
-        expect(screen.getByDisplayValue(value)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(value)).toBeInTheDocument();
+  });
 
-    test('value overrides initialValue', () => {
-        const value: string = 'value';
-        const initialValue: string = 'initial value';
+  test("value overrides initialValue", () => {
+    const value: string = "value";
+    const initialValue: string = "initial value";
 
-        render(<Input {...{ value, initialValue }} />);
+    render(<Input {...{ value, initialValue }} />);
 
-        expect(screen.getByDisplayValue(value)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(value)).toBeInTheDocument();
+  });
 
-    test('updates input when value changes', () => {
-        const value: string = 'value';
-        const { rerender } = render(<Input {...{ value }} />);
+  test("updates input when value changes", () => {
+    const value: string = "value";
+    const { rerender } = render(<Input {...{ value }} />);
 
-        const newValue: string = 'new value';
-        rerender(<Input {...{ value: newValue }} />);
+    const newValue: string = "new value";
+    rerender(<Input {...{ value: newValue }} />);
 
-        expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(newValue)).toBeInTheDocument();
+  });
 
-    test('resets input to initialValue when value changes to empty string', () => {
-        const value: string = 'value';
-        const initialValue: string = 'initial value';
+  test("resets input to initialValue when value changes to empty string", () => {
+    const value: string = "value";
+    const initialValue: string = "initial value";
 
-        const { rerender } = render(<Input {...{ value, initialValue }} />);
+    const { rerender } = render(<Input {...{ value, initialValue }} />);
 
-        const newValue: string = '';
-        rerender(<Input {...{ value: newValue, initialValue }} />);
+    const newValue: string = "";
+    rerender(<Input {...{ value: newValue, initialValue }} />);
 
-        expect(screen.getByDisplayValue(initialValue)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(initialValue)).toBeInTheDocument();
+  });
 
-    test('sets placeholder attribute', () => {
-        const placeholder: string = 'placeholder';
-        render(<Input {...{ placeholder }} />);
+  test("sets placeholder attribute", () => {
+    const placeholder: string = "placeholder";
+    render(<Input {...{ placeholder }} />);
 
-        expect(screen.getByPlaceholderText(placeholder)).toBeInTheDocument();
-    });
+    expect(screen.getByPlaceholderText(placeholder)).toBeInTheDocument();
+  });
 
-    test('sets className', () => {
-        const className: string = 'className';
-        const { getByRole } = render(<Input {...{ className }} />);
-        const input: HTMLElement = getByRole('textbox');
+  test("sets className", () => {
+    const className: string = "className";
+    const { getByRole } = render(<Input {...{ className }} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(Array.from(input.classList.values())).toEqual([className]);
-    });
+    expect(Array.from(input.classList.values())).toEqual([className]);
+  });
 
-    test('sets default className', () => {
-        const { getByRole } = render(<Input />);
-        const input: HTMLElement = getByRole('textbox');
+  test("sets default className", () => {
+    const { getByRole } = render(<Input />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(input.classList.length).toBeGreaterThan(0);
-    });
+    expect(input.classList.length).toBeGreaterThan(0);
+  });
 
-    test('sets readonly attribute when readOnly is true', () => {
-        const { getByRole } = render(<Input readOnly={true} />);
-        const input: HTMLElement = getByRole('textbox');
+  test("sets readonly attribute when readOnly is true", () => {
+    const { getByRole } = render(<Input readOnly={true} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(input).toHaveAttribute('readonly');
-    });
+    expect(input).toHaveAttribute("readonly");
+  });
 
-    test('sets readonly attribute when disabled is true', () => {
-        const { getByRole } = render(<Input disabled={true} />);
-        const input: HTMLElement = getByRole('textbox');
+  test("sets readonly attribute when disabled is true", () => {
+    const { getByRole } = render(<Input disabled={true} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(input).toHaveAttribute('readonly');
-    });
+    expect(input).toHaveAttribute("readonly");
+  });
 
-    test('uses local date time string for datetime-local type', () => {
-        const dateTime: string = '2023-04-22';
-        const dataTestId: string = 'testid';
+  test("uses local date time string for datetime-local type", () => {
+    const dateTime: string = "2023-04-22";
+    const dataTestId: string = "testid";
 
-        render(
-            <Input
-                type={InputType.DATETIME_LOCAL}
-                value={dateTime}
-                dataTestId={dataTestId}
-            />
-        );
+    render(
+      <Input
+        type={InputType.DATETIME_LOCAL}
+        value={dateTime}
+        dataTestId={dataTestId}
+      />,
+    );
 
-        expect(screen.getByTestId<HTMLInputElement>(dataTestId).value).toBe(
-            '2023-04-22T00:00'
-        );
-    });
+    expect(screen.getByTestId<HTMLInputElement>(dataTestId).value).toBe(
+      "2023-04-22T00:00",
+    );
+  });
 
-    test('uses YYYY-MM-DD for date type', () => {
-        const date: string = '2023-04-22T00:00:00';
-        const dataTestId: string = 'testid';
+  test("uses YYYY-MM-DD for date type", () => {
+    const date: string = "2023-04-22T00:00:00";
+    const dataTestId: string = "testid";
 
-        render(
-            <Input type={InputType.DATE} value={date} dataTestId={dataTestId} />
-        );
+    render(
+      <Input type={InputType.DATE} value={date} dataTestId={dataTestId} />,
+    );
 
-        expect(screen.getByTestId<HTMLInputElement>(dataTestId).value).toBe(
-            '2023-04-22'
-        );
-    });
+    expect(screen.getByTestId<HTMLInputElement>(dataTestId).value).toBe(
+      "2023-04-22",
+    );
+  });
 
-    test('sets dataTestId', () => {
-        const dataTestId: string = 'testid';
-        const { getByTestId } = render(<Input {...{ dataTestId }} />);
+  test("sets dataTestId", () => {
+    const dataTestId: string = "testid";
+    const { getByTestId } = render(<Input {...{ dataTestId }} />);
 
-        expect(getByTestId(dataTestId)).toBeInTheDocument();
-    });
+    expect(getByTestId(dataTestId)).toBeInTheDocument();
+  });
 
-    test('sets tabIndex', () => {
-        const tabIndex: number = 0;
-        const { getByRole } = render(<Input {...{ tabIndex }} />);
-        const input: HTMLElement = getByRole('textbox');
+  test("sets tabIndex", () => {
+    const tabIndex: number = 0;
+    const { getByRole } = render(<Input {...{ tabIndex }} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        expect(input).toHaveAttribute('tabindex', tabIndex.toString());
-    });
+    expect(input).toHaveAttribute("tabindex", tabIndex.toString());
+  });
 
-    test('displays error message', () => {
-        const error: string = 'error';
-        const errorTestId: string = 'error-message';
+  test("displays error message", () => {
+    const error: string = "error";
+    const errorTestId: string = "error-message";
 
-        render(<Input {...{ error }} />);
+    render(<Input {...{ error }} />);
 
-        expect(screen.getByTestId(errorTestId)).toBeInTheDocument();
-        expect(screen.getByText(error)).toBeInTheDocument();
-    });
+    expect(screen.getByTestId(errorTestId)).toBeInTheDocument();
+    expect(screen.getByText(error)).toBeInTheDocument();
+  });
 
-    test('displays error icon', () => {
-        const error: string = 'error';
+  test("displays error icon", () => {
+    const error: string = "error";
 
-        render(<Input {...{ error }} />);
+    render(<Input {...{ error }} />);
 
-        expect(screen.getByRole('icon')).toBeInTheDocument();
-    });
+    expect(screen.getByRole("icon")).toBeInTheDocument();
+  });
 
-    test('sets error style if error exists', () => {
-        const error: string = 'error';
+  test("sets error style if error exists", () => {
+    const error: string = "error";
 
-        const { getByRole } = render(<Input {...{ error }} />);
-        const input: HTMLElement = getByRole('textbox');
+    const { getByRole } = render(<Input {...{ error }} />);
+    const input: HTMLElement = getByRole("textbox");
 
-        const errorInputClass: string = 'border-red-300';
-        expect(input).toHaveClass(errorInputClass);
-    });
+    const errorInputClass: string = "border-red-300";
+    expect(input).toHaveClass(errorInputClass);
+  });
 
-    test('sets outerDivClassName', () => {
-        const outerDivClassName: string = 'outerDivClassName';
+  test("sets outerDivClassName", () => {
+    const outerDivClassName: string = "outerDivClassName";
 
-        const { getByRole } = render(<Input {...{ outerDivClassName }} />);
+    const { getByRole } = render(<Input {...{ outerDivClassName }} />);
 
-        expect(getByRole('textbox').closest('div')).toHaveClass(
-            outerDivClassName
-        );
-    });
+    expect(getByRole("textbox").closest("div")).toHaveClass(outerDivClassName);
+  });
 
-    test('sets default outerDivClassName', () => {
-        const { getByRole } = render(<Input />);
+  test("sets default outerDivClassName", () => {
+    const { getByRole } = render(<Input />);
 
-        expect(
-            getByRole('textbox').closest('div')?.classList.length
-        ).toBeGreaterThan(0);
-    });
+    expect(
+      getByRole("textbox").closest("div")?.classList.length,
+    ).toBeGreaterThan(0);
+  });
 
-    test('sets autofocus', () => {
-        const { getByRole } = render(<Input autoFocus={true} />);
+  test("sets autofocus", () => {
+    const { getByRole } = render(<Input autoFocus={true} />);
 
-        expect(getByRole('textbox')).toHaveFocus();
-    });
+    expect(getByRole("textbox")).toHaveFocus();
+  });
 });

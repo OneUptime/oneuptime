@@ -1,431 +1,418 @@
 import {
-    GetGitHubToken,
-    GetGitHubUsername,
-    GetLocalRepositoryPath,
-    GetOneUptimeURL,
-    GetRepositorySecretKey,
-} from '../Config';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import URL from 'Common/Types/API/URL';
-import CodeRepositoryType from 'Common/Types/CodeRepository/CodeRepositoryType';
-import PullRequest from 'Common/Types/CodeRepository/PullRequest';
-import PullRequestState from 'Common/Types/CodeRepository/PullRequestState';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import API from 'Common/Utils/API';
-import CodeRepositoryServerUtil from 'CommonServer/Utils/CodeRepository/CodeRepository';
-import GitHubUtil from 'CommonServer/Utils/CodeRepository/GitHub/GitHub';
-import logger from 'CommonServer/Utils/Logger';
-import CodeRepositoryModel from 'Model/Models/CodeRepository';
-import ServiceRepository from 'Model/Models/ServiceRepository';
+  GetGitHubToken,
+  GetGitHubUsername,
+  GetLocalRepositoryPath,
+  GetOneUptimeURL,
+  GetRepositorySecretKey,
+} from "../Config";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import PullRequest from "Common/Types/CodeRepository/PullRequest";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import API from "Common/Utils/API";
+import CodeRepositoryServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
+import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
+import logger from "CommonServer/Utils/Logger";
+import CodeRepositoryModel from "Model/Models/CodeRepository";
+import ServiceRepository from "Model/Models/ServiceRepository";
 
 export interface CodeRepositoryResult {
-    codeRepository: CodeRepositoryModel;
-    servicesRepository: Array<ServiceRepository>;
+  codeRepository: CodeRepositoryModel;
+  servicesRepository: Array<ServiceRepository>;
 }
 
 export default class CodeRepositoryUtil {
-    public static codeRepositoryResult: CodeRepositoryResult | null = null;
-    public static gitHubUtil: GitHubUtil | null = null;
+  public static codeRepositoryResult: CodeRepositoryResult | null = null;
+  public static gitHubUtil: GitHubUtil | null = null;
 
-    public static getGitHubUtil(): GitHubUtil {
-        if (!this.gitHubUtil) {
-            const gitHubToken: string | null = GetGitHubToken();
+  public static getGitHubUtil(): GitHubUtil {
+    if (!this.gitHubUtil) {
+      const gitHubToken: string | null = GetGitHubToken();
 
-            const gitHubUsername: string | null = GetGitHubUsername();
+      const gitHubUsername: string | null = GetGitHubUsername();
 
-            if (!gitHubUsername) {
-                throw new BadDataException('GitHub Username is required');
-            }
+      if (!gitHubUsername) {
+        throw new BadDataException("GitHub Username is required");
+      }
 
-            if (!gitHubToken) {
-                throw new BadDataException('GitHub Token is required');
-            }
+      if (!gitHubToken) {
+        throw new BadDataException("GitHub Token is required");
+      }
 
-            this.gitHubUtil = new GitHubUtil({
-                authToken: gitHubToken,
-                username: gitHubUsername!,
-            });
-        }
-
-        return this.gitHubUtil;
+      this.gitHubUtil = new GitHubUtil({
+        authToken: gitHubToken,
+        username: gitHubUsername!,
+      });
     }
 
-    public static getBranchName(data: {
-        branchName: string;
-        serviceRepository: ServiceRepository;
-    }): string {
-        if (!data.serviceRepository.serviceCatalog) {
-            throw new BadDataException('Service Catalog is required');
-        }
+    return this.gitHubUtil;
+  }
 
-        if (!data.serviceRepository.serviceCatalog.name) {
-            throw new BadDataException('Service Catalog Name is required');
-        }
+  public static getBranchName(data: {
+    branchName: string;
+    serviceRepository: ServiceRepository;
+  }): string {
+    if (!data.serviceRepository.serviceCatalog) {
+      throw new BadDataException("Service Catalog is required");
+    }
 
-        return (
-            'oneuptime-' +
-            data.serviceRepository.serviceCatalog?.name?.toLowerCase() +
-            '-' +
-            data.branchName
+    if (!data.serviceRepository.serviceCatalog.name) {
+      throw new BadDataException("Service Catalog Name is required");
+    }
+
+    return (
+      "oneuptime-" +
+      data.serviceRepository.serviceCatalog?.name?.toLowerCase() +
+      "-" +
+      data.branchName
+    );
+  }
+
+  public static async createBranch(data: {
+    branchName: string;
+    serviceRepository: ServiceRepository;
+  }): Promise<void> {
+    const branchName: string = this.getBranchName({
+      branchName: data.branchName,
+      serviceRepository: data.serviceRepository,
+    });
+
+    await CodeRepositoryServerUtil.createBranch({
+      repoPath: GetLocalRepositoryPath(),
+      branchName: branchName,
+    });
+  }
+
+  public static async createOrCheckoutBranch(data: {
+    serviceRepository: ServiceRepository;
+    branchName: string;
+  }): Promise<void> {
+    const branchName: string = this.getBranchName({
+      branchName: data.branchName,
+      serviceRepository: data.serviceRepository,
+    });
+
+    await CodeRepositoryServerUtil.createOrCheckoutBranch({
+      repoPath: GetLocalRepositoryPath(),
+      branchName: branchName,
+    });
+  }
+
+  public static async writeToFile(data: {
+    filePath: string;
+    content: string;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.writeToFile({
+      repoPath: GetLocalRepositoryPath(),
+      filePath: data.filePath,
+      content: data.content,
+    });
+  }
+
+  public static async createDirectory(data: {
+    directoryPath: string;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.createDirectory({
+      repoPath: GetLocalRepositoryPath(),
+      directoryPath: data.directoryPath,
+    });
+  }
+
+  public static async deleteFile(data: { filePath: string }): Promise<void> {
+    await CodeRepositoryServerUtil.deleteFile({
+      repoPath: GetLocalRepositoryPath(),
+      filePath: data.filePath,
+    });
+  }
+
+  public static async deleteDirectory(data: {
+    directoryPath: string;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.deleteDirectory({
+      repoPath: GetLocalRepositoryPath(),
+      directoryPath: data.directoryPath,
+    });
+  }
+
+  public static async discardChanges(): Promise<void> {
+    await CodeRepositoryServerUtil.discardChanges({
+      repoPath: GetLocalRepositoryPath(),
+    });
+  }
+
+  public static async checkoutBranch(data: {
+    branchName: string;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.checkoutBranch({
+      repoPath: GetLocalRepositoryPath(),
+      branchName: data.branchName,
+    });
+  }
+
+  public static async checkoutMainBranch(): Promise<void> {
+    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+
+    if (!codeRepository.mainBranchName) {
+      throw new BadDataException("Main Branch Name is required");
+    }
+
+    await this.checkoutBranch({
+      branchName: codeRepository.mainBranchName!,
+    });
+  }
+
+  public static async addFilesToGit(data: {
+    filePaths: Array<string>;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.addFilesToGit({
+      repoPath: GetLocalRepositoryPath(),
+      filePaths: data.filePaths,
+    });
+  }
+
+  public static async commitChanges(data: { message: string }): Promise<void> {
+    let username: string | null = null;
+
+    if (
+      this.codeRepositoryResult?.codeRepository.repositoryHostedAt ===
+      CodeRepositoryType.GitHub
+    ) {
+      username = GetGitHubUsername();
+    }
+
+    if (!username) {
+      throw new BadDataException("Username is required");
+    }
+
+    await CodeRepositoryServerUtil.commitChanges({
+      repoPath: GetLocalRepositoryPath(),
+      message: data.message,
+      username: username,
+    });
+  }
+
+  public static async pushChanges(data: {
+    branchName: string;
+    serviceRepository: ServiceRepository;
+  }): Promise<void> {
+    const branchName: string = this.getBranchName({
+      branchName: data.branchName,
+      serviceRepository: data.serviceRepository,
+    });
+
+    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+
+    if (!codeRepository.mainBranchName) {
+      throw new BadDataException("Main Branch Name is required");
+    }
+
+    if (!codeRepository.organizationName) {
+      throw new BadDataException("Organization Name is required");
+    }
+
+    if (!codeRepository.repositoryName) {
+      throw new BadDataException("Repository Name is required");
+    }
+
+    if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
+      return await this.getGitHubUtil().pushChanges({
+        repoPath: GetLocalRepositoryPath(),
+        branchName: branchName,
+        organizationName: codeRepository.organizationName,
+        repositoryName: codeRepository.repositoryName,
+      });
+    }
+  }
+
+  public static async createPullRequest(data: {
+    branchName: string;
+    title: string;
+    body: string;
+    serviceRepository: ServiceRepository;
+  }): Promise<PullRequest> {
+    const branchName: string = this.getBranchName({
+      branchName: data.branchName,
+      serviceRepository: data.serviceRepository,
+    });
+
+    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+
+    if (!codeRepository.mainBranchName) {
+      throw new BadDataException("Main Branch Name is required");
+    }
+
+    if (!codeRepository.organizationName) {
+      throw new BadDataException("Organization Name is required");
+    }
+
+    if (!codeRepository.repositoryName) {
+      throw new BadDataException("Repository Name is required");
+    }
+
+    if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
+      return await this.getGitHubUtil().createPullRequest({
+        headBranchName: branchName,
+        baseBranchName: codeRepository.mainBranchName,
+        organizationName: codeRepository.organizationName,
+        repositoryName: codeRepository.repositoryName,
+        title: data.title,
+        body: data.body,
+      });
+    }
+    throw new BadDataException("Code Repository type not supported");
+  }
+
+  public static async getServicesToImproveCode(data: {
+    codeRepository: CodeRepositoryModel;
+    services: Array<ServiceRepository>;
+  }): Promise<Array<ServiceRepository>> {
+    const servicesToImproveCode: Array<ServiceRepository> = [];
+
+    for (const service of data.services) {
+      if (!data.codeRepository.mainBranchName) {
+        throw new BadDataException("Main Branch Name is required");
+      }
+
+      if (!data.codeRepository.organizationName) {
+        throw new BadDataException("Organization Name is required");
+      }
+
+      if (!data.codeRepository.repositoryName) {
+        throw new BadDataException("Repository Name is required");
+      }
+
+      if (!service.limitNumberOfOpenPullRequestsCount) {
+        throw new BadDataException(
+          "Limit Number Of Open Pull Requests Count is required",
         );
-    }
+      }
 
-    public static async createBranch(data: {
-        branchName: string;
-        serviceRepository: ServiceRepository;
-    }): Promise<void> {
-        const branchName: string = this.getBranchName({
-            branchName: data.branchName,
-            serviceRepository: data.serviceRepository,
-        });
+      if (
+        data.codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub
+      ) {
+        const gitHuhbToken: string | null = GetGitHubToken();
 
-        await CodeRepositoryServerUtil.createBranch({
-            repoPath: GetLocalRepositoryPath(),
-            branchName: branchName,
-        });
-    }
-
-    public static async createOrCheckoutBranch(data: {
-        serviceRepository: ServiceRepository;
-        branchName: string;
-    }): Promise<void> {
-        const branchName: string = this.getBranchName({
-            branchName: data.branchName,
-            serviceRepository: data.serviceRepository,
-        });
-
-        await CodeRepositoryServerUtil.createOrCheckoutBranch({
-            repoPath: GetLocalRepositoryPath(),
-            branchName: branchName,
-        });
-    }
-
-    public static async writeToFile(data: {
-        filePath: string;
-        content: string;
-    }): Promise<void> {
-        await CodeRepositoryServerUtil.writeToFile({
-            repoPath: GetLocalRepositoryPath(),
-            filePath: data.filePath,
-            content: data.content,
-        });
-    }
-
-    public static async createDirectory(data: {
-        directoryPath: string;
-    }): Promise<void> {
-        await CodeRepositoryServerUtil.createDirectory({
-            repoPath: GetLocalRepositoryPath(),
-            directoryPath: data.directoryPath,
-        });
-    }
-
-    public static async deleteFile(data: { filePath: string }): Promise<void> {
-        await CodeRepositoryServerUtil.deleteFile({
-            repoPath: GetLocalRepositoryPath(),
-            filePath: data.filePath,
-        });
-    }
-
-    public static async deleteDirectory(data: {
-        directoryPath: string;
-    }): Promise<void> {
-        await CodeRepositoryServerUtil.deleteDirectory({
-            repoPath: GetLocalRepositoryPath(),
-            directoryPath: data.directoryPath,
-        });
-    }
-
-    public static async discardChanges(): Promise<void> {
-        await CodeRepositoryServerUtil.discardChanges({
-            repoPath: GetLocalRepositoryPath(),
-        });
-    }
-
-    public static async checkoutBranch(data: {
-        branchName: string;
-    }): Promise<void> {
-        await CodeRepositoryServerUtil.checkoutBranch({
-            repoPath: GetLocalRepositoryPath(),
-            branchName: data.branchName,
-        });
-    }
-
-    public static async checkoutMainBranch(): Promise<void> {
-        const codeRepository: CodeRepositoryModel =
-            await this.getCodeRepository();
-
-        if (!codeRepository.mainBranchName) {
-            throw new BadDataException('Main Branch Name is required');
+        if (!gitHuhbToken) {
+          throw new BadDataException("GitHub Token is required");
         }
 
-        await this.checkoutBranch({
-            branchName: codeRepository.mainBranchName!,
-        });
-    }
-
-    public static async addFilesToGit(data: {
-        filePaths: Array<string>;
-    }): Promise<void> {
-        await CodeRepositoryServerUtil.addFilesToGit({
-            repoPath: GetLocalRepositoryPath(),
-            filePaths: data.filePaths,
-        });
-    }
-
-    public static async commitChanges(data: {
-        message: string;
-    }): Promise<void> {
-        let username: string | null = null;
+        const numberOfPullRequestForThisService: number =
+          await this.getGitHubUtil().getNumberOfPullRequestsExistForService({
+            serviceRepository: service,
+            pullRequestState: PullRequestState.Open,
+            baseBranchName: data.codeRepository.mainBranchName,
+            organizationName: data.codeRepository.organizationName,
+            repositoryName: data.codeRepository.repositoryName,
+          });
 
         if (
-            this.codeRepositoryResult?.codeRepository.repositoryHostedAt ===
-            CodeRepositoryType.GitHub
+          numberOfPullRequestForThisService <
+          service.limitNumberOfOpenPullRequestsCount
         ) {
-            username = GetGitHubUsername();
+          servicesToImproveCode.push(service);
+          logger.info(
+            `Service ${service.serviceCatalog?.name} has ${numberOfPullRequestForThisService} open pull requests. Limit is ${service.limitNumberOfOpenPullRequestsCount}. Adding to the list to improve code...`,
+          );
+        } else {
+          logger.warn(
+            `Service ${service.serviceCatalog?.name} has ${numberOfPullRequestForThisService} open pull requests. Limit is ${service.limitNumberOfOpenPullRequestsCount}. Skipping...`,
+          );
         }
-
-        if (!username) {
-            throw new BadDataException('Username is required');
-        }
-
-        await CodeRepositoryServerUtil.commitChanges({
-            repoPath: GetLocalRepositoryPath(),
-            message: data.message,
-            username: username,
-        });
+      }
     }
 
-    public static async pushChanges(data: {
-        branchName: string;
-        serviceRepository: ServiceRepository;
-    }): Promise<void> {
-        const branchName: string = this.getBranchName({
-            branchName: data.branchName,
-            serviceRepository: data.serviceRepository,
-        });
+    return servicesToImproveCode;
+  }
 
-        const codeRepository: CodeRepositoryModel =
-            await this.getCodeRepository();
-
-        if (!codeRepository.mainBranchName) {
-            throw new BadDataException('Main Branch Name is required');
-        }
-
-        if (!codeRepository.organizationName) {
-            throw new BadDataException('Organization Name is required');
-        }
-
-        if (!codeRepository.repositoryName) {
-            throw new BadDataException('Repository Name is required');
-        }
-
-        if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
-            return await this.getGitHubUtil().pushChanges({
-                repoPath: GetLocalRepositoryPath(),
-                branchName: branchName,
-                organizationName: codeRepository.organizationName,
-                repositoryName: codeRepository.repositoryName,
-            });
-        }
+  public static async getCodeRepositoryResult(): Promise<CodeRepositoryResult> {
+    if (this.codeRepositoryResult) {
+      return this.codeRepositoryResult;
     }
 
-    public static async createPullRequest(data: {
-        branchName: string;
-        title: string;
-        body: string;
-        serviceRepository: ServiceRepository;
-    }): Promise<PullRequest> {
-        const branchName: string = this.getBranchName({
-            branchName: data.branchName,
-            serviceRepository: data.serviceRepository,
-        });
+    const repositorySecretKey: string | null = GetRepositorySecretKey();
 
-        const codeRepository: CodeRepositoryModel =
-            await this.getCodeRepository();
-
-        if (!codeRepository.mainBranchName) {
-            throw new BadDataException('Main Branch Name is required');
-        }
-
-        if (!codeRepository.organizationName) {
-            throw new BadDataException('Organization Name is required');
-        }
-
-        if (!codeRepository.repositoryName) {
-            throw new BadDataException('Repository Name is required');
-        }
-
-        if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
-            return await this.getGitHubUtil().createPullRequest({
-                headBranchName: branchName,
-                baseBranchName: codeRepository.mainBranchName,
-                organizationName: codeRepository.organizationName,
-                repositoryName: codeRepository.repositoryName,
-                title: data.title,
-                body: data.body,
-            });
-        }
-        throw new BadDataException('Code Repository type not supported');
+    if (!repositorySecretKey) {
+      throw new BadDataException("Repository Secret Key is required");
     }
 
-    public static async getServicesToImproveCode(data: {
-        codeRepository: CodeRepositoryModel;
-        services: Array<ServiceRepository>;
-    }): Promise<Array<ServiceRepository>> {
-        const servicesToImproveCode: Array<ServiceRepository> = [];
+    const url: URL = URL.fromString(
+      GetOneUptimeURL().toString() + "/api",
+    ).addRoute(
+      `${new CodeRepositoryModel()
+        .getCrudApiPath()
+        ?.toString()}/get-code-repository/${repositorySecretKey}`,
+    );
 
-        for (const service of data.services) {
-            if (!data.codeRepository.mainBranchName) {
-                throw new BadDataException('Main Branch Name is required');
-            }
+    const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get(url);
 
-            if (!data.codeRepository.organizationName) {
-                throw new BadDataException('Organization Name is required');
-            }
-
-            if (!data.codeRepository.repositoryName) {
-                throw new BadDataException('Repository Name is required');
-            }
-
-            if (!service.limitNumberOfOpenPullRequestsCount) {
-                throw new BadDataException(
-                    'Limit Number Of Open Pull Requests Count is required'
-                );
-            }
-
-            if (
-                data.codeRepository.repositoryHostedAt ===
-                CodeRepositoryType.GitHub
-            ) {
-                const gitHuhbToken: string | null = GetGitHubToken();
-
-                if (!gitHuhbToken) {
-                    throw new BadDataException('GitHub Token is required');
-                }
-
-                const numberOfPullRequestForThisService: number =
-                    await this.getGitHubUtil().getNumberOfPullRequestsExistForService(
-                        {
-                            serviceRepository: service,
-                            pullRequestState: PullRequestState.Open,
-                            baseBranchName: data.codeRepository.mainBranchName,
-                            organizationName:
-                                data.codeRepository.organizationName,
-                            repositoryName: data.codeRepository.repositoryName,
-                        }
-                    );
-
-                if (
-                    numberOfPullRequestForThisService <
-                    service.limitNumberOfOpenPullRequestsCount
-                ) {
-                    servicesToImproveCode.push(service);
-                    logger.info(
-                        `Service ${service.serviceCatalog?.name} has ${numberOfPullRequestForThisService} open pull requests. Limit is ${service.limitNumberOfOpenPullRequestsCount}. Adding to the list to improve code...`
-                    );
-                } else {
-                    logger.warn(
-                        `Service ${service.serviceCatalog?.name} has ${numberOfPullRequestForThisService} open pull requests. Limit is ${service.limitNumberOfOpenPullRequestsCount}. Skipping...`
-                    );
-                }
-            }
-        }
-
-        return servicesToImproveCode;
+    if (codeRepositoryResult instanceof HTTPErrorResponse) {
+      throw codeRepositoryResult;
     }
 
-    public static async getCodeRepositoryResult(): Promise<CodeRepositoryResult> {
-        if (this.codeRepositoryResult) {
-            return this.codeRepositoryResult;
-        }
+    const codeRepository: CodeRepositoryModel = CodeRepositoryModel.fromJSON(
+      codeRepositoryResult.data["codeRepository"] as JSONObject,
+      CodeRepositoryModel,
+    ) as CodeRepositoryModel;
 
-        const repositorySecretKey: string | null = GetRepositorySecretKey();
+    const servicesRepository: Array<ServiceRepository> = (
+      codeRepositoryResult.data["servicesRepository"] as JSONArray
+    ).map((serviceRepository: JSONObject) => {
+      return ServiceRepository.fromJSON(
+        serviceRepository,
+        ServiceRepository,
+      ) as ServiceRepository;
+    });
 
-        if (!repositorySecretKey) {
-            throw new BadDataException('Repository Secret Key is required');
-        }
-
-        const url: URL = URL.fromString(
-            GetOneUptimeURL().toString() + '/api'
-        ).addRoute(
-            `${new CodeRepositoryModel()
-                .getCrudApiPath()
-                ?.toString()}/get-code-repository/${repositorySecretKey}`
-        );
-
-        const codeRepositoryResult:
-            | HTTPErrorResponse
-            | HTTPResponse<JSONObject> = await API.get(url);
-
-        if (codeRepositoryResult instanceof HTTPErrorResponse) {
-            throw codeRepositoryResult;
-        }
-
-        const codeRepository: CodeRepositoryModel =
-            CodeRepositoryModel.fromJSON(
-                codeRepositoryResult.data['codeRepository'] as JSONObject,
-                CodeRepositoryModel
-            ) as CodeRepositoryModel;
-
-        const servicesRepository: Array<ServiceRepository> = (
-            codeRepositoryResult.data['servicesRepository'] as JSONArray
-        ).map((serviceRepository: JSONObject) => {
-            return ServiceRepository.fromJSON(
-                serviceRepository,
-                ServiceRepository
-            ) as ServiceRepository;
-        });
-
-        if (!codeRepository) {
-            throw new BadDataException(
-                'Code Repository not found with the secret key provided.'
-            );
-        }
-
-        if (!servicesRepository || servicesRepository.length === 0) {
-            throw new BadDataException(
-                'No services attached to this repository. Please attach services to this repository on OneUptime Dashboard.'
-            );
-        }
-
-        logger.info(`Code Repository found: ${codeRepository.name}`);
-
-        logger.info('Services found in the repository:');
-
-        servicesRepository.forEach((serviceRepository: ServiceRepository) => {
-            logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
-        });
-
-        this.codeRepositoryResult = {
-            codeRepository,
-            servicesRepository,
-        };
-
-        return this.codeRepositoryResult;
+    if (!codeRepository) {
+      throw new BadDataException(
+        "Code Repository not found with the secret key provided.",
+      );
     }
 
-    public static async getCodeRepository(): Promise<CodeRepositoryModel> {
-        if (!this.codeRepositoryResult) {
-            const result: CodeRepositoryResult =
-                await this.getCodeRepositoryResult();
-            return result.codeRepository;
-        }
-
-        return this.codeRepositoryResult.codeRepository;
+    if (!servicesRepository || servicesRepository.length === 0) {
+      throw new BadDataException(
+        "No services attached to this repository. Please attach services to this repository on OneUptime Dashboard.",
+      );
     }
 
-    public static async getServiceRepositories(): Promise<
-        Array<ServiceRepository>
-    > {
-        if (!this.codeRepositoryResult) {
-            const result: CodeRepositoryResult =
-                await this.getCodeRepositoryResult();
-            return result.servicesRepository;
-        }
+    logger.info(`Code Repository found: ${codeRepository.name}`);
 
-        return this.codeRepositoryResult.servicesRepository;
+    logger.info("Services found in the repository:");
+
+    servicesRepository.forEach((serviceRepository: ServiceRepository) => {
+      logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
+    });
+
+    this.codeRepositoryResult = {
+      codeRepository,
+      servicesRepository,
+    };
+
+    return this.codeRepositoryResult;
+  }
+
+  public static async getCodeRepository(): Promise<CodeRepositoryModel> {
+    if (!this.codeRepositoryResult) {
+      const result: CodeRepositoryResult = await this.getCodeRepositoryResult();
+      return result.codeRepository;
     }
+
+    return this.codeRepositoryResult.codeRepository;
+  }
+
+  public static async getServiceRepositories(): Promise<
+    Array<ServiceRepository>
+  > {
+    if (!this.codeRepositoryResult) {
+      const result: CodeRepositoryResult = await this.getCodeRepositoryResult();
+      return result.servicesRepository;
+    }
+
+    return this.codeRepositoryResult.servicesRepository;
+  }
 }

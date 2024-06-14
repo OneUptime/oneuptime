@@ -1,7 +1,7 @@
 enum SmsStatus {
-    Success = 'Success',
-    Error = 'Error',
-    LowBalance = 'Low Balance',
+  Success = "Success",
+  Error = "Error",
+  LowBalance = "Low Balance",
 }
 
 export default SmsStatus;

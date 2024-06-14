@@ -1,3 +1,3 @@
 export default interface FeatureSet {
-    init: () => Promise<void>;
+  init: () => Promise<void>;
 }

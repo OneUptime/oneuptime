@@ -1,9 +1,9 @@
-import Phone from '../Phone';
+import Phone from "../Phone";
 
 export interface SMSMessage {
-    message: string;
+  message: string;
 }
 
 export default interface SMS extends SMSMessage {
-    to: Phone;
+  to: Phone;
 }

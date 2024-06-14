@@ -1,3 +1,3 @@
-jest.mock('remark-gfm', () => {
-    return () => {};
+jest.mock("remark-gfm", () => {
+  return () => {};
 });

@@ -1,378 +1,356 @@
-import DashboardNavigation from '../../../Utils/Navigation';
-import PageComponentProps from '../../PageComponentProps';
-import URL from 'Common/Types/API/URL';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { VoidFunction } from 'Common/Types/FunctionTypes';
-import ObjectID from 'Common/Types/ObjectID';
-import DigestMethod from 'Common/Types/SSO/DigestMethod';
-import SignatureMethod from 'Common/Types/SSO/SignatureMethod';
-import Banner from 'CommonUI/src/Components/Banner/Banner';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import Card from 'CommonUI/src/Components/Card/Card';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Link from 'CommonUI/src/Components/Link/Link';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import DashboardNavigation from "../../../Utils/Navigation";
+import PageComponentProps from "../../PageComponentProps";
+import URL from "Common/Types/API/URL";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import ObjectID from "Common/Types/ObjectID";
+import DigestMethod from "Common/Types/SSO/DigestMethod";
+import SignatureMethod from "Common/Types/SSO/SignatureMethod";
+import Banner from "CommonUI/src/Components/Banner/Banner";
+import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import Card from "CommonUI/src/Components/Card/Card";
+import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
+import Link from "CommonUI/src/Components/Link/Link";
+import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
+import FieldType from "CommonUI/src/Components/Types/FieldType";
 import {
-    HOST,
-    HTTP_PROTOCOL,
-    IDENTITY_URL,
-    STATUS_PAGE_URL,
-} from 'CommonUI/src/Config';
-import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import StatusPage from 'Model/Models/StatusPage';
-import StatusPageSSO from 'Model/Models/StatusPageSso';
+  HOST,
+  HTTP_PROTOCOL,
+  IDENTITY_URL,
+  STATUS_PAGE_URL,
+} from "CommonUI/src/Config";
+import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import Navigation from "CommonUI/src/Utils/Navigation";
+import StatusPage from "Model/Models/StatusPage";
+import StatusPageSSO from "Model/Models/StatusPageSso";
 import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+  props: PageComponentProps,
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-    const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
-        useState<string>('');
-    return (
-        <Fragment>
-            <>
-                <Banner
-                    openInNewTab={true}
-                    title="Need help with configuring SSO?"
-                    description="Watch this 10 minute video which will help you get set up"
-                    link={URL.fromString('https://youtu.be/F_h74p38SU0')}
-                />
+  const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
+    useState<string>("");
+  return (
+    <Fragment>
+      <>
+        <Banner
+          openInNewTab={true}
+          title="Need help with configuring SSO?"
+          description="Watch this 10 minute video which will help you get set up"
+          link={URL.fromString("https://youtu.be/F_h74p38SU0")}
+        />
 
-                <ModelTable<StatusPageSSO>
-                    modelType={StatusPageSSO}
-                    query={{
-                        projectId:
-                            DashboardNavigation.getProjectId()?.toString(),
-                        statusPageId: modelId.toString(),
-                    }}
-                    onBeforeCreate={(
-                        item: StatusPageSSO
-                    ): Promise<StatusPageSSO> => {
-                        if (
-                            !props.currentProject ||
-                            !props.currentProject._id
-                        ) {
-                            throw new BadDataException(
-                                'Project ID cannot be null'
-                            );
-                        }
+        <ModelTable<StatusPageSSO>
+          modelType={StatusPageSSO}
+          query={{
+            projectId: DashboardNavigation.getProjectId()?.toString(),
+            statusPageId: modelId.toString(),
+          }}
+          onBeforeCreate={(item: StatusPageSSO): Promise<StatusPageSSO> => {
+            if (!props.currentProject || !props.currentProject._id) {
+              throw new BadDataException("Project ID cannot be null");
+            }
 
-                        item.statusPageId = modelId;
-                        item.projectId = new ObjectID(props.currentProject._id);
+            item.statusPageId = modelId;
+            item.projectId = new ObjectID(props.currentProject._id);
 
-                        return Promise.resolve(item);
-                    }}
-                    id="sso-table"
-                    name="Status Pages > Status Page View > Project SSO"
-                    isDeleteable={true}
-                    isEditable={true}
-                    isCreateable={true}
-                    cardProps={{
-                        title: 'Single Sign On (SSO)',
-                        description:
-                            'Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.',
-                    }}
-                    noItemsMessage={'No SSO configuration found.'}
-                    viewPageRoute={Navigation.getCurrentRoute()}
-                    formSteps={[
-                        {
-                            title: 'Baisc Info',
-                            id: 'basic',
-                        },
-                        {
-                            title: 'Sign On',
-                            id: 'sign-on',
-                        },
-                        {
-                            title: 'Certificate',
-                            id: 'certificate',
-                        },
-                        {
-                            title: 'More',
-                            id: 'more',
-                        },
-                    ]}
-                    formFields={[
-                        {
-                            field: {
-                                name: true,
-                            },
-                            title: 'Name',
-                            fieldType: FormFieldSchemaType.Text,
-                            required: true,
-                            description: 'Friendly name to help you remember.',
-                            placeholder: 'Okta',
-                            stepId: 'basic',
-                            validation: {
-                                minLength: 2,
-                            },
-                        },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                            fieldType: FormFieldSchemaType.LongText,
-                            required: true,
-                            stepId: 'basic',
-                            description:
-                                'Friendly description to help you remember.',
-                            placeholder: 'Sign in with Okta',
-                            validation: {
-                                minLength: 2,
-                            },
-                        },
-                        {
-                            field: {
-                                signOnURL: true,
-                            },
-                            title: 'Sign On URL',
-                            fieldType: FormFieldSchemaType.URL,
-                            required: true,
-                            description:
-                                'Members will be forwarded here when signing in to your organization',
-                            placeholder:
-                                'https://yourapp.example.com/apps/appId',
-                            stepId: 'sign-on',
-                        },
-                        {
-                            field: {
-                                issuerURL: true,
-                            },
-                            title: 'Issuer',
-                            description:
-                                'Typically a unique URL generated by your SAML identity provider',
-                            fieldType: FormFieldSchemaType.URL,
-                            required: true,
-                            placeholder: 'https://example.com',
-                            stepId: 'sign-on',
-                        },
-                        {
-                            field: {
-                                publicCertificate: true,
-                            },
-                            title: 'Public Certificate',
-                            description: 'Paste in your x509 certificate here.',
-                            fieldType: FormFieldSchemaType.LongText,
-                            required: true,
-                            placeholder: 'Paste in your x509 certificate here.',
-                            stepId: 'certificate',
-                        },
-                        {
-                            field: {
-                                signatureMethod: true,
-                            },
-                            title: 'Signature Method',
-                            description:
-                                'If you do not know what this is, please leave this to RSA-SHA256',
-                            fieldType: FormFieldSchemaType.Dropdown,
-                            dropdownOptions:
-                                DropdownUtil.getDropdownOptionsFromEnum(
-                                    SignatureMethod
-                                ),
-                            required: true,
-                            placeholder: 'RSA-SHA256',
-                            stepId: 'certificate',
-                        },
-                        {
-                            field: {
-                                digestMethod: true,
-                            },
-                            title: 'Digest Method',
-                            description:
-                                'If you do not know what this is, please leave this to SHA256',
-                            fieldType: FormFieldSchemaType.Dropdown,
-                            dropdownOptions:
-                                DropdownUtil.getDropdownOptionsFromEnum(
-                                    DigestMethod
-                                ),
-                            required: true,
-                            placeholder: 'SHA256',
-                            stepId: 'certificate',
-                        },
-                        {
-                            field: {
-                                isEnabled: true,
-                            },
-                            description:
-                                'You can test this first, before enabling it. To test, please save the config.',
-                            title: 'Enabled',
-                            fieldType: FormFieldSchemaType.Toggle,
-                            stepId: 'more',
-                        },
-                    ]}
-                    showRefreshButton={true}
-                    actionButtons={[
-                        {
-                            title: 'View SSO Config',
-                            buttonStyleType: ButtonStyleType.NORMAL,
-                            onClick: async (
-                                item: StatusPageSSO,
-                                onCompleteAction: VoidFunction
-                            ) => {
-                                setShowSingleSignOnUrlId(
-                                    (item['_id'] as string) || ''
-                                );
-                                onCompleteAction();
-                            },
-                        },
-                    ]}
-                    filters={[
-                        {
-                            field: {
-                                name: true,
-                            },
-                            title: 'Name',
-                            type: FieldType.Text,
-                        },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                            type: FieldType.Text,
-                        },
-                        {
-                            field: {
-                                isEnabled: true,
-                            },
-                            title: 'Enabled',
-                            type: FieldType.Boolean,
-                        },
-                    ]}
-                    columns={[
-                        {
-                            field: {
-                                name: true,
-                            },
-                            title: 'Name',
-                            type: FieldType.Text,
-                        },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                            type: FieldType.Text,
-                        },
+            return Promise.resolve(item);
+          }}
+          id="sso-table"
+          name="Status Pages > Status Page View > Project SSO"
+          isDeleteable={true}
+          isEditable={true}
+          isCreateable={true}
+          cardProps={{
+            title: "Single Sign On (SSO)",
+            description:
+              "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.",
+          }}
+          noItemsMessage={"No SSO configuration found."}
+          viewPageRoute={Navigation.getCurrentRoute()}
+          formSteps={[
+            {
+              title: "Baisc Info",
+              id: "basic",
+            },
+            {
+              title: "Sign On",
+              id: "sign-on",
+            },
+            {
+              title: "Certificate",
+              id: "certificate",
+            },
+            {
+              title: "More",
+              id: "more",
+            },
+          ]}
+          formFields={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              description: "Friendly name to help you remember.",
+              placeholder: "Okta",
+              stepId: "basic",
+              validation: {
+                minLength: 2,
+              },
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: true,
+              stepId: "basic",
+              description: "Friendly description to help you remember.",
+              placeholder: "Sign in with Okta",
+              validation: {
+                minLength: 2,
+              },
+            },
+            {
+              field: {
+                signOnURL: true,
+              },
+              title: "Sign On URL",
+              fieldType: FormFieldSchemaType.URL,
+              required: true,
+              description:
+                "Members will be forwarded here when signing in to your organization",
+              placeholder: "https://yourapp.example.com/apps/appId",
+              stepId: "sign-on",
+            },
+            {
+              field: {
+                issuerURL: true,
+              },
+              title: "Issuer",
+              description:
+                "Typically a unique URL generated by your SAML identity provider",
+              fieldType: FormFieldSchemaType.URL,
+              required: true,
+              placeholder: "https://example.com",
+              stepId: "sign-on",
+            },
+            {
+              field: {
+                publicCertificate: true,
+              },
+              title: "Public Certificate",
+              description: "Paste in your x509 certificate here.",
+              fieldType: FormFieldSchemaType.LongText,
+              required: true,
+              placeholder: "Paste in your x509 certificate here.",
+              stepId: "certificate",
+            },
+            {
+              field: {
+                signatureMethod: true,
+              },
+              title: "Signature Method",
+              description:
+                "If you do not know what this is, please leave this to RSA-SHA256",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(SignatureMethod),
+              required: true,
+              placeholder: "RSA-SHA256",
+              stepId: "certificate",
+            },
+            {
+              field: {
+                digestMethod: true,
+              },
+              title: "Digest Method",
+              description:
+                "If you do not know what this is, please leave this to SHA256",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions:
+                DropdownUtil.getDropdownOptionsFromEnum(DigestMethod),
+              required: true,
+              placeholder: "SHA256",
+              stepId: "certificate",
+            },
+            {
+              field: {
+                isEnabled: true,
+              },
+              description:
+                "You can test this first, before enabling it. To test, please save the config.",
+              title: "Enabled",
+              fieldType: FormFieldSchemaType.Toggle,
+              stepId: "more",
+            },
+          ]}
+          showRefreshButton={true}
+          actionButtons={[
+            {
+              title: "View SSO Config",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (
+                item: StatusPageSSO,
+                onCompleteAction: VoidFunction,
+              ) => {
+                setShowSingleSignOnUrlId((item["_id"] as string) || "");
+                onCompleteAction();
+              },
+            },
+          ]}
+          filters={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                isEnabled: true,
+              },
+              title: "Enabled",
+              type: FieldType.Boolean,
+            },
+          ]}
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              type: FieldType.Text,
+            },
 
-                        {
-                            field: {
-                                isEnabled: true,
-                            },
-                            title: 'Enabled',
-                            type: FieldType.Boolean,
-                        },
-                    ]}
-                />
+            {
+              field: {
+                isEnabled: true,
+              },
+              title: "Enabled",
+              type: FieldType.Boolean,
+            },
+          ]}
+        />
 
-                <Card
-                    title={`Test Single Sign On (SSO)`}
-                    description={
-                        <span>
-                            Here&apos;s a link which will help you test SSO
-                            integration before you force it on your
-                            organization:{' '}
-                            <Link
-                                openInNewTab={true}
-                                to={URL.fromString(
-                                    `${STATUS_PAGE_URL.toString()}/${modelId}/sso`
-                                )}
-                            >
-                                <span>{`${STATUS_PAGE_URL.toString()}/${modelId}/sso`}</span>
-                            </Link>
-                        </span>
-                    }
-                />
-
-                {/* API Key View  */}
-                <CardModelDetail
-                    name="SSO Settings"
-                    editButtonText={'Edit Settings'}
-                    cardProps={{
-                        title: 'SSO Settings',
-                        description: 'Configure settings for SSO.',
-                    }}
-                    isEditable={true}
-                    formFields={[
-                        {
-                            field: {
-                                requireSsoForLogin: true,
-                            },
-                            title: 'Force SSO for Login',
-                            description:
-                                'Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.',
-                            fieldType: FormFieldSchemaType.Toggle,
-                        },
-                    ]}
-                    modelDetailProps={{
-                        modelType: StatusPage,
-                        id: 'sso-settings',
-                        fields: [
-                            {
-                                field: {
-                                    requireSsoForLogin: true,
-                                },
-                                fieldType: FieldType.Boolean,
-                                title: 'Force SSO for Login',
-                                description:
-                                    'Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.',
-                            },
-                        ],
-                        modelId: modelId,
-                    }}
-                />
-
-                {showSingleSignOnUrlId && (
-                    <ConfirmModal
-                        title={`SSO Configuration`}
-                        description={
-                            <div>
-                                <div>
-                                    <div className="font-semibold">
-                                        Identifier (Entity ID):
-                                    </div>
-
-                                    <div>{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}</div>
-                                    <br />
-                                </div>
-                                <div>
-                                    <div className="font-semibold">
-                                        Reply URL (Assertion Consumer Service
-                                        URL):
-                                    </div>
-                                    <div>
-                                        {`${URL.fromString(
-                                            IDENTITY_URL.toString()
-                                        ).addRoute(
-                                            `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`
-                                        )}`}
-                                    </div>
-                                    <br />
-                                </div>
-                            </div>
-                        }
-                        submitButtonText={'Close'}
-                        onSubmit={() => {
-                            setShowSingleSignOnUrlId('');
-                        }}
-                        submitButtonType={ButtonStyleType.NORMAL}
-                    />
+        <Card
+          title={`Test Single Sign On (SSO)`}
+          description={
+            <span>
+              Here&apos;s a link which will help you test SSO integration before
+              you force it on your organization:{" "}
+              <Link
+                openInNewTab={true}
+                to={URL.fromString(
+                  `${STATUS_PAGE_URL.toString()}/${modelId}/sso`,
                 )}
-            </>
-        </Fragment>
-    );
+              >
+                <span>{`${STATUS_PAGE_URL.toString()}/${modelId}/sso`}</span>
+              </Link>
+            </span>
+          }
+        />
+
+        {/* API Key View  */}
+        <CardModelDetail
+          name="SSO Settings"
+          editButtonText={"Edit Settings"}
+          cardProps={{
+            title: "SSO Settings",
+            description: "Configure settings for SSO.",
+          }}
+          isEditable={true}
+          formFields={[
+            {
+              field: {
+                requireSsoForLogin: true,
+              },
+              title: "Force SSO for Login",
+              description:
+                "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
+              fieldType: FormFieldSchemaType.Toggle,
+            },
+          ]}
+          modelDetailProps={{
+            modelType: StatusPage,
+            id: "sso-settings",
+            fields: [
+              {
+                field: {
+                  requireSsoForLogin: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Force SSO for Login",
+                description:
+                  "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {showSingleSignOnUrlId && (
+          <ConfirmModal
+            title={`SSO Configuration`}
+            description={
+              <div>
+                <div>
+                  <div className="font-semibold">Identifier (Entity ID):</div>
+
+                  <div>{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}</div>
+                  <br />
+                </div>
+                <div>
+                  <div className="font-semibold">
+                    Reply URL (Assertion Consumer Service URL):
+                  </div>
+                  <div>
+                    {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
+                      `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`,
+                    )}`}
+                  </div>
+                  <br />
+                </div>
+              </div>
+            }
+            submitButtonText={"Close"}
+            onSubmit={() => {
+              setShowSingleSignOnUrlId("");
+            }}
+            submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+      </>
+    </Fragment>
+  );
 };
 
 export default SSOPage;

@@ -1,6 +1,6 @@
 enum MailStatus {
-    Success = 'Success',
-    Error = 'Error',
+  Success = "Success",
+  Error = "Error",
 }
 
 export default MailStatus;

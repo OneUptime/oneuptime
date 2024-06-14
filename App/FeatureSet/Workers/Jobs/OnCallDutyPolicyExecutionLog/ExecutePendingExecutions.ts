@@ -1,218 +1,214 @@
-import RunCron from '../../Utils/Cron';
-import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import OneUptimeDate from 'Common/Types/Date';
-import OnCallDutyPolicyStatus from 'Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus';
-import { EVERY_MINUTE } from 'Common/Utils/CronTime';
-import OnCallDutyPolicyEscalationRuleService from 'CommonServer/Services/OnCallDutyPolicyEscalationRuleService';
-import OnCallDutyPolicyExecutionLogService from 'CommonServer/Services/OnCallDutyPolicyExecutionLogService';
-import logger from 'CommonServer/Utils/Logger';
-import OnCallDutyPolicyEscalationRule from 'Model/Models/OnCallDutyPolicyEscalationRule';
-import OnCallDutyPolicyExecutionLog from 'Model/Models/OnCallDutyPolicyExecutionLog';
+import RunCron from "../../Utils/Cron";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
+import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import OnCallDutyPolicyEscalationRuleService from "CommonServer/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyExecutionLogService from "CommonServer/Services/OnCallDutyPolicyExecutionLogService";
+import logger from "CommonServer/Utils/Logger";
+import OnCallDutyPolicyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
 
 RunCron(
-    'OnCallDutyPolicyExecutionLog:ExecutePendingExecutions',
-    {
-        schedule: EVERY_MINUTE,
-        runOnStartup: false,
-    },
-    async () => {
-        // get all pending on-call executions and execute them all at once.
+  "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+  },
+  async () => {
+    // get all pending on-call executions and execute them all at once.
 
-        const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
-            await OnCallDutyPolicyExecutionLogService.findBy({
-                query: {
-                    status: OnCallDutyPolicyStatus.Executing,
-                },
-                select: {
-                    _id: true,
-                    projectId: true,
-                    onCallDutyPolicyId: true,
-                    lastEscalationRuleExecutedAt: true,
-                    lastExecutedEscalationRuleId: true,
-                    lastExecutedEscalationRuleOrder: true,
-                    executeNextEscalationRuleInMinutes: true,
-                    userNotificationEventType: true,
-                    triggeredByIncidentId: true,
-                    createdAt: true,
-                    onCallDutyPolicy: {
-                        repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
-                    },
-                    onCallPolicyExecutionRepeatCount: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-                props: {
-                    isRoot: true,
-                },
-            });
+    const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
+      await OnCallDutyPolicyExecutionLogService.findBy({
+        query: {
+          status: OnCallDutyPolicyStatus.Executing,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          onCallDutyPolicyId: true,
+          lastEscalationRuleExecutedAt: true,
+          lastExecutedEscalationRuleId: true,
+          lastExecutedEscalationRuleOrder: true,
+          executeNextEscalationRuleInMinutes: true,
+          userNotificationEventType: true,
+          triggeredByIncidentId: true,
+          createdAt: true,
+          onCallDutyPolicy: {
+            repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+          },
+          onCallPolicyExecutionRepeatCount: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-        const promises: Array<Promise<void>> = [];
+    const promises: Array<Promise<void>> = [];
 
-        for (const executionLog of pendingExecutions) {
-            promises.push(executeOnCallPolicy(executionLog));
-        }
-
-        await Promise.allSettled(promises);
+    for (const executionLog of pendingExecutions) {
+      promises.push(executeOnCallPolicy(executionLog));
     }
+
+    await Promise.allSettled(promises);
+  },
 );
 
 type ExecuteOnCallPolicyFunction = (
-    executionLog: OnCallDutyPolicyExecutionLog
+  executionLog: OnCallDutyPolicyExecutionLog,
 ) => Promise<void>;
 
 const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
-    executionLog: OnCallDutyPolicyExecutionLog
+  executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
-    try {
-        // check if this execution needs to be executed.
+  try {
+    // check if this execution needs to be executed.
 
-        const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
 
-        const lastExecutedAt: Date =
-            executionLog.lastEscalationRuleExecutedAt ||
-            executionLog.createdAt!;
+    const lastExecutedAt: Date =
+      executionLog.lastEscalationRuleExecutedAt || executionLog.createdAt!;
 
-        const getDifferenceInMinutes: number =
-            OneUptimeDate.getDifferenceInMinutes(lastExecutedAt, currentDate);
+    const getDifferenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
+      lastExecutedAt,
+      currentDate,
+    );
 
-        if (
-            getDifferenceInMinutes <
-            (executionLog.executeNextEscalationRuleInMinutes || 0)
-        ) {
-            return;
+    if (
+      getDifferenceInMinutes <
+      (executionLog.executeNextEscalationRuleInMinutes || 0)
+    ) {
+      return;
+    }
+
+    // get the next escalation rule to execute.
+    const nextEscalationRule: OnCallDutyPolicyEscalationRule | null =
+      await OnCallDutyPolicyEscalationRuleService.findOneBy({
+        query: {
+          projectId: executionLog.projectId!,
+          onCallDutyPolicyId: executionLog.onCallDutyPolicyId!,
+          order: executionLog.lastExecutedEscalationRuleOrder! + 1,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    if (!nextEscalationRule) {
+      // check if we need to repeat this execution.
+
+      if (
+        executionLog.onCallPolicyExecutionRepeatCount &&
+        executionLog.onCallPolicyExecutionRepeatCount <
+          executionLog.onCallDutyPolicy!
+            .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
+      ) {
+        // repeating execution
+
+        const newRepeatCount: number =
+          executionLog.onCallPolicyExecutionRepeatCount + 1;
+
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            onCallPolicyExecutionRepeatCount: newRepeatCount,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        // get first escalation rule.
+
+        const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
+          await OnCallDutyPolicyEscalationRuleService.findOneBy({
+            query: {
+              projectId: executionLog.projectId!,
+              onCallDutyPolicyId: executionLog.onCallDutyPolicyId!,
+              order: 1,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+            },
+          });
+
+        if (!firstEscalationRule) {
+          // mark this as complete.
+          await OnCallDutyPolicyExecutionLogService.updateOneById({
+            id: executionLog.id!,
+            data: {
+              status: OnCallDutyPolicyStatus.Completed,
+              statusMessage: "Execution completed.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return;
         }
 
-        // get the next escalation rule to execute.
-        const nextEscalationRule: OnCallDutyPolicyEscalationRule | null =
-            await OnCallDutyPolicyEscalationRuleService.findOneBy({
-                query: {
-                    projectId: executionLog.projectId!,
-                    onCallDutyPolicyId: executionLog.onCallDutyPolicyId!,
-                    order: executionLog.lastExecutedEscalationRuleOrder! + 1,
-                },
-                props: {
-                    isRoot: true,
-                },
-                select: {
-                    _id: true,
-                },
-            });
-
-        if (!nextEscalationRule) {
-            // check if we need to repeat this execution.
-
-            if (
-                executionLog.onCallPolicyExecutionRepeatCount &&
-                executionLog.onCallPolicyExecutionRepeatCount <
-                    executionLog.onCallDutyPolicy!
-                        .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
-            ) {
-                // repeating execution
-
-                const newRepeatCount: number =
-                    executionLog.onCallPolicyExecutionRepeatCount + 1;
-
-                await OnCallDutyPolicyExecutionLogService.updateOneById({
-                    id: executionLog.id!,
-                    data: {
-                        onCallPolicyExecutionRepeatCount: newRepeatCount,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                });
-
-                // get first escalation rule.
-
-                const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
-                    await OnCallDutyPolicyEscalationRuleService.findOneBy({
-                        query: {
-                            projectId: executionLog.projectId!,
-                            onCallDutyPolicyId:
-                                executionLog.onCallDutyPolicyId!,
-                            order: 1,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                        select: {
-                            _id: true,
-                        },
-                    });
-
-                if (!firstEscalationRule) {
-                    // mark this as complete.
-                    await OnCallDutyPolicyExecutionLogService.updateOneById({
-                        id: executionLog.id!,
-                        data: {
-                            status: OnCallDutyPolicyStatus.Completed,
-                            statusMessage: 'Execution completed.',
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-
-                    return;
-                }
-
-                // update the execution log.
-                await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-                    firstEscalationRule.id!,
-                    {
-                        projectId: executionLog.projectId!,
-                        triggeredByIncidentId:
-                            executionLog.triggeredByIncidentId,
-                        userNotificationEventType:
-                            executionLog.userNotificationEventType!,
-                        onCallPolicyExecutionLogId: executionLog.id!,
-                        onCallPolicyId: executionLog.onCallDutyPolicyId!,
-                    }
-                );
-
-                return;
-            }
-            // mark this as complete as we have no rules to execute.
-            await OnCallDutyPolicyExecutionLogService.updateOneById({
-                id: executionLog.id!,
-                data: {
-                    status: OnCallDutyPolicyStatus.Completed,
-                    statusMessage: 'Execution completed.',
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-            return;
-        }
+        // update the execution log.
         await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-            nextEscalationRule!.id!,
-            {
-                projectId: executionLog.projectId!,
-                triggeredByIncidentId: executionLog.triggeredByIncidentId,
-                userNotificationEventType:
-                    executionLog.userNotificationEventType!,
-                onCallPolicyExecutionLogId: executionLog.id!,
-                onCallPolicyId: executionLog.onCallDutyPolicyId!,
-            }
+          firstEscalationRule.id!,
+          {
+            projectId: executionLog.projectId!,
+            triggeredByIncidentId: executionLog.triggeredByIncidentId,
+            userNotificationEventType: executionLog.userNotificationEventType!,
+            onCallPolicyExecutionLogId: executionLog.id!,
+            onCallPolicyId: executionLog.onCallDutyPolicyId!,
+          },
         );
 
         return;
-    } catch (err: any) {
-        logger.error(err);
-
-        // update this log with error message.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-            id: executionLog.id!,
-            data: {
-                status: OnCallDutyPolicyStatus.Error,
-                statusMessage:
-                    err.message ||
-                    'Error occurred while executing the on-call policy.',
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+      }
+      // mark this as complete as we have no rules to execute.
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: executionLog.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: "Execution completed.",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+      return;
     }
+    await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+      nextEscalationRule!.id!,
+      {
+        projectId: executionLog.projectId!,
+        triggeredByIncidentId: executionLog.triggeredByIncidentId,
+        userNotificationEventType: executionLog.userNotificationEventType!,
+        onCallPolicyExecutionLogId: executionLog.id!,
+        onCallPolicyId: executionLog.onCallDutyPolicyId!,
+      },
+    );
+
+    return;
+  } catch (err: any) {
+    logger.error(err);
+
+    // update this log with error message.
+    await OnCallDutyPolicyExecutionLogService.updateOneById({
+      id: executionLog.id!,
+      data: {
+        status: OnCallDutyPolicyStatus.Error,
+        statusMessage:
+          err.message || "Error occurred while executing the on-call policy.",
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
 };

@@ -1,8 +1,8 @@
-import ObjectID from '../Types/ObjectID';
-import BaseModel from './BaseModel';
+import ObjectID from "../Types/ObjectID";
+import BaseModel from "./BaseModel";
 
 export default class GlobalConfig extends BaseModel {
-    public constructor(id?: ObjectID) {
-        super(id);
-    }
+  public constructor(id?: ObjectID) {
+    super(id);
+  }
 }

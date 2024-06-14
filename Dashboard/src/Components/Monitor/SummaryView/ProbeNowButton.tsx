@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from "react";
 
 const ProbeNowButton: FunctionComponent = (): ReactElement => {
-    return <div></div>;
+  return <div></div>;
 };
 
 export default ProbeNowButton;

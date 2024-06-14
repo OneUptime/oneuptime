@@ -1,217 +1,198 @@
-import MonitorsElement from '../../Components/Monitor/Monitors';
-import ProjectElement from '../../Components/Project/Project';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
-import Route from 'Common/Types/API/Route';
-import { Black } from 'Common/Types/BrandColors';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Page from 'CommonUI/src/Components/Page/Page';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { RequestOptions } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import Incident from 'Model/Models/Incident';
-import React, { FunctionComponent, ReactElement } from 'react';
+import MonitorsElement from "../../Components/Monitor/Monitors";
+import ProjectElement from "../../Components/Project/Project";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageComponentProps from "../PageComponentProps";
+import Route from "Common/Types/API/Route";
+import { Black } from "Common/Types/BrandColors";
+import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
+import Page from "CommonUI/src/Components/Page/Page";
+import Pill from "CommonUI/src/Components/Pill/Pill";
+import FieldType from "CommonUI/src/Components/Types/FieldType";
+import { RequestOptions } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import Incident from "Model/Models/Incident";
+import React, { FunctionComponent, ReactElement } from "react";
 
 const Home: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+  _props: PageComponentProps,
 ): ReactElement => {
-    return (
-        <Page
-            title={'New Incidents'}
-            breadcrumbLinks={[
-                {
-                    title: 'Home',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.HOME] as Route
-                    ),
-                },
-                {
-                    title: 'New Incidents',
-                    to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.NEW_INCIDENTS] as Route
-                    ),
-                },
-            ]}
-        >
-            <ModelTable<Incident>
-                modelType={Incident}
-                name="New Incidents"
-                id="incident-table"
-                isDeleteable={false}
-                query={{
-                    currentIncidentState: {
-                        order: 1,
-                    },
-                }}
-                fetchRequestOptions={
-                    {
-                        isMultiTenantRequest: true,
-                    } as RequestOptions
-                }
-                selectMoreFields={{
-                    projectId: true,
-                }}
-                isEditable={false}
-                showRefreshButton={true}
-                isCreateable={false}
-                isViewable={true}
-                cardProps={{
-                    title: 'New Incidents',
-                    description:
-                        'Here is a list of new incidents for all of the projects you are a part of.',
-                }}
-                noItemsMessage={'No incident found.'}
-                singularName="New Incident"
-                pluralName="New Incidents"
-                onViewPage={(item: Incident): Promise<Route> => {
-                    return Promise.resolve(
-                        new Route(
-                            `/dashboard/${
-                                item.projectId || item.project?._id || ''
-                            }/incidents/${item._id}`
-                        )
-                    );
-                }}
-                filters={[
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        type: FieldType.ObjectID,
-                        title: 'Incident ID',
-                    },
-                    {
-                        field: {
-                            title: true,
-                        },
-                        type: FieldType.Text,
-                        title: 'Title',
-                    },
-                    {
-                        field: {
-                            createdAt: true,
-                        },
-                        type: FieldType.Date,
-                        title: 'Created At',
-                    },
-                ]}
-                columns={[
-                    {
-                        field: {
-                            project: {
-                                name: true,
-                                _id: true,
-                            },
-                        },
-                        title: 'Project',
-                        type: FieldType.Text,
+  return (
+    <Page
+      title={"New Incidents"}
+      breadcrumbLinks={[
+        {
+          title: "Home",
+          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+        },
+        {
+          title: "New Incidents",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.NEW_INCIDENTS] as Route,
+          ),
+        },
+      ]}
+    >
+      <ModelTable<Incident>
+        modelType={Incident}
+        name="New Incidents"
+        id="incident-table"
+        isDeleteable={false}
+        query={{
+          currentIncidentState: {
+            order: 1,
+          },
+        }}
+        fetchRequestOptions={
+          {
+            isMultiTenantRequest: true,
+          } as RequestOptions
+        }
+        selectMoreFields={{
+          projectId: true,
+        }}
+        isEditable={false}
+        showRefreshButton={true}
+        isCreateable={false}
+        isViewable={true}
+        cardProps={{
+          title: "New Incidents",
+          description:
+            "Here is a list of new incidents for all of the projects you are a part of.",
+        }}
+        noItemsMessage={"No incident found."}
+        singularName="New Incident"
+        pluralName="New Incidents"
+        onViewPage={(item: Incident): Promise<Route> => {
+          return Promise.resolve(
+            new Route(
+              `/dashboard/${
+                item.projectId || item.project?._id || ""
+              }/incidents/${item._id}`,
+            ),
+          );
+        }}
+        filters={[
+          {
+            field: {
+              _id: true,
+            },
+            type: FieldType.ObjectID,
+            title: "Incident ID",
+          },
+          {
+            field: {
+              title: true,
+            },
+            type: FieldType.Text,
+            title: "Title",
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            type: FieldType.Date,
+            title: "Created At",
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              project: {
+                name: true,
+                _id: true,
+              },
+            },
+            title: "Project",
+            type: FieldType.Text,
 
-                        selectedProperty: 'name',
-                        getElement: (item: Incident): ReactElement => {
-                            return (
-                                <ProjectElement project={item['project']!} />
-                            );
-                        },
-                    },
-                    {
-                        field: {
-                            _id: true,
-                        },
-                        title: 'Incident ID',
-                        type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            title: true,
-                        },
-                        title: 'Title',
-                        type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            currentIncidentState: {
-                                name: true,
-                                color: true,
-                            },
-                        },
-                        title: 'Current State',
-                        type: FieldType.Entity,
-                        getElement: (item: Incident): ReactElement => {
-                            if (item['currentIncidentState']) {
-                                return (
-                                    <Pill
-                                        color={
-                                            item.currentIncidentState.color ||
-                                            Black
-                                        }
-                                        text={
-                                            item.currentIncidentState.name ||
-                                            'Unknown'
-                                        }
-                                    />
-                                );
-                            }
+            selectedProperty: "name",
+            getElement: (item: Incident): ReactElement => {
+              return <ProjectElement project={item["project"]!} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Incident ID",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              currentIncidentState: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Current State",
+            type: FieldType.Entity,
+            getElement: (item: Incident): ReactElement => {
+              if (item["currentIncidentState"]) {
+                return (
+                  <Pill
+                    color={item.currentIncidentState.color || Black}
+                    text={item.currentIncidentState.name || "Unknown"}
+                  />
+                );
+              }
 
-                            return <></>;
-                        },
-                    },
-                    {
-                        field: {
-                            incidentSeverity: {
-                                name: true,
-                                color: true,
-                            },
-                        },
-                        title: 'Incident Severity',
-                        type: FieldType.Entity,
-                        getElement: (item: Incident): ReactElement => {
-                            if (item['incidentSeverity']) {
-                                return (
-                                    <Pill
-                                        color={
-                                            item.incidentSeverity.color || Black
-                                        }
-                                        text={
-                                            item.incidentSeverity.name ||
-                                            'Unknown'
-                                        }
-                                    />
-                                );
-                            }
+              return <></>;
+            },
+          },
+          {
+            field: {
+              incidentSeverity: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Incident Severity",
+            type: FieldType.Entity,
+            getElement: (item: Incident): ReactElement => {
+              if (item["incidentSeverity"]) {
+                return (
+                  <Pill
+                    color={item.incidentSeverity.color || Black}
+                    text={item.incidentSeverity.name || "Unknown"}
+                  />
+                );
+              }
 
-                            return <></>;
-                        },
-                    },
-                    {
-                        field: {
-                            monitors: {
-                                name: true,
-                                _id: true,
-                                projectId: true,
-                            },
-                        },
-                        title: 'Monitors Affected',
-                        type: FieldType.Text,
-                        getElement: (item: Incident): ReactElement => {
-                            return (
-                                <MonitorsElement
-                                    monitors={item['monitors'] || []}
-                                />
-                            );
-                        },
-                    },
-                    {
-                        field: {
-                            createdAt: true,
-                        },
-                        title: 'Created At',
-                        type: FieldType.DateTime,
-                    },
-                ]}
-            />
-        </Page>
-    );
+              return <></>;
+            },
+          },
+          {
+            field: {
+              monitors: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Monitors Affected",
+            type: FieldType.Text,
+            getElement: (item: Incident): ReactElement => {
+              return <MonitorsElement monitors={item["monitors"] || []} />;
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Created At",
+            type: FieldType.DateTime,
+          },
+        ]}
+      />
+    </Page>
+  );
 };
 
 export default Home;

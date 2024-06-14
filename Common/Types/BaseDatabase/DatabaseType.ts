@@ -1,6 +1,6 @@
 enum DatabaseType {
-    Database = 'Database',
-    AnalyticsDatabase = 'AnalyticsDatabase',
+  Database = "Database",
+  AnalyticsDatabase = "AnalyticsDatabase",
 }
 
 export default DatabaseType;

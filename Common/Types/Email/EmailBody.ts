@@ -1,4 +1,4 @@
 export default interface EmailBody {
-    subject: string;
-    body: string;
+  subject: string;
+  body: string;
 }

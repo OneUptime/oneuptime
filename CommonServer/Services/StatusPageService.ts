@@ -1,427 +1,414 @@
-import DatabaseConfig from '../DatabaseConfig';
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import CreateBy from '../Types/Database/CreateBy';
-import { OnCreate, OnUpdate } from '../Types/Database/Hooks';
-import UpdateBy from '../Types/Database/UpdateBy';
-import CookieUtil from '../Utils/Cookie';
-import { ExpressRequest } from '../Utils/Express';
-import JSONWebToken from '../Utils/JsonWebToken';
-import logger from '../Utils/Logger';
-import DatabaseService from './DatabaseService';
-import MonitorStatusService from './MonitorStatusService';
-import ProjectService from './ProjectService';
-import StatusPageDomainService from './StatusPageDomainService';
-import StatusPageOwnerTeamService from './StatusPageOwnerTeamService';
-import StatusPageOwnerUserService from './StatusPageOwnerUserService';
-import TeamMemberService from './TeamMemberService';
-import Hostname from 'Common/Types/API/Hostname';
-import Protocol from 'Common/Types/API/Protocol';
-import URL from 'Common/Types/API/URL';
-import DatabaseCommonInteractionProps from 'Common/Types/BaseDatabase/DatabaseCommonInteractionProps';
-import { Green } from 'Common/Types/BrandColors';
-import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import Typeof from 'Common/Types/Typeof';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import StatusPage from 'Model/Models/StatusPage';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageOwnerTeam from 'Model/Models/StatusPageOwnerTeam';
-import StatusPageOwnerUser from 'Model/Models/StatusPageOwnerUser';
-import User from 'Model/Models/User';
+import DatabaseConfig from "../DatabaseConfig";
+import PostgresDatabase from "../Infrastructure/PostgresDatabase";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import CookieUtil from "../Utils/Cookie";
+import { ExpressRequest } from "../Utils/Express";
+import JSONWebToken from "../Utils/JsonWebToken";
+import logger from "../Utils/Logger";
+import DatabaseService from "./DatabaseService";
+import MonitorStatusService from "./MonitorStatusService";
+import ProjectService from "./ProjectService";
+import StatusPageDomainService from "./StatusPageDomainService";
+import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
+import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
+import TeamMemberService from "./TeamMemberService";
+import Hostname from "Common/Types/API/Hostname";
+import Protocol from "Common/Types/API/Protocol";
+import URL from "Common/Types/API/URL";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { Green } from "Common/Types/BrandColors";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import Typeof from "Common/Types/Typeof";
+import MonitorStatus from "Model/Models/MonitorStatus";
+import StatusPage from "Model/Models/StatusPage";
+import StatusPageDomain from "Model/Models/StatusPageDomain";
+import StatusPageOwnerTeam from "Model/Models/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Model/Models/StatusPageOwnerUser";
+import User from "Model/Models/User";
 
 export class Service extends DatabaseService<StatusPage> {
-    public constructor(postgresDatabase?: PostgresDatabase) {
-        super(StatusPage, postgresDatabase);
+  public constructor(postgresDatabase?: PostgresDatabase) {
+    super(StatusPage, postgresDatabase);
+  }
+
+  protected override async onBeforeCreate(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<OnCreate<StatusPage>> {
+    if (!createBy.data.projectId) {
+      throw new BadDataException("projectId is required");
     }
 
-    protected override async onBeforeCreate(
-        createBy: CreateBy<StatusPage>
-    ): Promise<OnCreate<StatusPage>> {
-        if (!createBy.data.projectId) {
-            throw new BadDataException('projectId is required');
-        }
+    if (
+      !createBy.data.downtimeMonitorStatuses ||
+      createBy.data.downtimeMonitorStatuses.length === 0
+    ) {
+      const monitorStatuses: Array<MonitorStatus> =
+        await MonitorStatusService.findBy({
+          query: {
+            projectId: createBy.data.projectId,
+          },
+          select: {
+            _id: true,
+            isOperationalState: true,
+          },
+          props: {
+            isRoot: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
 
-        if (
-            !createBy.data.downtimeMonitorStatuses ||
-            createBy.data.downtimeMonitorStatuses.length === 0
-        ) {
-            const monitorStatuses: Array<MonitorStatus> =
-                await MonitorStatusService.findBy({
-                    query: {
-                        projectId: createBy.data.projectId,
-                    },
-                    select: {
-                        _id: true,
-                        isOperationalState: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                });
+      const getNonOperationStatuses: Array<MonitorStatus> =
+        monitorStatuses.filter((monitorStatus: MonitorStatus) => {
+          return !monitorStatus.isOperationalState;
+        });
 
-            const getNonOperationStatuses: Array<MonitorStatus> =
-                monitorStatuses.filter((monitorStatus: MonitorStatus) => {
-                    return !monitorStatus.isOperationalState;
-                });
-
-            createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
-        }
-
-        if (!createBy.data.defaultBarColor) {
-            createBy.data.defaultBarColor = Green;
-        }
-
-        return {
-            createBy,
-            carryForward: null,
-        };
+      createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
     }
 
-    protected override async onCreateSuccess(
-        onCreate: OnCreate<StatusPage>,
-        createdItem: StatusPage
-    ): Promise<StatusPage> {
-        // add owners.
-
-        if (
-            createdItem.projectId &&
-            createdItem.id &&
-            onCreate.createBy.miscDataProps &&
-            (onCreate.createBy.miscDataProps['ownerTeams'] ||
-                onCreate.createBy.miscDataProps['ownerUsers'])
-        ) {
-            await this.addOwners(
-                createdItem.projectId!,
-                createdItem.id!,
-                (onCreate.createBy.miscDataProps[
-                    'ownerUsers'
-                ] as Array<ObjectID>) || [],
-                (onCreate.createBy.miscDataProps[
-                    'ownerTeams'
-                ] as Array<ObjectID>) || [],
-                false,
-                onCreate.createBy.props
-            );
-        }
-
-        return createdItem;
+    if (!createBy.data.defaultBarColor) {
+      createBy.data.defaultBarColor = Green;
     }
 
-    public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
-        if (!statusPageId) {
-            throw new BadDataException('statusPageId is required');
-        }
+    return {
+      createBy,
+      carryForward: null,
+    };
+  }
 
-        const ownerUsers: Array<StatusPageOwnerUser> =
-            await StatusPageOwnerUserService.findBy({
-                query: {
-                    statusPageId: statusPageId,
-                },
-                select: {
-                    _id: true,
-                    user: {
-                        _id: true,
-                        email: true,
-                        name: true,
-                    },
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-            });
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<StatusPage>,
+    createdItem: StatusPage,
+  ): Promise<StatusPage> {
+    // add owners.
 
-        const ownerTeams: Array<StatusPageOwnerTeam> =
-            await StatusPageOwnerTeamService.findBy({
-                query: {
-                    statusPageId: statusPageId,
-                },
-                select: {
-                    _id: true,
-                    teamId: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-        const users: Array<User> =
-            ownerUsers.map((ownerUser: StatusPageOwnerUser) => {
-                return ownerUser.user!;
-            }) || [];
-
-        if (ownerTeams.length > 0) {
-            const teamIds: Array<ObjectID> =
-                ownerTeams.map((ownerTeam: StatusPageOwnerTeam) => {
-                    return ownerTeam.teamId!;
-                }) || [];
-
-            const teamUsers: Array<User> =
-                await TeamMemberService.getUsersInTeams(teamIds);
-
-            for (const teamUser of teamUsers) {
-                //check if the user is already added.
-                const isUserAlreadyAdded: User | undefined = users.find(
-                    (user: User) => {
-                        return user.id!.toString() === teamUser.id!.toString();
-                    }
-                );
-
-                if (!isUserAlreadyAdded) {
-                    users.push(teamUser);
-                }
-            }
-        }
-
-        return users;
+    if (
+      createdItem.projectId &&
+      createdItem.id &&
+      onCreate.createBy.miscDataProps &&
+      (onCreate.createBy.miscDataProps["ownerTeams"] ||
+        onCreate.createBy.miscDataProps["ownerUsers"])
+    ) {
+      await this.addOwners(
+        createdItem.projectId!,
+        createdItem.id!,
+        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+          [],
+        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+          [],
+        false,
+        onCreate.createBy.props,
+      );
     }
 
-    public async addOwners(
-        projectId: ObjectID,
-        statusPageId: ObjectID,
-        userIds: Array<ObjectID>,
-        teamIds: Array<ObjectID>,
-        notifyOwners: boolean,
-        props: DatabaseCommonInteractionProps
-    ): Promise<void> {
-        for (let teamId of teamIds) {
-            if (typeof teamId === Typeof.String) {
-                teamId = new ObjectID(teamId.toString());
-            }
+    return createdItem;
+  }
 
-            const teamOwner: StatusPageOwnerTeam = new StatusPageOwnerTeam();
-            teamOwner.statusPageId = statusPageId;
-            teamOwner.projectId = projectId;
-            teamOwner.teamId = teamId;
-            teamOwner.isOwnerNotified = !notifyOwners;
-
-            await StatusPageOwnerTeamService.create({
-                data: teamOwner,
-                props: props,
-            });
-        }
-
-        for (let userId of userIds) {
-            if (typeof userId === Typeof.String) {
-                userId = new ObjectID(userId.toString());
-            }
-            const teamOwner: StatusPageOwnerUser = new StatusPageOwnerUser();
-            teamOwner.statusPageId = statusPageId;
-            teamOwner.projectId = projectId;
-            teamOwner.userId = userId;
-            teamOwner.isOwnerNotified = !notifyOwners;
-            await StatusPageOwnerUserService.create({
-                data: teamOwner,
-                props: props,
-            });
-        }
+  public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
+    if (!statusPageId) {
+      throw new BadDataException("statusPageId is required");
     }
 
-    public async getStatusPageLinkInDashboard(
-        projectId: ObjectID,
-        statusPageId: ObjectID
-    ): Promise<URL> {
-        const dahboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+    const ownerUsers: Array<StatusPageOwnerUser> =
+      await StatusPageOwnerUserService.findBy({
+        query: {
+          statusPageId: statusPageId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
 
-        return URL.fromString(dahboardUrl.toString()).addRoute(
-            `/${projectId.toString()}/status-pages/${statusPageId.toString()}`
+    const ownerTeams: Array<StatusPageOwnerTeam> =
+      await StatusPageOwnerTeamService.findBy({
+        query: {
+          statusPageId: statusPageId,
+        },
+        select: {
+          _id: true,
+          teamId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const users: Array<User> =
+      ownerUsers.map((ownerUser: StatusPageOwnerUser) => {
+        return ownerUser.user!;
+      }) || [];
+
+    if (ownerTeams.length > 0) {
+      const teamIds: Array<ObjectID> =
+        ownerTeams.map((ownerTeam: StatusPageOwnerTeam) => {
+          return ownerTeam.teamId!;
+        }) || [];
+
+      const teamUsers: Array<User> =
+        await TeamMemberService.getUsersInTeams(teamIds);
+
+      for (const teamUser of teamUsers) {
+        //check if the user is already added.
+        const isUserAlreadyAdded: User | undefined = users.find(
+          (user: User) => {
+            return user.id!.toString() === teamUser.id!.toString();
+          },
         );
+
+        if (!isUserAlreadyAdded) {
+          users.push(teamUser);
+        }
+      }
     }
 
-    public async hasReadAccess(
-        statusPageId: ObjectID,
-        props: DatabaseCommonInteractionProps,
-        req: ExpressRequest
-    ): Promise<boolean> {
+    return users;
+  }
+
+  public async addOwners(
+    projectId: ObjectID,
+    statusPageId: ObjectID,
+    userIds: Array<ObjectID>,
+    teamIds: Array<ObjectID>,
+    notifyOwners: boolean,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    for (let teamId of teamIds) {
+      if (typeof teamId === Typeof.String) {
+        teamId = new ObjectID(teamId.toString());
+      }
+
+      const teamOwner: StatusPageOwnerTeam = new StatusPageOwnerTeam();
+      teamOwner.statusPageId = statusPageId;
+      teamOwner.projectId = projectId;
+      teamOwner.teamId = teamId;
+      teamOwner.isOwnerNotified = !notifyOwners;
+
+      await StatusPageOwnerTeamService.create({
+        data: teamOwner,
+        props: props,
+      });
+    }
+
+    for (let userId of userIds) {
+      if (typeof userId === Typeof.String) {
+        userId = new ObjectID(userId.toString());
+      }
+      const teamOwner: StatusPageOwnerUser = new StatusPageOwnerUser();
+      teamOwner.statusPageId = statusPageId;
+      teamOwner.projectId = projectId;
+      teamOwner.userId = userId;
+      teamOwner.isOwnerNotified = !notifyOwners;
+      await StatusPageOwnerUserService.create({
+        data: teamOwner,
+        props: props,
+      });
+    }
+  }
+
+  public async getStatusPageLinkInDashboard(
+    projectId: ObjectID,
+    statusPageId: ObjectID,
+  ): Promise<URL> {
+    const dahboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dahboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/status-pages/${statusPageId.toString()}`,
+    );
+  }
+
+  public async hasReadAccess(
+    statusPageId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+    req: ExpressRequest,
+  ): Promise<boolean> {
+    try {
+      // token decode.
+      const token: string | undefined = CookieUtil.getCookie(
+        req,
+        CookieUtil.getUserTokenKey(statusPageId),
+      );
+
+      if (token) {
         try {
-            // token decode.
-            const token: string | undefined = CookieUtil.getCookie(
-                req,
-                CookieUtil.getUserTokenKey(statusPageId)
-            );
+          const decoded: JSONWebTokenData = JSONWebToken.decode(
+            token as string,
+          );
 
-            if (token) {
-                try {
-                    const decoded: JSONWebTokenData = JSONWebToken.decode(
-                        token as string
-                    );
-
-                    if (
-                        decoded.statusPageId?.toString() ===
-                        statusPageId.toString()
-                    ) {
-                        return true;
-                    }
-                } catch (err) {
-                    logger.error(err);
-                }
-            }
-
-            const count: PositiveNumber = await this.countBy({
-                query: {
-                    _id: statusPageId.toString(),
-                    isPublicStatusPage: true,
-                },
-                skip: 0,
-                limit: 1,
-                props: {
-                    isRoot: true,
-                },
-            });
-
-            if (count.positiveNumber > 0) {
-                return true;
-            }
-
-            // if it does not have public access, check if this user has access.
-
-            const items: Array<StatusPage> = await this.findBy({
-                query: {
-                    _id: statusPageId.toString(),
-                },
-                select: {
-                    _id: true,
-                },
-                skip: 0,
-                limit: 1,
-                props: props,
-            });
-
-            if (items.length > 0) {
-                return true;
-            }
+          if (decoded.statusPageId?.toString() === statusPageId.toString()) {
+            return true;
+          }
         } catch (err) {
-            logger.error(err);
+          logger.error(err);
         }
+      }
 
-        return false;
+      const count: PositiveNumber = await this.countBy({
+        query: {
+          _id: statusPageId.toString(),
+          isPublicStatusPage: true,
+        },
+        skip: 0,
+        limit: 1,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (count.positiveNumber > 0) {
+        return true;
+      }
+
+      // if it does not have public access, check if this user has access.
+
+      const items: Array<StatusPage> = await this.findBy({
+        query: {
+          _id: statusPageId.toString(),
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: 1,
+        props: props,
+      });
+
+      if (items.length > 0) {
+        return true;
+      }
+    } catch (err) {
+      logger.error(err);
     }
 
-    public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
-        const domains: Array<StatusPageDomain> =
-            await StatusPageDomainService.findBy({
-                query: {
-                    statusPageId: statusPageId,
-                    isSslProvisioned: true,
-                },
-                select: {
-                    fullDomain: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
+    return false;
+  }
 
-        let statusPageURL: string = domains
-            .map((d: StatusPageDomain) => {
-                return d.fullDomain;
-            })
-            .join(', ');
+  public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
+    const domains: Array<StatusPageDomain> =
+      await StatusPageDomainService.findBy({
+        query: {
+          statusPageId: statusPageId,
+          isSslProvisioned: true,
+        },
+        select: {
+          fullDomain: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
 
-        if (domains.length === 0) {
-            const host: Hostname = await DatabaseConfig.getHost();
+    let statusPageURL: string = domains
+      .map((d: StatusPageDomain) => {
+        return d.fullDomain;
+      })
+      .join(", ");
 
-            const httpProtocol: Protocol =
-                await DatabaseConfig.getHttpProtocol();
+    if (domains.length === 0) {
+      const host: Hostname = await DatabaseConfig.getHost();
 
-            // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(httpProtocol, host)
-                .addRoute('/status-page/' + statusPageId.toString())
-                .toString();
-        }
+      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        return statusPageURL;
+      // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
+      statusPageURL = new URL(httpProtocol, host)
+        .addRoute("/status-page/" + statusPageId.toString())
+        .toString();
     }
 
-    public async getStatusPageFirstURL(
-        statusPageId: ObjectID
-    ): Promise<string> {
-        const domains: Array<StatusPageDomain> =
-            await StatusPageDomainService.findBy({
-                query: {
-                    statusPageId: statusPageId,
-                    isSslProvisioned: true,
-                },
-                select: {
-                    fullDomain: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
+    return statusPageURL;
+  }
 
-        let statusPageURL: string = '';
+  public async getStatusPageFirstURL(statusPageId: ObjectID): Promise<string> {
+    const domains: Array<StatusPageDomain> =
+      await StatusPageDomainService.findBy({
+        query: {
+          statusPageId: statusPageId,
+          isSslProvisioned: true,
+        },
+        select: {
+          fullDomain: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
 
-        if (domains.length === 0) {
-            const host: Hostname = await DatabaseConfig.getHost();
+    let statusPageURL: string = "";
 
-            const httpProtocol: Protocol =
-                await DatabaseConfig.getHttpProtocol();
+    if (domains.length === 0) {
+      const host: Hostname = await DatabaseConfig.getHost();
 
-            // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-            statusPageURL = new URL(httpProtocol, host)
-                .addRoute('/status-page/' + statusPageId.toString())
-                .toString();
-        } else {
-            statusPageURL = domains[0]?.fullDomain || '';
-        }
+      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        return statusPageURL;
+      // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
+      statusPageURL = new URL(httpProtocol, host)
+        .addRoute("/status-page/" + statusPageId.toString())
+        .toString();
+    } else {
+      statusPageURL = domains[0]?.fullDomain || "";
     }
 
-    protected override async onBeforeUpdate(
-        updateBy: UpdateBy<StatusPage>
-    ): Promise<OnUpdate<StatusPage>> {
-        // is enabling SMS subscribers.
+    return statusPageURL;
+  }
 
-        if (updateBy.data.enableSmsSubscribers) {
-            const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy(
-                {
-                    query: updateBy.query,
-                    select: {
-                        _id: true,
-                        projectId: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                }
-            );
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<OnUpdate<StatusPage>> {
+    // is enabling SMS subscribers.
 
-            for (const statusPage of statusPagesToBeUpdated) {
-                const isSMSEnabled: boolean =
-                    await ProjectService.isSMSNotificationsEnabled(
-                        statusPage.projectId!
-                    );
+    if (updateBy.data.enableSmsSubscribers) {
+      const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
 
-                if (!isSMSEnabled) {
-                    throw new BadDataException(
-                        'SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.'
-                    );
-                }
-            }
+      for (const statusPage of statusPagesToBeUpdated) {
+        const isSMSEnabled: boolean =
+          await ProjectService.isSMSNotificationsEnabled(statusPage.projectId!);
+
+        if (!isSMSEnabled) {
+          throw new BadDataException(
+            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+          );
         }
-
-        return {
-            carryForward: null,
-            updateBy: updateBy,
-        };
+      }
     }
+
+    return {
+      carryForward: null,
+      updateBy: updateBy,
+    };
+  }
 }
 export default new Service();
