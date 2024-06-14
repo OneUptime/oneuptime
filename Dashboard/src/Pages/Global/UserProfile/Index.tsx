@@ -3,9 +3,11 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Route from 'Common/Types/API/Route';
+import TimezoneCode from 'Common/Types/TimezoneCode';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
+import DropdownUtil from 'CommonUI/src/Utils/Dropdown';
 import UserUtil from 'CommonUI/src/Utils/User';
 import User from 'Model/Models/User';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -60,6 +62,21 @@ const Home: FunctionComponent<PageComponentProps> = (
                         required: true,
                         title: 'Full Name',
                     },
+                    {
+                        field: {
+                            timezone: true,
+                        },
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownOptions:
+                            DropdownUtil.getDropdownOptionsFromEnum(
+                                TimezoneCode
+                            ),
+                        placeholder: 'Select Timezone',
+                        description:
+                            'Select your timezone. This will be used for all date and time related notifications sent out to you.',
+                        required: false,
+                        title: 'Timezone',
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
@@ -77,6 +94,13 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 email: true,
                             },
                             title: 'Email',
+                        },
+                        {
+                            field: {
+                                timezone: true,
+                            },
+                            title: 'Timezone',
+                            placeholder: 'No timezone selected',
                         },
                     ],
                     modelId: UserUtil.getUserId(),
