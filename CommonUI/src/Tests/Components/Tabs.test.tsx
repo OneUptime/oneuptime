@@ -3,7 +3,8 @@ import Tabs from "../../Components/Tabs/Tabs";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Tabs", () => {
   const activeClass: string = "bg-gray-100 text-gray-700";
@@ -21,7 +22,7 @@ describe("Tabs", () => {
   const tabs: Array<Tab> = [tab1, tab2];
 
   test("it should render all props passed", () => {
-    const onTabChange: jest.Mock = jest.fn();
+    const onTabChange: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Tabs tabs={tabs} onTabChange={onTabChange} />,
@@ -32,7 +33,7 @@ describe("Tabs", () => {
   });
 
   test("it should render the first tab as active by default", () => {
-    const onTabChange: jest.Mock = jest.fn();
+    const onTabChange: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Tabs tabs={tabs} onTabChange={onTabChange} />,
@@ -42,7 +43,7 @@ describe("Tabs", () => {
   });
 
   test("it should call onTabChange with the correct tab when a tab is clicked", () => {
-    const onTabChange: jest.Mock = jest.fn();
+    const onTabChange: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Tabs tabs={tabs} onTabChange={onTabChange} />,
@@ -56,7 +57,7 @@ describe("Tabs", () => {
   });
 
   test("it should show the correct tab as active when a tab is clicked", () => {
-    const onTabChange: jest.Mock = jest.fn();
+    const onTabChange: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Tabs tabs={tabs} onTabChange={onTabChange} />,
@@ -70,7 +71,7 @@ describe("Tabs", () => {
 
   test("it should handle empty tabs array gracefully", () => {
     const tabs: Array<Tab> = [];
-    const onTabChange: jest.Mock = jest.fn();
+    const onTabChange: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Tabs tabs={tabs} onTabChange={onTabChange} />,

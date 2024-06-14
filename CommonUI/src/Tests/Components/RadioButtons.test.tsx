@@ -4,7 +4,8 @@ import RadioButtons, {
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("RadioButtons", () => {
   const options: RadioButton[] = [
@@ -91,7 +92,7 @@ describe("RadioButtons", () => {
   });
 
   test("calls onChange", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
     const { getByLabelText } = render(
       <RadioButtons onChange={onChange} options={options} />,
     );

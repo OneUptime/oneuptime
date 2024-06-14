@@ -5,6 +5,7 @@ import { describe, expect, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Pagination", () => {
   it("renders Component", () => {
@@ -44,7 +45,7 @@ describe("Pagination", () => {
   });
 
   it("calls onNavigateToPage when Next link is clicked", async () => {
-    const mockOnNavigateToPage: jest.Mock = jest.fn();
+    const mockOnNavigateToPage: MockFunction = getJestMockFunction();
     const props: ComponentProps = {
       currentPageNumber: 1,
       totalItemsCount: 19,
@@ -66,7 +67,7 @@ describe("Pagination", () => {
   });
 
   it("calls onNavigateToPage when Previous link is clicked", async () => {
-    const mockOnNavigateToPage: jest.Mock = jest.fn();
+    const mockOnNavigateToPage: MockFunction = getJestMockFunction();
     const props: ComponentProps = {
       currentPageNumber: 2,
       totalItemsCount: 19,
@@ -136,7 +137,7 @@ describe("Pagination", () => {
   });
 
   it("shows Pagination Modal and submit with go to page", async () => {
-    const mockOnNavigateToPage: jest.Mock = jest.fn();
+    const mockOnNavigateToPage: MockFunction = getJestMockFunction();
     const props: ComponentProps = {
       currentPageNumber: 1,
       totalItemsCount: 20,

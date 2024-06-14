@@ -8,7 +8,8 @@ import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import Route from "Common/Types/API/Route";
 import * as React from "react";
-import { describe, expect, jest } from "@jest/globals";
+import { describe, expect } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("BasicForm test", () => {
   const fields: Fields<FormValues<any>> = [
@@ -41,7 +42,7 @@ describe("BasicForm test", () => {
   ];
 
   test('Should render correctly and has type of "email" and "password" fields', async () => {
-    const handleSubmit: jest.Mock<any, any> = jest.fn();
+    const handleSubmit: MockFunction = getJestMockFunction();
     render(
       <BasicForm
         fields={fields}
@@ -65,8 +66,8 @@ describe("BasicForm test", () => {
   });
 
   test("Should accept values and submit if valid", async () => {
-    const handleSubmit: jest.Mock<any, any> = jest.fn();
-    const onSubmitSuccessful: jest.Mock<any, any> = jest.fn();
+    const handleSubmit: MockFunction = getJestMockFunction();
+    const onSubmitSuccessful: MockFunction = getJestMockFunction();
     render(
       <BasicForm
         fields={fields}
@@ -103,7 +104,7 @@ describe("BasicForm test", () => {
   });
 
   test("Should display error if values are invalid", async () => {
-    const handleSubmit: jest.Mock<any, any> = jest.fn();
+    const handleSubmit: MockFunction = getJestMockFunction();
     render(
       <BasicForm
         fields={fields}

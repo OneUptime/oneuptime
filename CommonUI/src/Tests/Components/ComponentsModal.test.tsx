@@ -9,6 +9,7 @@ import ComponentMetadata, {
   ComponentType,
 } from "Common/Types/Workflow/Component";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 
@@ -59,8 +60,8 @@ describe("ComponentsModal", () => {
     getComponentMetadata(mockedCategories[3]?.name),
   ];
 
-  const mockOnCloseModal: jest.Mock = jest.fn();
-  const mockOnComponentClick: jest.Mock = jest.fn();
+  const mockOnCloseModal: MockFunction = getJestMockFunction();
+  const mockOnComponentClick: MockFunction = getJestMockFunction();
 
   it("should render without crashing", () => {
     render(

@@ -2,7 +2,8 @@ import Dropdown, { DropdownOption } from "../../Components/Dropdown/Dropdown";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect, jest } from "@jest/globals";
+import { describe, expect } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 describe("Dropdown", () => {
   const options: DropdownOption[] = [
     { value: "1", label: "1" },
@@ -157,7 +158,7 @@ describe("Dropdown", () => {
   });
 
   test("sets isMultiSelect", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
 
     const { getByRole, getByText } = render(
       <Dropdown onChange={onChange} options={options} isMultiSelect={true} />,
@@ -175,7 +176,7 @@ describe("Dropdown", () => {
   });
 
   test("calls onChange when option is selected", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
     const { getByRole } = render(
       <Dropdown onChange={onChange} options={options} />,
     );
@@ -189,7 +190,7 @@ describe("Dropdown", () => {
   });
 
   test("calls onChange when option is selected for multi select", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
     const { getByRole } = render(
       <Dropdown onChange={onChange} options={options} isMultiSelect={true} />,
     );
@@ -207,7 +208,7 @@ describe("Dropdown", () => {
   });
 
   test("calls onClick", () => {
-    const onClick: jest.Mock = jest.fn();
+    const onClick: MockFunction = getJestMockFunction();
     const { getByRole } = render(
       <Dropdown onClick={onClick} options={options} />,
     );
@@ -219,7 +220,7 @@ describe("Dropdown", () => {
   });
 
   test("calls onFocus", () => {
-    const onFocus: jest.Mock = jest.fn();
+    const onFocus: MockFunction = getJestMockFunction();
     const { getByRole } = render(
       <Dropdown onFocus={onFocus} options={options} />,
     );
@@ -231,7 +232,7 @@ describe("Dropdown", () => {
   });
 
   test("calls onBlur", () => {
-    const onBlur: jest.Mock = jest.fn();
+    const onBlur: MockFunction = getJestMockFunction();
     const { getByRole } = render(
       <Dropdown onBlur={onBlur} options={options} />,
     );

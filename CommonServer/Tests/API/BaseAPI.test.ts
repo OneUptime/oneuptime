@@ -236,7 +236,7 @@ describe("BaseAPI", () => {
             .mockImplementationOnce(() => {
               throw error;
             });
-          const next: jest.Mock = jest.fn();
+          const next: MockFunction = getJestMockFunction();
           await mockRouter
             .match(method, uri)
             .handlerFunction(emptyRequest, res, next);

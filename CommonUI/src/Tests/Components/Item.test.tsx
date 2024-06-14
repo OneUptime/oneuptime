@@ -5,6 +5,7 @@ import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";
 import React from "react";
+import getJestMockFunction from "../../Types/MockType";
 
 describe("Item component", () => {
   interface ItemData {
@@ -53,7 +54,7 @@ describe("Item component", () => {
   it("should render custom title element provided by getTitleElement function", () => {
     const props: ComponentProps<ItemData> = {
       ...defaultProps,
-      getTitleElement: jest.fn(),
+      getTitleElement: getJestMockFunction(),
     };
     render(<Item {...props} />);
     expect(props.getTitleElement).toHaveBeenCalledWith(props.item);
@@ -61,7 +62,7 @@ describe("Item component", () => {
   it("should render custom title element provided by getDescriptionElement function", () => {
     const props: ComponentProps<ItemData> = {
       ...defaultProps,
-      getDescriptionElement: jest.fn(),
+      getDescriptionElement: getJestMockFunction(),
     };
     render(<Item {...props} />);
     expect(props.getDescriptionElement).toHaveBeenCalled();

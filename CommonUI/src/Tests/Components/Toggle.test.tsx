@@ -2,7 +2,8 @@ import Toggle from "../../Components/Toggle/Toggle";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
-import { describe, expect, test, jest } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Toggle", () => {
   test("renders toggle element with required props only", () => {
@@ -33,7 +34,7 @@ describe("Toggle", () => {
   });
 
   test("calls onChange", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <Toggle onChange={onChange} initialValue={false} />,
@@ -46,7 +47,7 @@ describe("Toggle", () => {
   });
 
   test("calls onFocus", () => {
-    const onFocus: jest.Mock = jest.fn();
+    const onFocus: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <Toggle onFocus={onFocus} initialValue={false} onChange={() => {}} />,
@@ -58,7 +59,7 @@ describe("Toggle", () => {
   });
 
   test("calls onBlur", () => {
-    const onBlur: jest.Mock = jest.fn();
+    const onBlur: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <Toggle onBlur={onBlur} initialValue={false} onChange={() => {}} />,

@@ -1,15 +1,16 @@
 import { ButtonStyleType } from "../../Components/Button/Button";
 import ButtonType from "../../Components/Button/ButtonTypes";
 import Modal, { ModalWidth } from "../../Components/Modal/Modal";
-import { jest, describe, expect, it, test } from "@jest/globals";
+import { describe, expect, it, test } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Modal", () => {
   test("renders the modal with the title and description", () => {
-    const onSubmit: jest.Mock = jest.fn();
+    const onSubmit: MockFunction = getJestMockFunction();
     const { getByTestId, getByText } = render(
       <Modal
         title="Test Modal Title"
@@ -26,8 +27,8 @@ describe("Modal", () => {
   });
 
   it("closes the modal when the close button is clicked", () => {
-    const onCloseMock: jest.Mock = jest.fn();
-    const onSubmit: jest.Mock = jest.fn();
+    const onCloseMock: MockFunction = getJestMockFunction();
+    const onSubmit: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmit} onClose={onCloseMock}>
@@ -43,7 +44,7 @@ describe("Modal", () => {
   });
 
   it("calls the onSubmit function when the submit button is clicked", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -63,7 +64,7 @@ describe("Modal", () => {
   });
 
   it("displays the modal with the default width when modalWidth is not set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock}>
@@ -75,7 +76,7 @@ describe("Modal", () => {
   });
 
   it("displays the modal with the correct width when modalWidth is set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -91,7 +92,7 @@ describe("Modal", () => {
   });
 
   it("displays the children passed to the modal", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByText } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock}>
@@ -103,7 +104,7 @@ describe("Modal", () => {
   });
 
   it("displays the loader when isBodyLoading is true", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock} isBodyLoading>
@@ -115,7 +116,7 @@ describe("Modal", () => {
   });
 
   it("does not display the loader when isBodyLoading is false", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { queryByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock}>
@@ -127,7 +128,7 @@ describe("Modal", () => {
   });
 
   it("does not display the loader when isBodyLoading is undefined", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { queryByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock}>
@@ -139,7 +140,7 @@ describe("Modal", () => {
   });
 
   it("disables the submit button when isLoading is true", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -158,7 +159,7 @@ describe("Modal", () => {
   });
 
   it("disables the submit button when disableSubmitButton is true", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -177,7 +178,7 @@ describe("Modal", () => {
   });
 
   it("disables the submit button when isBodyLoading is true", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -196,7 +197,7 @@ describe("Modal", () => {
   });
 
   it("displays the icon when icon is set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock} icon={IconProp.SMS}>
@@ -208,7 +209,7 @@ describe("Modal", () => {
   });
 
   it("displays the submit button with the default style when submitButtonStyleType is not set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal title="Test Modal" onSubmit={onSubmitMock}>
@@ -222,7 +223,7 @@ describe("Modal", () => {
   });
 
   it("displays the submit button with the correct style when submitButtonStyleType is set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -240,7 +241,7 @@ describe("Modal", () => {
   });
 
   it("displays the submit button with the default style when submitButtonStyleType is set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal
@@ -258,7 +259,7 @@ describe("Modal", () => {
   });
 
   it("displays the right element when rightElement is set", () => {
-    const onSubmitMock: jest.Mock = jest.fn();
+    const onSubmitMock: MockFunction = getJestMockFunction();
 
     const { getByTestId } = render(
       <Modal

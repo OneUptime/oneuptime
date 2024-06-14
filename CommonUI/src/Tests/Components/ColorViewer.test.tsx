@@ -3,7 +3,8 @@ import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import Color from "Common/Types/Color";
 import * as React from "react";
-import { describe, expect, jest } from "@jest/globals";
+import { describe, expect } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Color Viewer", () => {
   test("Render the component", () => {
@@ -47,7 +48,7 @@ describe("Color Viewer", () => {
   });
 
   test("Render with an alert on click", () => {
-    const onClick: jest.Mock = jest.fn();
+    const onClick: MockFunction = getJestMockFunction();
     const { getByTestId } = render(
       <ColorViewer dataTestId="test-id" onClick={onClick} />,
     );

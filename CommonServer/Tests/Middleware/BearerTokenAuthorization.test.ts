@@ -14,7 +14,7 @@ describe("BearerTokenAuthorization", () => {
         },
       } as OneUptimeRequest;
       const res: ExpressResponse = {} as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
       void BearerTokenAuthorization.isAuthorizedBearerToken(req, res, next);
       const jsonObjResult: JSONObject = req.bearerTokenData as JSONObject;
       expect(jsonObjResult["test"]).toMatchInlineSnapshot(`"test"`);
@@ -27,7 +27,7 @@ describe("BearerTokenAuthorization", () => {
         },
       } as OneUptimeRequest;
       const res: ExpressResponse = {} as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
       void BearerTokenAuthorization.isAuthorizedBearerToken(req, res, next);
       expect(next.mock.calls[0][0]).toMatchInlineSnapshot(`undefined`);
     });
@@ -38,7 +38,7 @@ describe("BearerTokenAuthorization", () => {
         },
       } as OneUptimeRequest;
       const res: ExpressResponse = {} as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
       void BearerTokenAuthorization.isAuthorizedBearerToken(req, res, next);
       expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
         `[Error: Invalid bearer token, or bearer token not provided.]`,
@@ -51,7 +51,7 @@ describe("BearerTokenAuthorization", () => {
         },
       } as OneUptimeRequest;
       const res: ExpressResponse = {} as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
       void BearerTokenAuthorization.isAuthorizedBearerToken(req, res, next);
       expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
         `[Error: Invalid bearer token, or bearer token not provided.]`,
@@ -60,7 +60,7 @@ describe("BearerTokenAuthorization", () => {
     it("calls next with exception if token header is not present", () => {
       const req: OneUptimeRequest = {} as OneUptimeRequest;
       const res: ExpressResponse = {} as ExpressResponse;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
       void BearerTokenAuthorization.isAuthorizedBearerToken(req, res, next);
       expect(next.mock.calls[0][0]).toMatchInlineSnapshot(
         `[Error: Invalid bearer token, or bearer token not provided.]`,

@@ -2,7 +2,8 @@ import TextArea from "../../Components/TextArea/TextArea";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";
-import { describe, expect, test, jest } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("TextArea", () => {
   test("renders textarea element with initialValue only", () => {
@@ -32,7 +33,7 @@ describe("TextArea", () => {
   });
 
   test("calls onChange event", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <TextArea initialValue="initial value" onChange={onChange} />,
@@ -45,7 +46,7 @@ describe("TextArea", () => {
   });
 
   test("calls onFocus event", () => {
-    const onFocus: jest.Mock = jest.fn();
+    const onFocus: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <TextArea initialValue="initial value" onFocus={onFocus} />,
@@ -57,7 +58,7 @@ describe("TextArea", () => {
   });
 
   test("calls onBlur event", () => {
-    const onBlur: jest.Mock = jest.fn();
+    const onBlur: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(
       <TextArea initialValue="initial value" onBlur={onBlur} />,
@@ -135,7 +136,7 @@ describe("TextArea", () => {
   });
 
   test("parses sole initial newline as empty string", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
 
     const { getByRole, getByDisplayValue, queryByDisplayValue } = render(
       <TextArea initialValue="initial value" onChange={onChange} />,

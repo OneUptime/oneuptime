@@ -18,9 +18,10 @@ import ObjectID from "Common/Types/ObjectID";
 import FileModel from "Model/Models/File";
 import React from "react";
 import { act } from "react-test-renderer";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
-const mockOnChange: jest.Mock = jest.fn();
-const mockOnBlur: jest.Mock = jest.fn();
+const mockOnChange: MockFunction = getJestMockFunction();
+const mockOnBlur: MockFunction = getJestMockFunction();
 
 jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -84,7 +85,7 @@ const mockFileModel: MockFileModelFunction = async (
 type MockFileFunction = () => File;
 
 const mockFile: MockFileFunction = (): File => {
-  const mockArrayBuffer: jest.Mock = jest.fn();
+  const mockArrayBuffer: MockFunction = getJestMockFunction();
   mockArrayBuffer.mockResolvedValue(new ArrayBuffer(10)); // Mocked array buffer of size 10
 
   const file: File = new File(
@@ -215,7 +216,7 @@ describe("FilePicker", () => {
 
   it('should throw an "File too large" when uploading a file that fails on arrayBuffer()', async () => {
     const file: File = mockFile();
-    file.arrayBuffer = jest.fn().mockRejectedValue(new Error("File too large"));
+    file.arrayBuffer = getJestMockFunction().mockRejectedValue(new Error("File too large"));
     const data: DataTransfer = {
       dataTransfer: {
         files: [file],

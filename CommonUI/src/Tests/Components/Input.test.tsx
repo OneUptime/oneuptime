@@ -2,7 +2,8 @@ import Input, { ComponentProps, InputType } from "../../Components/Input/Input";
 import "@testing-library/jest-dom/extend-expect";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect, afterEach, jest, test } from "@jest/globals";
+import { describe, expect, afterEach, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../Types/MockType";
 
 describe("Input", () => {
   afterEach(() => {
@@ -44,7 +45,7 @@ describe("Input", () => {
   });
 
   test("calls onChange when input value changes", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
     const newValue: string = "new value";
 
     const { getByRole } = render(<Input {...{ onChange }} />);
@@ -65,7 +66,7 @@ describe("Input", () => {
   });
 
   test("calls onClick when input is clicked", () => {
-    const onClick: jest.Mock = jest.fn();
+    const onClick: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(<Input {...{ onClick }} />);
     const input: HTMLElement = getByRole("textbox");
@@ -75,7 +76,7 @@ describe("Input", () => {
   });
 
   test("calls onFocus when input is focused", () => {
-    const onFocus: jest.Mock = jest.fn();
+    const onFocus: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(<Input {...{ onFocus }} />);
     const input: HTMLElement = getByRole("textbox");
@@ -85,7 +86,7 @@ describe("Input", () => {
   });
 
   test("calls onBlur when input loses focus", () => {
-    const onBlur: jest.Mock = jest.fn();
+    const onBlur: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(<Input {...{ onBlur }} />);
     const input: HTMLElement = getByRole("textbox");
@@ -95,7 +96,7 @@ describe("Input", () => {
   });
 
   test("calls onEnterPress when Enter key is pressed", () => {
-    const onEnterPress: jest.Mock = jest.fn();
+    const onEnterPress: MockFunction = getJestMockFunction();
 
     const { getByRole } = render(<Input {...{ onEnterPress }} />);
     const input: HTMLElement = getByRole("textbox");
