@@ -23,7 +23,6 @@ import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
 import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
 import React, {
   FunctionComponent,
@@ -199,7 +198,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                       item.statusPageId = id;
                       return item;
                     }}
-                    onSuccess={(_value: StatusPagePrivateUser) => {
+                    onSuccess={() => {
                       setIsSuccess(true);
                     }}
                     maxPrimaryButtonWidth={true}

@@ -11,9 +11,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectSSO from "Model/Models/ProjectSso";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
-const SSO: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   return (

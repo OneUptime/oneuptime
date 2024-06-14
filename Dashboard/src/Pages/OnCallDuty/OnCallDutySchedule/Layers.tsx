@@ -7,9 +7,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallScheduleDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallScheduleDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

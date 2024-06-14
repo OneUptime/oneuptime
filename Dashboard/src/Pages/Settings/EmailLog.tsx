@@ -21,9 +21,7 @@ import React, {
   useState,
 } from "react";
 
-const EmailLogs: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewEmailTextModal, setShowViewEmailTextModal] =
     useState<boolean>(false);
   const [EmailText, setEmailText] = useState<string>("");

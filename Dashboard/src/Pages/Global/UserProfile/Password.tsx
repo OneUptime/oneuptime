@@ -16,9 +16,7 @@ class UserWithConfirmPassword extends User {
   public confirmPassword: string = "";
 }
 
-const Home: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
 
   return (

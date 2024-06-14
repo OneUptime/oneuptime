@@ -61,9 +61,7 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [statusTimelines, setStatusTimelines] = useState<

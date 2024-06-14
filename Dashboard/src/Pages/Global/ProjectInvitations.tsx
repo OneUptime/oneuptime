@@ -17,9 +17,7 @@ import User from "CommonUI/src/Utils/User";
 import TeamMember from "Model/Models/TeamMember";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Home: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
       title={"Project Invitations"}

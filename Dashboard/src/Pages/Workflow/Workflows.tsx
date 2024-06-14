@@ -18,9 +18,7 @@ import Workflow from "Model/Models/Workflow";
 import WorkflowLog from "Model/Models/WorkflowLog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Workflows: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();

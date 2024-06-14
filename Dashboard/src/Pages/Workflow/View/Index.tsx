@@ -9,9 +9,7 @@ import Label from "Model/Models/Label";
 import Workflow from "Model/Models/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Delete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
   return (

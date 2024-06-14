@@ -33,9 +33,9 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorProbes: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorProbes: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");

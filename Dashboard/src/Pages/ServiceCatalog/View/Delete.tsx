@@ -8,9 +8,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ServiceCatalog from "Model/Models/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceCatalogDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceCatalogDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

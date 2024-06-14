@@ -24,9 +24,9 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorCriteria: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorCriteria: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);

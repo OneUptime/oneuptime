@@ -15,9 +15,9 @@ import Team from "Model/Models/Team";
 import User from "Model/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const IncidentOwners: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentOwners: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

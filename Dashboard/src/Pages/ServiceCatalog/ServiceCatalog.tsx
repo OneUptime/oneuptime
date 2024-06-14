@@ -16,9 +16,9 @@ import Label from "Model/Models/Label";
 import ServiceCatalog from "Model/Models/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceCatalogPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceCatalogPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page
       title={"Service Catalog"}

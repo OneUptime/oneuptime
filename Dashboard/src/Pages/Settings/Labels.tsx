@@ -9,9 +9,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Label from "Model/Models/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Labels: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<Label>

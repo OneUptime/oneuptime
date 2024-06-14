@@ -20,9 +20,7 @@ import React, {
   useState,
 } from "react";
 
-const Delete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);

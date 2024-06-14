@@ -19,9 +19,7 @@ import React, {
   useState,
 } from "react";
 
-const Workflows: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
 

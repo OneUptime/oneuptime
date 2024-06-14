@@ -11,9 +11,9 @@ import ServiceCatalog from "Model/Models/ServiceCatalog";
 import ServiceRepository from "Model/Models/ServiceRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceRepositoryPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceRepositoryPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const codeRepositoryId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

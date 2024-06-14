@@ -11,9 +11,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ScheduledMaintenancesPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceState>

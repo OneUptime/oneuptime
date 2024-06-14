@@ -6,9 +6,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const MonitorIncidents: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorIncidents: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

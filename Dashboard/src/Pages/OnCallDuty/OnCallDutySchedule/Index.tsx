@@ -9,9 +9,9 @@ import Label from "Model/Models/Label";
 import OnCallDutySchedule from "Model/Models/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyScheduleView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyScheduleView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

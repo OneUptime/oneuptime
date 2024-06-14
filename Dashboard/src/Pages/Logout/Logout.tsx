@@ -12,9 +12,7 @@ import UserUtil from "CommonUI/src/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const Logout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Logout: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = React.useState<string | null>(null);
 
   useAsyncEffect(async () => {

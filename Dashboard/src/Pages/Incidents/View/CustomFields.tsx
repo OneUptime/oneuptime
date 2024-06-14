@@ -7,9 +7,9 @@ import Incident from "Model/Models/Incident";
 import IncidentCustomField from "Model/Models/IncidentCustomField";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const IncidentCustomFields: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentCustomFields: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

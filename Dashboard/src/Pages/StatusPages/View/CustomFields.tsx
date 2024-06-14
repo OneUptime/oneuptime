@@ -7,9 +7,9 @@ import StatusPage from "Model/Models/StatusPage";
 import StatusPageCustomField from "Model/Models/StatusPageCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPageCustomFields: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

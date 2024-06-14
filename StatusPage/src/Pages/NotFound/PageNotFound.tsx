@@ -4,9 +4,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const PageNotFound: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const PageNotFound: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page>
       <EmptyState

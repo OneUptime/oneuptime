@@ -9,9 +9,9 @@ import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const OnCallDutyPolicyViewLayout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyPolicyViewLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());

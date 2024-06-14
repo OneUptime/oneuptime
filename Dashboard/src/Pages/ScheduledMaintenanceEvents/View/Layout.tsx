@@ -9,9 +9,9 @@ import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const ScheduledMaintenanceViewLayout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ScheduledMaintenanceViewLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());

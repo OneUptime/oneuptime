@@ -2,9 +2,9 @@ import PageComponentProps from "../../../../PageComponentProps";
 import ComingSoon from "CommonUI/src/Components/ComingSoon/ComingSoon";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ComingSoon />

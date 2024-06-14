@@ -11,9 +11,9 @@ import Label from "Model/Models/Label";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <Banner

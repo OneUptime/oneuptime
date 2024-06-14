@@ -15,9 +15,7 @@ import Label from "Model/Models/Label";
 import StatusPage from "Model/Models/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const StatusPages: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
       title={"Status Pages"}

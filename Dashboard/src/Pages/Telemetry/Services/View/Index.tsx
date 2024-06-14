@@ -9,9 +9,9 @@ import Label from "Model/Models/Label";
 import TelemetryService from "Model/Models/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
   return (

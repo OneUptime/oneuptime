@@ -24,9 +24,7 @@ import React, {
   useState,
 } from "react";
 
-const ProbePage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);

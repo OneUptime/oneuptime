@@ -18,9 +18,9 @@ const PageTitleMap: Dictionary<string> = {
     "On-Call Duty Logs",
 };
 
-const OnCallDutyLayout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   const lastPath: string = RouteUtil.getLastPath(path);
   return (

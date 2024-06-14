@@ -10,9 +10,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import IncidentSeverity from "Model/Models/IncidentSeverity";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentSeverityPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<IncidentSeverity>

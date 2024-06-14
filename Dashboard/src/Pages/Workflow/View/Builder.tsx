@@ -36,9 +36,7 @@ import React, {
 import { Edge, Node } from "reactflow";
 import { useAsyncEffect } from "use-async-effect";
 
-const Delete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<string>("");
   const [saveTimeout, setSaveTimeout] = useState<ReturnType<

@@ -6,9 +6,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Project from "Model/Models/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       {/* Project Settings View  */}

@@ -7,9 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const onCallDutyPolicyIdString: string | null = Navigation.getParamByName(
     RouteParams.ModelID,
     RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]!,

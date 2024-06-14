@@ -9,9 +9,7 @@ import User from "CommonUI/src/Utils/User";
 import UserNotificationSetting from "Model/Models/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetModelTableFunctionProps = {
     eventOptions: Array<NotificationSettingEventType>;
     title: string;

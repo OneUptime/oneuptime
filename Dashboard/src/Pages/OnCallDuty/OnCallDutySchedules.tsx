@@ -9,9 +9,9 @@ import Label from "Model/Models/Label";
 import OnCallDutySchedule from "Model/Models/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<OnCallDutySchedule>

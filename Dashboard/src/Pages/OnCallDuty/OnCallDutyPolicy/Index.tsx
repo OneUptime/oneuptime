@@ -9,9 +9,9 @@ import Label from "Model/Models/Label";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyPolicyView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyPolicyView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

@@ -20,9 +20,7 @@ import React, {
   useState,
 } from "react";
 
-const Domains: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showVerificationModal, setShowVerificationModal] =
     useState<boolean>(false);
   const [error, setError] = useState<string>("");

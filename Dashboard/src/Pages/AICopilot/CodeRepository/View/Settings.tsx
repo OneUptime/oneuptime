@@ -5,9 +5,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import CodeRepository from "Model/Models/CodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

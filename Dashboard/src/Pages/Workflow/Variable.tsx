@@ -6,9 +6,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import WorkflowVariable from "Model/Models/WorkflowVariable";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Workflows: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<WorkflowVariable>

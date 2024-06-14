@@ -25,9 +25,9 @@ import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenance
 import StatusPage from "Model/Models/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ScheduledMaintenanceView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

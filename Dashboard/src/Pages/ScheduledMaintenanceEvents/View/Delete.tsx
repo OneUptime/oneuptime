@@ -8,9 +8,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const IncidentDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

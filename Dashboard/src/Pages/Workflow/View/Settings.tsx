@@ -9,9 +9,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Workflow from "Model/Models/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

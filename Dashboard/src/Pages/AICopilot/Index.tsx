@@ -15,9 +15,9 @@ import CodeRepository from "Model/Models/CodeRepository";
 import Label from "Model/Models/Label";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const CodeRepositoryPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const CodeRepositoryPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page
       title={"AI Copilot"}

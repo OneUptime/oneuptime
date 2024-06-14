@@ -9,9 +9,9 @@ import ServiceCatalog from "Model/Models/ServiceCatalog";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const ServiceCatalogViewLayout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceCatalogViewLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());

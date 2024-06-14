@@ -40,9 +40,9 @@ import React, {
   useState,
 } from "react";
 
-const IncidentView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<

@@ -17,9 +17,9 @@ import React, {
   useEffect,
 } from "react";
 
-const MonitorIncidents: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorIncidents: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);

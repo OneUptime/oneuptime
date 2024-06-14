@@ -21,9 +21,7 @@ import React, {
   useState,
 } from "react";
 
-const SMSLogs: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewSmsTextModal, setShowViewSmsTextModal] =
     useState<boolean>(false);
   const [smsText, setSmsText] = useState<string>("");

@@ -23,9 +23,7 @@ import React, {
   useState,
 } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");

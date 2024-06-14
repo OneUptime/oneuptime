@@ -10,9 +10,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPageDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

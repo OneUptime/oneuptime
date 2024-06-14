@@ -31,9 +31,7 @@ import Team from "Model/Models/Team";
 import User from "Model/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TeamView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

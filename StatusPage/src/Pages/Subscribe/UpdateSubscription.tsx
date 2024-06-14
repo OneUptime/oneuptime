@@ -20,7 +20,6 @@ import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
 import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
 import React, {
   FunctionComponent,
@@ -217,7 +216,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     formType={FormType.Update}
                     modelIdToEdit={new ObjectID(statusPageSubscriberId)}
                     submitButtonText={"Update Subscription"}
-                    onSuccess={(_value: StatusPagePrivateUser) => {
+                    onSuccess={() => {
                       setIsSuccess(true);
                     }}
                     maxPrimaryButtonWidth={true}

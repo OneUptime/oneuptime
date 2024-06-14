@@ -8,9 +8,9 @@ import Monitor from "Model/Models/Monitor";
 import MonitorCustomField from "Model/Models/MonitorCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const MonitorCustomFields: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorCustomFields: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

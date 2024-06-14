@@ -7,9 +7,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ApiKey from "Model/Models/ApiKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const APIKeys: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<ApiKey>

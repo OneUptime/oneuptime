@@ -22,9 +22,7 @@ import React, {
   useState,
 } from "react";
 
-const CallLogs: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewCallTextModal, setShowViewCallTextModal] =
     useState<boolean>(false);
   const [callText, setCallText] = useState<string>("");

@@ -19,9 +19,9 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorDocumentation: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorDocumentation: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [error, setError] = useState<string>("");

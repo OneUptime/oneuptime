@@ -8,9 +8,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import MonitorGroup from "Model/Models/MonitorGroup";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const MonitorGroupDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorGroupDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

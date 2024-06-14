@@ -4,9 +4,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const MetricViewPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MetricViewPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const metricName: string = Navigation.getLastParamAsString();
   const serviceId: ObjectID = Navigation.getLastParamAsObjectID(2);
 

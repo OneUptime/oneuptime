@@ -2,9 +2,7 @@ import ExecutionLogsTable from "../../Components/OnCallPolicy/ExecutionLogs/Exec
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return <ExecutionLogsTable />;
 };
 

@@ -6,9 +6,9 @@ import NotFound from "CommonUI/src/Components/404";
 import Page from "CommonUI/src/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const PageNotFound: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const PageNotFound: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page title={""} breadcrumbLinks={[]}>
       <NotFound

@@ -11,9 +11,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TracesList: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const TracesList: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const spanKindDropdownOptions: Array<DropdownOption> =

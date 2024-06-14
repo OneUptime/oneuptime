@@ -11,9 +11,9 @@ import Label from "Model/Models/Label";
 import ServiceCatalog from "Model/Models/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPageView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

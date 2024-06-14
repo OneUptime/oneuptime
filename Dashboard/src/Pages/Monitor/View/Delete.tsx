@@ -9,9 +9,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Monitor from "Model/Models/Monitor";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const MonitorDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

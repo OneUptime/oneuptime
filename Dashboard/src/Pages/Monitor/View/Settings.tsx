@@ -27,9 +27,9 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorCriteria: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorCriteria: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [alertRefreshToggle, setAlertRefreshToggle] = useState<boolean>(false);
 
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);

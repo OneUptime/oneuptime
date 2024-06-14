@@ -11,9 +11,9 @@ import CodeRepository from "Model/Models/CodeRepository";
 import Label from "Model/Models/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPageView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

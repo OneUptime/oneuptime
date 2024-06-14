@@ -4,9 +4,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const ServiceDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

@@ -2,9 +2,9 @@ import TelemetryDocumentation from "../../../../Components/Telemetry/Documentati
 import PageComponentProps from "../../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TelemetryDocumentationPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const TelemetryDocumentationPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <TelemetryDocumentation />

@@ -11,9 +11,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import ScheduledMaintenanceNoteTemplate from "Model/Models/ScheduledMaintenanceNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TeamView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

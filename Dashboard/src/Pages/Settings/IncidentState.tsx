@@ -11,9 +11,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import IncidentState from "Model/Models/IncidentState";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const IncidentsPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentsPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<IncidentState>

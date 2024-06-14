@@ -12,9 +12,7 @@ import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Home: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
       title={"User Profile"}

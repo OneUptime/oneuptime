@@ -7,9 +7,9 @@ import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import OnCallDutyPolicyCustomField from "Model/Models/OnCallDutyPolicyCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyPolicyCustomFields: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const OnCallDutyPolicyCustomFields: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

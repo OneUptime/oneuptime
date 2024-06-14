@@ -45,9 +45,7 @@ type BarTooltipFunctionProps = {
 
 type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
 
-const TraceView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const TraceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [telemetryServices, setTelemetryServices] = React.useState<
     TelemetryService[]
   >([]);

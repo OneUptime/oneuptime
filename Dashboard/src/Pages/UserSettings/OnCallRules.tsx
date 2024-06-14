@@ -30,9 +30,7 @@ import React, {
   useState,
 } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [incidentSeverities, setIncidentSeverities] = useState<

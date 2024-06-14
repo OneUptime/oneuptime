@@ -1,9 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const StatusPageDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <></>

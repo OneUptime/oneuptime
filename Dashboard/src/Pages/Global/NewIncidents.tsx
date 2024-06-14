@@ -13,9 +13,7 @@ import { RequestOptions } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Incident from "Model/Models/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Home: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
       title={"New Incidents"}

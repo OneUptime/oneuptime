@@ -34,9 +34,9 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const MonitorGroupView: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorGroupView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [currentGroupStatus, setCurrentGroupStatus] =

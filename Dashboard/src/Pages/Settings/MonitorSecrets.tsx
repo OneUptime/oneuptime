@@ -22,9 +22,9 @@ import React, {
   useState,
 } from "react";
 
-const MonitorSecrets: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const MonitorSecrets: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [currentlyEditingItem, setCurrentlyEditingItem] =
     useState<MonitorSecret | null>(null);
 

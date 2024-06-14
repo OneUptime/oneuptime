@@ -7,9 +7,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const SettingsLayout: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const SettingsLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
     <Page

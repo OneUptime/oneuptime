@@ -22,9 +22,7 @@ import React, {
   useState,
 } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =

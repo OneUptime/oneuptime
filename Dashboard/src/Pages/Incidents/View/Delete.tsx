@@ -8,9 +8,9 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Incident from "Model/Models/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const IncidentDelete: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const IncidentDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

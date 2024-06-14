@@ -4,9 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Settings: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
-): ReactElement => {
+const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return <ExecutionLogTimelineTable onCallPolicyExecutionLogId={modelId} />;
