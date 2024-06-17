@@ -402,7 +402,6 @@ class User extends UserModel {
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
-
     update: [Permission.CurrentUser],
   })
   @TableColumn({ type: TableColumnType.ShortText })

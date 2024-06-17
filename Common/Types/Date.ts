@@ -4,6 +4,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import PositiveNumber from "./PositiveNumber";
 import moment from "moment-timezone";
+import Timezone from "./Timezone";
 
 export const Moment: typeof moment = moment;
 
@@ -863,6 +864,38 @@ export default class OneUptimeDate {
       }
 
       formattedString += mins + " minutes";
+    }
+
+    return formattedString;
+  }
+
+
+  public static getGmtOffsetByTimezone(timezone: Timezone): number{
+    return moment.tz(timezone).utcOffset();
+  }
+
+  public static getGmtOffsetFriendlyStringByTimezone(timezone: Timezone): string{
+    const offset: number = this.getGmtOffsetByTimezone(timezone);
+    return this.getGmtOffsetFriendlyString(offset);
+  }
+
+  public static getGmtOffsetFriendlyString(offset: number): string{
+    const hours: number = Math.abs(offset) / 60;
+    const minutes: number = Math.abs(offset) % 60;
+
+    let formattedString: string = "GMT";
+
+    if (offset < 0) {
+      formattedString += "-";
+    } else {
+      formattedString += "+";
+    }
+
+    // remove decimals from hours 
+    formattedString += Math.floor(hours);
+
+    if (minutes > 0) {
+      formattedString += ":" + minutes;
     }
 
     return formattedString;
