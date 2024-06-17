@@ -869,17 +869,18 @@ export default class OneUptimeDate {
     return formattedString;
   }
 
-
-  public static getGmtOffsetByTimezone(timezone: Timezone): number{
+  public static getGmtOffsetByTimezone(timezone: Timezone): number {
     return moment.tz(timezone).utcOffset();
   }
 
-  public static getGmtOffsetFriendlyStringByTimezone(timezone: Timezone): string{
+  public static getGmtOffsetFriendlyStringByTimezone(
+    timezone: Timezone,
+  ): string {
     const offset: number = this.getGmtOffsetByTimezone(timezone);
     return this.getGmtOffsetFriendlyString(offset);
   }
 
-  public static getGmtOffsetFriendlyString(offset: number): string{
+  public static getGmtOffsetFriendlyString(offset: number): string {
     const hours: number = Math.abs(offset) / 60;
     const minutes: number = Math.abs(offset) % 60;
 
@@ -891,7 +892,7 @@ export default class OneUptimeDate {
       formattedString += "+";
     }
 
-    // remove decimals from hours 
+    // remove decimals from hours
     formattedString += Math.floor(hours);
 
     if (minutes > 0) {

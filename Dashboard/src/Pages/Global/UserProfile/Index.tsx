@@ -62,8 +62,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               timezone: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              TimezoneUtil.getTimezoneDropdownOptions(),
+            dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
             placeholder: "Select Timezone",
             description:
               "Select your timezone. This will be used for all date and time related notifications sent out to you.",
