@@ -178,7 +178,8 @@ router.get(
         nextPingAt: firstMonitorToBeFetched?.nextPingAt,
         friendlyNextPingAt: firstMonitorToBeFetched?.nextPingAt
           ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              firstMonitorToBeFetched?.nextPingAt,
+              {date: firstMonitorToBeFetched?.nextPingAt
+              },
             )
           : "",
       });
