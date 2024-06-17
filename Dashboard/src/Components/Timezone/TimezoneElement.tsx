@@ -10,11 +10,7 @@ const TimezoneElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <p>
-      {OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
-        props.timezone,
-      )}
-    </p>
+    <p>{OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(props.timezone)}</p>
   );
 };
 

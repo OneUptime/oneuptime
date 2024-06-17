@@ -12,9 +12,7 @@ const TimezonesElement: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {props.timezones.map((timezone: Timezone) => {
-        return (
-          <TimezoneElement timezone={timezone} key={timezone} />
-        );
+        return <TimezoneElement timezone={timezone} key={timezone} />;
       })}
     </div>
   );

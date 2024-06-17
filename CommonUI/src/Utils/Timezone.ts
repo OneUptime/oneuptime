@@ -23,15 +23,14 @@ export default class TimezoneUtil {
 
       const value: string =
         Timezone && Timezone[keyOfTimezone]
-          ? (Timezone[keyOfTimezone].toString())
+          ? Timezone[keyOfTimezone].toString()
           : "";
 
       return {
         value: value,
-        label:
-          OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
-            Timezone[keyOfTimezone],
-          )
+        label: OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
+          Timezone[keyOfTimezone],
+        ),
       };
     });
   }

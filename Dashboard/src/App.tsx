@@ -74,7 +74,6 @@ const App: () => JSX.Element = () => {
   >(undefined);
 
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
-  
 
   useAsyncEffect(async () => {
     try {
@@ -199,8 +198,7 @@ const App: () => JSX.Element = () => {
       selectedProject={selectedProject}
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
     >
-
-      <UseTimezoneInitElement /> 
+      <UseTimezoneInitElement />
       <ToastLayout />
 
       <Routes>
@@ -454,8 +452,6 @@ const App: () => JSX.Element = () => {
           }
         />
       </Routes>
-
-     
     </MasterPage>
   );
 };

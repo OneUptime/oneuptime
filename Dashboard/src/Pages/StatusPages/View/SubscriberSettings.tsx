@@ -101,8 +101,7 @@ const StatusPageDelete: FunctionComponent<
             placeholder: "Select Timezones",
             description:
               "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
-          }
-
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -119,26 +118,27 @@ const StatusPageDelete: FunctionComponent<
                 "Can subscribers choose which resources they want to subscribe to?",
             },
             {
-              field:{
+              field: {
                 subscriberTimezones: true,
               },
               fieldType: FieldType.Element,
               title: "Subscriber Timezones",
-              description: "Subscribers will see time in these timezones when they receive notifications.",
+              description:
+                "Subscribers will see time in these timezones when they receive notifications.",
               getElement: (item: StatusPage): ReactElement => {
-                if (item["subscriberTimezones"] && item["subscriberTimezones"].length > 0) {
+                if (
+                  item["subscriberTimezones"] &&
+                  item["subscriberTimezones"].length > 0
+                ) {
                   return (
-                    <TimezonesElement
-                      timezones={item["subscriberTimezones"]}
-                    />
+                    <TimezonesElement timezones={item["subscriberTimezones"]} />
                   );
                 }
                 return (
                   <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
               },
-
-            }
+            },
           ],
           modelId: modelId,
         }}

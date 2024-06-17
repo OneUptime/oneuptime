@@ -1647,8 +1647,6 @@ export default class StatusPage extends BaseModel {
   })
   public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
 
-
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1681,6 +1679,4 @@ export default class StatusPage extends BaseModel {
     nullable: true,
   })
   public subscriberTimezones?: Array<Timezone> = undefined;
-
-
 }
