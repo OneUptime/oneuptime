@@ -7,6 +7,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import API from "Common/Utils/API";
 
 export default class User {
@@ -33,11 +34,11 @@ export default class User {
     return Boolean(LocalStorage.getItem("cardRegistered"));
   }
 
-  public static getSavedUserTimezone(): string {
-    return LocalStorage.getItem("user_timezone") as string;
+  public static getSavedUserTimezone(): Timezone {
+    return LocalStorage.getItem("user_timezone") as Timezone;
   }
 
-  public static setSavedUserTimezone(timezone: string): void {
+  public static setSavedUserTimezone(timezone: Timezone): void {
     LocalStorage.setItem("user_timezone", timezone);
   }
 

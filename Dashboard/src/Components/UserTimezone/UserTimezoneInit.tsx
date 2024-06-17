@@ -79,7 +79,7 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
         onClose={() => {
           setShowConfirmModal(false);
         }}
-        submitButtonText={"Save"}
+        submitButtonText={"Update Timezone"}
         onSubmit={async () => {
           setShowConfirmModal(false);
           return await updateUserTimezone(timezoneToSave as Timezone);

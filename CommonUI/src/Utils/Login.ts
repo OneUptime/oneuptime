@@ -19,6 +19,9 @@ export default abstract class LoginUtil {
     UserUtil.setEmail(user.email as Email);
     UserUtil.setUserId(user.id as ObjectID);
     UserUtil.setName(user.name || new Name(""));
+    if (user.timezone) {
+      UserUtil.setSavedUserTimezone(user.timezone);
+    }
     UserUtil.setIsMasterAdmin(user.isMasterAdmin as boolean);
 
     if (user.profilePictureId) {
