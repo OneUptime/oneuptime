@@ -98,6 +98,8 @@ Llama/Models/llama*
 
 Llama/__pycache__/*
 
+Llama/Models/*
+
 Examples/otel-dotnet/obj/*
 
 InfrastructureAgent/sea-prep.blob

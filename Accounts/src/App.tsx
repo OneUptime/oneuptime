@@ -1,5 +1,6 @@
 import ForgotPasswordPage from "./Pages/ForgotPassword";
 import LoginPage from "./Pages/Login";
+import LoginWithSSO from "./Pages/LoginWithSSO";
 import NotFound from "./Pages/NotFound";
 import RegisterPage from "./Pages/Register";
 import ResetPasswordPage from "./Pages/ResetPassword";
@@ -24,6 +25,8 @@ function App(): ReactElement {
       <Routes>
         <Route path="/accounts" element={<LoginPage />} />
         <Route path="/accounts/login" element={<LoginPage />} />
+
+        <Route path="/accounts/sso" element={<LoginWithSSO />} />
         <Route
           path="/accounts/forgot-password"
           element={<ForgotPasswordPage />}

@@ -2,7 +2,6 @@ import { LOGIN_API_URL } from "../Utils/ApiPaths";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Link from "CommonUI/src/Components/Link/Link";
@@ -13,7 +12,7 @@ import LoginUtil from "CommonUI/src/Utils/Login";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
-import React, { useState } from "react";
+import React from "react";
 import useAsyncEffect from "use-async-effect";
 
 const LoginPage: () => JSX.Element = () => {
@@ -23,11 +22,6 @@ const LoginPage: () => JSX.Element = () => {
     Navigation.navigate(DASHBOARD_URL);
   }
 
-  const showSsoMessage: boolean = Boolean(
-    Navigation.getQueryStringByName("sso"),
-  );
-
-  const [showSsoTip, setShowSSOTip] = useState<boolean>(false);
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
@@ -55,16 +49,6 @@ const LoginPage: () => JSX.Element = () => {
           all the time.
         </p>
       </div>
-
-      {showSsoMessage && (
-        <div className="sm:mx-auto sm:w-full sm:max-w-md mt-8">
-          {" "}
-          <Alert
-            type={AlertType.DANGER}
-            title="You must be logged into OneUptime account to use single sign-on (SSO) for your project. Logging in to OneUptime account and single sign on (SSO) for your project are two separate steps. Please use the form below to log in to your OneUptime account before you use SSO."
-          />{" "}
-        </div>
-      )}
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
@@ -120,23 +104,13 @@ const LoginPage: () => JSX.Element = () => {
             footer={
               <div className="actions text-center mt-4 hover:underline fw-semibold">
                 <div>
-                  {!showSsoTip && (
+                  <Link to={new Route("/accounts/sso")}>
                     <div
-                      onClick={() => {
-                        setShowSSOTip(true);
-                      }}
                       className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                     >
                       Use single sign-on (SSO) instead
                     </div>
-                  )}
-
-                  {showSsoTip && (
-                    <div className="text-gray-500 text-sm">
-                      Please sign in with your SSO provider like Okta, Auth0,
-                      Entra ID or any other SAML 2.0 provider.
-                    </div>
-                  )}
+                  </Link>
                 </div>
               </div>
             }

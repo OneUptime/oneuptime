@@ -5,6 +5,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -19,6 +20,7 @@ import AccessTokenService from "CommonServer/Services/AccessTokenService";
 import ProjectSSOService from "CommonServer/Services/ProjectSsoService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserService from "CommonServer/Services/UserService";
+import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import CookieUtil from "CommonServer/Utils/Cookie";
 import Express, {
   ExpressRequest,
@@ -35,6 +37,83 @@ import User from "Model/Models/User";
 import xml2js from "xml2js";
 
 const router: ExpressRouter = Express.getRouter();
+
+// This route is used to get the SSO config for the user.
+// when the user logs in from OneUptime and not from the IDP.
+
+router.get("/service-provider-login", async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+
+  if (!req.query['email']) {
+    return Response.sendErrorResponse(req, res, new BadRequestException("Email is required"));
+  }
+
+  const email: Email = new Email(req.query['email'] as string);
+
+  if (!email) {
+    return Response.sendErrorResponse(req, res, new BadRequestException("Email is required"));
+  }
+
+  // get sso config for this user. 
+
+  const user: User | null = await UserService.findOneBy({
+    query: { email: email },
+    select: {
+      _id: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+
+  if (!user) {
+    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
+  }
+
+
+  const userId: ObjectID = user.id!;
+
+  if (!userId) {
+    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
+  }
+
+  const projectUserBelongsTo: Array<ObjectID> = (await TeamMemberService.findBy({
+    query: { userId: userId },
+    select: {
+      projectId: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  })).map((teamMember: TeamMember) => teamMember.projectId!);
+
+  if (projectUserBelongsTo.length === 0) {
+    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
+  }
+
+  const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
+    query: { projectId: QueryHelper.any(projectUserBelongsTo), isEnabled: true },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    select: {
+      name: true,
+      description: true,
+      _id: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  return Response.sendEntityArrayResponse(req, res, projectSSOList, projectSSOList.length, ProjectSSO);
+
+});
 
 router.get(
   "/sso/:projectId/:projectSsoId",
@@ -262,9 +341,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     if (projectSSO.issuerURL.toString() !== issuerUrl) {
       logger.error(
         "Issuer URL does not match. It should be " +
-          projectSSO.issuerURL.toString() +
-          " but it is " +
-          issuerUrl.toString(),
+        projectSSO.issuerURL.toString() +
+        " but it is " +
+        issuerUrl.toString(),
       );
       return Response.sendErrorResponse(
         req,
