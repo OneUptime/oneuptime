@@ -86,11 +86,7 @@ RunCron(
         continue;
       }
 
-     
-
       for (const user of owners) {
-
-
         const vars: Dictionary<string> = {
           monitorName: monitor.name!,
           projectName: monitorStatusTimeline.project!.name!,
@@ -102,8 +98,8 @@ RunCron(
           statusChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: monitorStatusTimeline.createdAt!,
-              timezones: user.timezone ? [user.timezone] : []
-        }),
+              timezones: user.timezone ? [user.timezone] : [],
+            }),
           monitorViewLink: (
             await MonitorService.getMonitorLinkInDashboard(
               monitorStatusTimeline.projectId!,
@@ -113,7 +109,7 @@ RunCron(
           rootCause:
             monitorStatusTimeline.rootCause || "No root cause identified.",
         };
-  
+
         if (doesResourceHasOwners === true) {
           vars["isOwner"] = "true";
         }

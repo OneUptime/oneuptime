@@ -189,10 +189,11 @@ RunCron(
 
                             ${event.title || ""}
 
-                            ${resourcesAffected
-                  ? "Resources Affected: " + resourcesAffected
-                  : ""
-                }
+                            ${
+                              resourcesAffected
+                                ? "Resources Affected: " + resourcesAffected
+                                : ""
+                            }
 
                             To view this event, visit ${statusPageURL}
 
@@ -225,9 +226,9 @@ RunCron(
                   statusPageUrl: statusPageURL,
                   logoUrl: statuspage.logoFileId
                     ? new URL(httpProtocol, host)
-                      .addRoute(FileRoute)
-                      .addRoute("/image/" + statuspage.logoFileId)
-                      .toString()
+                        .addRoute(FileRoute)
+                        .addRoute("/image/" + statuspage.logoFileId)
+                        .toString()
                     : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"

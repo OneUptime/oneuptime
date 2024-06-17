@@ -129,10 +129,7 @@ RunCron(
         continue;
       }
 
-      
-
       for (const user of owners) {
-
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
           projectName: incidentStateTimeline.project!.name!,
@@ -147,12 +144,11 @@ RunCron(
                 return monitor.name!;
               })
               .join(", ") || "None",
-          stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-            {
+          stateChangedAt:
+            OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: incidentStateTimeline.createdAt!,
-              timezones: user.timezone ? [user.timezone] : []
-            }
-          ),
+              timezones: user.timezone ? [user.timezone] : [],
+            }),
           incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
@@ -161,7 +157,7 @@ RunCron(
             )
           ).toString(),
         };
-  
+
         if (doesResourceHasOwners === true) {
           vars["isOwner"] = "true";
         }

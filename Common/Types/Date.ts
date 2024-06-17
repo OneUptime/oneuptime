@@ -318,8 +318,8 @@ export default class OneUptimeDate {
     type TenFunction = (i: number) => string;
 
     const ten: TenFunction = (i: number): string => {
-      return (i < 10 ? "0" : "") + i;
-    },
+        return (i < 10 ? "0" : "") + i;
+      },
       YYYY: number = date.getFullYear(),
       MM: string = ten(date.getMonth() + 1),
       DD: string = ten(date.getDate()),
@@ -903,11 +903,10 @@ export default class OneUptimeDate {
   }
 
   public static getDateAsFormattedArrayInMultipleTimezones(data: {
-    date: string | Date,
-    onlyShowDate?: boolean | undefined,
+    date: string | Date;
+    onlyShowDate?: boolean | undefined;
     timezones?: Array<Timezone> | undefined;
   }): Array<string> {
-
     let date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     let timezones: Array<Timezone> | undefined = data.timezones;
@@ -930,28 +929,29 @@ export default class OneUptimeDate {
         Timezone.AmericaLos_Angeles,
         Timezone.AsiaKolkata,
         Timezone.AustraliaSydney,
-      ] // default timezones. 
+      ]; // default timezones.
     }
 
-
-    for (let i = 0; i < timezones.length; i++) {
+    for (let i: number = 0; i < timezones.length; i++) {
       timezoneDates.push(
-        moment(date).tz(timezones[i] as string).format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : this.getZoneAbbrByTimezone(timezones[i] as Timezone)),
+        moment(date)
+          .tz(timezones[i] as string)
+          .format(formatstring) +
+          " " +
+          (onlyShowDate
+            ? ""
+            : this.getZoneAbbrByTimezone(timezones[i] as Timezone)),
       );
     }
-
 
     return timezoneDates;
   }
 
   public static getDateAsFormattedHTMLInMultipleTimezones(data: {
-    date: string | Date,
-    onlyShowDate?: boolean,
-    timezones?: Array<Timezone> | undefined, // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    date: string | Date;
+    onlyShowDate?: boolean;
+    timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
   }): string {
-
     const date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     const timezones: Array<Timezone> | undefined = data.timezones;
@@ -959,16 +959,15 @@ export default class OneUptimeDate {
     return this.getDateAsFormattedArrayInMultipleTimezones({
       date,
       onlyShowDate,
-      timezones
+      timezones,
     }).join("<br/>");
   }
 
   public static getDateAsFormattedStringInMultipleTimezones(data: {
-    date: string | Date,
-    onlyShowDate?: boolean | undefined,
-    timezones?: Array<Timezone> | undefined, // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    date: string | Date;
+    onlyShowDate?: boolean | undefined;
+    timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
   }): string {
-
     const date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     const timezones: Array<Timezone> | undefined = data.timezones;

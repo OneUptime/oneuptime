@@ -90,10 +90,7 @@ RunCron(
         continue;
       }
 
-     
-
       for (const user of owners) {
-
         const vars: Dictionary<string> = {
           scheduledMaintenanceTitle: scheduledMaintenance.title!,
           projectName: scheduledMaintenanceStateTimeline.project!.name!,
@@ -102,10 +99,11 @@ RunCron(
             scheduledMaintenance.description! || "",
             MarkdownContentType.Email,
           ),
-          stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-            date: scheduledMaintenanceStateTimeline.createdAt!,
-            timezones: user.timezone ? [user.timezone] : []
-        }),
+          stateChangedAt:
+            OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+              date: scheduledMaintenanceStateTimeline.createdAt!,
+              timezones: user.timezone ? [user.timezone] : [],
+            }),
           scheduledMaintenanceViewLink: (
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               scheduledMaintenanceStateTimeline.projectId!,
@@ -113,7 +111,7 @@ RunCron(
             )
           ).toString(),
         };
-  
+
         if (doesResourceHasOwners === true) {
           vars["isOwner"] = "true";
         }
