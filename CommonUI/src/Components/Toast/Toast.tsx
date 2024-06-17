@@ -60,6 +60,7 @@ const Component: FunctionComponent<ComponentProps> = (
   if (show) {
     return (
       <div
+        data-testid="toast"
         aria-live="assertive"
         className={`pointer-events-none fixed z-40 top-${top} left-0 right-0  flex items-end px-4 py-6 sm:items-start sm:p-6`}
       >
@@ -68,13 +69,23 @@ const Component: FunctionComponent<ComponentProps> = (
             <div className="p-4">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <Icon className={`h-6 w-6 ${typeCssClass}`} icon={iconType} />
+                  <Icon
+                    className={`h-6 w-6 ${typeCssClass}`}
+                    data-testid="toast-icon"
+                    icon={iconType}
+                  />
                 </div>
                 <div className="ml-3 w-0 flex-1 pt-0.5">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p
+                    data-testId="title"
+                    className="text-sm font-medium text-gray-900"
+                  >
                     {props.title}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p
+                    data-testId="description"
+                    className="mt-1 text-sm text-gray-500"
+                  >
                     {props.description}
                   </p>
                   {/* <div className="mt-3 flex space-x-7">
@@ -90,6 +101,7 @@ const Component: FunctionComponent<ComponentProps> = (
                         props.onClose();
                       }
                     }}
+                    data-testid="close-button"
                     type="button"
                     className="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
