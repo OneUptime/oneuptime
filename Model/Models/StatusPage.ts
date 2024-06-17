@@ -28,6 +28,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import Timezone from "Common/Types/Timezone";
 import {
   Column,
   Entity,
@@ -1645,4 +1646,41 @@ export default class StatusPage extends BaseModel {
     },
   })
   public downtimeMonitorStatuses?: Array<MonitorStatus> = undefined;
+
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Subscriber Timezones",
+    description: "Timezones of subscribers to this status page.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public subscriberTimezones?: Array<Timezone> = undefined;
+
+
 }
