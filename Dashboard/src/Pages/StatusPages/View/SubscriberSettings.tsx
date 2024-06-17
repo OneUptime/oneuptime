@@ -7,10 +7,12 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
+import TimezoneUtil from "CommonUI/src/Utils/Timezone";
 import ProjectCallSMSConfig from "Model/Models/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "Model/Models/ProjectSmtpConfig";
 import StatusPage from "Model/Models/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -88,6 +90,19 @@ const StatusPageDelete: FunctionComponent<
             placeholder:
               "Can subscribers choose which resources they want to subscribe to?",
           },
+          {
+            field: {
+              subscriberTimezones: true,
+            },
+            title: "Subscriber Timezones",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
+            required: false,
+            placeholder: "Select Timezones",
+            description:
+              "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
+          }
+
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -103,6 +118,26 @@ const StatusPageDelete: FunctionComponent<
               description:
                 "Can subscribers choose which resources they want to subscribe to?",
             },
+            {
+              field:{
+                subscriberTimezones: true,
+              },
+              fieldType: FieldType.Element,
+              title: "Subscriber Timezones",
+              getElement: (item: StatusPage): ReactElement => {
+                if (item["subscriberTimezones"] && item["subscriberTimezones"].length > 0) {
+                  return (
+                    <TimezonesElement
+                      timezones={item["subscriberTimezones"]}
+                    />
+                  );
+                }
+                return (
+                  <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones." />
+                );
+              },
+
+            }
           ],
           modelId: modelId,
         }}
