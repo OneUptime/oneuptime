@@ -78,9 +78,6 @@ RunCron(
 
       // get status page resources from monitors.
 
-
-      const incidentIdentifiedDate: Date = await IncidentService.getIncidentIdentifiedDate(incident.id!);
-
       const statusPageResources: Array<StatusPageResource> =
         await StatusPageResourceService.findBy({
           query: {
@@ -131,7 +128,6 @@ RunCron(
         );
 
       for (const statuspage of statusPages) {
-
         try {
           if (!statuspage.id) {
             continue;
@@ -146,9 +142,8 @@ RunCron(
               },
             );
 
-          const statusPageURL: string = await StatusPageService.getStatusPageURL(
-            statuspage.id,
-          );
+          const statusPageURL: string =
+            await StatusPageService.getStatusPageURL(statuspage.id);
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
 
@@ -162,9 +157,7 @@ RunCron(
               .join(", ") || "None";
 
           for (const subscriber of subscribers) {
-
             try {
-
               if (!subscriber._id) {
                 continue;
               }
@@ -172,7 +165,8 @@ RunCron(
               const shouldNotifySubscriber: boolean =
                 StatusPageSubscriberService.shouldSendNotification({
                   subscriber: subscriber,
-                  statusPageResources: statusPageToResources[statuspage._id!] || [],
+                  statusPageResources:
+                    statusPageToResources[statuspage._id!] || [],
                   statusPage: statuspage,
                 });
 
@@ -187,10 +181,7 @@ RunCron(
                 ).toString();
 
               if (subscriber.subscriberEmail) {
-                
                 // send email here.
-
-                
 
                 MailService.sendMail(
                   {
@@ -201,21 +192,16 @@ RunCron(
                       statusPageUrl: statusPageURL,
                       logoUrl: statuspage.logoFileId
                         ? new URL(httpProtocol, host)
-                          .addRoute(FileRoute)
-                          .addRoute("/image/" + statuspage.logoFileId)
-                          .toString()
+                            .addRoute(FileRoute)
+                            .addRoute("/image/" + statuspage.logoFileId)
+                            .toString()
                         : "",
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",
                       resourcesAffected: resourcesAffectedString,
-                      createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                        {
-                          date: incidentIdentifiedDate,
-                          timezones: statuspage.subscriberTimezones || [],
-                        },
-                      ),
-                      incidentSeverity: incident.incidentSeverity?.name || " - ",
+                      incidentSeverity:
+                        incident.incidentSeverity?.name || " - ",
                       incidentTitle: incident.title || "",
                       incidentDescription: await Markdown.convertToHTML(
                         incident.description || "",
@@ -243,8 +229,9 @@ RunCron(
 
                             Title: ${incident.title || ""}
 
-                            Severity: ${incident.incidentSeverity?.name || " - "
-                    } 
+                            Severity: ${
+                              incident.incidentSeverity?.name || " - "
+                            } 
 
                             Resources Affected: ${resourcesAffectedString} 
 
@@ -258,9 +245,10 @@ RunCron(
                 // send sms here.
                 SmsService.sendSms(sms, {
                   projectId: statuspage.projectId,
-                  customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                    statuspage.callSmsConfig,
-                  ),
+                  customTwilioConfig:
+                    ProjectCallSMSConfigService.toTwilioConfig(
+                      statuspage.callSmsConfig,
+                    ),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });

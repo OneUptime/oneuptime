@@ -52,6 +52,9 @@ RunCron(
     });
 
     for (const incident of incidents) {
+      const incidentIdentifiedDate: Date =
+        await IncidentService.getIncidentIdentifiedDate(incident.id!);
+
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
@@ -79,9 +82,7 @@ RunCron(
         continue;
       }
 
-     
       for (const user of owners) {
-
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
           projectName: incident.project!.name!,
@@ -97,8 +98,8 @@ RunCron(
               })
               .join(", ") || "None",
           incidentSeverity: incident.incidentSeverity!.name!,
-          createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-            date: incident.createdAt!,
+          declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: incidentIdentifiedDate,
             timezones: user.timezone ? [user.timezone] : [],
           }),
           rootCause:
@@ -110,10 +111,10 @@ RunCron(
             )
           ).toString(),
         };
-  
+
         if (doesResourceHasOwners === true) {
           vars["isOwner"] = "true";
-        }  
+        }
 
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerResourceCreated,

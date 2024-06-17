@@ -177,10 +177,9 @@ router.get(
         count: monitorProbesCount.toNumber(),
         nextPingAt: firstMonitorToBeFetched?.nextPingAt,
         friendlyNextPingAt: firstMonitorToBeFetched?.nextPingAt
-          ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {date: firstMonitorToBeFetched?.nextPingAt
-              },
-            )
+          ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+              date: firstMonitorToBeFetched?.nextPingAt,
+            })
           : "",
       });
     } catch (err) {

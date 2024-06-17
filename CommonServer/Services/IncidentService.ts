@@ -269,22 +269,22 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-
   public async getIncidentIdentifiedDate(incidentId: ObjectID): Promise<Date> {
-    const timeline: IncidentStateTimeline | null = await IncidentStateTimelineService.findOneBy({
-      query: {
-        incidentId: incidentId,
-      },
-      select: {
-        startsAt: true,
-      },
-      sort: {
-        startsAt: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const timeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incidentId,
+        },
+        select: {
+          startsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!timeline || !timeline.startsAt) {
       throw new BadDataException("Incident identified date not found.");

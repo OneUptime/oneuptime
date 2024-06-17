@@ -63,9 +63,12 @@ RunCron(
         continue;
       }
 
-      const statusPages: Array<StatusPage> = await StatusPageSubscriberService.getStatusPagesToSendNotification(announcement.statusPages.map((sp: StatusPage) => {
-        return sp.id!;
-      }));
+      const statusPages: Array<StatusPage> =
+        await StatusPageSubscriberService.getStatusPagesToSendNotification(
+          announcement.statusPages.map((sp: StatusPage) => {
+            return sp.id!;
+          }),
+        );
 
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
@@ -79,9 +82,7 @@ RunCron(
       });
 
       for (const statuspage of statusPages) {
-
         try {
-
           if (!statuspage.id) {
             continue;
           }
@@ -95,18 +96,15 @@ RunCron(
               },
             );
 
-          const statusPageURL: string = await StatusPageService.getStatusPageURL(
-            statuspage.id,
-          );
+          const statusPageURL: string =
+            await StatusPageService.getStatusPageURL(statuspage.id);
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
 
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
-
             try {
-
               if (!subscriber._id) {
                 continue;
               }
@@ -134,9 +132,10 @@ RunCron(
                 // send sms here.
                 SmsService.sendSms(sms, {
                   projectId: statuspage.projectId,
-                  customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                    statuspage.callSmsConfig,
-                  ),
+                  customTwilioConfig:
+                    ProjectCallSMSConfigService.toTwilioConfig(
+                      statuspage.callSmsConfig,
+                    ),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });
@@ -148,21 +147,16 @@ RunCron(
                 MailService.sendMail(
                   {
                     toEmail: subscriber.subscriberEmail,
-                    templateType: EmailTemplateType.SubscriberAnnouncementCreated,
+                    templateType:
+                      EmailTemplateType.SubscriberAnnouncementCreated,
                     vars: {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
-                      showAnnouncementAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-                        {
-                          date: announcement.showAnnouncementAt!,
-                          timezones: statuspage.subscriberTimezones || [],
-                        },
-                      ),
                       logoUrl: statuspage.logoFileId
                         ? new URL(httpProtocol, host)
-                          .addRoute(FileRoute)
-                          .addRoute("/image/" + statuspage.logoFileId)
-                          .toString()
+                            .addRoute(FileRoute)
+                            .addRoute("/image/" + statuspage.logoFileId)
+                            .toString()
                         : "",
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"

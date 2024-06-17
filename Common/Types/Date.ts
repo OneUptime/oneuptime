@@ -1012,10 +1012,10 @@ export default class OneUptimeDate {
   }
 
   public static getZoneAbbrByTimezone(timezone: Timezone): string {
-    let zoneAbbr = moment.tz(timezone).zoneAbbr();
+    let zoneAbbr: string = moment.tz(timezone).zoneAbbr();
 
-    if(zoneAbbr.startsWith('+') || zoneAbbr.startsWith('-')) {
-      zoneAbbr = 'GMT' + zoneAbbr;
+    if (zoneAbbr.startsWith("+") || zoneAbbr.startsWith("-")) {
+      zoneAbbr = "GMT" + zoneAbbr;
     }
 
     return zoneAbbr;
@@ -1059,7 +1059,7 @@ export default class OneUptimeDate {
       return moment(date["value"]).toDate();
     }
 
-    throw new BadDataException("Invalid date: "+date.toString());
+    throw new BadDataException("Invalid date: " + date.toString());
   }
 
   public static asDateForDatabaseQuery(date: string | Date): string {

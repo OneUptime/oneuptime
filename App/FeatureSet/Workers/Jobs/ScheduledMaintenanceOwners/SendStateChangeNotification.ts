@@ -38,6 +38,7 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          startsAt: true,
           projectId: true,
           project: {
             name: true,
@@ -101,7 +102,7 @@ RunCron(
           ),
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-              date: scheduledMaintenanceStateTimeline.createdAt!,
+              date: scheduledMaintenanceStateTimeline.startsAt!,
               timezones: user.timezone ? [user.timezone] : [],
             }),
           scheduledMaintenanceViewLink: (
