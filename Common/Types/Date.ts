@@ -1008,11 +1008,17 @@ export default class OneUptimeDate {
   }
 
   public static getCurrentTimezoneString(): string {
-    return moment.tz(moment.tz.guess()).zoneAbbr() as Timezone;
+    return this.getZoneAbbrByTimezone(this.getCurrentTimezone());
   }
 
   public static getZoneAbbrByTimezone(timezone: Timezone): string {
-    return moment.tz(timezone).zoneAbbr();
+    let zoneAbbr = moment.tz(timezone).zoneAbbr();
+
+    if(zoneAbbr.startsWith('+') || zoneAbbr.startsWith('-')) {
+      zoneAbbr = 'GMT' + zoneAbbr;
+    }
+
+    return zoneAbbr;
   }
 
   public static getCurrentTimezone(): Timezone {
