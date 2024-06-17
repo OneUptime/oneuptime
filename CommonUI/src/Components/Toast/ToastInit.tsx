@@ -30,8 +30,8 @@ const ToastLayout: FunctionComponent = (
 
 
     return (<div>
-        {currentToasts.map((toast: ToastComponentProps, index: number) => (
-            <Toast
+        {currentToasts.map((toast: ToastComponentProps, index: number) => {
+            return (<Toast
                 key={index}
                 title={toast.title}
                 description={toast.description}
@@ -49,7 +49,7 @@ const ToastLayout: FunctionComponent = (
                 }}
                 createdAt={toast.createdAt}
             />
-        ))}
+        )})}
     </div>
     );
 };

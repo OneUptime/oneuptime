@@ -12,6 +12,7 @@ import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
+import Toast from "CommonUI/src/Components/Toast/Toast";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -31,6 +32,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ]}
       sideMenu={<SideMenu />}
     >
+
+      <Toast
+        title="Error Saving Timezone"
+        description={"ERROR"}
+      />
       <CardModelDetail
         cardProps={{
           title: "Basic Info",
@@ -38,7 +44,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         name="User Profile > Basic Info"
         onSaveSuccess={(user: User) => {
-          if(user.timezone){
+          if (user.timezone) {
             UserUtil.setSavedUserTimezone(user.timezone);
           }
         }}
@@ -110,7 +116,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
             },
           ],
-          
+
           modelId: UserUtil.getUserId(),
         }}
       />

@@ -9,6 +9,7 @@ import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import UserModel from "Model/Models/User";
 import useAsyncEffect from "use-async-effect";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 const UseTimezoneInitElement: FunctionComponent = (
 
@@ -30,6 +31,8 @@ const UseTimezoneInitElement: FunctionComponent = (
                 }, 
                 modelType: UserModel
             });
+
+            throw new BadDataException("Test Error");
 
         } catch (err) {
             ShowToastNotification({

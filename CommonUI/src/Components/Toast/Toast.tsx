@@ -1,5 +1,6 @@
-import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Icon from "../Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export enum ToastType {
   DANGER,
@@ -14,6 +15,7 @@ export interface ComponentProps {
   description: string;
   onClose?: undefined | (() => void);
   type?: undefined | ToastType;
+  icon?: IconProp | undefined;
   createdAt?: undefined | Date;
 }
 
@@ -21,64 +23,69 @@ const Component: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [show, setShow] = useState<boolean>(true);
-  let typeCssClass: string = "text-info";
+  let typeCssClass: string = "text-gray-400";
+  let iconType: IconProp = IconProp.Info; 
 
   if (props.type === ToastType.NORMAL) {
-    typeCssClass = "text-normal";
+    typeCssClass = "text-gray-400";
+    iconType = IconProp.Info;
   }
   if (props.type === ToastType.DANGER) {
-    typeCssClass = "text-danger";
+    typeCssClass = "text-red-400";
+    iconType = IconProp.Error;
   }
   if (props.type === ToastType.WARNING) {
-    typeCssClass = "text-warning";
+    typeCssClass = "text-yellow-400";
+    iconType = IconProp.Alert;
   }
   if (props.type === ToastType.SUCCESS) {
-    typeCssClass = "text-success";
+    typeCssClass = "text-green-400";
+    iconType = IconProp.CheckCircle; 
   }
   if (props.type === ToastType.INFO) {
-    typeCssClass = "text-info";
+    typeCssClass = "text-blue-400";
+    iconType = IconProp.Info;
   }
+
+  if(props.icon){
+    iconType = props.icon;
+  }
+
+
+
 
   if (show) {
     return (
-      <div
-        data-testid="toast-main"
-        className="position-fixed top-0 end-0 p-3"
-        style={{ zIndex: "1005" }}
-      >
-        <div className="toast fade show" role="alert">
-          <div className="toast-header">
-            {props.type && (
-              <div
-                data-testid="toast-status"
-                role="status"
-                className={`spinner-grow-sm spinner-grow ${typeCssClass}`}
-              >
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            )}
-            <strong data-testid="toast-strong" className="me-auto ms-2">
-              {props.title}
-            </strong>
-            {props.createdAt && (
-              <small data-testid="toast-time">
-                {OneUptimeDate.fromNow(props.createdAt)}
-              </small>
-            )}
+      <div aria-live="assertive" className="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6">
+        <div className="flex w-full flex-col items-center space-y-4 sm:items-end">
 
-            <button
-              data-testid="toast-button"
-              onClick={() => {
-                setShow(false);
-                props.onClose && props.onClose();
-              }}
-              type="button"
-              className="btn-close"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div data-testid="toast-desc" className="toast-body">
-            {props.description}
+          <div className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+            <div className="p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <Icon className={`h-6 w-6 ${typeCssClass}`} icon={iconType} />
+                </div>
+                <div className="ml-3 w-0 flex-1 pt-0.5">
+                  <p className="text-sm font-medium text-gray-900">{props.title}</p>
+                  <p className="mt-1 text-sm text-gray-500">{props.description}</p>
+                  {/* <div className="mt-3 flex space-x-7">
+                    <button type="button" className="rounded-md bg-white text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Undo</button>
+                    <button type="button" className="rounded-md bg-white text-sm font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Dismiss</button>
+                  </div> */}
+                </div>
+                <div className="ml-4 flex flex-shrink-0">
+                  <button onClick={()=>{
+                    setShow(false);
+                    if(props.onClose){
+                      props.onClose();
+                    }
+                  }} type="button" className="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <span className="sr-only">Close</span>
+                    <Icon className={`h-5 w-5`} icon={IconProp.Close} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
