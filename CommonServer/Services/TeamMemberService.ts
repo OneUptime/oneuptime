@@ -350,6 +350,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           _id: true,
           email: true,
           name: true,
+          timezone: true,
         },
       },
 

@@ -357,6 +357,7 @@ export class Service extends DatabaseService<Model> {
           twilioAuthToken: true,
           twilioPhoneNumber: true,
         },
+        subscriberTimezones: true,
       },
     });
   }

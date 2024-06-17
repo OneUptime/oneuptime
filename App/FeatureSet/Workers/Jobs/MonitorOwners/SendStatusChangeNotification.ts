@@ -86,33 +86,38 @@ RunCron(
         continue;
       }
 
-      const vars: Dictionary<string> = {
-        monitorName: monitor.name!,
-        projectName: monitorStatusTimeline.project!.name!,
-        currentStatus: monitorStatus!.name!,
-        monitorDescription: await Markdown.convertToHTML(
-          monitor.description! || "",
-          MarkdownContentType.Email,
-        ),
-        statusChangedAt:
-          OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-            monitorStatusTimeline.createdAt!,
-          ),
-        monitorViewLink: (
-          await MonitorService.getMonitorLinkInDashboard(
-            monitorStatusTimeline.projectId!,
-            monitor.id!,
-          )
-        ).toString(),
-        rootCause:
-          monitorStatusTimeline.rootCause || "No root cause identified.",
-      };
-
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
+     
 
       for (const user of owners) {
+
+
+        const vars: Dictionary<string> = {
+          monitorName: monitor.name!,
+          projectName: monitorStatusTimeline.project!.name!,
+          currentStatus: monitorStatus!.name!,
+          monitorDescription: await Markdown.convertToHTML(
+            monitor.description! || "",
+            MarkdownContentType.Email,
+          ),
+          statusChangedAt:
+            OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+              date: monitorStatusTimeline.createdAt!,
+              timezones: user.timezone ? [user.timezone] : []
+        }),
+          monitorViewLink: (
+            await MonitorService.getMonitorLinkInDashboard(
+              monitorStatusTimeline.projectId!,
+              monitor.id!,
+            )
+          ).toString(),
+          rootCause:
+            monitorStatusTimeline.rootCause || "No root cause identified.",
+        };
+  
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.MonitorOwnerStatusChanged,
           vars: vars,

@@ -318,8 +318,8 @@ export default class OneUptimeDate {
     type TenFunction = (i: number) => string;
 
     const ten: TenFunction = (i: number): string => {
-        return (i < 10 ? "0" : "") + i;
-      },
+      return (i < 10 ? "0" : "") + i;
+    },
       YYYY: number = date.getFullYear(),
       MM: string = ten(date.getMonth() + 1),
       DD: string = ten(date.getDate()),
@@ -902,10 +902,16 @@ export default class OneUptimeDate {
     return formattedString;
   }
 
-  public static getDateAsFormattedArrayInMultipleTimezones(
+  public static getDateAsFormattedArrayInMultipleTimezones(data: {
     date: string | Date,
-    onlyShowDate?: boolean,
-  ): Array<string> {
+    onlyShowDate?: boolean | undefined,
+    timezones?: Array<Timezone> | undefined;
+  }): Array<string> {
+
+    let date: string | Date = data.date;
+    const onlyShowDate: boolean | undefined = data.onlyShowDate;
+    let timezones: Array<Timezone> | undefined = data.timezones;
+
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
@@ -917,53 +923,61 @@ export default class OneUptimeDate {
     // convert this date into GMT, EST, PST, IST, ACT with moment
     const timezoneDates: Array<string> = [];
 
-    timezoneDates.push(
-      moment(date).tz("UTC").format(formatstring) +
+    if (!timezones || timezones.length === 0) {
+      timezones = [
+        Timezone.UTC,
+        Timezone.EST,
+        Timezone.AmericaLos_Angeles,
+        Timezone.AsiaKolkata,
+        Timezone.AustraliaSydney,
+      ] // default timezones. 
+    }
+
+
+    for (let i = 0; i < timezones.length; i++) {
+      timezoneDates.push(
+        moment(date).tz(timezones[i] as string).format(formatstring) +
         " " +
-        (onlyShowDate ? "" : "GMT"),
-    );
-    timezoneDates.push(
-      moment(date).tz("America/New_York").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "EST"),
-    );
-    timezoneDates.push(
-      moment(date).tz("America/Los_Angeles").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "PST"),
-    );
-    timezoneDates.push(
-      moment(date).tz("Asia/Kolkata").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "IST"),
-    );
-    timezoneDates.push(
-      moment(date).tz("Australia/Sydney").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "AEST"),
-    );
+        (onlyShowDate ? "" : this.getZoneAbbrByTimezone(timezones[i] as Timezone)),
+      );
+    }
+
 
     return timezoneDates;
   }
 
-  public static getDateAsFormattedHTMLInMultipleTimezones(
+  public static getDateAsFormattedHTMLInMultipleTimezones(data: {
     date: string | Date,
     onlyShowDate?: boolean,
-  ): string {
-    return this.getDateAsFormattedArrayInMultipleTimezones(
+    timezones?: Array<Timezone> | undefined, // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+  }): string {
+
+    const date: string | Date = data.date;
+    const onlyShowDate: boolean | undefined = data.onlyShowDate;
+    const timezones: Array<Timezone> | undefined = data.timezones;
+
+    return this.getDateAsFormattedArrayInMultipleTimezones({
       date,
       onlyShowDate,
-    ).join("<br/>");
+      timezones
+    }).join("<br/>");
   }
 
-  public static getDateAsFormattedStringInMultipleTimezones(
+  public static getDateAsFormattedStringInMultipleTimezones(data: {
     date: string | Date,
-    onlyShowDate?: boolean,
-  ): string {
-    return this.getDateAsFormattedArrayInMultipleTimezones(
+    onlyShowDate?: boolean | undefined,
+    timezones?: Array<Timezone> | undefined, // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+  }): string {
+
+    const date: string | Date = data.date;
+    const onlyShowDate: boolean | undefined = data.onlyShowDate;
+    const timezones: Array<Timezone> | undefined = data.timezones;
+
+    return this.getDateAsFormattedArrayInMultipleTimezones({
       date,
       onlyShowDate,
-    ).join("\n");
+      timezones,
+    }).join("\n");
   }
 
   public static getDateAsLocalFormattedString(
@@ -996,6 +1010,10 @@ export default class OneUptimeDate {
 
   public static getCurrentTimezoneString(): string {
     return moment.tz(moment.tz.guess()).zoneAbbr() as Timezone;
+  }
+
+  public static getZoneAbbrByTimezone(timezone: Timezone): string {
+    return moment.tz(timezone).zoneAbbr();
   }
 
   public static getCurrentTimezone(): Timezone {

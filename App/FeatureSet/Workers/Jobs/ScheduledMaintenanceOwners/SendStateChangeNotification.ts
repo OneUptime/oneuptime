@@ -90,30 +90,34 @@ RunCron(
         continue;
       }
 
-      const vars: Dictionary<string> = {
-        scheduledMaintenanceTitle: scheduledMaintenance.title!,
-        projectName: scheduledMaintenanceStateTimeline.project!.name!,
-        currentState: scheduledMaintenanceState!.name!,
-        scheduledMaintenanceDescription: await Markdown.convertToHTML(
-          scheduledMaintenance.description! || "",
-          MarkdownContentType.Email,
-        ),
-        stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-          scheduledMaintenanceStateTimeline.createdAt!,
-        ),
-        scheduledMaintenanceViewLink: (
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            scheduledMaintenanceStateTimeline.projectId!,
-            scheduledMaintenance.id!,
-          )
-        ).toString(),
-      };
-
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
+     
 
       for (const user of owners) {
+
+        const vars: Dictionary<string> = {
+          scheduledMaintenanceTitle: scheduledMaintenance.title!,
+          projectName: scheduledMaintenanceStateTimeline.project!.name!,
+          currentState: scheduledMaintenanceState!.name!,
+          scheduledMaintenanceDescription: await Markdown.convertToHTML(
+            scheduledMaintenance.description! || "",
+            MarkdownContentType.Email,
+          ),
+          stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: scheduledMaintenanceStateTimeline.createdAt!,
+            timezones: user.timezone ? [user.timezone] : []
+        }),
+          scheduledMaintenanceViewLink: (
+            await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+              scheduledMaintenanceStateTimeline.projectId!,
+              scheduledMaintenance.id!,
+            )
+          ).toString(),
+        };
+  
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
           vars: vars,

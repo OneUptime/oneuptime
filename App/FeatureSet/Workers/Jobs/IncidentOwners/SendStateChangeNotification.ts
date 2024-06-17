@@ -129,37 +129,43 @@ RunCron(
         continue;
       }
 
-      const vars: Dictionary<string> = {
-        incidentTitle: incident.title!,
-        projectName: incidentStateTimeline.project!.name!,
-        currentState: incidentState!.name!,
-        incidentDescription: await Markdown.convertToHTML(
-          incident.description! || "",
-          MarkdownContentType.Email,
-        ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
-        stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
-          incidentStateTimeline.createdAt!,
-        ),
-        incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
-        incidentViewLink: (
-          await IncidentService.getIncidentLinkInDashboard(
-            incidentStateTimeline.projectId!,
-            incident.id!,
-          )
-        ).toString(),
-      };
-
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
+      
 
       for (const user of owners) {
+
+        const vars: Dictionary<string> = {
+          incidentTitle: incident.title!,
+          projectName: incidentStateTimeline.project!.name!,
+          currentState: incidentState!.name!,
+          incidentDescription: await Markdown.convertToHTML(
+            incident.description! || "",
+            MarkdownContentType.Email,
+          ),
+          resourcesAffected:
+            incident
+              .monitors!.map((monitor: Monitor) => {
+                return monitor.name!;
+              })
+              .join(", ") || "None",
+          stateChangedAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+            {
+              date: incidentStateTimeline.createdAt!,
+              timezones: user.timezone ? [user.timezone] : []
+            }
+          ),
+          incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
+          incidentViewLink: (
+            await IncidentService.getIncidentLinkInDashboard(
+              incidentStateTimeline.projectId!,
+              incident.id!,
+            )
+          ).toString(),
+        };
+  
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerStateChanged,
           vars: vars,

@@ -285,6 +285,7 @@ export class Service extends DatabaseService<Model> {
             _id: true,
             email: true,
             name: true,
+            timezone: true,
           },
         },
         props: {
