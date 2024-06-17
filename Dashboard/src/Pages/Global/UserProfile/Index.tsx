@@ -6,10 +6,12 @@ import Route from "Common/Types/API/Route";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import Page from "CommonUI/src/Components/Page/Page";
+import FieldType from "CommonUI/src/Components/Types/FieldType";
 import TimezoneUtil from "CommonUI/src/Utils/Timezone";
 import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -93,6 +95,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Timezone",
               placeholder: "No timezone selected",
+              fieldType: FieldType.Element,
+              getElement: (user: User) => {
+                if (!user.timezone) {
+                  return <p>No timezone selected</p>
+                }
+
+                return (<TimezoneElement timezone={user.timezone} />)
+              }
             },
           ],
           modelId: UserUtil.getUserId(),

@@ -318,8 +318,8 @@ export default class OneUptimeDate {
     type TenFunction = (i: number) => string;
 
     const ten: TenFunction = (i: number): string => {
-        return (i < 10 ? "0" : "") + i;
-      },
+      return (i < 10 ? "0" : "") + i;
+    },
       YYYY: number = date.getFullYear(),
       MM: string = ten(date.getMonth() + 1),
       DD: string = ten(date.getDate()),
@@ -877,7 +877,7 @@ export default class OneUptimeDate {
     timezone: Timezone,
   ): string {
     const offset: number = this.getGmtOffsetByTimezone(timezone);
-    return this.getGmtOffsetFriendlyString(offset);
+    return this.getGmtOffsetFriendlyString(offset) + " " + timezone;
   }
 
   public static getGmtOffsetFriendlyString(offset: number): string {
@@ -899,7 +899,7 @@ export default class OneUptimeDate {
       formattedString += ":" + minutes;
     }
 
-    return formattedString;
+    return formattedString
   }
 
   public static getDateAsFormattedArrayInMultipleTimezones(
@@ -919,28 +919,28 @@ export default class OneUptimeDate {
 
     timezoneDates.push(
       moment(date).tz("UTC").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "GMT"),
+      " " +
+      (onlyShowDate ? "" : "GMT"),
     );
     timezoneDates.push(
       moment(date).tz("America/New_York").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "EST"),
+      " " +
+      (onlyShowDate ? "" : "EST"),
     );
     timezoneDates.push(
       moment(date).tz("America/Los_Angeles").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "PST"),
+      " " +
+      (onlyShowDate ? "" : "PST"),
     );
     timezoneDates.push(
       moment(date).tz("Asia/Kolkata").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "IST"),
+      " " +
+      (onlyShowDate ? "" : "IST"),
     );
     timezoneDates.push(
       moment(date).tz("Australia/Sydney").format(formatstring) +
-        " " +
-        (onlyShowDate ? "" : "AEST"),
+      " " +
+      (onlyShowDate ? "" : "AEST"),
     );
 
     return timezoneDates;

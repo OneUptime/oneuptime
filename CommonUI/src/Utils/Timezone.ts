@@ -31,9 +31,7 @@ export default class TimezoneUtil {
         label:
           OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
             Timezone[keyOfTimezone],
-          ) +
-          " " +
-          value,
+          )
       };
     });
   }
