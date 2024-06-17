@@ -3,7 +3,7 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import SMS from "Common/Types/SMS/SMS";
@@ -49,6 +49,7 @@ RunCron(
           statusPages: {
             _id: true,
           },
+          showAnnouncementAt: true,
         },
       });
 
@@ -62,45 +63,9 @@ RunCron(
         continue;
       }
 
-      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
-        query: {
-          _id: QueryHelper.any(
-            announcement.statusPages.map((sp: StatusPage) => {
-              return sp.id!;
-            }),
-          ),
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
-          _id: true,
-          name: true,
-          pageTitle: true,
-          projectId: true,
-          isPublicStatusPage: true,
-          logoFileId: true,
-          smtpConfig: {
-            _id: true,
-            hostname: true,
-            port: true,
-            username: true,
-            password: true,
-            fromEmail: true,
-            fromName: true,
-            secure: true,
-          },
-          callSmsConfig: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPhoneNumber: true,
-          },
-        },
-      });
+      const statusPages: Array<StatusPage> = await StatusPageSubscriberService.getStatusPagesToSendNotification(announcement.statusPages.map((sp: StatusPage) => {
+        return sp.id!;
+      }));
 
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
@@ -114,41 +79,47 @@ RunCron(
       });
 
       for (const statuspage of statusPages) {
-        if (!statuspage.id) {
-          continue;
-        }
 
-        const subscribers: Array<StatusPageSubscriber> =
-          await StatusPageSubscriberService.getSubscribersByStatusPage(
-            statuspage.id!,
-            {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-          );
+        try {
 
-        const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id,
-        );
-        const statusPageName: string =
-          statuspage.pageTitle || statuspage.name || "Status Page";
-
-        // Send email to Email subscribers.
-
-        for (const subscriber of subscribers) {
-          if (!subscriber._id) {
+          if (!statuspage.id) {
             continue;
           }
 
-          const unsubscribeUrl: string =
-            StatusPageSubscriberService.getUnsubscribeLink(
-              URL.fromString(statusPageURL),
-              subscriber.id!,
-            ).toString();
+          const subscribers: Array<StatusPageSubscriber> =
+            await StatusPageSubscriberService.getSubscribersByStatusPage(
+              statuspage.id!,
+              {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            );
 
-          if (subscriber.subscriberPhone) {
-            const sms: SMS = {
-              message: `
+          const statusPageURL: string = await StatusPageService.getStatusPageURL(
+            statuspage.id,
+          );
+          const statusPageName: string =
+            statuspage.pageTitle || statuspage.name || "Status Page";
+
+          // Send email to Email subscribers.
+
+          for (const subscriber of subscribers) {
+
+            try {
+
+              if (!subscriber._id) {
+                continue;
+              }
+
+              const unsubscribeUrl: string =
+                StatusPageSubscriberService.getUnsubscribeLink(
+                  URL.fromString(statusPageURL),
+                  subscriber.id!,
+                ).toString();
+
+              if (subscriber.subscriberPhone) {
+                const sms: SMS = {
+                  message: `
                             Announcement - ${statusPageName}
 
                             ${announcement.title || ""}
@@ -157,58 +128,70 @@ RunCron(
 
                             To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
                             `,
-              to: subscriber.subscriberPhone,
-            };
+                  to: subscriber.subscriberPhone,
+                };
 
-            // send sms here.
-            SmsService.sendSms(sms, {
-              projectId: statuspage.projectId,
-              customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig,
-              ),
-            }).catch((err: Error) => {
-              logger.error(err);
-            });
-          }
-
-          if (subscriber.subscriberEmail) {
-            // send email here.
-
-            MailService.sendMail(
-              {
-                toEmail: subscriber.subscriberEmail,
-                templateType: EmailTemplateType.SubscriberAnnouncementCreated,
-                vars: {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  logoUrl: statuspage.logoFileId
-                    ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
-                    : "",
-                  isPublicStatusPage: statuspage.isPublicStatusPage
-                    ? "true"
-                    : "false",
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: await Markdown.convertToHTML(
-                    announcement.description || "",
-                    MarkdownContentType.Email,
+                // send sms here.
+                SmsService.sendSms(sms, {
+                  projectId: statuspage.projectId,
+                  customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+                    statuspage.callSmsConfig,
                   ),
-                  unsubscribeUrl: unsubscribeUrl,
-                },
-                subject: "[Announcement] " + statusPageName,
-              },
-              {
-                mailServer: ProjectSMTPConfigService.toEmailServer(
-                  statuspage.smtpConfig,
-                ),
-                projectId: statuspage.projectId,
-              },
-            ).catch((err: Error) => {
+                }).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
+
+              if (subscriber.subscriberEmail) {
+                // send email here.
+
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType: EmailTemplateType.SubscriberAnnouncementCreated,
+                    vars: {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      showAnnouncementAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        {
+                          date: announcement.showAnnouncementAt!,
+                          timezones: statuspage.subscriberTimezones || [],
+                        },
+                      ),
+                      logoUrl: statuspage.logoFileId
+                        ? new URL(httpProtocol, host)
+                          .addRoute(FileRoute)
+                          .addRoute("/image/" + statuspage.logoFileId)
+                          .toString()
+                        : "",
+                      isPublicStatusPage: statuspage.isPublicStatusPage
+                        ? "true"
+                        : "false",
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: await Markdown.convertToHTML(
+                        announcement.description || "",
+                        MarkdownContentType.Email,
+                      ),
+                      unsubscribeUrl: unsubscribeUrl,
+                    },
+                    subject: "[Announcement] " + statusPageName,
+                  },
+                  {
+                    mailServer: ProjectSMTPConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
+            } catch (err) {
               logger.error(err);
-            });
+            }
           }
+        } catch (err) {
+          logger.error(err);
         }
       }
     }

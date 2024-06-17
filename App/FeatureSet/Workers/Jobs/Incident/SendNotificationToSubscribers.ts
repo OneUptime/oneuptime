@@ -78,6 +78,9 @@ RunCron(
 
       // get status page resources from monitors.
 
+
+      const incidentIdentifiedDate: Date = await IncidentService.getIncidentIdentifiedDate(incident.id!);
+
       const statusPageResources: Array<StatusPageResource> =
         await StatusPageResourceService.findBy({
           query: {
@@ -128,107 +131,120 @@ RunCron(
         );
 
       for (const statuspage of statusPages) {
-        if (!statuspage.id) {
-          continue;
-        }
 
-        const subscribers: Array<StatusPageSubscriber> =
-          await StatusPageSubscriberService.getSubscribersByStatusPage(
-            statuspage.id!,
-            {
-              isRoot: true,
-              ignoreHooks: true,
-            },
+        try {
+          if (!statuspage.id) {
+            continue;
+          }
+
+          const subscribers: Array<StatusPageSubscriber> =
+            await StatusPageSubscriberService.getSubscribersByStatusPage(
+              statuspage.id!,
+              {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            );
+
+          const statusPageURL: string = await StatusPageService.getStatusPageURL(
+            statuspage.id,
           );
+          const statusPageName: string =
+            statuspage.pageTitle || statuspage.name || "Status Page";
 
-        const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id,
-        );
-        const statusPageName: string =
-          statuspage.pageTitle || statuspage.name || "Status Page";
+          // Send email to Email subscribers.
 
-        // Send email to Email subscribers.
+          const resourcesAffectedString: string =
+            statusPageToResources[statuspage._id!]
+              ?.map((r: StatusPageResource) => {
+                return r.displayName;
+              })
+              .join(", ") || "None";
 
-        const resourcesAffectedString: string =
-          statusPageToResources[statuspage._id!]
-            ?.map((r: StatusPageResource) => {
-              return r.displayName;
-            })
-            .join(", ") || "None";
+          for (const subscriber of subscribers) {
 
-        for (const subscriber of subscribers) {
-          if (!subscriber._id) {
-            continue;
-          }
+            try {
 
-          const shouldNotifySubscriber: boolean =
-            StatusPageSubscriberService.shouldSendNotification({
-              subscriber: subscriber,
-              statusPageResources: statusPageToResources[statuspage._id!] || [],
-              statusPage: statuspage,
-            });
+              if (!subscriber._id) {
+                continue;
+              }
 
-          if (!shouldNotifySubscriber) {
-            continue;
-          }
+              const shouldNotifySubscriber: boolean =
+                StatusPageSubscriberService.shouldSendNotification({
+                  subscriber: subscriber,
+                  statusPageResources: statusPageToResources[statuspage._id!] || [],
+                  statusPage: statuspage,
+                });
 
-          const unsubscribeUrl: string =
-            StatusPageSubscriberService.getUnsubscribeLink(
-              URL.fromString(statusPageURL),
-              subscriber.id!,
-            ).toString();
+              if (!shouldNotifySubscriber) {
+                continue;
+              }
 
-          if (subscriber.subscriberEmail) {
-            // send email here.
+              const unsubscribeUrl: string =
+                StatusPageSubscriberService.getUnsubscribeLink(
+                  URL.fromString(statusPageURL),
+                  subscriber.id!,
+                ).toString();
 
-            MailService.sendMail(
-              {
-                toEmail: subscriber.subscriberEmail,
-                templateType: EmailTemplateType.SubscriberIncidentCreated,
-                vars: {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  logoUrl: statuspage.logoFileId
-                    ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
-                    : "",
-                  isPublicStatusPage: statuspage.isPublicStatusPage
-                    ? "true"
-                    : "false",
-                  resourcesAffected: resourcesAffectedString,
-                  incidentSeverity: incident.incidentSeverity?.name || " - ",
-                  incidentTitle: incident.title || "",
-                  incidentDescription: await Markdown.convertToHTML(
-                    incident.description || "",
-                    MarkdownContentType.Email,
-                  ),
-                  unsubscribeUrl: unsubscribeUrl,
-                },
-                subject: "[Incident] " + statusPageName,
-              },
-              {
-                mailServer: ProjectSMTPConfigService.toEmailServer(
-                  statuspage.smtpConfig,
-                ),
-                projectId: statuspage.projectId,
-              },
-            ).catch((err: Error) => {
-              logger.error(err);
-            });
-          }
+              if (subscriber.subscriberEmail) {
+                
+                // send email here.
 
-          if (subscriber.subscriberPhone) {
-            const sms: SMS = {
-              message: `
+                
+
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType: EmailTemplateType.SubscriberIncidentCreated,
+                    vars: {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      logoUrl: statuspage.logoFileId
+                        ? new URL(httpProtocol, host)
+                          .addRoute(FileRoute)
+                          .addRoute("/image/" + statuspage.logoFileId)
+                          .toString()
+                        : "",
+                      isPublicStatusPage: statuspage.isPublicStatusPage
+                        ? "true"
+                        : "false",
+                      resourcesAffected: resourcesAffectedString,
+                      createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        {
+                          date: incidentIdentifiedDate,
+                          timezones: statuspage.subscriberTimezones || [],
+                        },
+                      ),
+                      incidentSeverity: incident.incidentSeverity?.name || " - ",
+                      incidentTitle: incident.title || "",
+                      incidentDescription: await Markdown.convertToHTML(
+                        incident.description || "",
+                        MarkdownContentType.Email,
+                      ),
+                      unsubscribeUrl: unsubscribeUrl,
+                    },
+                    subject: "[Incident] " + statusPageName,
+                  },
+                  {
+                    mailServer: ProjectSMTPConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
+
+              if (subscriber.subscriberPhone) {
+                const sms: SMS = {
+                  message: `
                             Incident - ${statusPageName}
 
                             Title: ${incident.title || ""}
 
-                            Severity: ${
-                              incident.incidentSeverity?.name || " - "
-                            } 
+                            Severity: ${incident.incidentSeverity?.name || " - "
+                    } 
 
                             Resources Affected: ${resourcesAffectedString} 
 
@@ -236,19 +252,25 @@ RunCron(
 
                             To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
                             `,
-              to: subscriber.subscriberPhone,
-            };
+                  to: subscriber.subscriberPhone,
+                };
 
-            // send sms here.
-            SmsService.sendSms(sms, {
-              projectId: statuspage.projectId,
-              customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig,
-              ),
-            }).catch((err: Error) => {
+                // send sms here.
+                SmsService.sendSms(sms, {
+                  projectId: statuspage.projectId,
+                  customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+                    statuspage.callSmsConfig,
+                  ),
+                }).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
+            } catch (err) {
               logger.error(err);
-            });
+            }
           }
+        } catch (err) {
+          logger.error(err);
         }
       }
     }

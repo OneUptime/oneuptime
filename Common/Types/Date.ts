@@ -1059,7 +1059,7 @@ export default class OneUptimeDate {
       return moment(date["value"]).toDate();
     }
 
-    throw new BadDataException("Invalid date");
+    throw new BadDataException("Invalid date: "+date.toString());
   }
 
   public static asDateForDatabaseQuery(date: string | Date): string {

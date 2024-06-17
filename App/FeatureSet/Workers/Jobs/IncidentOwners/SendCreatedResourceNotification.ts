@@ -1,6 +1,7 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -78,36 +79,42 @@ RunCron(
         continue;
       }
 
-      const vars: Dictionary<string> = {
-        incidentTitle: incident.title!,
-        projectName: incident.project!.name!,
-        currentState: incident.currentIncidentState!.name!,
-        incidentDescription: await Markdown.convertToHTML(
-          incident.description! || "",
-          MarkdownContentType.Email,
-        ),
-        resourcesAffected:
-          incident
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
-        incidentSeverity: incident.incidentSeverity!.name!,
-        rootCause:
-          incident.rootCause || "No root cause identified for this incident",
-        incidentViewLink: (
-          await IncidentService.getIncidentLinkInDashboard(
-            incident.projectId!,
-            incident.id!,
-          )
-        ).toString(),
-      };
-
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
-
+     
       for (const user of owners) {
+
+        const vars: Dictionary<string> = {
+          incidentTitle: incident.title!,
+          projectName: incident.project!.name!,
+          currentState: incident.currentIncidentState!.name!,
+          incidentDescription: await Markdown.convertToHTML(
+            incident.description! || "",
+            MarkdownContentType.Email,
+          ),
+          resourcesAffected:
+            incident
+              .monitors!.map((monitor: Monitor) => {
+                return monitor.name!;
+              })
+              .join(", ") || "None",
+          incidentSeverity: incident.incidentSeverity!.name!,
+          createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: incident.createdAt!,
+            timezones: user.timezone ? [user.timezone] : [],
+          }),
+          rootCause:
+            incident.rootCause || "No root cause identified for this incident",
+          incidentViewLink: (
+            await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId!,
+              incident.id!,
+            )
+          ).toString(),
+        };
+  
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }  
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerResourceCreated,
           vars: vars,
