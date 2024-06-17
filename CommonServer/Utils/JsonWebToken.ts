@@ -6,6 +6,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
 import User from "Model/Models/User";
 import jwt from "jsonwebtoken";
@@ -16,6 +17,7 @@ class JSONWebToken {
       userId: ObjectID;
       email: Email;
       name: Name;
+      timezone: Timezone | null; // User's timezone
       isMasterAdmin: boolean;
       // If this is OneUptime username and password login. This is true, if this is SSO login. Then, this is false.
       isGlobalLogin: boolean;

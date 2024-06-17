@@ -1,4 +1,6 @@
+import ToastLayout from "CommonUI/src/Components/Toast/ToastInit";
 import MasterPage from "./Components/MasterPage/MasterPage";
+import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import ActiveIncidents from "./Pages/Global/NewIncidents";
 import ProjectInvitations from "./Pages/Global/ProjectInvitations";
 // User Profile
@@ -72,6 +74,7 @@ const App: () => JSX.Element = () => {
   >(undefined);
 
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
+  
 
   useAsyncEffect(async () => {
     try {
@@ -196,6 +199,10 @@ const App: () => JSX.Element = () => {
       selectedProject={selectedProject}
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
     >
+
+      <UseTimezoneInitElement /> 
+      <ToastLayout />
+
       <Routes>
         <PageRoute
           path="/*"

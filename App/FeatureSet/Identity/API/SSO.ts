@@ -284,6 +284,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         isMasterAdmin: true,
         isEmailVerified: true,
         profilePictureId: true,
+        timezone: true,
       },
       props: {
         isRoot: true,
@@ -392,6 +393,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         email: alreadySavedUser.email!,
         name: alreadySavedUser.name!,
         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+        timezone: alreadySavedUser.timezone || null,
         isGlobalLogin: false, // This is a general login without SSO. So, we will set this to false. This will give access to all the projects that dont require SSO.
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),

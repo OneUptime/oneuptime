@@ -124,6 +124,7 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Element,
               title: "Subscriber Timezones",
+              description: "Subscribers will see time in these timezones when they receive notifications.",
               getElement: (item: StatusPage): ReactElement => {
                 if (item["subscriberTimezones"] && item["subscriberTimezones"].length > 0) {
                   return (
@@ -133,7 +134,7 @@ const StatusPageDelete: FunctionComponent<
                   );
                 }
                 return (
-                  <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones." />
+                  <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
               },
 

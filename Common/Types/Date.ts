@@ -995,7 +995,11 @@ export default class OneUptimeDate {
   }
 
   public static getCurrentTimezoneString(): string {
-    return moment.tz(moment.tz.guess()).zoneAbbr();
+    return moment.tz(moment.tz.guess()).zoneAbbr() as Timezone;
+  }
+
+  public static getCurrentTimezone(): Timezone {
+    return moment.tz.guess() as Timezone;
   }
 
   public static getDateString(date: Date): string {

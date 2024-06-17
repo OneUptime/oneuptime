@@ -33,6 +33,14 @@ export default class User {
     return Boolean(LocalStorage.getItem("cardRegistered"));
   }
 
+  public static getSavedUserTimezone(): string {
+    return LocalStorage.getItem("user_timezone") as string;
+  }
+
+  public static setSavedUserTimezone(timezone: string): void {
+    LocalStorage.setItem("user_timezone", timezone);
+  }
+
   public static setCardRegistered(value: boolean): void {
     LocalStorage.setItem("cardRegistered", value.toString());
   }

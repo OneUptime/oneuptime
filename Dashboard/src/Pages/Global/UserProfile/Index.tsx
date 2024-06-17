@@ -37,6 +37,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description: "Here are some of your details.",
         }}
         name="User Profile > Basic Info"
+        onSaveSuccess={(user: User) => {
+          if(user.timezone){
+            UserUtil.setSavedUserTimezone(user.timezone);
+          }
+        }}
         isEditable={true}
         formFields={[
           {
@@ -105,6 +110,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
             },
           ],
+          
           modelId: UserUtil.getUserId(),
         }}
       />

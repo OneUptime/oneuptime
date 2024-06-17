@@ -89,6 +89,7 @@ router.post(
         select: {
           _id: true,
           password: true,
+          timezone: true,
         },
         props: {
           isRoot: true,
@@ -121,6 +122,7 @@ router.post(
             _id: true,
             name: true,
             isMasterAdmin: true,
+            timezone: true,
           },
           props: {
             isRoot: true,
@@ -184,6 +186,7 @@ router.post(
             userId: savedUser.id!,
             email: savedUser.email!,
             name: savedUser.name!,
+            timezone: savedUser.timezone || null,
             isMasterAdmin: savedUser.isMasterAdmin!,
             isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
           },
@@ -534,6 +537,7 @@ router.post(
           isMasterAdmin: true,
           isEmailVerified: true,
           profilePictureId: true,
+          timezone: true,
         },
         props: {
           isRoot: true,
@@ -578,6 +582,7 @@ router.post(
               userId: alreadySavedUser.id!,
               email: alreadySavedUser.email!,
               name: alreadySavedUser.name!,
+              timezone: alreadySavedUser.timezone || null,
               isMasterAdmin: alreadySavedUser.isMasterAdmin!,
               isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
             },
