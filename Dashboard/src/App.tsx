@@ -54,6 +54,9 @@ import {
   useParams,
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
+import User from "CommonUI/src/Utils/User";
+import Cookie from "CommonUI/src/Utils/Cookie";
+import { JSONValue } from "Common/Types/JSON";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -74,6 +77,18 @@ const App: () => JSX.Element = () => {
   >(undefined);
 
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
+
+
+  useEffect(() => {
+    const token: JSONValue = Cookie.getItem("user_token");
+
+    if(!token) {
+      return; 
+    }
+
+    User.refreshUserDataFromToken(token.toString());
+  }, []);
+
 
   useAsyncEffect(async () => {
     try {

@@ -387,11 +387,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     const APP_NAME: string = "api";
 
-    //attach api's
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<User, UserServiceType>(User, UserService).getRouter(),
-    );
+
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1211,6 +1207,13 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+
+
+    //attach api's
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<User, UserServiceType>(User, UserService).getRouter(),
+    );
   },
 };
 

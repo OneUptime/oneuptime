@@ -11,7 +11,6 @@ import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
 import React, { useState } from "react";
 import ProjectSSO from "Model/Models/ProjectSSO";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import API from "CommonUI/src/Utils/API/API";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
@@ -44,25 +43,29 @@ const LoginPage: () => JSX.Element = () => {
                 }
 
                 if (!listResult.data || (listResult.data as JSONArray).length === 0) {
-                    return setError("No SSO configuration found for the email: " + email.toString());
+                    setError("No SSO configuration found for the email: " + email.toString());
+                } else {
+                    setProjectSsoConfigList(ProjectSSO.fromJSONArray(listResult['data'], ProjectSSO));
                 }
-
-                setProjectSsoConfigList(ProjectSSO.fromJSONArray(listResult['data'], ProjectSSO));
 
             } catch (error) {
                 setError(API.getFriendlyErrorMessage(error as Error));
             }
 
-            setIsLoading(false);
 
 
         } else {
             setError("Email is required to perform this action");
         }
+
+        setIsLoading(false);
+
     };
 
     const getSsoConfigModelList = (configs: Array<ProjectSSO>) => {
-        return (<StaticModelList<ProjectSSO>
+        return (
+            
+        <StaticModelList<ProjectSSO>
             list={configs}
             titleField="name"
             selectedItems={[]}
@@ -81,25 +84,21 @@ const LoginPage: () => JSX.Element = () => {
         />);
     }
 
-
-    if (error) {
-        return <ErrorMessage error={error} />;
-    }
-
     if (isLoading) {
         return <PageLoader isVisible={true} />;
     }
 
     const getProjectName = (projectId: string): string => {
-        const projectNames =  projectSsoConfigList.filter((config: ProjectSSO) => config.projectId?.toString() === projectId.toString()).map((config: ProjectSSO) => config.project?.name);
+        const projectNames = projectSsoConfigList.filter((config: ProjectSSO) => config.projectId?.toString() === projectId.toString()).map((config: ProjectSSO) => config.project?.name);
         return projectNames[0] || 'Project';
     }
 
-    if (projectSsoConfigList.length > 0) {
+    if (projectSsoConfigList.length > 0 && !error && !isLoading) {
 
         const projectIds: Array<string> = projectSsoConfigList.map((config: ProjectSSO) => config.projectId?.toString() as string);
 
         return (
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
                 <div className="">
                     <img
@@ -107,7 +106,7 @@ const LoginPage: () => JSX.Element = () => {
                         src={OneUptimeLogo}
                         alt="OneUptime"
                     />
-                    <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+                    <h2 className="mt-10 text-center text-xl tracking-tight text-gray-900">
                         Select Project
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
@@ -118,13 +117,14 @@ const LoginPage: () => JSX.Element = () => {
                 {projectIds.map((projectId: string) => {
                     return (
                         <div key={projectId}>
-                            <h3 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-                                Project: {getProjectName(projectId)}
+                            <h3 className="mt-6 font-medium  tracking-tight">
+                                {getProjectName(projectId)}
                             </h3>
                             {getSsoConfigModelList(projectSsoConfigList.filter((config: ProjectSSO) => config.projectId?.toString() === projectId.toString()))}
                         </div>
                     )
                 })}
+            </div>
             </div>
         );
 
@@ -154,6 +154,7 @@ const LoginPage: () => JSX.Element = () => {
                     <BasicForm
                         modelType={User}
                         id="login-form"
+                        error={error}
                         name="Login"
                         fields={[
                             {

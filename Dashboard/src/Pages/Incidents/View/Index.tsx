@@ -589,6 +589,46 @@ const IncidentView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+<CardModelDetail
+        name="Remediation Notes"
+        cardProps={{
+          title: "Remediation Notes",
+          description:
+            "What steps were taken to resolve this incident? Here are the remediation notes.",
+        }}
+        editButtonText="Edit Remediation Notes"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              remediationNotes: true,
+            },
+            title: "Remediation Notes",
+
+            fieldType: FormFieldSchemaType.Markdown,
+            required: true,
+            placeholder: "Remediation Notes",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: Incident,
+          id: "model-detail-incident-remediation-notes",
+          fields: [
+            {
+              field: {
+                remediationNotes: true,
+              },
+              title: "Remediation Notes",
+              placeholder: "No remediation notes added for this incident.",
+              fieldType: FieldType.Markdown,
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
     </Fragment>
   );
 };

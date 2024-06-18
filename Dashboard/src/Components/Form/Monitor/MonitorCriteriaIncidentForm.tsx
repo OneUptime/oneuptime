@@ -47,7 +47,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             },
             title: "Incident Description",
             stepId: "incident-details",
-            fieldType: FormFieldSchemaType.LongText,
+            fieldType: FormFieldSchemaType.Markdown,
             required: true,
             placeholder: "Description",
           },
@@ -86,6 +86,17 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             description:
               "Automatically resolve this incident when this criteria is no longer met.",
             fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              remediationNotes: true,
+            },
+            title: "Remediation Notes",
+            stepId: "incident-details",
+            description:
+              "Notes to help the on-call engineer resolve this incident.",
+            fieldType: FormFieldSchemaType.Markdown,
             required: false,
           },
         ]}

@@ -9,6 +9,7 @@ import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
 import API from "Common/Utils/API";
+import JWTToken from "./JWT";
 
 export default class User {
   public static setProfilePicId(id: ObjectID | null): void {
@@ -60,6 +61,31 @@ export default class User {
 
   public static setName(name: Name): void {
     LocalStorage.setItem("user_name", name.toString());
+  }
+
+  public static refreshUserDataFromToken(token: string): void {
+    const decodedToken: JSONObject = JWTToken.decodeToken(token);
+
+    if(decodedToken["userId"]) {
+      this.setUserId(new ObjectID(decodedToken["userId"] as string));
+    }
+
+    if(decodedToken["email"]) {
+      this.setEmail(new Email(decodedToken["email"] as string));
+    }
+
+    if(decodedToken["name"]) {
+      this.setName(new Name(decodedToken["name"] as string));
+    }
+
+    if(decodedToken["isMasterAdmin"]) {
+      this.setIsMasterAdmin(decodedToken["isMasterAdmin"] as boolean);
+    }
+
+    if(decodedToken["timezone"]) {
+      this.setSavedUserTimezone(decodedToken["timezone"] as Timezone);
+    }
+
   }
 
   public static getEmail(): Email | null {
