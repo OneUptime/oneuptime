@@ -185,6 +185,8 @@ services:
         environment:
             <<: *common-server-variables
             PORT: 8547
+        volumes:
+            - ./Llama/Models:/app/Models
         logging:
             driver: "local"
             options:
