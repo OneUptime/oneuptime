@@ -10,13 +10,26 @@ test.describe("Account Registration", () => {
       return;
     }
 
+    // please make sure the dashboard is up before signing up the user.
+    const dashboardPageResult: Response | null = await page.goto(
+      URL.fromString(BASE_URL.toString()).addRoute("/dashboard").toString(),
+    );
+
+    while (
+      dashboardPageResult?.status() === 504 ||
+      dashboardPageResult?.status() === 502
+    ) {
+      // reload page if it fails to load
+      await page.reload();
+    }
+
     const pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString())
         .addRoute("/accounts/register")
         .toString(),
     );
 
-    if (pageResult?.status() === 504 || pageResult?.status() === 502) {
+    while (pageResult?.status() === 504 || pageResult?.status() === 502) {
       // reload page if it fails to load
       await page.reload();
     }
