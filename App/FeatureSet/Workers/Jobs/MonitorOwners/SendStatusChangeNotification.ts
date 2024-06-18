@@ -106,8 +106,7 @@ RunCron(
               monitor.id!,
             )
           ).toString(),
-          rootCause:
-            monitorStatusTimeline.rootCause || "No root cause identified.",
+          rootCause: monitorStatusTimeline.rootCause || "",
         };
 
         if (doesResourceHasOwners === true) {

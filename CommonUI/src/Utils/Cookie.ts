@@ -10,7 +10,7 @@ import CookieName from "Common/Types/CookieName";
 
 export default class Cookie {
   public static setItem(
-    key: CookieName,
+    key: CookieName | string,
     value: JSONValue | Email | URL,
     options?:
       | {

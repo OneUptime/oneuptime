@@ -10,7 +10,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import UserUtil from "CommonUI/src/Utils/User";
 import User from "Model/Models/User";
 import React, { ReactElement, useState } from "react";
-import ProjectSSO from "Model/Models/ProjectSSO";
+import ProjectSSO from "Model/Models/ProjectSso";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import API from "CommonUI/src/Utils/API/API";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";

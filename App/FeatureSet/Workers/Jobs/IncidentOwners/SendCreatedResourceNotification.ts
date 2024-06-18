@@ -12,6 +12,7 @@ import IncidentService from "CommonServer/Services/IncidentService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import logger from "CommonServer/Utils/Logger";
 import Incident from "Model/Models/Incident";
 import Monitor from "Model/Models/Monitor";
 import User from "Model/Models/User";
@@ -38,6 +39,7 @@ RunCron(
         project: {
           name: true,
         },
+        remediationNotes: true,
         currentIncidentState: {
           name: true,
         },
@@ -83,67 +85,81 @@ RunCron(
       }
 
       for (const user of owners) {
-        const vars: Dictionary<string> = {
-          incidentTitle: incident.title!,
-          projectName: incident.project!.name!,
-          currentState: incident.currentIncidentState!.name!,
-          incidentDescription: await Markdown.convertToHTML(
-            incident.description! || "",
-            MarkdownContentType.Email,
-          ),
-          resourcesAffected:
-            incident
-              .monitors!.map((monitor: Monitor) => {
-                return monitor.name!;
-              })
-              .join(", ") || "None",
-          incidentSeverity: incident.incidentSeverity!.name!,
-          declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-            date: incidentIdentifiedDate,
-            timezones: user.timezone ? [user.timezone] : [],
-          }),
-          remediationNotes: incident.remediationNotes || "",
-          rootCause:
-            incident.rootCause || "No root cause identified for this incident",
-          incidentViewLink: (
-            await IncidentService.getIncidentLinkInDashboard(
-              incident.projectId!,
-              incident.id!,
-            )
-          ).toString(),
-        };
+        try {
+          const vars: Dictionary<string> = {
+            incidentTitle: incident.title!,
+            projectName: incident.project!.name!,
+            currentState: incident.currentIncidentState!.name!,
+            incidentDescription: await Markdown.convertToHTML(
+              incident.description! || "",
+              MarkdownContentType.Email,
+            ),
+            resourcesAffected:
+              incident
+                .monitors!.map((monitor: Monitor) => {
+                  return monitor.name!;
+                })
+                .join(", ") || "None",
+            incidentSeverity: incident.incidentSeverity!.name!,
+            declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+              {
+                date: incidentIdentifiedDate,
+                timezones: user.timezone ? [user.timezone] : [],
+              },
+            ),
+            remediationNotes:
+              (await Markdown.convertToHTML(
+                incident.remediationNotes! || "",
+                MarkdownContentType.Email,
+              )) || "",
+            rootCause:
+              incident.rootCause ||
+              "No root cause identified for this incident",
+            incidentViewLink: (
+              await IncidentService.getIncidentLinkInDashboard(
+                incident.projectId!,
+                incident.id!,
+              )
+            ).toString(),
+          };
 
-        if (doesResourceHasOwners === true) {
-          vars["isOwner"] = "true";
+          if (doesResourceHasOwners === true) {
+            vars["isOwner"] = "true";
+          }
+
+          const emailMessage: EmailEnvelope = {
+            templateType: EmailTemplateType.IncidentOwnerResourceCreated,
+            vars: vars,
+            subject: "[New Incident] " + incident.title!,
+          };
+
+          const sms: SMSMessage = {
+            message: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
+          const callMessage: CallRequestMessage = {
+            data: [
+              {
+                sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              },
+            ],
+          };
+
+          await UserNotificationSettingService.sendUserNotification({
+            userId: user.id!,
+            projectId: incident.projectId!,
+            emailEnvelope: emailMessage,
+            smsMessage: sms,
+            callRequestMessage: callMessage,
+            eventType:
+              NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+          });
+        } catch (e) {
+          logger.error(
+            "Error in sending incident created resource notification",
+          );
+          logger.error(e);
         }
-
-        const emailMessage: EmailEnvelope = {
-          templateType: EmailTemplateType.IncidentOwnerResourceCreated,
-          vars: vars,
-          subject: "[Incident] " + incident.title!,
-        };
-
-        const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
-        };
-
-        const callMessage: CallRequestMessage = {
-          data: [
-            {
-              sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
-            },
-          ],
-        };
-
-        await UserNotificationSettingService.sendUserNotification({
-          userId: user.id!,
-          projectId: incident.projectId!,
-          emailEnvelope: emailMessage,
-          smsMessage: sms,
-          callRequestMessage: callMessage,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-        });
       }
     }
   },
