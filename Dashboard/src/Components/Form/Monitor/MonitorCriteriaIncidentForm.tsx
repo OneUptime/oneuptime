@@ -117,10 +117,11 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
 
       {!showAdvancedFields && (
         <Button
-          title="Show Advanced Fields"
+          title="Add Remediation Notes for an engineer to help resolve this incident."
           onClick={() => {
             return setShowAdvancedFields(true);
           }}
+          className="-ml-3"
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
         />
       )}
