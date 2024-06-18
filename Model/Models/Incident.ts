@@ -1016,8 +1016,6 @@ export default class Incident extends BaseModel {
   })
   public isCreatedAutomatically?: boolean = undefined;
 
-
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1050,6 +1048,4 @@ export default class Incident extends BaseModel {
     type: ColumnType.Markdown,
   })
   public remediationNotes?: string = undefined;
-
-
 }

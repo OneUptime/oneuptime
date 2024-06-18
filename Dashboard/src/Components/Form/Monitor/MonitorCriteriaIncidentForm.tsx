@@ -18,9 +18,8 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-
-  const [showAdvancedFields, setShowAdvancedFields] = React.useState<boolean>(false); 
+  const [showAdvancedFields, setShowAdvancedFields] =
+    React.useState<boolean>(false);
 
   useEffect(() => {
     if (props.initialValue && props.initialValue.remediationNotes) {
@@ -111,12 +110,20 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             required: false,
             showIf: () => {
               return showAdvancedFields;
-            }
+            },
           },
         ]}
       />
 
-      {!showAdvancedFields && <Button title="Show Advanced Fields" onClick={() => setShowAdvancedFields(true)} buttonStyle={ButtonStyleType.SECONDARY_LINK} />}
+      {!showAdvancedFields && (
+        <Button
+          title="Show Advanced Fields"
+          onClick={() => {
+            return setShowAdvancedFields(true);
+          }}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+        />
+      )}
 
       {/* <div className='mt-4'>
                 <Button

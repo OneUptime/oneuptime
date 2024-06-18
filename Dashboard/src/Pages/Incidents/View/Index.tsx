@@ -590,7 +590,7 @@ const IncidentView: FunctionComponent<
         }}
       />
 
-<CardModelDetail
+      <CardModelDetail
         name="Remediation Notes"
         cardProps={{
           title: "Remediation Notes",
@@ -628,7 +628,6 @@ const IncidentView: FunctionComponent<
           modelId: modelId,
         }}
       />
-
     </Fragment>
   );
 };

@@ -97,5 +97,4 @@ export default interface Field<TEntity> {
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;
   doNotShowWhenCreating?: boolean | undefined;
-
 }

@@ -9,9 +9,9 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
 
-export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
-  new Route("/service-provider-login"),
-);
+export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/service-provider-login"));
 
 export const FORGOT_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/forgot-password"),

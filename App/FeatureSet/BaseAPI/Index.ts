@@ -387,8 +387,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     const APP_NAME: string = "api";
 
-
-
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter(),
@@ -1207,7 +1205,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
-
 
     //attach api's
     app.use(

@@ -4,12 +4,13 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
 import API from "Common/Utils/API";
-import JWTToken from "./JWT";
+import Cookie from "./Cookie";
+import CookieName from "Common/Types/CookieName";
 
 export default class User {
   public static setProfilePicId(id: ObjectID | null): void {
@@ -22,6 +23,16 @@ export default class User {
   }
 
   public static getProfilePicId(): ObjectID | null {
+    // check cookie first.
+
+    const profilePicIdCookie: JSONValue | string = Cookie.getItem(
+      CookieName.ProfilePicID,
+    );
+
+    if (profilePicIdCookie) {
+      return new ObjectID(profilePicIdCookie as string);
+    }
+
     if (!LocalStorage.getItem("profile_pic_id")) {
       return null;
     }
@@ -36,6 +47,16 @@ export default class User {
   }
 
   public static getSavedUserTimezone(): Timezone {
+    // check cookie first.
+
+    const userTimezoneCookie: JSONValue | string = Cookie.getItem(
+      CookieName.Timezone,
+    );
+
+    if (userTimezoneCookie) {
+      return userTimezoneCookie as Timezone;
+    }
+
     return LocalStorage.getItem("user_timezone") as Timezone;
   }
 
@@ -52,10 +73,24 @@ export default class User {
   }
 
   public static getUserId(): ObjectID {
+    // check cookie first.
+    const userIdCookie: JSONValue | string = Cookie.getItem(CookieName.UserID);
+
+    if (userIdCookie) {
+      return new ObjectID(userIdCookie as string);
+    }
+
     return new ObjectID((LocalStorage.getItem("user_id") as string) || "");
   }
 
   public static getName(): Name {
+    // check cookie first.
+    const userNameCookie: JSONValue | string = Cookie.getItem(CookieName.Name);
+
+    if (userNameCookie) {
+      return new Name(userNameCookie as string);
+    }
+
     return new Name((LocalStorage.getItem("user_name") as string) || "");
   }
 
@@ -63,32 +98,17 @@ export default class User {
     LocalStorage.setItem("user_name", name.toString());
   }
 
-  public static refreshUserDataFromToken(token: string): void {
-    const decodedToken: JSONObject = JWTToken.decodeToken(token);
-
-    if(decodedToken["userId"]) {
-      this.setUserId(new ObjectID(decodedToken["userId"] as string));
-    }
-
-    if(decodedToken["email"]) {
-      this.setEmail(new Email(decodedToken["email"] as string));
-    }
-
-    if(decodedToken["name"]) {
-      this.setName(new Name(decodedToken["name"] as string));
-    }
-
-    if(decodedToken["isMasterAdmin"]) {
-      this.setIsMasterAdmin(decodedToken["isMasterAdmin"] as boolean);
-    }
-
-    if(decodedToken["timezone"]) {
-      this.setSavedUserTimezone(decodedToken["timezone"] as Timezone);
-    }
-
-  }
-
   public static getEmail(): Email | null {
+    // check cookie first.
+
+    const userEmailCookie: JSONValue | string = Cookie.getItem(
+      CookieName.Email,
+    );
+
+    if (userEmailCookie) {
+      return new Email(userEmailCookie as string);
+    }
+
     if (!LocalStorage.getItem("user_email")) {
       return null;
     }
@@ -138,6 +158,16 @@ export default class User {
   }
 
   public static isMasterAdmin(): boolean {
+    // check cookie first.
+
+    const isMasterAdminCookie: JSONValue | string = Cookie.getItem(
+      CookieName.IsMasterAdmin,
+    );
+
+    if (isMasterAdminCookie) {
+      return isMasterAdminCookie === "true" || isMasterAdminCookie === true;
+    }
+
     return LocalStorage.getItem("is_master_admin") as boolean;
   }
 

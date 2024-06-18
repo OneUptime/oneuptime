@@ -121,7 +121,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       null,
     );
 
-
     useEffect(() => {
       if (formSteps && formSteps.length > 0 && formSteps[0]) {
         setCurrentFormStepId(formSteps[0].id);

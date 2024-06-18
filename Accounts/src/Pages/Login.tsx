@@ -22,7 +22,6 @@ const LoginPage: () => JSX.Element = () => {
     Navigation.navigate(DASHBOARD_URL);
   }
 
-
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
   useAsyncEffect(async () => {
@@ -105,9 +104,7 @@ const LoginPage: () => JSX.Element = () => {
               <div className="actions text-center mt-4 hover:underline fw-semibold">
                 <div>
                   <Link to={new Route("/accounts/sso")}>
-                    <div
-                      className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                    >
+                    <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
                       Use single sign-on (SSO) instead
                     </div>
                   </Link>

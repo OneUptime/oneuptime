@@ -30,7 +30,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "CommonServer/Utils/Express";
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
 import EmailVerificationToken from "Model/Models/EmailVerificationToken";
@@ -181,24 +180,10 @@ router.post(
         // Refresh Permissions for this user here.
         await AccessTokenService.refreshUserAllPermissions(savedUser.id!);
 
-        const token: string = JSONWebToken.signUserLoginToken({
-          tokenData: {
-            userId: savedUser.id!,
-            email: savedUser.email!,
-            name: savedUser.name!,
-            timezone: savedUser.timezone || null,
-            isMasterAdmin: savedUser.isMasterAdmin!,
-            isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
-          },
-          expiresInSeconds: OneUptimeDate.getSecondsInDays(
-            new PositiveNumber(30),
-          ),
-        });
-
-        // Set a cookie with token.
-        CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-          httpOnly: true,
+        CookieUtil.setUserCookie({
+          expressResponse: res,
+          user: savedUser,
+          isGlobalLogin: true,
         });
 
         logger.info("User signed up: " + savedUser.email?.toString());
@@ -577,24 +562,10 @@ router.post(
         ) {
           logger.info("User logged in: " + alreadySavedUser.email?.toString());
 
-          const token: string = JSONWebToken.signUserLoginToken({
-            tokenData: {
-              userId: alreadySavedUser.id!,
-              email: alreadySavedUser.email!,
-              name: alreadySavedUser.name!,
-              timezone: alreadySavedUser.timezone || null,
-              isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-              isGlobalLogin: true, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
-            },
-            expiresInSeconds: OneUptimeDate.getSecondsInDays(
-              new PositiveNumber(30),
-            ),
-          });
-
-          // Set a cookie with token.
-          CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
-            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-            httpOnly: true,
+          CookieUtil.setUserCookie({
+            expressResponse: res,
+            user: alreadySavedUser,
+            isGlobalLogin: true,
           });
 
           return Response.sendEntityResponse(req, res, alreadySavedUser, User);

@@ -28,7 +28,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "CommonServer/Utils/Express";
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
 import ProjectSSO from "Model/Models/ProjectSso";
@@ -41,79 +40,111 @@ const router: ExpressRouter = Express.getRouter();
 // This route is used to get the SSO config for the user.
 // when the user logs in from OneUptime and not from the IDP.
 
-router.get("/service-provider-login", async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+router.get(
+  "/service-provider-login",
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+    if (!req.query["email"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Email is required"),
+      );
+    }
 
-  if (!req.query['email']) {
-    return Response.sendErrorResponse(req, res, new BadRequestException("Email is required"));
-  }
+    const email: Email = new Email(req.query["email"] as string);
 
-  const email: Email = new Email(req.query['email'] as string);
+    if (!email) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("Email is required"),
+      );
+    }
 
-  if (!email) {
-    return Response.sendErrorResponse(req, res, new BadRequestException("Email is required"));
-  }
+    // get sso config for this user.
 
-  // get sso config for this user. 
-
-  const user: User | null = await UserService.findOneBy({
-    query: { email: email },
-    select: {
-      _id: true,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
-
-
-  if (!user) {
-    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
-  }
-
-
-  const userId: ObjectID = user.id!;
-
-  if (!userId) {
-    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
-  }
-
-  const projectUserBelongsTo: Array<ObjectID> = (await TeamMemberService.findBy({
-    query: { userId: userId },
-    select: {
-      projectId: true,
-    },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  })).map((teamMember: TeamMember) => teamMember.projectId!);
-
-  if (projectUserBelongsTo.length === 0) {
-    return Response.sendErrorResponse(req, res, new BadRequestException("No SSO config found for this user"));
-  }
-
-  const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
-    query: { projectId: QueryHelper.any(projectUserBelongsTo), isEnabled: true },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: {
-      name: true,
-      description: true,
-      _id: true,
-      projectId: true,
-      project: {
-        name: true,
+    const user: User | null = await UserService.findOneBy({
+      query: { email: email },
+      select: {
+        _id: true,
       },
-    },
-    props: {
-      isRoot: true,
-    },
-  });
+      props: {
+        isRoot: true,
+      },
+    });
 
-  return Response.sendEntityArrayResponse(req, res, projectSSOList, projectSSOList.length, ProjectSSO);
+    if (!user) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("No SSO config found for this user"),
+      );
+    }
 
-});
+    const userId: ObjectID = user.id!;
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("No SSO config found for this user"),
+      );
+    }
+
+    const projectUserBelongsTo: Array<ObjectID> = (
+      await TeamMemberService.findBy({
+        query: { userId: userId },
+        select: {
+          projectId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).map((teamMember: TeamMember) => {
+      return teamMember.projectId!;
+    });
+
+    if (projectUserBelongsTo.length === 0) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadRequestException("No SSO config found for this user"),
+      );
+    }
+
+    const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
+      query: {
+        projectId: QueryHelper.any(projectUserBelongsTo),
+        isEnabled: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: {
+        name: true,
+        description: true,
+        _id: true,
+        projectId: true,
+        project: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Response.sendEntityArrayResponse(
+      req,
+      res,
+      projectSSOList,
+      projectSSOList.length,
+      ProjectSSO,
+    );
+  },
+);
 
 router.get(
   "/sso/:projectId/:projectSsoId",
@@ -341,9 +372,9 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     if (projectSSO.issuerURL.toString() !== issuerUrl) {
       logger.error(
         "Issuer URL does not match. It should be " +
-        projectSSO.issuerURL.toString() +
-        " but it is " +
-        issuerUrl.toString(),
+          projectSSO.issuerURL.toString() +
+          " but it is " +
+          issuerUrl.toString(),
       );
       return Response.sendErrorResponse(
         req,
@@ -454,39 +485,18 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
 
-    const ssoToken: string = JSONWebToken.sign({
-      data: {
-        userId: alreadySavedUser.id!,
-        projectId: projectId,
-        name: alreadySavedUser.name!,
-        email: email,
-        isMasterAdmin: false,
-        isGeneralLogin: false,
-      },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+    alreadySavedUser.email = email;
+
+    CookieUtil.setSSOCookie({
+      user: alreadySavedUser,
+      projectId: projectId,
+      expressResponse: res,
     });
 
-    const oneUptimeToken: string = JSONWebToken.signUserLoginToken({
-      tokenData: {
-        userId: alreadySavedUser.id!,
-        email: alreadySavedUser.email!,
-        name: alreadySavedUser.name!,
-        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-        timezone: alreadySavedUser.timezone || null,
-        isGlobalLogin: false, // This is a general login without SSO. So, we will set this to false. This will give access to all the projects that dont require SSO.
-      },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
-    });
-
-    // Set a cookie with token.
-    CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), oneUptimeToken, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-      httpOnly: true,
-    });
-
-    CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-      httpOnly: true,
+    CookieUtil.setUserCookie({
+      expressResponse: res,
+      user: alreadySavedUser,
+      isGlobalLogin: false,
     });
 
     // Refresh Permissions for this user here.

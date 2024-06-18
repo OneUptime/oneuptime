@@ -6,10 +6,11 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Typeof from "Common/Types/Typeof";
 import UniversalCookies, { CookieSetOptions } from "universal-cookie";
+import CookieName from "Common/Types/CookieName";
 
 export default class Cookie {
   public static setItem(
-    key: string,
+    key: CookieName,
     value: JSONValue | Email | URL,
     options?:
       | {
@@ -42,9 +43,9 @@ export default class Cookie {
     cookies.set(key, value as string, cookieOptions);
   }
 
-  public static getItem(key: string): JSONValue {
+  public static getItem(cookieName: CookieName): JSONValue {
     const cookies: UniversalCookies = new UniversalCookies();
-    const value: JSONValue = cookies.get(key) as JSONValue;
+    const value: JSONValue = cookies.get(cookieName) as JSONValue;
 
     try {
       if (value) {
@@ -58,13 +59,13 @@ export default class Cookie {
     }
   }
 
-  public static removeItem(key: string): void {
+  public static removeItem(key: CookieName): void {
     const cookies: UniversalCookies = new UniversalCookies();
     cookies.remove(key);
   }
 
   // check if cookie exists
-  public static exists(key: string): boolean {
+  public static exists(key: CookieName): boolean {
     const cookies: UniversalCookies = new UniversalCookies();
     return Boolean(cookies.get(key));
   }
