@@ -1122,7 +1122,7 @@ jobs:
 
 
   infrastructure-agent-deploy:
-    needs: [github-release]
+    needs: [github-release, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
