@@ -14,7 +14,7 @@
     "license": "Apache-2.0",
     "type": "module",
     "dependencies": {
-        "@babel/runtime": "^7.24.1",
+        "@babel/runtime": "^7.24.6",
         "@monaco-editor/react": "^4.4.6",
         "@nivo/core": "^0.87.0",
         "@nivo/line": "^0.87.0",
