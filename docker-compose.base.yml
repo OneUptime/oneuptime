@@ -176,7 +176,19 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-       
+    
+
+    llama: 
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: 8547
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     admin-dashboard:
         networks:

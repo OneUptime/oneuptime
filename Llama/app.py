@@ -9,19 +9,16 @@ from pydantic import BaseModel
 class Prompt(BaseModel):
    prompt: str
 
-model_path = "./Models/Llama-2-7b-chat-hf"
+model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
 
-tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
 pipeline = transformers.pipeline(
     "text-generation",
-    model=model_path,
-    # torch_dtype=torch.float32, # for CPU
-    torch_dtype=torch.float16, # for GPU
+    model=model_id,
+    model_kwargs={"torch_dtype": torch.bfloat16},
     device_map="auto",
 )
 
 app = FastAPI()
-
 
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
@@ -30,22 +27,29 @@ async def create_item(prompt: Prompt):
     if not prompt:
         return {"error": "Prompt is required"}
 
-    sequences = pipeline(
-        prompt.prompt,
+    messages = [
+        {"role": "system", "content": "You are a pirate chatbot who always responds in pirate speak!"},
+        {"role": "user", "content": "Who are you?"},
+    ]
+
+    terminators = [
+        pipeline.tokenizer.eos_token_id,
+        pipeline.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    ]
+
+    outputs = pipeline(
+        messages,
+        max_new_tokens=256,
+        eos_token_id=terminators,
         do_sample=True,
-        top_k=10,
-        num_return_sequences=1,
-        eos_token_id=tokenizer.eos_token_id,
-        max_length=200,
+        temperature=0.6,
+        top_p=0.9,
     )
+   
 
-    prompt_response_array = []
-
-    for seq in sequences:
-        print(f"Result: {seq['generated_text']}")
-        prompt_response_array.append(seq["generated_text"])
+    output = outputs[0]["generated_text"][-1]
 
     # return prompt response
-    return {"response": prompt_response_array}
+    return {"response": output}
 
 

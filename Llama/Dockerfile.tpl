@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir transformers
 # Install acceletate
 RUN pip install accelerate
 
-# Make port 80 available to the world outside this container
+# Make port 8547 available to the world outside this container
 EXPOSE 8547
 
 # Run app.py when the container launches
