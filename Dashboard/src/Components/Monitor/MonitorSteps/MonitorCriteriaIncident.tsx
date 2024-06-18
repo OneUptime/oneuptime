@@ -7,6 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Incident from "Model/Models/Incident";
 import IncidentSeverity from "Model/Models/IncidentSeverity";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -22,7 +23,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div className="mt-4 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
-      <Detail
+      <Detail<CriteriaIncident>
         id={"monitor-criteria-instance"}
         item={props.incident as any}
         showDetailsInNumberOfColumns={1}
@@ -36,15 +37,21 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           {
             key: "description",
             title: "Incident Description",
-            fieldType: FieldType.LongText,
-            placeholder: "No data entered",
+            fieldType: FieldType.Markdown,
+            placeholder: "No incident description entered",
+          },
+          {
+            key: "remediationNotes",
+            title: "Remediation Notes",
+            fieldType: FieldType.Markdown,
+            placeholder: "No remediation notes entered",
           },
           {
             key: "incidentSeverityId",
             title: "Incident Severity",
             fieldType: FieldType.Dropdown,
             placeholder: "No data entered",
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: CriteriaIncident): ReactElement => {
               if (item["incidentSeverityId"]) {
                 return (
                   <Pill
@@ -90,7 +97,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             description:
               "These are the on-call policies that will be executed when this incident is created.",
             fieldType: FieldType.Element,
-            getElement: (item: JSONObject): ReactElement => {
+            getElement: (item: CriteriaIncident): ReactElement => {
               return (
                 <OnCallDutyPoliciesView
                   onCallPolicies={props.onCallPolicyOptions.filter(
