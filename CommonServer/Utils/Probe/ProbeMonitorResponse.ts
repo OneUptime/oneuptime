@@ -750,6 +750,10 @@ export default class ProbeMonitorResponseService {
           ).probeId;
         }
 
+        if(criteriaIncident.remediationNotes){
+          incident.remediationNotes = criteriaIncident.remediationNotes;
+        }
+
         await IncidentService.create({
           data: incident,
           props: {

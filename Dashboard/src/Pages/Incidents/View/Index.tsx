@@ -595,7 +595,7 @@ const IncidentView: FunctionComponent<
         cardProps={{
           title: "Remediation Notes",
           description:
-            "What steps were taken to resolve this incident? Here are the remediation notes.",
+            "What steps should be taken to resolve this incident? Here are the remediation notes.",
         }}
         editButtonText="Edit Remediation Notes"
         isEditable={true}
