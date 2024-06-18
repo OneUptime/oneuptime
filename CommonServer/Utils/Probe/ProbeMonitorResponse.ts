@@ -750,7 +750,7 @@ export default class ProbeMonitorResponseService {
           ).probeId;
         }
 
-        if(criteriaIncident.remediationNotes){
+        if (criteriaIncident.remediationNotes) {
           incident.remediationNotes = criteriaIncident.remediationNotes;
         }
 
