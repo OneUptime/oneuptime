@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:21.6
+FROM node:22.3.0
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 ARG GIT_SHA
@@ -11,6 +11,11 @@ ARG APP_VERSION
 
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
+ENV NODE_OPTIONS="--use-openssl-ca"
+
+## Add Intermediate Certs 
+COPY ./SslCertificates /usr/local/share/ca-certificates
+RUN update-ca-certificates
 
 
 # IF APP_VERSION is not set, set it to 1.0.0

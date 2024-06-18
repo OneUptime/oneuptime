@@ -19,6 +19,10 @@
 {{> DetailBoxField title="" text=rootCause  }}
 {{> DetailBoxField title="Description: " text=""  }}
 {{> DetailBoxField title="" text=incidentDescription  }}
+{{#ifNotCond remediationNotes ""}}
+{{> DetailBoxField title="Remediation Notes: " text=""  }}
+{{> DetailBoxField title="" text=remediationNotes  }}
+{{/ifNotCond}}
 {{> DetailBoxEnd this }}
 
 

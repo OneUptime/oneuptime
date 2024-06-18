@@ -1,10 +1,11 @@
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
+import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
 import Incident from "Model/Models/Incident";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
@@ -17,6 +18,16 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+
+
+  const [showAdvancedFields, setShowAdvancedFields] = React.useState<boolean>(false); 
+
+  useEffect(() => {
+    if (props.initialValue && props.initialValue.remediationNotes) {
+      setShowAdvancedFields(true);
+    }
+  }, [props.initialValue]);
+
   return (
     <div className="mt-4">
       <BasicForm
@@ -98,9 +109,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               "Notes to help the on-call engineer resolve this incident.",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
+            showIf: () => {
+              return showAdvancedFields;
+            }
           },
         ]}
       />
+
+      {!showAdvancedFields && <Button title="Show Advanced Fields" onClick={() => setShowAdvancedFields(true)} buttonStyle={ButtonStyleType.SECONDARY_LINK} />}
 
       {/* <div className='mt-4'>
                 <Button

@@ -102,6 +102,7 @@ RunCron(
             date: incidentIdentifiedDate,
             timezones: user.timezone ? [user.timezone] : [],
           }),
+          remediationNotes: incident.remediationNotes || "",
           rootCause:
             incident.rootCause || "No root cause identified for this incident",
           incidentViewLink: (
