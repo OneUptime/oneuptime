@@ -16,15 +16,21 @@ app = FastAPI()
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
 
+    # Log prompt to console
+    print(prompt)
+
     # If not prompt then return bad request error
     if not prompt:
         return {"error": "Prompt is required"}
 
     messages = [
-        {"role": "user", "content": "Who are you?"},
+        {"role": "user", "content": prompt.prompt},
     ]
 
     outputs = pipe(messages)
+
+    # Log output to console
+    print(outputs)
    
 
     output = outputs[0]["generated_text"][-1]
