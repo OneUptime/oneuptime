@@ -12,18 +12,6 @@ services:
             context: .
             dockerfile: ./Haraka/Dockerfile
 
-
-    llama: 
-        extends:
-            file: ./docker-compose.base.yml
-            service: llama
-        ports:
-            - '8547:8547'
-        build:
-            network: host
-            context: .
-            dockerfile: ./Llama/Dockerfile
-
     redis:
         ports: 
             - '6310:6379'
