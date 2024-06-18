@@ -29,7 +29,6 @@ We use OpenTelemetry to collect application logs. OneUptime currently supports l
 - [JavaScript / Typescript / NodeJS / Browser](https://opentelemetry.io/docs/instrumentation/js/)
 - [Python](https://opentelemetry.io/docs/instrumentation/python/)
 - [Ruby](https://opentelemetry.io/docs/instrumentation/ruby/)
-- [Swift](https://opentelemetry.io/docs/instrumentation/swift/)
 - [PHP](https://opentelemetry.io/docs/instrumentation/php/)
 - [Erlang](https://opentelemetry.io/docs/instrumentation/erlang/)
 - [Rust](https://opentelemetry.io/docs/instrumentation/rust/)
