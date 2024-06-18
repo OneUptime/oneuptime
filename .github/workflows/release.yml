@@ -1096,7 +1096,7 @@ jobs:
           retention-days: 7
 
   github-release:
-    needs: [test-e2e-release-saas, test-e2e-release-self-hosted]
+    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:
