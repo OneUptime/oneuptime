@@ -87,12 +87,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 name: true,
               },
               title: "Name",
+              placeholder: "No name added",
             },
             {
               field: {
                 email: true,
               },
               title: "Email",
+              placeholder: "No email added",
             },
             {
               field: {
