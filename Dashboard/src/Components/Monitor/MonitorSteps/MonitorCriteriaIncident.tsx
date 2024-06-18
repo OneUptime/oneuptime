@@ -1,13 +1,11 @@
 import OnCallDutyPoliciesView from "../../OnCallPolicy/OnCallPolicies";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import { JSONObject } from "Common/Types/JSON";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import ObjectID from "Common/Types/ObjectID";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Incident from "Model/Models/Incident";
 import IncidentSeverity from "Model/Models/IncidentSeverity";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
