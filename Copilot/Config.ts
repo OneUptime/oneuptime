@@ -43,3 +43,5 @@ type GetLlmTypeFunction = () => LlmType;
 export const GetLlmType: GetLlmTypeFunction = (): LlmType => {
   return (process.env["LLM_TYPE"] as LlmType) || LlmType.Llama;
 };
+
+export const FixNumberOfCodeEventsInEachRun: number = 5;

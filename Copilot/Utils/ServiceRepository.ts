@@ -7,6 +7,21 @@ import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepository
 import ServiceRepository from "Model/Models/ServiceRepository";
 
 export default class ServiceRepositoryUtil {
+  public static async getFileContent(data: {
+    serviceRepository: ServiceRepository;
+    filePath: string;
+  }): Promise<string> {
+    const { serviceRepository, filePath } = data;
+
+    const fileContent: string =
+      await CodeRepositoryCommonServerUtil.getFileContent({
+        repoPath: GetLocalRepositoryPath(),
+        filePath: serviceRepository.servicePathInRepository + "/" + filePath,
+      });
+
+    return fileContent;
+  }
+
   public static async getFilesInServiceDirectory(data: {
     serviceRepository: ServiceRepository;
   }): Promise<Dictionary<CodeRepositoryFile>> {

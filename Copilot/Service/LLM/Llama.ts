@@ -9,13 +9,13 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 
 export default class Llama extends LlmBase {
   public static override async getResponse(data: {
-    input: string;
+    prompt: string;
   }): Promise<string> {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(serverUrl.addRoute("/prompt"), {
-        prompt: data.input,
+        prompt: data.prompt,
       });
 
     if (response instanceof HTTPErrorResponse) {
