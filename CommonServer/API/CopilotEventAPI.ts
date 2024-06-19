@@ -1,8 +1,7 @@
-import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
-import CodeRepositoryService, {
-  Service as CodeRepositoryServiceType,
-} from "../Services/CodeRepositoryService";
-import ServiceRepositoryService from "../Services/ServiceRepositoryService";
+import CodeRepository from "Model/Models/CodeRepository";
+import CopilotEventService, {
+  Service as CopilotEventServiceType,
+} from "../Services/CopilotEventService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -13,20 +12,21 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import CodeRepository from "Model/Models/CodeRepository";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import CopilotEvent from "Model/Models/CopilotEvent";
+import CodeRepositoryService from "../Services/CodeRepositoryService";
+import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 
-export default class CodeRepositoryAPI extends BaseAPI<
-  CodeRepository,
-  CodeRepositoryServiceType
+export default class CopilotEventAPI extends BaseAPI<
+  CopilotEvent,
+  CopilotEventServiceType
 > {
   public constructor() {
-    super(CodeRepository, CodeRepositoryService);
+    super(CopilotEvent, CopilotEventService);
 
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/get-code-repository/:secretkey`,
+        ?.toString()}/copilot-events-by-file/:secretkey`,
       CodeRepositoryAuthorization.isAuthorizedRepository,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -36,17 +36,25 @@ export default class CodeRepositoryAPI extends BaseAPI<
             throw new BadDataException("Secret key is required");
           }
 
+          const filePath: string = req.body["filePath"]!;
+
+          if (!filePath) {
+            throw new BadDataException("File path is required");
+          }
+
+          const serviceCatalogId: string = req.body["serviceCatalogId"]!;
+
+          if (!serviceCatalogId) {
+            throw new BadDataException("Service catalog id is required");
+          }
+
           const codeRepository: CodeRepository | null =
             await CodeRepositoryService.findOneBy({
               query: {
                 secretToken: new ObjectID(secretkey),
               },
               select: {
-                name: true,
-                mainBranchName: true,
-                organizationName: true,
-                repositoryHostedAt: true,
-                repositoryName: true,
+                _id: true,
               },
               props: {
                 isRoot: true,
@@ -59,36 +67,33 @@ export default class CodeRepositoryAPI extends BaseAPI<
             );
           }
 
-          const servicesRepository: Array<ServiceRepository> =
-            await ServiceRepositoryService.findBy({
+          const copilotEvents: Array<CopilotEvent> =
+            await CopilotEventService.findBy({
               query: {
                 codeRepositoryId: codeRepository.id!,
-                enablePullRequests: true,
+                filePath: filePath,
+                serviceCatalogId: new ObjectID(serviceCatalogId),
               },
               select: {
-                serviceCatalog: {
-                  name: true,
-                  _id: true,
-                  serviceLanguage: true,
-                },
-                servicePathInRepository: true,
-                limitNumberOfOpenPullRequestsCount: true,
+                _id: true,
+                codeRepositoryId: true,
+                serviceCatalogId: true,
+                filePath: true,
+                copilotEventStatus: true,
+                copilotEventType: true,
+                createdAt: true,
               },
-              limit: LIMIT_PER_PROJECT,
               skip: 0,
+              limit: LIMIT_PER_PROJECT,
               props: {
                 isRoot: true,
               },
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            codeRepository: CodeRepository.toJSON(
-              codeRepository,
-              CodeRepository,
-            ),
-            servicesRepository: ServiceRepository.toJSONArray(
-              servicesRepository,
-              ServiceRepository,
+            copilotEvents: CopilotEvent.toJSONArray(
+              copilotEvents,
+              CopilotEvent,
             ),
           });
         } catch (err) {

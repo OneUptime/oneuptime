@@ -29,3 +29,16 @@ export const GetGitHubUsername: GetStringOrNullFunction = (): string | null => {
   const username: string | null = process.env["GITHUB_USERNAME"] || null;
   return username;
 };
+
+export const GetLlamaServerUrl: GetURLFunction = () => {
+  return URL.fromString(
+    process.env["LLAMA_SERVER_URL"] ||
+      GetOneUptimeURL().addRoute("/llama").toString(),
+  );
+};
+
+type GetLlmTypeFunction = () => LlmType;
+
+export const GetLlmType: GetLlmTypeFunction = (): LlmType => {
+  return (process.env["LLM_TYPE"] as LlmType) || LlmType.Llama;
+};

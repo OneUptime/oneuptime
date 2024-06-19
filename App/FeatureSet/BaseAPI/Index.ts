@@ -3,6 +3,7 @@ import BaseAnalyticsAPI from "CommonServer/API/BaseAnalyticsAPI";
 import BillingInvoiceAPI from "CommonServer/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "CommonServer/API/BillingPaymentMethodAPI";
 import CodeRepositoryAPI from "CommonServer/API/CodeRepositoryAPI";
+import CopilotEventAPI from "CommonServer/API/CopilotEventAPI";
 import FileAPI from "CommonServer/API/FileAPI";
 import GlobalConfigAPI from "CommonServer/API/GlobalConfigAPI";
 import MonitorGroupAPI from "CommonServer/API/MonitorGroupAPI";
@@ -30,9 +31,6 @@ import ApiKeyService, {
 import CallLogService, {
   Service as CallLogServiceType,
 } from "CommonServer/Services/CallLogService";
-import CopilotEventService, {
-  Service as CopilotEventServiceType,
-} from "CommonServer/Services/CopilotEventService";
 import DomainService, {
   Service as DomainServiceType,
 } from "CommonServer/Services/DomainService";
@@ -297,7 +295,6 @@ import Span from "Model/AnalyticsModels/Span";
 import ApiKey from "Model/Models/ApiKey";
 import ApiKeyPermission from "Model/Models/ApiKeyPermission";
 import CallLog from "Model/Models/CallLog";
-import CopilotEvent from "Model/Models/CopilotEvent";
 import Domain from "Model/Models/Domain";
 import EmailLog from "Model/Models/EmailLog";
 import EmailVerificationToken from "Model/Models/EmailVerificationToken";
@@ -501,14 +498,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ServiceCatalogOwnerTeam, ServiceCatalogOwnerTeamServiceType>(
         ServiceCatalogOwnerTeam,
         ServiceCatalogOwnerTeamService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CopilotEvent, CopilotEventServiceType>(
-        CopilotEvent,
-        CopilotEventService,
       ).getRouter(),
     );
 
@@ -1021,6 +1010,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CodeRepositoryAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CopilotEventAPI().getRouter(),
     );
 
     app.use(
