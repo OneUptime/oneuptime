@@ -37,7 +37,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       const copilotEvents: Array<CopilotEvent> =
         await CopilotEventUtil.getCopilotEvents({
-          serviceCatalogId: serviceRepository.serviceCatalog?.id!,
+          serviceCatalogId: serviceRepository.serviceCatalog!.id!,
           filePath: file.filePath,
         });
 
@@ -84,7 +84,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   }
 };
 
-const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun =
+const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun: VoidFunction =
   (): void => {
     if (currentFixCount <= FixNumberOfCodeEventsInEachRun) {
       return;
@@ -95,7 +95,7 @@ const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun =
     haltProcessWithSuccess();
   };
 
-const haltProcessWithSuccess = async (): Promise<void> => {
+const haltProcessWithSuccess: VoidFunction = (): void => {
   process.exit(0);
 };
 

@@ -28,7 +28,7 @@ export default class PromptsUtil {
     prompt: string,
     vars: Dictionary<string>,
   ): string {
-    let filledPrompt = prompt;
+    let filledPrompt: string = prompt;
 
     for (const [key, value] of Object.entries(vars)) {
       filledPrompt = filledPrompt.replace(new RegExp(`{{${key}}}`, "g"), value);

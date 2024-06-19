@@ -11,7 +11,7 @@ export default class LlmBase {
     copilotEventType: CopilotEventType;
     code: string;
   }): Promise<string> {
-    const prompt = await PromptsUtil.getPrompt({
+    const prompt: string = await PromptsUtil.getPrompt({
       copilotEventType: data.copilotEventType,
       vars: {
         code: data.code,
