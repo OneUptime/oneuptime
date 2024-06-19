@@ -9,7 +9,7 @@ from pydantic import BaseModel
 class Prompt(BaseModel):
    prompt: str
 
-model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
+model_path = "/app/Models/Meta-Llama-3-70B-Instruct"
 
 pipe = transformers.pipeline(
     "text-generation", 
