@@ -3,11 +3,20 @@ import transformers
 import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
+import schedule
 
+# TODO: Store this in redis down the line. 
+items_pending = {}
+queue = []
+items_processed = {}
 
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
    prompt: str
+
+# Declare a Pydantic model for the request body
+class PromptResult(BaseModel):
+   id: str
 
 model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
 
@@ -27,9 +36,6 @@ async def root():
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
 
-    # Calculate request time
-    start_time = time.time()
-
     # Log prompt to console
     print(prompt)
 
@@ -41,20 +47,61 @@ async def create_item(prompt: Prompt):
         {"role": "user", "content": prompt.prompt},
     ]
 
-    outputs = pipe(messages)
+    # Generate random id 
+    random_id = str(time.time())
 
-    # Log output to console
-    print(outputs)
+    # add to queue
 
-    end_time = time.time()
+    items_pending[random_id] = messages
+    queue.append(random_id)
 
-    responseTime = end_time - start_time
+    # Return response
+    return {
+        "id": random_id,
+        "status": "queued"
+    }
 
-    # Print duration to console
-    print("Request duration: ")
-    print(responseTime)
+@app.post("/prompt-result/")
+async def prompt_status(prompt_status: PromptResult):
+    
+        # Log prompt status to console
+        print(prompt_status)
+    
+        # If not prompt status then return bad request error
+        if not prompt_status:
+            return {"error": "Prompt status is required"}
+    
+        # check if item is processed. 
+        if prompt_status.id in items_processed:
 
-    # return prompt response
-    return {"response": outputs, "responseTime": responseTime}
+           
+            return_value =  {
+                "id": prompt_status.id,
+                "status": "processed",
+                "output": items_processed[prompt_status.id]
+            }
+
+            # delete from item_processed
+            del items_processed[prompt_status.id]
+
+            return return_value
+        else:
+            return {
+                "id": prompt_status.id,
+                "status": "pending"
+            }
 
 
+
+def job():
+    print("Processing queue...")
+
+    while len(queue) > 0:
+        # process this item. 
+        random_id = queue.pop(0)
+        messages = items_pending[random_id]
+        outputs = pipe(messages)
+        items_processed[random_id] = outputs
+
+# Schedule the job to run every 5 seconds
+schedule.every(5).seconds.do(job)
