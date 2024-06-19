@@ -1,7 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM continuumio/anaconda3:latest
-
-RUN conda install pytorch cpuonly -c pytorch
+FROM huggingface/transformers-pytorch-gpu:latest
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -11,12 +9,6 @@ ADD ./Llama /app
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install Hugging Face Transformers library
-RUN pip install --no-cache-dir transformers
-
-# Install acceletate
-RUN pip install accelerate
 
 # Make port 8547 available to the world outside this container
 EXPOSE 8547
