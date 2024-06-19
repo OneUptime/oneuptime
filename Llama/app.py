@@ -93,7 +93,7 @@ async def prompt_status(prompt_status: PromptResult):
 
 
 
-def job():
+async def job():
     print("Processing queue...")
 
     while len(queue) > 0:
