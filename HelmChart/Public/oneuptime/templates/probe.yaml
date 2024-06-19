@@ -20,6 +20,7 @@ spec:
       labels:
         app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
         date: "{{ now | unixEpoch }}"
+        appname: oneuptime
     spec:
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
