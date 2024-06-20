@@ -11,6 +11,8 @@ export default class PromptsUtil {
 
     if (data.copilotEventType === CopilotEventType.IMPROVE_COMMENTS) {
       prompt = `Please improve the comments in this code. 
+      Please only comment code that is hard to understand. 
+      If you do not find any code that is hard to understand, then please do not add any comments.
 Please only reply with code and nothing else. 
 
 Here is the code: 

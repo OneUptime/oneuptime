@@ -11,7 +11,7 @@ items_pending = {}
 queue = []
 items_processed = {}
 
-async def job():
+def job():
     print("Processing queue...")
 
     while len(queue) > 0:
@@ -24,7 +24,7 @@ async def job():
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     scheduler = BackgroundScheduler()
-    scheduler.add_job(job,"interval",seconds = 5)
+    scheduler.add_job(job,'cron', second='*/5')
     scheduler.start()
     yield
 
@@ -104,9 +104,15 @@ async def prompt_status(prompt_status: PromptResult):
 
             return return_value
         else:
+
+            status = "not found" 
+
+            if prompt_status.id in items_pending:
+                status = "pending"
+
             return {
                 "id": prompt_status.id,
-                "status": "pending"
+                "status": status
             }
 
 
