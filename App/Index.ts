@@ -23,6 +23,7 @@ process.env['SERVICE_NAME'] = 'app';
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
         const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+            // Check the status of all infrastructure components
             return await InfrastructureStatus.checkStatus({
                 checkClickhouseStatus: true,
                 checkPostgresStatus: true,
@@ -30,30 +31,33 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             });
         };
 
-        // init the app
+        // Initialize the app
         await App.init({
             appName: process.env['SERVICE_NAME'] || 'app',
             statusOptions: {
+                // Use the same status check for both live and ready checks
                 liveCheck: statusCheck,
                 readyCheck: statusCheck,
             },
         });
 
-        // connect to the database.
+        // Connect to the database
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
 
-        // connect redis
+        // Connect to Redis
         await Redis.connect();
 
+        // Connect to Clickhouse
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
 
+        // Initialize Realtime
         await Realtime.init();
 
-        // init featuresets
+        // Initialize feature sets
         await IdentityRoutes.init();
         await NotificationRoutes.init();
         await DocsRoutes.init();
@@ -62,12 +66,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         await Workers.init();
         await Workflow.init();
 
-        // home should be in the end because it has the catch all route.
+        // Initialize Home routes (should be last because it has the catch-all route)
         await HomeRoutes.init();
 
-        // add default routes
+        // Add default routes
         await App.addDefaultRoutes();
     } catch (err) {
+        // Log and re-throw any errors
         logger.error('App Init Failed:');
         logger.error(err);
         throw err;
@@ -75,7 +80,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 };
 
 init().catch((err: Error) => {
+    // Log and exit the node process on error
     logger.error(err);
     logger.error('Exiting node process');
     process.exit(1);
 });
+
