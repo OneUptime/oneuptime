@@ -22,8 +22,9 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     filePath: string;
   }): Promise<string> {
-
-    const path = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
+    const path: string = LocalFile.sanitizeFilePath(
+      `${data.repoPath}/${data.filePath}`,
+    );
 
     const command: string = `cat ${path}`;
 

@@ -9,8 +9,9 @@ import CopilotActionUtil from "./Utils/CopilotAction";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotAction from "Model/Models/CopilotAction";
 import { FixNumberOfCodeEventsInEachRun } from "./Config";
-import CopiotEventTypeOrder from "./Types/CopilotActionTypeOrder";
-import LLM from "./Service/LLM/LLM";
+import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
+import CopilotActionService from "./Service/CopilotActions/Index";
+import { CopilotActionRunResult } from "./Service/CopilotActions/CopilotActionsBase";
 
 const currentFixCount: number = 1;
 
@@ -57,7 +58,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       let nextEventToFix: CopilotActionType | undefined = undefined;
 
-      for (const copilotActionType of CopiotEventTypeOrder) {
+      for (const copilotActionType of CopiotActionTypeOrder) {
         if (!eventsCompletedOnThisFile.includes(copilotActionType)) {
           nextEventToFix = copilotActionType;
           break;
@@ -69,11 +70,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         continue;
       }
 
-      const code: string = await LLM.getResponseByEventType({
+      const code: CopilotActionRunResult = await CopilotActionService.execute({
         copilotActionType: nextEventToFix,
-        code: await ServiceRepositoryUtil.getFileContent({
-          filePath: file.filePath,
-        }),
+        vars: {
+          code: await ServiceRepositoryUtil.getFileContent({
+            filePath: file.filePath,
+          }),
+        },
       });
 
       logger.info(`Code to fix: ${code}`);
