@@ -72,7 +72,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       const code: string = await LLM.getResponseByEventType({
         copilotEventType: nextEventToFix,
         code: await ServiceRepositoryUtil.getFileContent({
-          serviceRepository,
           filePath: file.filePath,
         }),
       });

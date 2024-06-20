@@ -22,7 +22,14 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     filePath: string;
   }): Promise<string> {
-    return Execute.executeCommand(`cat ${data.repoPath}/${data.filePath}`);
+
+    const path = LocalFile.sanitizeFilePath(`${data.repoPath}/${data.filePath}`);
+
+    const command: string = `cat ${path}`;
+
+    logger.debug("Executing command: " + command);
+
+    return Execute.executeCommand(`${command}`);
   }
 
   // discard all changes in the working directory

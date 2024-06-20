@@ -33,7 +33,7 @@ export const GetGitHubUsername: GetStringOrNullFunction = (): string | null => {
 
 export const GetLlamaServerUrl: GetURLFunction = () => {
   return URL.fromString(
-    process.env["LLAMA_SERVER_URL"] ||
+    process.env["ONEUPTIME_LLAMA_SERVER_URL"] ||
       GetOneUptimeURL().addRoute("/llama").toString(),
   );
 };

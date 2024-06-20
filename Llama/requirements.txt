@@ -7,4 +7,4 @@ uvicorn===0.23.2
 pydantic===2.4.2
 
 # Rest of the app
-schedule===1.2.2
+APScheduler===3.10.4

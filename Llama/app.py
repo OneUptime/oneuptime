@@ -3,12 +3,30 @@ import transformers
 import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
-import schedule
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # TODO: Store this in redis down the line. 
 items_pending = {}
 queue = []
 items_processed = {}
+
+async def job():
+    print("Processing queue...")
+
+    while len(queue) > 0:
+        # process this item. 
+        random_id = queue.pop(0)
+        messages = items_pending[random_id]
+        outputs = pipe(messages)
+        items_processed[random_id] = outputs
+
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(job,"interval",seconds = 5)
+    scheduler.start()
+    yield
 
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
@@ -27,7 +45,7 @@ pipe = transformers.pipeline(
     device="cuda" if torch.cuda.is_available() else "cpu",
     )
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
@@ -93,15 +111,4 @@ async def prompt_status(prompt_status: PromptResult):
 
 
 
-async def job():
-    print("Processing queue...")
 
-    while len(queue) > 0:
-        # process this item. 
-        random_id = queue.pop(0)
-        messages = items_pending[random_id]
-        outputs = pipe(messages)
-        items_processed[random_id] = outputs
-
-# Schedule the job to run every 5 seconds
-schedule.every(5).seconds.do(job)

@@ -8,15 +8,14 @@ import ServiceRepository from "Model/Models/ServiceRepository";
 
 export default class ServiceRepositoryUtil {
   public static async getFileContent(data: {
-    serviceRepository: ServiceRepository;
     filePath: string;
   }): Promise<string> {
-    const { serviceRepository, filePath } = data;
+    const { filePath } = data;
 
     const fileContent: string =
       await CodeRepositoryCommonServerUtil.getFileContent({
         repoPath: GetLocalRepositoryPath(),
-        filePath: serviceRepository.servicePathInRepository + "/" + filePath,
+        filePath: filePath,
       });
 
     return fileContent;

@@ -450,6 +450,7 @@ export default class ServiceCatalog extends BaseModel {
     type: TableColumnType.Color,
     title: "Service Color",
     description: "Color for this service",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Color,
