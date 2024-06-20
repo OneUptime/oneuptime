@@ -3,7 +3,7 @@ import BaseAnalyticsAPI from "CommonServer/API/BaseAnalyticsAPI";
 import BillingInvoiceAPI from "CommonServer/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "CommonServer/API/BillingPaymentMethodAPI";
 import CodeRepositoryAPI from "CommonServer/API/CodeRepositoryAPI";
-import CopilotEventAPI from "CommonServer/API/CopilotEventAPI";
+import CopilotActionAPI from "CommonServer/API/CopilotActionAPI";
 import FileAPI from "CommonServer/API/FileAPI";
 import GlobalConfigAPI from "CommonServer/API/GlobalConfigAPI";
 import MonitorGroupAPI from "CommonServer/API/MonitorGroupAPI";
@@ -1014,7 +1014,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new CopilotEventAPI().getRouter(),
+      new CopilotActionAPI().getRouter(),
     );
 
     app.use(

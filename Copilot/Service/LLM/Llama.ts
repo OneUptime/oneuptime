@@ -6,6 +6,15 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import Sleep from "Common/Types/Sleep";
+import logger from "CommonServer/Utils/Logger";
+
+enum LlamaPromptStatus { 
+  Processed = "processed",
+  NotFound = "not found",
+  Pending = "pending",
+
+}
 
 export default class Llama extends LlmBase {
   public static override async getResponse(data: {
@@ -14,7 +23,7 @@ export default class Llama extends LlmBase {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(serverUrl.addRoute("/prompt"), {
+      await API.post(URL.fromString(serverUrl.toString()).addRoute("/prompt"), {
         prompt: data.prompt,
       });
 
@@ -24,12 +33,50 @@ export default class Llama extends LlmBase {
 
     const result: JSONObject = response.data;
 
+    const idOfPrompt: string = result["id"] as string;
+
+    // now check this prompt status. 
+
+    let promptStatus: LlamaPromptStatus = LlamaPromptStatus.Pending;
+    let promptResult: JSONObject | null = null;
+
+    while (promptStatus === LlamaPromptStatus.Pending) {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post(URL.fromString(serverUrl.toString()).addRoute(`/prompt-result`), {
+          id: idOfPrompt,
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const result: JSONObject = response.data;
+
+      promptStatus = result["status"] as LlamaPromptStatus;
+
+      if(promptStatus === LlamaPromptStatus.Processed) {
+        logger.debug("Prompt is processed");
+        promptResult = result;
+      }else{
+        logger.debug("Prompt is still pending. Waiting for 1 second");
+        await Sleep.sleep(1000);
+      }
+    }
+
+    if(!promptResult) {
+      throw new BadRequestException("Failed to get response from Llama server");
+    }
+
+    if(promptResult['output'] && (promptResult['output'] as JSONArray).length > 0) {
+      promptResult = (promptResult['output'] as JSONArray)[0] as JSONObject;
+    }
+
     if (
-      result["response"] &&
-      (result["response"] as JSONObject)["generated_text"]
+      promptResult &&
+      (promptResult as JSONObject)["generated_text"]
     ) {
       const arrayOfGeneratedText: JSONArray = (
-        result["response"] as JSONObject
+        promptResult as JSONObject
       )["generated_text"] as JSONArray;
 
       // get last item

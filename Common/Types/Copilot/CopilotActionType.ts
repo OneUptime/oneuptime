@@ -1,7 +1,7 @@
-enum CopilotEventType {
+enum CopilotActionType {
   IMPROVE_COMMENTS = "IMPROVE_COMMENTS",
   FIX_GRAMMAR_AND_SPELLING = "FIX_GRAMMAR_AND_SPELLING",
   IMPROVE_VARIABLE_NAMES = "IMPROVE_VARIABLE_NAMES",
 }
 
-export default CopilotEventType;
+export default CopilotActionType;

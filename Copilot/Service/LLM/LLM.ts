@@ -3,7 +3,7 @@ import { GetLlmType } from "../../Config";
 import LlmType from "../../Types/LLmType";
 import LlmBase from "./LLMBase";
 import Llama from "./Llama";
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 
 export default class LLM extends LlmBase {
   public static override async getResponse(data: {
@@ -17,7 +17,7 @@ export default class LLM extends LlmBase {
   }
 
   public static override async getResponseByEventType(data: {
-    copilotEventType: CopilotEventType;
+    copilotActionType: CopilotActionType;
     code: string;
   }): Promise<string> {
     if (GetLlmType() === LlmType.Llama) {

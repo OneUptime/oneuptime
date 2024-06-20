@@ -1,9 +1,9 @@
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 
-const CopiotEventTypeOrder: Array<CopilotEventType> = [
-  CopilotEventType.IMPROVE_COMMENTS,
-  CopilotEventType.FIX_GRAMMAR_AND_SPELLING,
-  CopilotEventType.IMPROVE_VARIABLE_NAMES,
+const CopiotEventTypeOrder: Array<CopilotActionType> = [
+  CopilotActionType.IMPROVE_COMMENTS,
+  CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
+  CopilotActionType.IMPROVE_VARIABLE_NAMES,
 ];
 
 export default CopiotEventTypeOrder;

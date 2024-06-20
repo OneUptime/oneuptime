@@ -7,7 +7,7 @@ import BillingInvoice from "./BillingInvoice";
 import BillingPaymentMethods from "./BillingPaymentMethod";
 import CallLog from "./CallLog";
 import CodeRepository from "./CodeRepository";
-import CopilotEvent from "./CopilotEvent";
+import CopilotAction from "./CopilotAction";
 // Date migration
 import DataMigration from "./DataMigration";
 import Domain from "./Domain";
@@ -266,6 +266,6 @@ export default [
   ServiceCatalogOwnerUser,
 
   CodeRepository,
-  CopilotEvent,
+  CopilotAction,
   ServiceRepository,
 ];

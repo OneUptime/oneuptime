@@ -1,7 +1,7 @@
 import CodeRepository from "Model/Models/CodeRepository";
-import CopilotEventService, {
-  Service as CopilotEventServiceType,
-} from "../Services/CopilotEventService";
+import CopilotActionService, {
+  Service as CopilotActionServiceType,
+} from "../Services/CopilotActionService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -12,21 +12,21 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import CopilotEvent from "Model/Models/CopilotEvent";
+import CopilotAction from "Model/Models/CopilotAction";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 
-export default class CopilotEventAPI extends BaseAPI<
-  CopilotEvent,
-  CopilotEventServiceType
+export default class CopilotActionAPI extends BaseAPI<
+  CopilotAction,
+  CopilotActionServiceType
 > {
   public constructor() {
-    super(CopilotEvent, CopilotEventService);
+    super(CopilotAction, CopilotActionService);
 
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/copilot-events-by-file/:secretkey`,
+        ?.toString()}/copilot-actions-by-file/:secretkey`,
       CodeRepositoryAuthorization.isAuthorizedRepository,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -67,8 +67,8 @@ export default class CopilotEventAPI extends BaseAPI<
             );
           }
 
-          const copilotEvents: Array<CopilotEvent> =
-            await CopilotEventService.findBy({
+          const copilotActions: Array<CopilotAction> =
+            await CopilotActionService.findBy({
               query: {
                 codeRepositoryId: codeRepository.id!,
                 filePath: filePath,
@@ -79,8 +79,8 @@ export default class CopilotEventAPI extends BaseAPI<
                 codeRepositoryId: true,
                 serviceCatalogId: true,
                 filePath: true,
-                copilotEventStatus: true,
-                copilotEventType: true,
+                copilotActionStatus: true,
+                copilotActionType: true,
                 createdAt: true,
               },
               skip: 0,
@@ -91,9 +91,9 @@ export default class CopilotEventAPI extends BaseAPI<
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            copilotEvents: CopilotEvent.toJSONArray(
-              copilotEvents,
-              CopilotEvent,
+            copilotActions: CopilotAction.toJSONArray(
+              copilotActions,
+              CopilotAction,
             ),
           });
         } catch (err) {

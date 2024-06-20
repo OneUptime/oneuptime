@@ -1,4 +1,4 @@
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
 import PromptsUtil from "../../Utils/Prompts";
 
@@ -8,11 +8,11 @@ export default class LlmBase {
   }
 
   public static async getResponseByEventType(data: {
-    copilotEventType: CopilotEventType;
+    copilotActionType: CopilotActionType;
     code: string;
   }): Promise<string> {
     const prompt: string = await PromptsUtil.getPrompt({
-      copilotEventType: data.copilotEventType,
+      copilotActionType: data.copilotActionType,
       vars: {
         code: data.code,
       },

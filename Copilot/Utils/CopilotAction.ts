@@ -1,5 +1,5 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
-import CopilotEvent from "Model/Models/CopilotEvent";
+import CopilotAction from "Model/Models/CopilotAction";
 import { GetOneUptimeURL, GetRepositorySecretKey } from "../Config";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -9,11 +9,11 @@ import API from "Common/Utils/API";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "CommonServer/Utils/Logger";
 
-export default class CopilotEventUtil {
-  public static async getCopilotEvents(data: {
+export default class CopilotActionUtil {
+  public static async getCopilotActions(data: {
     filePath: string;
     serviceCatalogId: ObjectID;
-  }): Promise<Array<CopilotEvent>> {
+  }): Promise<Array<CopilotAction>> {
     if (!data.filePath) {
       throw new BadDataException("File path is required");
     }
@@ -31,33 +31,33 @@ export default class CopilotEventUtil {
     const url: URL = URL.fromString(
       GetOneUptimeURL().toString() + "/api",
     ).addRoute(
-      `${new CopilotEvent()
+      `${new CopilotAction()
         .getCrudApiPath()
-        ?.toString()}/copilot-events-by-file/${repositorySecretKey}`,
+        ?.toString()}/copilot-actions-by-file/${repositorySecretKey}`,
     );
 
-    const copilotEventsResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+    const copilotActionsResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get(url, {
         filePath: data.filePath,
         serviceCatalogId: data.serviceCatalogId.toString(),
       });
 
-    if (copilotEventsResult instanceof HTTPErrorResponse) {
-      throw copilotEventsResult;
+    if (copilotActionsResult instanceof HTTPErrorResponse) {
+      throw copilotActionsResult;
     }
 
-    const copilotEvents: Array<CopilotEvent> =
-      CopilotEvent.fromJSONArray(
-        copilotEventsResult.data["copilotEvents"] as JSONArray,
-        CopilotEvent,
+    const copilotActions: Array<CopilotAction> =
+      CopilotAction.fromJSONArray(
+        copilotActionsResult.data["copilotActions"] as JSONArray,
+        CopilotAction,
       ) || [];
 
     logger.debug(
       `Copilot events fetched successfully for file path: ${data.filePath} and service catalog id: ${data.serviceCatalogId}`,
     );
 
-    logger.debug(`Copilot events: ${JSON.stringify(copilotEvents, null, 2)}`);
+    logger.debug(`Copilot events: ${JSON.stringify(copilotActions, null, 2)}`);
 
-    return copilotEvents;
+    return copilotActions;
   }
 }

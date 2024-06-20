@@ -5,11 +5,11 @@ import Dictionary from "Common/Types/Dictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import logger from "CommonServer/Utils/Logger";
-import CopilotEventUtil from "./Utils/CopilotEvent";
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
-import CopilotEvent from "Model/Models/CopilotEvent";
+import CopilotActionUtil from "./Utils/CopilotAction";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
+import CopilotAction from "Model/Models/CopilotAction";
 import { FixNumberOfCodeEventsInEachRun } from "./Config";
-import CopiotEventTypeOrder from "./Types/CopilotEventTypeOrder";
+import CopiotEventTypeOrder from "./Types/CopilotActionTypeOrder";
 import LLM from "./Service/LLM/LLM";
 
 const currentFixCount: number = 1;
@@ -35,31 +35,31 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
       // check copilot events for this file.
 
-      const copilotEvents: Array<CopilotEvent> =
-        await CopilotEventUtil.getCopilotEvents({
+      const copilotActions: Array<CopilotAction> =
+        await CopilotActionUtil.getCopilotActions({
           serviceCatalogId: serviceRepository.serviceCatalog!.id!,
           filePath: file.filePath,
         });
 
-      const eventsCompletedOnThisFile: Array<CopilotEventType> = [];
+      const eventsCompletedOnThisFile: Array<CopilotActionType> = [];
 
-      for (const copilotEvent of copilotEvents) {
+      for (const copilotAction of copilotActions) {
         if (
-          copilotEvent.copilotEventType &&
-          eventsCompletedOnThisFile.includes(copilotEvent.copilotEventType)
+          copilotAction.copilotActionType &&
+          eventsCompletedOnThisFile.includes(copilotAction.copilotActionType)
         ) {
           continue;
         }
 
         // add to eventsCompletedOnThisFile
-        eventsCompletedOnThisFile.push(copilotEvent.copilotEventType!);
+        eventsCompletedOnThisFile.push(copilotAction.copilotActionType!);
       }
 
-      let nextEventToFix: CopilotEventType | undefined = undefined;
+      let nextEventToFix: CopilotActionType | undefined = undefined;
 
-      for (const copilotEventType of CopiotEventTypeOrder) {
-        if (!eventsCompletedOnThisFile.includes(copilotEventType)) {
-          nextEventToFix = copilotEventType;
+      for (const copilotActionType of CopiotEventTypeOrder) {
+        if (!eventsCompletedOnThisFile.includes(copilotActionType)) {
+          nextEventToFix = copilotActionType;
           break;
         }
       }
@@ -70,7 +70,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       }
 
       const code: string = await LLM.getResponseByEventType({
-        copilotEventType: nextEventToFix,
+        copilotActionType: nextEventToFix,
         code: await ServiceRepositoryUtil.getFileContent({
           filePath: file.filePath,
         }),

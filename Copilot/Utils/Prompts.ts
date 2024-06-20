@@ -1,15 +1,15 @@
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 
 export default class PromptsUtil {
   public static async getPrompt(data: {
-    copilotEventType: CopilotEventType;
+    copilotActionType: CopilotActionType;
     vars: Dictionary<string>;
   }): Promise<string> {
     let prompt: string = "";
 
-    if (data.copilotEventType === CopilotEventType.IMPROVE_COMMENTS) {
+    if (data.copilotActionType === CopilotActionType.IMPROVE_COMMENTS) {
       prompt = `Please improve the comments in this code. 
       Please only comment code that is hard to understand. 
       If you do not find any code that is hard to understand, then please do not add any comments.
@@ -21,7 +21,7 @@ Here is the code:
             `;
     }
 
-    if (data.copilotEventType === CopilotEventType.FIX_GRAMMAR_AND_SPELLING) {
+    if (data.copilotActionType === CopilotActionType.FIX_GRAMMAR_AND_SPELLING) {
       prompt = `Please fix the grammar and spelling in this code:
             {{code}}
             `;
