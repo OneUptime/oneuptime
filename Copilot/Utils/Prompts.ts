@@ -10,8 +10,12 @@ export default class PromptsUtil {
     let prompt: string = "";
 
     if (data.copilotEventType === CopilotEventType.IMPROVE_COMMENTS) {
-      prompt = `Please improve the comments in this code:
-            {{code}}
+      prompt = `Please improve the comments in this code. 
+Please only reply with code and nothing else. 
+
+Here is the code: 
+
+{{code}}
             `;
     }
 
