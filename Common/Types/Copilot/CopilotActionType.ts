@@ -1,7 +1,7 @@
 enum CopilotActionType {
-  IMPROVE_COMMENTS = "IMPROVE_COMMENTS",
-  FIX_GRAMMAR_AND_SPELLING = "FIX_GRAMMAR_AND_SPELLING",
-  IMPROVE_VARIABLE_NAMES = "IMPROVE_VARIABLE_NAMES",
+  IMPROVE_COMMENTS = "Improve Comments",
+  FIX_GRAMMAR_AND_SPELLING = "Fix Grammar and Spelling",
+  IMPROVE_VARIABLE_NAMES = "Improve Variable Names",
 }
 
 export default CopilotActionType;

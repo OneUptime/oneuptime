@@ -228,6 +228,18 @@ export default class CodeRepositoryUtil {
     }
   }
 
+  public static async switchToMainBranch(): Promise<void> {
+    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+
+    if (!codeRepository.mainBranchName) {
+      throw new BadDataException("Main Branch Name is required");
+    }
+
+    await this.checkoutBranch({
+      branchName: codeRepository.mainBranchName!,
+    });
+  }
+
   public static async createPullRequest(data: {
     branchName: string;
     title: string;
