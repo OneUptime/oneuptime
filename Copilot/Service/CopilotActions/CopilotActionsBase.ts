@@ -40,7 +40,9 @@ export default class CopilotActionBase {
 
   public async getBranchName(): Promise<string> {
     const randomText: string = Text.generateRandomText(5);
-    return `${Text.pascalCaseToDashes(this.copilotActionType).toLowerCase()}-${randomText}`;
+    const bracnhName =  `${Text.pascalCaseToDashes(this.copilotActionType).toLowerCase()}-${randomText}`;
+    // replace -- with - in the branch name
+    return Text.replaceAll(bracnhName, "--", "-");
   }
 
   public async getPullRequestTitle(data: {

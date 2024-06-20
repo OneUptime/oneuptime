@@ -18,6 +18,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
+import logger from "CommonServer/Utils/Logger";
 
 const actionDictionary: Dictionary<CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: new ImproveComments(),
@@ -34,9 +35,15 @@ export default class CopilotActionService {
     copilotActionType: CopilotActionType;
     vars: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
+
+
     if (!actionDictionary[data.copilotActionType]) {
       throw new BadDataException("Invalid CopilotActionType");
     }
+
+    logger.debug("Executing Copilot Action");
+    logger.debug("File Path: " + data.vars.filePath);
+    logger.debug("Commit Hash: " + data.vars.fileCommitHash);
 
     const action: CopilotActionBase = actionDictionary[
       data.copilotActionType
@@ -57,6 +64,10 @@ export default class CopilotActionService {
     let pullRequest: PullRequest | null = null;
 
     if (result) {
+
+      logger.debug("Obtained result from Copilot Action");
+      logger.debug("Committing the changes to the repository and creating a PR");
+
       const branchName: string = CodeRepositoryUtil.getBranchName({
         branchName: await action.getBranchName(),
         serviceRepository: data.serviceRepository,
@@ -83,6 +94,12 @@ export default class CopilotActionService {
       });
 
       // commit changes
+
+      // add files to stage
+
+      await CodeRepositoryUtil.addFilesToGit({
+        filePaths: [filePath],
+      });
 
       await CodeRepositoryUtil.commitChanges({
         message: commitMessage,
@@ -114,6 +131,10 @@ export default class CopilotActionService {
         status: CopilotActionStatus.PR_CREATED,
         pullRequest: pullRequest,
       };
+    }
+
+    if(!result) {
+      logger.debug("No result obtained from Copilot Action");
     }
 
     await CopilotActionService.addCopilotAction({
