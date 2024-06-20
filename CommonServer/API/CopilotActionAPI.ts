@@ -101,5 +101,60 @@ export default class CopilotActionAPI extends BaseAPI<
         }
       },
     );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/add-copilot-action/:secretkey`,
+      CodeRepositoryAuthorization.isAuthorizedRepository,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const secretkey: string = req.params["secretkey"]!;
+
+          if (!secretkey) {
+            throw new BadDataException("Secret key is required");
+          }
+
+          const codeRepository: CodeRepository | null =
+            await CodeRepositoryService.findOneBy({
+              query: {
+                secretToken: new ObjectID(secretkey),
+              },
+              select: {
+                _id: true,
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!codeRepository) {
+            throw new BadDataException(
+              "Code repository not found. Secret key is invalid.",
+            );
+          }
+
+          const copilotAction: CopilotAction = CopilotAction.fromJSON(
+            req.body["copilotAction"],
+            CopilotAction,
+          ) as CopilotAction;
+
+          copilotAction.codeRepositoryId = codeRepository.id!;
+          copilotAction.projectId = codeRepository.projectId!;
+
+          await CopilotActionService.create({
+            data: copilotAction,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
   }
 }

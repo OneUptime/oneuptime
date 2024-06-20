@@ -1,5 +1,5 @@
 import URL from "Common/Types/API/URL";
-import LlmType from "./Types/LLmType";
+import LlmType from "./Types/LlmType";
 
 type GetStringFunction = () => string;
 type GetStringOrNullFunction = () => string | null;

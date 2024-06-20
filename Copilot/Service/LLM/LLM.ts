@@ -1,6 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { GetLlmType } from "../../Config";
-import LlmType from "../../Types/LLmType";
+import LlmType from "../../Types/LlmType";
 import LlmBase from "./LLMBase";
 import Llama from "./Llama";
 import {

@@ -1,5 +1,5 @@
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
-import LlmType from "../../Types/LLmType";
+import LlmType from "../../Types/LlmType";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import LLM from "../LLM/LLM";
@@ -17,6 +17,7 @@ export interface CopilotActionPrompt {
 export interface CopilotActionVars {
   code: string;
   filePath: string;
+  fileCommitHash: string;
 }
 
 export default class CopilotActionBase {

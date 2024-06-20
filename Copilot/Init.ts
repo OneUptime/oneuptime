@@ -11,7 +11,6 @@ import CopilotAction from "Model/Models/CopilotAction";
 import { FixNumberOfCodeEventsInEachRun } from "./Config";
 import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
 import CopilotActionService from "./Service/CopilotActions/Index";
-import { CopilotActionRunResult } from "./Service/CopilotActions/CopilotActionsBase";
 
 const currentFixCount: number = 1;
 
@@ -70,18 +69,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         continue;
       }
 
-      const code: CopilotActionRunResult = await CopilotActionService.execute({
+      await CopilotActionService.execute({
+        serviceRepository: serviceRepository,
         copilotActionType: nextEventToFix,
         vars: {
           code: await ServiceRepositoryUtil.getFileContent({
             filePath: file.filePath,
           }),
+          filePath: file.filePath,
+          fileCommitHash: file.gitCommitHash,
         },
       });
-
-      logger.info(`Code to fix: ${code}`);
-
-      // now we have the list of all the events completed on this file.
     }
   }
 };

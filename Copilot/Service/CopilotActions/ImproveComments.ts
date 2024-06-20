@@ -16,7 +16,7 @@ export default class ImproveComments extends CopilotActionBase {
     vars: CopilotActionVars;
     result: CopilotActionRunResult;
   }): Promise<boolean> {
-    if (data.result.result.includes("--all-good--")) {
+    if (data.result.code.includes("--all-good--")) {
       return true;
     }
 

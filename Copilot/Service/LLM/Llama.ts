@@ -93,7 +93,7 @@ export default class Llama extends LlmBase {
 
       if (lastItem["content"]) {
         return {
-          result: lastItem["content"] as string,
+          code: lastItem["content"] as string,
         };
       }
     }
