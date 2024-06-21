@@ -9,6 +9,9 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import Typeof from "Common/Types/Typeof";
+import EvaluateOverTime from "./EvaluateOverTime";
+import CompareCriteria from "./CompareCriteria";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 export default class IncomingRequestCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -18,6 +21,39 @@ export default class IncomingRequestCriteria {
     // Server Monitoring Checks
 
     let value: number | string | undefined = input.criteriaFilter.value;
+
+    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
+      undefined;
+
+    if (
+      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTimeOptions
+    ) {
+      overTimeValue = await EvaluateOverTime.getValueOverTime({
+        monitorId: input.dataToProcess.monitorId!,
+        evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+        metricType: input.criteriaFilter.checkOn,
+      });
+
+      if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
+        return null;
+      }
+
+      if (overTimeValue === undefined) {
+        return null;
+      }
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isOnline;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
 
     // All incoming request related checks
 

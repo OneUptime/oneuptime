@@ -8,6 +8,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import EvaluateOverTime from "./EvaluateOverTime";
 
 export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -22,6 +23,39 @@ export default class ServerMonitorCriteria {
 
     const sslResponse: SslMonitorResponse | undefined =
       dataToProcess.sslResponse;
+
+    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
+      undefined;
+
+    if (
+      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTimeOptions
+    ) {
+      overTimeValue = await EvaluateOverTime.getValueOverTime({
+        monitorId: input.dataToProcess.monitorId!,
+        evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+        metricType: input.criteriaFilter.checkOn,
+      });
+
+      if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
+        return null;
+      }
+
+      if (overTimeValue === undefined) {
+        return null;
+      }
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isOnline;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
 
     if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
       const isValidCertificate: boolean = Boolean(

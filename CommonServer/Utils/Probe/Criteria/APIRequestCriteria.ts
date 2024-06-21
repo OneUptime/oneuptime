@@ -20,7 +20,8 @@ export default class APIRequestCriteria {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
 
-    let overTimeValue: Array<number> | number | undefined = undefined;
+    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
+      undefined;
 
     if (
       input.criteriaFilter.eveluateOverTime &&
@@ -42,12 +43,23 @@ export default class APIRequestCriteria {
       }
     }
 
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isOnline;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     // check response time filter
     if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const value: Array<number> | number =
-        overTimeValue ||
+        (overTimeValue as Array<number>) ||
         (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs!;
 
       return CompareCriteria.compareCriteriaNumbers({
@@ -62,7 +74,7 @@ export default class APIRequestCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const value: Array<number> | number =
-        overTimeValue ||
+        (overTimeValue as Array<number>) ||
         (input.dataToProcess as ProbeMonitorResponse).responseCode!;
 
       return CompareCriteria.compareCriteriaNumbers({

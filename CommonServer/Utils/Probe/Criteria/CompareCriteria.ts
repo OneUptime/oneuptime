@@ -27,6 +27,42 @@ export default class CompareCriteria {
     return data.value > data.threshold;
   }
 
+  public static isTrue(data: {
+    value: boolean | Array<boolean>;
+    evaluationType?: EvaluateOverTimeType | undefined;
+  }): boolean {
+    if (Array.isArray(data.value)) {
+      if (data.evaluationType === EvaluateOverTimeType.AnyValue) {
+        return data.value.some((value: boolean) => {
+          return value === true;
+        });
+      }
+      return data.value.every((value: boolean) => {
+        return value === true;
+      });
+    }
+
+    return data.value === true;
+  }
+
+  public static isFalse(data: {
+    value: boolean | Array<boolean>;
+    evaluationType?: EvaluateOverTimeType | undefined;
+  }): boolean {
+    if (Array.isArray(data.value)) {
+      if (data.evaluationType === EvaluateOverTimeType.AnyValue) {
+        return data.value.some((value: boolean) => {
+          return value === false;
+        });
+      }
+      return data.value.every((value: boolean) => {
+        return value === false;
+      });
+    }
+
+    return data.value === false;
+  }
+
   public static lessThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -264,6 +300,53 @@ export default class CompareCriteria {
     return null;
   }
 
+  public static compareCriteriaBoolean(data: {
+    value: Array<boolean> | boolean;
+    criteriaFilter: CriteriaFilter;
+  }): string | null {
+    if (data.value === null || data.value === undefined) {
+      return null;
+    }
+
+    if (data.criteriaFilter.filterType === FilterType.True) {
+      if (
+        CompareCriteria.isTrue({
+          value: data.value,
+          evaluationType:
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+        })
+      ) {
+        return CompareCriteria.getCompareMessage({
+          values: data.value,
+          threshold: true,
+          criteriaFilter: data.criteriaFilter,
+        });
+      }
+
+      return null;
+    }
+
+    if (data.criteriaFilter.filterType === FilterType.False) {
+      if (
+        CompareCriteria.isFalse({
+          value: data.value,
+          evaluationType:
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+        })
+      ) {
+        return CompareCriteria.getCompareMessage({
+          values: data.value,
+          threshold: false,
+          criteriaFilter: data.criteriaFilter,
+        });
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
   public static compareCriteriaNumbers(data: {
     value: Array<number> | number;
     threshold: number;
@@ -395,8 +478,8 @@ export default class CompareCriteria {
   }
 
   public static getCompareMessage(data: {
-    values: Array<number> | number | string;
-    threshold: number | string;
+    values: Array<number | boolean> | number | boolean | string;
+    threshold: number | string | boolean;
     criteriaFilter: CriteriaFilter;
   }): string {
     // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
@@ -464,6 +547,12 @@ export default class CompareCriteria {
         break;
       case FilterType.NotContains:
         message += ` does not contain ${data.threshold}`;
+        break;
+      case FilterType.True:
+        message += ` is ${data.threshold}`;
+        break;
+      case FilterType.False:
+        message += ` is ${data.threshold}`;
         break;
       case FilterType.StartsWith:
         message += ` starts with ${data.threshold}`;

@@ -82,9 +82,7 @@ export default class CriteriaFilterUtil {
         "JavaScript expression " +
         criteriaFilter?.value +
         " - evaluates to true.";
-    }  else {
-
-      
+    } else {
       text += criteriaFilter?.checkOn.toString().toLowerCase() + " ";
 
       if (criteriaFilter?.serverMonitorOptions?.diskPath) {

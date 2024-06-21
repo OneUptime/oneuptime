@@ -23,7 +23,8 @@ export default class ServerMonitorCriteria {
 
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
-    let overTimeValue: Array<number> | number | undefined = undefined;
+    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
+      undefined;
 
     if (
       input.criteriaFilter.eveluateOverTime &&
@@ -60,25 +61,16 @@ export default class ServerMonitorCriteria {
 
       if (
         input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        input.criteriaFilter.filterType === FilterType.True &&
         differenceInMinutes <= offlineIfNotCheckedInMinutes
       ) {
-        if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-          return "Monitor is online.";
-        }
+        const currentIsOnline: boolean | Array<boolean> =
+          (overTimeValue as Array<boolean>) ||
+          (input.dataToProcess as ProbeMonitorResponse).isOnline;
 
-        return null;
-      }
-
-      if (
-        input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        input.criteriaFilter.filterType === FilterType.False &&
-        differenceInMinutes > offlineIfNotCheckedInMinutes
-      ) {
-        if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
-          return "Monitor is offline.";
-        }
-        return null;
+        return CompareCriteria.compareCriteriaBoolean({
+          value: currentIsOnline,
+          criteriaFilter: input.criteriaFilter,
+        });
       }
     }
 
@@ -89,7 +81,7 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentCpuPercent: number | Array<number> =
-        overTimeValue ||
+        (overTimeValue as Array<number>) ||
         (input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
         0;
@@ -108,7 +100,7 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const memoryPercent: number | Array<number> =
-        overTimeValue ||
+        (overTimeValue as Array<number>) ||
         (input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
         0;

@@ -26,7 +26,6 @@ import {
   CheckOn,
   CriteriaFilter,
   FilterCondition,
-  FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -1133,28 +1132,6 @@ export default class ProbeMonitorResponseService {
 
       if (serverMonitorResult) {
         return serverMonitorResult;
-      }
-    }
-
-    if (input.monitor.monitorType !== MonitorType.Server) {
-      if (
-        input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        input.criteriaFilter.filterType === FilterType.True
-      ) {
-        if ((input.dataToProcess as ProbeMonitorResponse).isOnline) {
-          return "Monitor is online.";
-        }
-        return null;
-      }
-
-      if (
-        input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        input.criteriaFilter.filterType === FilterType.False
-      ) {
-        if (!(input.dataToProcess as ProbeMonitorResponse).isOnline) {
-          return "Monitor is offline.";
-        }
-        return null;
       }
     }
 
