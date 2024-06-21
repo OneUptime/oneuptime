@@ -11,7 +11,7 @@ test.describe("Account Registration", () => {
     }
 
     // please make sure the dashboard is up before signing up the user.
-    const dashboardPageResult: Response | null = await page.goto(
+    let dashboardPageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString()).addRoute("/dashboard").toString(),
     );
 
@@ -19,19 +19,37 @@ test.describe("Account Registration", () => {
       dashboardPageResult?.status() === 504 ||
       dashboardPageResult?.status() === 502
     ) {
-      // reload page if it fails to load
-      await page.reload();
+
+      try {
+        // reload page if it fails to load
+        dashboardPageResult = await page.reload();
+      } catch (e) {
+        // reload page if it fails to load
+        dashboardPageResult = await page.goto(
+          URL.fromString(BASE_URL.toString()).addRoute("/dashboard").toString(),
+        );
+      }
     }
 
-    const pageResult: Response | null = await page.goto(
+    let pageResult: Response | null = await page.goto(
       URL.fromString(BASE_URL.toString())
         .addRoute("/accounts/register")
         .toString(),
     );
 
     while (pageResult?.status() === 504 || pageResult?.status() === 502) {
-      // reload page if it fails to load
-      await page.reload();
+
+      try {
+        // reload page if it fails to load
+        pageResult = await page.reload();
+      } catch (e) {
+        // reload page if it fails to load
+        pageResult = await page.goto(
+          URL.fromString(BASE_URL.toString())
+            .addRoute("/accounts/register")
+            .toString(),
+        );
+      }
     }
 
     await page.getByTestId("email").click();

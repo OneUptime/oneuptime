@@ -32,8 +32,6 @@ jobs:
           node-version: 18.3.0
       - run: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
       - run: npm run dev
-      - name: Sleep for 10 minutes to wait for server to start
-        run: sleep 600
       - name: Wait for server to start
         run:  bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
