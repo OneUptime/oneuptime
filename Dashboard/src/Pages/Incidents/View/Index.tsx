@@ -22,6 +22,7 @@ import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import Pill from "CommonUI/src/Components/Pill/Pill";
+import ProbeElement from "CommonUI/src/Components/Probe/Probe";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import BaseAPI from "CommonUI/src/Utils/API/API";
 import GlobalEvent from "CommonUI/src/Utils/GlobalEvents";
@@ -39,6 +40,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import UserElement from "../../../Components/User/User";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -282,6 +284,13 @@ const IncidentView: FunctionComponent<
           },
         ]}
         modelDetailProps={{
+          selectMoreFields: {
+            createdByUser: {
+              name: true,
+              email: true,
+              profilePictureId: true,
+            },
+          },
           onBeforeFetch: async (): Promise<JSONObject> => {
             // get ack incident.
 
@@ -410,8 +419,30 @@ const IncidentView: FunctionComponent<
               field: {
                 createdAt: true,
               },
-              title: "Created At",
+              title: "Declared At",
               fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                createdByProbe: {
+                  name: true, 
+                  iconFileId: true
+                  
+                },
+              },
+              title: "Declared By",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                if(item.createdByProbe){
+                  return <ProbeElement suffix="Probe" probe={item.createdByProbe} />;
+                }
+
+                if(item.createdByUser){
+                  return <UserElement user={item.createdByUser} />;
+                }
+
+                return <p>Unknown</p>
+              }
             },
             {
               field: {
@@ -440,6 +471,7 @@ const IncidentView: FunctionComponent<
                 );
               },
             },
+            
             {
               field: {
                 labels: {

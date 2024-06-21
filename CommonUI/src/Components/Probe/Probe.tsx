@@ -10,6 +10,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   probe?: Probe | JSONObject | undefined | null;
+  suffix?: string | undefined;
 }
 
 const ProbeElement: FunctionComponent<ComponentProps> = (
@@ -58,7 +59,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
         <div>
           <span data-testid="probe-name">{`${
             (probe["name"]?.toString() as string) || ""
-          }`}</span>{" "}
+          } ${props.suffix || ''}`}</span>{" "}
         </div>
       </div>
     </div>
