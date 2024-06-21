@@ -135,8 +135,11 @@ RunCron(
                 MarkdownContentType.Email,
               )) || "",
             rootCause:
-            await Markdown.convertToHTML(incident.rootCause ||
-              "No root cause identified for this incident", MarkdownContentType.Email) || "",
+              (await Markdown.convertToHTML(
+                incident.rootCause ||
+                  "No root cause identified for this incident",
+                MarkdownContentType.Email,
+              )) || "",
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,

@@ -284,6 +284,10 @@ export class MonitorCharts {
   }
 
   public static getChartTitle(data: { checkOn: CheckOn }): string {
+    if (data.checkOn === CheckOn.IsOnline) {
+      return "Monitor Status (Online/Offline)";
+    }
+
     return data.checkOn;
   }
 
@@ -299,7 +303,7 @@ export class MonitorCharts {
     } else if (data.checkOn === CheckOn.CPUUsagePercent) {
       return "CPU Usage in % for this server.";
     } else if (data.checkOn === CheckOn.IsOnline) {
-      return "Online or Offline Monitor Status.";
+      return "Online or Offline Monitor Status. 1 is Online, 0 is Offline.";
     }
 
     return "";

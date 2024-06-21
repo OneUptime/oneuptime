@@ -142,7 +142,11 @@ export class CriteriaFilterUtil {
       monitorType === MonitorType.API ||
       monitorType === MonitorType.Website
     ) {
-      return [CheckOn.IsOnline, CheckOn.ResponseStatusCode, CheckOn.ResponseTime];
+      return [
+        CheckOn.IsOnline,
+        CheckOn.ResponseStatusCode,
+        CheckOn.ResponseTime,
+      ];
     } else if (
       monitorType === MonitorType.Ping ||
       monitorType === MonitorType.IP ||

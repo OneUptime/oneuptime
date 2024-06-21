@@ -119,7 +119,8 @@ export default class ProbeMonitorResponseService {
 
     // get last log. We do this because there are many monitoring steps and we need to store those.
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - monitor type ${monitor.monitorType
+      `${dataToProcess.monitorId.toString()} - monitor type ${
+        monitor.monitorType
       }`,
     );
 
@@ -254,7 +255,7 @@ export default class ProbeMonitorResponseService {
           if (incidentTemplate.autoResolveIncident) {
             if (
               !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-              criteriaInstance.data.id.toString()
+                criteriaInstance.data.id.toString()
               ]
             ) {
               autoResolveCriteriaInstanceIdIncidentIdsDictionary[
@@ -315,11 +316,13 @@ export default class ProbeMonitorResponseService {
 
     if (response.criteriaMetId && response.rootCause) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Criteria met: ${response.criteriaMetId
+        `${dataToProcess.monitorId.toString()} - Criteria met: ${
+          response.criteriaMetId
         }`,
       );
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Root cause: ${response.rootCause
+        `${dataToProcess.monitorId.toString()} - Root cause: ${
+          response.rootCause
         }`,
       );
 
@@ -334,7 +337,7 @@ export default class ProbeMonitorResponseService {
       !response.criteriaMetId &&
       monitorSteps.data.defaultMonitorStatusId &&
       monitor.currentMonitorStatusId?.toString() !==
-      monitorSteps.data.defaultMonitorStatusId.toString()
+        monitorSteps.data.defaultMonitorStatusId.toString()
     ) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
@@ -623,7 +626,7 @@ export default class ProbeMonitorResponseService {
       input.criteriaInstance.data?.changeMonitorStatus &&
       input.criteriaInstance.data?.monitorStatusId &&
       input.criteriaInstance.data?.monitorStatusId.toString() !==
-      input.monitor.currentMonitorStatusId?.toString()
+        input.monitor.currentMonitorStatusId?.toString()
     ) {
       logger.debug(
         `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`,
@@ -677,9 +680,9 @@ export default class ProbeMonitorResponseService {
           (incident: Incident) => {
             return (
               incident.createdCriteriaId ===
-              input.criteriaInstance.data?.id.toString() &&
+                input.criteriaInstance.data?.id.toString() &&
               incident.createdIncidentTemplateId ===
-              criteriaIncident.id.toString()
+                criteriaIncident.id.toString()
             );
           },
         );
@@ -784,9 +787,9 @@ export default class ProbeMonitorResponseService {
     openIncident: Incident;
     rootCause: string;
     dataToProcess:
-    | ProbeMonitorResponse
-    | IncomingMonitorRequest
-    | DataToProcess;
+      | ProbeMonitorResponse
+      | IncomingMonitorRequest
+      | DataToProcess;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -846,7 +849,7 @@ export default class ProbeMonitorResponseService {
 
     if (
       input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-      input.openIncident.createdCriteriaId?.toString()
+        input.openIncident.createdCriteriaId?.toString()
       ]
     ) {
       if (
@@ -905,7 +908,7 @@ export default class ProbeMonitorResponseService {
 
         if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
           input.probeApiIngestResponse.rootCause += `
-**Failure Cause**: ${((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}
+**Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
         }
         break;
