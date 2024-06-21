@@ -19,7 +19,6 @@ test.describe("Account Registration", () => {
       dashboardPageResult?.status() === 504 ||
       dashboardPageResult?.status() === 502
     ) {
-
       try {
         // reload page if it fails to load
         dashboardPageResult = await page.reload();
@@ -38,7 +37,6 @@ test.describe("Account Registration", () => {
     );
 
     while (pageResult?.status() === 504 || pageResult?.status() === 502) {
-
       try {
         // reload page if it fails to load
         pageResult = await page.reload();

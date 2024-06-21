@@ -52,6 +52,12 @@ export default class CodeRepositoryUtil {
     return this.gitHubUtil;
   }
 
+  public static async pullChanges(): Promise<void> {
+    await CodeRepositoryServerUtil.pullChanges({
+      repoPath: GetLocalRepositoryPath(),
+    });
+  }
+
   public static getBranchName(data: {
     branchName: string;
     serviceRepository: ServiceRepository;

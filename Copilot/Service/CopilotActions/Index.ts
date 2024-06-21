@@ -35,9 +35,10 @@ export default class CopilotActionService {
     copilotActionType: CopilotActionType;
     vars: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
-
     await CodeRepositoryUtil.switchToMainBranch();
-    
+
+    await CodeRepositoryUtil.pullChanges();
+
     if (!actionDictionary[data.copilotActionType]) {
       throw new BadDataException("Invalid CopilotActionType");
     }
@@ -66,9 +67,7 @@ export default class CopilotActionService {
 
     if (result) {
       logger.info("Obtained result from Copilot Action");
-      logger.info(
-        "Committing the changes to the repository and creating a PR",
-      );
+      logger.info("Committing the changes to the repository and creating a PR");
 
       const branchName: string = CodeRepositoryUtil.getBranchName({
         branchName: await action.getBranchName(),
@@ -140,12 +139,13 @@ export default class CopilotActionService {
     }
 
     await CopilotActionService.addCopilotAction({
-      serviceCatalogId: data.serviceRepository.serviceCatalog?.id!,
+      serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
       filePath: filePath,
       commitHash: fileCommitHash,
       copilotActionType: data.copilotActionType,
       pullRequest: pullRequest,
+      copilotActionStatus: executionResult.status,
     });
 
     return executionResult;
@@ -158,6 +158,7 @@ export default class CopilotActionService {
     commitHash: string;
     copilotActionType: CopilotActionType;
     pullRequest: PullRequest | null;
+    copilotActionStatus: CopilotActionStatus;
   }): Promise<void> {
     // add copilot action to the database.
 
@@ -168,6 +169,7 @@ export default class CopilotActionService {
     copilotAction.filePath = data.filePath;
     copilotAction.commitHash = data.commitHash;
     copilotAction.copilotActionType = data.copilotActionType;
+    copilotAction.copilotActionStatus = data.copilotActionStatus;
 
     if (data.pullRequest && data.pullRequest.pullRequestNumber) {
       copilotAction.pullRequestId =

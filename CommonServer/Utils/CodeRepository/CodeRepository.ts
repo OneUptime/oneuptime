@@ -5,6 +5,20 @@ import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
 
 export default class CodeRepositoryUtil {
+
+
+  public static async pullChanges(data: {
+    repoPath: string;
+  }): Promise<void> {
+    const command: string = `cd ${data.repoPath} && git pull`;
+
+    logger.debug("Executing command: " + command);
+
+    const stdout: string = await Execute.executeCommand(command);
+
+    logger.debug(stdout);
+  }
+
   public static async createOrCheckoutBranch(data: {
     repoPath: string;
     branchName: string;

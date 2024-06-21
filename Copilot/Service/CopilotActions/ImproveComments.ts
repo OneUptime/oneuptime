@@ -26,6 +26,9 @@ export default class ImproveComments extends CopilotActionBase {
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve the comments in this code. 
           Please only comment code that is hard to understand. 
+          Please do not change any other code lines. 
+          Please do not change indentation as well. 
+          Please only add or improve comments where necessary.
           If you do not find any code that is hard to understand, then please do not add any comments.
     Please only reply with code and nothing else. 
 
