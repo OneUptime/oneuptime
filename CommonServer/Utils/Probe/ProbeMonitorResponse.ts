@@ -892,10 +892,12 @@ export default class ProbeMonitorResponseService {
 
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
-        input.probeApiIngestResponse.rootCause =
-          rootCause +
-          " " +
-          ((input.dataToProcess as ProbeMonitorResponse).failureCause || "");
+        input.probeApiIngestResponse.rootCause = `
+##### Criteria Met: ${criteriaInstance.data?.name}
+**Criteria Name**: ${criteriaInstance.data?.name}
+**Criteria Description**: ${criteriaInstance.data?.description}
+**Filter Conditions Met**: ${rootCause}
+**Failure Cause**: ${((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}`;
         break;
       }
     }
