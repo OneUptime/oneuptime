@@ -5,8 +5,8 @@ import ServiceRepository from "./ServiceRepository";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import CopilotEventStatus from "Common/Types/Copilot/CopilotEventStatus";
-import CopilotEventType from "Common/Types/Copilot/CopilotEventType";
+import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
+import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "Common/Types/Database/CanAccessIfCanReadOn";
@@ -32,7 +32,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadCopilotEvent,
+    Permission.ReadCopilotAction,
   ],
   delete: [],
   update: [],
@@ -43,25 +43,25 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: false,
 })
-@CrudApiEndpoint(new Route("/copilot-event"))
+@CrudApiEndpoint(new Route("/copilot-action"))
 @TableMetadata({
-  tableName: "CopilotEvent",
+  tableName: "CopilotAction",
   singularName: "Copilot Event",
   pluralName: "Copilot Events",
   icon: IconProp.Bolt,
   tableDescription: "Copilot Event Resource",
 })
 @Entity({
-  name: "CopilotEvent",
+  name: "CopilotAction",
 })
-export default class CopilotEvent extends BaseModel {
+export default class CopilotAction extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -92,7 +92,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -117,7 +117,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -149,7 +149,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -175,7 +175,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -207,7 +207,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -230,7 +230,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -262,7 +262,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -285,7 +285,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -307,7 +307,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -329,7 +329,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -343,7 +343,7 @@ export default class CopilotEvent extends BaseModel {
     type: ColumnType.ShortText,
     nullable: false,
   })
-  public copilotEventType?: CopilotEventType = undefined;
+  public copilotActionType?: CopilotActionType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -351,7 +351,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -383,7 +383,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -409,7 +409,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -441,7 +441,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -467,7 +467,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -491,7 +491,7 @@ export default class CopilotEvent extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotEvent,
+      Permission.ReadCopilotAction,
     ],
     update: [],
   })
@@ -505,5 +505,5 @@ export default class CopilotEvent extends BaseModel {
     type: ColumnType.ShortText,
     nullable: false,
   })
-  public copilotEventStatus?: CopilotEventStatus = undefined;
+  public copilotActionStatus?: CopilotActionStatus = undefined;
 }

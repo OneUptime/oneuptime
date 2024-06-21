@@ -465,7 +465,7 @@ enum Permission {
   EditCodeRepository = "EditCodeRepository",
   ReadCodeRepository = "ReadCodeRepository",
 
-  ReadCopilotEvent = "ReadCopilotEvent",
+  ReadCopilotAction = "ReadCopilotAction",
 
   CreateServiceRepository = "CreateServiceRepository",
   DeleteServiceRepository = "DeleteServiceRepository",
@@ -2439,7 +2439,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.ReadCopilotEvent,
+        permission: Permission.ReadCopilotAction,
         title: "Read Copilot Event",
         description: "This permission can read Copilot Event of this project.",
         isAssignableToTenant: true,

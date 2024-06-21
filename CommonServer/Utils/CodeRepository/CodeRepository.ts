@@ -18,6 +18,21 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  public static getFileContent(data: {
+    repoPath: string;
+    filePath: string;
+  }): Promise<string> {
+    const path: string = LocalFile.sanitizeFilePath(
+      `${data.repoPath}/${data.filePath}`,
+    );
+
+    const command: string = `cat ${path}`;
+
+    logger.debug("Executing command: " + command);
+
+    return Execute.executeCommand(`${command}`);
+  }
+
   // discard all changes in the working directory
   public static async discardChanges(data: {
     repoPath: string;

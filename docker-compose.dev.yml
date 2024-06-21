@@ -12,7 +12,6 @@ services:
             context: .
             dockerfile: ./Haraka/Dockerfile
 
-    
     redis:
         ports: 
             - '6310:6379'

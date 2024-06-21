@@ -1,0 +1,22 @@
+services:
+  llama: 
+    extends:
+        file: ./docker-compose.base.yml
+        service: llama
+    ports:
+        - '8547:8547'
+    build:
+        network: host
+        context: .
+        dockerfile: ./Llama/Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  oneuptime:
+    driver: bridge

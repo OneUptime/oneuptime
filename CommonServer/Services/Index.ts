@@ -12,7 +12,7 @@ import BillingService from "./BillingService";
 import CallLogService from "./CallLogService";
 import CallService from "./CallService";
 import CodeRepositoryService from "./CodeRepositoryService";
-import CopilotEventService from "./CopilotEventService";
+import CopilotActionService from "./CopilotActionService";
 import DataMigrationService from "./DataMigrationService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
@@ -258,7 +258,7 @@ const services: Array<BaseService> = [
   ServiceCatalogOwnerUserService,
 
   CodeRepositoryService,
-  CopilotEventService,
+  CopilotActionService,
   ServiceRepositoryService,
 ];
 
