@@ -465,6 +465,26 @@ export default class ProbeMonitorResponseService {
       itemsToSave.push(monitorMetricsByMinute);
     }
 
+    if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
+      const monitorMetricsByMinute: MonitorMetricsByMinute =
+        new MonitorMetricsByMinute();
+      monitorMetricsByMinute.monitorId = data.monitorId;
+      monitorMetricsByMinute.projectId = data.projectId;
+      monitorMetricsByMinute.metricType = CheckOn.IsOnline;
+      monitorMetricsByMinute.metricValue = 0; 
+      monitorMetricsByMinute.miscData = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+      
+      if((data.dataToProcess as ProbeMonitorResponse).isOnline){
+        monitorMetricsByMinute.metricValue = 1;
+      }
+
+      itemsToSave.push(monitorMetricsByMinute);
+    }
+
     if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();

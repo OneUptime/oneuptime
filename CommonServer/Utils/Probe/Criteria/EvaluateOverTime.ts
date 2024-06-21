@@ -18,7 +18,7 @@ export default class EvaluateOverTime {
     evaluateOverTimeOptions: EvaluateOverTimeOptions;
     metricType: CheckOn;
     miscData?: JSONObject | undefined;
-  }): Promise<number | Array<number>> {
+  }): Promise<number | boolean | Array<number | boolean>> {
     // get values over time
 
     const lastMinutesDate: Date = OneUptimeDate.getSomeMinutesAgo(
@@ -50,13 +50,18 @@ export default class EvaluateOverTime {
         },
       });
 
-    const values: Array<number> = monitorMetricsItems
+    const values: Array<number | boolean> = monitorMetricsItems
       .map((item: MonitorMetricsByMinute) => {
+
+        if(data.metricType === CheckOn.IsOnline) {
+          return item.metricValue === 1;
+        }
+
         return item.metricValue;
       })
-      .filter((value: number | undefined) => {
+      .filter((value: number | boolean | undefined) => {
         return value !== undefined;
-      }) as Array<number>;
+      }) as Array<number | boolean>;
 
     if (
       data.evaluateOverTimeOptions.evaluateOverTimeType ===
@@ -69,7 +74,7 @@ export default class EvaluateOverTime {
     }
 
     return this.getValueByEvaluationType({
-      values: values,
+      values: values as Array<number>,
       evaluateOverTimeType: data.evaluateOverTimeOptions.evaluateOverTimeType!,
     });
   }
