@@ -40,7 +40,7 @@ export default class CopilotActionBase {
 
   public async getBranchName(): Promise<string> {
     const randomText: string = Text.generateRandomText(5);
-    const bracnhName =  `${Text.pascalCaseToDashes(this.copilotActionType).toLowerCase()}-${randomText}`;
+    const bracnhName: string = `${Text.pascalCaseToDashes(this.copilotActionType).toLowerCase()}-${randomText}`;
     // replace -- with - in the branch name
     return Text.replaceAll(bracnhName, "--", "-");
   }
@@ -54,7 +54,22 @@ export default class CopilotActionBase {
   public async getPullRequestBody(data: {
     vars: CopilotActionVars;
   }): Promise<string> {
-    return `OneUptime Copilot: ${this.copilotActionType} on ${data.vars.filePath}`;
+    return `OneUptime Copilot: ${this.copilotActionType} on ${data.vars.filePath}
+    
+${this.getDefaultPullRequestBody()}
+    `;
+  }
+
+  public async getDefaultPullRequestBody(): Promise<string> {
+    return `
+    
+#### Warning
+OneUptime Copilot is an AI tool that improves your code. Please do not rely on it completely. Always review the changes before merging. 
+
+#### Feedback
+If you have  any feedback or suggestions, please let us know. We would love to hear from you. Please contact us at copilot@oneuptime.com.
+
+    `;
   }
 
   public async getCommitMessage(data: {

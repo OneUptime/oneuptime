@@ -35,8 +35,6 @@ export default class CopilotActionService {
     copilotActionType: CopilotActionType;
     vars: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
-
-
     if (!actionDictionary[data.copilotActionType]) {
       throw new BadDataException("Invalid CopilotActionType");
     }
@@ -64,9 +62,10 @@ export default class CopilotActionService {
     let pullRequest: PullRequest | null = null;
 
     if (result) {
-
       logger.debug("Obtained result from Copilot Action");
-      logger.debug("Committing the changes to the repository and creating a PR");
+      logger.debug(
+        "Committing the changes to the repository and creating a PR",
+      );
 
       const branchName: string = CodeRepositoryUtil.getBranchName({
         branchName: await action.getBranchName(),
@@ -133,7 +132,7 @@ export default class CopilotActionService {
       };
     }
 
-    if(!result) {
+    if (!result) {
       logger.debug("No result obtained from Copilot Action");
     }
 
