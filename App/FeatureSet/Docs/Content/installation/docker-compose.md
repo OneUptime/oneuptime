@@ -56,14 +56,10 @@ If you don't like to use npm or do not have it installed, run this instead:
 sudo bash -c "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)"
 ```
 
-To update: 
 
-```
-git checkout release # Please make sure you're on release branch.
-git pull
-npm run update
-```
+### Accessing OneUptime
 
+OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it.
 
 ### Setting up TLS/SSL Certificates
 
@@ -79,9 +75,18 @@ If you need to use SSL/TLS certificates, follow these steps:
    - Change `HOST` env var to the domain name of the server where the reverse proxy is hosted.
 
 
+### Updating OneUptime
+
+To update: 
+
+```
+git checkout release # Please make sure you're on release branch.
+git pull
+npm run update
+```
 
 ### Things to consider
 
 - In our Docker setup, we employ a local logging driver. OneUptime, particularly within the probe and ingestor containers, generates a substantial amount of logs. To prevent your storage from becoming full, it's crucial to limit the logging storage in Docker. For detailed instructions on how to do this, please refer to the official Docker documentation [here](https://docs.docker.com/config/containers/logging/local/).
 
-OneUptime should run at: http://localhost. You need to register a new account for your instance to start using it. If you would like to use https, please use a reverse proxy like Nginx.
+
