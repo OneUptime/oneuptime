@@ -22,6 +22,7 @@ process.env['SERVICE_NAME'] = 'app';
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
     try {
+        // Check the status of infrastructure components
         const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
             return await InfrastructureStatus.checkStatus({
                 checkClickhouseStatus: true,
@@ -30,7 +31,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             });
         };
 
-        // init the app
+        // Initialize the app
         await App.init({
             appName: process.env['SERVICE_NAME'] || 'app',
             statusOptions: {
@@ -39,21 +40,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             },
         });
 
-        // connect to the database.
+        // Connect to databases
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
-
-        // connect redis
-        await Redis.connect();
-
         await ClickhouseAppInstance.connect(
             ClickhouseAppInstance.getDatasourceOptions()
         );
 
+        // Connect to Redis
+        await Redis.connect();
+
+        // Initialize Realtime
         await Realtime.init();
 
-        // init featuresets
+        // Initialize featuresets
         await IdentityRoutes.init();
         await NotificationRoutes.init();
         await DocsRoutes.init();
@@ -62,10 +63,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         await Workers.init();
         await Workflow.init();
 
-        // home should be in the end because it has the catch all route.
+        // Initialize home route (which has a catch-all route)
         await HomeRoutes.init();
 
-        // add default routes
+        // Add default routes
         await App.addDefaultRoutes();
     } catch (err) {
         logger.error('App Init Failed:');
@@ -79,3 +80,4 @@ init().catch((err: Error) => {
     logger.error('Exiting node process');
     process.exit(1);
 });
+
