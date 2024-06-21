@@ -103,13 +103,39 @@ export enum FilterCondition {
 }
 
 export class CriteriaFilterUtil {
+
+  public static getEvaluateOverTimeTypeByCriteriaFilter(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): Array<EvaluateOverTimeType>{
+    
+
+    if(!criteriaFilter){
+      return [];
+    }
+
+    if(criteriaFilter.checkOn === CheckOn.IsOnline){
+      return  [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
+    }
+
+    return [
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+    ];
+
+  }
+
   public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
     return (
       checkOn === CheckOn.ResponseStatusCode ||
       checkOn === CheckOn.ResponseTime ||
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
-      checkOn === CheckOn.MemoryUsagePercent
+      checkOn === CheckOn.MemoryUsagePercent || 
+      checkOn === CheckOn.IsOnline
     );
   }
 

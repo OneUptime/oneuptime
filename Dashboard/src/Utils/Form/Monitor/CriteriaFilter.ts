@@ -48,12 +48,12 @@ export default class CriteriaFilterUtil {
         criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
         EvaluateOverTimeType.AllValues
       ) {
-        text += `all `;
+        text += `all values of `;
       } else if (
         criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
         EvaluateOverTimeType.AnyValue
       ) {
-        text += `any `;
+        text += `any value of `;
       } else if (
         criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
         EvaluateOverTimeType.Average
@@ -82,13 +82,9 @@ export default class CriteriaFilterUtil {
         "JavaScript expression " +
         criteriaFilter?.value +
         " - evaluates to true.";
-    } else if (criteriaFilter?.checkOn === CheckOn.IsOnline) {
-      if (criteriaFilter?.filterType === FilterType.True) {
-        text += "the resource is online ";
-      } else {
-        text += "the resource is offline ";
-      }
-    } else {
+    }  else {
+
+      
       text += criteriaFilter?.checkOn.toString().toLowerCase() + " ";
 
       if (criteriaFilter?.serverMonitorOptions?.diskPath) {

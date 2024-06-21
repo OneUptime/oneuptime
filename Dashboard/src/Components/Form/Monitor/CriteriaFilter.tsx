@@ -22,7 +22,6 @@ import Dropdown, {
 } from "CommonUI/src/Components/Dropdown/Dropdown";
 import Input from "CommonUI/src/Components/Input/Input";
 import Link from "CommonUI/src/Components/Link/Link";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -101,8 +100,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       },
     );
 
+
+    const evalOverTimeDropdownOptions: Array<DropdownOption> = CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+      criteriaFilter 
+    ).map((item: EvaluateOverTimeType) => {
+      return {
+        value: item,
+        label: item,
+      };
+    });
+
   const evaluateOverTimeTypeValue: DropdownOption | undefined =
-    DropdownUtil.getDropdownOptionsFromEnum(EvaluateOverTimeType).find(
+  evalOverTimeDropdownOptions.find(
       (item: DropdownOption) => {
         return (
           item.value ===
@@ -181,9 +190,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <FieldLabelElement title="Evaluate" />
             <Dropdown
               value={evaluateOverTimeTypeValue}
-              options={DropdownUtil.getDropdownOptionsFromEnum(
-                EvaluateOverTimeType,
-              )}
+              options={evalOverTimeDropdownOptions}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
