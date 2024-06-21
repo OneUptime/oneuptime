@@ -126,7 +126,7 @@ export default class PingMonitor {
 
         return {
           isOnline: false,
-          failureCause: "Timeout exceeded",
+          failureCause: "Host is not reachable. Timeout exceeded.",
         };
       }
 
