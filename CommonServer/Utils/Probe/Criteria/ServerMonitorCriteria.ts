@@ -12,7 +12,6 @@ import {
 import ServerMonitorResponse, {
   ServerProcess,
 } from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -57,15 +56,23 @@ export default class ServerMonitorCriteria {
         OneUptimeDate.getCurrentDate(),
       );
 
-      const offlineIfNotCheckedInMinutes: number = 2;
+      let offlineIfNotCheckedInMinutes: number = 2;
+
+      // check evaluate  over time.
+      if (
+        input.criteriaFilter.eveluateOverTime &&
+        input.criteriaFilter.evaluateOverTimeOptions
+      ) {
+        offlineIfNotCheckedInMinutes =
+          input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 2;
+      }
 
       if (
         input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        differenceInMinutes <= offlineIfNotCheckedInMinutes
+        differenceInMinutes >= offlineIfNotCheckedInMinutes
       ) {
         const currentIsOnline: boolean | Array<boolean> =
-          (overTimeValue as Array<boolean>) ||
-          (input.dataToProcess as ProbeMonitorResponse).isOnline;
+          (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
 
         return CompareCriteria.compareCriteriaBoolean({
           value: currentIsOnline,
