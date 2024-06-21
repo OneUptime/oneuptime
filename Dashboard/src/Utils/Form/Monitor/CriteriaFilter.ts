@@ -83,7 +83,7 @@ export default class CriteriaFilterUtil {
         criteriaFilter?.value +
         " - evaluates to true.";
     } else {
-      text += criteriaFilter?.checkOn.toString().toLowerCase() + " ";
+      text += `"${criteriaFilter?.checkOn.toString()}" `;
 
       if (criteriaFilter?.serverMonitorOptions?.diskPath) {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";

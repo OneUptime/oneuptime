@@ -515,13 +515,18 @@ export default class CompareCriteria {
       message += ` over the last ${data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`;
     }
 
-    if (Array.isArray(data.values)) {
-      message += ` is ${data.values.join(", ")}`;
-    } else {
-      message += ` is ${data.values}`;
-    }
+    if (
+      data.criteriaFilter.filterType !== FilterType.True &&
+      data.criteriaFilter.filterType !== FilterType.False
+    ) {
+      if (Array.isArray(data.values)) {
+        message += ` is ${data.values.join(", ")}`;
+      } else {
+        message += ` is ${data.values}`;
+      }
 
-    message += " which is";
+      message += " which is";
+    }
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.EqualTo:
