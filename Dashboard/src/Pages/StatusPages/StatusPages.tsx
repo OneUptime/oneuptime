@@ -14,6 +14,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Label from "Model/Models/Label";
 import StatusPage from "Model/Models/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
+import StatusPageElement from "../../Components/StatusPage/StatusPageLabel";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -117,7 +118,10 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
             },
             title: "Name",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: StatusPage): ReactElement => {
+              return <StatusPageElement statusPage={item} />;
+            },
           },
           {
             field: {

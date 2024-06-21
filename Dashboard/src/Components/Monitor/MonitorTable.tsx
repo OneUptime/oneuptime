@@ -34,6 +34,7 @@ import MonitorStatus from "Model/Models/MonitorStatus";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import MonitorElement from "./Monitor";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -383,7 +384,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             name: true,
           },
           title: "Name",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: (item: Monitor): ReactElement => {
+            return <MonitorElement monitor={item} />;
+          },
         },
         {
           field: {
