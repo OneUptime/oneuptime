@@ -893,11 +893,17 @@ export default class ProbeMonitorResponseService {
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = `
-##### Criteria Met: ${criteriaInstance.data?.name}
-**Criteria Name**: ${criteriaInstance.data?.name}
-**Criteria Description**: ${criteriaInstance.data?.description}
-**Filter Conditions Met**: ${rootCause}
-**Failure Cause**: ${((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}`;
+**This incident is created because of the following criteria was met**: 
+
+**Criteria Name** : ${criteriaInstance.data?.name}
+
+**Criteria Description** : ${criteriaInstance.data?.description}
+
+**Filter Conditions Met** : ${rootCause}
+
+**Failure Cause**: ${((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}
+
+`;
         break;
       }
     }
@@ -936,7 +942,7 @@ export default class ProbeMonitorResponseService {
     criteriaInstance: MonitorCriteriaInstance;
   }): Promise<string | null> {
     // returns root cause if any. Otherwise criteria is not met.
-    let finalResult: string | null = "All Criteria Met.";
+    let finalResult: string | null = "All filters met. ";
 
     if (FilterCondition.Any === input.criteriaInstance.data?.filterCondition) {
       finalResult = null; // set to false as we need to check if any of the filters are met.
@@ -975,7 +981,9 @@ export default class ProbeMonitorResponseService {
         didMeetCriteria &&
         rootCause
       ) {
-        finalResult += rootCause + " ";
+        finalResult += `
+
+        - ${rootCause}`; // in markdown format.
       }
     }
 
