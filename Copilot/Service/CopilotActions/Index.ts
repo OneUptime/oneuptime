@@ -35,6 +35,9 @@ export default class CopilotActionService {
     copilotActionType: CopilotActionType;
     vars: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
+
+    await CodeRepositoryUtil.switchToMainBranch();
+    
     if (!actionDictionary[data.copilotActionType]) {
       throw new BadDataException("Invalid CopilotActionType");
     }
