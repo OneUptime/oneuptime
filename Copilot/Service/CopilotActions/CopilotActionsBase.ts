@@ -56,7 +56,7 @@ export default class CopilotActionBase {
   }): Promise<string> {
     return `OneUptime Copilot: ${this.copilotActionType} on ${data.vars.filePath}
     
-${this.getDefaultPullRequestBody()}
+${await this.getDefaultPullRequestBody()}
     `;
   }
 

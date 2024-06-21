@@ -42,9 +42,9 @@ export default class CopilotActionService {
       throw new BadDataException("Invalid CopilotActionType");
     }
 
-    logger.debug("Executing Copilot Action");
-    logger.debug("File Path: " + data.vars.filePath);
-    logger.debug("Commit Hash: " + data.vars.fileCommitHash);
+    logger.info("Executing Copilot Action");
+    logger.info("File Path: " + data.vars.filePath);
+    logger.info("Commit Hash: " + data.vars.fileCommitHash);
 
     const action: CopilotActionBase = actionDictionary[
       data.copilotActionType
@@ -65,8 +65,8 @@ export default class CopilotActionService {
     let pullRequest: PullRequest | null = null;
 
     if (result) {
-      logger.debug("Obtained result from Copilot Action");
-      logger.debug(
+      logger.info("Obtained result from Copilot Action");
+      logger.info(
         "Committing the changes to the repository and creating a PR",
       );
 
@@ -136,11 +136,11 @@ export default class CopilotActionService {
     }
 
     if (!result) {
-      logger.debug("No result obtained from Copilot Action");
+      logger.info("No result obtained from Copilot Action");
     }
 
     await CopilotActionService.addCopilotAction({
-      serviceCatalogId: data.serviceRepository.serviceCatalogId!,
+      serviceCatalogId: data.serviceRepository.serviceCatalog?.id!,
       serviceRepositoryId: data.serviceRepository.id!,
       filePath: filePath,
       commitHash: fileCommitHash,
