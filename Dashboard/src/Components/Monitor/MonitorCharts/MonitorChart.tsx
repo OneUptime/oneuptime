@@ -298,6 +298,8 @@ export class MonitorCharts {
       return "Memory Usage in % for this server.";
     } else if (data.checkOn === CheckOn.CPUUsagePercent) {
       return "CPU Usage in % for this server.";
+    } else if (data.checkOn === CheckOn.IsOnline) {
+      return "Online or Offline Monitor Status.";
     }
 
     return "";

@@ -530,40 +530,40 @@ export default class CompareCriteria {
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.EqualTo:
-        message += ` equal to threshold ${data.threshold}`;
+        message += ` equal to threshold ${data.threshold}. `;
         break;
       case FilterType.GreaterThan:
-        message += ` greater than threshold ${data.threshold}`;
+        message += ` greater than threshold ${data.threshold}. `;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to threshold ${data.threshold}`;
+        message += ` greater than or equal to threshold ${data.threshold}. `;
         break;
       case FilterType.LessThan:
-        message += ` less than threshold ${data.threshold}`;
+        message += ` less than threshold ${data.threshold}. `;
         break;
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to threshold ${data.threshold}`;
+        message += ` less than or equal to threshold ${data.threshold}. `;
         break;
       case FilterType.NotEqualTo:
-        message += ` not equal to threshold ${data.threshold}`;
+        message += ` not equal to threshold ${data.threshold}. `;
         break;
       case FilterType.Contains:
-        message += ` contains ${data.threshold}`;
+        message += ` contains ${data.threshold}. `;
         break;
       case FilterType.NotContains:
-        message += ` does not contain ${data.threshold}`;
+        message += ` does not contain ${data.threshold}. `;
         break;
       case FilterType.True:
-        message += ` is ${data.threshold}`;
+        message += ` is ${data.threshold}. `;
         break;
       case FilterType.False:
-        message += ` is ${data.threshold}`;
+        message += ` is ${data.threshold}. `;
         break;
       case FilterType.StartsWith:
-        message += ` starts with ${data.threshold}`;
+        message += ` starts with ${data.threshold}. `;
         break;
       case FilterType.EndsWith:
-        message += ` ends with ${data.threshold}`;
+        message += ` ends with ${data.threshold}. `;
         break;
     }
 
