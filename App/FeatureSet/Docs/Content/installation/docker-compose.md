@@ -65,6 +65,21 @@ npm run update
 ```
 
 
+### Setting up TLS/SSL Certificates
+
+OneUptime **does not** support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own.
+
+If you need to use SSL/TLS certificates, follow these steps:
+
+1. Use a reverse proxy like Nginx or Caddy.
+2. Use Let's Encrypt to provision the certificates.
+3. Point the reverse proxy to the OneUptime server.
+4. Update the following settings:
+   - Set `HTTP_PROTOCOL` env var to `https`.
+   - Change `HOST` env var to the domain name of the server where the reverse proxy is hosted.
+
+
+
 ### Things to consider
 
 - In our Docker setup, we employ a local logging driver. OneUptime, particularly within the probe and ingestor containers, generates a substantial amount of logs. To prevent your storage from becoming full, it's crucial to limit the logging storage in Docker. For detailed instructions on how to do this, please refer to the official Docker documentation [here](https://docs.docker.com/config/containers/logging/local/).
