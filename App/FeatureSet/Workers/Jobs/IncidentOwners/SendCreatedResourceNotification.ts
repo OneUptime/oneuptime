@@ -91,13 +91,17 @@ RunCron(
         continue;
       }
 
-      let declaredBy: string = 'OneUptime';
+      let declaredBy: string = "OneUptime";
 
-      if(incident.createdByProbe && incident.createdByProbe.name) {
+      if (incident.createdByProbe && incident.createdByProbe.name) {
         declaredBy = incident.createdByProbe.name;
       }
 
-      if(incident.createdByUser && incident.createdByUser.name && incident.createdByUser.email) {
+      if (
+        incident.createdByUser &&
+        incident.createdByUser.name &&
+        incident.createdByUser.email
+      ) {
         declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
       }
 

@@ -31,7 +31,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   >(undefined);
 
   return (
-    <div className="lg:grid grid-cols-2 gap-5">
+    <div className="lg:grid grid-cols-1 gap-5">
       {props.charts.map((chart: Chart, index: number) => {
         switch (chart.type) {
           case ChartType.LINE:
