@@ -286,6 +286,7 @@ const IncidentView: FunctionComponent<
         modelDetailProps={{
           selectMoreFields: {
             createdByUser: {
+              _id: true,
               name: true,
               email: true,
               profilePictureId: true,
@@ -425,24 +426,23 @@ const IncidentView: FunctionComponent<
             {
               field: {
                 createdByProbe: {
-                  name: true, 
-                  iconFileId: true
-                  
+                  name: true,
+                  iconFileId: true,
                 },
               },
               title: "Declared By",
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
-                if(item.createdByProbe){
-                  return <ProbeElement suffix="Probe" probe={item.createdByProbe} />;
+                if (item.createdByProbe) {
+                  return <ProbeElement probe={item.createdByProbe} />;
                 }
 
-                if(item.createdByUser){
+                if (item.createdByUser) {
                   return <UserElement user={item.createdByUser} />;
                 }
 
-                return <p>Unknown</p>
-              }
+                return <p>Unknown</p>;
+              },
             },
             {
               field: {
@@ -471,7 +471,7 @@ const IncidentView: FunctionComponent<
                 );
               },
             },
-            
+
             {
               field: {
                 labels: {

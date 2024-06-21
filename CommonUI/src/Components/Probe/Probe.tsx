@@ -59,7 +59,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
         <div>
           <span data-testid="probe-name">{`${
             (probe["name"]?.toString() as string) || ""
-          } ${props.suffix || ''}`}</span>{" "}
+          } ${props.suffix || ""}`}</span>{" "}
         </div>
       </div>
     </div>

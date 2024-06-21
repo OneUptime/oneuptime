@@ -50,6 +50,13 @@ RunCron(
         monitors: {
           name: true,
         },
+        createdByProbe: {
+          name: true,
+        },
+        createdByUser: {
+          name: true,
+          email: true,
+        },
       },
     });
 
@@ -84,6 +91,16 @@ RunCron(
         continue;
       }
 
+      let declaredBy: string = 'OneUptime';
+
+      if(incident.createdByProbe && incident.createdByProbe.name) {
+        declaredBy = incident.createdByProbe.name;
+      }
+
+      if(incident.createdByUser && incident.createdByUser.name && incident.createdByUser.email) {
+        declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
+      }
+
       for (const user of owners) {
         try {
           const vars: Dictionary<string> = {
@@ -107,6 +124,7 @@ RunCron(
                 timezones: user.timezone ? [user.timezone] : [],
               },
             ),
+            declaredBy: declaredBy,
             remediationNotes:
               (await Markdown.convertToHTML(
                 incident.remediationNotes! || "",

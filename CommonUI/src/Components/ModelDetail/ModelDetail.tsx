@@ -52,17 +52,25 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const getSelectFields: GetSelectFields = (): Select<TBaseModel> => {
     const select: Select<TBaseModel> = {};
     for (const field of props.fields) {
-      const key: string | null = field.field
-        ? (Object.keys(field.field)[0] as string)
+      const keyofField: keyof TBaseModel | null = field.field
+        ? (Object.keys(field.field)[0] as string as keyof TBaseModel)
         : null;
 
-      if (key) {
-        (select as Dictionary<boolean>)[key] = true;
+      if (keyofField) {
+        select[keyofField] = true;
       }
     }
 
     for (const field of Object.keys(props.selectMoreFields || {})) {
-      (select as Dictionary<boolean>)[field] = true;
+      const keyofField: keyof TBaseModel = field as keyof TBaseModel;
+      if (
+        typeof field === "string" &&
+        field &&
+        props.selectMoreFields &&
+        (props.selectMoreFields as Select<TBaseModel>)[keyofField]
+      ) {
+        select[keyofField] = props.selectMoreFields[keyofField] as JSONObject;
+      }
     }
 
     return select;
