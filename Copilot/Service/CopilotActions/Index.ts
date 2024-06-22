@@ -19,9 +19,11 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";
+import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
 
 const actionDictionary: Dictionary<CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: new ImproveComments(),
+  [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: new FixGrammarAndSpelling(),
 };
 
 export interface CopilotExecutionResult {
