@@ -34,8 +34,11 @@ export default class ImproveComments extends CopilotActionBase {
     {{code}}
                 `;
 
+    const systemPrompt: string = `You are an expert programmer.`;
+
     return {
       prompt: prompt,
+      systemPrompt: systemPrompt,
     };
   }
 }

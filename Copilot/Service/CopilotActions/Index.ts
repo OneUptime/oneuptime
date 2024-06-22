@@ -45,7 +45,7 @@ export default class CopilotActionService {
       throw new BadDataException("Invalid CopilotActionType");
     }
 
-    logger.info("Executing Copilot Action");
+    logger.info("Executing Copilot Action: " + data.copilotActionType);
     logger.info("File Path: " + data.vars.filePath);
     logger.info("Commit Hash: " + data.vars.fileCommitHash);
 

@@ -10,9 +10,12 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotAction from "Model/Models/CopilotAction";
 import { FixNumberOfCodeEventsInEachRun } from "./Config";
 import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
-import CopilotActionService from "./Service/CopilotActions/Index";
+import CopilotActionService, {
+  CopilotExecutionResult,
+} from "./Service/CopilotActions/Index";
+import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
-const currentFixCount: number = 1;
+let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
@@ -69,17 +72,22 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         continue;
       }
 
-      await CopilotActionService.execute({
-        serviceRepository: serviceRepository,
-        copilotActionType: nextEventToFix,
-        vars: {
-          code: await ServiceRepositoryUtil.getFileContent({
+      const executionResult: CopilotExecutionResult =
+        await CopilotActionService.execute({
+          serviceRepository: serviceRepository,
+          copilotActionType: nextEventToFix,
+          vars: {
+            code: await ServiceRepositoryUtil.getFileContent({
+              filePath: file.filePath,
+            }),
             filePath: file.filePath,
-          }),
-          filePath: file.filePath,
-          fileCommitHash: file.gitCommitHash,
-        },
-      });
+            fileCommitHash: file.gitCommitHash,
+          },
+        });
+
+      if (executionResult.status === CopilotActionStatus.PR_CREATED) {
+        currentFixCount++;
+      }
     }
   }
 };

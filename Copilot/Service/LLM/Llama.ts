@@ -27,7 +27,10 @@ export default class Llama extends LlmBase {
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(URL.fromString(serverUrl.toString()).addRoute("/prompt"), {
-        prompt: data.prompt,
+        messages: [
+          { role: "system", content: data.systemPrompt },
+          { role: "user", content: data.prompt },
+        ],
       });
 
     if (response instanceof HTTPErrorResponse) {

@@ -12,6 +12,7 @@ export interface CopilotActionRunResult {
 
 export interface CopilotActionPrompt {
   prompt: string;
+  systemPrompt: string;
 }
 
 export interface CopilotActionVars {
@@ -163,9 +164,14 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     const { prompt, vars } = data;
 
     let filledPrompt: string = prompt.prompt;
+    let filledSystemPrompt: string = prompt.systemPrompt;
 
     for (const [key, value] of Object.entries(vars)) {
       filledPrompt = filledPrompt.replace(new RegExp(`{{${key}}}`, "g"), value);
+      filledSystemPrompt = filledSystemPrompt.replace(
+        new RegExp(`{{${key}}}`, "g"),
+        value,
+      );
     }
 
     // check if there any unfilled vars and if there are then throw an error.
@@ -176,8 +182,15 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       );
     }
 
+    if (filledSystemPrompt.match(/{{.*}}/) !== null) {
+      throw new BadDataException(
+        `There are some unfilled vars in the system prompt: ${filledSystemPrompt}`,
+      );
+    }
+
     return {
       prompt: filledPrompt,
+      systemPrompt: filledSystemPrompt,
     };
   }
 }

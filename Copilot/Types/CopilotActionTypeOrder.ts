@@ -5,7 +5,6 @@ const CopiotActionTypeOrder: Array<CopilotActionType> = [
   CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
   // CopilotActionType.IMPROVE_VARIABLE_NAMES,
   // CopilotActionType.IMRPOVE_README,
-
 ];
 
 export default CopiotActionTypeOrder;
