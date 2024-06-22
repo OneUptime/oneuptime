@@ -29,7 +29,7 @@ export default class ImproveComments extends CopilotActionBase {
     If you think the code is already well commented, please reply with the following text:
     --all-good--
     
-    Here is the code in : 
+    Here is the code: 
     
     {{code}}
                 `;
