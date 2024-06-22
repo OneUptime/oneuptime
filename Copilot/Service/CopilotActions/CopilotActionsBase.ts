@@ -30,6 +30,13 @@ export default class CopilotActionBase {
     this.copilotActionType = data.copilotActionType;
   }
 
+
+  public async onBeforeExecute(data: {
+    vars: CopilotActionVars;
+  }): Promise<CopilotActionVars> {
+    return data.vars;
+  }
+
   private async onAfterExecute(data: {
     result: CopilotActionRunResult;
     vars: CopilotActionVars;
