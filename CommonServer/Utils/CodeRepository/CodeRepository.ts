@@ -5,11 +5,7 @@ import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
 
 export default class CodeRepositoryUtil {
-
-
-  public static async pullChanges(data: {
-    repoPath: string;
-  }): Promise<void> {
+  public static async pullChanges(data: { repoPath: string }): Promise<void> {
     const command: string = `cd ${data.repoPath} && git pull`;
 
     logger.debug("Executing command: " + command);
