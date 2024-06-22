@@ -9,6 +9,7 @@ export default class ImproveComments extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
+      acceptFileExtentions: [".ts", ".js", ".tsx", ".jsx"],
     });
   }
 

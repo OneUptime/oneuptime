@@ -5,6 +5,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
+import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAcceptedFileExtention";
 
 export interface CopilotActionRunResult {
   code: string;
@@ -22,18 +23,37 @@ export interface CopilotActionVars {
 }
 
 export default class CopilotActionBase {
+
   public llmType: LlmType = LlmType.Llama;
+
   public copilotActionType: CopilotActionType =
     CopilotActionType.IMPROVE_COMMENTS; // temp value which will be overridden in the constructor
 
-  public constructor(data: { copilotActionType: CopilotActionType }) {
+    public acceptFileExtentions: string[] = [];
+
+  public constructor(data: { 
+    copilotActionType: CopilotActionType 
+    acceptFileExtentions: string[] 
+  }) {
     this.llmType = GetLlmType();
     this.copilotActionType = data.copilotActionType;
+    this.acceptFileExtentions = data.acceptFileExtentions;
   }
 
   public async onBeforeExecute(data: {
     vars: CopilotActionVars;
   }): Promise<CopilotActionVars> {
+
+    // check if the file extension is accepted or not
+
+    if (!this.acceptFileExtentions.includes(data.vars.filePath.split(".").pop() ?? "")) {
+      throw new NotAcceptedFileExtentionForCopilotAction(
+        `The file extension ${data.vars.filePath.split(".").pop()} is not accepted by the copilot action ${this.copilotActionType}. Ignore this file...`,
+      );
+    }
+
+
+
     return data.vars;
   }
 

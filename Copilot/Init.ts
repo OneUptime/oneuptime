@@ -14,6 +14,7 @@ import CopilotActionService, {
   CopilotExecutionResult,
 } from "./Service/CopilotActions/Index";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
+import NotAcceptedFileExtentionForCopilotAction from "./Exceptions/NotAcceptedFileExtention";
 
 let currentFixCount: number = 1;
 
@@ -29,8 +30,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
 
     logger.info(
-      `Files found in ${serviceRepository.serviceCatalog?.name}: ${
-        Object.keys(filesInService).length
+      `Files found in ${serviceRepository.serviceCatalog?.name}: ${Object.keys(filesInService).length
       }`,
     );
 
@@ -72,20 +72,31 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         continue;
       }
 
-      const executionResult: CopilotExecutionResult =
-        await CopilotActionService.execute({
-          serviceRepository: serviceRepository,
-          copilotActionType: nextEventToFix,
-          vars: {
-            code: await ServiceRepositoryUtil.getFileContent({
-              filePath: file.filePath,
-            }),
-            filePath: file.filePath,
-            fileCommitHash: file.gitCommitHash,
-          },
-        });
+      let executionResult: CopilotExecutionResult | null = null
 
-      if (executionResult.status === CopilotActionStatus.PR_CREATED) {
+      try {
+
+        executionResult =
+          await CopilotActionService.execute({
+            serviceRepository: serviceRepository,
+            copilotActionType: nextEventToFix,
+            vars: {
+              code: await ServiceRepositoryUtil.getFileContent({
+                filePath: file.filePath,
+              }),
+              filePath: file.filePath,
+              fileCommitHash: file.gitCommitHash,
+            },
+          });
+      } catch (e) {
+        if (e instanceof NotAcceptedFileExtentionForCopilotAction) {
+          logger.info(e.message);
+        } else {
+          throw e;
+        }
+      }
+
+      if (executionResult && executionResult.status === CopilotActionStatus.PR_CREATED) {
         currentFixCount++;
       }
     }
