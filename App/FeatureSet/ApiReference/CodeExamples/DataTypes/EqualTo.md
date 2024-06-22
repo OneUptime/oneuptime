@@ -1,6 +1,6 @@
 {
-    "query": {
-        "name": "Hello", 
-        // other filters
+    query: {
+        name: Hello
     }
 }
+
