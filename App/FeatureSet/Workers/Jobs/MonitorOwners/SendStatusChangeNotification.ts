@@ -106,7 +106,11 @@ RunCron(
               monitor.id!,
             )
           ).toString(),
-          rootCause: monitorStatusTimeline.rootCause || "",
+          rootCause:
+            (await Markdown.convertToHTML(
+              monitorStatusTimeline.rootCause || "",
+              MarkdownContentType.Email,
+            )) || "",
         };
 
         if (doesResourceHasOwners === true) {

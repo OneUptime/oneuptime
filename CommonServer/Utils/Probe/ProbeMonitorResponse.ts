@@ -896,8 +896,6 @@ export default class ProbeMonitorResponseService {
 **This incident is created because the following criteria was met**: 
 
 **Criteria Name**: ${criteriaInstance.data?.name}
-
-**Criteria Description**: ${criteriaInstance.data?.description}
 `;
 
         if (rootCause) {
