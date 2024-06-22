@@ -82,7 +82,7 @@ async def create_item(prompt: Prompt):
 
 @app.get("/queue-status/")
 async def queue_status():
-    return {"prnding": items_pending, "processed": items_processed, "queue": queue}
+    return {"pending": items_pending, "processed": items_processed, "queue": queue}
 
 @app.post("/prompt-result/")
 async def prompt_status(prompt_status: PromptResult):
