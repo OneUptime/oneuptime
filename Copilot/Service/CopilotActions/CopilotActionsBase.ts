@@ -30,7 +30,6 @@ export default class CopilotActionBase {
     this.copilotActionType = data.copilotActionType;
   }
 
-
   public async onBeforeExecute(data: {
     vars: CopilotActionVars;
   }): Promise<CopilotActionVars> {

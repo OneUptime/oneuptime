@@ -23,7 +23,6 @@ export default class ImproveComments extends CopilotActionBase {
     return false;
   }
 
-
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
