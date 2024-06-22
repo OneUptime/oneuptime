@@ -1,4 +1,4 @@
-import time
+import uuid
 import transformers
 import torch
 from fastapi import FastAPI
@@ -15,11 +15,14 @@ def job():
     print("Processing queue...")
 
     while len(queue) > 0:
-        # process this item. 
+        # process this item.
         random_id = queue.pop(0)
+        print(f"Processing item {random_id}")
         messages = items_pending[random_id]
         outputs = pipe(messages)
         items_processed[random_id] = outputs
+        del items_pending[random_id]
+        print(f"Processed item {random_id}")
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -30,7 +33,7 @@ async def lifespan(app:FastAPI):
 
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
-   prompt: str
+   messages: list
 
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
@@ -49,7 +52,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"status": "ok"}
+     return {"status": "ok"}
 
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
@@ -61,12 +64,10 @@ async def create_item(prompt: Prompt):
     if not prompt:
         return {"error": "Prompt is required"}
 
-    messages = [
-        {"role": "user", "content": prompt.prompt},
-    ]
+    messages = prompt.messages
 
-    # Generate random id 
-    random_id = str(time.time())
+    # Generate UUID
+    random_id = str(uuid.uuid4())
 
     # add to queue
 
@@ -78,6 +79,10 @@ async def create_item(prompt: Prompt):
         "id": random_id,
         "status": "queued"
     }
+
+@app.get("/queue-status/")
+async def queue_status():
+    return {"pending": items_pending, "processed": items_processed, "queue": queue}
 
 @app.post("/prompt-result/")
 async def prompt_status(prompt_status: PromptResult):
