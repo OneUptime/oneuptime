@@ -1,8 +1,9 @@
 {
-    "query": {
-        "age": {
-            "_type": "EqualToOrNull",
+    query: {
+        age: {
+            _type: EqualToOrNull,
             value: 10
         }
     }
 }
+
