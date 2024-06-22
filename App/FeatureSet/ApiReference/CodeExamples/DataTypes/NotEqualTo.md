@@ -1,8 +1,9 @@
 {
-    "query": {
-        "name": {
-            "_type": "NotEqual",
-            "value": "Hello"
+    query: {
+        name: {
+            _type: notEqual,
+            value: hello
         }
     }
 }
+
