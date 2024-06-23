@@ -7,6 +7,10 @@ export default class LocalFile {
     return filePath.replace(/\/\//g, "/");
   }
 
+  public static getFileExtension(filePath: string): string {
+    return filePath.split(".").pop() ?? "";
+  }
+
   public static async makeDirectory(path: string): Promise<void> {
     return new Promise(
       (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {

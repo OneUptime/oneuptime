@@ -14,7 +14,11 @@ export enum ServiceLanguage {
   TypeScript = "TypeScript",
   JavaScript = "JavaScript",
   Shell = "Shell",
+  Markdown = "Markdown",
   Other = "Other",
 }
+
+
+
 
 export default ServiceLanguage;

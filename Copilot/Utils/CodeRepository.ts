@@ -22,12 +22,42 @@ import ServiceRepository from "Model/Models/ServiceRepository";
 
 export interface CodeRepositoryResult {
   codeRepository: CodeRepositoryModel;
-  servicesRepository: Array<ServiceRepository>;
+  servicesToImprove: Array<ServiceToImproveResult>;
+  serviceRepositories: Array<ServiceRepository>;
+}
+
+export interface ServiceToImproveResult {
+  serviceRepository: ServiceRepository;
+  numberOfOpenPullRequests: number;
+  pullRequests: Array<PullRequest>;
 }
 
 export default class CodeRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static gitHubUtil: GitHubUtil | null = null;
+
+  public static hasOpenPRForFile(data: {
+    filePath: string;
+    pullRequests: Array<PullRequest>;
+  }): boolean {
+    const pullRequests: Array<PullRequest> = this.getOpenPRForFile(data);
+    return pullRequests.length > 0;
+  }
+
+  public static getOpenPRForFile(data: {
+    filePath: string;
+    pullRequests: Array<PullRequest>;
+  }): Array<PullRequest> {
+    const pullRequests: Array<PullRequest> = [];
+
+    for (const pullRequest of data.pullRequests) {
+      if (pullRequest.title.includes(data.filePath)) {
+        pullRequests.push(pullRequest);
+      }
+    }
+
+    return pullRequests;
+  }
 
   public static getGitHubUtil(): GitHubUtil {
     if (!this.gitHubUtil) {
@@ -287,8 +317,8 @@ export default class CodeRepositoryUtil {
   public static async getServicesToImproveCode(data: {
     codeRepository: CodeRepositoryModel;
     services: Array<ServiceRepository>;
-  }): Promise<Array<ServiceRepository>> {
-    const servicesToImproveCode: Array<ServiceRepository> = [];
+  }): Promise<Array<ServiceToImproveResult>> {
+    const servicesToImproveCode: Array<ServiceToImproveResult> = [];
 
     for (const service of data.services) {
       if (!data.codeRepository.mainBranchName) {
@@ -318,8 +348,8 @@ export default class CodeRepositoryUtil {
           throw new BadDataException("GitHub Token is required");
         }
 
-        const numberOfPullRequestForThisService: number =
-          await this.getGitHubUtil().getNumberOfPullRequestsExistForService({
+        const pullRequestByService: Array<PullRequest> =
+          await this.getGitHubUtil().getPullRequestsByService({
             serviceRepository: service,
             pullRequestState: PullRequestState.Open,
             baseBranchName: data.codeRepository.mainBranchName,
@@ -327,11 +357,18 @@ export default class CodeRepositoryUtil {
             repositoryName: data.codeRepository.repositoryName,
           });
 
+        const numberOfPullRequestForThisService: number =
+          pullRequestByService.length;
+
         if (
           numberOfPullRequestForThisService <
           service.limitNumberOfOpenPullRequestsCount
         ) {
-          servicesToImproveCode.push(service);
+          servicesToImproveCode.push({
+            serviceRepository: service,
+            numberOfOpenPullRequests: numberOfPullRequestForThisService,
+            pullRequests: pullRequestByService,
+          });
           logger.info(
             `Service ${service.serviceCatalog?.name} has ${numberOfPullRequestForThisService} open pull requests. Limit is ${service.limitNumberOfOpenPullRequestsCount}. Adding to the list to improve code...`,
           );
@@ -408,7 +445,11 @@ export default class CodeRepositoryUtil {
 
     this.codeRepositoryResult = {
       codeRepository,
-      servicesRepository,
+      servicesToImprove: await this.getServicesToImproveCode({
+        codeRepository,
+        services: servicesRepository,
+      }),
+      serviceRepositories: servicesRepository,
     };
 
     return this.codeRepositoryResult;
@@ -427,10 +468,13 @@ export default class CodeRepositoryUtil {
     Array<ServiceRepository>
   > {
     if (!this.codeRepositoryResult) {
-      const result: CodeRepositoryResult = await this.getCodeRepositoryResult();
-      return result.servicesRepository;
+      this.codeRepositoryResult = await this.getCodeRepositoryResult();
     }
 
-    return this.codeRepositoryResult.servicesRepository;
+    return this.codeRepositoryResult.servicesToImprove.map(
+      (serviceToImprove: ServiceToImproveResult) => {
+        return serviceToImprove.serviceRepository;
+      },
+    );
   }
 }
