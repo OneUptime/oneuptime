@@ -5,37 +5,11 @@ import CopilotActionBase, {
   CopilotActionVars,
 } from "./CopilotActionsBase";
 
-export default class ImproveComments extends CopilotActionBase {
+export default class ImproveReadme extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
-      acceptFileExtentions: [
-        ".ts",
-        ".js",
-        ".tsx",
-        ".jsx",
-        ".py",
-        ".go",
-        ".java",
-        ".c",
-        ".cpp",
-        ".cs",
-        ".swift",
-        ".php",
-        ".rb",
-        ".rs",
-        ".kt",
-        ".dart",
-        ".sh",
-        ".pl",
-        ".lua",
-        ".r",
-        ".scala",
-        ".ts",
-        ".js",
-        ".tsx",
-        ".jsx",
-      ],
+      acceptFileExtentions: [".md"],
     });
   }
 
@@ -51,12 +25,12 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {
-    const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
+    const prompt: string = `Please improve this readme.
 
-    If you think the code is already well commented, please reply with the following text:
+    If you think the readme is already well commented, please reply with the following text:
     --all-good--
     
-    Here is the code. This is in {{fileLanguage}}: 
+    Here is the readme content. This is in {{fileLanguage}}: 
     
     {{code}}
                 `;

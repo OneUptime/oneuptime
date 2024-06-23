@@ -7,6 +7,7 @@ import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
 import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAcceptedFileExtention";
 import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import LocalFile from "CommonServer/Utils/LocalFile";
 
 export interface CopilotActionRunResult {
   code: string;
@@ -48,7 +49,7 @@ export default class CopilotActionBase {
 
     if (
       !this.acceptFileExtentions.includes(
-        data.vars.filePath.split(".").pop() ?? "",
+        LocalFile.getFileExtension(data.vars.filePath),
       )
     ) {
       throw new NotAcceptedFileExtentionForCopilotAction(
@@ -59,7 +60,7 @@ export default class CopilotActionBase {
     return data.vars;
   }
 
-  private async onAfterExecute(data: {
+  public async onAfterExecute(data: {
     result: CopilotActionRunResult;
     vars: CopilotActionVars;
   }): Promise<CopilotActionRunResult> {
@@ -146,6 +147,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
   public async execute(data: {
     vars: CopilotActionVars;
   }): Promise<CopilotActionRunResult | null> {
+    data.vars = await this.onBeforeExecute({
+      vars: data.vars,
+    });
+
     const prompt: CopilotActionPrompt = await this.getPrompt({
       vars: data.vars,
     });

@@ -5,7 +5,7 @@ import CopilotActionBase, {
   CopilotActionVars,
 } from "./CopilotActionsBase";
 
-export default class ImproveComments extends CopilotActionBase {
+export default class WriteUnitTests extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
@@ -51,10 +51,7 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {
-    const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
-
-    If you think the code is already well commented, please reply with the following text:
-    --all-good--
+    const prompt: string = `Write unit tests for this file.
     
     Here is the code. This is in {{fileLanguage}}: 
     
@@ -64,7 +61,7 @@ export default class ImproveComments extends CopilotActionBase {
     const systemPrompt: string = `You are an expert programmer. Here are your instructions:
 - You will follow the instructions given by the user strictly.
 - You will not deviate from the instructions given by the user.
-- You will not change the code unnecessarily. For example you will not change the code structure, logic, quotes around strings, or functionality.`;
+- You will not change the code unnecessarily. For example you will not change the logic, quotes around strings, or functionality.`;
 
     return {
       prompt: prompt,

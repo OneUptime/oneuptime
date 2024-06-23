@@ -20,10 +20,16 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";
 import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
+import RefactorCode from "./RefactorCode";
+import WriteUnitTests from "./WriteUnitTests";
+import ImproveReadme from "./ImroveReadme";
 
 const actionDictionary: Dictionary<CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: new ImproveComments(),
   [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: new FixGrammarAndSpelling(),
+  [CopilotActionType.REFACTOR_CODE]: new RefactorCode(),
+  [CopilotActionType.WRITE_UNIT_TESTS]: new WriteUnitTests(),
+  [CopilotActionType.IMRPOVE_README]: new ImproveReadme(),
 };
 
 export interface CopilotExecutionResult {
