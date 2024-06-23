@@ -7,6 +7,24 @@ export default class ArrayUtil {
     });
   }
 
+  public static shuffle<T>(array: Array<T>): Array<T> {
+    const shuffledArray: Array<T> = [...array];
+    for (let i: number = shuffledArray.length - 1; i > 0; i--) {
+      const j: number = Math.floor(Math.random() * (i + 1));
+
+      if(!shuffledArray[i]){
+        continue;
+      }
+
+      if(!shuffledArray[j]){
+        continue;
+      }
+
+      [shuffledArray[i] as any, shuffledArray[j] as any] = [shuffledArray[j], shuffledArray[i]];
+    }
+    return shuffledArray;
+  }
+
   public static removeDuplicatesFromObjectIDArray(
     array: Array<ObjectID>,
   ): Array<ObjectID> {

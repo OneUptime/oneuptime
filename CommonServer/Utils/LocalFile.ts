@@ -8,7 +8,7 @@ export default class LocalFile {
   }
 
   public static getFileExtension(filePath: string): string {
-    const fileExtention = filePath.split(".");
+    const fileExtention: Array<string> = filePath.split(".");
     return fileExtention[fileExtention.length - 1]?.toLowerCase() || "";
   }
 

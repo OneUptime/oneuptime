@@ -48,9 +48,9 @@ export default class CopilotActionBase {
     // check if the file extension is accepted or not
 
     if (
-      !this.acceptFileExtentions.includes(
-        LocalFile.getFileExtension(data.vars.filePath),
-      )
+      !this.acceptFileExtentions.find((item: string) => {
+        return item.includes(LocalFile.getFileExtension(data.vars.filePath));
+      })
     ) {
       throw new NotAcceptedFileExtentionForCopilotAction(
         `The file extension ${data.vars.filePath.split(".").pop()} is not accepted by the copilot action ${this.copilotActionType}. Ignore this file...`,

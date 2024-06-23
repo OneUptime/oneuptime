@@ -12,6 +12,7 @@ import {
   CopilotActionPrompt,
   CopilotActionRunResult,
 } from "../CopilotActions/CopilotActionsBase";
+import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
 
 enum LlamaPromptStatus {
   Processed = "processed",
@@ -66,7 +67,9 @@ export default class Llama extends LlmBase {
       if (promptStatus === LlamaPromptStatus.Processed) {
         logger.debug("Prompt is processed");
         promptResult = result;
-      } else {
+      } else if (promptStatus === LlamaPromptStatus.NotFound) {
+        throw new ErrorGettingResponseFromLLM("Error processing prompt");
+      } else if (promptStatus === LlamaPromptStatus.Pending) {
         logger.debug("Prompt is still pending. Waiting for 1 second");
         await Sleep.sleep(1000);
       }

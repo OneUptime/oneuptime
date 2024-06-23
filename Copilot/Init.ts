@@ -16,9 +16,10 @@ import CopilotActionService, {
   CopilotExecutionResult,
 } from "./Service/CopilotActions/Index";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
-import NotAcceptedFileExtentionForCopilotAction from "./Exceptions/NotAcceptedFileExtention";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceRepository from "Model/Models/ServiceRepository";
+import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
+import ArrayUtil from "Common/Types/ArrayUtil";
 
 let currentFixCount: number = 1;
 
@@ -42,7 +43,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       }`,
     );
 
-    for (const file of Object.values(filesInService)) {
+    const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(Object.values(filesInService)); // shuffle the files to avoid fixing the same file in each run.
+
+    for (const file of files) {
       checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
       // check copilot events for this file.
 
@@ -121,8 +124,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           },
         });
       } catch (e) {
-        if (e instanceof NotAcceptedFileExtentionForCopilotAction) {
+        if (e instanceof CopilotActionProcessingException) {
+
+          // This is not a serious exception, so we just  move on to the next file.
           logger.info(e.message);
+          continue;
         } else {
           throw e;
         }
