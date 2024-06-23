@@ -16,7 +16,7 @@ async def job():
     print("Processing queue...")
 
     while True: 
-         
+
         if len(queue) == 0:
             # sleep for 5 seconds. 
             print("Queue is empty. Sleeping for 5 seconds.")
@@ -39,7 +39,7 @@ async def job():
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    await job()
+    asyncio.create_task(job())
     yield
 
 # Declare a Pydantic model for the request body
