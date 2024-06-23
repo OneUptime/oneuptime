@@ -22,17 +22,25 @@ async def job():
             print("Queue is empty. Sleeping for 5 seconds.")
             await asyncio.sleep(5)
             continue
+
+        try: 
         
-        # process this item.
-        random_id = queue.pop(0)
-        print(f"Processing item {random_id}")
-        messages = items_pending[random_id]
-        print(f"Messages:")
-        print(messages)
-        outputs = pipe(messages)
-        items_processed[random_id] = outputs
-        del items_pending[random_id]
-        print(f"Processed item {random_id}")
+            # process this item.
+            random_id = queue.pop(0)
+            print(f"Processing item {random_id}")
+            messages = items_pending[random_id]
+            print(f"Messages:")
+            print(messages)
+            outputs = pipe(messages)
+            items_processed[random_id] = outputs
+            del items_pending[random_id]
+            print(f"Processed item {random_id}")
+        except Exception as e:
+            print(f"Error processing item {random_id}")
+            # delete from items_pending
+            if random_id in items_pending:
+                del items_pending[random_id]
+            print(e)
 
        
 
