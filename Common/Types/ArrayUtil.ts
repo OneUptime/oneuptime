@@ -12,15 +12,18 @@ export default class ArrayUtil {
     for (let i: number = shuffledArray.length - 1; i > 0; i--) {
       const j: number = Math.floor(Math.random() * (i + 1));
 
-      if(!shuffledArray[i]){
+      if (!shuffledArray[i]) {
         continue;
       }
 
-      if(!shuffledArray[j]){
+      if (!shuffledArray[j]) {
         continue;
       }
 
-      [shuffledArray[i] as any, shuffledArray[j] as any] = [shuffledArray[j], shuffledArray[i]];
+      [shuffledArray[i] as any, shuffledArray[j] as any] = [
+        shuffledArray[j],
+        shuffledArray[i],
+      ];
     }
     return shuffledArray;
   }

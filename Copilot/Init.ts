@@ -43,7 +43,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       }`,
     );
 
-    const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(Object.values(filesInService)); // shuffle the files to avoid fixing the same file in each run.
+    const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(
+      Object.values(filesInService),
+    ); // shuffle the files to avoid fixing the same file in each run.
 
     for (const file of files) {
       checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
@@ -125,7 +127,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         });
       } catch (e) {
         if (e instanceof CopilotActionProcessingException) {
-
           // This is not a serious exception, so we just  move on to the next file.
           logger.info(e.message);
           continue;
