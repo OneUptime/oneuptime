@@ -1,5 +1,6 @@
 import uuid
 import transformers
+import asyncio
 import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -11,10 +12,17 @@ items_pending = {}
 queue = []
 items_processed = {}
 
-def job():
+async def job():
     print("Processing queue...")
 
-    while len(queue) > 0:
+    while True: 
+
+        if len(queue) == 0:
+            # sleep for 5 seconds. 
+            print("Queue is empty. Sleeping for 5 seconds.")
+            await asyncio.sleep(5)
+            continue
+        
         # process this item.
         random_id = queue.pop(0)
         print(f"Processing item {random_id}")
@@ -26,11 +34,12 @@ def job():
         del items_pending[random_id]
         print(f"Processed item {random_id}")
 
+       
+
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(job,'cron', second='*/5')
-    scheduler.start()
+    asyncio.create_task(job())
     yield
 
 # Declare a Pydantic model for the request body
