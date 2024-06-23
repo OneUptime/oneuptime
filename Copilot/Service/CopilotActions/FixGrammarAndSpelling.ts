@@ -9,7 +9,7 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
-      acceptFileExtentions: [".ts", ".js", ".tsx", ".jsx", '.md'],
+      acceptFileExtentions: [".ts", ".js", ".tsx", ".jsx", ".md"],
     });
   }
 
@@ -21,11 +21,17 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
       return true;
     }
 
-    if (data.result.code.includes("does not contain") && data.result.code.includes("spelling mistakes")) {
+    if (
+      data.result.code.includes("does not contain") &&
+      data.result.code.includes("spelling mistakes")
+    ) {
       return true;
     }
 
-    if (data.result.code.includes("does not contain") && data.result.code.includes("grammar")) {
+    if (
+      data.result.code.includes("does not contain") &&
+      data.result.code.includes("grammar")
+    ) {
       return true;
     }
 
@@ -38,7 +44,7 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
     If you think the file is good and has no grammar or spelling mistakes, please reply with the following text:
     --all-good--
     
-    Here is the file content: 
+    Here is the file content. This is in {{fileLanguage}}: 
     
     {{code}}
                 `;

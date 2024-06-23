@@ -2,7 +2,6 @@ import { GetGitHubToken, GetRepositorySecretKey } from "../Config";
 import CodeRepositoryUtil, { CodeRepositoryResult } from "./CodeRepository";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ServiceRepository from "Model/Models/ServiceRepository";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
@@ -15,7 +14,7 @@ export default class InitUtil {
 
     // Check if the repository type is GitHub and the GitHub token is provided
 
-    if (codeRepositoryResult.servicesRepository.length === 0) {
+    if (codeRepositoryResult.serviceRepositories.length === 0) {
       throw new BadDataException(
         "No services found in the repository. Please add services to the repository in OneUptime Dashboard.",
       );
@@ -31,15 +30,6 @@ export default class InitUtil {
       );
     }
 
-    const servicesToImrpoveCode: Array<ServiceRepository> =
-      await CodeRepositoryUtil.getServicesToImproveCode({
-        codeRepository: codeRepositoryResult.codeRepository,
-        services: codeRepositoryResult.servicesRepository,
-      });
-
-    return {
-      codeRepository: codeRepositoryResult.codeRepository,
-      servicesRepository: servicesToImrpoveCode,
-    };
+    return codeRepositoryResult;
   }
 }

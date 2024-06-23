@@ -1,4 +1,6 @@
-import { CodeRepositoryResult } from "./Utils/CodeRepository";
+import CodeRepositoryUtil, {
+  CodeRepositoryResult,
+} from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
 import ServiceRepositoryUtil from "./Utils/ServiceRepository";
 import Dictionary from "Common/Types/Dictionary";
@@ -15,14 +17,19 @@ import CopilotActionService, {
 } from "./Service/CopilotActions/Index";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import NotAcceptedFileExtentionForCopilotAction from "./Exceptions/NotAcceptedFileExtention";
+import PullRequest from "Common/Types/CodeRepository/PullRequest";
+import ServiceRepository from "Model/Models/ServiceRepository";
 
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
-  for (const serviceRepository of codeRepositoryResult.servicesRepository) {
+  for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
+
+    const serviceRepository: ServiceRepository =
+      serviceToImrove.serviceRepository;
 
     const filesInService: Dictionary<CodeRepositoryFile> =
       await ServiceRepositoryUtil.getFilesInServiceDirectory({
@@ -30,7 +37,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
 
     logger.info(
-      `Files found in ${serviceRepository.serviceCatalog?.name}: ${Object.keys(filesInService).length
+      `Files found in ${serviceRepository.serviceCatalog?.name}: ${
+        Object.keys(filesInService).length
       }`,
     );
 
@@ -43,6 +51,29 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           serviceCatalogId: serviceRepository.serviceCatalog!.id!,
           filePath: file.filePath,
         });
+
+      // check if there's an open PR for this file.
+
+      const openPullRequests: Array<PullRequest> =
+        CodeRepositoryUtil.getOpenPRForFile({
+          pullRequests: serviceToImrove.pullRequests,
+          filePath: file.filePath,
+        });
+
+      if (openPullRequests.length > 0) {
+        const prNumbers: string = openPullRequests
+          .map((pr: PullRequest) => {
+            return `#${pr.pullRequestNumber.toString()}`;
+          })
+          .join(", ");
+
+        // this file already has an open PR. Ignore this file and move to the next file.
+        logger.info(
+          `File ${file.filePath} already has an open PR ${prNumbers}. Moving to next file.`,
+        );
+
+        continue;
+      }
 
       const eventsCompletedOnThisFile: Array<CopilotActionType> = [];
 
@@ -72,22 +103,23 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         continue;
       }
 
-      let executionResult: CopilotExecutionResult | null = null
+      let executionResult: CopilotExecutionResult | null = null;
 
       try {
-
-        executionResult =
-          await CopilotActionService.execute({
-            serviceRepository: serviceRepository,
-            copilotActionType: nextEventToFix,
-            vars: {
-              code: await ServiceRepositoryUtil.getFileContent({
-                filePath: file.filePath,
-              }),
+        executionResult = await CopilotActionService.execute({
+          serviceRepository: serviceRepository,
+          copilotActionType: nextEventToFix,
+          vars: {
+            code: await ServiceRepositoryUtil.getFileContent({
               filePath: file.filePath,
-              fileCommitHash: file.gitCommitHash,
-            },
-          });
+            }),
+            filePath: file.filePath,
+            fileCommitHash: file.gitCommitHash,
+            fileLanguage: await ServiceRepositoryUtil.getFileLanguage({
+              filePath: file.filePath,
+            })
+          },
+        });
       } catch (e) {
         if (e instanceof NotAcceptedFileExtentionForCopilotAction) {
           logger.info(e.message);
@@ -96,7 +128,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         }
       }
 
-      if (executionResult && executionResult.status === CopilotActionStatus.PR_CREATED) {
+      if (
+        executionResult &&
+        executionResult.status === CopilotActionStatus.PR_CREATED
+      ) {
         currentFixCount++;
       }
     }

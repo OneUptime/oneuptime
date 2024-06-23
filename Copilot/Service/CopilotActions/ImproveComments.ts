@@ -20,7 +20,7 @@ export default class ImproveComments extends CopilotActionBase {
     if (data.result.code.includes("--all-good--")) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -30,7 +30,7 @@ export default class ImproveComments extends CopilotActionBase {
     If you think the code is already well commented, please reply with the following text:
     --all-good--
     
-    Here is the code: 
+    Here is the code. This is in {{fileLanguage}}: 
     
     {{code}}
                 `;

@@ -6,6 +6,7 @@ import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
 import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAcceptedFileExtention";
+import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
 
 export interface CopilotActionRunResult {
   code: string;
@@ -20,20 +21,20 @@ export interface CopilotActionVars {
   code: string;
   filePath: string;
   fileCommitHash: string;
+  fileLanguage: ServiceLanguage;
 }
 
 export default class CopilotActionBase {
-
   public llmType: LlmType = LlmType.Llama;
 
   public copilotActionType: CopilotActionType =
     CopilotActionType.IMPROVE_COMMENTS; // temp value which will be overridden in the constructor
 
-    public acceptFileExtentions: string[] = [];
+  public acceptFileExtentions: string[] = [];
 
-  public constructor(data: { 
-    copilotActionType: CopilotActionType 
-    acceptFileExtentions: string[] 
+  public constructor(data: {
+    copilotActionType: CopilotActionType;
+    acceptFileExtentions: string[];
   }) {
     this.llmType = GetLlmType();
     this.copilotActionType = data.copilotActionType;
@@ -43,16 +44,17 @@ export default class CopilotActionBase {
   public async onBeforeExecute(data: {
     vars: CopilotActionVars;
   }): Promise<CopilotActionVars> {
-
     // check if the file extension is accepted or not
 
-    if (!this.acceptFileExtentions.includes(data.vars.filePath.split(".").pop() ?? "")) {
+    if (
+      !this.acceptFileExtentions.includes(
+        data.vars.filePath.split(".").pop() ?? "",
+      )
+    ) {
       throw new NotAcceptedFileExtentionForCopilotAction(
         `The file extension ${data.vars.filePath.split(".").pop()} is not accepted by the copilot action ${this.copilotActionType}. Ignore this file...`,
       );
     }
-
-
 
     return data.vars;
   }
