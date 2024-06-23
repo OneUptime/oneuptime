@@ -19,6 +19,8 @@ def job():
         random_id = queue.pop(0)
         print(f"Processing item {random_id}")
         messages = items_pending[random_id]
+        print(f"Messages:")
+        print(messages)
         outputs = pipe(messages)
         items_processed[random_id] = outputs
         del items_pending[random_id]
