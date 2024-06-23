@@ -117,7 +117,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             fileCommitHash: file.gitCommitHash,
             fileLanguage: await ServiceRepositoryUtil.getFileLanguage({
               filePath: file.filePath,
-            })
+            }),
           },
         });
       } catch (e) {

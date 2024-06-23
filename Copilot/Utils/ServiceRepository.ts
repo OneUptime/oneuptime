@@ -10,17 +10,15 @@ import ServiceRepository from "Model/Models/ServiceRepository";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class ServiceRepositoryUtil {
-
-
   public static async getFileLanguage(data: {
     filePath: string;
-  }):Promise<ServiceLanguage>{
-    
+  }): Promise<ServiceLanguage> {
     const fileExtention: string = LocalFile.getFileExtension(data.filePath);
 
-    const serviceLanguage: ServiceLanguage = ServiceLanguageUtil.getLanguageByFileExtension({
-      fileExtension: fileExtention,
-    });
+    const serviceLanguage: ServiceLanguage =
+      ServiceLanguageUtil.getLanguageByFileExtension({
+        fileExtension: fileExtention,
+      });
 
     return serviceLanguage;
   }

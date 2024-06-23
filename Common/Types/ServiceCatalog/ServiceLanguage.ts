@@ -18,7 +18,4 @@ export enum ServiceLanguage {
   Other = "Other",
 }
 
-
-
-
 export default ServiceLanguage;
