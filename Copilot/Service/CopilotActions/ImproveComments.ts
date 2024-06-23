@@ -21,6 +21,14 @@ export default class ImproveComments extends CopilotActionBase {
       return true;
     }
 
+    if (data.result.code.includes("does not contain") && data.result.code.includes("spelling mistakes")) {
+      return true;
+    }
+
+    if (data.result.code.includes("does not contain") && data.result.code.includes("grammar")) {
+      return true;
+    }
+
     return false;
   }
 
@@ -35,7 +43,10 @@ export default class ImproveComments extends CopilotActionBase {
     {{code}}
                 `;
 
-    const systemPrompt: string = `You are an expert programmer.`;
+    const systemPrompt: string = `You are an expert programmer. Here are your instructions:
+- You will follow the instructions given by the user strictly.
+- You will not deviate from the instructions given by the user.
+- You will not change the code unnecessarily. For example you will not change the code structure, logic, quotes around strings, or functionality.`;
 
     return {
       prompt: prompt,
