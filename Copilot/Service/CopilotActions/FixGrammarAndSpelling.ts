@@ -21,6 +21,14 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
       return true;
     }
 
+    if (data.result.code.includes("does not contain") && data.result.code.includes("spelling mistakes")) {
+      return true;
+    }
+
+    if (data.result.code.includes("does not contain") && data.result.code.includes("grammar")) {
+      return true;
+    }
+
     return false;
   }
 

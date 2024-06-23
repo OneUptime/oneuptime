@@ -20,15 +20,7 @@ export default class ImproveComments extends CopilotActionBase {
     if (data.result.code.includes("--all-good--")) {
       return true;
     }
-
-    if (data.result.code.includes("does not contain") && data.result.code.includes("spelling mistakes")) {
-      return true;
-    }
-
-    if (data.result.code.includes("does not contain") && data.result.code.includes("grammar")) {
-      return true;
-    }
-
+    
     return false;
   }
 
