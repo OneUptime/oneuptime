@@ -8,7 +8,7 @@ import CopilotActionBase, {
 export default class WriteUnitTests extends CopilotActionBase {
   public constructor() {
     super({
-      copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
+      copilotActionType: CopilotActionType.WRITE_UNIT_TESTS,
       acceptFileExtentions: [
         ".ts",
         ".js",

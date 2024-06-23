@@ -8,7 +8,7 @@ import CopilotActionBase, {
 export default class ImproveReadme extends CopilotActionBase {
   public constructor() {
     super({
-      copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
+      copilotActionType: CopilotActionType.IMRPOVE_README,
       acceptFileExtentions: [".md"],
     });
   }

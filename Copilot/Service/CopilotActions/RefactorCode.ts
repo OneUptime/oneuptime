@@ -8,7 +8,7 @@ import CopilotActionBase, {
 export default class RefactorCode extends CopilotActionBase {
   public constructor() {
     super({
-      copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
+      copilotActionType: CopilotActionType.REFACTOR_CODE,
       acceptFileExtentions: [
         ".ts",
         ".js",

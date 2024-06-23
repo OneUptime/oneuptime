@@ -8,7 +8,8 @@ export default class LocalFile {
   }
 
   public static getFileExtension(filePath: string): string {
-    return filePath.split(".").pop() ?? "";
+    const fileExtention = filePath.split(".");
+    return fileExtention[fileExtention.length - 1]?.toLowerCase() || "";
   }
 
   public static async makeDirectory(path: string): Promise<void> {
