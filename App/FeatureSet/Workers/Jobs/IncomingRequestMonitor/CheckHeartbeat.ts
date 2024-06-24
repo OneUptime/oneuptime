@@ -41,32 +41,39 @@ RunCron(
     logger.debug(incomingRequestMonitors);
 
     for (const monitor of incomingRequestMonitors) {
-      if (!monitor.monitorSteps) {
-        logger.debug("Monitor has no steps. Skipping...");
-        continue;
+      try {
+        if (!monitor.monitorSteps) {
+          logger.debug("Monitor has no steps. Skipping...");
+          continue;
+        }
+
+        const processRequest: boolean = shouldProcessRequest(monitor);
+
+        logger.debug(
+          `Monitor: ${monitor.id} should process request: ${processRequest}`,
+        );
+
+        if (!processRequest) {
+          continue;
+        }
+
+        const incomingRequest: IncomingMonitorRequest = {
+          monitorId: monitor.id!,
+          requestHeaders: undefined,
+          requestBody: undefined,
+          requestMethod: undefined,
+          incomingRequestReceivedAt:
+            monitor.incomingRequestReceivedAt || monitor.createdAt!,
+          onlyCheckForIncomingRequestReceivedAt: true,
+        };
+
+        await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
+      } catch (error) {
+        logger.error(
+          `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
+        );
+        logger.error(error);
       }
-
-      const processRequest: boolean = shouldProcessRequest(monitor);
-
-      logger.debug(
-        `Monitor: ${monitor.id} should process request: ${processRequest}`,
-      );
-
-      if (!processRequest) {
-        continue;
-      }
-
-      const incomingRequest: IncomingMonitorRequest = {
-        monitorId: monitor.id!,
-        requestHeaders: undefined,
-        requestBody: undefined,
-        requestMethod: undefined,
-        incomingRequestReceivedAt:
-          monitor.incomingRequestReceivedAt || monitor.createdAt!,
-        onlyCheckForIncomingRequestReceivedAt: true,
-      };
-
-      await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
     }
   },
 );
