@@ -1130,15 +1130,14 @@ export default class Model extends TenantModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.Number,
     title: "Enterprise Annual Contract Value",
     description:
       "Annual contract value for this project (in USD). This field is only applicable for enterprise customers and is manually edited.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.Number,
   })
   public enterpriseAnnualContractValue?: number = undefined;
 }
