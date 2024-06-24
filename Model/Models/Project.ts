@@ -1122,4 +1122,23 @@ export default class Model extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public resellerLicenseId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Enterprise Annual Contract Value",
+    description:
+      "Annual contract value for this project (in USD). This field is only applicable for enterprise customers and is manually edited.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public enterpriseAnnualContractValue?: number = undefined;
 }
