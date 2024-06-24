@@ -529,23 +529,20 @@ export default class CompareCriteria {
     }
 
     switch (data.criteriaFilter.filterType) {
-      case FilterType.EqualTo:
-        message += ` equal to threshold ${data.threshold}. `;
-        break;
       case FilterType.GreaterThan:
-        message += ` greater than threshold ${data.threshold}. `;
+        message += ` greater than ${data.threshold}. `;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to threshold ${data.threshold}. `;
+        message += ` greater than or equal to ${data.threshold}. `;
         break;
       case FilterType.LessThan:
-        message += ` less than threshold ${data.threshold}. `;
+        message += ` less than ${data.threshold}. `;
         break;
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to threshold ${data.threshold}. `;
+        message += ` less than or equal to ${data.threshold}. `;
         break;
       case FilterType.NotEqualTo:
-        message += ` not equal to threshold ${data.threshold}. `;
+        message += ` not equal to ${data.threshold}. `;
         break;
       case FilterType.Contains:
         message += ` contains ${data.threshold}. `;
