@@ -84,6 +84,8 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: ONEUPTIME_HTTP_PORT
+              value: {{ $.Values.port.nginxHttp | quote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
               value: {{ $.Values.openTelemetryExporter.headers.nginx }}
             - name: PORT
