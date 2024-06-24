@@ -20,6 +20,19 @@ export default class IncomingRequestCriteria {
   }): Promise<string | null> {
     // Server Monitoring Checks
 
+    logger.debug(
+      "Checking IncomingRequestCriteria for Monitor: " +
+        input.dataToProcess.monitorId.toString(),
+    );
+
+    logger.debug(
+      "Data to process: " + JSON.stringify(input.dataToProcess, null, 2),
+    );
+
+    logger.debug(
+      "Criteria Filter: " + JSON.stringify(input.criteriaFilter, null, 2),
+    );
+
     let value: number | string | undefined = input.criteriaFilter.value;
 
     let overTimeValue: Array<number | boolean> | number | boolean | undefined =
@@ -58,14 +71,23 @@ export default class IncomingRequestCriteria {
     // All incoming request related checks
 
     if (input.criteriaFilter.checkOn === CheckOn.IncomingRequest) {
+      logger.debug(
+        "Checking IncomingRequest for Monitor: " +
+          input.dataToProcess.monitorId.toString(),
+      );
+
       const lastCheckTime: Date = (
         input.dataToProcess as IncomingMonitorRequest
       ).incomingRequestReceivedAt;
+
+      logger.debug("Last Check Time: " + lastCheckTime);
 
       const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
         lastCheckTime,
         OneUptimeDate.getCurrentDate(),
       );
+
+      logger.debug("Difference in minutes: " + differenceInMinutes);
 
       if (!value) {
         return null;
@@ -85,14 +107,32 @@ export default class IncomingRequestCriteria {
       }
 
       if (input.criteriaFilter.filterType === FilterType.RecievedInMinutes) {
+        logger.debug(
+          "Checking RecievedInMinutes for Monitor: " +
+            input.dataToProcess.monitorId.toString(),
+        );
         if (value && differenceInMinutes <= (value as number)) {
+          logger.debug(
+            "RecievedInMinutes for Monitor: " +
+              input.dataToProcess.monitorId.toString() +
+              " is true",
+          );
           return `Incoming request / heartbeat received in ${value} minutes.`;
         }
         return null;
       }
 
       if (input.criteriaFilter.filterType === FilterType.NotRecievedInMinutes) {
+        logger.debug(
+          "Checking NotRecievedInMinutes for Monitor: " +
+            input.dataToProcess.monitorId.toString(),
+        );
         if (value && differenceInMinutes > (value as number)) {
+          logger.debug(
+            "NotRecievedInMinutes for Monitor: " +
+              input.dataToProcess.monitorId.toString() +
+              " is true",
+          );
           return `Incoming request / heartbeat not received in ${value} minutes.`;
         }
         return null;

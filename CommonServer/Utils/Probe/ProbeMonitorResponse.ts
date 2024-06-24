@@ -175,6 +175,10 @@ export default class ProbeMonitorResponseService {
       monitor.monitorType === MonitorType.IncomingRequest &&
       (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt
     ) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Incoming request received at ${(dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt}`,
+      );
+
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
@@ -186,6 +190,8 @@ export default class ProbeMonitorResponseService {
           isRoot: true,
         },
       });
+
+      logger.debug(`${dataToProcess.monitorId.toString()} - Monitor Updated`);
     }
 
     if (
@@ -1132,6 +1138,9 @@ export default class ProbeMonitorResponseService {
     }
 
     if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      logger.debug(
+        `${input.monitor.id?.toString()} - Incoming Request Monitor. Checking criteria filter.`,
+      );
       //check  incoming request
       const incomingRequestResult: string | null =
         await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({

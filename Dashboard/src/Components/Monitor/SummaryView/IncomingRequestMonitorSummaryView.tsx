@@ -39,7 +39,7 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
       <div className="flex space-x-3 justify-between">
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100"
-          title="Request Received At"
+          title="Last Request Received At"
           value={
             props.incomingMonitorRequest?.incomingRequestReceivedAt
               ? OneUptimeDate.getDateAsLocalFormattedString(

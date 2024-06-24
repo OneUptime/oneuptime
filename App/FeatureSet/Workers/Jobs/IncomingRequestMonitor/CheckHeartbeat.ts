@@ -5,6 +5,7 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
+import logger from "CommonServer/Utils/Logger";
 import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
 import Monitor from "Model/Models/Monitor";
 
@@ -12,6 +13,8 @@ RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    logger.debug("Checking IncomingRequestMonitor:CheckHeartbeat");
+
     const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy(
       {
         query: {
@@ -31,12 +34,23 @@ RunCron(
       },
     );
 
+    logger.debug(
+      `Found ${incomingRequestMonitors.length} incoming request monitors`,
+    );
+
+    logger.debug(incomingRequestMonitors);
+
     for (const monitor of incomingRequestMonitors) {
       if (!monitor.monitorSteps) {
+        logger.debug("Monitor has no steps. Skipping...");
         continue;
       }
 
       const processRequest: boolean = shouldProcessRequest(monitor);
+
+      logger.debug(
+        `Monitor: ${monitor.id} should process request: ${processRequest}`,
+      );
 
       if (!processRequest) {
         continue;
