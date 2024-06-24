@@ -383,6 +383,7 @@ services:
           - oneuptime
         environment:
             <<: *common-server-variables
+            ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
         ports:
             - '${ONEUPTIME_HTTP_PORT}:7849'
             - '${STATUS_PAGE_HTTPS_PORT}:7850'
