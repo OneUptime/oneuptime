@@ -358,7 +358,7 @@ server {
     listen 7849;
     http2  on;
 
-    server_name localhost ingress ${HOST}:${ONEUPTIME_HTTP_PORT}; #All domains
+    server_name localhost ingress ${HOST}; #All domains
 
     proxy_busy_buffers_size   512k;
     proxy_buffers   4 512k;
