@@ -181,8 +181,10 @@ port:
   statusPage: 3105
   dashboard: 3009
   adminDashboard: 3158
+  # This is where oneuptime server is hosted on.
   nginxHttp: 80
-  nginxHttps: 443
+  # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
+  statusPageHttpsPort: 443
   haraka: 2525
   probe: 3500
   otelCollectorGrpc: 4317

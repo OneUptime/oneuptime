@@ -91,10 +91,11 @@ spec:
           ports:
             - containerPort: 7849
               protocol: TCP
-              name: http
+              name: oneuptime-http
+              # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
             - containerPort: 7850
               protocol: TCP
-              name: https
+              name: statuspage-https
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
@@ -126,10 +127,10 @@ spec:
   ports:
     - port: {{ $.Values.port.nginxHttp }}
       targetPort: 7849
-      name: http
-    - port: {{ $.Values.port.nginxHttps }}
+      name: oneuptime-http
+    - port: {{ $.Values.port.statusPageHttpsPort }}
       targetPort: 7850
-      name: https
+      name: statuspage-https
   selector:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
   {{- if and ($.Values.nginx.service.type) (eq $.Values.oneuptimeIngress.enabled false) }}

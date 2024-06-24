@@ -385,7 +385,7 @@ services:
             <<: *common-server-variables
         ports:
             - '${ONEUPTIME_HTTP_PORT}:7849'
-            - '${ONEUPTIME_HTTPS_PORT}:7850'
+            - '${STATUS_PAGE_HTTPS_PORT}:7850'
         logging:
             driver: "local"
             options:
