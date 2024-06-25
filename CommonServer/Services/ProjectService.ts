@@ -1,3 +1,4 @@
+import ResellerPlan from "Model/Models/ResellerPlan";
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
@@ -49,6 +50,7 @@ import TeamMember from "Model/Models/TeamMember";
 import TeamPermission from "Model/Models/TeamPermission";
 import User from "Model/Models/User";
 import { In } from "typeorm";
+import Select from "../Types/Database/Select";
 
 export interface CurrentPlan {
   plan: PlanSelect | null;
@@ -134,7 +136,7 @@ export class Service extends DatabaseService<Model> {
               planType: true,
               monitorLimit: true,
               teamMemberLimit: true,
-            },
+            } as Select<ResellerPlan>,
             resellerId: true,
             resellerLicenseId: true,
             planType: true,

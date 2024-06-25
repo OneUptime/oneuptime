@@ -1140,4 +1140,29 @@ export default class Model extends TenantModel {
     type: ColumnType.Number,
   })
   public enterpriseAnnualContractValue?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Let Customer Support Access Project",
+    description:
+      "OneUptime customer support can access this project. This is used for debugging purposes.",
+  })
+  @Column({
+    nullable: true,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public letCustomerSupportAccessProject?: boolean = undefined;
 }

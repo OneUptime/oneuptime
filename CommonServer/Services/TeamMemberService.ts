@@ -5,6 +5,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Errors from "../Utils/Errors";
 import logger from "../Utils/Logger";
@@ -206,7 +207,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         user: {
           email: true,
           isEmailVerified: true,
-        },
+        } as Select<User>,
         projectId: true,
       },
       limit: LIMIT_MAX,
@@ -249,7 +250,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         team: {
           _id: true,
           shouldHaveAtLeastOneMember: true,
-        },
+        } as Select<TeamMember>,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -351,7 +352,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           email: true,
           name: true,
           timezone: true,
-        },
+        } as Select<User>,
       },
 
       skip: 0,
@@ -387,7 +388,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           _id: true,
           email: true,
           name: true,
-        },
+        } as Select<User>,
       },
 
       skip: 0,

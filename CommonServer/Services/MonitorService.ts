@@ -39,6 +39,7 @@ import MonitorStatus from "Model/Models/MonitorStatus";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import Probe from "Model/Models/Probe";
 import User from "Model/Models/User";
+import Select from "../Types/Database/Select";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -295,7 +296,7 @@ export class Service extends DatabaseService<Model> {
             email: true,
             name: true,
             timezone: true,
-          },
+          } as Select<User>,
         },
         props: {
           isRoot: true,

@@ -11,10 +11,13 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "CommonServer/Services/IncidentService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
+import Select from "CommonServer/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
 import logger from "CommonServer/Utils/Logger";
 import Incident from "Model/Models/Incident";
+import IncidentState from "Model/Models/IncidentState";
 import Monitor from "Model/Models/Monitor";
+import Project from "Model/Models/Project";
 import User from "Model/Models/User";
 
 RunCron(
@@ -38,11 +41,11 @@ RunCron(
         projectId: true,
         project: {
           name: true,
-        },
+        } as Select<Project>,
         remediationNotes: true,
         currentIncidentState: {
           name: true,
-        },
+        } as Select<IncidentState>,
         incidentSeverity: {
           name: true,
         },

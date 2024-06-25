@@ -1,14 +1,13 @@
 import BaseModel from "Common/Models/BaseModel";
-import Dictionary from "Common/Types/Dictionary";
 
-export type SelectPropertyOptions = boolean | Dictionary<boolean>;
+export type SelectPropertyOptions<T> = boolean | SelectOptions<T> | undefined;
 
 /**
  * Select find options.
  */
 
 export declare type SelectOptions<Entity> = {
-  [P in keyof Entity]?: SelectPropertyOptions;
+  [P in keyof Entity]?: SelectPropertyOptions<any>;
 };
 
 type Select<TBaseModel extends BaseModel> = SelectOptions<TBaseModel>;

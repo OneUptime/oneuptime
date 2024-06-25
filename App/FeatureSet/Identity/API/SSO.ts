@@ -21,6 +21,7 @@ import ProjectSSOService from "CommonServer/Services/ProjectSsoService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserService from "CommonServer/Services/UserService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import Select from "CommonServer/Types/Database/Select";
 import CookieUtil from "CommonServer/Utils/Cookie";
 import Express, {
   ExpressRequest,
@@ -30,6 +31,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
+import Project from "Model/Models/Project";
 import ProjectSSO from "Model/Models/ProjectSso";
 import TeamMember from "Model/Models/TeamMember";
 import User from "Model/Models/User";
@@ -129,7 +131,7 @@ router.get(
         projectId: true,
         project: {
           name: true,
-        },
+        } as Select<Project>,
       },
       props: {
         isRoot: true,

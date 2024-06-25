@@ -1,9 +1,11 @@
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
   Service as ProjectServiceType,
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
+import Select from "../Types/Database/Select";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -38,6 +40,17 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             );
           }
 
+          const projectSelect: Select<Project> = {
+            _id: true,
+            name: true,
+            trialEndsAt: true,
+            paymentProviderPlanId: true,
+            resellerId: true,
+            isFeatureFlagMonitorGroupsEnabled: true,
+            paymentProviderMeteredSubscriptionStatus: true,
+            paymentProviderSubscriptionStatus: true,
+          };
+
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(
             {
               query: {
@@ -45,16 +58,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                 hasAcceptedInvitation: true,
               },
               select: {
-                project: {
-                  _id: true,
-                  name: true,
-                  trialEndsAt: true,
-                  paymentProviderPlanId: true,
-                  resellerId: true,
-                  isFeatureFlagMonitorGroupsEnabled: true,
-                  paymentProviderMeteredSubscriptionStatus: true,
-                  paymentProviderSubscriptionStatus: true,
-                },
+                project: projectSelect,
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,
@@ -65,6 +69,47 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           );
 
           const projects: Array<Project> = [];
+
+          // if billing enabled and is master admin then get all the projects with customer support enabled.
+
+          if (
+            IsBillingEnabled &&
+            (req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+          ) {
+            const customerSupportProjects: Array<Project> =
+              await ProjectService.findBy({
+                query: {
+                  letCustomerSupportAccessProject: true,
+                },
+                select: projectSelect,
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            for (const customerSupportProject of customerSupportProjects) {
+              if (!customerSupportProject) {
+                continue;
+              }
+
+              if (!customerSupportProject._id) {
+                continue;
+              }
+
+              if (
+                projects.findIndex((project: Project) => {
+                  return (
+                    project._id?.toString() ===
+                    customerSupportProject!._id?.toString()
+                  );
+                }) === -1
+              ) {
+                projects.push(customerSupportProject);
+              }
+            }
+          }
 
           for (const teamMember of teamMembers) {
             if (!teamMember.project) {
