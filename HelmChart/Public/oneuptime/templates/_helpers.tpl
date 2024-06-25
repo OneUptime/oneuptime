@@ -111,6 +111,9 @@ Usage:
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.openTelemetryExporter.endpoint.server }}
 
+- name: NOTIFICATION_WEBHOOK_ON_CREATED_USER
+  value: {{ $.Values.notifications.webhooks.onCreateUser }}
+
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
   value: {{ $.Values.letsEncrypt.email }}
 

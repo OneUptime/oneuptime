@@ -210,3 +210,6 @@ export const AllowedActiveMonitorCountInFreePlan: number = process.env[
       process.env["ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"].toString(),
     )
   : 10;
+
+export const NotificationWebhookOnCreateUser: string =
+  process.env["NOTIFICATION_WEBHOOK_ON_CREATED_USER"] || "";

@@ -1,7 +1,10 @@
 import DatabaseConfig from "../DatabaseConfig";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import {
+  IsBillingEnabled,
+  NotificationWebhookOnCreateUser,
+} from "../EnvironmentConfig";
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
-import { OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -26,10 +29,33 @@ import Text from "Common/Types/Text";
 import EmailVerificationToken from "Model/Models/EmailVerificationToken";
 import TeamMember from "Model/Models/TeamMember";
 import Model from "Model/Models/User";
+import SlackUtil from "../Utils/Slack";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
     super(Model, postgresDatabase);
+  }
+
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (NotificationWebhookOnCreateUser) {
+      SlackUtil.sendMessageToChannel({
+        url: URL.fromString(NotificationWebhookOnCreateUser),
+        text: `*New OneUptime User:* 
+  *Email:* ${createdItem.email?.toString() || "N/A"}
+  *Name:* ${createdItem.name?.toString() || "N/A"}
+  *Phone:* ${createdItem.companyPhoneNumber?.toString() || "N/A"}
+  *Company:* ${createdItem.companyName?.toString() || "N/A"}`,
+      }).catch((err: Error) => {
+        // log this error but do not throw it. Not important enough to stop the process.
+        logger.error(err);
+      });
+    }
+
+    // A place holder method used for overriding.
+    return Promise.resolve(createdItem);
   }
 
   public async findByEmail(

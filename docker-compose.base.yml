@@ -94,6 +94,9 @@ x-common-server-variables: &common-server-variables
 
     DISABLE_AUTOMATIC_INCIDENT_CREATION: ${DISABLE_AUTOMATIC_INCIDENT_CREATION}
 
+    # Notification Webhooks
+    NOTIFICATION_WEBHOOK_ON_CREATED_USER: ${NOTIFICATION_WEBHOOK_ON_CREATED_USER}
+
 
 services:
 

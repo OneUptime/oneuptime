@@ -8,7 +8,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import SlackComponents from "Common/Types/Workflow/Components/Slack";
-import API from "Common/Utils/API";
+import SlackUtil from "../../../../Utils/Slack";
 
 export default class SendMessageToChannel extends ComponentCode {
   public constructor() {
@@ -69,16 +69,9 @@ export default class SendMessageToChannel extends ComponentCode {
 
     try {
       // https://api.slack.com/messaging/webhooks#advanced_message_formatting
-      apiResult = await API.post(args["webhook-url"] as URL, {
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `${args["text"]}`,
-            },
-          },
-        ],
+      apiResult = await SlackUtil.sendMessageToChannel({
+        url: args["webhook-url"] as URL,
+        text: args["text"] as string,
       });
 
       if (apiResult instanceof HTTPErrorResponse) {
