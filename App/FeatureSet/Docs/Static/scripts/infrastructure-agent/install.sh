@@ -63,10 +63,29 @@ fi
 echo "Fetching the latest release: $TAG"
 
 # Construct the URL for the binary release
-URL="https://github.com/${REPO}/releases/download/${TAG}/oneuptime-infrastructure-agent_${OS}_${ARCH}.tar.gz"
 
-# Download and extract the binary
-curl -sL "${URL}" | tar xz -C "${BINDIR}"
+TARBALL_EXTENTION="tar.gz"
+
+if [ "$OS" = "windows" ]; then
+  TARBALL_EXTENTION="zip"
+fi
+
+URL="https://github.com/${REPO}/releases/download/${TAG}/oneuptime-infrastructure-agent_${OS}_${ARCH}.${TARBALL_EXTENTION}"
+
+echo "Downloading from $URL"
+
+
+# If windows then unzip the binary
+
+if [ "$OS" = "windows" ]; then
+  curl -sL "${URL}" -o /tmp/oneuptime-infrastructure-agent.zip
+  unzip -o /tmp/oneuptime-infrastructure-agent.zip -d "${BINDIR}"
+  rm -f /tmp/oneuptime-infrastructure-agent.zip
+  echo "oneuptime-infrastructure-agent installed successfully to ${BINDIR}. Please configure the agent using 'oneuptime-infrastructure-agent configure'."
+  exit 0
+else
+  curl -sL "${URL}" | tar xz -C "${BINDIR}"
+fi
 
 # Check if the binary is executable
 if [ ! -x "${BINDIR}/oneuptime-infrastructure-agent" ]; then
