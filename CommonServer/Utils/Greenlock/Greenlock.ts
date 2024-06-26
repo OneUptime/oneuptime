@@ -65,13 +65,14 @@ export default class GreenlockUtil {
         );
 
         if (!isValidCname) {
+          // if cname is not valid then remove the domain
+          await GreenlockUtil.removeDomain(certificate.domain);
+          await data.notifyDomainRemoved(certificate.domain);
+        } else {
           await GreenlockUtil.orderCert({
             domain: certificate.domain,
             validateCname: data.validateCname,
           });
-        } else {
-          await GreenlockUtil.removeDomain(certificate.domain);
-          await data.notifyDomainRemoved(certificate.domain);
         }
       } catch (e) {
         logger.error(
