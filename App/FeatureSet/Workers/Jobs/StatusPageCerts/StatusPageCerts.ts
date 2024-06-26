@@ -57,8 +57,7 @@ RunCron(
     runOnStartup: true,
   },
   async () => {
-
-    // checks if the certificate exists for the domains that have ordered certificates, otherwise orders again, 
+    // checks if the certificate exists for the domains that have ordered certificates, otherwise orders again,
     await StatusPageDomainService.checkOrderStatus();
   },
 );
