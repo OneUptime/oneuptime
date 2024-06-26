@@ -6,11 +6,12 @@ import CopilotActionBase, {
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
-export default class ImproveReadme extends CopilotActionBase {
+
+export default class ImproveVariableNames extends CopilotActionBase {
   public constructor() {
     super({
-      copilotActionType: CopilotActionType.IMRPOVE_README,
-      acceptFileExtentions: CodeRepositoryUtil.getReadmeFileExtentions(),
+      copilotActionType: CopilotActionType.IMPROVE_VARIABLE_NAMES,
+      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
     });
   }
 

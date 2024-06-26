@@ -4,38 +4,13 @@ import CopilotActionBase, {
   CopilotActionRunResult,
   CopilotActionVars,
 } from "./CopilotActionsBase";
+import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class ImproveComments extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
-      acceptFileExtentions: [
-        ".ts",
-        ".js",
-        ".tsx",
-        ".jsx",
-        ".py",
-        ".go",
-        ".java",
-        ".c",
-        ".cpp",
-        ".cs",
-        ".swift",
-        ".php",
-        ".rb",
-        ".rs",
-        ".kt",
-        ".dart",
-        ".sh",
-        ".pl",
-        ".lua",
-        ".r",
-        ".scala",
-        ".ts",
-        ".js",
-        ".tsx",
-        ".jsx",
-      ],
+      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
     });
   }
 
@@ -46,15 +21,26 @@ export default class ImproveComments extends CopilotActionBase {
     return Promise.resolve(data.result);
   }
 
-  public override async isNoOperation(data: {
+  public override async filterNoOperation(data: {
     vars: CopilotActionVars;
     result: CopilotActionRunResult;
-  }): Promise<boolean> {
-    if (data.result.code.includes("--all-good--")) {
-      return true;
+  }): Promise<CopilotActionRunResult> {
+
+    const finalResult: CopilotActionRunResult = {
+      files: {},
+    };
+    
+    for(const filePath in data.result.files) {
+      if(data.result.files[filePath]?.fileContent.includes("--all-good--")) {
+        continue; 
+      }
+
+
+      finalResult.files[filePath] = data.result.files[filePath]!;
+
     }
 
-    return false;
+    return finalResult;
   }
 
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {

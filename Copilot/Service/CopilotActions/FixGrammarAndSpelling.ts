@@ -4,38 +4,45 @@ import CopilotActionBase, {
   CopilotActionRunResult,
   CopilotActionVars,
 } from "./CopilotActionsBase";
+import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class FixGrammarAndSpelling extends CopilotActionBase {
   public constructor() {
     super({
       copilotActionType: CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
-      acceptFileExtentions: [".ts", ".js", ".tsx", ".jsx", ".md"],
+      acceptFileExtentions: [
+        ...CodeRepositoryUtil.getCodeFileExtentions(),
+        ...CodeRepositoryUtil.getReadmeFileExtentions(),
+      ],
     });
   }
 
-  public override async isNoOperation(data: {
+  public override async filterNoOperation(data: {
     vars: CopilotActionVars;
     result: CopilotActionRunResult;
-  }): Promise<boolean> {
-    if (data.result.code.includes("--all-good--")) {
-      return true;
+  }): Promise<CopilotActionRunResult> {
+
+    const finalResult: CopilotActionRunResult = {
+      files: {},
+    };
+    
+    for(const filePath in data.result.files) {
+      if(data.result.files[filePath]?.fileContent.includes("--all-good--")) {
+        continue; 
+      }
+
+      if(data.result.files[filePath]?.fileContent.includes("does not contain") && data.result.files[filePath]?.fileContent.includes("spelling mistakes")) {
+        continue; 
+      }
+
+      if(data.result.files[filePath]?.fileContent.includes("does not contain") && data.result.files[filePath]?.fileContent.includes("grammar")) {
+        continue; 
+      }
+
+      finalResult.files[filePath] = data.result.files[filePath]!;
     }
 
-    if (
-      data.result.code.includes("does not contain") &&
-      data.result.code.includes("spelling mistakes")
-    ) {
-      return true;
-    }
-
-    if (
-      data.result.code.includes("does not contain") &&
-      data.result.code.includes("grammar")
-    ) {
-      return true;
-    }
-
-    return false;
+    return finalResult;
   }
 
   protected override async _getPrompt(): Promise<CopilotActionPrompt> {

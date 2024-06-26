@@ -142,11 +142,11 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return actionResult;
   }
 
-  public async isNoOperation(_data: {
+  public async filterNoOperation(data: {
     vars: CopilotActionVars;
     result: CopilotActionRunResult;
-  }): Promise<boolean> {
-    return false;
+  }): Promise<CopilotActionRunResult> {
+    return Promise.resolve(data.result);
   }
 
   public async execute(data: {
@@ -160,9 +160,18 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       vars: data.vars,
     });
 
-    const result: CopilotActionRunResult = await LLM.getResponse(prompt);
+    let result: CopilotActionRunResult = await LLM.getResponse(prompt);
 
-    if (await this.isNoOperation({ vars: data.vars, result: result })) {
+    if (Object.keys(result.files).length === 0) {
+      return null;
+    }
+
+    result = await this.filterNoOperation({
+      vars: data.vars,
+      result: result,
+    });
+
+    if (Object.keys(result.files).length === 0) {
       return null;
     }
 

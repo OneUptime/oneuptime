@@ -477,4 +477,39 @@ export default class CodeRepositoryUtil {
       },
     );
   }
+
+
+  public static getCodeFileExtentions(): Array<string> {
+    return [
+      ".ts",
+      ".js",
+      ".tsx",
+      ".jsx",
+      ".py",
+      ".go",
+      ".java",
+      ".c",
+      ".cpp",
+      ".cs",
+      ".swift",
+      ".php",
+      ".rb",
+      ".rs",
+      ".kt",
+      ".dart",
+      ".sh",
+      ".pl",
+      ".lua",
+      ".r",
+      ".scala",
+      ".ts",
+      ".js",
+      ".tsx",
+      ".jsx",
+    ];
+  }
+
+  public static getReadmeFileExtentions(): Array<string> {
+    return [".md"];
+  }
 }
