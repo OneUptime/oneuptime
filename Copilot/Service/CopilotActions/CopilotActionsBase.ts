@@ -112,6 +112,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return Promise.resolve(data);
   }
 
+  public async isActionComplete(_data: CopilotProcess): Promise<boolean> {
+    return true; // by default the action is completed
+  }
+
   public async cleanup(data: CopilotProcess): Promise<CopilotProcess> {
     // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
     // for example code can be in the format of
@@ -176,13 +180,15 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     // get starting prompt
     data = await this.refreshCopilotActionVars(data);
 
+    let isActionComplete: boolean = await this.isActionComplete(data);
+
     let aiPrommpt: CopilotActionPrompt | null = await this.getPrompt(data);
 
     if (!aiPrommpt) {
       return data;
     }
 
-    while (aiPrommpt) {
+    while (!isActionComplete && aiPrommpt) {
       const promptResult: LLMPromptResult | null =
         await LLM.getResponse(aiPrommpt);
 
@@ -201,6 +207,8 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
         data = await this.filterNoOperation(data);
       }
+
+      isActionComplete = await this.isActionComplete(data);
 
       data = await this.refreshCopilotActionVars(data);
 
