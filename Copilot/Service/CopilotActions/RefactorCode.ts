@@ -2,7 +2,7 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotActionRunResult,
-  CopilotActionVars,
+  CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
@@ -14,10 +14,7 @@ export default class RefactorCode extends CopilotActionBase {
     });
   }
 
-  public override async filterNoOperation(data: {
-    vars: CopilotActionVars;
-    result: CopilotActionRunResult;
-  }): Promise<CopilotActionRunResult> {
+  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
 
     const finalResult: CopilotActionRunResult = {
       files: {},
@@ -33,10 +30,13 @@ export default class RefactorCode extends CopilotActionBase {
 
     }
 
-    return finalResult;
+    return {
+      ...data, 
+      result: finalResult,
+    };
   }
 
-  protected override async _getPrompt(): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
     const prompt: string = `Please refactor this code into smaller functions/methods if its not refactored properly.
 
     If you think the code is refactored already, please reply with the following text:

@@ -1,17 +1,16 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { GetLlmType } from "../../Config";
 import LlmType from "../../Types/LlmType";
-import LlmBase from "./LLMBase";
+import LlmBase, { LLMPromptResult } from "./LLMBase";
 import Llama from "./Llama";
 import {
   CopilotActionPrompt,
-  CopilotActionRunResult,
 } from "../CopilotActions/CopilotActionsBase";
 
 export default class LLM extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
-  ): Promise<CopilotActionRunResult> {
+  ): Promise<LLMPromptResult> {
     if (GetLlmType() === LlmType.Llama) {
       return await Llama.getResponse(data);
     }

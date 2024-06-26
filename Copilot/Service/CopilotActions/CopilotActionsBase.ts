@@ -9,6 +9,7 @@ import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAccept
 import LocalFile from "CommonServer/Utils/LocalFile";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
+import { LLMPromptResult } from "../LLM/LLMBase";
 
 export interface CopilotActionRunResult {
   files: Dictionary<CodeRepositoryFile>;
@@ -22,6 +23,11 @@ export interface CopilotActionPrompt {
 export interface CopilotActionVars {
   filePath: string;
   serviceFiles: Dictionary<CodeRepositoryFile>;
+}
+
+export interface CopilotProcess {
+  result: CopilotActionRunResult;
+  vars: CopilotActionVars;
 }
 
 export default class CopilotActionBase {
@@ -41,9 +47,7 @@ export default class CopilotActionBase {
     this.acceptFileExtentions = data.acceptFileExtentions;
   }
 
-  public async onBeforeExecute(data: {
-    vars: CopilotActionVars;
-  }): Promise<CopilotActionVars> {
+  public async onBeforeExecute(data: CopilotProcess): Promise<CopilotProcess> {
     // check if the file extension is accepted or not
 
     if (
@@ -56,15 +60,12 @@ export default class CopilotActionBase {
       );
     }
 
-    return data.vars;
+    return data;
   }
 
-  public async onAfterExecute(data: {
-    result: CopilotActionRunResult;
-    vars: CopilotActionVars;
-  }): Promise<CopilotActionRunResult> {
+  public async onAfterExecute(data: CopilotProcess): Promise<CopilotProcess> {
     // do nothing
-    return data.result;
+    return data;
   }
 
   public async getBranchName(): Promise<string> {
@@ -101,15 +102,15 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     `;
   }
 
-  public async getCommitMessage(data: {
-    vars: CopilotActionVars;
-  }): Promise<string> {
+  public async getCommitMessage(data: CopilotProcess): Promise<string> {
     return `OneUptime Copilot: ${this.copilotActionType} on ${data.vars.filePath}`;
   }
 
-  public async cleanup(
-    actionResult: CopilotActionRunResult,
-  ): Promise<CopilotActionRunResult> {
+  public async refreshCopilotActionVars(data: CopilotProcess): Promise<CopilotProcess> {
+    return Promise.resolve(data);
+  }
+
+  public async cleanup(data: CopilotProcess): Promise<CopilotProcess> {
     // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
     // for example code can be in the format of
     // ```python
@@ -119,6 +120,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     // so the code to be extracted is print("Hello World")
 
     // the code can be in multiple lines as well.
+
+
+    let actionResult: CopilotActionRunResult = data.result;
+
 
     for (const filePath in actionResult.files) {
       // check all the files which were modified by the copilot action
@@ -139,58 +144,78 @@ If you have  any feedback or suggestions, please let us know. We would love to h
         extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
     }
 
-    return actionResult;
+    return {
+      vars: data.vars,
+      result: actionResult,
+    };
   }
 
-  public async filterNoOperation(data: {
-    vars: CopilotActionVars;
-    result: CopilotActionRunResult;
-  }): Promise<CopilotActionRunResult> {
-    return Promise.resolve(data.result);
+  public async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
+    return Promise.resolve(data);
   }
 
-  public async execute(data: {
-    vars: CopilotActionVars;
-  }): Promise<CopilotActionRunResult | null> {
-    data.vars = await this.onBeforeExecute({
-      vars: data.vars,
-    });
+  public async getNextFilePath(_data: CopilotProcess): Promise<string | null> {
+    return null;
+  }
 
-    const prompt: CopilotActionPrompt = await this.getPrompt({
-      vars: data.vars,
-    });
+  public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
 
-    let result: CopilotActionRunResult = await LLM.getResponse(prompt);
+    data = await this.onBeforeExecute(data);
 
-    if (Object.keys(result.files).length === 0) {
-      return null;
+    if (!data.result) {
+      data.result = {
+        files: {}
+      };
     }
 
-    result = await this.filterNoOperation({
-      vars: data.vars,
-      result: result,
-    });
-
-    if (Object.keys(result.files).length === 0) {
-      return null;
+    if (!data.result.files) {
+      data.result.files = {};
     }
 
-    const cleanedResult: CopilotActionRunResult = await this.cleanup(result);
 
-    return await this.onAfterExecute({
-      result: cleanedResult,
-      vars: data.vars,
-    });
+    // get starting prompt
+    data = await this.refreshCopilotActionVars(data);
+
+    let aiPrommpt: CopilotActionPrompt | null = await this.getPrompt(data);
+
+    if (!aiPrommpt) {
+      return data;
+    }
+
+    while (aiPrommpt) {
+
+      let promptResult: LLMPromptResult | null = await LLM.getResponse(aiPrommpt);
+
+      if (promptResult && promptResult.output && promptResult.output.toString().length > 0) {
+        data.result.files[data.vars.filePath] = data.vars.serviceFiles[data.vars.filePath]!; // add the file to the result
+        // change the content of the file. 
+        data.result.files[data.vars.filePath]!.fileContent = promptResult.output.toString();
+
+        data = await this.cleanup(data);
+
+        data = await this.filterNoOperation(data);
+      }
+
+      data = await this.refreshCopilotActionVars(data);
+
+      aiPrommpt =  await this.getPrompt(data);
+
+    }
+
+    return await this.onAfterExecute(data);
   }
 
-  protected async _getPrompt(): Promise<CopilotActionPrompt> {
+  protected async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt | null> {
     throw new NotImplementedException();
   }
 
-  public async getPrompt(data: {
-    vars: CopilotActionVars;
-  }): Promise<CopilotActionPrompt> {
-    const prompt: CopilotActionPrompt = await this._getPrompt();
+  public async getPrompt(data: CopilotProcess): Promise<CopilotActionPrompt | null> {
+
+    const prompt: CopilotActionPrompt | null = await this._getPrompt(data);
+
+    if (!prompt) {
+      return null;
+    }
 
     return this.fillVarsInPrompt({
       prompt: prompt,

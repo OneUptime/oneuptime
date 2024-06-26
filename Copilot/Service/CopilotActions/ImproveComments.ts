@@ -2,7 +2,7 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotActionRunResult,
-  CopilotActionVars,
+  CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
@@ -14,17 +14,11 @@ export default class ImproveComments extends CopilotActionBase {
     });
   }
 
-  public override onAfterExecute(data: {
-    result: CopilotActionRunResult;
-    vars: CopilotActionVars;
-  }): Promise<CopilotActionRunResult> {
-    return Promise.resolve(data.result);
+  public override onAfterExecute(data: CopilotProcess): Promise<CopilotProcess> {
+    return Promise.resolve(data);
   }
 
-  public override async filterNoOperation(data: {
-    vars: CopilotActionVars;
-    result: CopilotActionRunResult;
-  }): Promise<CopilotActionRunResult> {
+  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
 
     const finalResult: CopilotActionRunResult = {
       files: {},
@@ -40,10 +34,13 @@ export default class ImproveComments extends CopilotActionBase {
 
     }
 
-    return finalResult;
+    return {
+      ...data, 
+      result: finalResult,
+    };
   }
 
-  protected override async _getPrompt(): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
     If you think the code is already well commented, please reply with the following text:

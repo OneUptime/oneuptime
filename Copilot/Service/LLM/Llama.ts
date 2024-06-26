@@ -1,6 +1,6 @@
 import URL from "Common/Types/API/URL";
 import { GetLlamaServerUrl } from "../../Config";
-import LlmBase from "./LLMBase";
+import LlmBase, { LLMPromptResult } from "./LLMBase";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -10,7 +10,6 @@ import Sleep from "Common/Types/Sleep";
 import logger from "CommonServer/Utils/Logger";
 import {
   CopilotActionPrompt,
-  CopilotActionRunResult,
 } from "../CopilotActions/CopilotActionsBase";
 import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
 
@@ -20,10 +19,11 @@ enum LlamaPromptStatus {
   Pending = "pending",
 }
 
+
 export default class Llama extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
-  ): Promise<CopilotActionRunResult> {
+  ): Promise<LLMPromptResult> {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -79,6 +79,7 @@ export default class Llama extends LlmBase {
       throw new BadRequestException("Failed to get response from Llama server");
     }
 
+
     if (
       promptResult["output"] &&
       (promptResult["output"] as JSONArray).length > 0
@@ -99,7 +100,7 @@ export default class Llama extends LlmBase {
 
       if (lastItem["content"]) {
         return {
-          code: lastItem["content"] as string,
+          output: lastItem["content"] as string,
         };
       }
     }

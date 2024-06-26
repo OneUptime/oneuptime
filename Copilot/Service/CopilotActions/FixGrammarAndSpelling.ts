@@ -2,7 +2,7 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotActionRunResult,
-  CopilotActionVars,
+  CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
@@ -17,10 +17,7 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
     });
   }
 
-  public override async filterNoOperation(data: {
-    vars: CopilotActionVars;
-    result: CopilotActionRunResult;
-  }): Promise<CopilotActionRunResult> {
+  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
 
     const finalResult: CopilotActionRunResult = {
       files: {},
@@ -42,10 +39,13 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
       finalResult.files[filePath] = data.result.files[filePath]!;
     }
 
-    return finalResult;
+    return {
+      ...data,
+      result: finalResult,
+    };
   }
 
-  protected override async _getPrompt(): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
     const prompt: string = `Please fix grammar and spelling in this file. 
 
     If you think the file is good and has no grammar or spelling mistakes, please reply with the following text:
