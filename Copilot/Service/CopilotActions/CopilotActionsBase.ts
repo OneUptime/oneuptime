@@ -154,10 +154,6 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return Promise.resolve(data);
   }
 
-  public async getNextFilePath(_data: CopilotProcess): Promise<string | null> {
-    return null;
-  }
-
   public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
 
     data = await this.onBeforeExecute(data);
