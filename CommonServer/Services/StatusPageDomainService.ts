@@ -14,8 +14,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/Utils/API";
+import AcmeCertificate from "Model/Models/AcmeCertificate";
 import Domain from "Model/Models/Domain";
 import StatusPageDomain from "Model/Models/StatusPageDomain";
+import AcmeCertificateService from "./AcmeCertificateService";
 
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -413,6 +415,54 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug(`Domain removed from greenlock: ${domain}`);
       },
     });
+  }
+
+  public async checkOrderStatus(): Promise<void> {
+    const domains: Array<StatusPageDomain> = await this.findBy({
+      query: {
+        isSslOrdered: true,
+      },
+      select: {
+        _id: true,
+        fullDomain: true,
+        cnameVerificationToken: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const domain of domains) {
+      if (!domain.fullDomain) {
+        continue;
+      }
+
+      //check if cert exists in AcmeCertificate.
+      const acmeCert: AcmeCertificate | null =
+        await AcmeCertificateService.findOneBy({
+          query: {
+            domain: domain.fullDomain,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!acmeCert) {
+        try {
+          // order cert again.
+          await this.orderCert(domain);
+        } catch (err) {
+          logger.error("Cannot order cert for domain: " + domain.fullDomain);
+          logger.error(err);
+        }
+      }
+    }
   }
 }
 export default new Service();

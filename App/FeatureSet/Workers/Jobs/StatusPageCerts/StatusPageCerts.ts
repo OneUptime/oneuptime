@@ -49,3 +49,16 @@ RunCron(
     await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
   },
 );
+
+RunCron(
+  "StatusPageCerts:CheckOrderStatus",
+  {
+    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
+    runOnStartup: true,
+  },
+  async () => {
+
+    // checks if the certificate exists for the domains that have ordered certificates, otherwise orders again, 
+    await StatusPageDomainService.checkOrderStatus();
+  },
+);
