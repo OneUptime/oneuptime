@@ -426,6 +426,20 @@ export class Service extends DatabaseService<StatusPageDomain> {
         return await this.isCnameValid(fullDomain);
       },
       notifyDomainRemoved: async (domain: string) => {
+        // mark the domain as not ordered.
+        await this.updateOneBy({
+          query: {
+            fullDomain: domain,
+          },
+          data: {
+            isSslOrdered: false,
+            isSslProvisioned: false,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
         logger.debug(`Domain removed from greenlock: ${domain}`);
       },
     });
