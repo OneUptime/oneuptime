@@ -129,7 +129,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);
       },
-      placeholder: "+15853641376",
+      placeholder: "+11234567890",
       disabled: true,
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);

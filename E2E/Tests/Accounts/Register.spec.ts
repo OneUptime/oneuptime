@@ -59,7 +59,7 @@ test.describe("Account Registration", () => {
     if (IS_BILLING_ENABLED) {
       await page.getByTestId("companyName").fill("sample");
       await page.getByTestId("companyName").press("Tab");
-      await page.getByTestId("companyPhoneNumber").fill("+15853641376");
+      await page.getByTestId("companyPhoneNumber").fill("+1234567890");
       await page.getByTestId("companyPhoneNumber").press("Tab");
     }
 
