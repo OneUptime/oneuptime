@@ -332,7 +332,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
     if (!isValid) {
       // check if cname is valid.
 
-      await this.isCnameValid(statusPageDomain.fullDomain!);
+      const isCnameValid: boolean = await this.isCnameValid(
+        statusPageDomain.fullDomain!,
+      );
 
       await this.updateOneById({
         id: statusPageDomain.id!,
@@ -343,6 +345,18 @@ export class Service extends DatabaseService<StatusPageDomain> {
           isRoot: true,
         },
       });
+
+      if (isCnameValid) {
+        try {
+          // if cname is valid then order cert again.
+          await this.orderCert(statusPageDomain);
+        } catch (err) {
+          logger.error(
+            "Cannot order cert for domain: " + statusPageDomain.fullDomain,
+          );
+          logger.error(err);
+        }
+      }
     } else {
       await this.updateOneById({
         id: statusPageDomain.id!,
