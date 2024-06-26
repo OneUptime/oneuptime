@@ -6,11 +6,12 @@ import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
 import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAcceptedFileExtention";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
 import LocalFile from "CommonServer/Utils/LocalFile";
+import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
+import Dictionary from "Common/Types/Dictionary";
 
 export interface CopilotActionRunResult {
-  code: string;
+  files: Dictionary<CodeRepositoryFile>;
 }
 
 export interface CopilotActionPrompt {
@@ -19,10 +20,8 @@ export interface CopilotActionPrompt {
 }
 
 export interface CopilotActionVars {
-  code: string;
   filePath: string;
-  fileCommitHash: string;
-  fileLanguage: ServiceLanguage;
+  serviceFiles: Dictionary<CodeRepositoryFile>;
 }
 
 export default class CopilotActionBase {
@@ -121,20 +120,26 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     // the code can be in multiple lines as well.
 
-    if (!actionResult.code) {
-      return actionResult;
+    for (const filePath in actionResult.files) {
+      // check all the files which were modified by the copilot action
+
+      const file: CodeRepositoryFile | undefined = actionResult.files[filePath];
+
+      if (!file) {
+        continue;
+      }
+
+      const extractedCode: string = file.fileContent; // this is the code in the file
+
+      if (!extractedCode.includes("```")) {
+        actionResult.files[filePath]!.fileContent = extractedCode;
+      }
+
+      actionResult.files[filePath]!.fileContent =
+        extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
     }
 
-    if (!actionResult.code.includes("```")) {
-      return actionResult;
-    }
-
-    const extractedCode: string =
-      actionResult.code.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
-
-    return {
-      code: extractedCode,
-    };
+    return actionResult;
   }
 
   public async isNoOperation(_data: {

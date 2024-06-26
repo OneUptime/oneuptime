@@ -3,6 +3,7 @@ import LocalFile from "../LocalFile";
 import logger from "../Logger";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
+import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
@@ -317,6 +318,13 @@ export default class CodeRepositoryUtil {
         gitCommitHash,
         fileExtension,
         fileName,
+        fileContent: await this.getFileContent({
+          filePath: LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`),
+          repoPath,
+        }),
+        fileLanguage: ServiceLanguageUtil.getLanguageByFileExtension({
+          fileExtension,
+        }),
       };
     }
 

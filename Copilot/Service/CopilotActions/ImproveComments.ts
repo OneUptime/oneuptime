@@ -39,6 +39,13 @@ export default class ImproveComments extends CopilotActionBase {
     });
   }
 
+  public override onAfterExecute(data: {
+    result: CopilotActionRunResult;
+    vars: CopilotActionVars;
+  }): Promise<CopilotActionRunResult> {
+    return Promise.resolve(data.result);
+  }
+
   public override async isNoOperation(data: {
     vars: CopilotActionVars;
     result: CopilotActionRunResult;

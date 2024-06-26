@@ -52,8 +52,6 @@ export default class CopilotActionService {
     }
 
     logger.info("Executing Copilot Action: " + data.copilotActionType);
-    logger.info("File Path: " + data.vars.filePath);
-    logger.info("Commit Hash: " + data.vars.fileCommitHash);
 
     const action: CopilotActionBase = actionDictionary[
       data.copilotActionType
@@ -68,12 +66,9 @@ export default class CopilotActionService {
       pullRequest: null,
     };
 
-    const filePath: string = data.vars.filePath;
-    const fileCommitHash: string = data.vars.fileCommitHash;
-
     let pullRequest: PullRequest | null = null;
 
-    if (result) {
+    if (result && result.files && Object.keys(result.files).length > 0) {
       logger.info("Obtained result from Copilot Action");
       logger.info("Committing the changes to the repository and creating a PR");
 
@@ -93,36 +88,47 @@ export default class CopilotActionService {
         branchName: branchName,
       });
 
-      // write to
+      // write all the modified files.
 
-      const code: string = result.code;
+      const filePaths: string[] = Object.keys(result.files);
 
-      await CodeRepositoryUtil.writeToFile({
-        filePath: filePath,
-        content: code,
-      });
+      for (const filePath in result.files) {
+        const fileCommitHash: string = result.files[filePath]!.gitCommitHash;
 
-      // commit changes
+        logger.info(`Writing file: ${filePath}`);
+        logger.info(`Commit Hash: ${fileCommitHash}`);
+
+        const code: string = result.files[filePath]!.fileContent;
+
+        await CodeRepositoryUtil.writeToFile({
+          filePath: filePath,
+          content: code,
+        });
+      }
 
       // add files to stage
 
+      logger.info("Adding files to stage");
+
       await CodeRepositoryUtil.addFilesToGit({
-        filePaths: [filePath],
+        filePaths: filePaths,
       });
 
+      // commit changes
+      logger.info("Committing changes");
       await CodeRepositoryUtil.commitChanges({
         message: commitMessage,
       });
 
       // push changes
-
+      logger.info("Pushing changes");
       await CodeRepositoryUtil.pushChanges({
         branchName: branchName,
         serviceRepository: data.serviceRepository,
       });
 
       // create a PR
-
+      logger.info("Creating a PR");
       pullRequest = await CodeRepositoryUtil.createPullRequest({
         branchName: branchName,
         serviceRepository: data.serviceRepository,
@@ -131,11 +137,11 @@ export default class CopilotActionService {
       });
 
       // switch to main branch.
-
+      logger.info("Switching to main branch");
       await CodeRepositoryUtil.switchToMainBranch();
 
       //save the result to the database.
-
+      logger.info("Saving the result to the database");
       executionResult = {
         status: CopilotActionStatus.PR_CREATED,
         pullRequest: pullRequest,
@@ -146,10 +152,17 @@ export default class CopilotActionService {
       logger.info("No result obtained from Copilot Action");
     }
 
+    const fileCommitHash: string | undefined =
+      data.vars.serviceFiles[data.vars.filePath]?.gitCommitHash;
+
+    if (!fileCommitHash) {
+      throw new BadDataException("File commit hash not found");
+    }
+
     await CopilotActionService.addCopilotAction({
       serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
-      filePath: filePath,
+      filePath: data.vars.filePath,
       commitHash: fileCommitHash,
       copilotActionType: data.copilotActionType,
       pullRequest: pullRequest,

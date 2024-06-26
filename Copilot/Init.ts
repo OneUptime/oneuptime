@@ -115,14 +115,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           serviceRepository: serviceRepository,
           copilotActionType: nextEventToFix,
           vars: {
-            code: await ServiceRepositoryUtil.getFileContent({
-              filePath: file.filePath,
-            }),
-            filePath: file.filePath,
-            fileCommitHash: file.gitCommitHash,
-            fileLanguage: await ServiceRepositoryUtil.getFileLanguage({
-              filePath: file.filePath,
-            }),
+            filePath: file.filePath, // this is the file path where optimization is needed or should start from.
+            serviceFiles: filesInService,
           },
         });
       } catch (e) {
