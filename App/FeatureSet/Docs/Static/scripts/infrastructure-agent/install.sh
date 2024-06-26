@@ -78,6 +78,7 @@ echo "Downloading from $URL"
 # If windows then unzip the binary
 
 if [ "$OS" = "windows" ]; then
+  # download to current directory
   curl -sL "${URL}" -o /tmp/oneuptime-infrastructure-agent.zip
   unzip -o /tmp/oneuptime-infrastructure-agent.zip -d "${BINDIR}"
   rm -f /tmp/oneuptime-infrastructure-agent.zip
