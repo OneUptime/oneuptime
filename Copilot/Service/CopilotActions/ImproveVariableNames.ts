@@ -2,11 +2,9 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotActionRunResult,
-  CopilotActionVars,
   CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
-
 
 export default class ImproveVariableNames extends CopilotActionBase {
   public constructor() {
@@ -16,26 +14,27 @@ export default class ImproveVariableNames extends CopilotActionBase {
     });
   }
 
-  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
-
+  public override async filterNoOperation(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     const finalResult: CopilotActionRunResult = {
       files: {},
     };
-    
-    for(const filePath in data.result.files) {
-      if(data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue; 
+
+    for (const filePath in data.result.files) {
+      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
+        continue;
       }
 
-
       finalResult.files[filePath] = data.result.files[filePath]!;
-
     }
 
-    return {...data, result: finalResult};
+    return { ...data, result: finalResult };
   }
 
-  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(
+    _data: CopilotProcess,
+  ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve this readme.
 
     If you think the readme is already well commented, please reply with the following text:

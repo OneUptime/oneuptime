@@ -478,7 +478,6 @@ export default class CodeRepositoryUtil {
     );
   }
 
-
   public static getCodeFileExtentions(): Array<string> {
     return [
       ".ts",

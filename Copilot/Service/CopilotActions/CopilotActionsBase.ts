@@ -106,7 +106,9 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return `OneUptime Copilot: ${this.copilotActionType} on ${data.vars.filePath}`;
   }
 
-  public async refreshCopilotActionVars(data: CopilotProcess): Promise<CopilotProcess> {
+  public async refreshCopilotActionVars(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     return Promise.resolve(data);
   }
 
@@ -121,9 +123,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     // the code can be in multiple lines as well.
 
-
-    let actionResult: CopilotActionRunResult = data.result;
-
+    const actionResult: CopilotActionRunResult = data.result;
 
     for (const filePath in actionResult.files) {
       // check all the files which were modified by the copilot action
@@ -150,24 +150,28 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     };
   }
 
-  public async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
+  public async filterNoOperation(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     return Promise.resolve(data);
   }
 
-  public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
+  public async getNextFilePath(_data: CopilotProcess): Promise<string | null> {
+    return null;
+  }
 
+  public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
     data = await this.onBeforeExecute(data);
 
     if (!data.result) {
       data.result = {
-        files: {}
+        files: {},
       };
     }
 
     if (!data.result.files) {
       data.result.files = {};
     }
-
 
     // get starting prompt
     data = await this.refreshCopilotActionVars(data);
@@ -179,13 +183,19 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     }
 
     while (aiPrommpt) {
+      const promptResult: LLMPromptResult | null =
+        await LLM.getResponse(aiPrommpt);
 
-      let promptResult: LLMPromptResult | null = await LLM.getResponse(aiPrommpt);
-
-      if (promptResult && promptResult.output && promptResult.output.toString().length > 0) {
-        data.result.files[data.vars.filePath] = data.vars.serviceFiles[data.vars.filePath]!; // add the file to the result
-        // change the content of the file. 
-        data.result.files[data.vars.filePath]!.fileContent = promptResult.output.toString();
+      if (
+        promptResult &&
+        promptResult.output &&
+        promptResult.output.toString().length > 0
+      ) {
+        data.result.files[data.vars.filePath] =
+          data.vars.serviceFiles[data.vars.filePath]!; // add the file to the result
+        // change the content of the file.
+        data.result.files[data.vars.filePath]!.fileContent =
+          promptResult.output.toString();
 
         data = await this.cleanup(data);
 
@@ -194,19 +204,21 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
       data = await this.refreshCopilotActionVars(data);
 
-      aiPrommpt =  await this.getPrompt(data);
-
+      aiPrommpt = await this.getPrompt(data);
     }
 
     return await this.onAfterExecute(data);
   }
 
-  protected async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt | null> {
+  protected async _getPrompt(
+    _data: CopilotProcess,
+  ): Promise<CopilotActionPrompt | null> {
     throw new NotImplementedException();
   }
 
-  public async getPrompt(data: CopilotProcess): Promise<CopilotActionPrompt | null> {
-
+  public async getPrompt(
+    data: CopilotProcess,
+  ): Promise<CopilotActionPrompt | null> {
     const prompt: CopilotActionPrompt | null = await this._getPrompt(data);
 
     if (!prompt) {

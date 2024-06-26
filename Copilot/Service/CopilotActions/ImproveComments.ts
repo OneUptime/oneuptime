@@ -14,33 +14,36 @@ export default class ImproveComments extends CopilotActionBase {
     });
   }
 
-  public override onAfterExecute(data: CopilotProcess): Promise<CopilotProcess> {
+  public override onAfterExecute(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     return Promise.resolve(data);
   }
 
-  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
-
+  public override async filterNoOperation(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     const finalResult: CopilotActionRunResult = {
       files: {},
     };
-    
-    for(const filePath in data.result.files) {
-      if(data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue; 
+
+    for (const filePath in data.result.files) {
+      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
+        continue;
       }
 
-
       finalResult.files[filePath] = data.result.files[filePath]!;
-
     }
 
     return {
-      ...data, 
+      ...data,
       result: finalResult,
     };
   }
 
-  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(
+    _data: CopilotProcess,
+  ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
     If you think the code is already well commented, please reply with the following text:

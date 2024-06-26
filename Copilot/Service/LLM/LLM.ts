@@ -3,9 +3,7 @@ import { GetLlmType } from "../../Config";
 import LlmType from "../../Types/LlmType";
 import LlmBase, { LLMPromptResult } from "./LLMBase";
 import Llama from "./Llama";
-import {
-  CopilotActionPrompt,
-} from "../CopilotActions/CopilotActionsBase";
+import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
 
 export default class LLM extends LlmBase {
   public static override async getResponse(

@@ -1,7 +1,5 @@
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
-import {
-  CopilotActionPrompt,
-} from "../CopilotActions/CopilotActionsBase";
+import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
 import { JSONValue } from "Common/Types/JSON";
 
 export interface LLMPromptResult {

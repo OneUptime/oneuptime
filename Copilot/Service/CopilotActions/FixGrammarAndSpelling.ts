@@ -17,23 +17,30 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
     });
   }
 
-  public override async filterNoOperation(data: CopilotProcess): Promise<CopilotProcess> {
-
+  public override async filterNoOperation(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     const finalResult: CopilotActionRunResult = {
       files: {},
     };
-    
-    for(const filePath in data.result.files) {
-      if(data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue; 
+
+    for (const filePath in data.result.files) {
+      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
+        continue;
       }
 
-      if(data.result.files[filePath]?.fileContent.includes("does not contain") && data.result.files[filePath]?.fileContent.includes("spelling mistakes")) {
-        continue; 
+      if (
+        data.result.files[filePath]?.fileContent.includes("does not contain") &&
+        data.result.files[filePath]?.fileContent.includes("spelling mistakes")
+      ) {
+        continue;
       }
 
-      if(data.result.files[filePath]?.fileContent.includes("does not contain") && data.result.files[filePath]?.fileContent.includes("grammar")) {
-        continue; 
+      if (
+        data.result.files[filePath]?.fileContent.includes("does not contain") &&
+        data.result.files[filePath]?.fileContent.includes("grammar")
+      ) {
+        continue;
       }
 
       finalResult.files[filePath] = data.result.files[filePath]!;
@@ -45,7 +52,9 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
     };
   }
 
-  protected override async _getPrompt(_data: CopilotProcess): Promise<CopilotActionPrompt> {
+  protected override async _getPrompt(
+    _data: CopilotProcess,
+  ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please fix grammar and spelling in this file. 
 
     If you think the file is good and has no grammar or spelling mistakes, please reply with the following text:
