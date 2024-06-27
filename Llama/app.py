@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 items_pending = {}
 queue = []
 items_processed = {}
+errors = {}
 
 async def job():
     print("Processing queue...")
@@ -37,6 +38,8 @@ async def job():
             print(f"Processed item {random_id}")
         except Exception as e:
             print(f"Error processing item {random_id}")
+            # store error
+            errors[random_id] = e
             # delete from items_pending
             if random_id in items_pending:
                 del items_pending[random_id]
@@ -101,7 +104,7 @@ async def create_item(prompt: Prompt):
 
 @app.get("/queue-status/")
 async def queue_status():
-    return {"pending": items_pending, "processed": items_processed, "queue": queue}
+    return {"pending": items_pending, "processed": items_processed, "queue": queue, "errors": errors}
 
 @app.post("/prompt-result/")
 async def prompt_status(prompt_status: PromptResult):
