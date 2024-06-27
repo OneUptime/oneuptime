@@ -74,6 +74,15 @@ If you need to use SSL/TLS certificates, follow these steps:
    - Set `HTTP_PROTOCOL` env var to `https`.
    - Change `HOST` env var to the domain name of the server where the reverse proxy is hosted.
 
+## Production Readiness Checklist
+
+Ideally do not deploy OneUptime in production with docker-compose. We highly recommend using Kubernetes. There's a helm chart available for OneUptime [here](https://artifacthub.io/packages/helm/oneuptime/oneuptime). 
+
+If you still want to deploy OneUptime in production with docker-compose, please consider the following:
+
+- **SSL/TLS**: Set up SSL/TLS certificates. OneUptime does not support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own. Please see above. 
+- **Secrets**: Make sure you have random secrets in your `config.env` file. There are some default secrets in that file. Please replace them with random long strings. 
+- **Backups**: Regularly backup your databases (Clickhouse, Postgres). Redis is used as a cache and is stateless and can be safely ignored. 
 
 ### Updating OneUptime
 
