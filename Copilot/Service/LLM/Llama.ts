@@ -50,7 +50,7 @@ export default class Llama extends LlmBase {
     while (promptStatus === LlamaPromptStatus.Pending) {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.post(
-          URL.fromString(serverUrl.toString()).addRoute(`/prompt-result`),
+          URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
           {
             id: idOfPrompt,
           },
