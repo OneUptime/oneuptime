@@ -44,7 +44,7 @@ export default class ProjectUtil {
       return null;
     }
 
-    return SubscriptionPlan.getPlanSelect(
+    return SubscriptionPlan.getPlanType(
       project.paymentProviderPlanId,
       getAllEnvVars(),
     );

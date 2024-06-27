@@ -157,7 +157,7 @@ export default class SubscriptionPlan {
     return Boolean(this.getSubscriptionPlanById(planId, env));
   }
 
-  public static getPlanSelect(
+  public static getPlanType(
     planId: string,
     env?: JSONObject | undefined,
   ): PlanType {

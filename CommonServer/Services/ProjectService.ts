@@ -114,7 +114,7 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException("Plan is invalid.");
       }
 
-      data.data.planName = SubscriptionPlan.getPlanSelect(
+      data.data.planName = SubscriptionPlan.getPlanType(
         data.data.paymentProviderPlanId,
       );
 
@@ -358,7 +358,7 @@ export class Service extends DatabaseService<Model> {
               paymentProviderMeteredSubscriptionId:
                 subscription.meteredSubscriptionId,
               trialEndsAt: subscription.trialEndsAt || new Date(),
-              planName: SubscriptionPlan.getPlanSelect(
+              planName: SubscriptionPlan.getPlanType(
                 updateBy.data.paymentProviderPlanId! as string,
               ),
             },
@@ -968,7 +968,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project does not have any plans");
     }
 
-    const plan: PlanType = SubscriptionPlan.getPlanSelect(
+    const plan: PlanType = SubscriptionPlan.getPlanType(
       project.paymentProviderPlanId,
       getAllEnvVars(),
     );

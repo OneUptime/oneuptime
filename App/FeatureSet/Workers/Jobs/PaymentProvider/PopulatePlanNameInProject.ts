@@ -39,7 +39,7 @@ RunCron(
       try {
         if (project.paymentProviderPlanId) {
           // get subscription detail.
-          const planName: PlanType = SubscriptionPlan.getPlanSelect(
+          const planName: PlanType = SubscriptionPlan.getPlanType(
             project.paymentProviderPlanId as string,
           );
 

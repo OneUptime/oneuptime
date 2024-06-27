@@ -118,7 +118,7 @@ describe("SubscriptionPlan", () => {
       expect(isValidPlanId).toBe(true);
     });
   });
-  describe("getPlanSelect", () => {
+  describe("getPlanType", () => {
     it("should return the plan name if valid planId is passed", () => {
       new SubscriptionPlan(
         monthlyPlanId,
@@ -129,7 +129,7 @@ describe("SubscriptionPlan", () => {
         2,
         30,
       );
-      const result: PlanType = SubscriptionPlan.getPlanSelect(
+      const result: PlanType = SubscriptionPlan.getPlanType(
         monthlyPlanId,
         env,
       );
@@ -140,7 +140,7 @@ describe("SubscriptionPlan", () => {
         .fn()
         .mockReturnValue(undefined);
       expect(() => {
-        SubscriptionPlan.getPlanSelect("invalid-plan-id", env);
+        SubscriptionPlan.getPlanType("invalid-plan-id", env);
       }).toThrow(BadDataException);
     });
   });
