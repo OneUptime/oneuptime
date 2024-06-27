@@ -76,37 +76,43 @@ async def root():
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
 
-    # If not prompt then return bad request error
-    if not prompt:
-        return {"error": "Prompt is required"}
-    
-    # messages are in str format. We need to convert them fron json [] to list
-    messages = prompt.messages
+    try:
+        # If not prompt then return bad request error
+        if not prompt:
+            return {"error": "Prompt is required"}
+        
+        # messages are in str format. We need to convert them fron json [] to list
+        messages = prompt.messages
 
-    # Log prompt to console
-    print(messages)
+        # Log prompt to console
+        print(messages)
 
-    # Generate UUID
-    random_id = str(uuid.uuid4())
+        # Generate UUID
+        random_id = str(uuid.uuid4())
 
-    # add to queue
+        # add to queue
 
-    items_pending[random_id] = messages
-    await app.model_queue.put(random_id)
+        items_pending[random_id] = messages
+        await app.model_queue.put(random_id)
 
-    # Return response
-    return {
-        "id": random_id,
-        "status": "queued"
-    }
+        # Return response
+        return {
+            "id": random_id,
+            "status": "queued"
+        }
+    except Exception as e:
+        return {"error": repr(e)}
 
 @app.get("/queue-status/")
 async def queue_status():
-    return {"pending": items_pending, "processed": items_processed, "queue": app.model_queue.qsize(), "errors": errors}
+    try: 
+        return {"pending": items_pending, "processed": items_processed, "queue": app.model_queue.qsize(), "errors": errors}
+    except Exception as e:
+        return {"error": repr(e)}
 
 @app.post("/prompt-result/")
 async def prompt_status(prompt_status: PromptResult):
-    
+    try:
         # Log prompt status to console
         print(prompt_status)
     
@@ -139,6 +145,8 @@ async def prompt_status(prompt_status: PromptResult):
                 "id": prompt_status.id,
                 "status": status
             }
+    except Exception as e:
+        return {"error": repr(e)}
 
 
 
