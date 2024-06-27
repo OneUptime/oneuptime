@@ -77,3 +77,5 @@ npm run build-ai
 ```
 npm run start-ai    
 ```
+
+After you start, run `nvidia-smi` to see if the GPU is being used. You should see the python process running on the GPU.
