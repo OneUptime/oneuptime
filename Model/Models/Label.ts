@@ -2,7 +2,7 @@ import Project from "./Project";
 import User from "./User";
 import AccessControlModel from "Common/Models/AccessControlModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Color from "Common/Types/Color";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
@@ -24,10 +24,10 @@ import Permission from "Common/Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TableBillingAccessControl({
-  create: PlanSelect.Growth,
-  read: PlanSelect.Free,
-  update: PlanSelect.Growth,
-  delete: PlanSelect.Free,
+  create: PlanType.Growth,
+  read: PlanType.Free,
+  update: PlanType.Growth,
+  delete: PlanType.Free,
 })
 @EnableDocumentation()
 @TenantColumn("projectId")

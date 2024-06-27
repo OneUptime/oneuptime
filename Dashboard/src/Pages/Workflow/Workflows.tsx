@@ -3,7 +3,7 @@ import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import Banner from "CommonUI/src/Components/Banner/Banner";
@@ -21,7 +21,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
   const endDate: Date = OneUptimeDate.getCurrentDate();
-  const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
+  const plan: PlanType | null = ProjectUtil.getCurrentPlan();
 
   return (
     <Fragment>
@@ -33,7 +33,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           link={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
         />
 
-        {plan && (plan === PlanSelect.Growth || plan === PlanSelect.Scale) && (
+        {plan && (plan === PlanType.Growth || plan === PlanType.Scale) && (
           <ModelProgress<WorkflowLog>
             totalCount={WorkflowPlan[plan]}
             modelType={WorkflowLog}

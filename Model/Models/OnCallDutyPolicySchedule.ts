@@ -3,7 +3,7 @@ import Project from "./Project";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
@@ -32,10 +32,10 @@ import {
 
 @EnableDocumentation()
 @TableBillingAccessControl({
-  create: PlanSelect.Growth,
-  read: PlanSelect.Growth,
-  update: PlanSelect.Growth,
-  delete: PlanSelect.Growth,
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
 })
 @AccessControlColumn("labels")
 @TenantColumn("projectId")

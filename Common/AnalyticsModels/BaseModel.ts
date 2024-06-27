@@ -10,7 +10,7 @@ import ColumnBillingAccessControl from "../Types/BaseDatabase/ColumnBillingAcces
 import EnableWorkflowOn from "../Types/BaseDatabase/EnableWorkflowOn";
 import ModelPermission from "../Types/BaseDatabase/ModelPermission";
 import TableBillingAccessControl from "../Types/BaseDatabase/TableBillingAccessControl";
-import { PlanSelect } from "../Types/Billing/SubscriptionPlan";
+import { PlanType } from "../Types/Billing/SubscriptionPlan";
 import Dictionary from "../Types/Dictionary";
 import BadDataException from "../Types/Exception/BadDataException";
 import { JSONValue } from "../Types/JSON";
@@ -358,19 +358,19 @@ export default class AnalyticsBaseModel extends CommonModel {
     return this.accessControl?.delete || [];
   }
 
-  public getReadBillingPlan(): PlanSelect | null {
+  public getReadBillingPlan(): PlanType | null {
     return this.tableBillingAccessControl?.read || null;
   }
 
-  public getCreateBillingPlan(): PlanSelect | null {
+  public getCreateBillingPlan(): PlanType | null {
     return this.tableBillingAccessControl?.create || null;
   }
 
-  public getUpdateBillingPlan(): PlanSelect | null {
+  public getUpdateBillingPlan(): PlanType | null {
     return this.tableBillingAccessControl?.update || null;
   }
 
-  public getDeleteBillingPlan(): PlanSelect | null {
+  public getDeleteBillingPlan(): PlanType | null {
     return this.tableBillingAccessControl?.delete || null;
   }
 

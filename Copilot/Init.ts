@@ -115,8 +115,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           serviceRepository: serviceRepository,
           copilotActionType: nextEventToFix,
           vars: {
-            filePath: file.filePath, // this is the file path where optimization is needed or should start from.
-            serviceFiles: filesInService,
+            currentFilePath: file.filePath, // this is the file path where optimization is needed or should start from.
+            files: filesInService,
           },
         });
       } catch (e) {

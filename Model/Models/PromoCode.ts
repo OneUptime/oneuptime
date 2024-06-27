@@ -4,7 +4,7 @@ import ResellerPlan from "./ResellerPlan";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "Common/Types/Database/ColumnLength";
@@ -74,7 +74,7 @@ export default class PromoCode extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public planType?: PlanSelect = undefined;
+  public planType?: PlanType = undefined;
 
   @ColumnAccessControl({
     create: [],

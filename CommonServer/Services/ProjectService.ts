@@ -26,7 +26,7 @@ import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserService from "./UserService";
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { Black, Green, Moroon500, Red, Yellow } from "Common/Types/BrandColors";
@@ -53,7 +53,7 @@ import { In } from "typeorm";
 import Select from "../Types/Database/Select";
 
 export interface CurrentPlan {
-  plan: PlanSelect | null;
+  plan: PlanType | null;
   isSubscriptionUnpaid: boolean;
 }
 
@@ -968,7 +968,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project does not have any plans");
     }
 
-    const plan: PlanSelect = SubscriptionPlan.getPlanSelect(
+    const plan: PlanType = SubscriptionPlan.getPlanSelect(
       project.paymentProviderPlanId,
       getAllEnvVars(),
     );

@@ -1,4 +1,4 @@
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -88,7 +88,7 @@ export default class QueueWorkflow {
 
     //check project and plan
     const projectPlan: {
-      plan: PlanSelect | null;
+      plan: PlanType | null;
       isSubscriptionUnpaid: boolean;
     } = await ProjectService.getCurrentPlan(workflow.projectId);
 

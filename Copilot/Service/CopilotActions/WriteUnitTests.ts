@@ -35,7 +35,7 @@ export default class WriteUnitTests extends CopilotActionBase {
     };
   }
 
-  protected override async _getPrompt(): Promise<CopilotActionPrompt> {
+  protected override async getPrompt(): Promise<CopilotActionPrompt> {
     const prompt: string = `Write unit tests for this file.
     
     Here is the code. This is in {{fileLanguage}}: 

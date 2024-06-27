@@ -1,6 +1,6 @@
 import URL from "Common/Types/API/URL";
 import { GetLlamaServerUrl } from "../../Config";
-import LlmBase, { LLMPromptResult } from "./LLMBase";
+import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -20,7 +20,7 @@ enum LlamaPromptStatus {
 export default class Llama extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
-  ): Promise<LLMPromptResult> {
+  ): Promise<CopilotPromptResult> {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =

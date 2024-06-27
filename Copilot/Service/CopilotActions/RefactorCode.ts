@@ -35,7 +35,7 @@ export default class RefactorCode extends CopilotActionBase {
     };
   }
 
-  protected override async _getPrompt(
+  protected override async getPrompt(
     _data: CopilotProcess,
   ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please refactor this code into smaller functions/methods if its not refactored properly.

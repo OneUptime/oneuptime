@@ -24,12 +24,12 @@ import RefactorCode from "./RefactorCode";
 import WriteUnitTests from "./WriteUnitTests";
 import ImproveReadme from "./ImroveReadme";
 
-const actionDictionary: Dictionary<CopilotActionBase> = {
-  [CopilotActionType.IMPROVE_COMMENTS]: new ImproveComments(),
-  [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: new FixGrammarAndSpelling(),
-  [CopilotActionType.REFACTOR_CODE]: new RefactorCode(),
-  [CopilotActionType.WRITE_UNIT_TESTS]: new WriteUnitTests(),
-  [CopilotActionType.IMRPOVE_README]: new ImproveReadme(),
+const actionDictionary: Dictionary<typeof CopilotActionBase> = {
+  [CopilotActionType.IMPROVE_COMMENTS]: ImproveComments,
+  [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: FixGrammarAndSpelling,
+  [CopilotActionType.REFACTOR_CODE]: RefactorCode,
+  [CopilotActionType.WRITE_UNIT_TESTS]: WriteUnitTests,
+  [CopilotActionType.IMRPOVE_README]: ImproveReadme,
 };
 
 export interface CopilotExecutionResult {
@@ -53,12 +53,12 @@ export default class CopilotActionService {
 
     logger.info("Executing Copilot Action: " + data.copilotActionType);
 
-    const action: CopilotActionBase = actionDictionary[
+    const action: CopilotActionBase = new actionDictionary[
       data.copilotActionType
-    ] as CopilotActionBase;
+    ]() as CopilotActionBase;
 
     const processResult: CopilotProcess | null = await action.execute({
-      vars: data.vars,
+      input: data.input,
       result: {
         files: {},
       },
@@ -140,8 +140,8 @@ export default class CopilotActionService {
       pullRequest = await CodeRepositoryUtil.createPullRequest({
         branchName: branchName,
         serviceRepository: data.serviceRepository,
-        title: await action.getPullRequestTitle({ vars: data.vars }),
-        body: await action.getPullRequestBody({ vars: data.vars }),
+        title: await action.getPullRequestTitle({ vars: data.input }),
+        body: await action.getPullRequestBody({ vars: data.input }),
       });
 
       // switch to main branch.
@@ -166,7 +166,7 @@ export default class CopilotActionService {
     }
 
     const fileCommitHash: string | undefined =
-      data.vars.serviceFiles[data.vars.filePath]?.gitCommitHash;
+      data.input.serviceFiles[data.input.filePath]?.gitCommitHash;
 
     if (!fileCommitHash) {
       throw new BadDataException("File commit hash not found");
@@ -175,7 +175,7 @@ export default class CopilotActionService {
     await CopilotActionService.addCopilotAction({
       serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
-      filePath: data.vars.filePath,
+      filePath: data.input.filePath,
       commitHash: fileCommitHash,
       copilotActionType: data.copilotActionType,
       pullRequest: pullRequest,

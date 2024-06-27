@@ -32,7 +32,7 @@ export default class ImproveVariableNames extends CopilotActionBase {
     return { ...data, result: finalResult };
   }
 
-  protected override async _getPrompt(
+  protected override async getPrompt(
     _data: CopilotProcess,
   ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please improve this readme.

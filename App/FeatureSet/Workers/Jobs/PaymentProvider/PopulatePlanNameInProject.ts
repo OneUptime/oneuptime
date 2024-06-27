@@ -1,6 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_WEEK } from "Common/Utils/CronTime";
@@ -39,7 +39,7 @@ RunCron(
       try {
         if (project.paymentProviderPlanId) {
           // get subscription detail.
-          const planName: PlanSelect = SubscriptionPlan.getPlanSelect(
+          const planName: PlanType = SubscriptionPlan.getPlanSelect(
             project.paymentProviderPlanId as string,
           );
 

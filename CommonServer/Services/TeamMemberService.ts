@@ -22,7 +22,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
@@ -65,7 +65,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
 
       if (
-        createBy.props.currentPlan === PlanSelect.Free &&
+        createBy.props.currentPlan === PlanType.Free &&
         project &&
         project.paymentProviderSubscriptionSeats &&
         project.paymentProviderSubscriptionSeats >= 1

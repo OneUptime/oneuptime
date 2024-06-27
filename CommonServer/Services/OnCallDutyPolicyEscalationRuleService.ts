@@ -17,7 +17,7 @@ import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -481,7 +481,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (IsBillingEnabled && createBy.props.currentPlan === PlanSelect.Free) {
+    if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
       // then check no of policies and if it is more than one, return error
       const count: PositiveNumber = await this.countBy({
         query: {

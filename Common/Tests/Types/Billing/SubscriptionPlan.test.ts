@@ -1,5 +1,5 @@
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -123,17 +123,17 @@ describe("SubscriptionPlan", () => {
       new SubscriptionPlan(
         monthlyPlanId,
         "yearly_plan_id",
-        PlanSelect.Free,
+        PlanType.Free,
         0,
         0,
         2,
         30,
       );
-      const result: PlanSelect = SubscriptionPlan.getPlanSelect(
+      const result: PlanType = SubscriptionPlan.getPlanSelect(
         monthlyPlanId,
         env,
       );
-      expect(result).toBe(PlanSelect.Free);
+      expect(result).toBe(PlanType.Free);
     });
     it("should throw an error if invalid PlanId is passed", () => {
       SubscriptionPlan.getSubscriptionPlanById = jest
@@ -170,7 +170,7 @@ describe("SubscriptionPlan", () => {
       const featureSubscriptionPlan: SubscriptionPlan = new SubscriptionPlan(
         "growth_monthly_plan_id",
         "growth_yearly_plan_id",
-        PlanSelect.Growth,
+        PlanType.Growth,
         9,
         99,
         2,
@@ -179,15 +179,15 @@ describe("SubscriptionPlan", () => {
       const currentSubscriptionPlan: SubscriptionPlan = new SubscriptionPlan(
         "monthly_plan_id",
         "yearly_plan_id",
-        PlanSelect.Free,
+        PlanType.Free,
         0,
         0,
         1,
         7,
       );
       const result: boolean = SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-        PlanSelect.Growth,
-        PlanSelect.Free,
+        PlanType.Growth,
+        PlanType.Free,
         env,
       );
       expect(featureSubscriptionPlan.getPlanOrder()).toBeGreaterThan(
@@ -204,7 +204,7 @@ describe("SubscriptionPlan", () => {
       const featureSubscriptionPlan: SubscriptionPlan = new SubscriptionPlan(
         "growth_monthly_plan_id",
         "growth_yearly_plan_id",
-        PlanSelect.Growth,
+        PlanType.Growth,
         9,
         99,
         2,
@@ -213,15 +213,15 @@ describe("SubscriptionPlan", () => {
       const currentSubscriptionPlan: SubscriptionPlan = new SubscriptionPlan(
         monthlyPlanId,
         "yearly_plan_id",
-        PlanSelect.Free,
+        PlanType.Free,
         0,
         0,
         3,
         7,
       );
       const result: boolean = SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-        PlanSelect.Growth,
-        PlanSelect.Free,
+        PlanType.Growth,
+        PlanType.Free,
         env,
       );
       expect(featureSubscriptionPlan.getPlanOrder()).toBeLessThan(
@@ -234,14 +234,14 @@ describe("SubscriptionPlan", () => {
     it("should return the correct SubscriptionPlan when a valid planSelect is provided", () => {
       const plan: SubscriptionPlan =
         SubscriptionPlan.getSubscriptionPlanFromPlanSelect(
-          PlanSelect.Growth,
+          PlanType.Growth,
           env,
         );
       expect(plan).toEqual(plan);
-      expect(plan.getName()).toEqual(PlanSelect.Growth);
+      expect(plan.getName()).toEqual(PlanType.Growth);
     });
     it("should throw a BadDataException when an invalid planSelect is provided", () => {
-      const planSelect: PlanSelect = PlanSelect.Scale;
+      const planSelect: PlanType = PlanType.Scale;
       SubscriptionPlan.getSubscriptionPlans = jest.fn().mockReturnValue([]);
       expect(() => {
         SubscriptionPlan.getSubscriptionPlanFromPlanSelect(planSelect, env);

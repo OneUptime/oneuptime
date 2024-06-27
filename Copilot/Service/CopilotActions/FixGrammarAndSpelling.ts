@@ -52,7 +52,7 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
     };
   }
 
-  protected override async _getPrompt(
+  protected override async getPrompt(
     _data: CopilotProcess,
   ): Promise<CopilotActionPrompt> {
     const prompt: string = `Please fix grammar and spelling in this file. 

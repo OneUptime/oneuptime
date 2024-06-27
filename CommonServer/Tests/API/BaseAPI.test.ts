@@ -15,7 +15,7 @@ import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
 import BaseModel from "Common/Models/BaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -373,7 +373,7 @@ describe("BaseAPI", () => {
         request.tenantId = new ObjectID("789");
         // eslint-disable-next-line @typescript-eslint/typedef
         const plan = {
-          plan: "Free" as PlanSelect,
+          plan: "Free" as PlanType,
           isSubscriptionUnpaid: false,
         };
         jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue(plan);

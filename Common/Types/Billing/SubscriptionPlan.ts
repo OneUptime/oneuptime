@@ -1,7 +1,7 @@
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 
-export enum PlanSelect {
+export enum PlanType {
   Free = "Free",
   Growth = "Growth",
   Enterprise = "Enterprise",
@@ -160,7 +160,7 @@ export default class SubscriptionPlan {
   public static getPlanSelect(
     planId: string,
     env?: JSONObject | undefined,
-  ): PlanSelect {
+  ): PlanType {
     const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
       planId,
       env,
@@ -169,11 +169,11 @@ export default class SubscriptionPlan {
       throw new BadDataException("Plan ID is invalid");
     }
 
-    return plan.getName() as PlanSelect;
+    return plan.getName() as PlanType;
   }
 
   public static getSubscriptionPlanFromPlanSelect(
-    planSelect: PlanSelect,
+    planSelect: PlanType,
     env?: JSONObject | undefined,
   ): SubscriptionPlan {
     const plan: SubscriptionPlan | undefined = this.getSubscriptionPlans(
@@ -190,8 +190,8 @@ export default class SubscriptionPlan {
   }
 
   public static isFeatureAccessibleOnCurrentPlan(
-    featurePlan: PlanSelect,
-    currentPlan: PlanSelect,
+    featurePlan: PlanType,
+    currentPlan: PlanType,
     env?: JSONObject | undefined,
   ): boolean {
     const featureSubscriptionPlan: SubscriptionPlan | undefined =

@@ -1,4 +1,4 @@
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import DatabaseConfig from "../DatabaseConfig";
 import {
   AllowedSubscribersCountInFreePlan,
@@ -59,7 +59,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      if (currentPlan.plan === PlanSelect.Free) {
+      if (currentPlan.plan === PlanType.Free) {
         const subscribersCount: PositiveNumber = await this.countBy({
           query: {
             projectId: projectId,
