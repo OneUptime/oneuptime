@@ -9,25 +9,28 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # TODO: Store this in redis down the line. 
 items_pending = {}
-queue = []
 items_processed = {}
 errors = {}
 
-async def job():
+async def job(queue):
     print("Processing queue...")
 
-    while True: 
+    model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
 
-        if len(queue) == 0:
-            # sleep for 5 seconds. 
-            print("Queue is empty. Sleeping for 5 seconds.")
-            await asyncio.sleep(5)
-            continue
+    pipe = transformers.pipeline(
+        "text-generation", 
+        model=model_path,
+        # use gpu if available
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        )
 
-        try: 
-        
+    while True:
+
+        random_id = None
+
+        try:
             # process this item.
-            random_id = queue.pop(0)
+            random_id = await queue.get()
             print(f"Processing item {random_id}")
             messages = items_pending[random_id]
             print(f"Messages:")
@@ -39,7 +42,7 @@ async def job():
         except Exception as e:
             print(f"Error processing item {random_id}")
             # store error
-            errors[random_id] = e
+            errors[random_id] = repr(e)
             # delete from items_pending
             if random_id in items_pending:
                 del items_pending[random_id]
@@ -50,7 +53,9 @@ async def job():
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    asyncio.create_task(job())
+    queue = asyncio.Queue()
+    app.model_queue = queue
+    asyncio.create_task(job(queue))
     yield
 
 # Declare a Pydantic model for the request body
@@ -60,15 +65,6 @@ class Prompt(BaseModel):
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
    id: str
-
-model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
-
-pipe = transformers.pipeline(
-    "text-generation", 
-    model=model_path,
-    # use gpu if available
-    device="cuda" if torch.cuda.is_available() else "cpu",
-    )
 
 app = FastAPI(lifespan=lifespan)
 
@@ -94,7 +90,7 @@ async def create_item(prompt: Prompt):
     # add to queue
 
     items_pending[random_id] = messages
-    queue.append(random_id)
+    await app.model_queue.put(random_id)
 
     # Return response
     return {
@@ -104,7 +100,7 @@ async def create_item(prompt: Prompt):
 
 @app.get("/queue-status/")
 async def queue_status():
-    return {"pending": items_pending, "processed": items_processed, "queue": queue, "errors": errors}
+    return {"pending": items_pending, "processed": items_processed, "queue": app.model_queue.qsize(), "errors": errors}
 
 @app.post("/prompt-result/")
 async def prompt_status(prompt_status: PromptResult):
