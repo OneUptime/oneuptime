@@ -7,6 +7,7 @@ import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMoni
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import logger from "CommonServer/Utils/Logger";
 import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
 import Monitor from "Model/Models/Monitor";
 
@@ -36,26 +37,33 @@ RunCron(
     });
 
     for (const monitor of serverMonitors) {
-      if (!monitor.monitorSteps) {
-        continue;
+      try {
+        if (!monitor.monitorSteps) {
+          continue;
+        }
+
+        const processRequest: boolean = shouldProcessRequest(monitor);
+
+        if (!processRequest) {
+          continue;
+        }
+
+        const serverMonitorResponse: ServerMonitorResponse = {
+          monitorId: monitor.id!,
+          onlyCheckRequestReceivedAt: true,
+          requestReceivedAt:
+            monitor.serverMonitorRequestReceivedAt || monitor.createdAt!,
+        };
+
+        await ProbeMonitorResponseService.processProbeResponse(
+          serverMonitorResponse,
+        );
+      } catch (error) {
+        logger.error(
+          `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
+        );
+        logger.error(error);
       }
-
-      const processRequest: boolean = shouldProcessRequest(monitor);
-
-      if (!processRequest) {
-        continue;
-      }
-
-      const serverMonitorResponse: ServerMonitorResponse = {
-        monitorId: monitor.id!,
-        onlyCheckRequestReceivedAt: true,
-        requestReceivedAt:
-          monitor.serverMonitorRequestReceivedAt || monitor.createdAt!,
-      };
-
-      await ProbeMonitorResponseService.processProbeResponse(
-        serverMonitorResponse,
-      );
     }
   },
 );
