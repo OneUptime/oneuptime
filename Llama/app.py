@@ -100,6 +100,7 @@ async def create_item(prompt: Prompt):
             "status": "queued"
         }
     except Exception as e:
+        print(e)
         return {"error": repr(e)}
 
 @app.get("/queue-status/")
@@ -107,6 +108,7 @@ async def queue_status():
     try: 
         return {"pending": items_pending, "processed": items_processed, "queue": app.model_queue.qsize(), "errors": errors}
     except Exception as e:
+        print(e)
         return {"error": repr(e)}
 
 @app.post("/prompt-result/")
@@ -145,6 +147,7 @@ async def prompt_status(prompt_status: PromptResult):
                 "status": status
             }
     except Exception as e:
+        print(e)
         return {"error": repr(e)}
 
 
