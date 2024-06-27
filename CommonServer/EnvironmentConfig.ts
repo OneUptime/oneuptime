@@ -211,5 +211,17 @@ export const AllowedActiveMonitorCountInFreePlan: number = process.env[
     )
   : 10;
 
+export const AllowedStatusPageCountInFreePlan: number = process.env[
+  "ALLOWED_STATUS_PAGE_COUNT_IN_FREE_PLAN"
+]
+  ? parseInt(process.env["ALLOWED_STATUS_PAGE_COUNT_IN_FREE_PLAN"].toString())
+  : 1;
+
+export const AllowedSubscribersCountInFreePlan: number = process.env[
+  "ALLOWED_SUBSCRIBERS_COUNT_IN_FREE_PLAN"
+]
+  ? parseInt(process.env["ALLOWED_SUBSCRIBERS_COUNT_IN_FREE_PLAN"].toString())
+  : 100;
+
 export const NotificationWebhookOnCreateUser: string =
   process.env["NOTIFICATION_WEBHOOK_ON_CREATED_USER"] || "";

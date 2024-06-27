@@ -15,7 +15,6 @@ import TableColumn from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import TableMetadata from "Common/Types/Database/TableMetadata";
 import TenantColumn from "Common/Types/Database/TenantColumn";
-import UniqueColumnBy from "Common/Types/Database/UniqueColumnBy";
 import Recurring from "Common/Types/Events/Recurring";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -232,7 +231,6 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  @UniqueColumnBy("projectId")
   public name?: string = undefined;
 
   @ColumnAccessControl({

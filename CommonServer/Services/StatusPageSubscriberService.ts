@@ -1,4 +1,9 @@
+import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
 import DatabaseConfig from "../DatabaseConfig";
+import {
+  AllowedSubscribersCountInFreePlan,
+  IsBillingEnabled,
+} from "../EnvironmentConfig";
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import ProjectSMTPConfigService from "../Services/ProjectSmtpConfigService";
 import CreateBy from "../Types/Database/CreateBy";
@@ -8,7 +13,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
-import ProjectService from "./ProjectService";
+import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { FileRoute } from "Common/ServiceRoute";
@@ -23,6 +28,7 @@ import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Model/Models/StatusPage";
 import StatusPageResource from "Model/Models/StatusPageResource";
 import Model from "Model/Models/StatusPageSubscriber";
+import PositiveNumber from "Common/Types/PositiveNumber";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -41,6 +47,35 @@ export class Service extends DatabaseService<Model> {
     }
 
     const projectId: ObjectID = data.data.projectId;
+
+    // if the project is on the free plan, then only allow 1 status page.
+    if (IsBillingEnabled) {
+      const currentPlan: CurrentPlan =
+        await ProjectService.getCurrentPlan(projectId);
+
+      if (currentPlan.isSubscriptionUnpaid) {
+        throw new BadDataException(
+          "Your subscription is unpaid. Please update your payment method and to add subscribers.",
+        );
+      }
+
+      if (currentPlan.plan === PlanSelect.Free) {
+        const subscribersCount: PositiveNumber = await this.countBy({
+          query: {
+            projectId: projectId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (subscribersCount.toNumber() >= AllowedSubscribersCountInFreePlan) {
+          throw new BadDataException(
+            `You have reached the maximum allowed subscriber limit for the free plan. Please upgrade your plan to add more subscribers.`,
+          );
+        }
+      }
+    }
 
     let subscriber: Model | null = null;
 

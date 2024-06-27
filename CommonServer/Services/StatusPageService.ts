@@ -9,7 +9,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
-import ProjectService from "./ProjectService";
+import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
@@ -31,6 +31,11 @@ import StatusPageDomain from "Model/Models/StatusPageDomain";
 import StatusPageOwnerTeam from "Model/Models/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Model/Models/StatusPageOwnerUser";
 import User from "Model/Models/User";
+import {
+  AllowedStatusPageCountInFreePlan,
+  IsBillingEnabled,
+} from "../EnvironmentConfig";
+import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
 
 export class Service extends DatabaseService<StatusPage> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -42,6 +47,36 @@ export class Service extends DatabaseService<StatusPage> {
   ): Promise<OnCreate<StatusPage>> {
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
+    }
+
+    // if the project is on the free plan, then only allow 1 status page.
+    if (IsBillingEnabled) {
+      const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
+        createBy.data.projectId,
+      );
+
+      if (currentPlan.isSubscriptionUnpaid) {
+        throw new BadDataException(
+          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more status pages.",
+        );
+      }
+
+      if (currentPlan.plan === PlanSelect.Free) {
+        const statusPageCount: PositiveNumber = await this.countBy({
+          query: {
+            projectId: createBy.data.projectId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
+          throw new BadDataException(
+            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`,
+          );
+        }
+      }
     }
 
     if (
