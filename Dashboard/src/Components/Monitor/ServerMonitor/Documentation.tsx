@@ -16,7 +16,7 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
   return (
     <>
       <Card
-        title={`Set up your Server Monitor`}
+        title={`Set up your Server Monitor (Linux/Mac)`}
         description={
           <div className="space-y-2 w-full mt-5">
             <CodeBlock
@@ -35,6 +35,33 @@ sudo oneuptime-infrastructure-agent start
 
 # To Stop
 sudo oneuptime-infrastructure-agent stop
+`}
+            />
+          </div>
+        }
+      />
+
+      <Card
+        title={`Set up your Server Monitor (Windows)`}
+        description={
+          <div className="space-y-2 w-full mt-5">
+            <CodeBlock
+              language="bash"
+              code={`
+# Step 1: Download the agent from GitHub https://github.com/OneUptime/oneuptime/releases/latest
+# You should see a file named oneuptime-infrastructure-agent_windows_amd64.zip (if you're using x64) or oneuptime-infrastructure-agent_windows_arm64.zip (if you're using arm64)
+# Extract the zip file, and you should see a file named oneuptime-infrastructure-agent.exe 
+
+# Command Line: Configure the agent in cmd (Run as Administrator)
+oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
+                "--oneuptime-url=" + host
+              }
+
+# To Start
+oneuptime-infrastructure-agent start
+
+# To Stop
+oneuptime-infrastructure-agent stop
 `}
             />
           </div>
