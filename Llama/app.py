@@ -1,4 +1,5 @@
 import uuid
+import json
 import transformers
 import asyncio
 import torch
@@ -60,7 +61,7 @@ async def lifespan(app:FastAPI):
 
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
-   messages: list
+   messages: str
 
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
@@ -75,14 +76,15 @@ async def root():
 @app.post("/prompt/")
 async def create_item(prompt: Prompt):
 
-    # Log prompt to console
-    print(prompt)
-
     # If not prompt then return bad request error
     if not prompt:
         return {"error": "Prompt is required"}
+    
+    # messages are in str format. We need to convert them fron json [] to list
+    messages = json.loads(prompt.messages)
 
-    messages = prompt.messages
+    # Log prompt to console
+    print(messages)
 
     # Generate UUID
     random_id = str(uuid.uuid4())
