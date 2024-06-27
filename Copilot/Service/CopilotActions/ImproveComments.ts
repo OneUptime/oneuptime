@@ -15,7 +15,6 @@ export default class ImproveComments extends CopilotActionBase {
     super();
     this.copilotActionType = CopilotActionType.IMPROVE_COMMENTS;
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
-   
   }
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {
@@ -31,7 +30,9 @@ export default class ImproveComments extends CopilotActionBase {
     const copilotResult: CopilotPromptResult =
       await this.askCopilot(actionPrompt);
 
-    const newContent = await this.cleanup(copilotResult.output as string);
+    const newContent: string = await this.cleanup(
+      copilotResult.output as string,
+    );
 
     if (await this.isFileAlreadyWellCommented(newContent)) {
       this.isRequirementsMet = true;
@@ -44,14 +45,17 @@ export default class ImproveComments extends CopilotActionBase {
       ?.fileContent as string;
     const newCode: string = newContent;
 
-    const validationPrompt = await this.getValidationPrompt({
-      oldCode,
-      newCode,
-    });
+    const validationPrompt: CopilotActionPrompt =
+      await this.getValidationPrompt({
+        oldCode,
+        newCode,
+      });
 
-    const validationResponse = await this.askCopilot(validationPrompt);
+    const validationResponse: CopilotPromptResult =
+      await this.askCopilot(validationPrompt);
 
-    const didPassValidation = await this.didPassValidation(validationResponse);
+    const didPassValidation: boolean =
+      await this.didPassValidation(validationResponse);
 
     if (didPassValidation) {
       // add to result.
@@ -70,7 +74,7 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
-    const validationResponse = data.output as string;
+    const validationResponse: string = data.output as string;
     if (validationResponse === "--no--") {
       return true;
     }
@@ -93,7 +97,7 @@ export default class ImproveComments extends CopilotActionBase {
     const oldCode: string = data.oldCode;
     const newCode: string = data.newCode;
 
-    const prompt = {
+    const prompt: CopilotActionPrompt = {
       prompt: `
         I've asked to improve comments in the code. 
 
@@ -171,9 +175,7 @@ export default class ImproveComments extends CopilotActionBase {
       return extractedCode;
     }
 
-    extractedCode =
-      extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
-
+    extractedCode = extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
 
     return extractedCode;
   }

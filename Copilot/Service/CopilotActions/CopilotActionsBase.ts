@@ -43,8 +43,7 @@ export default class CopilotActionBase {
   }
 
   public async validateExecutionStep(data: CopilotProcess): Promise<boolean> {
-
-    if(!this.copilotActionType){
+    if (!this.copilotActionType) {
       throw new BadDataException("Copilot Action Type is not set");
     }
 
@@ -124,7 +123,6 @@ If you have  any feedback or suggestions, please let us know. We would love to h
   }
 
   public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
-
     logger.info("Executing Copilot Action: " + this.copilotActionType);
     logger.info("Current File Path: " + data.input.currentFilePath);
 
@@ -143,9 +141,8 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     let isActionComplete: boolean = false;
 
     while (!isActionComplete) {
-
-      if(!await this.validateExecutionStep(data)){
-        // execution step not valid 
+      if (!(await this.validateExecutionStep(data))) {
+        // execution step not valid
         // return data as it is
 
         return data;

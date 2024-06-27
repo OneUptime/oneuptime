@@ -10,7 +10,6 @@ export default class ImproveVariableNames extends CopilotActionBase {
     super();
     this.copilotActionType = CopilotActionType.IMPROVE_VARIABLE_NAMES;
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
-    
   }
 
   public override async getPrompt(

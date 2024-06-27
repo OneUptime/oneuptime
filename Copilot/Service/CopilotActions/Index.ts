@@ -47,7 +47,8 @@ export default class CopilotActionService {
 
     await CodeRepositoryUtil.pullChanges();
 
-    const actionType: typeof CopilotActionBase | undefined = actionDictionary[data.copilotActionType];
+    const actionType: typeof CopilotActionBase | undefined =
+      actionDictionary[data.copilotActionType];
 
     if (!actionType) {
       throw new BadDataException("Invalid CopilotActionType");

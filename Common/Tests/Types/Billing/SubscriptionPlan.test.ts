@@ -129,10 +129,7 @@ describe("SubscriptionPlan", () => {
         2,
         30,
       );
-      const result: PlanType = SubscriptionPlan.getPlanType(
-        monthlyPlanId,
-        env,
-      );
+      const result: PlanType = SubscriptionPlan.getPlanType(monthlyPlanId, env);
       expect(result).toBe(PlanType.Free);
     });
     it("should throw an error if invalid PlanId is passed", () => {
