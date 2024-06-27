@@ -2,8 +2,8 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import ImproveComments from "./ImproveComments";
 import Dictionary from "Common/Types/Dictionary";
 import CopilotActionBase, {
-  CopilotActionRunResult,
   CopilotActionVars,
+  CopilotProcess,
 } from "./CopilotActionsBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
@@ -57,8 +57,11 @@ export default class CopilotActionService {
       data.copilotActionType
     ] as CopilotActionBase;
 
-    const result: CopilotActionRunResult | null = await action.execute({
+    const processResult: CopilotProcess | null = await action.execute({
       vars: data.vars,
+      result: {
+        files: {},
+      },
     });
 
     let executionResult: CopilotExecutionResult = {
@@ -68,17 +71,18 @@ export default class CopilotActionService {
 
     let pullRequest: PullRequest | null = null;
 
-    if (result && result.files && Object.keys(result.files).length > 0) {
+    if (
+      processResult &&
+      processResult.result &&
+      processResult.result.files &&
+      Object.keys(processResult.result.files).length > 0
+    ) {
       logger.info("Obtained result from Copilot Action");
       logger.info("Committing the changes to the repository and creating a PR");
 
       const branchName: string = CodeRepositoryUtil.getBranchName({
         branchName: await action.getBranchName(),
         serviceRepository: data.serviceRepository,
-      });
-
-      const commitMessage: string = await action.getCommitMessage({
-        vars: data.vars,
       });
 
       // create a branch
@@ -90,21 +94,25 @@ export default class CopilotActionService {
 
       // write all the modified files.
 
-      const filePaths: string[] = Object.keys(result.files);
+      const filePaths: string[] = Object.keys(processResult.result.files);
 
-      for (const filePath in result.files) {
-        const fileCommitHash: string = result.files[filePath]!.gitCommitHash;
+      for (const filePath in processResult.result.files) {
+        const fileCommitHash: string =
+          processResult.result.files[filePath]!.gitCommitHash;
 
         logger.info(`Writing file: ${filePath}`);
         logger.info(`Commit Hash: ${fileCommitHash}`);
 
-        const code: string = result.files[filePath]!.fileContent;
+        const code: string = processResult.result.files[filePath]!.fileContent;
 
         await CodeRepositoryUtil.writeToFile({
           filePath: filePath,
           content: code,
         });
       }
+
+      const commitMessage: string =
+        await action.getCommitMessage(processResult);
 
       // add files to stage
 
@@ -148,7 +156,12 @@ export default class CopilotActionService {
       };
     }
 
-    if (!result) {
+    if (
+      !processResult ||
+      !processResult.result ||
+      !processResult.result.files ||
+      Object.keys(processResult.result.files).length === 0
+    ) {
       logger.info("No result obtained from Copilot Action");
     }
 
