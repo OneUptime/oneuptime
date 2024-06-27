@@ -58,7 +58,7 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Public Status Page",
               plans: {
-                free: "Unlimited",
+                free: "1",
                 growth: "Unlimited",
                 scale: "Unlimited",
                 enterprise: "Unlimited",
@@ -67,7 +67,7 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Subscribers",
               plans: {
-                free: "Unlimited",
+                free: "100",
                 growth: "Unlimited",
                 scale: "Unlimited",
                 enterprise: "Unlimited",
@@ -209,6 +209,15 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: true,
               },
             },
+            {
+              name: "Synthetic Monitoring (with Playwright)",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
 
             {
               name: "IPv4 Monitoring",
@@ -219,6 +228,7 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: true,
               },
             },
+
             {
               name: "IPv6 Monitoring",
               plans: {
@@ -247,17 +257,16 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Container Monitoring",
+              name: "Network Monitoring",
               plans: {
-                free: "Coming Soon",
-                growth: "Coming Soon",
-                scale: "Coming Soon",
-                enterprise: "Coming Soon",
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
               },
             },
-
             {
-              name: "Network Monitoring",
+              name: "Container Monitoring",
               plans: {
                 free: "Coming Soon",
                 growth: "Coming Soon",
@@ -389,7 +398,7 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Support",
               plans: {
-                free: "Community Support",
+                free: "Email Support",
                 growth: "Email Support",
                 scale: "Email and Chat Support",
                 enterprise: "Email, Chat, Phone Support",
@@ -398,7 +407,7 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Support SLA",
               plans: {
-                free: false,
+                free: "5 business day",
                 growth: "1 business day",
                 scale: "6 hours",
                 enterprise: "1 hour priority",
@@ -407,7 +416,7 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Service SLA",
               plans: {
-                free: false,
+                free: "99.00%",
                 growth: "99.90%",
                 scale: "99.95%",
                 enterprise: "99.99%",
