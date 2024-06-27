@@ -1,16 +1,16 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
-  CopilotActionRunResult,
   CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import { CopilotPromptResult } from "../LLM/LLMBase";
+import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 
 export default class ImproveComments extends CopilotActionBase {
+  public isRequirementsMet: boolean = false;
 
-  public isRequirementsMet: boolean = false
-  
   public constructor() {
     super({
       copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
@@ -22,47 +22,74 @@ export default class ImproveComments extends CopilotActionBase {
     return Promise.resolve(this.isRequirementsMet);
   }
 
-  public override async onExecutionStep(data: CopilotProcess): Promise<CopilotProcess> {
-    
-    // ask copilot again if the requirements are met. 
-    
-  
-
-
-    const oldCode: string = data.input.files[data.input.currentFilePath]?.fileContent as string;
-    const newCode: string = data.result.files[data.input.currentFilePath]?.fileContent as string;
-
-    const validationPrompt = await this.getValidationPrompt({oldCode, newCode});
-
-    return data; 
-  }
-
-  public override async filterNoOperation(
+  public override async onExecutionStep(
     data: CopilotProcess,
   ): Promise<CopilotProcess> {
-    const finalResult: CopilotActionRunResult = {
-      files: {},
-    };
+    // Action Prompt
 
-    for (const filePath in data.result.files) {
-      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue;
-      }
+    const actionPrompt: CopilotActionPrompt = await this.getPrompt(data);
+    const copilotResult: CopilotPromptResult =
+      await this.askCopilot(actionPrompt);
 
-      finalResult.files[filePath] = data.result.files[filePath]!;
+    const newContent = await this.cleanup(copilotResult.output as string);
+
+    if (await this.isFileAlreadyWellCommented(newContent)) {
+      this.isRequirementsMet = true;
+      return data;
     }
 
-    return {
-      ...data,
-      result: finalResult,
-    };
+    // ask copilot again if the requirements are met.
+
+    const oldCode: string = data.input.files[data.input.currentFilePath]
+      ?.fileContent as string;
+    const newCode: string = newContent;
+
+    const validationPrompt = await this.getValidationPrompt({
+      oldCode,
+      newCode,
+    });
+
+    const validationResponse = await this.askCopilot(validationPrompt);
+
+    const didPassValidation = await this.didPassValidation(validationResponse);
+
+    if (didPassValidation) {
+      // add to result.
+      data.result.files[data.input.currentFilePath] = {
+        ...data.input.files[data.input.currentFilePath],
+        fileContent: newContent,
+      } as CodeRepositoryFile;
+
+      this.isRequirementsMet = true;
+      return data;
+    }
+
+    // TODO: if the validation is not passed then ask copilot to improve the comments again.
+
+    return data;
+  }
+
+  public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
+    const validationResponse = data.output as string;
+    if (validationResponse === "--no--") {
+      return true;
+    }
+
+    return false;
+  }
+
+  public async isFileAlreadyWellCommented(content: string): Promise<boolean> {
+    if (content.includes("--all-good--")) {
+      return true;
+    }
+
+    return false;
   }
 
   public async getValidationPrompt(data: {
     oldCode: string;
     newCode: string;
   }): Promise<CopilotActionPrompt> {
-
     const oldCode: string = data.oldCode;
     const newCode: string = data.newCode;
 
@@ -82,21 +109,23 @@ export default class ImproveComments extends CopilotActionBase {
         Was anything changed in the code except comments? If yes, please reply with the following text: 
         --yes--
 
-        If the code was not changed except comments, please reply with the following text:
+        If the code was NOT changed EXCEPT comments, please reply with the following text:
         --no--
       `,
-      systemPrompt: await this.getSystemPrompt()
+      systemPrompt: await this.getSystemPrompt(),
     };
 
-    return prompt; 
+    return prompt;
   }
 
-  protected override async getPrompt(
+  public override async getPrompt(
     data: CopilotProcess,
   ): Promise<CopilotActionPrompt> {
-
-    const fileLanguage: ServiceLanguage = data.input.files[data.input.currentFilePath]?.fileLanguage as ServiceLanguage;
-    const code: string = data.input.files[data.input.currentFilePath]?.fileContent as string;
+    const fileLanguage: ServiceLanguage = data.input.files[
+      data.input.currentFilePath
+    ]?.fileLanguage as ServiceLanguage;
+    const code: string = data.input.files[data.input.currentFilePath]
+      ?.fileContent as string;
 
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
@@ -125,8 +154,7 @@ export default class ImproveComments extends CopilotActionBase {
     return systemPrompt;
   }
 
-
-  public async cleanup(data: CopilotProcess): Promise<CopilotProcess> {
+  public async cleanup(code: string): Promise<string> {
     // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
     // for example code can be in the format of
     // ```python
@@ -137,30 +165,16 @@ export default class ImproveComments extends CopilotActionBase {
 
     // the code can be in multiple lines as well.
 
-    const actionResult: CopilotActionRunResult = data.result;
+    let extractedCode: string = code; // this is the code in the file
 
-    for (const filePath in actionResult.files) {
-      // check all the files which were modified by the copilot action
-
-      const file: CodeRepositoryFile | undefined = actionResult.files[filePath];
-
-      if (!file) {
-        continue;
-      }
-
-      const extractedCode: string = file.fileContent; // this is the code in the file
-
-      if (!extractedCode.includes("```")) {
-        actionResult.files[filePath]!.fileContent = extractedCode;
-      }
-
-      actionResult.files[filePath]!.fileContent =
-        extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
+    if (!extractedCode.includes("```")) {
+      return extractedCode;
     }
 
-    return {
-      input: data.input,
-      result: actionResult,
-    };
+    extractedCode =
+      extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
+
+
+    return extractedCode;
   }
 }

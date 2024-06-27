@@ -41,7 +41,7 @@ export default class CopilotActionService {
   public static async execute(data: {
     serviceRepository: ServiceRepository;
     copilotActionType: CopilotActionType;
-    vars: CopilotActionVars;
+    input: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
     await CodeRepositoryUtil.switchToMainBranch();
 
@@ -140,8 +140,8 @@ export default class CopilotActionService {
       pullRequest = await CodeRepositoryUtil.createPullRequest({
         branchName: branchName,
         serviceRepository: data.serviceRepository,
-        title: await action.getPullRequestTitle({ vars: data.input }),
-        body: await action.getPullRequestBody({ vars: data.input }),
+        title: await action.getPullRequestTitle(processResult),
+        body: await action.getPullRequestBody(processResult),
       });
 
       // switch to main branch.
@@ -166,7 +166,7 @@ export default class CopilotActionService {
     }
 
     const fileCommitHash: string | undefined =
-      data.input.serviceFiles[data.input.filePath]?.gitCommitHash;
+      data.input.files[data.input.currentFilePath]?.gitCommitHash;
 
     if (!fileCommitHash) {
       throw new BadDataException("File commit hash not found");
@@ -175,7 +175,7 @@ export default class CopilotActionService {
     await CopilotActionService.addCopilotAction({
       serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
-      filePath: data.input.filePath,
+      filePath: data.input.currentFilePath,
       commitHash: fileCommitHash,
       copilotActionType: data.copilotActionType,
       pullRequest: pullRequest,

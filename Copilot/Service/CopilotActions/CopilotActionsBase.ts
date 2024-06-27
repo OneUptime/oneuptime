@@ -51,7 +51,9 @@ export default class CopilotActionBase {
 
     if (
       !this.acceptFileExtentions.find((item: string) => {
-        return item.includes(LocalFile.getFileExtension(data.input.currentFilePath));
+        return item.includes(
+          LocalFile.getFileExtension(data.input.currentFilePath),
+        );
       })
     ) {
       throw new NotAcceptedFileExtentionForCopilotAction(
@@ -101,20 +103,12 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return `OneUptime Copilot: ${this.copilotActionType} on ${data.input.currentFilePath}`;
   }
 
-  public async onExecutionStep(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
+  public async onExecutionStep(data: CopilotProcess): Promise<CopilotProcess> {
     return Promise.resolve(data);
   }
 
   public async isActionComplete(_data: CopilotProcess): Promise<boolean> {
     return true; // by default the action is completed
-  }
-
-  public async filterNoOperation(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    return Promise.resolve(data);
   }
 
   public async getNextFilePath(_data: CopilotProcess): Promise<string | null> {
@@ -134,16 +128,12 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       data.result.files = {};
     }
 
-    let isActionComplete: boolean = false; 
+    let isActionComplete: boolean = false;
 
     while (!isActionComplete) {
-
       data = await this.onExecutionStep(data);
 
-      data = await this.filterNoOperation(data);
-
       isActionComplete = await this.isActionComplete(data);
-      
     }
 
     return await this.onAfterExecute(data);
@@ -159,7 +149,6 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     }
 
     return prompt;
-   
   }
 
   public async getPrompt(
@@ -168,7 +157,9 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     throw new NotImplementedException();
   }
 
-  public async askCopilot(prompt: CopilotActionPrompt): Promise<CopilotPromptResult> {
+  public async askCopilot(
+    prompt: CopilotActionPrompt,
+  ): Promise<CopilotPromptResult> {
     return await LLM.getResponse(prompt);
   }
 }
