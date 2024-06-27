@@ -61,7 +61,7 @@ async def lifespan(app:FastAPI):
 
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
-   messages: str
+   messages: list
 
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
@@ -81,7 +81,7 @@ async def create_item(prompt: Prompt):
         return {"error": "Prompt is required"}
     
     # messages are in str format. We need to convert them fron json [] to list
-    messages = json.loads(prompt.messages)
+    messages = prompt.messages
 
     # Log prompt to console
     print(messages)
