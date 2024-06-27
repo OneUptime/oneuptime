@@ -24,7 +24,7 @@ export default class Llama extends LlmBase {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(URL.fromString(serverUrl.toString()).addRoute("/prompt"), {
+      await API.post(URL.fromString(serverUrl.toString()).addRoute("/prompt/"), {
         messages: [
           { role: "system", content: data.systemPrompt },
           { role: "user", content: data.prompt },

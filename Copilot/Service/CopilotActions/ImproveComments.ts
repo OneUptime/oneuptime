@@ -12,10 +12,10 @@ export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
 
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.IMPROVE_COMMENTS,
-      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
-    });
+    super();
+    this.copilotActionType = CopilotActionType.IMPROVE_COMMENTS;
+    this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
+   
   }
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {

@@ -7,10 +7,9 @@ import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class ImproveReadme extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.IMRPOVE_README,
-      acceptFileExtentions: CodeRepositoryUtil.getReadmeFileExtentions(),
-    });
+    super();
+    this.copilotActionType = CopilotActionType.IMRPOVE_README;
+    this.acceptFileExtentions = CodeRepositoryUtil.getReadmeFileExtentions();
   }
 
   public override async getPrompt(

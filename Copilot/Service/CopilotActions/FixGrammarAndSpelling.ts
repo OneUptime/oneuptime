@@ -1,55 +1,18 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
-  CopilotActionRunResult,
   CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class FixGrammarAndSpelling extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
-      acceptFileExtentions: [
-        ...CodeRepositoryUtil.getCodeFileExtentions(),
-        ...CodeRepositoryUtil.getReadmeFileExtentions(),
-      ],
-    });
-  }
-
-  public override async filterNoOperation(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    const finalResult: CopilotActionRunResult = {
-      files: {},
-    };
-
-    for (const filePath in data.result.files) {
-      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue;
-      }
-
-      if (
-        data.result.files[filePath]?.fileContent.includes("does not contain") &&
-        data.result.files[filePath]?.fileContent.includes("spelling mistakes")
-      ) {
-        continue;
-      }
-
-      if (
-        data.result.files[filePath]?.fileContent.includes("does not contain") &&
-        data.result.files[filePath]?.fileContent.includes("grammar")
-      ) {
-        continue;
-      }
-
-      finalResult.files[filePath] = data.result.files[filePath]!;
-    }
-
-    return {
-      ...data,
-      result: finalResult,
-    };
+    super();
+    this.copilotActionType = CopilotActionType.FIX_GRAMMAR_AND_SPELLING;
+    this.acceptFileExtentions = [
+      ...CodeRepositoryUtil.getCodeFileExtentions(),
+      ...CodeRepositoryUtil.getReadmeFileExtentions(),
+    ];
   }
 
   public override async getPrompt(

@@ -47,15 +47,13 @@ export default class CopilotActionService {
 
     await CodeRepositoryUtil.pullChanges();
 
-    if (!actionDictionary[data.copilotActionType]) {
+    const actionType: typeof CopilotActionBase | undefined = actionDictionary[data.copilotActionType];
+
+    if (!actionType) {
       throw new BadDataException("Invalid CopilotActionType");
     }
 
-    logger.info("Executing Copilot Action: " + data.copilotActionType);
-
-    const action: CopilotActionBase = new actionDictionary[
-      data.copilotActionType
-    ]() as CopilotActionBase;
+    const action: CopilotActionBase = new actionType() as CopilotActionBase;
 
     const processResult: CopilotProcess | null = await action.execute({
       input: data.input,

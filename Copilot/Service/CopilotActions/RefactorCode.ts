@@ -1,38 +1,15 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
-  CopilotActionRunResult,
   CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class RefactorCode extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.REFACTOR_CODE,
-      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
-    });
-  }
-
-  public override async filterNoOperation(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    const finalResult: CopilotActionRunResult = {
-      files: {},
-    };
-
-    for (const filePath in data.result.files) {
-      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue;
-      }
-
-      finalResult.files[filePath] = data.result.files[filePath]!;
-    }
-
-    return {
-      ...data,
-      result: finalResult,
-    };
+    super();
+    this.copilotActionType = CopilotActionType.REFACTOR_CODE;
+    this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
   public override async getPrompt(

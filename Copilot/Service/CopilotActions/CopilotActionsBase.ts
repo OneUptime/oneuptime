@@ -4,11 +4,12 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
-import NotAcceptedFileExtentionForCopilotAction from "../../Exceptions/NotAcceptedFileExtention";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
 import { CopilotPromptResult } from "../LLM/LLMBase";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import logger from "CommonServer/Utils/Logger";
 
 export interface CopilotActionRunResult {
   files: Dictionary<CodeRepositoryFile>;
@@ -37,16 +38,16 @@ export default class CopilotActionBase {
 
   public acceptFileExtentions: string[] = [];
 
-  public constructor(data: {
-    copilotActionType: CopilotActionType;
-    acceptFileExtentions: string[];
-  }) {
+  public constructor() {
     this.llmType = GetLlmType();
-    this.copilotActionType = data.copilotActionType;
-    this.acceptFileExtentions = data.acceptFileExtentions;
   }
 
-  public async onBeforeExecute(data: CopilotProcess): Promise<CopilotProcess> {
+  public async validateExecutionStep(data: CopilotProcess): Promise<boolean> {
+
+    if(!this.copilotActionType){
+      throw new BadDataException("Copilot Action Type is not set");
+    }
+
     // check if the file extension is accepted or not
 
     if (
@@ -56,15 +57,22 @@ export default class CopilotActionBase {
         );
       })
     ) {
-      throw new NotAcceptedFileExtentionForCopilotAction(
+      logger.info(
         `The file extension ${data.input.currentFilePath.split(".").pop()} is not accepted by the copilot action ${this.copilotActionType}. Ignore this file...`,
       );
+
+      return false;
     }
 
-    return data;
+    return true;
   }
 
   public async onAfterExecute(data: CopilotProcess): Promise<CopilotProcess> {
+    // do nothing
+    return data;
+  }
+
+  public async onBeforeExecute(data: CopilotProcess): Promise<CopilotProcess> {
     // do nothing
     return data;
   }
@@ -116,6 +124,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
   }
 
   public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
+
+    logger.info("Executing Copilot Action: " + this.copilotActionType);
+    logger.info("Current File Path: " + data.input.currentFilePath);
+
     data = await this.onBeforeExecute(data);
 
     if (!data.result) {
@@ -131,6 +143,14 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     let isActionComplete: boolean = false;
 
     while (!isActionComplete) {
+
+      if(!await this.validateExecutionStep(data)){
+        // execution step not valid 
+        // return data as it is
+
+        return data;
+      }
+
       data = await this.onExecutionStep(data);
 
       isActionComplete = await this.isActionComplete(data);

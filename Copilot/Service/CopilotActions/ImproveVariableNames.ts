@@ -1,35 +1,16 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
-  CopilotActionRunResult,
   CopilotProcess,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class ImproveVariableNames extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.IMPROVE_VARIABLE_NAMES,
-      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
-    });
-  }
-
-  public override async filterNoOperation(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    const finalResult: CopilotActionRunResult = {
-      files: {},
-    };
-
-    for (const filePath in data.result.files) {
-      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue;
-      }
-
-      finalResult.files[filePath] = data.result.files[filePath]!;
-    }
-
-    return { ...data, result: finalResult };
+    super();
+    this.copilotActionType = CopilotActionType.IMPROVE_VARIABLE_NAMES;
+    this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
+    
   }
 
   public override async getPrompt(

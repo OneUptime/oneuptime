@@ -4,10 +4,9 @@ import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class WriteUnitTests extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.WRITE_UNIT_TESTS,
-      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
-    });
+    super();
+    this.copilotActionType = CopilotActionType.WRITE_UNIT_TESTS;
+    this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
   public override async getPrompt(): Promise<CopilotActionPrompt> {

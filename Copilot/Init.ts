@@ -19,7 +19,7 @@ import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceRepository from "Model/Models/ServiceRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
-import ArrayUtil from "Common/Types/ArrayUtil";
+// import ArrayUtil from "Common/Types/ArrayUtil";
 
 let currentFixCount: number = 1;
 
@@ -43,9 +43,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       }`,
     );
 
-    const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(
-      Object.values(filesInService),
-    ); // shuffle the files to avoid fixing the same file in each run.
+    // const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(
+    //   Object.values(filesInService),
+    // ); // shuffle the files to avoid fixing the same file in each run.
+
+    const files: Array<CodeRepositoryFile> = Object.values(filesInService);
 
     for (const file of files) {
       checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
@@ -114,7 +116,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         executionResult = await CopilotActionService.execute({
           serviceRepository: serviceRepository,
           copilotActionType: nextEventToFix,
-          vars: {
+          input: {
             currentFilePath: file.filePath, // this is the file path where optimization is needed or should start from.
             files: filesInService,
           },
