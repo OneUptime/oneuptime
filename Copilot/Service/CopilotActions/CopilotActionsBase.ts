@@ -15,9 +15,19 @@ export interface CopilotActionRunResult {
   files: Dictionary<CodeRepositoryFile>;
 }
 
+export enum PromptRole {
+  System = "system",
+  User = "user",
+  Assistant = "assistant",
+}
+
+export interface Prompt {
+  content: string;
+  role: PromptRole;
+}
+
 export interface CopilotActionPrompt {
-  prompt: string;
-  systemPrompt: string;
+  messages: Array<Prompt>;
 }
 
 export interface CopilotActionVars {

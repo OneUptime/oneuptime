@@ -8,7 +8,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Sleep from "Common/Types/Sleep";
 import logger from "CommonServer/Utils/Logger";
-import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
+import { CopilotActionPrompt, Prompt } from "../CopilotActions/CopilotActionsBase";
 import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
 
 enum LlamaPromptStatus {
@@ -27,10 +27,12 @@ export default class Llama extends LlmBase {
       await API.post(
         URL.fromString(serverUrl.toString()).addRoute("/prompt/"),
         {
-          messages: [
-            { role: "system", content: data.systemPrompt },
-            { role: "user", content: data.prompt },
-          ],
+          messages: data.messages.map((message: Prompt) => {
+            return {
+              content: message.content,
+              role: message.role,
+            };
+          }),
           secretkey: GetRepositorySecretKey(),
         },
       );

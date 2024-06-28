@@ -2,6 +2,7 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotProcess,
+  PromptRole,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
@@ -97,8 +98,7 @@ export default class ImproveComments extends CopilotActionBase {
     const oldCode: string = data.oldCode;
     const newCode: string = data.newCode;
 
-    const prompt: CopilotActionPrompt = {
-      prompt: `
+    const prompt: string = `
         I've asked to improve comments in the code. 
 
         This is the old code: 
@@ -115,11 +115,22 @@ export default class ImproveComments extends CopilotActionBase {
 
         If the code was NOT changed EXCEPT comments, please reply with the following text:
         --no--
-      `,
-      systemPrompt: await this.getSystemPrompt(),
-    };
+      `;
 
-    return prompt;
+    const systemPrompt: string = await this.getSystemPrompt();
+
+    return {
+      messages: [
+        {
+          content: systemPrompt,
+          role: PromptRole.System,
+        },
+        {
+          content: prompt,
+          role: PromptRole.User,
+        },
+      ],
+    };
   }
 
   public override async getPrompt(
@@ -144,8 +155,16 @@ export default class ImproveComments extends CopilotActionBase {
     const systemPrompt: string = await this.getSystemPrompt();
 
     return {
-      prompt: prompt,
-      systemPrompt: systemPrompt,
+      messages: [
+        {
+          content: systemPrompt,
+          role: PromptRole.System,
+        },
+        {
+          content: prompt,
+          role: PromptRole.User,
+        },
+      ],
     };
   }
 

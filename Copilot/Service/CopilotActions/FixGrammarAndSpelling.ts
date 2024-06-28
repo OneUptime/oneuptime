@@ -2,6 +2,7 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionBase, {
   CopilotActionPrompt,
   CopilotProcess,
+  PromptRole,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
@@ -34,8 +35,16 @@ export default class FixGrammarAndSpelling extends CopilotActionBase {
 - You will not change the code unnecessarily. For example you will not change the code structure, logic, quotes around strings, or functionality.`;
 
     return {
-      prompt: prompt,
-      systemPrompt: systemPrompt,
+      messages: [
+        {
+          content: systemPrompt,
+          role: PromptRole.System,
+        },
+        {
+          content: prompt,
+          role: PromptRole.User,
+        },
+      ],
     };
   }
 }

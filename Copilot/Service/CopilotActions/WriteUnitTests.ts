@@ -1,5 +1,8 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotActionBase, { CopilotActionPrompt } from "./CopilotActionsBase";
+import CopilotActionBase, {
+  CopilotActionPrompt,
+  PromptRole,
+} from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class WriteUnitTests extends CopilotActionBase {
@@ -23,8 +26,16 @@ export default class WriteUnitTests extends CopilotActionBase {
 - You will not change the code unnecessarily. For example you will not change the logic, quotes around strings, or functionality.`;
 
     return {
-      prompt: prompt,
-      systemPrompt: systemPrompt,
+      messages: [
+        {
+          content: systemPrompt,
+          role: PromptRole.System,
+        },
+        {
+          content: prompt,
+          role: PromptRole.User,
+        },
+      ],
     };
   }
 }
