@@ -14,8 +14,8 @@ services:
         - '8547:8547'
     build:
         network: host
-        context: .
-        dockerfile: ./LLM/Dockerfile
+        context: ./LLM
+        dockerfile: ./Dockerfile
     deploy:
       resources:
         reservations:
