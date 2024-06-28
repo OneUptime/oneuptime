@@ -144,16 +144,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               }}
             >
               <NavBarMenuItem
-                                title="Reliability Copilot"
-                                description="Fix and improve your code automatically."
-                                route={RouteUtil.populateRouteParams(
-                                    RouteMap[PageMap.RELIABILITY_COPILOT] as Route
-                                )}
-                                icon={IconProp.Bolt}
-                                onClick={() => {
-                                    forceHideMoreMenu();
-                                }}
-                            />
+                title="Reliability Copilot"
+                description="Fix and improve your code automatically."
+                route={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
+                )}
+                icon={IconProp.Bolt}
+                onClick={() => {
+                  forceHideMoreMenu();
+                }}
+              />
 
               <NavBarMenuItem
                 title="Service Catalog"

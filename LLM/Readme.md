@@ -11,7 +11,7 @@ git lfs install
 ```
 
 ```bash
-cd ./Llama/Models
+cd ./LLM/Models
 # Here we are downloading the Meta-Llama-3-8B-Instruct model
 git clone https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 ```
