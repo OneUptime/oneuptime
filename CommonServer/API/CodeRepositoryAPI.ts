@@ -26,6 +26,21 @@ export default class CodeRepositoryAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
+        ?.toString()}/is-valid/:secretkey`,
+      CodeRepositoryAuthorization.isAuthorizedRepository,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
         ?.toString()}/get-code-repository/:secretkey`,
       CodeRepositoryAuthorization.isAuthorizedRepository,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

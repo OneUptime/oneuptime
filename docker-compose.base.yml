@@ -188,6 +188,7 @@ services:
         environment:
             <<: *common-server-variables
             PORT: 8547
+            ONEUPTIME_URL: ${LLM_ONEUPTIME_SERVER_URL}
         volumes:
             - ./LLM/Models:/app/Models
         logging:

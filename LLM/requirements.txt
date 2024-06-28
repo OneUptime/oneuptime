@@ -8,3 +8,4 @@ pydantic===2.4.2
 
 # Rest of the app
 APScheduler===3.10.4
+aiohttp===3.9.5

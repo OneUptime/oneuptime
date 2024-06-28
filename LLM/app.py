@@ -1,16 +1,45 @@
 import uuid
 import transformers
 import asyncio
+import os
 import torch
+import aiohttp
 from fastapi import FastAPI
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 
+# ENV VARS
+ONEUPTIME_URL = os.getenv("ONEUPTIME_URL")
+
+if not ONEUPTIME_URL:
+    ONEUPTIME_URL = "https://oneuptime.com"
+
+print(f"ONEUPTIME_URL: {ONEUPTIME_URL}")
+
 # TODO: Store this in redis down the line. 
 items_pending = {}
 items_processed = {}
 errors = {}
+
+async def validateSecretKey(secretKey):
+    try:
+
+        # If no secret key then return false 
+        if not secretKey:
+            return False
+
+        async with aiohttp.ClientSession() as session:
+            url = f"{ONEUPTIME_URL}/api/code-repository/is-valid/{secretKey}"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    return True
+                else:
+                    return False
+                
+    except Exception as e:
+        print(repr(e))
+        return False
 
 async def job(queue):
     print("Processing queue...")
@@ -61,10 +90,12 @@ async def lifespan(app:FastAPI):
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
    messages: list
+   secretkey: str
 
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
    id: str
+   secretkey: str
 
 app = FastAPI(lifespan=lifespan)
 
@@ -79,6 +110,13 @@ async def create_item(prompt: Prompt):
         # If not prompt then return bad request error
         if not prompt:
             return {"error": "Prompt is required"}
+        
+        # Validate the secret key
+        is_valid = await validateSecretKey(prompt_status.secretkey)
+
+        if not is_valid:
+            print("Invalid secret key")
+            return {"error": "Invalid secret key"}
         
         # messages are in str format. We need to convert them fron json [] to list
         messages = prompt.messages
@@ -103,6 +141,7 @@ async def create_item(prompt: Prompt):
         print(e)
         return {"error": repr(e)}
 
+# Disable this API in production
 @app.get("/queue-status/")
 async def queue_status():
     try: 
@@ -116,7 +155,14 @@ async def prompt_status(prompt_status: PromptResult):
     try:
         # Log prompt status to console
         print(prompt_status)
-    
+
+        # Validate the secret key
+        is_valid = await validateSecretKey(prompt_status.secretkey)
+
+        if not is_valid:
+            print("Invalid secret key")
+            return {"error": "Invalid secret key"}
+        
         # If not prompt status then return bad request error
         if not prompt_status:
             return {"error": "Prompt status is required"}
