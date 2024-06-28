@@ -93,12 +93,9 @@ Haraka/dkim/keys/public_base64.txt
 
 HelmChart/Values/*.values.yaml
 
-Llama/Models/tokenizer*
-Llama/Models/llama*
+LLM/__pycache__/*
 
-Llama/__pycache__/*
-
-Llama/Models/*
+LLM/Models/*
 
 Examples/otel-dotnet/obj/*
 

@@ -181,7 +181,7 @@ services:
                 max-size: "1000m"
     
 
-    llama: 
+    llm: 
         networks:
           - oneuptime
         restart: always
@@ -189,7 +189,7 @@ services:
             <<: *common-server-variables
             PORT: 8547
         volumes:
-            - ./Llama/Models:/app/Models
+            - ./LLM/Models:/app/Models
         logging:
             driver: "local"
             options:

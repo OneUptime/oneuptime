@@ -1,14 +1,14 @@
 services:
-  llama: 
+  llm: 
     extends:
         file: ./docker-compose.base.yml
-        service: llama
+        service: llm
     ports:
         - '8547:8547'
     build:
         network: host
         context: .
-        dockerfile: ./Llama/Dockerfile
+        dockerfile: ./LLM/Dockerfile
     deploy:
       resources:
         reservations:

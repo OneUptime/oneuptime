@@ -56,5 +56,5 @@ settings.json
 
 GoSDK/tester/
 
-Llama/Models/*
+LLM/Models/*
 
