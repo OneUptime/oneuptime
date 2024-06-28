@@ -9,20 +9,20 @@ export function getCodeRepositoryBreadcrumbs(
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW, [
       "Project",
-      "AI Copilot",
+      "Reliability Copilot",
       "View Git Repository",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE,
-      ["Project", "AI Copilot", "View Git Repository", "Delete Repository"],
+      ["Project", "Reliability Copilot", "View Git Repository", "Delete Repository"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS,
-      ["Project", "AI Copilot", "View Git Repository", "Settings"],
+      ["Project", "Reliability Copilot", "View Git Repository", "Settings"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES,
-      ["Project", "AI Copilot", "View Git Repository", "Services"],
+      ["Project", "Reliability Copilot", "View Git Repository", "Services"],
     ),
   };
   return breadcrumpLinksMap[path];

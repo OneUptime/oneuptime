@@ -22,14 +22,14 @@ const CodeRepositoryPage: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Page
-      title={"AI Copilot"}
+      title={"Reliability Copilot"}
       breadcrumbLinks={[
         {
           title: "Project",
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "AI Copilot",
+          title: "Reliability Copilot",
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
           ),
@@ -53,7 +53,7 @@ const CodeRepositoryPage: FunctionComponent<
         cardProps={{
           title: "Git Repository",
           description:
-            "Git repositores where the AI Copilot can improve your code.",
+            "Git repositores where the Reliability Copilot can improve your code.",
         }}
         viewPageRoute={
           new Route(
