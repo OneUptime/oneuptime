@@ -44,8 +44,8 @@ jobs:
         with:
           node-version: 18.3.0
 
-      - name: Download the Model from Hugging Face
-        run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
+      # - name: Download the Model from Hugging Face
+      #   run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1008,7 +1008,7 @@ jobs:
           
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [copilot-docker-image-deploy, isolated-vm-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, ingestor-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy]
+    needs: [llm-docker-image-deploy, copilot-docker-image-deploy, isolated-vm-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, ingestor-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
