@@ -36,7 +36,6 @@ export default class CodeRepositoryAPI extends BaseAPI<
         }
       },
     );
-  
 
     this.router.get(
       `${new this.entityType()
