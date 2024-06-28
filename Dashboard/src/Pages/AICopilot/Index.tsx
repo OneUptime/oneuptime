@@ -1,3 +1,4 @@
+import Banner from "CommonUI/src/Components/Banner/Banner";
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
@@ -14,6 +15,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import CodeRepository from "Model/Models/CodeRepository";
 import Label from "Model/Models/Label";
 import React, { FunctionComponent, ReactElement } from "react";
+import URL from "Common/Types/API/URL";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
@@ -34,6 +36,12 @@ const CodeRepositoryPage: FunctionComponent<
         },
       ]}
     >
+      <Banner
+        title="Beta Software"
+        description="Reliability Copilot is a beta software. Please let us know your feedback and report any bugs on GitHub."
+        openInNewTab={true}
+        link={URL.fromString("https://github.com/OneUptime/oneuptime/issues")}
+      />
       <ModelTable<CodeRepository>
         modelType={CodeRepository}
         id="service-catalog-table"
