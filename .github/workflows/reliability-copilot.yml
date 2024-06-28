@@ -15,7 +15,7 @@ on:
 
 jobs:
   analyze:
-    name: OneUptime Reliability Copilot - Analyze Code
+    name: Analyze Code
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -32,7 +32,7 @@ jobs:
     # Run Reliability Copilot in Doker Container
     - name: Run Copilot
       run: |
-        docker run --rm -v $(pwd):/repository -w /repository oneuptime/copilot:latest \ 
+        docker run --rm -v $(pwd):/repository -w /repository oneuptime/copilot:test \ 
             -e ONEUPTIME_URL='https://test.oneuptime.com' \
             -e ONEUPTIME_REPOSITORY_SECRET_KEY=${{ secrets.COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY }} \
             -e GITHUB_TOKEN=${{ github.token }} \
