@@ -1,4 +1,11 @@
 services:
+
+  # Redis for caching and cluster state
+  redis:
+    extends:
+        file: ./docker-compose.base.yml
+        service: redis
+
   llm: 
     extends:
         file: ./docker-compose.base.yml
