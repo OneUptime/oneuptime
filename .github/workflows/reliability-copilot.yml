@@ -1,0 +1,40 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+name: "OneUptime Reliability Copilot"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
+  schedule:
+    # Run every day at midnight UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  analyze:
+    name: OneUptime Reliability Copilot - Analyze Code
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    permissions:
+      actions: read
+      # We will never commit to the main/master branch. We will always create a PR.
+      contents: write
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Run Reliability Copilot in Doker Container
+    - name: Run Copilot
+      run: |
+        docker run --rm -v $(pwd):/repository -w /repository oneuptime/copilot:latest \ 
+            -e ONEUPTIME_URL='https://test.oneuptime.com' \
+            -e ONEUPTIME_REPOSITORY_SECRET_KEY=${{ secrets.COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY }} \
+            -e GITHUB_TOKEN=${{ github.token }} \
+            -e GITHUB_USERNAME='simlarsen' \
+            -e ONEUPTIME_LLAMA_SERVER_URL='http://57.128.112.160:8547'

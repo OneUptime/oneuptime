@@ -5,7 +5,7 @@ Copilot is a tool that helps you improve your codebase automatically.
 ## Run Copilot with Docker
 
 ```bash
-docker run -v $(pwd):/app -w /app oneuptime/copilot
+docker run -v $(pwd):/repository -w /repository oneuptime/copilot
 ```
 
 

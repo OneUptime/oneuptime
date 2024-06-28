@@ -14,7 +14,12 @@ export function getCodeRepositoryBreadcrumbs(
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE,
-      ["Project", "Reliability Copilot", "View Git Repository", "Delete Repository"],
+      [
+        "Project",
+        "Reliability Copilot",
+        "View Git Repository",
+        "Delete Repository",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS,
