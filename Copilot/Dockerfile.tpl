@@ -72,6 +72,9 @@ COPY ./Copilot/package*.json /usr/src/app/
 RUN npm install
 
 
+# Create /repository/ directory where the app will store the repository
+RUN mkdir /repository
+
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
