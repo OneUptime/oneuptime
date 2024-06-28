@@ -7,7 +7,7 @@ global:
 host: localhost
 httpProtocol: http
 
-# (Optional): You usually do not need to set this if you're self hosting. If you do set it, set it to a long random value.
+# Important: You do need to set this to a long random values if you're using OneUptime in production.
 oneuptimeSecret: 
 encryptionSecret: 
 
