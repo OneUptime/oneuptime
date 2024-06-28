@@ -6,6 +6,8 @@
 FROM node:21.7.3-alpine3.18
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
+# Set the stack trace limit to 0 to show full stack traces
+ENV NODE_OPTIONS='--stack-trace-limit=0'
 
 ARG GIT_SHA
 ARG APP_VERSION
