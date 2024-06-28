@@ -425,37 +425,37 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.AI_COPILOT_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/*`,
+    `/dashboard/${RouteParams.ProjectID}/copilot/*`,
   ),
 
-  [PageMap.AI_COPILOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot`,
+  [PageMap.RELIABILITY_COPILOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/copilot`,
   ),
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/code-repository`,
+    `/dashboard/${RouteParams.ProjectID}/copilot/code-repository`,
   ),
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
+    `/dashboard/${RouteParams.ProjectID}/copilot/${
       CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW]
     }`,
   ),
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
+    `/dashboard/${RouteParams.ProjectID}/copilot/${
       CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE]
     }`,
   ),
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
+    `/dashboard/${RouteParams.ProjectID}/copilot/${
       CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]
     }`,
   ),
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-copilot/${
+    `/dashboard/${RouteParams.ProjectID}/copilot/${
       CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES]
     }`,
   ),

@@ -29,7 +29,7 @@ const CodeRepositoryPage: FunctionComponent<
         {
           title: "AI Copilot",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.AI_COPILOT] as Route,
+            RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
           ),
         },
       ]}

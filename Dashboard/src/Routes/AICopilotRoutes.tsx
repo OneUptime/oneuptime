@@ -53,12 +53,12 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
   return (
     <Routes>
       <PageRoute
-        path={CodeRepositoryRoutePath[PageMap.AI_COPILOT] || ""}
+        path={CodeRepositoryRoutePath[PageMap.RELIABILITY_COPILOT] || ""}
         element={
           <Suspense fallback={Loader}>
             <AiCopilot
               {...props}
-              pageRoute={RouteMap[PageMap.AI_COPILOT] as Route}
+              pageRoute={RouteMap[PageMap.RELIABILITY_COPILOT] as Route}
             />
           </Suspense>
         }
