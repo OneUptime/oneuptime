@@ -3,7 +3,7 @@ import { ColumnAccessControl } from "../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../Types/BaseDatabase/ColumnBillingAccessControl";
 import EnableWorkflowOn from "../Types/BaseDatabase/EnableWorkflowOn";
 import ModelPermission from "../Types/BaseDatabase/ModelPermission";
-import { PlanSelect } from "../Types/Billing/SubscriptionPlan";
+import { PlanType } from "../Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Columns from "../Types/Database/Columns";
@@ -96,10 +96,10 @@ export default class BaseModel extends BaseEntity {
   public updateRecordPermissions!: Array<Permission>;
 
   // Billing Plans.
-  public createBillingPlan!: PlanSelect | null;
-  public readBillingPlan!: PlanSelect | null;
-  public updateBillingPlan!: PlanSelect | null;
-  public deleteBillingPlan!: PlanSelect | null;
+  public createBillingPlan!: PlanType | null;
+  public readBillingPlan!: PlanType | null;
+  public updateBillingPlan!: PlanType | null;
+  public deleteBillingPlan!: PlanType | null;
 
   public allowAccessIfSubscriptionIsUnpaid!: boolean;
 
@@ -465,19 +465,19 @@ export default class BaseModel extends BaseEntity {
     return this.readRecordPermissions;
   }
 
-  public getReadBillingPlan(): PlanSelect | null {
+  public getReadBillingPlan(): PlanType | null {
     return this.readBillingPlan;
   }
 
-  public getCreateBillingPlan(): PlanSelect | null {
+  public getCreateBillingPlan(): PlanType | null {
     return this.createBillingPlan;
   }
 
-  public getUpdateBillingPlan(): PlanSelect | null {
+  public getUpdateBillingPlan(): PlanType | null {
     return this.updateBillingPlan;
   }
 
-  public getDeleteBillingPlan(): PlanSelect | null {
+  public getDeleteBillingPlan(): PlanType | null {
     return this.deleteBillingPlan;
   }
 

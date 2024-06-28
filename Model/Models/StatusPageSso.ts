@@ -4,7 +4,7 @@ import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
@@ -26,10 +26,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
-  create: PlanSelect.Scale,
-  read: PlanSelect.Scale,
-  update: PlanSelect.Scale,
-  delete: PlanSelect.Scale,
+  create: PlanType.Scale,
+  read: PlanType.Scale,
+  update: PlanType.Scale,
+  delete: PlanType.Scale,
 })
 @TenantColumn("projectId")
 @TableAccessControl({

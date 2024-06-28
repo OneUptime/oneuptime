@@ -4,7 +4,7 @@ import Team from "./Team";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
@@ -25,10 +25,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CanAccessIfCanReadOn("statusPage")
 @EnableDocumentation()
 @TableBillingAccessControl({
-  create: PlanSelect.Growth,
-  read: PlanSelect.Free,
-  update: PlanSelect.Growth,
-  delete: PlanSelect.Free,
+  create: PlanType.Growth,
+  read: PlanType.Free,
+  update: PlanType.Growth,
+  delete: PlanType.Free,
 })
 @TenantColumn("projectId")
 @TableAccessControl({

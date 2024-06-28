@@ -2,7 +2,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import ProjectService from "../Services/ProjectService";
 import { ExpressRequest, OneUptimeRequest } from "../Utils/Express";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import UserType from "Common/Types/UserType";
 
 export default class CommonAPI {
@@ -47,7 +47,7 @@ export default class CommonAPI {
 
     if (IsBillingEnabled && props.tenantId) {
       const plan: {
-        plan: PlanSelect | null;
+        plan: PlanType | null;
         isSubscriptionUnpaid: boolean;
       } = await ProjectService.getCurrentPlan(props.tenantId!);
       props.currentPlan = plan.plan || undefined;

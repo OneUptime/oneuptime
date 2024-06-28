@@ -1,4 +1,4 @@
-import { PlanSelect } from "../Billing/SubscriptionPlan";
+import { PlanType } from "../Billing/SubscriptionPlan";
 import Dictionary from "../Dictionary";
 import ObjectID from "../ObjectID";
 import {
@@ -18,7 +18,7 @@ export default interface DatabaseCommonInteractionProps {
   isRoot?: boolean | undefined;
   isMultiTenantRequest?: boolean | undefined;
   ignoreHooks?: boolean | undefined;
-  currentPlan?: PlanSelect | undefined;
+  currentPlan?: PlanType | undefined;
   isSubscriptionUnpaid?: boolean | undefined;
   isMasterAdmin?: boolean | undefined;
 }

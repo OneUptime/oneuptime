@@ -21,7 +21,7 @@ import TeamMemberService from "./TeamMemberService";
 import URL from "Common/Types/API/URL";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -144,7 +144,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (
-        currentPlan.plan === PlanSelect.Free &&
+        currentPlan.plan === PlanType.Free &&
         createBy.data.monitorType !== MonitorType.Manual
       ) {
         const monitorCount: PositiveNumber = await this.countBy({

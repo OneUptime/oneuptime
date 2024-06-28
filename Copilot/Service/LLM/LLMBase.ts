@@ -2,14 +2,14 @@ import NotImplementedException from "Common/Types/Exception/NotImplementedExcept
 import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
 import { JSONValue } from "Common/Types/JSON";
 
-export interface LLMPromptResult {
+export interface CopilotPromptResult {
   output: JSONValue;
 }
 
 export default class LlmBase {
   public static async getResponse(
     _data: CopilotActionPrompt,
-  ): Promise<LLMPromptResult> {
+  ): Promise<CopilotPromptResult> {
     throw new NotImplementedException();
   }
 }

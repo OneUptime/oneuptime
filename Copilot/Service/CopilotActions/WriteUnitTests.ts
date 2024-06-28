@@ -1,41 +1,15 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotActionBase, {
-  CopilotActionPrompt,
-  CopilotActionRunResult,
-  CopilotProcess,
-} from "./CopilotActionsBase";
+import CopilotActionBase, { CopilotActionPrompt } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 
 export default class WriteUnitTests extends CopilotActionBase {
   public constructor() {
-    super({
-      copilotActionType: CopilotActionType.WRITE_UNIT_TESTS,
-      acceptFileExtentions: CodeRepositoryUtil.getCodeFileExtentions(),
-    });
+    super();
+    this.copilotActionType = CopilotActionType.WRITE_UNIT_TESTS;
+    this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
-  public override async filterNoOperation(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    const finalResult: CopilotActionRunResult = {
-      files: {},
-    };
-
-    for (const filePath in data.result.files) {
-      if (data.result.files[filePath]?.fileContent.includes("--all-good--")) {
-        continue;
-      }
-
-      finalResult.files[filePath] = data.result.files[filePath]!;
-    }
-
-    return {
-      ...data,
-      result: finalResult,
-    };
-  }
-
-  protected override async _getPrompt(): Promise<CopilotActionPrompt> {
+  public override async getPrompt(): Promise<CopilotActionPrompt> {
     const prompt: string = `Write unit tests for this file.
     
     Here is the code. This is in {{fileLanguage}}: 

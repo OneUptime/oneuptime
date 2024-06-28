@@ -56,7 +56,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import { Yellow } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -1526,7 +1526,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getCardTitle: GetCardTitleFunction = (
     title: ReactElement | string,
   ): ReactElement => {
-    const plan: PlanSelect | null = ProjectUtil.getCurrentPlan();
+    const plan: PlanType | null = ProjectUtil.getCurrentPlan();
 
     let showPlan: boolean = Boolean(
       BILLING_ENABLED &&

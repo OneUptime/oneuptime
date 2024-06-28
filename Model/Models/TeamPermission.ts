@@ -4,7 +4,7 @@ import Team from "./Team";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
@@ -31,10 +31,10 @@ import {
 } from "typeorm";
 
 @TableBillingAccessControl({
-  create: PlanSelect.Scale,
-  read: PlanSelect.Free,
-  update: PlanSelect.Scale,
-  delete: PlanSelect.Free,
+  create: PlanType.Scale,
+  read: PlanType.Free,
+  update: PlanType.Scale,
+  delete: PlanType.Free,
 })
 @EnableDocumentation()
 @TableAccessControl({
