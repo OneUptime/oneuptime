@@ -1,7 +1,7 @@
-import { PlanSelect } from "../Billing/SubscriptionPlan";
+import { PlanType } from "../Billing/SubscriptionPlan";
 
 export default interface ColumnBillingAccessControl {
-  create: PlanSelect;
-  read: PlanSelect;
-  update: PlanSelect;
+  create: PlanType;
+  read: PlanType;
+  update: PlanType;
 }

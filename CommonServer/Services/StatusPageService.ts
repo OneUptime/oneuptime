@@ -35,7 +35,7 @@ import {
   AllowedStatusPageCountInFreePlan,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 export class Service extends DatabaseService<StatusPage> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -61,7 +61,7 @@ export class Service extends DatabaseService<StatusPage> {
         );
       }
 
-      if (currentPlan.plan === PlanSelect.Free) {
+      if (currentPlan.plan === PlanType.Free) {
         const statusPageCount: PositiveNumber = await this.countBy({
           query: {
             projectId: createBy.data.projectId,

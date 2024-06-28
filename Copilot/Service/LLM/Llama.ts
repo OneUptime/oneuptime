@@ -1,6 +1,6 @@
 import URL from "Common/Types/API/URL";
 import { GetLlamaServerUrl } from "../../Config";
-import LlmBase, { LLMPromptResult } from "./LLMBase";
+import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -20,16 +20,19 @@ enum LlamaPromptStatus {
 export default class Llama extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
-  ): Promise<LLMPromptResult> {
+  ): Promise<CopilotPromptResult> {
     const serverUrl: URL = GetLlamaServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(URL.fromString(serverUrl.toString()).addRoute("/prompt"), {
-        messages: [
-          { role: "system", content: data.systemPrompt },
-          { role: "user", content: data.prompt },
-        ],
-      });
+      await API.post(
+        URL.fromString(serverUrl.toString()).addRoute("/prompt/"),
+        {
+          messages: [
+            { role: "system", content: data.systemPrompt },
+            { role: "user", content: data.prompt },
+          ],
+        },
+      );
 
     if (response instanceof HTTPErrorResponse) {
       throw response;
@@ -47,7 +50,7 @@ export default class Llama extends LlmBase {
     while (promptStatus === LlamaPromptStatus.Pending) {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.post(
-          URL.fromString(serverUrl.toString()).addRoute(`/prompt-result`),
+          URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
           {
             id: idOfPrompt,
           },

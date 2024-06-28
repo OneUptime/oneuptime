@@ -3,7 +3,7 @@ import ResellerPlan from "./ResellerPlan";
 import User from "./User";
 import TenantModel from "Common/Models/TenantModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import AllowAccessIfSubscriptionIsUnpaid from "Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
@@ -558,9 +558,9 @@ export default class Model extends TenantModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Scale,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
   })
   public requireSsoForLogin?: boolean = undefined;
 
@@ -844,7 +844,7 @@ export default class Model extends TenantModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public planName?: PlanSelect = undefined;
+  public planName?: PlanType = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -2,7 +2,7 @@ import { BILLING_ENABLED, getAllEnvVars } from "../Config";
 import LocalStorage from "./LocalStorage";
 import BaseModel from "Common/Models/BaseModel";
 import SubscriptionPlan, {
-  PlanSelect,
+  PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -34,7 +34,7 @@ export default class ProjectUtil {
     LocalStorage.setItem("current_project", null);
   }
 
-  public static getCurrentPlan(): PlanSelect | null {
+  public static getCurrentPlan(): PlanType | null {
     if (!BILLING_ENABLED) {
       return null;
     }
@@ -44,7 +44,7 @@ export default class ProjectUtil {
       return null;
     }
 
-    return SubscriptionPlan.getPlanSelect(
+    return SubscriptionPlan.getPlanType(
       project.paymentProviderPlanId,
       getAllEnvVars(),
     );

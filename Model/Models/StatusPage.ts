@@ -7,7 +7,7 @@ import ProjectSmtpConfig from "./ProjectSmtpConfig";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Color from "Common/Types/Color";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "Common/Types/Database/AccessControl/ColumnBillingAccessControl";
@@ -728,9 +728,9 @@ export default class StatusPage extends BaseModel {
     type: ColumnType.HTML,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public headerHTML?: string = undefined;
 
@@ -765,9 +765,9 @@ export default class StatusPage extends BaseModel {
     type: ColumnType.HTML,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public footerHTML?: string = undefined;
 
@@ -802,9 +802,9 @@ export default class StatusPage extends BaseModel {
     type: ColumnType.CSS,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public customCSS?: string = undefined;
 
@@ -840,9 +840,9 @@ export default class StatusPage extends BaseModel {
     type: ColumnType.JavaScript,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public customJavaScript?: string = undefined;
 
@@ -877,9 +877,9 @@ export default class StatusPage extends BaseModel {
     default: true,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public isPublicStatusPage?: boolean = undefined;
 
@@ -914,9 +914,9 @@ export default class StatusPage extends BaseModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public showIncidentLabelsOnStatusPage?: boolean = undefined;
 
@@ -951,9 +951,9 @@ export default class StatusPage extends BaseModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public showScheduledEventLabelsOnStatusPage?: boolean = undefined;
 
@@ -1053,9 +1053,9 @@ export default class StatusPage extends BaseModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Scale,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
   })
   public allowSubscribersToChooseResources?: boolean = undefined;
 
@@ -1090,9 +1090,9 @@ export default class StatusPage extends BaseModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Growth,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
   })
   public enableSmsSubscribers?: boolean = undefined;
 
@@ -1557,9 +1557,9 @@ export default class StatusPage extends BaseModel {
     default: false,
   })
   @ColumnBillingAccessControl({
-    read: PlanSelect.Free,
-    update: PlanSelect.Scale,
-    create: PlanSelect.Free,
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
   })
   public hidePoweredByOneUptimeBranding?: boolean = undefined;
 

@@ -15,7 +15,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import StatusCode from "Common/Types/API/StatusCode";
 import URL from "Common/Types/API/URL";
-import { PlanSelect } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -126,7 +126,7 @@ export default class ResellerPlanAPI extends BaseAPI<
             promoCode.resellerId = resellerPlan?.reseller.id as ObjectID;
             promoCode.resellerPlanId = resellerPlan?.id as ObjectID;
             promoCode.userEmail = userEmail;
-            promoCode.planType = resellerPlan?.planType as PlanSelect;
+            promoCode.planType = resellerPlan?.planType as PlanType;
             promoCode.resellerLicenseId = licenseKey || "";
 
             await PromoCodeService.create({
