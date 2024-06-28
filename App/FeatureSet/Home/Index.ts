@@ -393,6 +393,323 @@ const HomeFeatureSet: FeatureSet = {
           ],
         },
         {
+          name: "Logs Management",
+          data: [
+            {
+              name: "Ingest with OpenTelemetry",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Ingest with Fluentd",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Ingest +1000 Sources",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Application Logs",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Container Logs",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Data Rentention",
+              plans: {
+                free: "15 days",
+                growth: "Custom",
+                scale: "Custom",
+                enterprise: "Custom",
+              },
+            },
+            {
+              name: "Workflows",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Advanced Team Permissions",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+          ],
+        },
+        {
+          name: "Telemetry / APM",
+          data: [
+            {
+              name: "Metrics",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Traces",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Error Tracking",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Ingest Pricing",
+              plans: {
+                free: "$0.10/GB",
+                growth: "$0.10/GB",
+                scale: "$0.10/GB",
+                enterprise: "$0.10/GB",
+              },
+            },
+            {
+              name: "Data Rentention",
+              plans: {
+                free: "15 days",
+                growth: "Custom",
+                scale: "Custom",
+                enterprise: "Custom",
+              },
+            },
+            {
+              name: "Workflows",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Advanced Team Permissions",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+          ],
+        },
+        {
+          name: "Error Tracking",
+          data: [
+            {
+              name: "Track Errors and Exceptions",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Cross Microservice Issues",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Distributed Tracing",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Stack Traces",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Version Management",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Data Rentention",
+              plans: {
+                free: "15 days",
+                growth: "Custom",
+                scale: "Custom",
+                enterprise: "Custom",
+              },
+            },
+            {
+              name: "Workflows",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Advanced Team Permissions",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+          ],
+        },
+        {
+          name: "Reliability Copilot",
+          data: [
+            {
+              name: "Scan your Codebase",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Fix Errors Automatically",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Fix Performance Issues",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Fix DB Queries Automatically",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Fix Frontend Issues",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Integrate with GitHub, GitLab",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Integrate with CI/CD",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Integrate with Issue Tracker",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Integrates with Slack / Team",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Advanced Workflows",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+          ],
+        },
+        {
           name: "Support and More",
           data: [
             {

@@ -1,3 +1,4 @@
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import RunCron from "../../Utils/Cron";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Sleep from "Common/Types/Sleep";
@@ -45,6 +46,16 @@ RunCron(
     for (const project of projects) {
       try {
         if (project.id) {
+          const plan: {
+            plan: PlanType | null;
+            isSubscriptionUnpaid: boolean;
+          } = await ProjectService.getCurrentPlan(project.id);
+
+          if (plan.isSubscriptionUnpaid) {
+            // ignore and report when subscription is active.
+            continue;
+          }
+
           await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
             project.id,
           );
