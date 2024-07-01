@@ -83,6 +83,7 @@ If you still want to deploy OneUptime in production with docker-compose, please 
 - **SSL/TLS**: Set up SSL/TLS certificates. OneUptime does not support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own. Please see above. 
 - **Secrets**: Make sure you have random secrets in your `config.env` file. There are some default secrets in that file. Please replace them with random long strings. 
 - **Backups**: Regularly backup your databases (Clickhouse, Postgres). Redis is used as a cache and is stateless and can be safely ignored. 
+- **Updates**: Please regularly update OneUptime. We release updates every day. We recommend you to update the software aleast once a week if you're running in production. 
 
 ### Updating OneUptime
 
@@ -97,5 +98,3 @@ npm run update
 ### Things to consider
 
 - In our Docker setup, we employ a local logging driver. OneUptime, particularly within the probe and ingestor containers, generates a substantial amount of logs. To prevent your storage from becoming full, it's crucial to limit the logging storage in Docker. For detailed instructions on how to do this, please refer to the official Docker documentation [here](https://docs.docker.com/config/containers/logging/local/).
-
-
