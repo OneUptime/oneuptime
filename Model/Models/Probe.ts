@@ -21,7 +21,14 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import Version from "Common/Types/Version";
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 import Label from "./Label";
 
 export enum ProbeStatus {
@@ -504,7 +511,6 @@ export default class Probe extends BaseModel {
     unique: false,
   })
   public connectionStatus?: ProbeStatus = undefined;
-
 
   @ColumnAccessControl({
     create: [

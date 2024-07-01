@@ -16,6 +16,7 @@ import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
+import Label from "Model/Models/Label";
 import Probe from "Model/Models/Probe";
 import React, {
   Fragment,
@@ -23,6 +24,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import LabelsElement from "../../Components/Label/Labels";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
@@ -128,11 +130,22 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           noItemsMessage={"No probes found."}
           viewPageRoute={Navigation.getCurrentRoute()}
+          formSteps={[
+            {
+              title: "Basic Info",
+              id: "basic-info",
+            },
+            {
+              title: "More",
+              id: "more",
+            },
+          ]}
           formFields={[
             {
               field: {
                 name: true,
               },
+              stepId: "basic-info",
               title: "Name",
               fieldType: FormFieldSchemaType.Text,
               required: true,
@@ -147,6 +160,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: true,
               },
               title: "Description",
+              stepId: "basic-info",
               fieldType: FormFieldSchemaType.LongText,
               required: true,
               placeholder:
@@ -158,6 +172,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 iconFile: true,
               },
               title: "Probe Logo",
+              stepId: "basic-info",
               fieldType: FormFieldSchemaType.ImageFile,
               required: false,
               placeholder: "Upload logo",
@@ -166,9 +181,28 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
+              stepId: "more",
               title: "Enable monitoring automatically on new monitors",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
+            },
+            {
+              field: {
+                labels: true,
+              },
+
+              title: "Labels ",
+              stepId: "more",
+              description:
+                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Label,
+                labelField: "name",
+                valueField: "_id",
+              },
+              required: false,
+              placeholder: "Labels",
             },
           ]}
           showRefreshButton={true}
@@ -207,6 +241,24 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Description",
               type: FieldType.Text,
+            },
+            {
+              title: "Labels",
+              type: FieldType.EntityArray,
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              filterEntityType: Label,
+              filterQuery: {
+                projectId: DashboardNavigation.getProjectId()?.toString(),
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
             },
             {
               field: {
@@ -274,6 +326,20 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     shouldAnimate={false}
                   />
                 );
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+
+              getElement: (item: Probe): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
               },
             },
           ]}

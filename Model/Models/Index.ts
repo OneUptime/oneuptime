@@ -272,5 +272,5 @@ export default [
   ServiceRepository,
 
   ProbeOwnerTeam,
-  ProbeOwnerUser
+  ProbeOwnerUser,
 ];

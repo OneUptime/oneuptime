@@ -477,7 +477,6 @@ enum Permission {
   EditProbeOwnerUser = "EditProbeOwnerUser",
   ReadProbeOwnerUser = "ReadProbeOwnerUser",
 
-
   CreateServiceRepository = "CreateServiceRepository",
   DeleteServiceRepository = "DeleteServiceRepository",
   EditServiceRepository = "EditServiceRepository",
@@ -2457,75 +2456,64 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
       {
         permission: Permission.CreateProbeOwnerTeam,
         title: "Create Probe Owner Team",
-        description:
-          "This permission can create owners for probes.",
+        description: "This permission can create owners for probes.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.DeleteProbeOwnerTeam,
         title: "Delete Probe Owner Team",
-        description:
-          "This permission can delete owners for probes",
+        description: "This permission can delete owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.EditProbeOwnerTeam,
         title: "Edit Probe Owner Team",
-        description:
-          "This permission can edit owners for probes",
+        description: "This permission can edit owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.ReadProbeOwnerTeam,
         title: "Read Probe Owner Team",
-        description:
-          "This permission can read owners for probes",
+        description: "This permission can read owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
 
-
       {
         permission: Permission.CreateProbeOwnerUser,
         title: "Create Probe Owner User",
-        description:
-          "This permission can create owners for probes.",
+        description: "This permission can create owners for probes.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.DeleteProbeOwnerUser,
         title: "Delete Probe Owner User",
-        description:
-          "This permission can delete owners for probes",
+        description: "This permission can delete owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.EditProbeOwnerUser,
         title: "Edit Probe Owner User",
-        description:
-          "This permission can edit owners for probes",
+        description: "This permission can edit owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.ReadProbeOwnerUser,
         title: "Read Probe Owner User",
-        description:
-          "This permission can read owners for probes",
+        description: "This permission can read owners for probes",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
 
-  
       {
         permission: Permission.CreateServiceCatalog,
         title: "Create Service Catalog",
