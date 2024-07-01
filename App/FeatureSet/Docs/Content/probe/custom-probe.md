@@ -11,7 +11,6 @@ To run a probe, please make sure you have docker installed. You can run custom p
 
 ```
 docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -d oneuptime/probe:release
-
 ```
 
 If you are self hosting OneUptime, you can change `INGESTOR_URL` to your custom self hosted instance. 

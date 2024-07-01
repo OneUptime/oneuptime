@@ -10,7 +10,7 @@ import Express, {
   NextFunction,
 } from "CommonServer/Utils/Express";
 import Response from "CommonServer/Utils/Response";
-import Probe from "Model/Models/Probe";
+import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -56,6 +56,7 @@ router.post(
             name: data["probeName"] as string,
             description: data["probeDescription"] as string,
             lastAlive: OneUptimeDate.getCurrentDate(),
+            connectionStatus: ProbeConnectionStatus.Connected,
           },
           props: {
             isRoot: true,
@@ -74,6 +75,7 @@ router.post(
       newProbe.name = data["probeName"] as string;
       newProbe.description = data["probeDescription"] as string;
       newProbe.lastAlive = OneUptimeDate.getCurrentDate();
+      newProbe.connectionStatus = ProbeConnectionStatus.Connected;
       newProbe.shouldAutoEnableProbeOnNewMonitors = true;
 
       newProbe = await ProbeService.create({

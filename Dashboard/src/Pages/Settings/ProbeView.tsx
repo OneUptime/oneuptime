@@ -19,11 +19,12 @@ import Probe from "Model/Models/Probe";
 import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
 import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
 import User from "Model/Models/User";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import TeamElement from "../../Components/Team/Team";
 import Team from "Model/Models/Team";
 import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
+import CustomProbeDocumentation from "../../Components/Probe/CustomProbeDocumentation";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -34,6 +35,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  const [probe, setProbe] = useState<Probe | null>(null);
 
   return (
     <Fragment>
@@ -120,6 +123,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           },
         ]}
         modelDetailProps={{
+          onItemLoaded: (item: Probe) => {
+            setProbe(item);
+          },
           modelType: Probe,
           id: "model-detail-team",
           fields: [
@@ -199,6 +205,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           modelId: Navigation.getLastParamAsObjectID(),
         }}
       />
+
+      {probe && <CustomProbeDocumentation probeKey={probe.key!} probeId={probe.id!} />}
 
       <ModelTable<ProbeOwnerTeam>
         modelType={ProbeOwnerTeam}

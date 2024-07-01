@@ -149,7 +149,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.fieldType === FieldType.Date) {
-      data = OneUptimeDate.getDateAsLocalFormattedString(data as string, true);
+      if (data) {
+        data = OneUptimeDate.getDateAsLocalFormattedString(
+          data as string,
+          true,
+        );
+      } else {
+        data = field.placeholder || "-";
+      }
     }
 
     if (field.fieldType === FieldType.Boolean) {
@@ -161,7 +168,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.fieldType === FieldType.DateTime) {
-      data = OneUptimeDate.getDateAsLocalFormattedString(data as string, false);
+      if (data) {
+        data = OneUptimeDate.getDateAsLocalFormattedString(
+          data as string,
+          false,
+        );
+      } else {
+        data = field.placeholder || "-";
+      }
     }
 
     if (data && field.fieldType === FieldType.Color) {

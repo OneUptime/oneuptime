@@ -58,6 +58,10 @@ RunCron(
           connectionStatus = ProbeConnectionStatus.Connected;
         }
 
+        if (!probe.lastAlive) {
+          connectionStatus = ProbeConnectionStatus.Disconnected;
+        }
+
         let shouldNotifyProbeOwner: boolean = false;
         let shouldUpdateConnectionStatus: boolean = false;
 

@@ -35,7 +35,7 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.key) {
-      createBy.data.key = ObjectID.generate().toString();
+      createBy.data.key = ObjectID.generate();
     }
 
     if (!createBy.data.probeVersion) {

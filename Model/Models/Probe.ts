@@ -98,14 +98,15 @@ export default class Probe extends BaseModel {
   @TableColumn({
     required: true,
     unique: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.ObjectID,
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.ObjectID,
     nullable: false,
     unique: true,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public key?: string = undefined;
+  public key?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
