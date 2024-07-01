@@ -62,15 +62,7 @@ RunCron(
           connectionStatus = ProbeConnectionStatus.Disconnected;
         }
 
-        let shouldNotifyProbeOwner: boolean = false;
         let shouldUpdateConnectionStatus: boolean = false;
-
-        if (
-          probe.connectionStatus &&
-          probe.connectionStatus !== connectionStatus
-        ) {
-          shouldNotifyProbeOwner = true;
-        }
 
         if (probe.connectionStatus !== connectionStatus) {
           shouldUpdateConnectionStatus = true;
@@ -93,17 +85,6 @@ RunCron(
               isRoot: true,
             },
           });
-
-          if (!probe.projectId) {
-            continue;
-          }
-
-          if (shouldNotifyProbeOwner) {
-            await ProbeService.notifyOwnersOnStatusChange({
-              probeId: probe.id,
-              connectionStatus: connectionStatus,
-            });
-          }
         }
       } catch (error) {
         logger.error(error);

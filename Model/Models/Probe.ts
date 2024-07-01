@@ -98,15 +98,14 @@ export default class Probe extends BaseModel {
   @TableColumn({
     required: true,
     unique: true,
-    type: TableColumnType.ObjectID,
+    type: TableColumnType.ShortText,
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.ShortText,
     nullable: false,
     unique: true,
-    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public key?: ObjectID = undefined;
+  public key?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -510,6 +509,7 @@ export default class Probe extends BaseModel {
     title: "Connection Status",
     description: "Connection Status of the Probe",
     type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.ShortText,

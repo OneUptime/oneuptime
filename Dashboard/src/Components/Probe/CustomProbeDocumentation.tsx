@@ -5,7 +5,7 @@ import { HOST, HTTP_PROTOCOL } from "CommonUI/src/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeKey: ObjectID;
+  probeKey: string;
   probeId: ObjectID;
 }
 

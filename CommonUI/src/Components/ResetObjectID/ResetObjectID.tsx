@@ -42,7 +42,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         modelType: props.modelType,
         id: props.modelId,
         data: {
-          [props.fieldName]: resetIdTo,
+          [props.fieldName]: resetIdTo.toString(),
         },
       });
       setNewId(resetIdTo);

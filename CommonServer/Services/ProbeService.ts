@@ -1,14 +1,14 @@
 import User from "Model/Models/User";
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "Common/Types/ObjectID";
 import Version from "Common/Types/Version";
 import Model, { ProbeConnectionStatus } from "Model/Models/Probe";
 import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -25,6 +25,7 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "Common/Types/API/URL";
+import UpdateBy from "../Types/Database/UpdateBy";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -35,7 +36,7 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.key) {
-      createBy.data.key = ObjectID.generate();
+      createBy.data.key = ObjectID.generate().toString();
     }
 
     if (!createBy.data.probeVersion) {
@@ -116,6 +117,58 @@ export class Service extends DatabaseService<Model> {
     }
 
     return users;
+  }
+
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const carryForward: any = {
+      probesToNotifyOwners: [],
+    };
+
+    if (updateBy.data.connectionStatus && updateBy.query.id) {
+      const probes: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          connectionStatus: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+      });
+
+      const probesToNotifyOwners: Array<Model> = probes.filter(
+        (probe: Model) => {
+          return (
+            probe.connectionStatus &&
+            probe.connectionStatus !== updateBy.data.connectionStatus
+          );
+        },
+      );
+
+      carryForward.probesToNotifyOwners = probesToNotifyOwners;
+    }
+
+    return { updateBy: updateBy, carryForward };
+  }
+
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.carryForward.probesToNotifyOwners.length > 0) {
+      for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
+        await this.notifyOwnersOnStatusChange({
+          probeId: probe.id!,
+          connectionStatus: probe.connectionStatus!,
+        });
+      }
+    }
+
+    return Promise.resolve(onUpdate);
   }
 
   public async notifyOwnersOnStatusChange(data: {

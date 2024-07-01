@@ -41,7 +41,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
-  const [probeKey, setProbeKey] = useState<ObjectID | null>(null);
+  const [probeKey, setProbeKey] = useState<string | null>(null);
 
   return (
     <Fragment>

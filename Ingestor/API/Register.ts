@@ -1,7 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
 import ProbeService from "CommonServer/Services/ProbeService";
 import Express, {
@@ -39,7 +38,7 @@ router.post(
 
       const probe: Probe | null = await ProbeService.findOneBy({
         query: {
-          key: new ObjectID(probeKey),
+          key: probeKey,
           isGlobalProbe: true,
         },
         select: {
@@ -72,7 +71,7 @@ router.post(
 
       let newProbe: Probe = new Probe();
       newProbe.isGlobalProbe = true;
-      newProbe.key = new ObjectID(probeKey);
+      newProbe.key = probeKey;
       newProbe.name = data["probeName"] as string;
       newProbe.description = data["probeDescription"] as string;
       newProbe.lastAlive = OneUptimeDate.getCurrentDate();
