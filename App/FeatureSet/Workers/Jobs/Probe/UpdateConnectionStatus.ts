@@ -4,9 +4,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProbeService from "CommonServer/Services/ProbeService";
 import logger from "CommonServer/Utils/Logger";
-import Probe, { ProbeStatus } from "Model/Models/Probe";
-import MonitorProbe from "Model/Models/MonitorProbe";
-import MonitorProbeService from "CommonServer/Services/MonitorProbeService";
+import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
 
 RunCron(
   "Probe:UpdateConnectionStatus",
@@ -23,6 +21,7 @@ RunCron(
         _id: true,
         lastAlive: true,
         connectionStatus: true,
+        projectId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -40,10 +39,11 @@ RunCron(
           continue;
         }
 
-        let connectionStatus: ProbeStatus = ProbeStatus.Connected;
+        let connectionStatus: ProbeConnectionStatus =
+          ProbeConnectionStatus.Connected;
 
         if (!probe.lastAlive) {
-          connectionStatus = ProbeStatus.Disconnected;
+          connectionStatus = ProbeConnectionStatus.Disconnected;
         }
 
         if (
@@ -53,9 +53,9 @@ RunCron(
             probe.lastAlive,
           ) > 2
         ) {
-          connectionStatus = ProbeStatus.Disconnected;
+          connectionStatus = ProbeConnectionStatus.Disconnected;
         } else {
-          connectionStatus = ProbeStatus.Connected;
+          connectionStatus = ProbeConnectionStatus.Connected;
         }
 
         let shouldNotifyProbeOwner: boolean = false;
@@ -72,6 +72,10 @@ RunCron(
           shouldUpdateConnectionStatus = true;
         }
 
+        if (!shouldUpdateConnectionStatus) {
+          continue; // no need to update the connection status.
+        }
+
         // now update the connection status
         probe.connectionStatus = connectionStatus;
 
@@ -86,25 +90,15 @@ RunCron(
             },
           });
 
-          const monitorsWithThisProbe: Array<MonitorProbe> =
-            await MonitorProbeService.findBy({
-              query: {
-                probeId: probe.id,
-                isEnabled: true,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-                monitorId: true,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-            });
+          if (!probe.projectId) {
+            continue;
+          }
 
           if (shouldNotifyProbeOwner) {
-            // notify the probe owner
+            await ProbeService.notifyOwnersOnStatusChange({
+              probeId: probe.id,
+              connectionStatus: connectionStatus,
+            });
           }
         }
       } catch (error) {

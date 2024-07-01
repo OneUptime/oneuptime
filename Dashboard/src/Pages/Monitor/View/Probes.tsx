@@ -1,5 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
-import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import ProbeStatusElement from "../../../Components/Probe/ProbeConnectionStatus";
 import DashboardNavigation from "../../../Utils/Navigation";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";

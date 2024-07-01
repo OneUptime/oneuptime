@@ -31,7 +31,7 @@ import {
 } from "typeorm";
 import Label from "./Label";
 
-export enum ProbeStatus {
+export enum ProbeConnectionStatus {
   Connected = "connected",
   Disconnected = "disconnected",
 }
@@ -515,7 +515,7 @@ export default class Probe extends BaseModel {
     nullable: true,
     unique: false,
   })
-  public connectionStatus?: ProbeStatus = undefined;
+  public connectionStatus?: ProbeConnectionStatus = undefined;
 
   @ColumnAccessControl({
     create: [

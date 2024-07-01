@@ -1,4 +1,4 @@
-import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
+import ProbeStatusElement from "../../Components/Probe/ProbeConnectionStatus";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
