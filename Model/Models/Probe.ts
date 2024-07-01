@@ -22,6 +22,11 @@ import Permission from "Common/Types/Permission";
 import Version from "Common/Types/Version";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 
+export enum ProbeStatus {
+  Connected = "connected",
+  Disconnected = "disconnected",
+}
+
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Free,
@@ -470,4 +475,31 @@ export default class Probe extends BaseModel {
     default: false,
   })
   public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+     
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public connectionStatus?: ProbeStatus = undefined;
+
 }
