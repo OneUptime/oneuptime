@@ -17,7 +17,7 @@ const CustomProbeDocumentation: FunctionComponent<ComponentProps> = (
   return (
     <>
       <Card
-        title={`Set up your Server Monitor (Linux/Mac)`}
+        title={`Set up your Custom Probe`}
         description={
           <div className="space-y-2 w-full mt-5">
             <CodeBlock

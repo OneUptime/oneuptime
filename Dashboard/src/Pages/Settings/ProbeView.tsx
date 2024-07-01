@@ -19,7 +19,12 @@ import Probe from "Model/Models/Probe";
 import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
 import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
 import User from "Model/Models/User";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import TeamElement from "../../Components/Team/Team";
 import Team from "Model/Models/Team";
 import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
@@ -34,9 +39,9 @@ export enum PermissionType {
 const TeamView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
-  const [probe, setProbe] = useState<Probe | null>(null);
+  const [probeKey, setProbeKey] = useState<ObjectID | null>(null);
 
   return (
     <Fragment>
@@ -124,7 +129,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         ]}
         modelDetailProps={{
           onItemLoaded: (item: Probe) => {
-            setProbe(item);
+            if (item.key) {
+              setProbeKey(item.key);
+            }
           },
           modelType: Probe,
           id: "model-detail-team",
@@ -168,7 +175,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               },
             },
           ],
-          modelId: Navigation.getLastParamAsObjectID(),
+          modelId: modelId,
         }}
       />
 
@@ -202,11 +209,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               },
             },
           ],
-          modelId: Navigation.getLastParamAsObjectID(),
+          modelId: modelId,
         }}
       />
 
-      {probe && <CustomProbeDocumentation probeKey={probe.key!} probeId={probe.id!} />}
+      {probeKey && (
+        <CustomProbeDocumentation probeKey={probeKey} probeId={modelId} />
+      )}
 
       <ModelTable<ProbeOwnerTeam>
         modelType={ProbeOwnerTeam}
@@ -419,7 +428,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       {/* Delete Probe */}
       <ModelDelete
         modelType={Probe}
-        modelId={Navigation.getLastParamAsObjectID()}
+        modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.SETTINGS_PROBES] as Route);
         }}
