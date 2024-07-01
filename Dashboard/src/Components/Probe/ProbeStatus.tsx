@@ -1,8 +1,7 @@
 import { Green, Red } from "Common/Types/BrandColors";
-import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import Probe from "Model/Models/Probe";
+import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,11 +13,7 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (
     props.probe &&
-    props.probe["lastAlive"] &&
-    OneUptimeDate.getNumberOfMinutesBetweenDates(
-      OneUptimeDate.fromString(props.probe["lastAlive"] as string),
-      OneUptimeDate.getCurrentDate(),
-    ) < 5
+    props.probe["connectionStatus"] === ProbeConnectionStatus.Connected
   ) {
     return (
       <Statusbubble text={"Connected"} color={Green} shouldAnimate={true} />

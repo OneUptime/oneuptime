@@ -1,4 +1,4 @@
-import ProbeStatusElement from "../../Components/Probe/ProbeConnectionStatus";
+import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -90,7 +90,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                lastAlive: true,
+                connectionStatus: true,
               },
               title: "Probe Status",
               type: FieldType.Text,

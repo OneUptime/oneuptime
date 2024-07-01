@@ -1,5 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
-import ProbeStatusElement from "../../../Components/Probe/ProbeConnectionStatus";
+import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import DashboardNavigation from "../../../Utils/Navigation";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
@@ -228,7 +228,7 @@ const MonitorProbes: FunctionComponent<
           {
             field: {
               probe: {
-                lastAlive: true,
+                connectionStatus: true,
               },
             },
             title: "Probe Status",
