@@ -126,7 +126,10 @@ export class Service extends DatabaseService<Model> {
       probesToNotifyOwners: [],
     };
 
-    if (updateBy.data.connectionStatus && updateBy.query.id) {
+    if (updateBy.data.connectionStatus && updateBy.query._id) {
+
+      debugger;
+
       const probes: Array<Model> = await this.findBy({
         query: updateBy.query,
         props: {
@@ -159,7 +162,7 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    if (onUpdate.carryForward.probesToNotifyOwners.length > 0) {
+    if (onUpdate.carryForward && onUpdate.carryForward.probesToNotifyOwners.length > 0) {
       for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
         await this.notifyOwnersOnStatusChange({
           probeId: probe.id!,
@@ -175,6 +178,9 @@ export class Service extends DatabaseService<Model> {
     probeId: ObjectID;
     connectionStatus: ProbeConnectionStatus;
   }): Promise<void> {
+
+    debugger;
+
     const probe: Model | null = await this.findOneById({
       id: data.probeId,
       props: {
@@ -184,6 +190,8 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         lastAlive: true,
         connectionStatus: true,
+        name: true,
+        description: true,
         projectId: true,
         project: {
           name: true,
@@ -223,10 +231,10 @@ export class Service extends DatabaseService<Model> {
     for (const user of owners) {
       try {
         const vars: Dictionary<string> = {
-          probeName: probe.name!,
+          probeName: probe.name || "Probe",
           probeDescription: probe.description || "No description provided",
-          projectName: probe.project!.name!,
-          probeStatus: connectionStatus,
+          projectName: probe.project?.name || "Project",
+          probeStatus: connectionStatus || "Unknown",
           lastAlive: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
             date: probe.lastAlive || OneUptimeDate.getCurrentDate(),
             timezones: user.timezone ? [user.timezone] : [],
