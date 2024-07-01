@@ -23,6 +23,7 @@ enum NotificationSettingEventType {
 
   // Probe Status change Notification
   SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
+  SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
 }
 
 export default NotificationSettingEventType;

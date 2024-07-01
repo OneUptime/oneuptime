@@ -5,6 +5,7 @@ enum EmailTemplateType {
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   EmailVerified = "EmailVerified.hbs",
   PasswordChanged = "PasswordChanged.hbs",
+  ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",
   SubscribedToStatusPage = "SubscribedToStatusPage.hbs",

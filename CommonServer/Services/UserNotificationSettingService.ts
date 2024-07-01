@@ -194,6 +194,65 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<void> {
+    const probeOwnerAddedNotificationEvent: PositiveNumber = await this.countBy(
+      {
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    if (probeOwnerAddedNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const probeStatusChangedNotificationEvent: PositiveNumber =
+      await this.countBy({
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (probeStatusChangedNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     const incidentCreatedNotificationEvent: PositiveNumber = await this.countBy(
       {
         query: {
