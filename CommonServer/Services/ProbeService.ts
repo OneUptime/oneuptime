@@ -127,9 +127,6 @@ export class Service extends DatabaseService<Model> {
     };
 
     if (updateBy.data.connectionStatus && updateBy.query._id) {
-
-      debugger;
-
       const probes: Array<Model> = await this.findBy({
         query: updateBy.query,
         props: {
@@ -162,11 +159,13 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    if (onUpdate.carryForward && onUpdate.carryForward.probesToNotifyOwners.length > 0) {
+    if (
+      onUpdate.carryForward &&
+      onUpdate.carryForward.probesToNotifyOwners.length > 0
+    ) {
       for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
         await this.notifyOwnersOnStatusChange({
           probeId: probe.id!,
-          connectionStatus: probe.connectionStatus!,
         });
       }
     }
@@ -176,11 +175,7 @@ export class Service extends DatabaseService<Model> {
 
   public async notifyOwnersOnStatusChange(data: {
     probeId: ObjectID;
-    connectionStatus: ProbeConnectionStatus;
   }): Promise<void> {
-
-    debugger;
-
     const probe: Model | null = await this.findOneById({
       id: data.probeId,
       props: {
@@ -224,13 +219,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     const connectionStatus: string =
-      data.connectionStatus === ProbeConnectionStatus.Connected
+      probe.connectionStatus === ProbeConnectionStatus.Connected
         ? "Connected"
         : "Disconnected";
 
     for (const user of owners) {
       try {
         const vars: Dictionary<string> = {
+          title: `${probe.name} is ${connectionStatus}`,
           probeName: probe.name || "Probe",
           probeDescription: probe.description || "No description provided",
           projectName: probe.project?.name || "Project",

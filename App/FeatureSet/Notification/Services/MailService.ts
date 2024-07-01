@@ -273,14 +273,14 @@ export default class MailService {
       mail.vars["year"] = OneUptimeDate.getCurrentYear().toString();
     }
 
-    mail.body = mail.templateType
-      ? await this.compileEmailBody(mail.templateType, mail.vars)
-      : this.compileText(mail.body || "", mail.vars);
-    mail.subject = this.compileText(mail.subject, mail.vars);
-
-    const emailServerType: EmailServerType = await getEmailServerType();
-
     try {
+      const emailServerType: EmailServerType = await getEmailServerType();
+
+      mail.body = mail.templateType
+        ? await this.compileEmailBody(mail.templateType, mail.vars)
+        : this.compileText(mail.body || "", mail.vars);
+      mail.subject = this.compileText(mail.subject, mail.vars);
+
       if (
         (!options || !options.emailServer) &&
         emailServerType === EmailServerType.Sendgrid
