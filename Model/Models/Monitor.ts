@@ -923,4 +923,28 @@ export default class Monitor extends BaseModel {
     nullable: true,
   })
   public serverMonitorResponse?: ServerMonitorResponse = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    title: "All Probes Disconnected From This Monitor",
+    description:
+      "All Probes Disconnected From This Monitor. Is this monitor not being monitored?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public isAllProbesDisconnectedFromThisMonitor?: boolean = undefined;
 }

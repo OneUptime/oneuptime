@@ -466,6 +466,8 @@ export default class Probe extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    title: "Auto Enable Probe",
+    description: "Auto Enable Probe on New Monitors",
     type: TableColumnType.Boolean,
   })
   @Column({
@@ -477,22 +479,20 @@ export default class Probe extends BaseModel {
   public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectStatusPage,
     ],
-    update: [
-     
-    ],
+    update: [],
   })
   @TableColumn({
     isDefaultValueColumn: false,
     required: false,
+    title: "Connection Status",
+    description: "Connection Status of the Probe",
     type: TableColumnType.ShortText,
   })
   @Column({
@@ -501,5 +501,4 @@ export default class Probe extends BaseModel {
     unique: false,
   })
   public connectionStatus?: ProbeStatus = undefined;
-
 }
