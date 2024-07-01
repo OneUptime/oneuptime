@@ -1,0 +1,388 @@
+import LabelsElement from "../../Components/Label/Labels";
+import UserElement from "../../Components/User/User";
+import DashboardNavigation from "../../Utils/Navigation";
+import PageMap from "../../Utils/PageMap";
+import ProjectUser from "../../Utils/ProjectUser";
+import RouteMap from "../../Utils/RouteMap";
+import PageComponentProps from "../PageComponentProps";
+import Route from "Common/Types/API/Route";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
+import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
+import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Navigation from "CommonUI/src/Utils/Navigation";
+import Label from "Model/Models/Label";
+import Probe from "Model/Models/Probe";
+import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
+import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
+import User from "Model/Models/User";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TeamElement from "../../Components/Team/Team";
+import Team from "Model/Models/Team";
+import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
+
+export enum PermissionType {
+    AllowPermissions = "AllowPermissions",
+    BlockPermissions = "BlockPermissions",
+}
+
+const TeamView: FunctionComponent<PageComponentProps> = (
+    _props: PageComponentProps,
+): ReactElement => {
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+    return (
+        <Fragment>
+            {/* API Key View  */}
+            <CardModelDetail<Probe>
+                name="Probe Details"
+                cardProps={{
+                    title: "Probe Details",
+                    description: "Here are more details for this probe.",
+                }}
+                isEditable={true}
+                formSteps={[
+                    {
+                        title: "Basic Info",
+                        id: "basic-info",
+                    },
+                    {
+                        title: "More",
+                        id: "more",
+                    },
+                ]}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        stepId: "basic-info",
+                        title: "Name",
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: "internal-probe",
+                        validation: {
+                            minLength: 2,
+                        },
+                    },
+
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: "Description",
+                        stepId: "basic-info",
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder: "This probe is to monitor all the internal services.",
+                    },
+
+                    {
+                        field: {
+                            iconFile: true,
+                        },
+                        title: "Probe Logo",
+                        stepId: "basic-info",
+                        fieldType: FormFieldSchemaType.ImageFile,
+                        required: false,
+                        placeholder: "Upload logo",
+                    },
+                    {
+                        field: {
+                            shouldAutoEnableProbeOnNewMonitors: true,
+                        },
+                        stepId: "more",
+                        title: "Enable monitoring automatically on new monitors",
+                        fieldType: FormFieldSchemaType.Toggle,
+                        required: false,
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+
+                        title: "Labels ",
+                        stepId: "more",
+                        description:
+                            "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: "name",
+                            valueField: "_id",
+                        },
+                        required: false,
+                        placeholder: "Labels",
+                    },
+                ]}
+                modelDetailProps={{
+                    modelType: Probe,
+                    id: "model-detail-team",
+                    fields: [
+                        {
+                            field: {
+                                _id: true,
+                            },
+                            title: "Probe ID",
+                        },
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: "Name",
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: "Description",
+                        },
+                        {
+                            field: {
+                                key: true,
+                            },
+                            title: "Probe Key",
+                            fieldType: FieldType.HiddenText,
+                        },
+                        {
+                            field: {
+                                labels: {
+                                    name: true,
+                                    color: true,
+                                },
+                            },
+                            title: "Labels",
+                            fieldType: FieldType.Element,
+                            getElement: (item: Probe): ReactElement => {
+                                return <LabelsElement labels={item["labels"] || []} />;
+                            },
+                        },
+                    ],
+                    modelId: Navigation.getLastParamAsObjectID(),
+                }}
+            />
+
+            <ModelTable<ProbeOwnerTeam>
+                modelType={ProbeOwnerTeam}
+                id="table-monitor-owner-team"
+                name="Probe > Owner Team"
+                singularName="Team"
+                isDeleteable={true}
+                createVerb={"Add"}
+                isCreateable={true}
+                isViewable={false}
+                showViewIdButton={true}
+                query={{
+                    probeId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(item: ProbeOwnerTeam): Promise<ProbeOwnerTeam> => {
+                    item.probeId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    title: "Owners (Teams)",
+                    description:
+                        "Here is list of teams that own this probe. They will be alerted when this probe status changes.",
+                }}
+                noItemsMessage={"No teams associated with this probe so far."}
+                formFields={[
+                    {
+                        field: {
+                            team: true,
+                        },
+                        title: "Team",
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: "Select Team",
+                        dropdownModal: {
+                            type: Team,
+                            labelField: "name",
+                            valueField: "_id",
+                        },
+                    },
+                ]}
+                showRefreshButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            team: true,
+                        },
+                        type: FieldType.Entity,
+                        title: "Team",
+                        filterEntityType: Team,
+                        filterQuery: {
+                            projectId: DashboardNavigation.getProjectId()?.toString(),
+                        },
+                        filterDropdownField: {
+                            label: "name",
+                            value: "_id",
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: "Owner since",
+                        type: FieldType.Date,
+                    },
+                ]}
+                columns={[
+                    {
+                        field: {
+                            team: {
+                                name: true,
+                            },
+                        },
+                        title: "Team",
+                        type: FieldType.Entity,
+                        getElement: (item: ProbeOwnerTeam): ReactElement => {
+                            if (!item["team"]) {
+                                throw new BadDataException("Team not found");
+                            }
+
+                            return <TeamElement team={item["team"] as Team} />;
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: "Owner since",
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
+            <ModelTable<ProbeOwnerUser>
+                modelType={ProbeOwnerUser}
+                id="table-monitor-owner-team"
+                name="Probe > Owner Team"
+                isDeleteable={true}
+                singularName="User"
+                isCreateable={true}
+                isViewable={false}
+                showViewIdButton={true}
+                createVerb={"Add"}
+                query={{
+                    probeId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(item: ProbeOwnerUser): Promise<ProbeOwnerUser> => {
+                    item.probeId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    title: "Owners (Users)",
+                    description:
+                        "Here is list of users that own this probe. They will be alerted when this probe status changes.",
+                }}
+                noItemsMessage={"No users associated with this probe so far."}
+                formFields={[
+                    {
+                        field: {
+                            user: true,
+                        },
+                        title: "User",
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: "Select User",
+                        fetchDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!,
+                            );
+                        },
+                    },
+                ]}
+                showRefreshButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                filters={[
+                    {
+                        field: {
+                            user: true,
+                        },
+                        title: "User",
+                        type: FieldType.Entity,
+                        filterEntityType: User,
+                        fetchFilterDropdownOptions: async () => {
+                            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                                DashboardNavigation.getProjectId()!,
+                            );
+                        },
+                        filterDropdownField: {
+                            label: "name",
+                            value: "_id",
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: "Owner since",
+                        type: FieldType.Date,
+                    },
+                ]}
+                columns={[
+                    {
+                        field: {
+                            user: {
+                                name: true,
+                                email: true,
+                                profilePictureId: true,
+                            },
+                        },
+                        title: "User",
+                        type: FieldType.Entity,
+                        getElement: (item: ProbeOwnerUser): ReactElement => {
+                            if (!item["user"]) {
+                                throw new BadDataException("User not found");
+                            }
+
+                            return <UserElement user={item["user"] as User} />;
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: "Owner since",
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
+            <ResetObjectID<Probe>
+                modelType={Probe}
+                onUpdateComplete={async () => {
+                    Navigation.reload();
+                }}
+                fieldName={"key"}
+                title={"Reset Probe Key"}
+                description={
+                    <p className="mt-2">
+                        Resetting the secret key will generate a new key. Secret is
+                        used to authenticate probe requests.
+                    </p>
+                }
+                modelId={modelId}
+            />
+
+            {/* Delete Probe */}
+            <ModelDelete
+                modelType={Probe}
+                modelId={Navigation.getLastParamAsObjectID()}
+                onDeleteSuccess={() => {
+                    Navigation.navigate(RouteMap[PageMap.SETTINGS_PROBES] as Route);
+                }}
+            />
+        </Fragment>
+    );
+};
+
+export default TeamView;

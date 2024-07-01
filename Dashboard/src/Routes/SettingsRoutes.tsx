@@ -49,6 +49,12 @@ const SettingsTeamView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/TeamView");
   });
+
+const SettingsProbeView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/ProbeView");
+});
 const SettingsMonitors: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/MonitorStatus");
@@ -640,6 +646,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsTeamView
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBE_VIEW, 2)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsProbeView
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_PROBE_VIEW] as Route}
               />
             </Suspense>
           }

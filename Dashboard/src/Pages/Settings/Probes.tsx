@@ -116,8 +116,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           id="probes-table"
           name="Settings > Probes"
-          isDeleteable={true}
-          isEditable={true}
+          isDeleteable={false}
+          isEditable={false}
+          isViewable={true}
           isCreateable={true}
           cardProps={{
             title: "Custom Probes",
