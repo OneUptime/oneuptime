@@ -7,6 +7,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
+import AccessControlColumn from "Common/Types/Database/AccessControlColumn";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import ColumnType from "Common/Types/Database/ColumnType";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
@@ -20,7 +21,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import Version from "Common/Types/Version";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import Label from "./Label";
 
 export enum ProbeStatus {
   Connected = "connected",
@@ -36,6 +38,7 @@ export enum ProbeStatus {
 @IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/probe"))
+@AccessControlColumn("labels")
 @SlugifyColumn("name", "slug")
 @Entity({
   name: "Probe",
@@ -501,4 +504,52 @@ export default class Probe extends BaseModel {
     unique: false,
   })
   public connectionStatus?: ProbeStatus = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Relation to Labels Array where this object is categorized in.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ProbeLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "probeId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 }

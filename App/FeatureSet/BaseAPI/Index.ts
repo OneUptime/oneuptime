@@ -286,6 +286,16 @@ import WorkflowService, {
 import WorkflowVariableService, {
   Service as WorkflowVariableServiceType,
 } from "CommonServer/Services/WorkflowVariableService";
+
+import ProbeOwnerTeamService, {
+  Service as ProbeOwnerTeamServiceType,
+} from "CommonServer/Services/ProbeOwnerTeamService";
+
+import ProbeOwnerUserService, {
+  Service as ProbeOwnerUserServiceType,
+} from "CommonServer/Services/ProbeOwnerUserService";
+
+
 import FeatureSet from "CommonServer/Types/FeatureSet";
 import Express, { ExpressApplication } from "CommonServer/Utils/Express";
 import Log from "Model/AnalyticsModels/Log";
@@ -377,6 +387,8 @@ import UserOnCallLog from "Model/Models/UserOnCallLog";
 import Workflow from "Model/Models/Workflow";
 import WorkflowLog from "Model/Models/WorkflowLog";
 import WorkflowVariable from "Model/Models/WorkflowVariable";
+import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
+import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -445,6 +457,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
         MonitorProbe,
         MonitorProbeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProbeOwnerUser, ProbeOwnerUserServiceType>(
+        ProbeOwnerUser,
+        ProbeOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProbeOwnerTeam, ProbeOwnerTeamServiceType>(
+        ProbeOwnerTeam,
+        ProbeOwnerTeamService,
       ).getRouter(),
     );
 

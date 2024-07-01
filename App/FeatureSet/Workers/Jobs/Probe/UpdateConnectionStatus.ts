@@ -5,7 +5,6 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProbeService from "CommonServer/Services/ProbeService";
 import logger from "CommonServer/Utils/Logger";
 import Probe, { ProbeStatus } from "Model/Models/Probe";
-import User from "Model/Models/User";
 import MonitorProbe from "Model/Models/MonitorProbe";
 import MonitorProbeService from "CommonServer/Services/MonitorProbeService";
 
@@ -41,7 +40,7 @@ RunCron(
           continue;
         }
 
-        let connectionStatus = ProbeStatus.Connected;
+        let connectionStatus: ProbeStatus = ProbeStatus.Connected;
 
         if (!probe.lastAlive) {
           connectionStatus = ProbeStatus.Disconnected;
@@ -59,8 +58,8 @@ RunCron(
           connectionStatus = ProbeStatus.Connected;
         }
 
-        let shouldNotifyProbeOwner = false;
-        let shouldUpdateConnectionStatus = false;
+        let shouldNotifyProbeOwner: boolean = false;
+        let shouldUpdateConnectionStatus: boolean = false;
 
         if (
           probe.connectionStatus &&
@@ -114,7 +113,3 @@ RunCron(
     }
   },
 );
-
-const getProbeOwners = async (probe: Probe): Promise<User> => {};
-
-const updateMonitors = async (probe: Probe): Promise<void> => {};
