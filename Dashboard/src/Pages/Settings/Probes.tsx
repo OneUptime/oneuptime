@@ -3,8 +3,6 @@ import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { Green, Red } from "Common/Types/BrandColors";
-import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Banner from "CommonUI/src/Components/Banner/Banner";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
@@ -12,7 +10,6 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import ProbeElement from "CommonUI/src/Components/Probe/Probe";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
@@ -297,36 +294,13 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                lastAlive: true,
+                connectionStatus: true,
               },
               title: "Status",
-              type: FieldType.Text,
+              type: FieldType.Element,
 
               getElement: (item: Probe): ReactElement => {
-                if (
-                  item &&
-                  item["lastAlive"] &&
-                  OneUptimeDate.getNumberOfMinutesBetweenDates(
-                    item["lastAlive"],
-                    OneUptimeDate.getCurrentDate(),
-                  ) < 5
-                ) {
-                  return (
-                    <Statusbubble
-                      text={"Connected"}
-                      color={Green}
-                      shouldAnimate={true}
-                    />
-                  );
-                }
-
-                return (
-                  <Statusbubble
-                    text={"Disconnected"}
-                    color={Red}
-                    shouldAnimate={false}
-                  />
-                );
+                return <ProbeStatusElement probe={item} />;
               },
             },
             {

@@ -23,6 +23,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TeamElement from "../../Components/Team/Team";
 import Team from "Model/Models/Team";
 import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
+import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -158,6 +159,40 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Element,
               getElement: (item: Probe): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+          ],
+          modelId: Navigation.getLastParamAsObjectID(),
+        }}
+      />
+
+      <CardModelDetail<Probe>
+        name="Probe Status"
+        cardProps={{
+          title: "Probe Status",
+          description:
+            "Here is mroe details on the connection status for this probe.",
+        }}
+        isEditable={false}
+        modelDetailProps={{
+          modelType: Probe,
+          id: "model-detail-team",
+          fields: [
+            {
+              field: {
+                lastAlive: true,
+              },
+              title: "Last Ping Time",
+              fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                connectionStatus: true,
+              },
+              title: "Connection Status",
+              fieldType: FieldType.Element,
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeStatusElement probe={item} />;
               },
             },
           ],
