@@ -110,6 +110,7 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 		RequestReceivedAt:          time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
 		OnlyCheckRequestReceivedAt: false,
 		Processes:                  servProcesses,
+		Hostname:                   utils.GetHostname(),
 	}
 
 	reqData := struct {

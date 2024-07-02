@@ -6,4 +6,5 @@ type ServerMonitorReport struct {
 	RequestReceivedAt          string                      `json:"requestReceivedAt"`
 	OnlyCheckRequestReceivedAt bool                        `json:"onlyCheckRequestReceivedAt"`
 	Processes                  []*ServerProcess            `json:"processes"`
+	Hostname                   string                      `json:"hostname"`
 }
