@@ -27,6 +27,15 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
+  if(props.serverMonitorResponse.basicInfrastructureMetrics){
+    fields.push({
+      key: "basicInfrastructureMetrics",
+      title: "Basic Infrastructure Metrics",
+      description: "CPU, Memory, Disk and Network usage.",
+      fieldType: FieldType.JSON,
+    });
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex space-x-3">
