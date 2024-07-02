@@ -62,6 +62,8 @@ import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
 import Probe from "./Probe";
+import ProbeOwnerTeam from "./ProbeOwnerTeam";
+import ProbeOwnerUser from "./ProbeOwnerUser";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 // Project SMTP Config.
@@ -268,4 +270,7 @@ export default [
   CodeRepository,
   CopilotAction,
   ServiceRepository,
+
+  ProbeOwnerTeam,
+  ProbeOwnerUser,
 ];

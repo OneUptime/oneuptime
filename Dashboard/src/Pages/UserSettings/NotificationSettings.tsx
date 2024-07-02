@@ -184,6 +184,18 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Here are the list of notification methods we will use when an event happens on an incident.",
         })}
       </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
+            NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+          ],
+          title: "Probe Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on a custom probe.",
+        })}
+      </div>
     </Fragment>
   );
 };

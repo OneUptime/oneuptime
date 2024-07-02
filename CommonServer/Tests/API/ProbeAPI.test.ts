@@ -68,6 +68,7 @@ describe("Ingestor", () => {
       select: {
         name: true,
         description: true,
+        connectionStatus: true,
         lastAlive: true,
         iconFileId: true,
       },

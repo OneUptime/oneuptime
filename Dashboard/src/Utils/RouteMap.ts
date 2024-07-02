@@ -145,6 +145,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_PROBES]: "probes",
 };
@@ -1013,6 +1014,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TEAM_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TEAM_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_PROBE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_PROBE_VIEW]
     }`,
   ),
 

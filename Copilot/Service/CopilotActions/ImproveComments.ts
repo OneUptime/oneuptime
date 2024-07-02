@@ -44,6 +44,7 @@ export default class ImproveComments extends CopilotActionBase {
 
     const oldCode: string = data.input.files[data.input.currentFilePath]
       ?.fileContent as string;
+
     const newCode: string = newContent;
 
     const validationPrompt: CopilotActionPrompt =

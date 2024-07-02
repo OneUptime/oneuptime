@@ -8,8 +8,12 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Sleep from "Common/Types/Sleep";
 import logger from "CommonServer/Utils/Logger";
-import { CopilotActionPrompt, Prompt } from "../CopilotActions/CopilotActionsBase";
+import {
+  CopilotActionPrompt,
+  Prompt,
+} from "../CopilotActions/CopilotActionsBase";
 import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
+import BadOperationException from "Common/Types/Exception/BadOperationException";
 
 enum LlamaPromptStatus {
   Processed = "processed",
@@ -45,6 +49,10 @@ export default class Llama extends LlmBase {
 
     const idOfPrompt: string = result["id"] as string;
 
+    if (result["error"] && typeof result["error"] === "string") {
+      throw new BadOperationException(result["error"]);
+    }
+
     // now check this prompt status.
 
     let promptStatus: LlamaPromptStatus = LlamaPromptStatus.Pending;
@@ -62,6 +70,13 @@ export default class Llama extends LlmBase {
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
+      }
+
+      if (
+        response.data["error"] &&
+        typeof response.data["error"] === "string"
+      ) {
+        throw new BadOperationException(response.data["error"]);
       }
 
       const result: JSONObject = response.data;

@@ -7,6 +7,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
+import AccessControlColumn from "Common/Types/Database/AccessControlColumn";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import ColumnType from "Common/Types/Database/ColumnType";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
@@ -20,7 +21,20 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import Version from "Common/Types/Version";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
+import Label from "./Label";
+
+export enum ProbeConnectionStatus {
+  Connected = "connected",
+  Disconnected = "disconnected",
+}
 
 @TableBillingAccessControl({
   create: PlanType.Growth,
@@ -31,6 +45,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 @IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/probe"))
+@AccessControlColumn("labels")
 @SlugifyColumn("name", "slug")
 @Entity({
   name: "Probe",
@@ -73,7 +88,12 @@ export default class Probe extends BaseModel {
       Permission.CreateProjectProbe,
     ],
     read: [Permission.ProjectOwner, Permission.ProjectAdmin],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectProbe,
+    ],
   })
   @TableColumn({
     required: true,
@@ -461,6 +481,8 @@ export default class Probe extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    title: "Auto Enable Probe",
+    description: "Auto Enable Probe on New Monitors",
     type: TableColumnType.Boolean,
   })
   @Column({
@@ -470,4 +492,76 @@ export default class Probe extends BaseModel {
     default: false,
   })
   public shouldAutoEnableProbeOnNewMonitors?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    title: "Connection Status",
+    description: "Connection Status of the Probe",
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public connectionStatus?: ProbeConnectionStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Relation to Labels Array where this object is categorized in.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ProbeLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "probeId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 }

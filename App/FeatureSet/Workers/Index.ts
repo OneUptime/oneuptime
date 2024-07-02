@@ -61,6 +61,10 @@ import QueueWorker from "CommonServer/Infrastructure/QueueWorker";
 import FeatureSet from "CommonServer/Types/FeatureSet";
 import logger from "CommonServer/Utils/Logger";
 
+// Probes
+import "./Jobs/Probe/SendOwnerAddedNotification";
+import "./Jobs/Probe/UpdateConnectionStatus";
+
 const WorkersFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {

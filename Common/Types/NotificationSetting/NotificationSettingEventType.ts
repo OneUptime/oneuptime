@@ -20,6 +20,10 @@ enum NotificationSettingEventType {
   SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION = "Send status page announcement created notification when I am the owner of the status page",
   SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION = "Send status page created notification when I am the owner of the status page",
   SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the status page",
+
+  // Probe Status change Notification
+  SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
+  SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
 }
 
 export default NotificationSettingEventType;

@@ -228,7 +228,7 @@ const MonitorProbes: FunctionComponent<
           {
             field: {
               probe: {
-                lastAlive: true,
+                connectionStatus: true,
               },
             },
             title: "Probe Status",

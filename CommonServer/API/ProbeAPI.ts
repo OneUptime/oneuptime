@@ -31,6 +31,7 @@ export default class Ingestor extends BaseAPI<Probe, ProbeServiceType> {
               description: true,
               lastAlive: true,
               iconFileId: true,
+              connectionStatus: true,
             },
             props: {
               isRoot: true,
