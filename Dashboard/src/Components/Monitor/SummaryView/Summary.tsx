@@ -59,7 +59,7 @@ const Summary: FunctionComponent<ComponentProps> = (
       title="Monitor Summary"
       description="Here is how your monitor is performing at this moment."
       rightElement={
-        MonitorTypeHelper.isProbableMonitors(props.monitorType) &&
+        MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
         props.probes &&
         props.probes.length > 0 &&
         selectedProbe ? (

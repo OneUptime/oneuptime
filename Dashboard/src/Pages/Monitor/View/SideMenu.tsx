@@ -19,7 +19,7 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const isProbeableMonitor: boolean = MonitorTypeHelper.isProbableMonitors(
+  const isProbeableMonitor: boolean = MonitorTypeHelper.isProbableMonitor(
     props.monitorType,
   );
 
@@ -60,7 +60,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {MonitorTypeHelper.isProbableMonitors(props.monitorType) ? (
+        {MonitorTypeHelper.isProbableMonitor(props.monitorType) ? (
           <SideMenuItem
             link={{
               title: "Interval",

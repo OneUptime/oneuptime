@@ -37,7 +37,7 @@ import MonitorOwnerUser from "Model/Models/MonitorOwnerUser";
 import MonitorProbe from "Model/Models/MonitorProbe";
 import MonitorStatus from "Model/Models/MonitorStatus";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import Probe from "Model/Models/Probe";
+import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
 import User from "Model/Models/User";
 import Select from "../Types/Database/Select";
 
@@ -232,7 +232,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       createdItem.monitorType &&
-      MonitorTypeHelper.isProbableMonitors(createdItem.monitorType)
+      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
     ) {
       await this.addDefaultProbesToMonitor(
         createdItem.projectId,
@@ -264,6 +264,9 @@ export class Service extends DatabaseService<Model> {
         onCreate.createBy.props,
       );
     }
+
+    // refresh probe status.
+    await this.refreshMonitorProbeStatus(createdItem.id);
 
     return createdItem;
   }
@@ -444,6 +447,159 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+    }
+  }
+
+  public async refreshMonitorProbeStatus(monitorId: ObjectID): Promise<void> {
+    const monitor: Model | null = await this.findOneById({
+      id: monitorId,
+      select: {
+        _id: true,
+        monitorType: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      return;
+    }
+
+    if (!monitor.id) {
+      return;
+    }
+
+    const monitorType: MonitorType | undefined = monitor?.monitorType;
+
+    if (!monitorType) {
+      return;
+    }
+
+    const isProbeableMonitor: boolean =
+      MonitorTypeHelper.isProbableMonitor(monitorType);
+
+    if (!isProbeableMonitor) {
+      return;
+    }
+
+    // get all the probes for this monitor.
+
+    const probesForMonitor: Array<MonitorProbe> =
+      await MonitorProbeService.findBy({
+        query: {
+          monitorId: monitorId,
+        },
+        select: {
+          _id: true,
+          isEnabled: true,
+          projectId: true,
+          monitorId: true,
+          probeId: true,
+          probe: {
+            connectionStatus: true,
+          },
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const enabledProbes: Array<MonitorProbe> = probesForMonitor.filter(
+      (probe: MonitorProbe) => {
+        return probe.isEnabled;
+      },
+    );
+
+    if (probesForMonitor.length === 0 || enabledProbes.length === 0) {
+      // no probes for this monitor.
+      await this.updateOneById({
+        id: monitorId,
+        data: {
+          isNoProbeEnabledOnThisMonitor: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } else {
+      await this.updateOneById({
+        id: monitorId,
+        data: {
+          isNoProbeEnabledOnThisMonitor: false,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const disconnectedProbes: Array<MonitorProbe> = probesForMonitor.filter(
+      (monitorProbe: MonitorProbe) => {
+        return (
+          monitorProbe.probe?.connectionStatus ===
+          ProbeConnectionStatus.Disconnected
+        );
+      },
+    );
+
+    if (disconnectedProbes.length === probesForMonitor.length) {
+      // all probes are disconnected.
+      await this.updateOneById({
+        id: monitorId,
+        data: {
+          isAllProbesDisconnectedFromThisMonitor: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } else {
+      await this.updateOneById({
+        id: monitorId,
+        data: {
+          isAllProbesDisconnectedFromThisMonitor: false,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  public async refreshProbeStatus(probeId: ObjectID): Promise<void> {
+    // get all the monitors for this probe.
+
+    const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy(
+      {
+        query: {
+          probeId: probeId,
+        },
+        select: {
+          _id: true,
+          isEnabled: true,
+          projectId: true,
+          monitorId: true,
+          monitor: {
+            monitorType: true,
+          },
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    if (monitorProbes.length === 0) {
+      return;
+    }
+
+    for (const monitorProbe of monitorProbes) {
+      await this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
     }
   }
 

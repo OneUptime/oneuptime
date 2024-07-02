@@ -26,6 +26,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "Common/Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
+import MonitorService from "./MonitorService";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -164,6 +165,8 @@ export class Service extends DatabaseService<Model> {
       onUpdate.carryForward.probesToNotifyOwners.length > 0
     ) {
       for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
+        await MonitorService.refreshProbeStatus(probe.id!);
+
         await this.notifyOwnersOnStatusChange({
           probeId: probe.id!,
         });

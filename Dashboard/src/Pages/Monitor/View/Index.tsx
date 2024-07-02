@@ -264,7 +264,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
 
       const isMonitoredByProbe: boolean = item.monitorType
-        ? MonitorTypeHelper.isProbableMonitors(item.monitorType)
+        ? MonitorTypeHelper.isProbableMonitor(item.monitorType)
         : false;
 
       if (isMonitoredByProbe) {

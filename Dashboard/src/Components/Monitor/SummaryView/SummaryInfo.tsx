@@ -89,7 +89,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   };
 
   if (
-    MonitorTypeHelper.isProbableMonitors(props.monitorType) &&
+    MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
     (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
   ) {
     return (

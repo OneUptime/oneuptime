@@ -134,7 +134,7 @@ export class MonitorTypeHelper {
     return monitorTypeProps[0].title;
   }
 
-  public static isProbableMonitors(monitorType: MonitorType): boolean {
+  public static isProbableMonitor(monitorType: MonitorType): boolean {
     const isProbeableMonitor: boolean =
       monitorType === MonitorType.API ||
       monitorType === MonitorType.Website ||
@@ -172,7 +172,7 @@ export class MonitorTypeHelper {
   }
 
   public static doesMonitorTypeHaveInterval(monitorType: MonitorType): boolean {
-    return this.isProbableMonitors(monitorType);
+    return this.isProbableMonitor(monitorType);
   }
 
   public static doesMonitorTypeHaveCriteria(monitorType: MonitorType): boolean {

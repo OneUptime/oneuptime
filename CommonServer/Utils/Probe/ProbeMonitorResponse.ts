@@ -126,7 +126,7 @@ export default class ProbeMonitorResponseService {
 
     if (
       monitor.monitorType &&
-      MonitorTypeHelper.isProbableMonitors(monitor.monitorType)
+      MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
     ) {
       dataToProcess = dataToProcess as ProbeMonitorResponse;
       if ((dataToProcess as ProbeMonitorResponse).probeId) {
