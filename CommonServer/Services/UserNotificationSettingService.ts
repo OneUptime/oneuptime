@@ -313,6 +313,69 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       });
     }
 
+    // SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR
+
+    const monitorNoProbesNotificationEvent: PositiveNumber = await this.countBy(
+      {
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    if (monitorNoProbesNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES
+
+    const monitorProbeStatusChangedNotificationEvent: PositiveNumber =
+      await this.countBy({
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (monitorProbeStatusChangedNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // check incident state changed notification
     const incidentStateChangedNotificationEvent: PositiveNumber =
       await this.countBy({

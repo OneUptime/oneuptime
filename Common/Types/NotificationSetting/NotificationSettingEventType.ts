@@ -9,6 +9,8 @@ enum NotificationSettingEventType {
   SEND_MONITOR_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the monitor",
   SEND_MONITOR_CREATED_OWNER_NOTIFICATION = "Send monitor created notification when I am the owner of the monitor",
   SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION = "Send monitor status changed notification when I am the owner of the monitor",
+  SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES = "Send monitor notification when probe status changes",
+  SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR = "Send monitor notification when no probes are monitoring the monitor",
 
   // Scheduled Maintenance
   SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION = "Send event created notification when I am the owner of the event",

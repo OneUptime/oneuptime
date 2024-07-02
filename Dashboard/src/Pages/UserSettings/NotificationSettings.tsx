@@ -151,6 +151,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
             NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
           ],
           title: "Monitor Notifications",
           description:

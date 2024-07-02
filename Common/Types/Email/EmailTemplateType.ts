@@ -22,6 +22,7 @@ enum EmailTemplateType {
   SMTPTest = "SMTPTest.hbs",
   MonitorOwnerAdded = "MonitorOwnerAdded.hbs",
   MonitorOwnerResourceCreated = "MonitorOwnerResourceCreated.hbs",
+  MonitorProbesStatus = "MonitorProbesStatus.hbs",
   MonitorOwnerStatusChanged = "MonitorOwnerStatusChanged.hbs",
   IncidentOwnerAdded = "IncidentOwnerAdded.hbs",
   IncidentOwnerStateChanged = "IncidentOwnerStateChanged.hbs",

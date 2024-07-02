@@ -40,6 +40,14 @@ import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
 import User from "Model/Models/User";
 import Select from "../Types/Database/Select";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
+import Markdown, { MarkdownContentType } from "../Types/Markdown";
+import Dictionary from "Common/Types/Dictionary";
+import { SMSMessage } from "Common/Types/SMS/SMS";
+import { CallRequestMessage } from "Common/Types/Call/CallRequest";
+import UserNotificationSettingService from "./UserNotificationSettingService";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -456,6 +464,8 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         monitorType: true,
+        isAllProbesDisconnectedFromThisMonitor: true,
+        isNoProbeEnabledOnThisMonitor: true,
       },
       props: {
         isRoot: true,
@@ -514,17 +524,26 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (probesForMonitor.length === 0 || enabledProbes.length === 0) {
-      // no probes for this monitor.
-      await this.updateOneById({
-        id: monitorId,
-        data: {
-          isNoProbeEnabledOnThisMonitor: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    } else {
+      if (!monitor.isNoProbeEnabledOnThisMonitor) {
+        // no probes for this monitor.
+        await this.updateOneById({
+          id: monitorId,
+          data: {
+            isNoProbeEnabledOnThisMonitor: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        // notify owners that no probe is enabled.
+
+        this.notifyOwnersWhenNoProbeIsEnabled({
+          monitorId: monitorId,
+          isNoProbesEnabled: true,
+        });
+      }
+    } else if (monitor.isNoProbeEnabledOnThisMonitor) {
       await this.updateOneById({
         id: monitorId,
         data: {
@@ -533,6 +552,13 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
+      });
+
+      // notify owners that probes are now enabled.
+
+      this.notifyOwnersWhenNoProbeIsEnabled({
+        monitorId: monitorId,
+        isNoProbesEnabled: false,
       });
     }
 
@@ -546,17 +572,24 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (disconnectedProbes.length === probesForMonitor.length) {
-      // all probes are disconnected.
-      await this.updateOneById({
-        id: monitorId,
-        data: {
-          isAllProbesDisconnectedFromThisMonitor: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    } else {
+      if (!monitor.isAllProbesDisconnectedFromThisMonitor) {
+        // all probes are disconnected.
+        await this.updateOneById({
+          id: monitorId,
+          data: {
+            isAllProbesDisconnectedFromThisMonitor: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        this.notifyOwnersProbesDisconnected({
+          monitorId: monitorId,
+          isProbeDisconnected: true,
+        });
+      }
+    } else if (monitor.isAllProbesDisconnectedFromThisMonitor) {
       await this.updateOneById({
         id: monitorId,
         data: {
@@ -565,6 +598,181 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
+      });
+
+      this.notifyOwnersProbesDisconnected({
+        monitorId: monitorId,
+        isProbeDisconnected: false,
+      });
+    }
+  }
+
+  public async notifyOwnersWhenNoProbeIsEnabled(data: {
+    monitorId: ObjectID;
+    isNoProbesEnabled: boolean;
+  }): Promise<void> {
+    const monitor: Model | null = await this.findOneById({
+      id: data.monitorId,
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        project: {
+          name: true,
+        },
+        description: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      return;
+    }
+
+    if (!monitor.id) {
+      return;
+    }
+
+    const monitorId: ObjectID = monitor.id;
+
+    const owners: Array<User> = await this.findOwners(monitorId);
+
+    const title: string = data.isNoProbesEnabled
+      ? "No Probes Enabled. This monitor is not being monitored"
+      : "Probes Enabled. This monitor is now being monitored.";
+
+    const enabledStatus: string = data.isNoProbesEnabled
+      ? "Disabled"
+      : "Enabled";
+
+    const vars: Dictionary<string> = {
+      title: title,
+      monitorName: monitor.name!,
+      currentStatus: status,
+      projectName: monitor.project!.name!,
+      monitorDescription: await Markdown.convertToHTML(
+        monitor.description! || "",
+        MarkdownContentType.Email,
+      ),
+      monitorViewLink: (
+        await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
+      ).toString(),
+    };
+
+    for (const owner of owners) {
+      // send email to the owner.
+
+      const emailMessage: EmailEnvelope = {
+        templateType: EmailTemplateType.MonitorProbesStatus,
+        vars: vars,
+        subject: `[Monitor Probes ${enabledStatus}] ${monitor.name!}`,
+      };
+
+      const sms: SMSMessage = {
+        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      };
+
+      const callMessage: CallRequestMessage = {
+        data: [
+          {
+            sayMessage: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+          },
+        ],
+      };
+
+      await UserNotificationSettingService.sendUserNotification({
+        userId: owner.id!,
+        projectId: monitor.projectId!,
+        emailEnvelope: emailMessage,
+        smsMessage: sms,
+        callRequestMessage: callMessage,
+        eventType:
+          NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+      });
+    }
+  }
+
+  public async notifyOwnersProbesDisconnected(data: {
+    monitorId: ObjectID;
+    isProbeDisconnected: boolean;
+  }): Promise<void> {
+    const monitor: Model | null = await this.findOneById({
+      id: data.monitorId,
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        project: {
+          name: true,
+        },
+        description: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      return;
+    }
+
+    if (!monitor.id) {
+      return;
+    }
+
+    const monitorId: ObjectID = monitor.id;
+
+    const owners: Array<User> = await this.findOwners(monitorId);
+
+    const status: string = data.isProbeDisconnected
+      ? "Disconnected"
+      : "Connected";
+
+    const vars: Dictionary<string> = {
+      title: `Probes for monitor ${monitor.name} is ${status}.`,
+      monitorName: monitor.name!,
+      currentStatus: status,
+      projectName: monitor.project!.name!,
+      monitorDescription: await Markdown.convertToHTML(
+        monitor.description! || "",
+        MarkdownContentType.Email,
+      ),
+      monitorViewLink: (
+        await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
+      ).toString(),
+    };
+
+    for (const owner of owners) {
+      // send email to the owner.
+
+      const emailMessage: EmailEnvelope = {
+        templateType: EmailTemplateType.MonitorProbesStatus,
+        vars: vars,
+        subject: `[Monitor Probes ${status}] ${monitor.name!}`,
+      };
+
+      const sms: SMSMessage = {
+        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      };
+
+      const callMessage: CallRequestMessage = {
+        data: [
+          {
+            sayMessage: `This is a message from OneUptime. New monitor was created ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+          },
+        ],
+      };
+
+      await UserNotificationSettingService.sendUserNotification({
+        userId: owner.id!,
+        projectId: monitor.projectId!,
+        emailEnvelope: emailMessage,
+        smsMessage: sms,
+        callRequestMessage: callMessage,
+        eventType:
+          NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       });
     }
   }
