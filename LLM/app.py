@@ -30,8 +30,10 @@ async def validateSecretKey(secretKey):
             return False
 
         async with aiohttp.ClientSession() as session:
+            print(f"Validating secret key")
             url = f"{ONEUPTIME_URL}/api/code-repository/is-valid/{secretKey}"
             async with session.get(url) as response:
+                print(response)
                 if response.status == 200:
                     return True
                 else:
@@ -112,7 +114,7 @@ async def create_item(prompt: Prompt):
             return {"error": "Prompt is required"}
         
         # Validate the secret key
-        is_valid = await validateSecretKey(prompt_status.secretkey)
+        is_valid = await validateSecretKey(prompt.secretkey)
 
         if not is_valid:
             print("Invalid secret key")
