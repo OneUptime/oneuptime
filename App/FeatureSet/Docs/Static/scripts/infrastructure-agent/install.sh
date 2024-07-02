@@ -115,45 +115,47 @@ fi
 
 # Now add binary to path
 
-if [ -d "$HOME/.bashrc" ]; then
+if [ -f "$HOME/.bashrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bashrc
   source $HOME/.bashrc
 fi
 
-if [ -d "$HOME/.bash_profile" ]; then
+if [ -f "$HOME/.bash_profile" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_profile
   source $HOME/.bash_profile
 fi
 
-if [ -d "$HOME/.zshrc" ]; then
+if [ -f "$HOME/.zshrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.zshrc
   source $HOME/.zshrc
 fi
 
-if [ -d "$HOME/.profile" ]; then
+if [ -f "$HOME/.profile" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.profile
   source $HOME/.profile
 fi
 
-if [ -d "$HOME/.bash_login" ]; then
+if [ -f "$HOME/.bash_login" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_login
   source $HOME/.bash_login
 fi
 
-if [ -d "$HOME/.bash_logout" ]; then
+if [ -f "$HOME/.bash_logout" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_logout
   source $HOME/.bash_logout
 fi
 
-if [ -d "$HOME/.bash_aliases" ]; then
+if [ -f "$HOME/.bash_aliases" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_aliases
   source $HOME/.bash_aliases
 fi
 
-if [ -d "$HOME/.bashrc" ]; then
+if [ -f "$HOME/.bashrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bashrc
   source $HOME/.bashrc
 fi
 
 
+echo "oneuptime-infrastructure-agent has been installed to ${BINDIR}"
 echo "oneuptime-infrastructure-agent installed successfully to ${BINDIR}. Please configure the agent using 'oneuptime-infrastructure-agent configure'."
+echo "Please reload your shell or open a new shell session to use the oneuptime-infrastructure-agent command."
