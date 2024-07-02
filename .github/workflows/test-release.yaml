@@ -74,7 +74,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
-          file: ./Dockerfile
+          file: ./LLM/Dockerfile
           context: ./LLM
           # arm64 is not supported by the base image of the LLM
           platforms: linux/amd64 
