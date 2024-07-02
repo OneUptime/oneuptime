@@ -71,3 +71,9 @@ sudo ./oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --o
 ```bash
 sudo ./oneuptime-infrastructure-agent start
 ```
+
+### Stopping the agent
+
+```bash
+sudo ./oneuptime-infrastructure-agent stop
+```

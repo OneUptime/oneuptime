@@ -54,8 +54,11 @@ func GetCpuMetrics() *model.CPUMetrics {
 	}
 	cpuUsagePercent := (1 - idleDelta/totalDelta) * 100
 
+	numberOfCpuCores, err := cpu.Counts(true)
+
 	return &model.CPUMetrics{
 		PercentUsed: cpuUsagePercent,
+		Cores:       numberOfCpuCores,
 	}
 }
 
