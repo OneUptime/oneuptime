@@ -1,6 +1,8 @@
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
 import PingMonitorView from "./PingMonitorView";
 import SSLCertificateMonitorView from "./SSLCertificateMonitorView";
+import ServerMonitorSummaryView from "./ServerMonitorView";
 import SyntheticMonitorView from "./SyntheticMonitorView";
 import WebsiteMonitorSummaryView from "./WebsiteMonitorView";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -15,6 +17,7 @@ export interface ComponentProps {
   monitorType: MonitorType;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  serverMonitorResponse?: ServerMonitorResponse | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -124,6 +127,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       props.monitorType === MonitorType.IncomingRequest ? (
         <IncomingRequestMonitorView
           incomingMonitorRequest={props.incomingMonitorRequest}
+        />
+      ) : (
+        <></>
+      )}
+
+      {props.monitorType === MonitorType.Server &&
+      props.serverMonitorResponse ? (
+        <ServerMonitorSummaryView
+          serverMonitorResponse={props.serverMonitorResponse}
         />
       ) : (
         <></>

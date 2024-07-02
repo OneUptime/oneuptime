@@ -21,6 +21,8 @@ jobs:
 
   llm-docker-image-deploy: 
     needs: generate-build-number
+    strategy:
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
 

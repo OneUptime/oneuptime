@@ -21,6 +21,7 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "CommonUI/src/Components/Card/Card";
 import ChartGroup, {
@@ -101,6 +102,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     IncomingMonitorRequest | undefined
   >(undefined);
 
+  const [serverMonitorResponse, setServerMonitorResponse] = useState<
+    ServerMonitorResponse | undefined
+  >(undefined);
+
   const getUptimePercent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return <></>;
@@ -174,6 +179,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           serverMonitorRequestReceivedAt: true,
           incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
+          serverMonitorResponse: true,
         },
       });
 
@@ -181,6 +187,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       if (item?.incomingMonitorRequest) {
         setIncomingMonitorRequest(item.incomingMonitorRequest);
+      }
+
+      if (item?.serverMonitorResponse) {
+        setServerMonitorResponse(item.serverMonitorResponse);
       }
 
       const monitorStatuses: ListResult<MonitorStatus> = await ModelAPI.getList(
@@ -529,6 +539,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
         probeMonitorResponses={probeResponses}
+        serverMonitorResponse={serverMonitorResponse}
       />
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}

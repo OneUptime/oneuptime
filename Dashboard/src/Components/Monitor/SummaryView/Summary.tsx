@@ -1,3 +1,4 @@
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbePicker from "./ProbePicker";
 import SummaryInfo from "./SummaryInfo";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -13,6 +14,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
 }
@@ -52,10 +54,6 @@ const Summary: FunctionComponent<ComponentProps> = (
     }
   }
 
-  if (props.monitorType === MonitorType.Server) {
-    return <></>;
-  }
-
   return (
     <Card
       title="Monitor Summary"
@@ -82,6 +80,7 @@ const Summary: FunctionComponent<ComponentProps> = (
           monitorType={props.monitorType}
           probeMonitorResponses={probeResponses}
           incomingMonitorRequest={props.incomingMonitorRequest}
+          serverMonitorResponse={props.serverMonitorResponse}
         />
       </div>
     </Card>
