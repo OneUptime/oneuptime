@@ -193,7 +193,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ],
           title: "Probe Notifications",
           description:
-            "Here are the list of notification methods we will use when an event happens on a custom porbe.",
+            "Here are the list of notification methods we will use when an event happens on a custom probe.",
         })}
       </div>
     </Fragment>
