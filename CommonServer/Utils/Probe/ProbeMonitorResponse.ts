@@ -16,7 +16,6 @@ import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BasicInfrastructureMetrics from "Common/Types/Infrastructure/BasicMetrics";
@@ -49,6 +48,7 @@ import Monitor from "Model/Models/Monitor";
 import MonitorProbe from "Model/Models/MonitorProbe";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import OneUptimeDate from "Common/Types/Date";
 
 export default class ProbeMonitorResponseService {
   public static async processProbeResponse(
@@ -403,6 +403,30 @@ export default class ProbeMonitorResponseService {
       (data.dataToProcess as ServerMonitorResponse).basicInfrastructureMetrics
     ) {
       // store cpu, memory, disk metrics.
+
+      if ((data.dataToProcess as ServerMonitorResponse).requestReceivedAt) {
+        let isOnline: boolean = true;
+
+        const differenceInMinutes: number =
+          OneUptimeDate.getDifferenceInMinutes(
+            (data.dataToProcess as ServerMonitorResponse).requestReceivedAt,
+            OneUptimeDate.getCurrentDate(),
+          );
+
+        if (differenceInMinutes > 2) {
+          isOnline = false;
+        }
+
+        const monitorMetricsByMinute: MonitorMetricsByMinute =
+          new MonitorMetricsByMinute();
+
+        monitorMetricsByMinute.monitorId = data.monitorId;
+        monitorMetricsByMinute.projectId = data.projectId;
+        monitorMetricsByMinute.metricType = CheckOn.IsOnline;
+        monitorMetricsByMinute.metricValue = isOnline ? 1 : 0;
+
+        itemsToSave.push(monitorMetricsByMinute);
+      }
 
       const basicMetrics: BasicInfrastructureMetrics | undefined = (
         data.dataToProcess as ServerMonitorResponse

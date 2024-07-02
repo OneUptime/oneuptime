@@ -45,40 +45,49 @@ export default class ServerMonitorCriteria {
       }
     }
 
+    const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
+      .requestReceivedAt;
+
+    const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
+      lastCheckTime,
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    let offlineIfNotCheckedInMinutes: number = 2;
+
+    // check evaluate  over time.
     if (
-      (input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTimeOptions
     ) {
-      const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
-        .requestReceivedAt;
+      offlineIfNotCheckedInMinutes =
+        input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 2;
+    }
 
-      const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
-        lastCheckTime,
-        OneUptimeDate.getCurrentDate(),
-      );
+    if (
+      input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+      differenceInMinutes >= offlineIfNotCheckedInMinutes
+    ) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
 
-      let offlineIfNotCheckedInMinutes: number = 2;
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
 
-      // check evaluate  over time.
-      if (
-        input.criteriaFilter.eveluateOverTime &&
-        input.criteriaFilter.evaluateOverTimeOptions
-      ) {
-        offlineIfNotCheckedInMinutes =
-          input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 2;
-      }
+    if (
+      input.criteriaFilter.checkOn === CheckOn.IsOnline &&
+      differenceInMinutes < offlineIfNotCheckedInMinutes
+    ) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) || true; // true because request receieved in the last 2 minutes
 
-      if (
-        input.criteriaFilter.checkOn === CheckOn.IsOnline &&
-        differenceInMinutes >= offlineIfNotCheckedInMinutes
-      ) {
-        const currentIsOnline: boolean | Array<boolean> =
-          (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
-
-        return CompareCriteria.compareCriteriaBoolean({
-          value: currentIsOnline,
-          criteriaFilter: input.criteriaFilter,
-        });
-      }
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
     }
 
     if (
