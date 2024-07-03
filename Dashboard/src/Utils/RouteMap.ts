@@ -9,6 +9,9 @@ import Project from "Model/Models/Project";
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
   [PageMap.MONITORS_DISABLED]: "disabled",
+  [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
+  [PageMap.MONITORS_PROBE_DISABLED]: "probe-disabled",
+
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -216,6 +219,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_DISABLED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_DISABLED]
+    }`,
+  ),
+
+  [PageMap.MONITORS_PROBE_DISABLED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED]
+    }`,
+  ),
+
+  [PageMap.MONITORS_PROBE_DISCONNECTED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_PROBE_DISCONNECTED]
     }`,
   ),
 

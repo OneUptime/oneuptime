@@ -19,6 +19,19 @@ const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/Monitors");
   });
+
+const MonitorprobeDisconnected: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/ProbeDisconnected");
+});
+
+const MonitorProbeDisabled: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/ProbeDisabled");
+});
+
 const MonitorView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/View/Index");
@@ -107,6 +120,31 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorDisabled
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISCONNECTED] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorprobeDisconnected
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorProbeDisabled
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route}
               />
             </Suspense>
           }
