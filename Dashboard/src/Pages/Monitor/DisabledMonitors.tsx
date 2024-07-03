@@ -9,6 +9,7 @@ const DisabledMonitors: FunctionComponent = (): ReactElement => {
         projectId: DashboardNavigation.getProjectId()?.toString(),
         disableActiveMonitoring: true,
       }}
+      disableCreate={true}
       noItemsMessage="No disabled monitors. All monitors in active state."
       title="Disabled Monitors"
       description="Here is a list of all the monitors which are in disabled state."

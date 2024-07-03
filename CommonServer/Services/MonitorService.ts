@@ -538,7 +538,7 @@ export class Service extends DatabaseService<Model> {
 
         // notify owners that no probe is enabled.
 
-        this.notifyOwnersWhenNoProbeIsEnabled({
+        await this.notifyOwnersWhenNoProbeIsEnabled({
           monitorId: monitorId,
           isNoProbesEnabled: true,
         });
@@ -556,7 +556,7 @@ export class Service extends DatabaseService<Model> {
 
       // notify owners that probes are now enabled.
 
-      this.notifyOwnersWhenNoProbeIsEnabled({
+      await this.notifyOwnersWhenNoProbeIsEnabled({
         monitorId: monitorId,
         isNoProbesEnabled: false,
       });
@@ -566,12 +566,15 @@ export class Service extends DatabaseService<Model> {
       (monitorProbe: MonitorProbe) => {
         return (
           monitorProbe.probe?.connectionStatus ===
-          ProbeConnectionStatus.Disconnected
+            ProbeConnectionStatus.Disconnected && monitorProbe.isEnabled
         );
       },
     );
 
-    if (disconnectedProbes.length === probesForMonitor.length) {
+    if (
+      disconnectedProbes.length === enabledProbes.length &&
+      enabledProbes.length > 0
+    ) {
       if (!monitor.isAllProbesDisconnectedFromThisMonitor) {
         // all probes are disconnected.
         await this.updateOneById({
@@ -584,7 +587,7 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        this.notifyOwnersProbesDisconnected({
+        await this.notifyOwnersProbesDisconnected({
           monitorId: monitorId,
           isProbeDisconnected: true,
         });
@@ -600,7 +603,7 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      this.notifyOwnersProbesDisconnected({
+      await this.notifyOwnersProbesDisconnected({
         monitorId: monitorId,
         isProbeDisconnected: false,
       });
@@ -635,9 +638,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const monitorId: ObjectID = monitor.id;
+    let doesResourceHasOwners: boolean = true;
 
-    const owners: Array<User> = await this.findOwners(monitorId);
+    let owners: Array<User> = await this.findOwners(monitor.id!);
+
+    if (owners.length === 0) {
+      doesResourceHasOwners = false;
+
+      // find project owners.
+      owners = await ProjectService.getOwners(monitor.projectId!);
+    }
+
+    if (owners.length === 0) {
+      return;
+    }
 
     const title: string = data.isNoProbesEnabled
       ? "No Probes Enabled. This monitor is not being monitored"
@@ -650,7 +664,7 @@ export class Service extends DatabaseService<Model> {
     const vars: Dictionary<string> = {
       title: title,
       monitorName: monitor.name!,
-      currentStatus: status,
+      currentStatus: enabledStatus,
       projectName: monitor.project!.name!,
       monitorDescription: await Markdown.convertToHTML(
         monitor.description! || "",
@@ -660,6 +674,10 @@ export class Service extends DatabaseService<Model> {
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
       ).toString(),
     };
+
+    if (doesResourceHasOwners === true) {
+      vars["isOwner"] = "true";
+    }
 
     for (const owner of owners) {
       // send email to the owner.
@@ -722,9 +740,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const monitorId: ObjectID = monitor.id;
+    let doesResourceHasOwners: boolean = true;
 
-    const owners: Array<User> = await this.findOwners(monitorId);
+    let owners: Array<User> = await this.findOwners(monitor.id!);
+
+    if (owners.length === 0) {
+      doesResourceHasOwners = false;
+
+      // find project owners.
+      owners = await ProjectService.getOwners(monitor.projectId!);
+    }
+
+    if (owners.length === 0) {
+      return;
+    }
 
     const status: string = data.isProbeDisconnected
       ? "Disconnected"
@@ -743,6 +772,10 @@ export class Service extends DatabaseService<Model> {
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
       ).toString(),
     };
+
+    if (doesResourceHasOwners === true) {
+      vars["isOwner"] = "true";
+    }
 
     for (const owner of owners) {
       // send email to the owner.

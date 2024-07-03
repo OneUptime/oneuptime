@@ -41,6 +41,7 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
+  disableCreate?: boolean | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -171,7 +172,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       isDeleteable={false}
       showViewIdButton={true}
       isEditable={false}
-      isCreateable={true}
+      isCreateable={!props.disableCreate}
       isViewable={true}
       query={props.query || {}}
       createEditModalWidth={ModalWidth.Large}
