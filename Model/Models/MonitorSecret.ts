@@ -227,7 +227,7 @@ export default class MonitorSecret extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     encrypted: true,
     title: "Secret Value",
     description:
@@ -235,8 +235,7 @@ export default class MonitorSecret extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public secretValue?: string = undefined;
 
