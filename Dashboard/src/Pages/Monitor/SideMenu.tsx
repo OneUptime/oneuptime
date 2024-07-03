@@ -49,7 +49,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
 
-
         {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
           <SideMenuSection title="Monitor Groups">
             <SideMenuItem
@@ -65,24 +64,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+      </SideMenuSection>
 
-        <SideMenuSection title="Not Being Monitored">
-          <CountModelSideMenuItem<Monitor>
-            link={{
-              title: "Disabled Monitors",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_DISABLED] as Route,
-              ),
-            }}
-            icon={IconProp.Error}
-            badgeType={BadgeType.DANGER}
-            modelType={Monitor}
-            countQuery={{
-              projectId: props.project?._id,
-              disableActiveMonitoring: true,
-            }}
-          />
-        </SideMenuSection>
+      <SideMenuSection title="Not Being Monitored">
+        <CountModelSideMenuItem<Monitor>
+          link={{
+            title: "Disabled Monitors",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_DISABLED] as Route,
+            ),
+          }}
+          icon={IconProp.Error}
+          badgeType={BadgeType.DANGER}
+          modelType={Monitor}
+          countQuery={{
+            projectId: props.project?._id,
+            disableActiveMonitoring: true,
+          }}
+        />
 
         <CountModelSideMenuItem<Monitor>
           link={{
@@ -91,7 +90,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route,
             ),
           }}
-          icon={IconProp.Alert}
+          icon={IconProp.NoSignal}
           badgeType={BadgeType.DANGER}
           modelType={Monitor}
           countQuery={{
@@ -107,7 +106,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route,
             ),
           }}
-          icon={IconProp.Alert}
+          icon={IconProp.EyeSlash}
           badgeType={BadgeType.DANGER}
           modelType={Monitor}
           countQuery={{
@@ -115,9 +114,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             isNoProbeEnabledOnThisMonitor: true,
           }}
         />
-
       </SideMenuSection>
-
     </SideMenu>
   );
 };

@@ -7,7 +7,7 @@ const DisabledMonitors: FunctionComponent = (): ReactElement => {
     <MonitorTable
       query={{
         projectId: DashboardNavigation.getProjectId()?.toString(),
-        disableActiveMonitoring: true,
+        isAllProbesDisconnectedFromThisMonitor: true,
       }}
       noItemsMessage="No monitors with disconnected probes. All your monitors are being monitored."
       title="Monitors with all probes disconnected"

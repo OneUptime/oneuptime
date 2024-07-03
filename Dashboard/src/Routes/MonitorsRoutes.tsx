@@ -131,12 +131,13 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <MonitorprobeDisconnected
                 {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route}
+                pageRoute={
+                  RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route
+                }
               />
             </Suspense>
           }
         />
-
 
         <PageRoute
           path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED] || ""}

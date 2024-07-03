@@ -12,7 +12,6 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
   [PageMap.MONITORS_PROBE_DISABLED]: "probe-disabled",
 
-
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
   [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,

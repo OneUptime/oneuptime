@@ -121,6 +121,8 @@ enum IconProp {
   Minus = "Minus",
   MinusSmall = "MinusSmall",
   Template = "Template",
+  NoSignal = "NoSignal",
+  EyeSlash = "EyeSlash",
 }
 
 export default IconProp;
