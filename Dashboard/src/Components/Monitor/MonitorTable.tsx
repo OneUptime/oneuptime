@@ -3,7 +3,7 @@ import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import DashboardNavigation from "../../Utils/Navigation";
 import MonitorSteps from "../Form/Monitor/MonitorSteps";
-import { Black, Gray500 } from "Common/Types/BrandColors";
+import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
@@ -206,6 +206,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       }}
       selectMoreFields={{
         disableActiveMonitoring: true,
+        isNoProbeEnabledOnThisMonitor: true,
+        isAllProbesDisconnectedFromThisMonitor: true,
       }}
       noItemsMessage={props.noItemsMessage || "No monitors found."}
       formFields={[
@@ -417,6 +419,26 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                   shouldAnimate={false}
                   color={Gray500}
                   text={"Disabled"}
+                />
+              );
+            }
+
+            if (item && item.isNoProbeEnabledOnThisMonitor) {
+              return (
+                <Statusbubble
+                  shouldAnimate={false}
+                  color={Red500}
+                  text={"Probes Not Enabled"}
+                />
+              );
+            }
+
+            if (item && item.isAllProbesDisconnectedFromThisMonitor) {
+              return (
+                <Statusbubble
+                  shouldAnimate={false}
+                  color={Red500}
+                  text={"Probes Disconnected"}
                 />
               );
             }

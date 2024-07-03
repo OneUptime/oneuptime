@@ -8,7 +8,7 @@ import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black, Gray500, Green } from "Common/Types/BrandColors";
+import { Black, Gray500, Green, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -23,6 +23,7 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import Card from "CommonUI/src/Components/Card/Card";
 import ChartGroup, {
   Chart,
@@ -61,6 +62,8 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -180,6 +183,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
           serverMonitorResponse: true,
+          isNoProbeEnabledOnThisMonitor: true,
+          isAllProbesDisconnectedFromThisMonitor: true,
         },
       });
 
@@ -353,6 +358,48 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {monitor && monitor.isAllProbesDisconnectedFromThisMonitor && (
+        <Alert
+          type={AlertType.DANGER}
+          className="cursor-pointer"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW_PROBES]!,
+                {
+                  modelId: modelId,
+                },
+              ),
+            );
+          }}
+          strongTitle="Probes Disconnected"
+          title={
+            "This monitor is not being monitored because all probes are disconnected. Please click here to check probes for this monitor."
+          }
+        />
+      )}
+
+      {monitor && monitor.isNoProbeEnabledOnThisMonitor && (
+        <Alert
+          type={AlertType.DANGER}
+          className="cursor-pointer"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW_PROBES]!,
+                {
+                  modelId: modelId,
+                },
+              ),
+            );
+          }}
+          strongTitle="Probes Not Enabled"
+          title={
+            "This monitor is not being monitored because all probes are disabled for this monitor. Please click here to check probes for this monitor."
+          }
+        />
+      )}
+
       <DisabledWarning monitorId={modelId} />
 
       {/* Monitor View  */}
@@ -418,6 +465,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelDetailProps={{
           selectMoreFields: {
             disableActiveMonitoring: true,
+            isNoProbeEnabledOnThisMonitor: true,
+            isAllProbesDisconnectedFromThisMonitor: true,
           },
           showDetailsInNumberOfColumns: 2,
           modelType: Monitor,
@@ -455,6 +504,26 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       color={Gray500}
                       text={"Disabled"}
                       shouldAnimate={false}
+                    />
+                  );
+                }
+
+                if (item && item.isNoProbeEnabledOnThisMonitor) {
+                  return (
+                    <Statusbubble
+                      shouldAnimate={false}
+                      color={Red500}
+                      text={"Probes Not Enabled"}
+                    />
+                  );
+                }
+
+                if (item && item.isAllProbesDisconnectedFromThisMonitor) {
+                  return (
+                    <Statusbubble
+                      shouldAnimate={false}
+                      color={Red500}
+                      text={"Probes Disconnected"}
                     />
                   );
                 }
