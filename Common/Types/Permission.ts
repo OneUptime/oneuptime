@@ -1988,28 +1988,28 @@ export class PermissionHelper {
         title: "Create Probe",
         description: "This permission can create probe this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.DeleteProjectProbe,
         title: "Delete Probe",
         description: "This permission can delete probe of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.EditProjectProbe,
         title: "Edit Probe",
         description: "This permission can edit probe of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.ReadProjectProbe,
         title: "Read Probe",
         description: "This permission can read probe of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
 
       {
