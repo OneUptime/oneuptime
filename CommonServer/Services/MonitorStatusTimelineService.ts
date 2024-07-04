@@ -4,6 +4,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import UserService from "./UserService";
@@ -28,9 +29,15 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       throw new BadDataException("monitorId is null");
     }
 
-    const mutexId: ObjectID = await Semaphore.lock({
-      key: createBy.data.monitorId.toString(),
-    });
+    let mutexId: ObjectID | null = null;
+
+    try {
+      mutexId = await Semaphore.lock({
+        key: createBy.data.monitorId.toString(),
+      });
+    } catch (e) {
+      logger.error(e);
+    }
 
     if (!createBy.data.startsAt) {
       createBy.data.startsAt = OneUptimeDate.getCurrentDate();

@@ -54,7 +54,10 @@ export default class UserAPI extends BaseAPI<
             );
           });
 
-          if (userPermissions.length === 0 && !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin) {
+          if (
+            userPermissions.length === 0 &&
+            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+          ) {
             throw new BadDataException(
               `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`,
             );

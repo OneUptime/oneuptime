@@ -223,9 +223,13 @@ router.post(
         );
       }
 
-      mutexId = await Semaphore.lock({
-        key: probeId.toString(),
-      });
+      try {
+        mutexId = await Semaphore.lock({
+          key: probeId.toString(),
+        });
+      } catch (err) {
+        logger.error(err);
+      }
 
       //get list of monitors to be monitored
       const monitorProbes: Array<MonitorProbe> =
@@ -283,7 +287,9 @@ router.post(
         });
       }
 
-      await Semaphore.release(mutexId);
+      if (mutexId) {
+        await Semaphore.release(mutexId);
+      }
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
