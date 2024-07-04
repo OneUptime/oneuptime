@@ -9,6 +9,7 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -53,7 +54,7 @@ export default class UserAPI extends BaseAPI<
             );
           });
 
-          if (userPermissions.length === 0) {
+          if (userPermissions.length === 0 && !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin) {
             throw new BadDataException(
               `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`,
             );
