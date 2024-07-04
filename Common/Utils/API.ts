@@ -322,7 +322,9 @@ export default class API {
     // get url from error
     const url: string = error?.config?.url || "";
 
-    throw new APIException(`URL ${url ? url + " " : ""}is not available.`);
+    throw new APIException(`
+      Error occurred while making request to ${url}. ${error.message}
+      `);
   }
 
   public static getFriendlyErrorMessage(error: AxiosError | Error): string {
