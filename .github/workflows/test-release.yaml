@@ -26,6 +26,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Docker Meta
         id: meta
         uses: docker/metadata-action@v4
