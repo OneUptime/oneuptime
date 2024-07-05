@@ -59,9 +59,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
-
-      - name: Download the Model from Hugging Face
-        run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
+        
+      # Cannot do this, no space on the runner
+      # - name: Download the Model from Hugging Face
+      #   run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
