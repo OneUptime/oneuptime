@@ -10,9 +10,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Semaphore, {
-  SemaphoreMutex,
-} from "CommonServer/Infrastructure/Semaphore";
+// import Semaphore, {
+//   SemaphoreMutex,
+// } from "CommonServer/Infrastructure/Semaphore";
 import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
 import MonitorProbeService from "CommonServer/Services/MonitorProbeService";
 import Query from "CommonServer/Types/Database/Query";
@@ -198,16 +198,24 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    let mutex: SemaphoreMutex | null = null;
+    // let mutex: SemaphoreMutex | null = null;
+
+    logger.debug("Monitor list API called");
 
     try {
       const data: JSONObject = req.body;
       const limit: number = (data["limit"] as number) || 100;
 
+      logger.debug("Monitor list API called with limit: " + limit);
+      logger.debug("Data:");
+      logger.debug(data);
+
       if (
         !(req as ProbeExpressRequest).probe ||
         !(req as ProbeExpressRequest).probe?.id
       ) {
+        logger.error("Probe not found");
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -218,6 +226,8 @@ router.post(
       const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
 
       if (!probeId) {
+        logger.error("Probe not found");
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -225,15 +235,18 @@ router.post(
         );
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: probeId.toString(),
-        });
-      } catch (err) {
-        logger.error(err);
-      }
+      // try {
+      //   mutex = await Semaphore.lock({
+      //     key: probeId.toString(),
+      //   });
+      // } catch (err) {
+      //   logger.error(err);
+      // }
 
       //get list of monitors to be monitored
+
+      logger.debug("Fetching monitor list");
+
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
           query: getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
@@ -256,6 +269,9 @@ router.post(
             isRoot: true,
           },
         });
+
+      logger.debug("Fetched monitor list");
+      logger.debug(monitorProbes);
 
       // update the lastMonitoredAt field of the monitors
 
@@ -289,13 +305,13 @@ router.post(
         });
       }
 
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err);
-        }
-      }
+      // if (mutex) {
+      //   try {
+      //     await Semaphore.release(mutex);
+      //   } catch (err) {
+      //     logger.error(err);
+      //   }
+      // }
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
@@ -304,6 +320,9 @@ router.post(
         .filter((monitor: Monitor) => {
           return Boolean(monitor._id);
         });
+
+      logger.debug("Populating secrets");
+      logger.debug(monitors);
 
       // check if the monitor needs secrets to be filled.
 
@@ -316,6 +335,9 @@ router.post(
         monitorsWithSecretPopulated.push(monitorWithSecrets);
       }
 
+      logger.debug("Populated secrets");
+      logger.debug(monitorsWithSecretPopulated);
+
       // return the list of monitors to be monitored
 
       return Response.sendEntityArrayResponse(
@@ -326,13 +348,13 @@ router.post(
         Monitor,
       );
     } catch (err) {
-      try {
-        if (mutex) {
-          await Semaphore.release(mutex);
-        }
-      } catch (err) {
-        logger.error(err);
-      }
+      // try {
+      //   if (mutex) {
+      //     await Semaphore.release(mutex);
+      //   }
+      // } catch (err) {
+      //   logger.error(err);
+      // }
 
       return next(err);
     }
