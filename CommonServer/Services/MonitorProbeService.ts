@@ -66,28 +66,31 @@ export class Service extends DatabaseService<MonitorProbe> {
     onUpdate: OnUpdate<MonitorProbe>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {
-    const monitorProbes: Array<MonitorProbe> = await this.findBy({
-      query: {
-        _id: QueryHelper.any(updatedItemIds),
-      },
-      select: {
-        monitorId: true,
-        probeId: true,
-        nextPingAt: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    // if isEnabled is updated, refresh the probe status
+    if (onUpdate.updateBy.data.isEnabled !== undefined) {
+      const monitorProbes: Array<MonitorProbe> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
+        select: {
+          monitorId: true,
+          probeId: true,
+          nextPingAt: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    for (const monitorProbe of monitorProbes) {
-      if (!monitorProbe.probeId) {
-        continue;
+      for (const monitorProbe of monitorProbes) {
+        if (!monitorProbe.probeId) {
+          continue;
+        }
+
+        await MonitorService.refreshProbeStatus(monitorProbe.probeId);
       }
-
-      await MonitorService.refreshProbeStatus(monitorProbe.probeId);
     }
 
     return onUpdate;
