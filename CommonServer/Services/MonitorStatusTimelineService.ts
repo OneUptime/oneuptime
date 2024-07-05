@@ -1,5 +1,5 @@
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
-import Semaphore from "../Infrastructure/Semaphore";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -29,10 +29,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       throw new BadDataException("monitorId is null");
     }
 
-    let mutexId: ObjectID | null = null;
+    let mutex: SemaphoreMutex | null = null;
 
     try {
-      mutexId = await Semaphore.lock({
+      mutex = await Semaphore.lock({
         key: createBy.data.monitorId.toString(),
       });
     } catch (e) {
@@ -98,7 +98,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       createBy,
       carryForward: {
         lastMonitorStatusTimelineId: lastMonitorStatusTimeline?.id || null,
-        mutexId: mutexId,
+        mutex: mutex,
       },
     };
   }
@@ -139,9 +139,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       props: onCreate.createBy.props,
     });
 
-    if (onCreate.carryForward.mutexId) {
-      const mutexId: ObjectID = onCreate.carryForward.mutexId;
-      await Semaphore.release(mutexId);
+    if (onCreate.carryForward.mutex) {
+      const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
+      await Semaphore.release(mutex);
     }
 
     return createdItem;
