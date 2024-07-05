@@ -75,7 +75,7 @@ RUN npm install
 RUN mkdir /repository
 
 # Set the stack trace limit to 0 to show full stack traces
-ENV NODE_OPTIONS='--stack-trace-limit=0'
+ENV NODE_OPTIONS='--stack-trace-limit=30'
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
