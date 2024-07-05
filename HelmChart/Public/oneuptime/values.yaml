@@ -17,6 +17,8 @@ fluentdHost:
 
 deployment: 
   replicaCount: 1
+  ingestor:
+    replicaCount: 
 
 metalLb: 
   enabled: false

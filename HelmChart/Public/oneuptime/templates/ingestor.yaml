@@ -15,7 +15,11 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+  {{- if $.Values.deployment.ingestor.replicaCount }}
+  replicas: {{ $.Values.deployment.ingestor.replicaCount }}
+  {{- else }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   template:
     metadata:
       labels:
