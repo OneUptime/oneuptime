@@ -7,6 +7,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
+import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Sleep from "Common/Types/Sleep";
@@ -116,6 +117,11 @@ export default class FetchListAndProbe {
     } catch (err) {
       logger.error("Error in fetching monitor list");
       logger.error(err);
+
+      if (err instanceof APIException) {
+        logger.error("API Exception Error");
+        logger.error(JSON.stringify(err.error, null, 2));
+      }
     }
   }
 }

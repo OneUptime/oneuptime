@@ -340,6 +340,7 @@ router.post(
 
       // return the list of monitors to be monitored
 
+      logger.debug("Sending response");
       return Response.sendEntityArrayResponse(
         req,
         res,

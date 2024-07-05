@@ -322,9 +322,10 @@ export default class API {
     // get url from error
     const url: string = error?.config?.url || "";
 
-    throw new APIException(`
-      Error occurred while making request to ${url}. ${error.message}
-      `);
+    throw new APIException(
+      `Error occurred while making request to ${url}.`,
+      error,
+    );
   }
 
   public static getFriendlyErrorMessage(error: AxiosError | Error): string {
