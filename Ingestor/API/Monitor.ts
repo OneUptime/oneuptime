@@ -10,9 +10,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-// import Semaphore, {
-//   SemaphoreMutex,
-// } from "CommonServer/Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreMutex,
+} from "CommonServer/Infrastructure/Semaphore";
 import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
 import MonitorProbeService from "CommonServer/Services/MonitorProbeService";
 import Query from "CommonServer/Types/Database/Query";
@@ -198,7 +198,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    // let mutex: SemaphoreMutex | null = null;
+    let mutex: SemaphoreMutex | null = null;
 
     logger.debug("Monitor list API called");
 
@@ -235,13 +235,13 @@ router.post(
         );
       }
 
-      // try {
-      //   mutex = await Semaphore.lock({
-      //     key: probeId.toString(),
-      //   });
-      // } catch (err) {
-      //   logger.error(err);
-      // }
+      try {
+        mutex = await Semaphore.lock({
+          key: probeId.toString(),
+        });
+      } catch (err) {
+        logger.error(err);
+      }
 
       //get list of monitors to be monitored
 
@@ -305,13 +305,13 @@ router.post(
         });
       }
 
-      // if (mutex) {
-      //   try {
-      //     await Semaphore.release(mutex);
-      //   } catch (err) {
-      //     logger.error(err);
-      //   }
-      // }
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
@@ -348,13 +348,13 @@ router.post(
         Monitor,
       );
     } catch (err) {
-      // try {
-      //   if (mutex) {
-      //     await Semaphore.release(mutex);
-      //   }
-      // } catch (err) {
-      //   logger.error(err);
-      // }
+      try {
+        if (mutex) {
+          await Semaphore.release(mutex);
+        }
+      } catch (err) {
+        logger.error(err);
+      }
 
       return next(err);
     }
