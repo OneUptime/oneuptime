@@ -275,8 +275,6 @@ router.post(
 
       // update the lastMonitoredAt field of the monitors
 
-      const updatePromises: Array<Promise<void>> = [];
-
       for (const monitorProbe of monitorProbes) {
         if (!monitorProbe.monitor) {
           continue;
@@ -295,21 +293,17 @@ router.post(
           logger.error(err);
         }
 
-        updatePromises.push(
-          MonitorProbeService.updateOneById({
-            id: monitorProbe.id!,
-            data: {
-              lastPingAt: OneUptimeDate.getCurrentDate(),
-              nextPingAt: nextPing,
-            },
-            props: {
-              isRoot: true,
-            },
-          }),
-        );
+        await MonitorProbeService.updateOneById({
+          id: monitorProbe.id!,
+          data: {
+            lastPingAt: OneUptimeDate.getCurrentDate(),
+            nextPingAt: nextPing,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
       }
-
-      await Promise.all(updatePromises);
 
       // if (mutex) {
       //   try {
@@ -332,25 +326,20 @@ router.post(
 
       // check if the monitor needs secrets to be filled.
 
-      let monitorsWithSecretPopulated: Array<Monitor> = [];
-      const monitorWithSecretsPopulatePromises: Array<Promise<Monitor>> = [];
+      const monitorsWithSecretPopulated: Array<Monitor> = [];
 
       for (const monitor of monitors) {
-        monitorWithSecretsPopulatePromises.push(
-          MonitorUtil.populateSecrets(monitor),
-        );
-      }
+        const monitorWithSecrets: Monitor =
+          await MonitorUtil.populateSecrets(monitor);
 
-      monitorsWithSecretPopulated = await Promise.all(
-        monitorWithSecretsPopulatePromises,
-      );
+        monitorsWithSecretPopulated.push(monitorWithSecrets);
+      }
 
       logger.debug("Populated secrets");
       logger.debug(monitorsWithSecretPopulated);
 
       // return the list of monitors to be monitored
 
-      logger.debug("Sending response");
       return Response.sendEntityArrayResponse(
         req,
         res,
