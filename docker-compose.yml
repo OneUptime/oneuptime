@@ -83,6 +83,12 @@ services:
             file: ./docker-compose.base.yml
             service: ingestor
 
+    telemetry-ingestor:
+        image:  oneuptime/telemetry-ingestor:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: telemetry-ingestor
+
     isolated-vm:
         image:  oneuptime/isolated-vm:${APP_TAG}
         extends:

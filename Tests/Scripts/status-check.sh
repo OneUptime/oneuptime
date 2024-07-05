@@ -49,6 +49,10 @@ bash $scriptDir/endpoint-status.sh "Ingestor (Ready Check)" $HOST_TO_CHECK/inges
 
 bash $scriptDir/endpoint-status.sh "Ingestor (Status Check)" $HOST_TO_CHECK/ingestor/status
 
+bash $scriptDir/endpoint-status.sh "Telemetry Ingestor (Ready Check)" $HOST_TO_CHECK/telemetry-ingestor/status/ready
+
+bash $scriptDir/endpoint-status.sh "Telemetry Ingestor (Status Check)" $HOST_TO_CHECK/telemetry-ingestor/status
+
 echo "🚀 OneUptime is up! 🚀"
 echo ""
 echo "🎉🎉🎉  Done! 🎉🎉🎉"

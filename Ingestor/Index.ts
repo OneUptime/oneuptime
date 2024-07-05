@@ -1,8 +1,6 @@
 import AliveAPI from "./API/Alive";
-import FluentIngestAPI from "./API/FluentIngest";
 import IncomingRequestAPI from "./API/IncomingRequest";
 import MonitorAPI from "./API/Monitor";
-import OTelIngestAPI from "./API/OTelIngest";
 import Ingestor from "./API/Probe";
 import RegisterAPI from "./API/Register";
 import ServerMonitorAPI from "./API/ServerMonitor";
@@ -26,8 +24,6 @@ app.use([`/${APP_NAME}`, "/"], RegisterAPI);
 app.use([`/${APP_NAME}`, "/"], MonitorAPI);
 app.use([`/${APP_NAME}`, "/"], Ingestor);
 app.use([`/${APP_NAME}`, "/"], IncomingRequestAPI);
-app.use([`/${APP_NAME}`, "/"], OTelIngestAPI);
-app.use([`/${APP_NAME}`, "/"], FluentIngestAPI);
 app.use([`/${APP_NAME}`, "/"], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {

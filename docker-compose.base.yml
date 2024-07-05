@@ -364,6 +364,18 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
+
+    telemetry-ingestor:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${TELEMETRY_INGESTOR_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
             
     
     e2e:
