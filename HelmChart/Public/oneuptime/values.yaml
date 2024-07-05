@@ -16,6 +16,7 @@ openTelemetryCollectorHost:
 fluentdHost: 
 
 deployment: 
+  # Default replica count for all deployments
   replicaCount: 1
   ingestor:
     replicaCount: 
