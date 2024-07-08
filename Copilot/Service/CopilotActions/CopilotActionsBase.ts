@@ -28,6 +28,7 @@ export interface Prompt {
 
 export interface CopilotActionPrompt {
   messages: Array<Prompt>;
+  timeoutInMinutes?: number | undefined;
 }
 
 export interface CopilotActionVars {
@@ -133,7 +134,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
   }
 
   public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
-    logger.info("Executing Copilot Action: " + this.copilotActionType);
+    logger.info("Executing Copilot Action (this will take several minutes to complete): " + this.copilotActionType);
     logger.info("Current File Path: " + data.input.currentFilePath);
 
     data = await this.onBeforeExecute(data);

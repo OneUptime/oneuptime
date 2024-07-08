@@ -28,12 +28,16 @@ export default class ImproveComments extends CopilotActionBase {
     // Action Prompt
 
     const actionPrompt: CopilotActionPrompt = await this.getPrompt(data);
+
+    debugger;
+
     const copilotResult: CopilotPromptResult =
       await this.askCopilot(actionPrompt);
 
-    const newContent: string = await this.cleanup(
-      copilotResult.output as string,
-    );
+    const newContent: string = await this.cleanup({
+      inputCode: await this.getInputCode(data),
+      outputCode: copilotResult.output as string,
+    });
 
     if (await this.isFileAlreadyWellCommented(newContent)) {
       this.isRequirementsMet = true;
@@ -134,14 +138,17 @@ export default class ImproveComments extends CopilotActionBase {
     };
   }
 
+  public async getInputCode(data: CopilotProcess): Promise<string> {
+    return data.input.files[data.input.currentFilePath]?.fileContent as string;
+  }
+
   public override async getPrompt(
     data: CopilotProcess,
   ): Promise<CopilotActionPrompt> {
     const fileLanguage: ServiceLanguage = data.input.files[
       data.input.currentFilePath
     ]?.fileLanguage as ServiceLanguage;
-    const code: string = data.input.files[data.input.currentFilePath]
-      ?.fileContent as string;
+    const code: string = await this.getInputCode(data);
 
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
@@ -173,12 +180,16 @@ export default class ImproveComments extends CopilotActionBase {
     const systemPrompt: string = `You are an expert programmer. Here are your instructions:
 - You will follow the instructions given by the user strictly.
 - You will not deviate from the instructions given by the user.
-- You will not change the code unnecessarily. For example you will not change the code structure, logic, quotes around strings, or functionality.`;
+- You will not change the code. You will only improve the comments.`;
 
     return systemPrompt;
   }
 
-  public async cleanup(code: string): Promise<string> {
+  public async cleanup(data: {
+    inputCode: string,
+    outputCode: string
+  }): Promise<string> {
+
     // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
     // for example code can be in the format of
     // ```python
@@ -189,13 +200,13 @@ export default class ImproveComments extends CopilotActionBase {
 
     // the code can be in multiple lines as well.
 
-    let extractedCode: string = code; // this is the code in the file
+    let extractedCode: string = data.outputCode; // this is the code in the file
 
-    if (!extractedCode.includes("```")) {
-      return extractedCode;
+    if (extractedCode.includes("```")) {
+      extractedCode = extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
     }
 
-    extractedCode = extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
+    // get first line of input code. 
 
     return extractedCode;
   }

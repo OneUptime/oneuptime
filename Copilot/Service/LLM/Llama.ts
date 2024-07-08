@@ -14,6 +14,8 @@ import {
 } from "../CopilotActions/CopilotActionsBase";
 import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
 import BadOperationException from "Common/Types/Exception/BadOperationException";
+import OneUptimeDate from "Common/Types/Date";
+import LLMTimeoutException from "../../Exceptions/LLMTimeoutException";
 
 enum LlamaPromptStatus {
   Processed = "processed",
@@ -39,6 +41,11 @@ export default class Llama extends LlmBase {
           }),
           secretkey: GetRepositorySecretKey(),
         },
+        {},
+        {
+          retries: 3,
+          exponentialBackoff: true
+        }
       );
 
     if (response instanceof HTTPErrorResponse) {
@@ -58,7 +65,19 @@ export default class Llama extends LlmBase {
     let promptStatus: LlamaPromptStatus = LlamaPromptStatus.Pending;
     let promptResult: JSONObject | null = null;
 
+
+    const currentDate = OneUptimeDate.getCurrentDate(); 
+    const timeoutInMinutes = data.timeoutInMinutes || 5;
+
     while (promptStatus === LlamaPromptStatus.Pending) {
+
+
+      let timeNow = OneUptimeDate.getCurrentDate();
+
+      if(OneUptimeDate.getDifferenceInMinutes(timeNow, currentDate) > timeoutInMinutes){
+        throw new LLMTimeoutException(`Timeout of ${timeoutInMinutes} minutes exceeded. Skipping the prompt.`);
+      }
+
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.post(
           URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
@@ -66,6 +85,11 @@ export default class Llama extends LlmBase {
             id: idOfPrompt,
             secretkey: GetRepositorySecretKey(),
           },
+          {},
+          {
+            retries: 3,
+            exponentialBackoff: true
+          }
         );
 
       if (response instanceof HTTPErrorResponse) {

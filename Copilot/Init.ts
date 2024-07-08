@@ -31,6 +31,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
+  if(codeRepositoryResult.servicesToImprove.length === 0) { 
+    logger.info("No services to improve. Exiting.");
+    haltProcessWithSuccess();
+  }
+
+
   logger.info(
     `Cloning the repository ${codeRepositoryResult.codeRepository.name} to a temporary directory.`,
   );
@@ -124,7 +130,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       }
 
       if (!nextEventToFix) {
-        logger.info(`All fixes completed on this file. Moving to next file.`);
+        logger.info(`All fixes completed on ${file.filePath}. Moving to next file.`);
         continue;
       }
 
