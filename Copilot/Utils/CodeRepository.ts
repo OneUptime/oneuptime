@@ -16,6 +16,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import CodeRepositoryServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
 import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
+import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
 import CodeRepositoryModel from "Model/Models/CodeRepository";
 import ServiceRepository from "Model/Models/ServiceRepository";
@@ -35,10 +36,30 @@ export interface ServiceToImproveResult {
 export default class CodeRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static gitHubUtil: GitHubUtil | null = null;
+  public static folderNameOfClonedRepository: string | null = null;
 
+  public static getLocalRepositoryPath(): string {
+
+    if(this.folderNameOfClonedRepository){
+      return LocalFile.sanitizeFilePath(GetLocalRepositoryPath() + '/' + this.folderNameOfClonedRepository);
+    }
+
+    return GetLocalRepositoryPath();
+  }
+  
+  // returns the folder name of the cloned repository.
   public static async cloneRepository(data: {
     codeRepository: CodeRepositoryModel;
   }): Promise<void> {
+
+    // make sure this.getLocalRepositoryPath() is empty. 
+    const repoLocalPath = this.getLocalRepositoryPath();
+
+    await LocalFile.deleteAllDataInDirectory(repoLocalPath);
+    await LocalFile.makeDirectory(repoLocalPath);
+
+    // check if the data in the directory eixsts, if it does then delete it. 
+
     if (!data.codeRepository.repositoryHostedAt) {
       throw new BadDataException("Repository Hosted At is required");
     }
@@ -64,10 +85,12 @@ export default class CodeRepositoryUtil {
         : ""
         }/${data.codeRepository.organizationName}/${data.codeRepository.repositoryName}.git`;
 
-    await CodeRepositoryServerUtil.cloneRepository({
+    const folderName = await CodeRepositoryServerUtil.cloneRepository({
       repoUrl: repoUrl,
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: repoLocalPath,
     });
+
+    this.folderNameOfClonedRepository = folderName;
   }
 
   public static hasOpenPRForFile(data: {
@@ -97,7 +120,7 @@ export default class CodeRepositoryUtil {
     directoryPath: string;
   }): Promise<Array<string>> {
     return await CodeRepositoryServerUtil.listFilesInDirectory({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       directoryPath: data.directoryPath,
     });
   }
@@ -127,7 +150,7 @@ export default class CodeRepositoryUtil {
 
   public static async pullChanges(): Promise<void> {
     await CodeRepositoryServerUtil.pullChanges({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
     });
   }
 
@@ -161,7 +184,7 @@ export default class CodeRepositoryUtil {
     });
 
     await CodeRepositoryServerUtil.createBranch({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       branchName: branchName,
     });
   }
@@ -176,7 +199,7 @@ export default class CodeRepositoryUtil {
     });
 
     await CodeRepositoryServerUtil.createOrCheckoutBranch({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       branchName: branchName,
     });
   }
@@ -186,7 +209,7 @@ export default class CodeRepositoryUtil {
     content: string;
   }): Promise<void> {
     await CodeRepositoryServerUtil.writeToFile({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       filePath: data.filePath,
       content: data.content,
     });
@@ -196,14 +219,14 @@ export default class CodeRepositoryUtil {
     directoryPath: string;
   }): Promise<void> {
     await CodeRepositoryServerUtil.createDirectory({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       directoryPath: data.directoryPath,
     });
   }
 
   public static async deleteFile(data: { filePath: string }): Promise<void> {
     await CodeRepositoryServerUtil.deleteFile({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       filePath: data.filePath,
     });
   }
@@ -212,14 +235,14 @@ export default class CodeRepositoryUtil {
     directoryPath: string;
   }): Promise<void> {
     await CodeRepositoryServerUtil.deleteDirectory({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       directoryPath: data.directoryPath,
     });
   }
 
   public static async discardChanges(): Promise<void> {
     await CodeRepositoryServerUtil.discardChanges({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
     });
   }
 
@@ -227,7 +250,7 @@ export default class CodeRepositoryUtil {
     branchName: string;
   }): Promise<void> {
     await CodeRepositoryServerUtil.checkoutBranch({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       branchName: data.branchName,
     });
   }
@@ -248,7 +271,7 @@ export default class CodeRepositoryUtil {
     filePaths: Array<string>;
   }): Promise<void> {
     await CodeRepositoryServerUtil.addFilesToGit({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       filePaths: data.filePaths,
     });
   }
@@ -268,7 +291,7 @@ export default class CodeRepositoryUtil {
     }
 
     await CodeRepositoryServerUtil.commitChanges({
-      repoPath: GetLocalRepositoryPath(),
+      repoPath: this.getLocalRepositoryPath(),
       message: data.message,
       username: username,
     });
@@ -299,7 +322,7 @@ export default class CodeRepositoryUtil {
 
     if (codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub) {
       return await this.getGitHubUtil().pushChanges({
-        repoPath: GetLocalRepositoryPath(),
+        repoPath: this.getLocalRepositoryPath(),
         branchName: branchName,
         organizationName: codeRepository.organizationName,
         repositoryName: codeRepository.repositoryName,

@@ -7,10 +7,12 @@ import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
 
+
+  // returns the folder name of the cloned repository
   public static async cloneRepository(data: {
     repoPath: string;
     repoUrl: string;
-  }): Promise<void> {
+  }): Promise<string> {
     const command: string = `cd ${data.repoPath} && git clone ${data.repoUrl}`;
 
     logger.debug("Executing command: " + command);
@@ -18,6 +20,15 @@ export default class CodeRepositoryUtil {
     const stdout: string = await Execute.executeCommand(command);
 
     logger.debug(stdout);
+
+    // get the folder name of the repository from the disk. 
+
+    const getFolderNameCommand: string = `cd ${data.repoPath} && ls`;
+
+    const folderName: string = await Execute.executeCommand(getFolderNameCommand);
+
+    return folderName;
+   
   }
 
   public static async pullChanges(data: { repoPath: string }): Promise<void> {

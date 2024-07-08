@@ -27,10 +27,18 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init(); 
 
+  logger.info(
+    `Cloning the repository ${codeRepositoryResult.codeRepository.name} to a temporary directory.`,
+  );
+
   // now clone this repository to a temporary directory - /repository
   await CodeRepositoryUtil.cloneRepository({
     codeRepository: codeRepositoryResult.codeRepository,
   });
+
+  logger.info(
+    `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,
+  );
 
 
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
