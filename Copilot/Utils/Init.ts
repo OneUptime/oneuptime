@@ -1,4 +1,9 @@
-import { GetCodeRepositoryPassword, GetLlamaServerUrl, GetLlmType, GetRepositorySecretKey } from "../Config";
+import {
+  GetCodeRepositoryPassword,
+  GetLlamaServerUrl,
+  GetLlmType,
+  GetRepositorySecretKey,
+} from "../Config";
 import CodeRepositoryUtil, { CodeRepositoryResult } from "./CodeRepository";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -11,17 +16,18 @@ import { JSONObject } from "Common/Types/JSON";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
-
     const llamaServerUrl: URL = GetLlamaServerUrl();
 
-    if(GetLlmType() === LlmType.Llama){
+    if (GetLlmType() === LlmType.Llama) {
       // check status of llama server
-      const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(URL.fromString(llamaServerUrl.toString()));
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get(URL.fromString(llamaServerUrl.toString()));
 
-      if(result instanceof HTTPErrorResponse){
-        throw new BadDataException("Llama server is not reachable. Please check the server URL in the environment variables.");
+      if (result instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          "Llama server is not reachable. Please check the server URL in the environment variables.",
+        );
       }
-
     }
 
     if (!GetRepositorySecretKey()) {

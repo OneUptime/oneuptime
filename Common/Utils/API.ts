@@ -350,7 +350,6 @@ export default class API {
             data: finalBody,
           });
         } catch (e) {
-          
           if (currentRetry <= maxRetries) {
             if (exponentialBackoff) {
               await Sleep.sleep(2 ** currentRetry * 1000);

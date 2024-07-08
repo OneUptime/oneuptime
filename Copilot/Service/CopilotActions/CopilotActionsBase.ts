@@ -174,7 +174,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt | null> {
-    const prompt: CopilotActionPrompt | null = await this._getPrompt(data, inputCode);
+    const prompt: CopilotActionPrompt | null = await this._getPrompt(
+      data,
+      inputCode,
+    );
 
     if (!prompt) {
       return null;
@@ -201,36 +204,36 @@ If you have  any feedback or suggestions, please let us know. We would love to h
   }
 
   public async splitInputCode(data: {
-    copilotProcess: CopilotProcess, 
-    itemSize: number,
+    copilotProcess: CopilotProcess;
+    itemSize: number;
   }): Promise<string[]> {
     const inputCode: string = await this.getInputCode(data.copilotProcess);
 
-    const items: Array<string> = []; 
+    const items: Array<string> = [];
 
     const linesInInputCode: Array<string> = inputCode.split("\n");
 
-    let currentItemSize = 0; 
-    const maxItemSize = data.itemSize;
+    let currentItemSize: number = 0;
+    const maxItemSize: number = data.itemSize;
 
-    let currentItem = '';
+    let currentItem: string = "";
 
-    for(const line of linesInInputCode) {
+    for (const line of linesInInputCode) {
       const words: Array<string> = line.split(" ");
-      
+
       // check if the current item size is less than the max item size
-      if(currentItemSize + words.length < maxItemSize) {
-        currentItem += line + '\n';
+      if (currentItemSize + words.length < maxItemSize) {
+        currentItem += line + "\n";
         currentItemSize += words.length;
       } else {
         // start a new item
         items.push(currentItem);
-        currentItem = line + '\n';
+        currentItem = line + "\n";
         currentItemSize = words.length;
       }
     }
 
-    if(currentItem) {
+    if (currentItem) {
       items.push(currentItem);
     }
 

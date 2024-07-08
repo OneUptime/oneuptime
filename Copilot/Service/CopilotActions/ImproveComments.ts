@@ -27,21 +27,21 @@ export default class ImproveComments extends CopilotActionBase {
   ): Promise<CopilotProcess> {
     // Action Prompt
 
-    debugger;
-
     const codeParts: string[] = await this.splitInputCode({
       copilotProcess: data,
-      itemSize: 500
+      itemSize: 500,
     });
 
     let newContent: string = "";
 
-    let isWellCommented = true;
-    let didPassFileValidation = false; 
+    let isWellCommented: boolean = true;
+    let didPassFileValidation: boolean = false;
 
     for (const codePart of codeParts) {
-
-      const actionPrompt: CopilotActionPrompt = await this.getPrompt(data, codePart);
+      const actionPrompt: CopilotActionPrompt = await this.getPrompt(
+        data,
+        codePart,
+      );
 
       const copilotResult: CopilotPromptResult =
         await this.askCopilot(actionPrompt);
@@ -51,7 +51,7 @@ export default class ImproveComments extends CopilotActionBase {
         outputCode: copilotResult.output as string,
       });
 
-      if (!await this.isFileAlreadyWellCommented(newCodePart)) {
+      if (!(await this.isFileAlreadyWellCommented(newCodePart))) {
         isWellCommented = false;
       }
 
@@ -72,7 +72,7 @@ export default class ImproveComments extends CopilotActionBase {
         break;
       } else {
         didPassFileValidation = true;
-        newContent += newCodePart + '\n';
+        newContent += newCodePart + "\n";
       }
     }
 
@@ -155,8 +155,6 @@ export default class ImproveComments extends CopilotActionBase {
       ],
     };
   }
-
-
 
   public override async getPrompt(
     data: CopilotProcess,
