@@ -1,28 +1,29 @@
-import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
-import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
-import DocsRoutes from "./FeatureSet/Docs/Index";
-import HomeRoutes from "./FeatureSet/Home/Index";
+import APIReferenceRoutes from ./FeatureSet/ApiReference/Index;
+import BaseAPIRoutes from ./FeatureSet/BaseAPI/Index;
+import DocsRoutes from ./FeatureSet/Docs/Index;
+import HomeRoutes from ./FeatureSet/Home/Index;
 // import FeatureSets.
-import IdentityRoutes from "./FeatureSet/Identity/Index";
-import NotificationRoutes from "./FeatureSet/Notification/Index";
-import Workers from "./FeatureSet/Workers/Index";
-import Workflow from "./FeatureSet/Workflow/Index";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "CommonServer/Infrastructure/ClickhouseDatabase";
-import { PostgresAppInstance } from "CommonServer/Infrastructure/PostgresDatabase";
-import Redis from "CommonServer/Infrastructure/Redis";
-import InfrastructureStatus from "CommonServer/Infrastructure/Status";
-import logger from "CommonServer/Utils/Logger";
-import Realtime from "CommonServer/Utils/Realtime";
-import App from "CommonServer/Utils/StartServer";
-import "CommonServer/Utils/Telemetry";
-import "ejs";
+import IdentityRoutes from ./FeatureSet/Identity/Index;
+import NotificationRoutes from ./FeatureSet/Notification/Index;
+import Workers from ./FeatureSet/Workers/Index;
+import Workflow from ./FeatureSet/Workflow/Index;
+import { PromiseVoidFunction } from Common/Types/FunctionTypes;
+import { ClickhouseAppInstance } from CommonServer/Infrastructure/ClickhouseDatabase;
+import { PostgresAppInstance } from CommonServer/Infrastructure/PostgresDatabase;
+import Redis from CommonServer/Infrastructure/Redis;
+import InfrastructureStatus from CommonServer/Infrastructure/Status;
+import logger from CommonServer/Utils/Logger;
+import Realtime from CommonServer/Utils/Realtime;
+import App from CommonServer/Utils/StartServer;
+import CommonServer/Utils/Telemetry;
+import ejs;
 
-process.env["SERVICE_NAME"] = "app";
+process.env[SERVICE_NAME] = app;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
@@ -32,8 +33,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // init the app
     await App.init({
-      appName: process.env["SERVICE_NAME"] || "app",
+      appName: process.env[SERVICE_NAME] || app,
       statusOptions: {
+        // Use the same status check for both live and ready checks
         liveCheck: statusCheck,
         readyCheck: statusCheck,
       },
@@ -68,7 +70,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
-    logger.error("App Init Failed:");
+    logger.error(App Init Failed:);
     logger.error(err);
     throw err;
   }
@@ -76,6 +78,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
 init().catch((err: Error) => {
   logger.error(err);
-  logger.error("Exiting node process");
+  logger.error(Exiting node process);
   process.exit(1);
 });
+
