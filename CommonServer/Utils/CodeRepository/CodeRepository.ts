@@ -7,6 +7,19 @@ import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
 
+  public static async setAuthorIdentity(data: {
+    repoPath: string;
+    authorName: string;
+    authorEmail: string;
+  }): Promise<void> {
+    const command: string = `cd ${data.repoPath} && git config --global user.name "${data.authorName}" && git config --global user.email "${data.authorEmail}"`;
+
+    logger.debug("Executing command: " + command);
+
+    const stdout: string = await Execute.executeCommand(command);
+
+    logger.debug(stdout);
+  }
 
   // returns the folder name of the cloned repository
   public static async cloneRepository(data: {
@@ -27,7 +40,7 @@ export default class CodeRepositoryUtil {
 
     const folderName: string = await Execute.executeCommand(getFolderNameCommand);
 
-    return folderName;
+    return folderName.trim();
    
   }
 

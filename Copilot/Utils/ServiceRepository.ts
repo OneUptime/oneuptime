@@ -1,4 +1,3 @@
-import { GetLocalRepositoryPath } from "../Config";
 import ServiceFileTypesUtil from "./ServiceFileTypes";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -8,6 +7,7 @@ import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepository
 import LocalFile from "CommonServer/Utils/LocalFile";
 import ServiceRepository from "Model/Models/ServiceRepository";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
+import CodeRepositoryUtil from "./CodeRepository";
 
 export default class ServiceRepositoryUtil {
   public static async getFileLanguage(data: {
@@ -30,7 +30,7 @@ export default class ServiceRepositoryUtil {
 
     const fileContent: string =
       await CodeRepositoryCommonServerUtil.getFileContent({
-        repoPath: GetLocalRepositoryPath(),
+        repoPath: CodeRepositoryUtil.getLocalRepositoryPath(),
         filePath: filePath,
       });
 
@@ -50,7 +50,7 @@ export default class ServiceRepositoryUtil {
 
     const allFiles: Dictionary<CodeRepositoryFile> =
       await CodeRepositoryCommonServerUtil.getFilesInDirectoryRecursive({
-        repoPath: GetLocalRepositoryPath(),
+        repoPath: CodeRepositoryUtil.getLocalRepositoryPath(),
         directoryPath: serviceRepository.servicePathInRepository || ".",
         acceptedFileExtensions:
           ServiceFileTypesUtil.getFileExtentionsByServiceLanguage(

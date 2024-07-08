@@ -24,6 +24,11 @@ import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessi
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
+
+  await CodeRepositoryUtil.setAuthorIdentity({
+    email: "copilot@oneuptime.com",
+    name: "OneUptime Copilot",
+  });
   
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init(); 
 
@@ -35,6 +40,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   await CodeRepositoryUtil.cloneRepository({
     codeRepository: codeRepositoryResult.codeRepository,
   });
+
+  debugger;
 
   logger.info(
     `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,

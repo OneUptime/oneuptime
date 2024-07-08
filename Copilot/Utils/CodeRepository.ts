@@ -46,6 +46,18 @@ export default class CodeRepositoryUtil {
 
     return GetLocalRepositoryPath();
   }
+
+
+  public static async setAuthorIdentity(data: {
+    name: string;
+    email: string;
+  }): Promise<void> {
+    await CodeRepositoryServerUtil.setAuthorIdentity({
+      repoPath: this.getLocalRepositoryPath(),
+      authorName: data.name,
+      authorEmail: data.email,
+    });
+  }
   
   // returns the folder name of the cloned repository.
   public static async cloneRepository(data: {
@@ -89,6 +101,8 @@ export default class CodeRepositoryUtil {
       repoUrl: repoUrl,
       repoPath: repoLocalPath,
     });
+
+    debugger;
 
     this.folderNameOfClonedRepository = folderName;
   }
