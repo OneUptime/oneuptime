@@ -14,7 +14,10 @@ export default class LocalFile {
 
   public static async doesDirectoryExist(path: string): Promise<boolean> {
     return new Promise(
-      (resolve: (exists: boolean) => void, reject: PromiseRejectErrorFunction) => {
+      (
+        resolve: (exists: boolean) => void,
+        reject: PromiseRejectErrorFunction,
+      ) => {
         fs.stat(path, (err: Error | null, stats: fs.Stats) => {
           if (err) {
             if ((err as any).code === "ENOENT") {
@@ -32,8 +35,7 @@ export default class LocalFile {
   }
 
   public static async deleteAllDataInDirectory(path: string): Promise<void> {
-
-    if(await this.doesDirectoryExist(path) === false) {
+    if ((await this.doesDirectoryExist(path)) === false) {
       return;
     }
 
@@ -52,7 +54,6 @@ export default class LocalFile {
             }
             resolve();
           });
-
         });
       },
     );

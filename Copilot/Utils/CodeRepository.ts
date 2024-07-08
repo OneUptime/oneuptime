@@ -39,14 +39,14 @@ export default class CodeRepositoryUtil {
   public static folderNameOfClonedRepository: string | null = null;
 
   public static getLocalRepositoryPath(): string {
-
-    if(this.folderNameOfClonedRepository){
-      return LocalFile.sanitizeFilePath(GetLocalRepositoryPath() + '/' + this.folderNameOfClonedRepository);
+    if (this.folderNameOfClonedRepository) {
+      return LocalFile.sanitizeFilePath(
+        GetLocalRepositoryPath() + "/" + this.folderNameOfClonedRepository,
+      );
     }
 
     return GetLocalRepositoryPath();
   }
-
 
   public static async setAuthorIdentity(data: {
     name: string;
@@ -58,19 +58,18 @@ export default class CodeRepositoryUtil {
       authorEmail: data.email,
     });
   }
-  
+
   // returns the folder name of the cloned repository.
   public static async cloneRepository(data: {
     codeRepository: CodeRepositoryModel;
   }): Promise<void> {
-
-    // make sure this.getLocalRepositoryPath() is empty. 
-    const repoLocalPath = this.getLocalRepositoryPath();
+    // make sure this.getLocalRepositoryPath() is empty.
+    const repoLocalPath: string = this.getLocalRepositoryPath();
 
     await LocalFile.deleteAllDataInDirectory(repoLocalPath);
     await LocalFile.makeDirectory(repoLocalPath);
 
-    // check if the data in the directory eixsts, if it does then delete it. 
+    // check if the data in the directory eixsts, if it does then delete it.
 
     if (!data.codeRepository.repositoryHostedAt) {
       throw new BadDataException("Repository Hosted At is required");
@@ -88,21 +87,28 @@ export default class CodeRepositoryUtil {
       throw new BadDataException("Repository Name is required");
     }
 
-    const GithubUsername = GetCodeRepositoryUsername(); 
-    const GithubToken = GetCodeRepositoryPassword();
+    const CodeRepositoryUsername: string | null = GetCodeRepositoryUsername();
 
-    const repoUrl = `https://${GithubUsername}:${GithubToken}@${
+    if (!CodeRepositoryUsername) {
+      throw new BadDataException("Code Repository Username is required");
+    }
+
+    const CodeRepositoryPassword: string | null = GetCodeRepositoryPassword();
+
+    if (!CodeRepositoryPassword) {
+      throw new BadDataException("Code Repository Password is required");
+    }
+
+    const repoUrl: string = `https://${CodeRepositoryUsername}:${CodeRepositoryPassword}@${
       data.codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub
         ? "github.com"
         : ""
-        }/${data.codeRepository.organizationName}/${data.codeRepository.repositoryName}.git`;
+    }/${data.codeRepository.organizationName}/${data.codeRepository.repositoryName}.git`;
 
-    const folderName = await CodeRepositoryServerUtil.cloneRepository({
+    const folderName: string = await CodeRepositoryServerUtil.cloneRepository({
       repoUrl: repoUrl,
       repoPath: repoLocalPath,
     });
-
-    debugger;
 
     this.folderNameOfClonedRepository = folderName;
   }

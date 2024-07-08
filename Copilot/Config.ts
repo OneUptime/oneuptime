@@ -21,13 +21,18 @@ export const GetLocalRepositoryPath: GetStringFunction = (): string => {
   return "/repository";
 };
 
-export const GetCodeRepositoryPassword: GetStringOrNullFunction = (): string | null => {
+export const GetCodeRepositoryPassword: GetStringOrNullFunction = ():
+  | string
+  | null => {
   const token: string | null = process.env["CODE_REPOSITORY_PASSWORD"] || null;
   return token;
 };
 
-export const GetCodeRepositoryUsername: GetStringOrNullFunction = (): string | null => {
-  const username: string | null = process.env["CODE_REPOSITORY_USERNAME"] || null;
+export const GetCodeRepositoryUsername: GetStringOrNullFunction = ():
+  | string
+  | null => {
+  const username: string | null =
+    process.env["CODE_REPOSITORY_USERNAME"] || null;
   return username;
 };
 

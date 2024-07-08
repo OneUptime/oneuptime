@@ -6,7 +6,6 @@ import Dictionary from "Common/Types/Dictionary";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
-
   public static async setAuthorIdentity(data: {
     repoPath: string;
     authorName: string;
@@ -34,14 +33,14 @@ export default class CodeRepositoryUtil {
 
     logger.debug(stdout);
 
-    // get the folder name of the repository from the disk. 
+    // get the folder name of the repository from the disk.
 
     const getFolderNameCommand: string = `cd ${data.repoPath} && ls`;
 
-    const folderName: string = await Execute.executeCommand(getFolderNameCommand);
+    const folderName: string =
+      await Execute.executeCommand(getFolderNameCommand);
 
     return folderName.trim();
-   
   }
 
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
@@ -272,7 +271,6 @@ export default class CodeRepositoryUtil {
 
     return hash;
   }
-
 
   public static async listFilesInDirectory(data: {
     directoryPath: string;

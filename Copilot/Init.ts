@@ -24,13 +24,12 @@ import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessi
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
-
   await CodeRepositoryUtil.setAuthorIdentity({
     email: "copilot@oneuptime.com",
     name: "OneUptime Copilot",
   });
-  
-  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init(); 
+
+  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
   logger.info(
     `Cloning the repository ${codeRepositoryResult.codeRepository.name} to a temporary directory.`,
@@ -41,12 +40,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     codeRepository: codeRepositoryResult.codeRepository,
   });
 
-  debugger;
-
   logger.info(
     `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,
   );
-
 
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
