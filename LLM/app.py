@@ -53,6 +53,7 @@ async def job(queue):
         model=model_path,
         # use gpu if available
         device="cuda" if torch.cuda.is_available() else "cpu",
+        # max_new_tokens=8096
         )
 
     while True:
@@ -103,6 +104,10 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
+     return {"status": "ok"}
+
+@app.get("/status")
+async def status():
      return {"status": "ok"}
 
 @app.post("/prompt/")
