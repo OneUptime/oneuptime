@@ -186,10 +186,9 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   public async cleanup(data: {
-    inputCode: string,
-    outputCode: string
+    inputCode: string;
+    outputCode: string;
   }): Promise<string> {
-
     // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
     // for example code can be in the format of
     // ```python
@@ -206,7 +205,7 @@ export default class ImproveComments extends CopilotActionBase {
       extractedCode = extractedCode.match(/```.*\n([\s\S]*?)```/)?.[1] ?? "";
     }
 
-    // get first line of input code. 
+    // get first line of input code.
 
     return extractedCode;
   }

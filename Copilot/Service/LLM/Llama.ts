@@ -44,8 +44,8 @@ export default class Llama extends LlmBase {
         {},
         {
           retries: 3,
-          exponentialBackoff: true
-        }
+          exponentialBackoff: true,
+        },
       );
 
     if (response instanceof HTTPErrorResponse) {
@@ -65,17 +65,19 @@ export default class Llama extends LlmBase {
     let promptStatus: LlamaPromptStatus = LlamaPromptStatus.Pending;
     let promptResult: JSONObject | null = null;
 
-
-    const currentDate = OneUptimeDate.getCurrentDate(); 
-    const timeoutInMinutes = data.timeoutInMinutes || 5;
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const timeoutInMinutes: number = data.timeoutInMinutes || 5;
 
     while (promptStatus === LlamaPromptStatus.Pending) {
+      const timeNow: Date = OneUptimeDate.getCurrentDate();
 
-
-      let timeNow = OneUptimeDate.getCurrentDate();
-
-      if(OneUptimeDate.getDifferenceInMinutes(timeNow, currentDate) > timeoutInMinutes){
-        throw new LLMTimeoutException(`Timeout of ${timeoutInMinutes} minutes exceeded. Skipping the prompt.`);
+      if (
+        OneUptimeDate.getDifferenceInMinutes(timeNow, currentDate) >
+        timeoutInMinutes
+      ) {
+        throw new LLMTimeoutException(
+          `Timeout of ${timeoutInMinutes} minutes exceeded. Skipping the prompt.`,
+        );
       }
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -88,8 +90,8 @@ export default class Llama extends LlmBase {
           {},
           {
             retries: 3,
-            exponentialBackoff: true
-          }
+            exponentialBackoff: true,
+          },
         );
 
       if (response instanceof HTTPErrorResponse) {
