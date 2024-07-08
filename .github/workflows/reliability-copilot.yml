@@ -26,13 +26,11 @@ jobs:
       security-events: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
+      
     # Run Reliability Copilot in Doker Container
     - name: Run Copilot
       run: |
-        docker run --rm -v $(pwd):/repository -w /repository oneuptime/copilot:test \ 
+        docker run --rm \
             -e ONEUPTIME_URL='https://test.oneuptime.com' \
             -e ONEUPTIME_REPOSITORY_SECRET_KEY=${{ secrets.COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY }} \
             -e CODE_REPOSITORY_PASSWORD=${{ github.token }} \
