@@ -1,44 +1,47 @@
-import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
-import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
-import DocsRender from "./Utils/Render";
-import FeatureSet from "CommonServer/Types/FeatureSet";
+import { ContentPath, StaticPath, ViewsPath } from ./Utils/Config;
+import DocsNav, { NavGroup, NavLink } from ./Utils/Nav;
+import DocsRender from ./Utils/Render;
+import FeatureSet from CommonServer/Types/FeatureSet;
 import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
   ExpressStatic,
-} from "CommonServer/Utils/Express";
-import LocalFile from "CommonServer/Utils/LocalFile";
-import logger from "CommonServer/Utils/Logger";
-import "ejs";
+} from CommonServer/Utils/Express;
+import LocalFile from CommonServer/Utils/LocalFile;
+import logger from CommonServer/Utils/Logger;
+import ejs;
 
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
-    app.get("/docs", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.redirect("/docs/introduction/getting-started");
+    // Redirect all requests to /docs to /docs/introduction/getting-started
+    app.get(/docs, (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(/docs/introduction/getting-started);
     });
 
+    // Handle requests to /docs/:categorypath/:pagepath
     app.get(
-      "/docs/:categorypath/:pagepath",
+      /docs/:categorypath/:pagepath,
       async (_req: ExpressRequest, res: ExpressResponse) => {
         try {
           const fullPath: string =
-            `${_req.params["categorypath"]}/${_req.params["pagepath"]}`.toLowerCase();
+            .toLowerCase();
 
-          // read file from Content folder.
+          // Read the content file from the Content folder
           let contentInMarkdown: string = await LocalFile.read(
-            `${ContentPath}/${fullPath}.md`,
+            ,
           );
 
-          // remove first line from content because we dont want to show title in content. Title is already in nav.
+          // Remove the first line from the content because it's the title, which is already shown in the nav
+          contentInMarkdown = contentInMarkdown.split(n).slice(1).join(n);
 
-          contentInMarkdown = contentInMarkdown.split("\n").slice(1).join("\n");
-
+          // Render the content using the DocsRender
           const renderedContent: string =
             await DocsRender.render(contentInMarkdown);
 
+          // Find the current category and nav link
           const currentCategory: NavGroup | undefined = DocsNav.find(
             (category: NavGroup) => {
               return category.links.find((link: NavLink) => {
@@ -52,16 +55,16 @@ const DocsFeatureSet: FeatureSet = {
               return link.url.toLocaleLowerCase().includes(fullPath);
             });
 
-          if (!currentCategory || !currrentNavLink) {
-            // render not found.
-
+          // If the category or nav link is not found, render a 404 page
+          if (!currentCategory ||!currrentNavLink) {
             res.status(404);
-            return res.render(`${ViewsPath}/NotFound`, {
+            return res.render(, {
               nav: DocsNav,
             });
           }
 
-          res.render(`${ViewsPath}/Index`, {
+          // Render the Index page with the rendered content, category, nav link, and github path
+          res.render(, {
             nav: DocsNav,
             content: renderedContent,
             category: currentCategory,
@@ -69,17 +72,20 @@ const DocsFeatureSet: FeatureSet = {
             githubPath: fullPath,
           });
         } catch (err) {
+          // Log the error and render a 500 error page
           logger.error(err);
           res.status(500);
-          return res.render(`${ViewsPath}/ServerError`, {
+          return res.render(, {
             nav: DocsNav,
           });
         }
       },
     );
 
-    app.use("/docs/static", ExpressStatic(StaticPath));
+    // Serve static files from the Static folder
+    app.use(/docs/static, ExpressStatic(StaticPath));
   },
 };
 
 export default DocsFeatureSet;
+
