@@ -36,6 +36,40 @@ export default class CodeRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static gitHubUtil: GitHubUtil | null = null;
 
+  public static async cloneRepository(data: {
+    codeRepository: CodeRepositoryModel;
+  }): Promise<void> {
+    if (!data.codeRepository.repositoryHostedAt) {
+      throw new BadDataException("Repository Hosted At is required");
+    }
+
+    if (!data.codeRepository.mainBranchName) {
+      throw new BadDataException("Main Branch Name is required");
+    }
+
+    if (!data.codeRepository.organizationName) {
+      throw new BadDataException("Organization Name is required");
+    }
+
+    if (!data.codeRepository.repositoryName) {
+      throw new BadDataException("Repository Name is required");
+    }
+
+    const GithubUsername = GetGitHubUsername(); 
+    const GithubToken = GetGitHubToken();
+
+    const repoUrl = `https://${GithubUsername}:${GithubToken}@${
+      data.codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub
+        ? "github.com"
+        : ""
+        }/${data.codeRepository.organizationName}/${data.codeRepository.repositoryName}.git`;
+
+    await CodeRepositoryServerUtil.cloneRepository({
+      repoUrl: repoUrl,
+      repoPath: GetLocalRepositoryPath(),
+    });
+  }
+
   public static hasOpenPRForFile(data: {
     filePath: string;
     pullRequests: Array<PullRequest>;

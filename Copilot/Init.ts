@@ -24,10 +24,14 @@ import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessi
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
-
-  debugger;
   
-  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init()
+  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init(); 
+
+  // now clone this repository to a temporary directory - /repository
+  await CodeRepositoryUtil.cloneRepository({
+    codeRepository: codeRepositoryResult.codeRepository,
+  });
+
 
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();

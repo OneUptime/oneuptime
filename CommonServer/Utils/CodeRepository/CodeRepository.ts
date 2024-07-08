@@ -6,6 +6,20 @@ import Dictionary from "Common/Types/Dictionary";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
+
+  public static async cloneRepository(data: {
+    repoPath: string;
+    repoUrl: string;
+  }): Promise<void> {
+    const command: string = `cd ${data.repoPath} && git clone ${data.repoUrl}`;
+
+    logger.debug("Executing command: " + command);
+
+    const stdout: string = await Execute.executeCommand(command);
+
+    logger.debug(stdout);
+  }
+
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
     const command: string = `cd ${data.repoPath} && git pull`;
 

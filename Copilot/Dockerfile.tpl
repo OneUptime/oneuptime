@@ -70,7 +70,7 @@ RUN npm install
 
 
 # Create /repository/ directory where the app will store the repository
-RUN mkdir /repository
+RUN mkdir -p /repository
 
 # Set the stack trace limit to 0 to show full stack traces
 ENV NODE_OPTIONS='--stack-trace-limit=30'
