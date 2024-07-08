@@ -1,4 +1,4 @@
-import { GetGitHubToken, GetRepositorySecretKey } from "../Config";
+import { GetCodeRepositoryPassword, GetRepositorySecretKey } from "../Config";
 import CodeRepositoryUtil, { CodeRepositoryResult } from "./CodeRepository";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -23,7 +23,7 @@ export default class InitUtil {
     if (
       codeRepositoryResult.codeRepository.repositoryHostedAt ===
         CodeRepositoryType.GitHub &&
-      !GetGitHubToken()
+      !GetCodeRepositoryPassword()
     ) {
       throw new BadDataException(
         "GitHub token is required for this repository. Please provide the GitHub token in the environment variables.",

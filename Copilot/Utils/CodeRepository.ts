@@ -1,6 +1,6 @@
 import {
-  GetGitHubToken,
-  GetGitHubUsername,
+  GetCodeRepositoryPassword,
+  GetCodeRepositoryUsername,
   GetLocalRepositoryPath,
   GetOneUptimeURL,
   GetRepositorySecretKey,
@@ -55,8 +55,8 @@ export default class CodeRepositoryUtil {
       throw new BadDataException("Repository Name is required");
     }
 
-    const GithubUsername = GetGitHubUsername(); 
-    const GithubToken = GetGitHubToken();
+    const GithubUsername = GetCodeRepositoryUsername(); 
+    const GithubToken = GetCodeRepositoryPassword();
 
     const repoUrl = `https://${GithubUsername}:${GithubToken}@${
       data.codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub
@@ -104,9 +104,9 @@ export default class CodeRepositoryUtil {
 
   public static getGitHubUtil(): GitHubUtil {
     if (!this.gitHubUtil) {
-      const gitHubToken: string | null = GetGitHubToken();
+      const gitHubToken: string | null = GetCodeRepositoryPassword();
 
-      const gitHubUsername: string | null = GetGitHubUsername();
+      const gitHubUsername: string | null = GetCodeRepositoryUsername();
 
       if (!gitHubUsername) {
         throw new BadDataException("GitHub Username is required");
@@ -260,7 +260,7 @@ export default class CodeRepositoryUtil {
       this.codeRepositoryResult?.codeRepository.repositoryHostedAt ===
       CodeRepositoryType.GitHub
     ) {
-      username = GetGitHubUsername();
+      username = GetCodeRepositoryUsername();
     }
 
     if (!username) {
@@ -385,7 +385,7 @@ export default class CodeRepositoryUtil {
       if (
         data.codeRepository.repositoryHostedAt === CodeRepositoryType.GitHub
       ) {
-        const gitHuhbToken: string | null = GetGitHubToken();
+        const gitHuhbToken: string | null = GetCodeRepositoryPassword();
 
         if (!gitHuhbToken) {
           throw new BadDataException("GitHub Token is required");
