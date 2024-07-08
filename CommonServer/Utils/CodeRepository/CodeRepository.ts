@@ -235,6 +235,32 @@ export default class CodeRepositoryUtil {
     return hash;
   }
 
+
+  public static async listFilesInDirectory(data: {
+    directoryPath: string;
+    repoPath: string;
+  }): Promise<Array<string>> {
+    if (!data.directoryPath.startsWith("/")) {
+      data.directoryPath = "/" + data.directoryPath;
+    }
+
+    if (!data.repoPath.startsWith("/")) {
+      data.repoPath = "/" + data.repoPath;
+    }
+
+    const { directoryPath, repoPath } = data;
+
+    let totalPath: string = `${repoPath}/${directoryPath}`;
+
+    totalPath = LocalFile.sanitizeFilePath(totalPath); // clean up the path
+
+    const output: string = await Execute.executeCommand(`ls ${totalPath}`);
+
+    const fileNames: Array<string> = output.split("\n");
+
+    return fileNames;
+  }
+
   public static async getFilesInDirectory(data: {
     directoryPath: string;
     repoPath: string;

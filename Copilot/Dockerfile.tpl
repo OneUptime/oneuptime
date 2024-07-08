@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:21.7.3-alpine3.18
+FROM node:22.3.0
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 ARG GIT_SHA
@@ -18,17 +18,16 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 
 # Install bash. 
-RUN apk add bash && apk add curl
-
+RUN apt-get install bash -y && apt-get install curl -y
 
 # Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+RUN apt-get update && apt-get install -y .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
 
-RUN mkdir /usr/src
+RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
@@ -44,7 +43,6 @@ COPY ./Model/package*.json /usr/src/Model/
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
 RUN npm install
 COPY ./Model /usr/src/Model
-
 
 
 WORKDIR /usr/src/CommonServer

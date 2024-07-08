@@ -18,7 +18,7 @@ export const GetRepositorySecretKey: GetStringOrNullFunction = ():
 };
 
 export const GetLocalRepositoryPath: GetStringFunction = (): string => {
-  return process.env["ONEUPTIME_LOCAL_REPOSITORY_PATH"] || "/repository";
+  return "/repository";
 };
 
 export const GetGitHubToken: GetStringOrNullFunction = (): string | null => {

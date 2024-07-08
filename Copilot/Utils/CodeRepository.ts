@@ -59,6 +59,15 @@ export default class CodeRepositoryUtil {
     return pullRequests;
   }
 
+  public static async listFilesInDirectory(data: {
+    directoryPath: string;
+  }): Promise<Array<string>> {
+    return await CodeRepositoryServerUtil.listFilesInDirectory({
+      repoPath: GetLocalRepositoryPath(),
+      directoryPath: data.directoryPath,
+    });
+  }
+
   public static getGitHubUtil(): GitHubUtil {
     if (!this.gitHubUtil) {
       const gitHubToken: string | null = GetGitHubToken();

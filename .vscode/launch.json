@@ -149,7 +149,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Realtime",
+            "localRoot": "${workspaceFolder}/Copilot",
             "name": "Copilot: Debug with Docker",
             "port": 9985,
             "remoteRoot": "/usr/src/app",
