@@ -27,43 +27,63 @@ export default class ImproveComments extends CopilotActionBase {
   ): Promise<CopilotProcess> {
     // Action Prompt
 
-    const actionPrompt: CopilotActionPrompt = await this.getPrompt(data);
-
     debugger;
 
-    const copilotResult: CopilotPromptResult =
-      await this.askCopilot(actionPrompt);
-
-    const newContent: string = await this.cleanup({
-      inputCode: await this.getInputCode(data),
-      outputCode: copilotResult.output as string,
+    const codeParts: string[] = await this.splitInputCode({
+      copilotProcess: data,
+      itemSize: 500
     });
 
-    if (await this.isFileAlreadyWellCommented(newContent)) {
+    let newContent: string = "";
+
+    let isWellCommented = true;
+    let didPassFileValidation = false; 
+
+    for (const codePart of codeParts) {
+
+      const actionPrompt: CopilotActionPrompt = await this.getPrompt(data, codePart);
+
+      const copilotResult: CopilotPromptResult =
+        await this.askCopilot(actionPrompt);
+
+      const newCodePart: string = await this.cleanup({
+        inputCode: codePart,
+        outputCode: copilotResult.output as string,
+      });
+
+      if (!await this.isFileAlreadyWellCommented(newCodePart)) {
+        isWellCommented = false;
+      }
+
+      const validationPrompt: CopilotActionPrompt =
+        await this.getValidationPrompt({
+          oldCode: codePart,
+          newCode: newCodePart,
+        });
+
+      const validationResponse: CopilotPromptResult =
+        await this.askCopilot(validationPrompt);
+
+      const didPassValidation: boolean =
+        await this.didPassValidation(validationResponse);
+
+      if (!didPassValidation) {
+        newContent = codePart;
+        break;
+      } else {
+        didPassFileValidation = true;
+        newContent += newCodePart + '\n';
+      }
+    }
+
+    if (isWellCommented) {
       this.isRequirementsMet = true;
       return data;
     }
 
-    // ask copilot again if the requirements are met.
+    newContent = newContent.trim();
 
-    const oldCode: string = data.input.files[data.input.currentFilePath]
-      ?.fileContent as string;
-
-    const newCode: string = newContent;
-
-    const validationPrompt: CopilotActionPrompt =
-      await this.getValidationPrompt({
-        oldCode,
-        newCode,
-      });
-
-    const validationResponse: CopilotPromptResult =
-      await this.askCopilot(validationPrompt);
-
-    const didPassValidation: boolean =
-      await this.didPassValidation(validationResponse);
-
-    if (didPassValidation) {
+    if (didPassFileValidation) {
       // add to result.
       data.result.files[data.input.currentFilePath] = {
         ...data.input.files[data.input.currentFilePath],
@@ -73,8 +93,6 @@ export default class ImproveComments extends CopilotActionBase {
       this.isRequirementsMet = true;
       return data;
     }
-
-    // TODO: if the validation is not passed then ask copilot to improve the comments again.
 
     return data;
   }
@@ -138,17 +156,15 @@ export default class ImproveComments extends CopilotActionBase {
     };
   }
 
-  public async getInputCode(data: CopilotProcess): Promise<string> {
-    return data.input.files[data.input.currentFilePath]?.fileContent as string;
-  }
+
 
   public override async getPrompt(
     data: CopilotProcess,
+    inputCode: string,
   ): Promise<CopilotActionPrompt> {
     const fileLanguage: ServiceLanguage = data.input.files[
       data.input.currentFilePath
     ]?.fileLanguage as ServiceLanguage;
-    const code: string = await this.getInputCode(data);
 
     const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
 
@@ -157,7 +173,7 @@ export default class ImproveComments extends CopilotActionBase {
     
     Here is the code. This is in ${fileLanguage}: 
     
-    ${code}
+    ${inputCode}
                 `;
 
     const systemPrompt: string = await this.getSystemPrompt();

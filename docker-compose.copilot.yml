@@ -20,7 +20,7 @@ services:
         file: ./docker-compose.base.yml
         service: copilot
     environment:
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
     build:
         network: host
         context: .

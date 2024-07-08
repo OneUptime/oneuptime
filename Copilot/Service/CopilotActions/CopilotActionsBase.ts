@@ -172,8 +172,9 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
   protected async _getPrompt(
     data: CopilotProcess,
+    inputCode: string,
   ): Promise<CopilotActionPrompt | null> {
-    const prompt: CopilotActionPrompt | null = await this._getPrompt(data);
+    const prompt: CopilotActionPrompt | null = await this._getPrompt(data, inputCode);
 
     if (!prompt) {
       return null;
@@ -184,6 +185,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
   public async getPrompt(
     _data: CopilotProcess,
+    _inputCode: string,
   ): Promise<CopilotActionPrompt | null> {
     throw new NotImplementedException();
   }
@@ -192,5 +194,46 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     prompt: CopilotActionPrompt,
   ): Promise<CopilotPromptResult> {
     return await LLM.getResponse(prompt);
+  }
+
+  public async getInputCode(data: CopilotProcess): Promise<string> {
+    return data.input.files[data.input.currentFilePath]?.fileContent as string;
+  }
+
+  public async splitInputCode(data: {
+    copilotProcess: CopilotProcess, 
+    itemSize: number,
+  }): Promise<string[]> {
+    const inputCode: string = await this.getInputCode(data.copilotProcess);
+
+    const items: Array<string> = []; 
+
+    const linesInInputCode: Array<string> = inputCode.split("\n");
+
+    let currentItemSize = 0; 
+    const maxItemSize = data.itemSize;
+
+    let currentItem = '';
+
+    for(const line of linesInInputCode) {
+      const words: Array<string> = line.split(" ");
+      
+      // check if the current item size is less than the max item size
+      if(currentItemSize + words.length < maxItemSize) {
+        currentItem += line + '\n';
+        currentItemSize += words.length;
+      } else {
+        // start a new item
+        items.push(currentItem);
+        currentItem = line + '\n';
+        currentItemSize = words.length;
+      }
+    }
+
+    if(currentItem) {
+      items.push(currentItem);
+    }
+
+    return items;
   }
 }

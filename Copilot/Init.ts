@@ -24,6 +24,9 @@ import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessi
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
+
+  debugger;
+
   await CodeRepositoryUtil.setAuthorIdentity({
     email: "copilot@oneuptime.com",
     name: "OneUptime Copilot",

@@ -341,6 +341,7 @@ export default class API {
       let result: AxiosResponse | null = null;
 
       while (currentRetry <= maxRetries) {
+        currentRetry++;
         try {
           result = await axios({
             method: method,
@@ -349,7 +350,7 @@ export default class API {
             data: finalBody,
           });
         } catch (e) {
-          currentRetry++;
+          
           if (currentRetry <= maxRetries) {
             if (exponentialBackoff) {
               await Sleep.sleep(2 ** currentRetry * 1000);
