@@ -30,7 +30,7 @@ alias cr="cargo run"
 alias nrd="npm run dev"
 alias nrl="npm run logs"
 alias nrb="npm run build"
-alias nrfb="npm run foce-build"
+alias nrfb="npm run force-build"
 alias nrps="npm run ps-dev"
 
 # OneUptime Copilot
