@@ -530,9 +530,11 @@ export default class CodeRepositoryUtil {
 
     logger.info("Services found in the repository:");
 
-    servicesRepository.forEach((serviceRepository: ServiceCopilotCodeRepository) => {
-      logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
-    });
+    servicesRepository.forEach(
+      (serviceRepository: ServiceCopilotCodeRepository) => {
+        logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
+      },
+    );
 
     this.codeRepositoryResult = {
       codeRepository,

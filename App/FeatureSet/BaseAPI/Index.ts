@@ -498,7 +498,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCopilotCodeRepository, ServiceCopilotCodeRepositoryType>(
+      new BaseAPI<
+        ServiceCopilotCodeRepository,
+        ServiceCopilotCodeRepositoryType
+      >(
         ServiceCopilotCodeRepository,
         ServiceCopilotCodeRepositoryService,
       ).getRouter(),

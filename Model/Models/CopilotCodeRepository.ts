@@ -637,7 +637,6 @@ export default class CopilotCodeRepository extends BaseModel {
   })
   public onBeforeRepositoryCloneScript?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -670,7 +669,6 @@ export default class CopilotCodeRepository extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public onAfterRepositoryCloneScript?: string = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -705,7 +703,6 @@ export default class CopilotCodeRepository extends BaseModel {
   })
   public onAfterCommitScript?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -738,5 +735,4 @@ export default class CopilotCodeRepository extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public onBeforeCommitScript?: string = undefined;
-
 }
