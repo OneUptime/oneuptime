@@ -184,12 +184,20 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   }
 };
 
-const executeAction = async (data: {
+interface ExecuteActionData {
   serviceRepository: ServiceCopilotCodeRepository;
   file: CodeRepositoryFile;
   filesInService: Dictionary<CodeRepositoryFile>;
   nextEventToFix: CopilotActionType;
-}): Promise<CopilotExecutionResult | null> => {
+}
+
+type ExecutionActionFunction = (
+  data: ExecuteActionData,
+) => Promise<CopilotExecutionResult | null>;
+
+const executeAction: ExecutionActionFunction = async (
+  data: ExecuteActionData,
+): Promise<CopilotExecutionResult | null> => {
   const { serviceRepository, file, filesInService, nextEventToFix } = data;
 
   try {

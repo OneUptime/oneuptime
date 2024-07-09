@@ -96,8 +96,6 @@ export default class ImproveComments extends CopilotActionBase {
   ): Promise<CopilotProcess> {
     // Action Prompt
 
-    debugger;
-
     const codeParts: string[] = await this.splitInputCode({
       copilotProcess: data,
       itemSize: 500,
