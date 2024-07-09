@@ -7,7 +7,7 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CodeRepository";
+import CodeRepository from "Model/Models/CopilotCodeRepository";
 import Label from "Model/Models/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

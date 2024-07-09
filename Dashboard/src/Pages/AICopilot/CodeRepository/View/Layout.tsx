@@ -5,11 +5,11 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CodeRepository";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const CodeRepositoryViewLayout: FunctionComponent<
+const CopilotCodeRepositoryViewLayout: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
@@ -18,7 +18,7 @@ const CodeRepositoryViewLayout: FunctionComponent<
   return (
     <ModelPage
       title="Repository"
-      modelType={CodeRepository}
+      modelType={CopilotCodeRepository}
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getCodeRepositoryBreadcrumbs(path)}
@@ -29,4 +29,4 @@ const CodeRepositoryViewLayout: FunctionComponent<
   );
 };
 
-export default CodeRepositoryViewLayout;
+export default CopilotCodeRepositoryViewLayout;

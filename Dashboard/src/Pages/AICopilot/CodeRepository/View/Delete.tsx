@@ -5,7 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CodeRepository";
+import CodeRepository from "Model/Models/CopilotCodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const CodeRepositoryDelete: FunctionComponent<
