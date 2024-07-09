@@ -57,10 +57,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   if (onAfterCloneScript) {
     logger.info("Executing on-after-clone script.");
-    const result: string = await CodeRepositoryUtil.executeScript({
+    await CodeRepositoryUtil.executeScript({
       script: onAfterCloneScript,
     });
-    logger.info(result);
     logger.info("on-after-clone script executed successfully.");
   }
 
