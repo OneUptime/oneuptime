@@ -40,12 +40,7 @@ export class MigrationName1720532068612 implements MigrationInterface {
     await queryRunner.query(
       `CREATE INDEX "IDX_d3bb0fc11b6e3b7fd3ca0464c1" ON "CopilotCodeRepositoryLabel" ("labelId") `,
     );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
-    );
+
     await queryRunner.query(
       `ALTER TABLE "CopilotCodeRepository" ADD CONSTRAINT "FK_41b81a046fcc36dba0499886dc8" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
@@ -121,12 +116,7 @@ export class MigrationName1720532068612 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "CopilotCodeRepository" DROP CONSTRAINT "FK_41b81a046fcc36dba0499886dc8"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
-    );
+
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d3bb0fc11b6e3b7fd3ca0464c1"`,
     );
