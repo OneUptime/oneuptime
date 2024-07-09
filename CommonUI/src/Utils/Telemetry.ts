@@ -14,6 +14,7 @@ import {
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import URL from "Common/Types/API/URL";
 
 export default class Telemetry {
   public static init(data: { serviceName: string }): void {
@@ -32,7 +33,7 @@ export default class Telemetry {
       provider.addSpanProcessor(
         new BatchSpanProcessor(
           new OTLPTraceExporter({
-            url: OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
+            url: URL.fromString(OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces").toString(),
             headers: OpenTelemetryExporterOtlpHeaders,
           }),
         ),
