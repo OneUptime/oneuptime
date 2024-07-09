@@ -22,6 +22,7 @@ process.env["SERVICE_NAME"] = "app";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Check infrastructure status
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       return await InfrastructureStatus.checkStatus({
         checkClickhouseStatus: true,
@@ -30,7 +31,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
     };
 
-    // init the app
+    // Initialize the app
     await App.init({
       appName: process.env["SERVICE_NAME"] || "app",
       statusOptions: {
@@ -39,21 +40,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
-    // connect to the database.
-    await PostgresAppInstance.connect(
-      PostgresAppInstance.getDatasourceOptions(),
-    );
-
-    // connect redis
+    // Connect to databases and Redis
+    await PostgresAppInstance.connect(PostgresAppInstance.getDatasourceOptions());
     await Redis.connect();
+    await ClickhouseAppInstance.connect(ClickhouseAppInstance.getDatasourceOptions());
 
-    await ClickhouseAppInstance.connect(
-      ClickhouseAppInstance.getDatasourceOptions(),
-    );
-
+    // Initialize Realtime and featuresets
     await Realtime.init();
-
-    // init featuresets
     await IdentityRoutes.init();
     await NotificationRoutes.init();
     await DocsRoutes.init();
@@ -62,12 +55,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await Workers.init();
     await Workflow.init();
 
-    // home should be in the end because it has the catch all route.
+    // Initialize home route
     await HomeRoutes.init();
 
-    // add default routes
+    // Add default routes
     await App.addDefaultRoutes();
   } catch (err) {
+    // Log and rethrow error
     logger.error("App Init Failed:");
     logger.error(err);
     throw err;
@@ -75,6 +69,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 };
 
 init().catch((err: Error) => {
+  // Log and exit
   logger.error(err);
   logger.error("Exiting node process");
   process.exit(1);
