@@ -349,6 +349,8 @@ export default class API {
             headers: finalHeaders,
             data: finalBody,
           });
+
+          break;
         } catch (e) {
           if (currentRetry <= maxRetries) {
             if (exponentialBackoff) {

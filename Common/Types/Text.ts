@@ -12,6 +12,90 @@ export default class Text {
     return hex;
   }
 
+  public static getFirstWord(text: string): string {
+    if (!text || text.length === 0) {
+      return text;
+    }
+
+    const textArr: Array<string> = text.split(" ");
+
+    let firstIndex: number = 0;
+
+    while (firstIndex < textArr.length && !textArr[firstIndex]) {
+      firstIndex++;
+    }
+
+    return textArr[firstIndex] || text;
+  }
+
+  public static getLastWord(text: string): string {
+    if (!text || text.length === 0) {
+      return text;
+    }
+
+    const textArr: Array<string> = text.split(" ");
+
+    let lastIndex: number = textArr.length - 1;
+
+    while (lastIndex >= 0 && !textArr[lastIndex]) {
+      lastIndex--;
+    }
+
+    return textArr[lastIndex] || text;
+  }
+
+  public static trimStartUntilThisWord(text: string, word: string): string {
+    if (!text || text.length === 0) {
+      return text;
+    }
+
+    const index: number = text.indexOf(word);
+    if (index === -1) {
+      return text;
+    }
+
+    return text.substring(index);
+  }
+
+  public static trimUpQuotesFromStartAndEnd(text: string): string {
+    if (!text || text.length === 0) {
+      return text;
+    }
+
+    if (text.startsWith('"') && !text.endsWith('"')) {
+      text = text.substring(1);
+    }
+
+    if (text.endsWith('"') && !text.startsWith('"')) {
+      text = text.substring(0, text.length - 1);
+    }
+
+    // check for single quotes
+
+    if (text.startsWith("'") && !text.endsWith("'")) {
+      text = text.substring(1);
+    }
+
+    if (text.endsWith("'") && !text.startsWith("'")) {
+      text = text.substring(0, text.length - 1);
+    }
+
+    return text;
+  }
+
+  public static trimEndUntilThisWord(text: string, word: string): string {
+    if (!text || text.length === 0) {
+      return text;
+    }
+
+    const index: number = text.lastIndexOf(word);
+    if (index === -1) {
+      return text;
+    }
+
+    return text.substring(0, index + word.length);
+  }
+
   public static isBase64(text: string): boolean {
     const regex: RegExp = /^[a-zA-Z0-9+/]*={0,2}$/;
     return regex.test(text);

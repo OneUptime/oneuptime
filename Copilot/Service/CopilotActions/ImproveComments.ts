@@ -8,6 +8,7 @@ import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
 import { CopilotPromptResult } from "../LLM/LLMBase";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
+import Text from "Common/Types/Text";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -22,10 +23,80 @@ export default class ImproveComments extends CopilotActionBase {
     return Promise.resolve(this.isRequirementsMet);
   }
 
+  public async commentCodePart(options: {
+    data: CopilotProcess;
+    codePart: string;
+    currentRetryCount: number;
+    maxRetryCount: number;
+  }): Promise<{
+    newCode: string;
+    isWellCommented: boolean;
+  }> {
+    let isWellCommented: boolean = true;
+
+    const codePart: string = options.codePart;
+    const data: CopilotProcess = options.data;
+
+    const actionPrompt: CopilotActionPrompt = await this.getPrompt(
+      data,
+      codePart,
+    );
+
+    const copilotResult: CopilotPromptResult =
+      await this.askCopilot(actionPrompt);
+
+    const newCodePart: string = await this.cleanupCode({
+      inputCode: codePart,
+      outputCode: copilotResult.output as string,
+    });
+
+    if (!(await this.isFileAlreadyWellCommented(newCodePart))) {
+      isWellCommented = false;
+    }
+
+    const validationPrompt: CopilotActionPrompt =
+      await this.getValidationPrompt({
+        oldCode: codePart,
+        newCode: newCodePart,
+      });
+
+    const validationResponse: CopilotPromptResult =
+      await this.askCopilot(validationPrompt);
+
+    const didPassValidation: boolean =
+      await this.didPassValidation(validationResponse);
+
+    if (
+      !didPassValidation &&
+      options.currentRetryCount < options.maxRetryCount
+    ) {
+      return await this.commentCodePart({
+        data: data,
+        codePart: codePart,
+        currentRetryCount: options.currentRetryCount + 1,
+        maxRetryCount: options.maxRetryCount,
+      });
+    }
+
+    if (!didPassValidation) {
+      return {
+        newCode: codePart,
+        isWellCommented: false,
+      };
+    }
+
+    return {
+      newCode: newCodePart,
+      isWellCommented: isWellCommented,
+    };
+  }
+
   public override async onExecutionStep(
     data: CopilotProcess,
   ): Promise<CopilotProcess> {
     // Action Prompt
+
+    debugger;
 
     const codeParts: string[] = await this.splitInputCode({
       copilotProcess: data,
@@ -35,44 +106,23 @@ export default class ImproveComments extends CopilotActionBase {
     let newContent: string = "";
 
     let isWellCommented: boolean = true;
-    let didPassFileValidation: boolean = false;
 
     for (const codePart of codeParts) {
-      const actionPrompt: CopilotActionPrompt = await this.getPrompt(
-        data,
-        codePart,
-      );
-
-      const copilotResult: CopilotPromptResult =
-        await this.askCopilot(actionPrompt);
-
-      const newCodePart: string = await this.cleanup({
-        inputCode: codePart,
-        outputCode: copilotResult.output as string,
+      const codePartResult: {
+        newCode: string;
+        isWellCommented: boolean;
+      } = await this.commentCodePart({
+        data: data,
+        codePart: codePart,
+        currentRetryCount: 0,
+        maxRetryCount: 3,
       });
 
-      if (!(await this.isFileAlreadyWellCommented(newCodePart))) {
+      if (!codePartResult.isWellCommented) {
         isWellCommented = false;
-      }
-
-      const validationPrompt: CopilotActionPrompt =
-        await this.getValidationPrompt({
-          oldCode: codePart,
-          newCode: newCodePart,
-        });
-
-      const validationResponse: CopilotPromptResult =
-        await this.askCopilot(validationPrompt);
-
-      const didPassValidation: boolean =
-        await this.didPassValidation(validationResponse);
-
-      if (!didPassValidation) {
-        newContent = codePart;
-        break;
+        newContent += codePartResult.newCode + "\n";
       } else {
-        didPassFileValidation = true;
-        newContent += newCodePart + "\n";
+        newContent += codePart + "\n";
       }
     }
 
@@ -83,17 +133,13 @@ export default class ImproveComments extends CopilotActionBase {
 
     newContent = newContent.trim();
 
-    if (didPassFileValidation) {
-      // add to result.
-      data.result.files[data.input.currentFilePath] = {
-        ...data.input.files[data.input.currentFilePath],
-        fileContent: newContent,
-      } as CodeRepositoryFile;
+    // add to result.
+    data.result.files[data.input.currentFilePath] = {
+      ...data.input.files[data.input.currentFilePath],
+      fileContent: newContent,
+    } as CodeRepositoryFile;
 
-      this.isRequirementsMet = true;
-      return data;
-    }
-
+    this.isRequirementsMet = true;
     return data;
   }
 
@@ -164,7 +210,7 @@ export default class ImproveComments extends CopilotActionBase {
       data.input.currentFilePath
     ]?.fileLanguage as ServiceLanguage;
 
-    const prompt: string = `Please improve the comments in this code. Please only comment code that is hard to understand. 
+    const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
 
     If you think the code is already well commented, please reply with the following text:
     --all-good--
@@ -199,7 +245,7 @@ export default class ImproveComments extends CopilotActionBase {
     return systemPrompt;
   }
 
-  public async cleanup(data: {
+  public async cleanupCode(data: {
     inputCode: string;
     outputCode: string;
   }): Promise<string> {
@@ -220,6 +266,22 @@ export default class ImproveComments extends CopilotActionBase {
     }
 
     // get first line of input code.
+
+    const firstWordOfInputCode: string = Text.getFirstWord(data.inputCode);
+    extractedCode = Text.trimStartUntilThisWord(
+      extractedCode,
+      firstWordOfInputCode,
+    );
+
+    const lastWordOfInputCode: string = Text.getLastWord(data.inputCode);
+    extractedCode = Text.trimEndUntilThisWord(
+      extractedCode,
+      lastWordOfInputCode,
+    );
+
+    extractedCode = Text.trimUpQuotesFromStartAndEnd(extractedCode);
+
+    // check for quotes.
 
     return extractedCode;
   }

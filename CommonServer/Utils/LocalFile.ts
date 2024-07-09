@@ -12,6 +12,45 @@ export default class LocalFile {
     return fileExtention[fileExtention.length - 1]?.toLowerCase() || "";
   }
 
+  public static async deleteFile(filePath: string): Promise<void> {
+    if ((await this.doesFileExist(filePath)) === false) {
+      return;
+    }
+
+    return new Promise(
+      (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
+        fs.unlink(filePath, (err: Error | null) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      },
+    );
+  }
+
+  public static async doesFileExist(path: string): Promise<boolean> {
+    return new Promise(
+      (
+        resolve: (exists: boolean) => void,
+        reject: PromiseRejectErrorFunction,
+      ) => {
+        fs.stat(path, (err: Error | null, stats: fs.Stats) => {
+          if (err) {
+            if ((err as any).code === "ENOENT") {
+              return resolve(false);
+            }
+            return reject(err);
+          }
+          if (stats.isFile()) {
+            return resolve(true);
+          }
+          return resolve(false);
+        });
+      },
+    );
+  }
+
   public static async doesDirectoryExist(path: string): Promise<boolean> {
     return new Promise(
       (

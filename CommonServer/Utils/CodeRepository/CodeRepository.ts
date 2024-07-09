@@ -103,13 +103,7 @@ export default class CodeRepositoryUtil {
       `${data.repoPath}/${data.filePath}`,
     );
 
-    const command: string = `echo "${data.content}" > ${totalPath}`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await LocalFile.write(totalPath, data.content);
   }
 
   public static async createDirectory(data: {
@@ -120,13 +114,7 @@ export default class CodeRepositoryUtil {
       `${data.repoPath}/${data.directoryPath}`,
     );
 
-    const command: string = `mkdir ${totalPath}`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await LocalFile.makeDirectory(totalPath);
   }
 
   public static async deleteFile(data: {
@@ -137,13 +125,7 @@ export default class CodeRepositoryUtil {
       `${data.repoPath}/${data.filePath}`,
     );
 
-    const command: string = `rm ${totalPath}`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await LocalFile.deleteFile(totalPath);
   }
 
   public static async deleteDirectory(data: {

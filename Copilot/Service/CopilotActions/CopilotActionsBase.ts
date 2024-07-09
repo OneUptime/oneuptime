@@ -95,7 +95,7 @@ export default class CopilotActionBase {
   }
 
   public async getPullRequestTitle(data: CopilotProcess): Promise<string> {
-    return `OneUptime Copilot: ${this.copilotActionType} on ${data.input.currentFilePath}`;
+    return `[OneUptime Copilot] ${this.copilotActionType} on ${data.input.currentFilePath}`;
   }
 
   public async getPullRequestBody(data: CopilotProcess): Promise<string> {
