@@ -1,8 +1,9 @@
 import CodeRepositoryUtil, {
   CodeRepositoryResult,
+  RepoScriptType,
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
-import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceCopilotCodeRepository";
+import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceRepository";
 import Dictionary from "Common/Types/Dictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
@@ -44,6 +45,24 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   await CodeRepositoryUtil.cloneRepository({
     codeRepository: codeRepositoryResult.codeRepository,
   });
+
+  const onAfterCloneScript: string | null =
+    await CodeRepositoryUtil.getRepoScript({
+      scriptType: RepoScriptType.OnAfterClone,
+    });
+
+  if (!onAfterCloneScript) {
+    logger.debug("No on-after-clone script found for this repository.");
+  }
+
+  if (onAfterCloneScript) {
+    logger.info("Executing on-after-clone script.");
+    const result: string = await CodeRepositoryUtil.executeScript({
+      script: onAfterCloneScript,
+    });
+    logger.info(result);
+    logger.info("on-after-clone script executed successfully.");
+  }
 
   logger.info(
     `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,
@@ -137,22 +156,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       let executionResult: CopilotExecutionResult | null = null;
 
-      try {
-        executionResult = await CopilotActionService.execute({
-          serviceRepository: serviceRepository,
-          copilotActionType: nextEventToFix,
-          input: {
-            currentFilePath: file.filePath, // this is the file path where optimization is needed or should start from.
-            files: filesInService,
-          },
-        });
-      } catch (e) {
-        if (e instanceof CopilotActionProcessingException) {
-          // This is not a serious exception, so we just  move on to the next file.
-          logger.info(e.message);
-          continue;
-        } else {
-          throw e;
+      let currentRetryCount: number = 0;
+      const maxRetryCount: number = 3;
+
+      while (currentRetryCount < maxRetryCount) {
+        try {
+          executionResult = await executeAction({
+            serviceRepository,
+            file,
+            filesInService,
+            nextEventToFix,
+          });
+          break;
+        } catch (e) {
+          logger.error(e);
+          currentRetryCount++;
         }
       }
 
@@ -163,6 +181,33 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         currentFixCount++;
       }
     }
+  }
+};
+
+const executeAction = async (data: {
+  serviceRepository: ServiceCopilotCodeRepository;
+  file: CodeRepositoryFile;
+  filesInService: Dictionary<CodeRepositoryFile>;
+  nextEventToFix: CopilotActionType;
+}): Promise<CopilotExecutionResult | null> => {
+  const { serviceRepository, file, filesInService, nextEventToFix } = data;
+
+  try {
+    return await CopilotActionService.execute({
+      serviceRepository: serviceRepository,
+      copilotActionType: nextEventToFix,
+      input: {
+        currentFilePath: file.filePath, // this is the file path where optimization is needed or should start from.
+        files: filesInService,
+      },
+    });
+  } catch (e) {
+    if (e instanceof CopilotActionProcessingException) {
+      // This is not a serious exception, so we just  move on to the next file.
+      logger.info(e.message);
+      return null;
+    }
+    throw e;
   }
 };
 

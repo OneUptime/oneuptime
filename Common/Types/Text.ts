@@ -12,6 +12,13 @@ export default class Text {
     return hex;
   }
 
+  public static fromPascalCaseToDashes(text: string): string {
+    let result: string = text.replace(/([A-Z])/g, " $1");
+    result = result.trim();
+    result = result.replace(/\s+/g, "-");
+    return result.toLowerCase();
+  }
+
   public static getFirstWord(text: string): string {
     if (!text || text.length === 0) {
       return text;

@@ -20,6 +20,8 @@ import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
 import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import Text from "Common/Types/Text";
+import Execute from "CommonServer/Utils/Execute";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
@@ -31,6 +33,14 @@ export interface ServiceToImproveResult {
   serviceRepository: ServiceCopilotCodeRepository;
   numberOfOpenPullRequests: number;
   pullRequests: Array<PullRequest>;
+}
+
+export enum RepoScriptType {
+  OnAfterClone = "onAfterClone",
+  OnBeforeCommit = "onBeforeCommit",
+  OnAfterCommit = "OnAfterCommit",
+  OnBeforeCopilotAction = "onBeforeCopilotAction",
+  OnAfterCopilotAction = "onAfterCopilotAction",
 }
 
 export default class CodeRepositoryUtil {
@@ -46,6 +56,12 @@ export default class CodeRepositoryUtil {
     }
 
     return GetLocalRepositoryPath();
+  }
+
+  public static async discardAllChangesOnCurrentBranch(): Promise<void> {
+    await CodeRepositoryServerUtil.discardAllChangesOnCurrentBranch({
+      repoPath: this.getLocalRepositoryPath(),
+    });
   }
 
   public static async setAuthorIdentity(data: {
@@ -111,6 +127,53 @@ export default class CodeRepositoryUtil {
     });
 
     this.folderNameOfClonedRepository = folderName;
+  }
+
+  public static async executeScript(data: { script: string }): Promise<string> {
+    await Execute.executeCommand(`cd ${this.getLocalRepositoryPath()}`); // change directory to the repository path
+    return await Execute.executeCommand(data.script); // execute the script
+  }
+
+  public static async getRepoScript(data: {
+    scriptType: RepoScriptType;
+  }): Promise<string | null> {
+    const repoPath: string = this.getLocalRepositoryPath();
+
+    const oneUptimeFolderPath: string = LocalFile.sanitizeFilePath(
+      `${repoPath}/.oneuptime`,
+    );
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(oneUptimeFolderPath);
+
+    if (!doesDirectoryExist) {
+      return null;
+    }
+
+    const oneuptimeScriptsPath: string = LocalFile.sanitizeFilePath(
+      `${oneUptimeFolderPath}/scripts`,
+    );
+
+    const doesScriptsDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(oneuptimeScriptsPath);
+
+    if (!doesScriptsDirectoryExist) {
+      return null;
+    }
+
+    const scriptPath: string = LocalFile.sanitizeFilePath(
+      `${oneuptimeScriptsPath}/${Text.fromPascalCaseToDashes(data.scriptType)}.sh`,
+    );
+
+    const doesScriptExist: boolean = await LocalFile.doesFileExist(scriptPath);
+
+    if (!doesScriptExist) {
+      return null;
+    }
+
+    const scriptContent: string = await LocalFile.read(scriptPath);
+
+    return scriptContent.trim() || null;
   }
 
   public static hasOpenPRForFile(data: {

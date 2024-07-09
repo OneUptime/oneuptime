@@ -6,7 +6,7 @@ import CopilotActionBase, {
   CopilotProcess,
 } from "./CopilotActionsBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import CodeRepositoryUtil from "../../Utils/CodeRepository";
+import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import CopilotAction from "Model/Models/CopilotAction";
@@ -43,6 +43,8 @@ export default class CopilotActionService {
     copilotActionType: CopilotActionType;
     input: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {
+    await CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
+
     await CodeRepositoryUtil.switchToMainBranch();
 
     await CodeRepositoryUtil.pullChanges();
@@ -110,8 +112,44 @@ export default class CopilotActionService {
         });
       }
 
+      // run on before commit script. This is the place where we can run tests.
+
+      const onBeforeCommitScript: string | null =
+        await CodeRepositoryUtil.getRepoScript({
+          scriptType: RepoScriptType.OnBeforeCommit,
+        });
+
+      if (!onBeforeCommitScript) {
+        logger.debug("No on-before-commit script found for this repository.");
+      } else {
+        logger.info("Executing on-before-commit script.");
+        const result: string = await CodeRepositoryUtil.executeScript({
+          script: onBeforeCommitScript,
+        });
+        logger.info(result);
+        logger.info("on-before-commit script executed successfully.");
+      }
+
       const commitMessage: string =
         await action.getCommitMessage(processResult);
+
+      const onAfterCommitScript: string | null =
+        await CodeRepositoryUtil.getRepoScript({
+          scriptType: RepoScriptType.OnAfterCommit,
+        });
+
+      if (!onAfterCommitScript) {
+        logger.debug("No on-after-commit script found for this repository.");
+      }
+
+      if (onAfterCommitScript) {
+        logger.info("Executing on-after-commit script.");
+        const result: string = await CodeRepositoryUtil.executeScript({
+          script: onAfterCommitScript,
+        });
+        logger.info(result);
+        logger.info("on-after-commit script executed successfully.");
+      }
 
       // add files to stage
 

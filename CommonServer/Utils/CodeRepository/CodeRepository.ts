@@ -20,6 +20,18 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  public static async discardAllChangesOnCurrentBranch(data: {
+    repoPath: string;
+  }): Promise<void> {
+    const command: string = `cd ${data.repoPath} && git checkout .`;
+
+    logger.debug("Executing command: " + command);
+
+    const stdout: string = await Execute.executeCommand(command);
+
+    logger.debug(stdout);
+  }
+
   // returns the folder name of the cloned repository
   public static async cloneRepository(data: {
     repoPath: string;

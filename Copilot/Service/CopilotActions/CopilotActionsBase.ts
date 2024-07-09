@@ -10,6 +10,7 @@ import Dictionary from "Common/Types/Dictionary";
 import { CopilotPromptResult } from "../LLM/LLMBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "CommonServer/Utils/Logger";
+import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
 
 export interface CopilotActionRunResult {
   files: Dictionary<CodeRepositoryFile>;
@@ -140,6 +141,24 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     );
     logger.info("Current File Path: " + data.input.currentFilePath);
 
+    const onBeforeExecuteActionScript: string | null =
+      await CodeRepositoryUtil.getRepoScript({
+        scriptType: RepoScriptType.OnBeforeCopilotAction,
+      });
+
+    if (!onBeforeExecuteActionScript) {
+      logger.debug(
+        "No on-before-copilot-action script found for this repository.",
+      );
+    } else {
+      logger.info("Executing on-before-copilot-action script.");
+      const result: string = await CodeRepositoryUtil.executeScript({
+        script: onBeforeExecuteActionScript,
+      });
+      logger.info(result);
+      logger.info("on-before-copilot-action script executed successfully");
+    }
+
     data = await this.onBeforeExecute(data);
 
     if (!data.result) {
@@ -165,6 +184,26 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       data = await this.onExecutionStep(data);
 
       isActionComplete = await this.isActionComplete(data);
+    }
+
+    const onAfterExecuteActionScript: string | null =
+      await CodeRepositoryUtil.getRepoScript({
+        scriptType: RepoScriptType.OnAfterCopilotAction,
+      });
+
+    if (!onAfterExecuteActionScript) {
+      logger.debug(
+        "No on-after-copilot-action script found for this repository.",
+      );
+    }
+
+    if (onAfterExecuteActionScript) {
+      logger.info("Executing on-after-copilot-action script.");
+      const result: string = await CodeRepositoryUtil.executeScript({
+        script: onAfterExecuteActionScript,
+      });
+      logger.info(result);
+      logger.info("on-after-copilot-action script executed successfully");
     }
 
     return await this.onAfterExecute(data);
