@@ -86,7 +86,7 @@ import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeli
 import ServiceCatalog from "./ServiceCatalog";
 import ServiceCatalogOwnerTeam from "./ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "./ServiceCatalogOwnerUser";
-import ServiceRepository from "./ServiceRepository";
+import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -269,7 +269,7 @@ export default [
 
   CopilotCodeRepository,
   CopilotAction,
-  ServiceRepository,
+  ServiceCopilotCodeRepository,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,

@@ -19,16 +19,16 @@ import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
 import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
   servicesToImprove: Array<ServiceToImproveResult>;
-  serviceRepositories: Array<ServiceRepository>;
+  serviceRepositories: Array<ServiceCopilotCodeRepository>;
 }
 
 export interface ServiceToImproveResult {
-  serviceRepository: ServiceRepository;
+  serviceRepository: ServiceCopilotCodeRepository;
   numberOfOpenPullRequests: number;
   pullRequests: Array<PullRequest>;
 }
@@ -176,7 +176,7 @@ export default class CodeRepositoryUtil {
 
   public static getBranchName(data: {
     branchName: string;
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
   }): string {
     if (!data.serviceRepository.serviceCatalog) {
       throw new BadDataException("Service Catalog is required");
@@ -196,7 +196,7 @@ export default class CodeRepositoryUtil {
 
   public static async createBranch(data: {
     branchName: string;
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<void> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
@@ -210,7 +210,7 @@ export default class CodeRepositoryUtil {
   }
 
   public static async createOrCheckoutBranch(data: {
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
     branchName: string;
   }): Promise<void> {
     const branchName: string = this.getBranchName({
@@ -320,7 +320,7 @@ export default class CodeRepositoryUtil {
 
   public static async pushChanges(data: {
     branchName: string;
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<void> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
@@ -369,7 +369,7 @@ export default class CodeRepositoryUtil {
     branchName: string;
     title: string;
     body: string;
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<PullRequest> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
@@ -406,7 +406,7 @@ export default class CodeRepositoryUtil {
 
   public static async getServicesToImproveCode(data: {
     codeRepository: CopilotCodeRepository;
-    services: Array<ServiceRepository>;
+    services: Array<ServiceCopilotCodeRepository>;
   }): Promise<Array<ServiceToImproveResult>> {
     const servicesToImproveCode: Array<ServiceToImproveResult> = [];
 
@@ -505,13 +505,13 @@ export default class CodeRepositoryUtil {
         CopilotCodeRepository,
       ) as CopilotCodeRepository;
 
-    const servicesRepository: Array<ServiceRepository> = (
+    const servicesRepository: Array<ServiceCopilotCodeRepository> = (
       codeRepositoryResult.data["servicesRepository"] as JSONArray
     ).map((serviceRepository: JSONObject) => {
-      return ServiceRepository.fromJSON(
+      return ServiceCopilotCodeRepository.fromJSON(
         serviceRepository,
-        ServiceRepository,
-      ) as ServiceRepository;
+        ServiceCopilotCodeRepository,
+      ) as ServiceCopilotCodeRepository;
     });
 
     if (!codeRepository) {
@@ -530,7 +530,7 @@ export default class CodeRepositoryUtil {
 
     logger.info("Services found in the repository:");
 
-    servicesRepository.forEach((serviceRepository: ServiceRepository) => {
+    servicesRepository.forEach((serviceRepository: ServiceCopilotCodeRepository) => {
       logger.info(`- ${serviceRepository.serviceCatalog?.name}`);
     });
 
@@ -556,7 +556,7 @@ export default class CodeRepositoryUtil {
   }
 
   public static async getServiceRepositories(): Promise<
-    Array<ServiceRepository>
+    Array<ServiceCopilotCodeRepository>
   > {
     if (!this.codeRepositoryResult) {
       this.codeRepositoryResult = await this.getCodeRepositoryResult();

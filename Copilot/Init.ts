@@ -2,7 +2,7 @@ import CodeRepositoryUtil, {
   CodeRepositoryResult,
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
-import ServiceRepositoryUtil from "./Utils/ServiceRepository";
+import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceCopilotCodeRepository";
 import Dictionary from "Common/Types/Dictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
@@ -17,7 +17,7 @@ import CopilotActionService, {
 } from "./Service/CopilotActions/Index";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
 // import ArrayUtil from "Common/Types/ArrayUtil";
 
@@ -52,11 +52,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
 
-    const serviceRepository: ServiceRepository =
+    const serviceRepository: ServiceCopilotCodeRepository =
       serviceToImrove.serviceRepository;
 
     const filesInService: Dictionary<CodeRepositoryFile> =
-      await ServiceRepositoryUtil.getFilesInServiceDirectory({
+      await ServiceCopilotCodeRepositoryUtil.getFilesInServiceDirectory({
         serviceRepository,
       });
 

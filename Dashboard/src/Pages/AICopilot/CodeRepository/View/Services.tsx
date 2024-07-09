@@ -8,18 +8,18 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ServiceCatalog from "Model/Models/ServiceCatalog";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const ServiceRepositoryPage: FunctionComponent<
+const ServiceCopilotCodeRepositoryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const codeRepositoryId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
-      <ModelTable<ServiceRepository>
-        modelType={ServiceRepository}
+      <ModelTable<ServiceCopilotCodeRepository>
+        modelType={ServiceCopilotCodeRepository}
         id="table-service-repository-page"
         name="Code Repository > Service Repository"
         isDeleteable={true}
@@ -33,8 +33,8 @@ const ServiceRepositoryPage: FunctionComponent<
           projectId: DashboardNavigation.getProjectId()?.toString(),
         }}
         onBeforeCreate={(
-          item: ServiceRepository,
-        ): Promise<ServiceRepository> => {
+          item: ServiceCopilotCodeRepository,
+        ): Promise<ServiceCopilotCodeRepository> => {
           item.codeRepositoryId = codeRepositoryId;
           item.projectId = DashboardNavigation.getProjectId()!;
           return Promise.resolve(item);
@@ -135,7 +135,7 @@ const ServiceRepositoryPage: FunctionComponent<
             title: "Service",
             type: FieldType.Entity,
 
-            getElement: (item: ServiceRepository): ReactElement => {
+            getElement: (item: ServiceCopilotCodeRepository): ReactElement => {
               if (!item["serviceCatalog"]) {
                 throw new BadDataException("Service not found");
               }
@@ -174,4 +174,4 @@ const ServiceRepositoryPage: FunctionComponent<
   );
 };
 
-export default ServiceRepositoryPage;
+export default ServiceCopilotCodeRepositoryPage;

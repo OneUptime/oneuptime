@@ -5,11 +5,11 @@ import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
 import CodeRepositoryCommonServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import LocalFile from "CommonServer/Utils/LocalFile";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 import CodeRepositoryUtil from "./CodeRepository";
 
-export default class ServiceRepositoryUtil {
+export default class ServiceCopilotCodeRepositoryUtil {
   public static async getFileLanguage(data: {
     filePath: string;
   }): Promise<ServiceLanguage> {
@@ -38,7 +38,7 @@ export default class ServiceRepositoryUtil {
   }
 
   public static async getFilesInServiceDirectory(data: {
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<Dictionary<CodeRepositoryFile>> {
     const { serviceRepository } = data;
 

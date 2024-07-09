@@ -7,7 +7,7 @@ import CopilotActionBase, {
 } from "./CopilotActionsBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import CopilotAction from "Model/Models/CopilotAction";
 import ObjectID from "Common/Types/ObjectID";
@@ -39,7 +39,7 @@ export interface CopilotExecutionResult {
 
 export default class CopilotActionService {
   public static async execute(data: {
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
     copilotActionType: CopilotActionType;
     input: CopilotActionVars;
   }): Promise<CopilotExecutionResult> {

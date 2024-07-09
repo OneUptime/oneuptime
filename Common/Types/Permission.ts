@@ -477,10 +477,10 @@ enum Permission {
   EditProbeOwnerUser = "EditProbeOwnerUser",
   ReadProbeOwnerUser = "ReadProbeOwnerUser",
 
-  CreateServiceRepository = "CreateServiceRepository",
-  DeleteServiceRepository = "DeleteServiceRepository",
-  EditServiceRepository = "EditServiceRepository",
-  ReadServiceRepository = "ReadServiceRepository",
+  CreateServiceCopilotCodeRepository = "CreateServiceCopilotCodeRepository",
+  DeleteServiceCopilotCodeRepository = "DeleteServiceCopilotCodeRepository",
+  EditServiceCopilotCodeRepository = "EditServiceCopilotCodeRepository",
+  ReadServiceCopilotCodeRepository = "ReadServiceCopilotCodeRepository",
 }
 
 export class PermissionHelper {
@@ -2416,7 +2416,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateServiceRepository,
+        permission: Permission.CreateServiceCopilotCodeRepository,
         title: "Create Service Repository",
         description:
           "This permission can create Service Repository this project.",
@@ -2424,7 +2424,7 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.DeleteServiceRepository,
+        permission: Permission.DeleteServiceCopilotCodeRepository,
         title: "Delete Service Repository",
         description:
           "This permission can delete Service Repository of this project.",
@@ -2432,7 +2432,7 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.EditServiceRepository,
+        permission: Permission.EditServiceCopilotCodeRepository,
         title: "Edit Service Repository",
         description:
           "This permission can edit Service Repository of this project.",
@@ -2440,7 +2440,7 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.ReadServiceRepository,
+        permission: Permission.ReadServiceCopilotCodeRepository,
         title: "Read Service Repository",
         description:
           "This permission can read Service Repository of this project.",

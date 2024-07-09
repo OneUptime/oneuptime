@@ -37,26 +37,26 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateServiceRepository,
+    Permission.CreateServiceCopilotCodeRepository,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ProjectMember,
-    Permission.ReadServiceRepository,
+    Permission.ReadServiceCopilotCodeRepository,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteServiceRepository,
+    Permission.DeleteServiceCopilotCodeRepository,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditServiceRepository,
+    Permission.EditServiceCopilotCodeRepository,
   ],
 })
 @EnableWorkflow({
@@ -65,9 +65,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/servic-repository"))
+@CrudApiEndpoint(new Route("/service-copilot-code-repository"))
 @TableMetadata({
-  tableName: "ServiceRepository",
+  tableName: "ServiceCopilotCodeRepository",
   singularName: "Service",
   pluralName: "Services",
   icon: IconProp.SquareStack,
@@ -75,22 +75,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     "Add services to your code repository to categorize and manage them easily. This will help copilot understand and generate code.",
 })
 @Entity({
-  name: "ServiceRepository",
+  name: "ServiceCopilotCodeRepository",
 })
-export default class ServiceRepository extends BaseModel {
+export default class ServiceCopilotCodeRepository extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -120,14 +120,14 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -151,20 +151,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -188,20 +188,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -224,20 +224,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -261,14 +261,14 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -299,14 +299,14 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -330,7 +330,7 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -363,7 +363,7 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [],
   })
@@ -385,20 +385,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -428,20 +428,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @Index()
@@ -465,20 +465,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -508,20 +508,20 @@ export default class ServiceRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateServiceRepository,
+      Permission.CreateServiceCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadServiceRepository,
+      Permission.ReadServiceCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditServiceRepository,
+      Permission.EditServiceCopilotCodeRepository,
     ],
   })
   @Index()

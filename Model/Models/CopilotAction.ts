@@ -1,7 +1,7 @@
 import CodeRepository from "./CopilotCodeRepository";
 import Project from "./Project";
 import ServiceCatalog from "./ServiceCatalog";
-import ServiceRepository from "./ServiceRepository";
+import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
@@ -416,14 +416,14 @@ export default class CopilotAction extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "serviceRepositoryId",
     type: TableColumnType.Entity,
-    modelType: ServiceRepository,
+    modelType: ServiceCopilotCodeRepository,
     title: "Service Repository",
     description:
       "Relation to Service Repository Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
-      return ServiceRepository;
+      return ServiceCopilotCodeRepository;
     },
     {
       eager: false,
@@ -433,7 +433,7 @@ export default class CopilotAction extends BaseModel {
     },
   )
   @JoinColumn({ name: "serviceRepositoryId" })
-  public serviceRepository?: ServiceRepository = undefined;
+  public serviceRepository?: ServiceCopilotCodeRepository = undefined;
 
   @ColumnAccessControl({
     create: [],

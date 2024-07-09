@@ -2,7 +2,7 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 
 export default class HostedCodeRepository {
   public constructor(data: { authToken: string; username: string }) {
@@ -23,7 +23,7 @@ export default class HostedCodeRepository {
   public username: string = "";
 
   public async getNumberOfPullRequestsExistForService(data: {
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
     pullRequestState: PullRequestState;
     baseBranchName: string | undefined;
     organizationName: string;
@@ -41,7 +41,7 @@ export default class HostedCodeRepository {
   }
 
   public async getPullRequestsByService(data: {
-    serviceRepository: ServiceRepository;
+    serviceRepository: ServiceCopilotCodeRepository;
     pullRequestState: PullRequestState;
     baseBranchName?: string | undefined;
     organizationName: string;

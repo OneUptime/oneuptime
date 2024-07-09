@@ -2,7 +2,7 @@ import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorizati
 import CopilotCodeRepositoryService, {
   Service as CopilotCodeRepositoryServiceType,
 } from "../Services/CopilotCodeRepositoryService";
-import ServiceRepositoryService from "../Services/ServiceRepositoryService";
+import ServiceCopilotCodeRepositoryService from "../Services/ServiceCopilotCodeRepositoryService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -14,7 +14,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 
 export default class CopilotCodeRepositoryAPI extends BaseAPI<
   CopilotCodeRepository,
@@ -77,8 +77,8 @@ export default class CopilotCodeRepositoryAPI extends BaseAPI<
             );
           }
 
-          const servicesRepository: Array<ServiceRepository> =
-            await ServiceRepositoryService.findBy({
+          const servicesRepository: Array<ServiceCopilotCodeRepository> =
+            await ServiceCopilotCodeRepositoryService.findBy({
               query: {
                 codeRepositoryId: codeRepository.id!,
                 enablePullRequests: true,
@@ -104,9 +104,9 @@ export default class CopilotCodeRepositoryAPI extends BaseAPI<
               codeRepository,
               CopilotCodeRepository,
             ),
-            servicesRepository: ServiceRepository.toJSONArray(
+            servicesRepository: ServiceCopilotCodeRepository.toJSONArray(
               servicesRepository,
-              ServiceRepository,
+              ServiceCopilotCodeRepository,
             ),
           });
         } catch (err) {

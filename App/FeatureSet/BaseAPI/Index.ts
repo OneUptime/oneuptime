@@ -205,9 +205,9 @@ import ServiceCatalogOwnerUserService, {
 import ServiceCatalogService, {
   Service as ServiceCatalogServiceType,
 } from "CommonServer/Services/ServiceCatalogService";
-import ServiceRepositoryService, {
-  Service as ServiceRepositoryType,
-} from "CommonServer/Services/ServiceRepositoryService";
+import ServiceCopilotCodeRepositoryService, {
+  Service as ServiceCopilotCodeRepositoryType,
+} from "CommonServer/Services/ServiceCopilotCodeRepositoryService";
 import ShortLinkService, {
   Service as ShortLinkServiceType,
 } from "CommonServer/Services/ShortLinkService";
@@ -359,7 +359,7 @@ import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenance
 import ServiceCatalog from "Model/Models/ServiceCatalog";
 import ServiceCatalogOwnerTeam from "Model/Models/ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "Model/Models/ServiceCatalogOwnerUser";
-import ServiceRepository from "Model/Models/ServiceRepository";
+import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import ShortLink from "Model/Models/ShortLink";
 import SmsLog from "Model/Models/SmsLog";
 import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
@@ -498,9 +498,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceRepository, ServiceRepositoryType>(
-        ServiceRepository,
-        ServiceRepositoryService,
+      new BaseAPI<ServiceCopilotCodeRepository, ServiceCopilotCodeRepositoryType>(
+        ServiceCopilotCodeRepository,
+        ServiceCopilotCodeRepositoryService,
       ).getRouter(),
     );
 
