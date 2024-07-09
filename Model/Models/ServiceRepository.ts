@@ -1,4 +1,4 @@
-import CodeRepository from "./CodeRepository";
+import CodeRepository from "./CopilotCodeRepository";
 import Project from "./Project";
 import ServiceCatalog from "./ServiceCatalog";
 import User from "./User";

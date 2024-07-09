@@ -6,7 +6,7 @@ import ApiKeyPermission from "./ApiKeyPermission";
 import BillingInvoice from "./BillingInvoice";
 import BillingPaymentMethods from "./BillingPaymentMethod";
 import CallLog from "./CallLog";
-import CodeRepository from "./CodeRepository";
+import CopilotCodeRepository from "./CopilotCodeRepository";
 import CopilotAction from "./CopilotAction";
 // Date migration
 import DataMigration from "./DataMigration";
@@ -267,7 +267,7 @@ export default [
   ServiceCatalogOwnerTeam,
   ServiceCatalogOwnerUser,
 
-  CodeRepository,
+  CopilotCodeRepository,
   CopilotAction,
   ServiceRepository,
 

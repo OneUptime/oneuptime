@@ -4,11 +4,11 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import CodeRepository from "Model/Models/CodeRepository";
-import CodeRepositoryService from "../Services/CodeRepositoryService";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
+import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import ObjectID from "Common/Types/ObjectID";
 
-export default class CodeRepositoryAuthorization {
+export default class CopilotCodeRepositoryAuthorization {
   public static async isAuthorizedRepository(
     req: ExpressRequest,
     _res: ExpressResponse,
@@ -21,8 +21,8 @@ export default class CodeRepositoryAuthorization {
         throw new BadDataException("Secret key is required");
       }
 
-      const codeRepository: CodeRepository | null =
-        await CodeRepositoryService.findOneBy({
+      const CopilotCodeRepository: CopilotCodeRepository | null =
+        await CopilotCodeRepositoryService.findOneBy({
           query: {
             secretToken: new ObjectID(secretkey),
           },
@@ -34,7 +34,7 @@ export default class CodeRepositoryAuthorization {
           },
         });
 
-      if (!codeRepository) {
+      if (!CopilotCodeRepository) {
         throw new BadDataException(
           "Code repository not found. Secret key is invalid.",
         );

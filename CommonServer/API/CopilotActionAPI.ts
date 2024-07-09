@@ -1,4 +1,4 @@
-import CodeRepository from "Model/Models/CodeRepository";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import CopilotActionService, {
   Service as CopilotActionServiceType,
 } from "../Services/CopilotActionService";
@@ -13,7 +13,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import CopilotAction from "Model/Models/CopilotAction";
-import CodeRepositoryService from "../Services/CodeRepositoryService";
+import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 
 export default class CopilotActionAPI extends BaseAPI<
@@ -48,8 +48,8 @@ export default class CopilotActionAPI extends BaseAPI<
             throw new BadDataException("Service catalog id is required");
           }
 
-          const codeRepository: CodeRepository | null =
-            await CodeRepositoryService.findOneBy({
+          const codeRepository: CopilotCodeRepository | null =
+            await CopilotCodeRepositoryService.findOneBy({
               query: {
                 secretToken: new ObjectID(secretkey),
               },
@@ -115,8 +115,8 @@ export default class CopilotActionAPI extends BaseAPI<
             throw new BadDataException("Secret key is required");
           }
 
-          const codeRepository: CodeRepository | null =
-            await CodeRepositoryService.findOneBy({
+          const codeRepository: CopilotCodeRepository | null =
+            await CopilotCodeRepositoryService.findOneBy({
               query: {
                 secretToken: new ObjectID(secretkey),
               },

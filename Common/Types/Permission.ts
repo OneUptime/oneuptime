@@ -460,10 +460,10 @@ enum Permission {
   EditServiceCatalog = "EditServiceCatalog",
   ReadServiceCatalog = "ReadServiceCatalog",
 
-  CreateCodeRepository = "CreateCodeRepository",
-  DeleteCodeRepository = "DeleteCodeRepository",
-  EditCodeRepository = "EditCodeRepository",
-  ReadCodeRepository = "ReadCodeRepository",
+  CreateCopilotCodeRepository = "CreateCopilotCodeRepository",
+  DeleteCopilotCodeRepository = "DeleteCopilotCodeRepository",
+  EditCopilotCodeRepository = "EditCopilotCodeRepository",
+  ReadCopilotCodeRepository = "ReadCopilotCodeRepository",
 
   ReadCopilotAction = "ReadCopilotAction",
 
@@ -2384,14 +2384,14 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateCodeRepository,
+        permission: Permission.CreateCopilotCodeRepository,
         title: "Create Code Repository",
         description: "This permission can create Code Repository this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.DeleteCodeRepository,
+        permission: Permission.DeleteCopilotCodeRepository,
         title: "Delete Code Repository",
         description:
           "This permission can delete Code Repository of this project.",
@@ -2399,7 +2399,7 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.EditCodeRepository,
+        permission: Permission.EditCopilotCodeRepository,
         title: "Edit Code Repository",
         description:
           "This permission can edit Code Repository of this project.",
@@ -2407,7 +2407,7 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.ReadCodeRepository,
+        permission: Permission.ReadCopilotCodeRepository,
         title: "Read Code Repository",
         description:
           "This permission can read Code Repository of this project.",

@@ -1,7 +1,7 @@
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
-import CodeRepositoryService, {
-  Service as CodeRepositoryServiceType,
-} from "../Services/CodeRepositoryService";
+import CopilotCodeRepositoryService, {
+  Service as CopilotCodeRepositoryServiceType,
+} from "../Services/CopilotCodeRepositoryService";
 import ServiceRepositoryService from "../Services/ServiceRepositoryService";
 import {
   ExpressRequest,
@@ -13,15 +13,15 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import CodeRepository from "Model/Models/CodeRepository";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import ServiceRepository from "Model/Models/ServiceRepository";
 
-export default class CodeRepositoryAPI extends BaseAPI<
-  CodeRepository,
-  CodeRepositoryServiceType
+export default class CopilotCodeRepositoryAPI extends BaseAPI<
+  CopilotCodeRepository,
+  CopilotCodeRepositoryServiceType
 > {
   public constructor() {
-    super(CodeRepository, CodeRepositoryService);
+    super(CopilotCodeRepository, CopilotCodeRepositoryService);
 
     this.router.get(
       `${new this.entityType()
@@ -50,8 +50,8 @@ export default class CodeRepositoryAPI extends BaseAPI<
             throw new BadDataException("Secret key is required");
           }
 
-          const codeRepository: CodeRepository | null =
-            await CodeRepositoryService.findOneBy({
+          const codeRepository: CopilotCodeRepository | null =
+            await CopilotCodeRepositoryService.findOneBy({
               query: {
                 secretToken: new ObjectID(secretkey),
               },
@@ -96,9 +96,9 @@ export default class CodeRepositoryAPI extends BaseAPI<
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            codeRepository: CodeRepository.toJSON(
+            codeRepository: CopilotCodeRepository.toJSON(
               codeRepository,
-              CodeRepository,
+              CopilotCodeRepository,
             ),
             servicesRepository: ServiceRepository.toJSONArray(
               servicesRepository,

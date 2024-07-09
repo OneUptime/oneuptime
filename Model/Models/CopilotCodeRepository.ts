@@ -47,26 +47,26 @@ import {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateCodeRepository,
+    Permission.CreateCopilotCodeRepository,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ProjectMember,
-    Permission.ReadCodeRepository,
+    Permission.ReadCopilotCodeRepository,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteCodeRepository,
+    Permission.DeleteCopilotCodeRepository,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditCodeRepository,
+    Permission.EditCopilotCodeRepository,
   ],
 })
 @EnableWorkflow({
@@ -75,33 +75,33 @@ import {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/code-repository"))
+@CrudApiEndpoint(new Route("/copilot-code-repository"))
 @SlugifyColumn("name", "slug")
 @TableMetadata({
-  tableName: "CodeRepository",
-  singularName: "Git Repository",
-  pluralName: "Git Repositories",
+  tableName: "CopilotCodeRepository",
+  singularName: "Code Repository",
+  pluralName: "Code Repositories",
   icon: IconProp.SquareStack,
   tableDescription:
-    "A Git Repository is a place where you can store your code and collaborate with others. You can connect your Git Repository to OneUptime and we will improve your code automatically for you.",
+    "A Code Repository is a place where you can store your code and collaborate with others. You can connect your Git Repository to OneUptime and we will improve your code automatically for you.",
 })
 @Entity({
-  name: "CodeRepository",
+  name: "CopilotCodeRepository",
 })
-export default class CodeRepository extends BaseModel {
+export default class CopilotCodeRepository extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -131,14 +131,14 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -162,20 +162,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -200,7 +200,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -223,20 +223,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -257,14 +257,14 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -295,14 +295,14 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -326,7 +326,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -359,7 +359,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [],
   })
@@ -381,20 +381,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -412,13 +412,13 @@ export default class CodeRepository extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "CodeRepositoryLabel",
+    name: "CopilotCodeRepositoryLabel",
     inverseJoinColumn: {
       name: "labelId",
       referencedColumnName: "_id",
     },
     joinColumn: {
-      name: "codeRepositoryId",
+      name: "CopilotCodeRepositoryId",
       referencedColumnName: "_id",
     },
   })
@@ -429,20 +429,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @Index()
@@ -465,20 +465,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -501,20 +501,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -538,20 +538,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -574,20 +574,20 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateCodeRepository,
+      Permission.CreateCopilotCodeRepository,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ProjectMember,
-      Permission.ReadCodeRepository,
+      Permission.ReadCopilotCodeRepository,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditCodeRepository,
+      Permission.EditCopilotCodeRepository,
     ],
   })
   @TableColumn({
@@ -603,4 +603,38 @@ export default class CodeRepository extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public repositoryName?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadCopilotCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Repository Name",
+    description: "Name of the repository. Eg: Your GitHub Repository Name",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public onBeforeRepositoryCloneScript?: string = undefined;
 }

@@ -3,7 +3,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "Common/Types/ObjectID";
-import Model from "Model/Models/CodeRepository";
+import Model from "Model/Models/CopilotCodeRepository";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

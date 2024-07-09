@@ -18,11 +18,11 @@ import CodeRepositoryServerUtil from "CommonServer/Utils/CodeRepository/CodeRepo
 import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
-import CodeRepositoryModel from "Model/Models/CodeRepository";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import ServiceRepository from "Model/Models/ServiceRepository";
 
 export interface CodeRepositoryResult {
-  codeRepository: CodeRepositoryModel;
+  codeRepository: CopilotCodeRepository;
   servicesToImprove: Array<ServiceToImproveResult>;
   serviceRepositories: Array<ServiceRepository>;
 }
@@ -61,7 +61,7 @@ export default class CodeRepositoryUtil {
 
   // returns the folder name of the cloned repository.
   public static async cloneRepository(data: {
-    codeRepository: CodeRepositoryModel;
+    codeRepository: CopilotCodeRepository;
   }): Promise<void> {
     // make sure this.getLocalRepositoryPath() is empty.
     const repoLocalPath: string = this.getLocalRepositoryPath();
@@ -276,7 +276,7 @@ export default class CodeRepositoryUtil {
   }
 
   public static async checkoutMainBranch(): Promise<void> {
-    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -326,7 +326,7 @@ export default class CodeRepositoryUtil {
       serviceRepository: data.serviceRepository,
     });
 
-    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -351,7 +351,7 @@ export default class CodeRepositoryUtil {
   }
 
   public static async switchToMainBranch(): Promise<void> {
-    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -373,7 +373,7 @@ export default class CodeRepositoryUtil {
       serviceRepository: data.serviceRepository,
     });
 
-    const codeRepository: CodeRepositoryModel = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -401,7 +401,7 @@ export default class CodeRepositoryUtil {
   }
 
   public static async getServicesToImproveCode(data: {
-    codeRepository: CodeRepositoryModel;
+    codeRepository: CopilotCodeRepository;
     services: Array<ServiceRepository>;
   }): Promise<Array<ServiceToImproveResult>> {
     const servicesToImproveCode: Array<ServiceToImproveResult> = [];
@@ -483,7 +483,7 @@ export default class CodeRepositoryUtil {
     const url: URL = URL.fromString(
       GetOneUptimeURL().toString() + "/api",
     ).addRoute(
-      `${new CodeRepositoryModel()
+      `${new CopilotCodeRepository()
         .getCrudApiPath()
         ?.toString()}/get-code-repository/${repositorySecretKey}`,
     );
@@ -495,10 +495,10 @@ export default class CodeRepositoryUtil {
       throw codeRepositoryResult;
     }
 
-    const codeRepository: CodeRepositoryModel = CodeRepositoryModel.fromJSON(
+    const codeRepository: CopilotCodeRepository = CopilotCodeRepository.fromJSON(
       codeRepositoryResult.data["codeRepository"] as JSONObject,
-      CodeRepositoryModel,
-    ) as CodeRepositoryModel;
+      CopilotCodeRepository,
+    ) as CopilotCodeRepository;
 
     const servicesRepository: Array<ServiceRepository> = (
       codeRepositoryResult.data["servicesRepository"] as JSONArray
@@ -541,7 +541,7 @@ export default class CodeRepositoryUtil {
     return this.codeRepositoryResult;
   }
 
-  public static async getCodeRepository(): Promise<CodeRepositoryModel> {
+  public static async getCodeRepository(): Promise<CopilotCodeRepository> {
     if (!this.codeRepositoryResult) {
       const result: CodeRepositoryResult = await this.getCodeRepositoryResult();
       return result.codeRepository;
