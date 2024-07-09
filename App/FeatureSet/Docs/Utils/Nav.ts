@@ -3,11 +3,13 @@ export interface NavLink {
   url: string;
 }
 
+// Define an interface for a navigation group
 export interface NavGroup {
   title: string;
   links: NavLink[];
 }
 
+// Define an array of navigation groups
 const DocsNav: NavGroup[] = [
   {
     title: "Introduction",
@@ -72,4 +74,5 @@ const DocsNav: NavGroup[] = [
   },
 ];
 
+// Export the array of navigation groups
 export default DocsNav;
