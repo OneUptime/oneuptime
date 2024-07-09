@@ -628,12 +628,115 @@ export default class CopilotCodeRepository extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.VeryLongText,
-    title: "Repository Name",
-    description: "Name of the repository. Eg: Your GitHub Repository Name",
+    title: "On Before Repository Clone Script",
+    description: "Script to run before the repository is cloned",
   })
   @Column({
     nullable: true,
     type: ColumnType.VeryLongText,
   })
   public onBeforeRepositoryCloneScript?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadCopilotCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "On After Repository Clone Script",
+    description: "Script to run after the repository is cloned",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public onAfterRepositoryCloneScript?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadCopilotCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "On After Commit Script",
+    description: "Script to run after a commit is made",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public onAfterCommitScript?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadCopilotCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "On Before Commit Script",
+    description: "Script to run before a commit is made",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public onBeforeCommitScript?: string = undefined;
+
 }
