@@ -61,10 +61,6 @@ export default class CopilotCodeRepositoryAPI extends BaseAPI<
                 organizationName: true,
                 repositoryHostedAt: true,
                 repositoryName: true,
-                onBeforeCommitScript: true,
-                onBeforeRepositoryCloneScript: true,
-                onAfterCommitScript: true,
-                onAfterRepositoryCloneScript: true,
               },
               props: {
                 isRoot: true,
