@@ -33,7 +33,9 @@ export default class Telemetry {
       provider.addSpanProcessor(
         new BatchSpanProcessor(
           new OTLPTraceExporter({
-            url: URL.fromString(OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces").toString(),
+            url: URL.fromString(
+              OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
+            ).toString(),
             headers: OpenTelemetryExporterOtlpHeaders,
           }),
         ),

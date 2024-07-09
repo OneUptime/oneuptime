@@ -62,7 +62,9 @@ export default class TelemetryIngest {
         });
 
       if (!service) {
-        throw new BadRequestException("Invalid service token: "+serviceTokenInHeader);
+        throw new BadRequestException(
+          "Invalid service token: " + serviceTokenInHeader,
+        );
       }
 
       (req as TelemetryRequest).serviceId = service.id as ObjectID;
