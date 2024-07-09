@@ -604,7 +604,6 @@ export default class CopilotCodeRepository extends BaseModel {
   })
   public repositoryName?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

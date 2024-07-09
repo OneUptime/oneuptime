@@ -276,7 +276,8 @@ export default class CodeRepositoryUtil {
   }
 
   public static async checkoutMainBranch(): Promise<void> {
-    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository =
+      await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -326,7 +327,8 @@ export default class CodeRepositoryUtil {
       serviceRepository: data.serviceRepository,
     });
 
-    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository =
+      await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -351,7 +353,8 @@ export default class CodeRepositoryUtil {
   }
 
   public static async switchToMainBranch(): Promise<void> {
-    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository =
+      await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -373,7 +376,8 @@ export default class CodeRepositoryUtil {
       serviceRepository: data.serviceRepository,
     });
 
-    const codeRepository: CopilotCodeRepository = await this.getCodeRepository();
+    const codeRepository: CopilotCodeRepository =
+      await this.getCodeRepository();
 
     if (!codeRepository.mainBranchName) {
       throw new BadDataException("Main Branch Name is required");
@@ -495,10 +499,11 @@ export default class CodeRepositoryUtil {
       throw codeRepositoryResult;
     }
 
-    const codeRepository: CopilotCodeRepository = CopilotCodeRepository.fromJSON(
-      codeRepositoryResult.data["codeRepository"] as JSONObject,
-      CopilotCodeRepository,
-    ) as CopilotCodeRepository;
+    const codeRepository: CopilotCodeRepository =
+      CopilotCodeRepository.fromJSON(
+        codeRepositoryResult.data["codeRepository"] as JSONObject,
+        CopilotCodeRepository,
+      ) as CopilotCodeRepository;
 
     const servicesRepository: Array<ServiceRepository> = (
       codeRepositoryResult.data["servicesRepository"] as JSONArray
