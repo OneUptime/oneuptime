@@ -4,6 +4,9 @@ export class MigrationName1720532068612 implements MigrationInterface {
   public name = "MigrationName1720532068612";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // delete all records from CopilotAction
+    await queryRunner.query(`DELETE FROM "CopilotAction"`);
+
     await queryRunner.query(
       `ALTER TABLE "CopilotAction" DROP CONSTRAINT "FK_d1f62129e09784b750ef9143bfe"`,
     );
