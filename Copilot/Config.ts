@@ -7,7 +7,7 @@ type GetURLFunction = () => URL;
 
 export const GetIsCopilotDisabled: () => boolean = () => {
   return process.env["DISABLE_COPILOT"] === "true";
-}
+};
 
 export const GetOneUptimeURL: GetURLFunction = () => {
   return URL.fromString(
