@@ -11,6 +11,3 @@
 # If you want to skip this script, you can keep this file empty.
 # It's highly recommended to run linting and tests in this script to ensure the code is in a good state.
 # This scirpt will run on ubuntu machine. So, make sure the commands you run are compatible with ubuntu.
-
-npm install
-npm run lint

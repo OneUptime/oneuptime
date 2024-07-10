@@ -143,7 +143,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     const onBeforeExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({
-        scriptType: RepoScriptType.OnBeforeCopilotAction,
+        scriptType: RepoScriptType.OnBeforeCodeChange,
       });
 
     if (!onBeforeExecuteActionScript) {
@@ -192,7 +192,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     const onAfterExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({
-        scriptType: RepoScriptType.OnAfterCopilotAction,
+        scriptType: RepoScriptType.OnAfterCodeChange,
       });
 
     if (!onAfterExecuteActionScript) {

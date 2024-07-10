@@ -39,8 +39,8 @@ export enum RepoScriptType {
   OnAfterClone = "onAfterClone",
   OnBeforeCommit = "onBeforeCommit",
   OnAfterCommit = "OnAfterCommit",
-  OnBeforeCopilotAction = "onBeforeCopilotAction",
-  OnAfterCopilotAction = "onAfterCopilotAction",
+  OnBeforeCodeChange = "OnBeforeCodeChange",
+  OnAfterCodeChange = "OnAfterCodeChange",
 }
 
 export default class CodeRepositoryUtil {
