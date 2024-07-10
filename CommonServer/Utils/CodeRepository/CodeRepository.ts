@@ -6,6 +6,18 @@ import Dictionary from "Common/Types/Dictionary";
 import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
 
 export default class CodeRepositoryUtil {
+  public static async addAllChangedFilesToGit(data: {
+    repoPath: string;
+  }): Promise<void> {
+    const command: string = `cd ${data.repoPath} && git add -A`;
+
+    logger.debug("Executing command: " + command);
+
+    const stdout: string = await Execute.executeCommand(command);
+
+    logger.debug(stdout);
+  }
+
   public static async setAuthorIdentity(data: {
     repoPath: string;
     authorName: string;
@@ -223,15 +235,7 @@ export default class CodeRepositoryUtil {
   public static async commitChanges(data: {
     repoPath: string;
     message: string;
-    username: string;
   }): Promise<void> {
-    // set the username and email
-
-    await this.setUsername({
-      repoPath: data.repoPath,
-      username: data.username,
-    });
-
     const command: string = `cd ${data.repoPath} && git commit -m "${data.message}"`;
 
     logger.debug("Executing command: " + command);

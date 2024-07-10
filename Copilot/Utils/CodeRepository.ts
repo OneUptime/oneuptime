@@ -75,6 +75,98 @@ export default class CodeRepositoryUtil {
     });
   }
 
+  public static async setUpRepo(): Promise<void> {
+    // check if the repository is setup properly.
+    const isRepoSetupProperly: boolean = await this.isRepoSetupProperly();
+
+    if (isRepoSetupProperly) {
+      return;
+    }
+
+    // otherwise, we copy the folder /usr/src/app/Templates/.oneuptime to the repository folder.
+
+    const templateFolderPath: string = LocalFile.sanitizeFilePath(
+      "/usr/src/app/Templates/.oneuptime",
+    );
+
+    const repoPath: string = this.getLocalRepositoryPath();
+
+    // create a new branch called oneuptime-copilot-setup
+
+    const branchName: string = "setup-" + Text.generateRandomText(5);
+
+    await this.createBranch({
+      branchName: branchName,
+    });
+
+    await LocalFile.copyDirectory({
+      source: templateFolderPath,
+      destination: repoPath,
+    });
+
+    // add all the files to the git.
+
+    await this.addAllChangedFilesToGit();
+
+    // commit the changes.
+
+    await this.commitChanges({
+      message: "OneUptime Copilot Setup",
+    });
+
+    // push changes to the repo.
+
+    await this.pushChanges({
+      branchName: branchName,
+    });
+
+    // create a pull request.
+
+    await this.createPullRequest({
+      branchName: branchName,
+      title: "OneUptime Copilot Setup",
+      body: "This pull request is created by OneUptime Copilot to setup the repository.",
+    });
+  }
+
+  public static async isRepoSetupProperly(): Promise<boolean> {
+    // check if .oneuptime folder exists.
+
+    const repoPath: string = this.getLocalRepositoryPath();
+
+    const oneUptimeFolderPath: string = LocalFile.sanitizeFilePath(
+      `${repoPath}/.oneuptime`,
+    );
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(oneUptimeFolderPath);
+
+    if (!doesDirectoryExist) {
+      return false;
+    }
+
+    // check if .oneuptime/scripts folder exists.
+
+    const oneuptimeScriptsPath: string = LocalFile.sanitizeFilePath(
+      `${oneUptimeFolderPath}/scripts`,
+    );
+
+    const doesScriptsDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(oneuptimeScriptsPath);
+
+    if (!doesScriptsDirectoryExist) {
+      return false;
+    }
+
+    return true; // return true if all checks pass.
+  }
+
+  public static addAllChangedFilesToGit(): Promise<void> {
+    return CodeRepositoryServerUtil.addAllChangedFilesToGit({
+      repoPath: this.getLocalRepositoryPath(),
+    });
+  }
+
   // returns the folder name of the cloned repository.
   public static async cloneRepository(data: {
     codeRepository: CopilotCodeRepository;
@@ -251,33 +343,15 @@ export default class CodeRepositoryUtil {
     });
   }
 
-  public static getBranchName(data: {
-    branchName: string;
-    serviceRepository: ServiceCopilotCodeRepository;
-  }): string {
-    if (!data.serviceRepository.serviceCatalog) {
-      throw new BadDataException("Service Catalog is required");
-    }
-
-    if (!data.serviceRepository.serviceCatalog.name) {
-      throw new BadDataException("Service Catalog Name is required");
-    }
-
-    return (
-      "oneuptime-" +
-      data.serviceRepository.serviceCatalog?.name?.toLowerCase() +
-      "-" +
-      data.branchName
-    );
+  public static getBranchName(data: { branchName: string }): string {
+    return "oneuptime-copilot-" + data.branchName;
   }
 
   public static async createBranch(data: {
     branchName: string;
-    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<void> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
-      serviceRepository: data.serviceRepository,
     });
 
     await CodeRepositoryServerUtil.createBranch({
@@ -287,12 +361,10 @@ export default class CodeRepositoryUtil {
   }
 
   public static async createOrCheckoutBranch(data: {
-    serviceRepository: ServiceCopilotCodeRepository;
     branchName: string;
   }): Promise<void> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
-      serviceRepository: data.serviceRepository,
     });
 
     await CodeRepositoryServerUtil.createOrCheckoutBranch({
@@ -391,17 +463,12 @@ export default class CodeRepositoryUtil {
     await CodeRepositoryServerUtil.commitChanges({
       repoPath: this.getLocalRepositoryPath(),
       message: data.message,
-      username: username,
     });
   }
 
-  public static async pushChanges(data: {
-    branchName: string;
-    serviceRepository: ServiceCopilotCodeRepository;
-  }): Promise<void> {
+  public static async pushChanges(data: { branchName: string }): Promise<void> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
-      serviceRepository: data.serviceRepository,
     });
 
     const codeRepository: CopilotCodeRepository =
@@ -446,11 +513,9 @@ export default class CodeRepositoryUtil {
     branchName: string;
     title: string;
     body: string;
-    serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<PullRequest> {
     const branchName: string = this.getBranchName({
       branchName: data.branchName,
-      serviceRepository: data.serviceRepository,
     });
 
     const codeRepository: CopilotCodeRepository =

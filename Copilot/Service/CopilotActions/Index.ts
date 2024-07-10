@@ -83,13 +83,11 @@ export default class CopilotActionService {
 
       const branchName: string = CodeRepositoryUtil.getBranchName({
         branchName: await action.getBranchName(),
-        serviceRepository: data.serviceRepository,
       });
 
       // create a branch
 
       await CodeRepositoryUtil.createBranch({
-        serviceRepository: data.serviceRepository,
         branchName: branchName,
       });
 
@@ -151,14 +149,12 @@ export default class CopilotActionService {
       logger.info("Pushing changes");
       await CodeRepositoryUtil.pushChanges({
         branchName: branchName,
-        serviceRepository: data.serviceRepository,
       });
 
       // create a PR
       logger.info("Creating a PR");
       pullRequest = await CodeRepositoryUtil.createPullRequest({
         branchName: branchName,
-        serviceRepository: data.serviceRepository,
         title: await action.getPullRequestTitle(processResult),
         body: await action.getPullRequestBody(processResult),
       });

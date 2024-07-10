@@ -2,6 +2,42 @@ import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import fs from "fs";
 
 export default class LocalFile {
+  public static async copyDirectory(data: {
+    source: string;
+    destination: string;
+  }): Promise<void> {
+    const source: string = data.source;
+    const destination: string = data.destination;
+
+    // copy source to destination recursively
+    return new Promise(
+      (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
+        fs.cp(source, destination, { recursive: true }, (err: Error | null) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      },
+    );
+  }
+
+  public static async copyFile(data: {
+    source: string;
+    destination: string;
+  }): Promise<void> {
+    return new Promise(
+      (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
+        fs.copyFile(data.source, data.destination, (err: Error | null) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      },
+    );
+  }
+
   public static sanitizeFilePath(filePath: string): string {
     // remove double slashes
     return filePath.replace(/\/\//g, "/");

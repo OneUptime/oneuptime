@@ -58,6 +58,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     codeRepository: codeRepositoryResult.codeRepository,
   });
 
+  // Check if OneUptime Copilot has setup properly.
+
   const onAfterCloneScript: string | null =
     await CodeRepositoryUtil.getRepoScript({
       scriptType: RepoScriptType.OnAfterClone,
