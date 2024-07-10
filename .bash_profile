@@ -38,6 +38,13 @@ alias dcd="docker compose down"
 
 # Node aliases
 alias n="npm"
+alias ni="npm install"
+alias nis="npm install --save"
+alias nid="npm install --save-dev"
+alias nr="npm run"
+alias nt="npm test"
+alias ns="npm start"
+alias nb="npm build"
 
 # Rust aliases
 alias c="cargo"
