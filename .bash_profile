@@ -7,8 +7,28 @@ mkcdir ()
       cd -P -- "$1"
 }
 
+# Git aliases
 alias g="git"
+alias gs="git status"
+alias ga="git add"
+alias gc="git checkout"
+alias gb="git branch"
+alias gp="git pull"
+alias gpo="git push origin"
+alias gl="git log"
+alias gd="git diff"
+alias gm="git merge"
+
+# Kubernetes aliases
 alias k="kubectl"
+alias kg="kubectl get"
+alias kd="kubectl describe"
+alias kc="kubectl create"
+alias kdel="kubectl delete"
+alias klo="kubectl logs"
+alias klof="kubectl logs -f"
+alias kex="kubectl exec"
+alias kexi="kubectl exec -it"
 
 # Docker aliases
 alias d="docker"
