@@ -16,27 +16,29 @@ export default class ServiceHandler {
     const page: string | undefined = req.params["page"]; // Get the page parameter from the request
     const pageData: any = {}; // Initialize page data object
 
-    pageTitle = "Pagination"; // Set page title
-    pageDescription = "Learn how to paginate requests with OneUptime API"; // Set page description
+    // Set page title and description
+    pageTitle = "Pagination";
+    pageDescription = "Learn how to paginate requests with OneUptime API";
 
-    // Get response code from LocalCache or LocalFile
+    // Get response and request code from LocalCache or LocalFile
     pageData.responseCode = await LocalCache.getOrSetString(
       "pagination",
       "response",
       async () => {
+        // Read Response.md file from CodeExamplesPath
         return await LocalFile.read(
-          `${CodeExamplesPath}/Pagination/Response.md`, // Read Response.md file from CodeExamplesPath
+          `${CodeExamplesPath}/Pagination/Response.md`,
         );
       },
     );
 
-    // Get request code from LocalCache or LocalFile
     pageData.requestCode = await LocalCache.getOrSetString(
       "pagination",
       "request",
       async () => {
+        // Read Request.md file from CodeExamplesPath
         return await LocalFile.read(
-          `${CodeExamplesPath}/Pagination/Request.md`, // Read Request.md file from CodeExamplesPath
+          `${CodeExamplesPath}/Pagination/Request.md`,
         );
       },
     );
