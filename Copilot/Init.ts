@@ -177,7 +177,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         } catch (e) {
           logger.error(e);
           currentRetryCount++;
-          CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
+          await CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
         }
       }
 
