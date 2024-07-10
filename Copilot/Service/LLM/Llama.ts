@@ -1,5 +1,5 @@
 import URL from "Common/Types/API/URL";
-import { GetLlamaServerUrl, GetRepositorySecretKey } from "../../Config";
+import { GetLlmServerUrl, GetRepositorySecretKey } from "../../Config";
 import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -27,7 +27,7 @@ export default class Llama extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
   ): Promise<CopilotPromptResult> {
-    const serverUrl: URL = GetLlamaServerUrl();
+    const serverUrl: URL = GetLlmServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(

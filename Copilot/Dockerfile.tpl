@@ -86,4 +86,3 @@ RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
-

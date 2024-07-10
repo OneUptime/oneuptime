@@ -255,6 +255,8 @@ If you have  any feedback or suggestions, please let us know. We would love to h
         processResult.result.files[filePath]!.gitCommitHash;
 
       logger.info(`Writing file: ${filePath} ${fileCommitHash}`);
+      logger.info(`File content: `);
+      logger.info(`${processResult.result.files[filePath]!.fileContent}`);
 
       const code: string = processResult.result.files[filePath]!.fileContent;
 

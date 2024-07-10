@@ -72,6 +72,13 @@ const DocsNav: NavGroup[] = [
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
     ],
   },
+  {
+    title: "Copilot",
+    links: [
+      { title: "Installation", url: "/docs/copilot/introduction" },
+      { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
+    ],
+  },
 ];
 
 // Export the array of navigation groups

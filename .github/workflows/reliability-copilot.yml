@@ -35,4 +35,4 @@ jobs:
             -e ONEUPTIME_REPOSITORY_SECRET_KEY=${{ secrets.COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY }} \
             -e CODE_REPOSITORY_PASSWORD=${{ github.token }} \
             -e CODE_REPOSITORY_USERNAME='simlarsen' \
-            -e ONEUPTIME_LLAMA_SERVER_URL='http://57.128.112.160:8547'
+            -e ONEUPTIME_LLM_SERVER_URL='http://57.128.112.160:8547'

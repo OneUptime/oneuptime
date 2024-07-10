@@ -1,6 +1,6 @@
 import {
   GetCodeRepositoryPassword,
-  GetLlamaServerUrl,
+  GetLlmServerUrl,
   GetLlmType,
   GetRepositorySecretKey,
 } from "../Config";
@@ -16,7 +16,7 @@ import { JSONObject } from "Common/Types/JSON";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
-    const llamaServerUrl: URL = GetLlamaServerUrl();
+    const llamaServerUrl: URL = GetLlmServerUrl();
 
     if (GetLlmType() === LlmType.Llama) {
       // check status of llama server

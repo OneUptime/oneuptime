@@ -40,10 +40,10 @@ export const GetCodeRepositoryUsername: GetStringOrNullFunction = ():
   return username;
 };
 
-export const GetLlamaServerUrl: GetURLFunction = () => {
+export const GetLlmServerUrl: GetURLFunction = () => {
   return URL.fromString(
-    process.env["ONEUPTIME_LLAMA_SERVER_URL"] ||
-      GetOneUptimeURL().addRoute("/llama").toString(),
+    process.env["ONEUPTIME_LLM_SERVER_URL"] ||
+      GetOneUptimeURL().addRoute("/llm").toString(),
   );
 };
 
