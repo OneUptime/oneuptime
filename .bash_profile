@@ -60,12 +60,6 @@ alias nrb="npm run build"
 alias nrfb="npm run force-build"
 alias nrps="npm run ps-dev"
 
-# OneUptime Copilot
-alias nrfbc="npm run force-build-copilot"
-alias nrdc="npm run dev-copilot"
-alias nrlc="npm run logs-copilot"
-alias nrbc="npm run build-copilot"
-
 # OneUptime LLM Server
 alias nrfbl="npm run force-build-llm"
 alias nrdl="npm run dev-llm"

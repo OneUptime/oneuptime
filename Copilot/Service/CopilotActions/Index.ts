@@ -94,23 +94,7 @@ export default class CopilotActionService {
       });
 
       // write all the modified files.
-
       const filePaths: string[] = Object.keys(processResult.result.files);
-
-      for (const filePath in processResult.result.files) {
-        const fileCommitHash: string =
-          processResult.result.files[filePath]!.gitCommitHash;
-
-        logger.info(`Writing file: ${filePath}`);
-        logger.info(`Commit Hash: ${fileCommitHash}`);
-
-        const code: string = processResult.result.files[filePath]!.fileContent;
-
-        await CodeRepositoryUtil.writeToFile({
-          filePath: filePath,
-          content: code,
-        });
-      }
 
       // run on before commit script. This is the place where we can run tests.
 

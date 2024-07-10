@@ -185,6 +185,11 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       isActionComplete = await this.isActionComplete(data);
     }
 
+    data = await this.onAfterExecute(data);
+
+    // write to disk.
+    await this.writeToDisk({ data });
+
     const onAfterExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({
         scriptType: RepoScriptType.OnAfterCopilotAction,
@@ -204,7 +209,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       logger.info("on-after-copilot-action script executed successfully");
     }
 
-    return await this.onAfterExecute(data);
+    return data;
   }
 
   protected async _getPrompt(
@@ -238,6 +243,30 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
   public async getInputCode(data: CopilotProcess): Promise<string> {
     return data.input.files[data.input.currentFilePath]?.fileContent as string;
+  }
+
+  public async writeToDisk(data: { data: CopilotProcess }): Promise<void> {
+    // write all the modified files.
+
+    const processResult: CopilotProcess = data.data;
+
+    for (const filePath in processResult.result.files) {
+      const fileCommitHash: string =
+        processResult.result.files[filePath]!.gitCommitHash;
+
+      logger.info(`Writing file: ${filePath} ${fileCommitHash}`);
+
+      const code: string = processResult.result.files[filePath]!.fileContent;
+
+      await CodeRepositoryUtil.writeToFile({
+        filePath: filePath,
+        content: code,
+      });
+    }
+  }
+
+  public async discardAllChanges(): Promise<void> {
+    await CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
   }
 
   public async splitInputCode(data: {

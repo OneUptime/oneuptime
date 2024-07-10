@@ -5,6 +5,10 @@ type GetStringFunction = () => string;
 type GetStringOrNullFunction = () => string | null;
 type GetURLFunction = () => URL;
 
+export const GetIsCopilotDisabled: () => boolean = () => {
+  return process.env["DISABLE_COPILOT"] === "true";
+}
+
 export const GetOneUptimeURL: GetURLFunction = () => {
   return URL.fromString(
     process.env["ONEUPTIME_URL"] || "https://oneuptime.com",

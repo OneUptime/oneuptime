@@ -11,7 +11,7 @@ import logger from "CommonServer/Utils/Logger";
 import CopilotActionUtil from "./Utils/CopilotAction";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotAction from "Model/Models/CopilotAction";
-import { FixNumberOfCodeEventsInEachRun } from "./Config";
+import { FixNumberOfCodeEventsInEachRun, GetIsCopilotDisabled } from "./Config";
 import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
 import CopilotActionService, {
   CopilotExecutionResult,
@@ -25,6 +25,13 @@ import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessi
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
+
+  // check if copilot is disabled. 
+  if(GetIsCopilotDisabled()) {
+    logger.info("Copilot is disabled. Exiting.");
+    haltProcessWithSuccess();
+  }
+
   await CodeRepositoryUtil.setAuthorIdentity({
     email: "copilot@oneuptime.com",
     name: "OneUptime Copilot",
@@ -170,6 +177,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         } catch (e) {
           logger.error(e);
           currentRetryCount++;
+          CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
         }
       }
 
