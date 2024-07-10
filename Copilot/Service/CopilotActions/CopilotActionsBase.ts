@@ -152,10 +152,9 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       );
     } else {
       logger.info("Executing on-before-copilot-action script.");
-      const result: string = await CodeRepositoryUtil.executeScript({
+      await CodeRepositoryUtil.executeScript({
         script: onBeforeExecuteActionScript,
       });
-      logger.info(result);
       logger.info("on-before-copilot-action script executed successfully");
     }
 
@@ -199,10 +198,9 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     if (onAfterExecuteActionScript) {
       logger.info("Executing on-after-copilot-action script.");
-      const result: string = await CodeRepositoryUtil.executeScript({
+      await CodeRepositoryUtil.executeScript({
         script: onAfterExecuteActionScript,
       });
-      logger.info(result);
       logger.info("on-after-copilot-action script executed successfully");
     }
 

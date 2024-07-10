@@ -123,10 +123,9 @@ export default class CopilotActionService {
         logger.debug("No on-before-commit script found for this repository.");
       } else {
         logger.info("Executing on-before-commit script.");
-        const result: string = await CodeRepositoryUtil.executeScript({
+        await CodeRepositoryUtil.executeScript({
           script: onBeforeCommitScript,
         });
-        logger.info(result);
         logger.info("on-before-commit script executed successfully.");
       }
 
@@ -144,10 +143,9 @@ export default class CopilotActionService {
 
       if (onAfterCommitScript) {
         logger.info("Executing on-after-commit script.");
-        const result: string = await CodeRepositoryUtil.executeScript({
+        await CodeRepositoryUtil.executeScript({
           script: onAfterCommitScript,
         });
-        logger.info(result);
         logger.info("on-after-commit script executed successfully.");
       }
 

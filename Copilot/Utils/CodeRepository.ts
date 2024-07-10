@@ -130,8 +130,22 @@ export default class CodeRepositoryUtil {
   }
 
   public static async executeScript(data: { script: string }): Promise<string> {
-    await Execute.executeCommand(`cd ${this.getLocalRepositoryPath()}`); // change directory to the repository path
-    return await Execute.executeCommand(data.script); // execute the script
+    const commands: Array<string> = data.script.split("\n");
+
+    const results: Array<string> = [];
+
+    for (const command of commands) {
+      logger.info(`Executing command: ${command}`);
+      const commandResult: string = await Execute.executeCommand(
+        `cd ${this.getLocalRepositoryPath()} && ${command}`,
+      );
+      if (commandResult) {
+        logger.info(`Command result: ${commandResult}`);
+        results.push(commandResult);
+      }
+    }
+
+    return results.join("\n");
   }
 
   public static async getRepoScript(data: {
