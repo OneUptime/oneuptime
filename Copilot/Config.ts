@@ -42,32 +42,29 @@ export const GetCodeRepositoryUsername: GetStringOrNullFunction = ():
 };
 
 export const GetLlmServerUrl: GetURLFunction = () => {
-
-  if(!process.env["ONEUPTIME_LLM_SERVER_URL"]) {
-    throw new BadDataException("ONEUPTIME_LLM_SERVER_URL is not set")
+  if (!process.env["ONEUPTIME_LLM_SERVER_URL"]) {
+    throw new BadDataException("ONEUPTIME_LLM_SERVER_URL is not set");
   }
 
-  return URL.fromString(
-    process.env["ONEUPTIME_LLM_SERVER_URL"]
-  );
+  return URL.fromString(process.env["ONEUPTIME_LLM_SERVER_URL"]);
 };
 
 export const GetOpenAIAPIKey: GetStringOrNullFunction = (): string | null => {
   return process.env["OPENAI_API_KEY"] || null;
-}
+};
 
 export const GetOpenAIModel: GetStringOrNullFunction = (): string | null => {
   return process.env["OPENAI_MODEL"] || null;
-}
+};
 
 type GetLlmTypeFunction = () => LlmType;
 
 export const GetLlmType: GetLlmTypeFunction = (): LlmType => {
-  if(GetOpenAIAPIKey() && GetOpenAIModel()) {
+  if (GetOpenAIAPIKey() && GetOpenAIModel()) {
     return LlmType.OpenAI;
   }
 
-  if(GetLlmServerUrl()) {
+  if (GetLlmServerUrl()) {
     return LlmType.LLM;
   }
 

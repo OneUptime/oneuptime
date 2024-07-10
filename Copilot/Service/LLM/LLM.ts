@@ -14,7 +14,7 @@ export default class LLM extends LlmBase {
       return await LLMServer.getResponse(data);
     }
 
-    if(GetLlmType() === LlmType.OpenAI) {
+    if (GetLlmType() === LlmType.OpenAI) {
       return await OpenAI.getResponse(data);
     }
 
