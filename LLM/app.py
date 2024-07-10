@@ -31,7 +31,7 @@ async def validateSecretKey(secretKey):
 
         async with aiohttp.ClientSession() as session:
             print(f"Validating secret key")
-            url = f"{ONEUPTIME_URL}/api/code-repository/is-valid/{secretKey}"
+            url = f"{ONEUPTIME_URL}/api/copilot-code-repository/is-valid/{secretKey}"
             async with session.get(url) as response:
                 print(response)
                 if response.status == 200:
