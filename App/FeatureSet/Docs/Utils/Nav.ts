@@ -66,13 +66,7 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "Telemetry",
-    links: [
-      { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
-      { title: "Fluentd", url: "/docs/telemetry/fluentd" },
-    ],
-  },
-  {
+
     title: "Copilot",
     links: [
       { title: "Installation", url: "/docs/copilot/introduction" },
