@@ -43,7 +43,7 @@ export interface CopilotProcess {
 }
 
 export default class CopilotActionBase {
-  public llmType: LlmType = LlmType.Llama;
+  public llmType: LlmType = LlmType.LLM; // temp value which will be overridden in the constructor
 
   public copilotActionType: CopilotActionType =
     CopilotActionType.IMPROVE_COMMENTS; // temp value which will be overridden in the constructor

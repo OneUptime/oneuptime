@@ -1,5 +1,5 @@
 enum LlmType {
-  Llama = "llama",
+  LLM = "llm", // OneUptime custom LLM Server
   OpenAI = "openai",
 }
 

@@ -16,12 +16,12 @@ import { JSONObject } from "Common/Types/JSON";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
-    const llamaServerUrl: URL = GetLlmServerUrl();
+    const llmServerUrl: URL = GetLlmServerUrl();
 
-    if (GetLlmType() === LlmType.Llama) {
-      // check status of llama server
+    if (GetLlmType() === LlmType.LLM) {
+      // check status of ll, server
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(URL.fromString(llamaServerUrl.toString()));
+        await API.get(URL.fromString(llmServerUrl.toString()));
 
       if (result instanceof HTTPErrorResponse) {
         throw new BadDataException(

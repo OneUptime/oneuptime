@@ -1,5 +1,6 @@
 import URL from "Common/Types/API/URL";
 import LlmType from "./Types/LlmType";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 type GetStringFunction = () => string;
 type GetStringOrNullFunction = () => string | null;
@@ -41,16 +42,36 @@ export const GetCodeRepositoryUsername: GetStringOrNullFunction = ():
 };
 
 export const GetLlmServerUrl: GetURLFunction = () => {
+
+  if(!process.env["ONEUPTIME_LLM_SERVER_URL"]) {
+    throw new BadDataException("ONEUPTIME_LLM_SERVER_URL is not set")
+  }
+
   return URL.fromString(
-    process.env["ONEUPTIME_LLM_SERVER_URL"] ||
-      GetOneUptimeURL().addRoute("/llm").toString(),
+    process.env["ONEUPTIME_LLM_SERVER_URL"]
   );
 };
+
+export const GetOpenAIAPIKey: GetStringOrNullFunction = (): string | null => {
+  return process.env["OPENAI_API_KEY"] || null;
+}
+
+export const GetOpenAIModel: GetStringOrNullFunction = (): string | null => {
+  return process.env["OPENAI_MODEL"] || null;
+}
 
 type GetLlmTypeFunction = () => LlmType;
 
 export const GetLlmType: GetLlmTypeFunction = (): LlmType => {
-  return (process.env["LLM_TYPE"] as LlmType) || LlmType.Llama;
+  if(GetOpenAIAPIKey() && GetOpenAIModel()) {
+    return LlmType.OpenAI;
+  }
+
+  if(GetLlmServerUrl()) {
+    return LlmType.LLM;
+  }
+
+  return LlmType.LLM;
 };
 
 export const FixNumberOfCodeEventsInEachRun: number = 5;
