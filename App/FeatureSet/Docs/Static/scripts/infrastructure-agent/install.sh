@@ -8,8 +8,7 @@ usage() {
   exit 1
 }
 
-# if there's no $HOME env var then set it to /usr
-
+# If there's no $HOME environment variable, set it to /usr
 if [ -z "$HOME" ]; then
   HOME=/usr
 fi
@@ -17,7 +16,7 @@ fi
 # Default parameters
 BINDIR=$HOME/bin
 
-# Make sure bindir exists
+# Ensure the binary directory exists
 if [ ! -d "$BINDIR" ]; then
   mkdir -p "$BINDIR"
 fi
@@ -70,6 +69,7 @@ REPO="oneuptime/oneuptime"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 TAG=$(curl -s ${API_URL} | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
 
+# Check if the latest tag was successfully fetched
 if [ "$TAG" = "" ]; then
   echo "Failed to find the latest release. Please check your internet connection or GitHub API limits."
   exit 1
@@ -80,8 +80,7 @@ echo "Fetching the latest release: $TAG"
 # Construct the URL for the binary release
 URL="https://github.com/${REPO}/releases/download/${TAG}/oneuptime-infrastructure-agent_${OS}_${ARCH}.tar.gz"
 
-# Check if wget is installed otherwise install it, do it for all os'es
-
+# Check if wget is installed; if not, install it based on OS
 if ! command -v wget > /dev/null; then
   if [ "$OS" = "darwin" ]; then
     brew install wget
@@ -98,64 +97,70 @@ if ! command -v wget > /dev/null; then
 fi
 
 # Download and extract the binary
-wget "${URL}" 
-
-# if darwin
-
+wget "${URL}"
 tar -xvzf "oneuptime-infrastructure-agent_${OS}_${ARCH}.tar.gz" -C "${BINDIR}"
 
-# delete the downlaoded file
+# Delete the downloaded file
 rm "oneuptime-infrastructure-agent_${OS}_${ARCH}.tar.gz"
 
 # Check if the binary is executable
 if [ ! -x "${BINDIR}/oneuptime-infrastructure-agent" ]; then
-  echo "Failed to install oneuptime-infrastructure-agent"
-  exit 1
+
+echo "Failed to install oneuptime-infrastructure-agent"
+exit 1
 fi
 
-# Now add binary to path
+# Now add binary to path by updating shell configuration files
 
+# Update .bashrc if it exists
 if [ -f "$HOME/.bashrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bashrc
   source $HOME/.bashrc
 fi
 
+# Update .bash_profile if it exists
 if [ -f "$HOME/.bash_profile" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_profile
   source $HOME/.bash_profile
 fi
 
+# Update .zshrc if it exists
 if [ -f "$HOME/.zshrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.zshrc
   source $HOME/.zshrc
 fi
 
+# Update .profile if it exists
 if [ -f "$HOME/.profile" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.profile
   source $HOME/.profile
 fi
 
+# Update .bash_login if it exists
 if [ -f "$HOME/.bash_login" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_login
   source $HOME/.bash_login
 fi
 
+# Update .bash_logout if it exists
 if [ -f "$HOME/.bash_logout" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_logout
   source $HOME/.bash_logout
 fi
 
+# Update .bash_aliases if it exists
 if [ -f "$HOME/.bash_aliases" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bash_aliases
   source $HOME/.bash_aliases
 fi
 
+# Note: .bashrc update is repeated, potentially redundant
 if [ -f "$HOME/.bashrc" ]; then
   echo "export PATH=$PATH:$BINDIR" >> $HOME/.bashrc
   source $HOME/.bashrc
 fi
 
-
+# Final installation messages and usage instructions
 echo "oneuptime-infrastructure-agent has been installed to ${BINDIR}"
 echo "oneuptime-infrastructure-agent installed successfully to ${BINDIR}. Please configure the agent using 'oneuptime-infrastructure-agent configure'."
-echo "Please reload your shell or open a new shell session to use the oneuptime-infrastructure-agent command."
+echo "Please reload your shell or open a new shell session to use the oneuptime-infrastructure-agent command.
