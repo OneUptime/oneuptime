@@ -10,20 +10,26 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    // Initialize page title and description
     let pageTitle: string = "";
     let pageDescription: string = "";
+
+    // Get the requested page
     const page: string | undefined = req.params["page"];
     const pageData: any = {};
 
+    // Set page title and description
     pageTitle = "Permissions";
     pageDescription = "Learn how permissions work with OneUptime";
 
+    // Filter permissions to only include those assignable to tenants
     pageData.permissions = PermissionHelper.getAllPermissionProps().filter(
       (i: PermissionProps) => {
         return i.isAssignableToTenant;
       },
     );
 
+    // Render the page
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
