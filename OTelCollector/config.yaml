@@ -11,8 +11,10 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
         include_metadata: true
       http:
+        endpoint: 0.0.0.0:4318
         include_metadata: true
         cors:
           allowed_origins: ["*"]
