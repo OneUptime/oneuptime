@@ -376,6 +376,8 @@ services:
             CODE_REPOSITORY_USERNAME: ${COPILOT_CODE_REPOSITORY_USERNAME}
             ONEUPTIME_LLM_SERVER_URL: ${COPILOT_ONEUPTIME_LLM_SERVER_URL}
             DISABLE_COPILOT: ${DISABLE_COPILOT}
+            OPENAI_API_KEY: ${COPILOT_OPENAI_API_KEY}
+            OPEN_AI_MODEL: ${COPILOT_OPEN_AI_MODEL}
         logging:
             driver: "local"
             options:
