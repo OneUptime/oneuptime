@@ -11,7 +11,11 @@ import logger from "CommonServer/Utils/Logger";
 import CopilotActionUtil from "./Utils/CopilotAction";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotAction from "Model/Models/CopilotAction";
-import { FixNumberOfCodeEventsInEachRun, GetIsCopilotDisabled } from "./Config";
+import {
+  FixNumberOfCodeEventsInEachRun,
+  GetIsCopilotDisabled,
+  GetLlmType,
+} from "./Config";
 import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
 import CopilotActionService, {
   CopilotExecutionResult,
@@ -30,6 +34,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     logger.info("Copilot is disabled. Exiting.");
     haltProcessWithSuccess();
   }
+
+  logger.info(`Using ${GetLlmType()} as the AI model.`);
 
   await CodeRepositoryUtil.setAuthorIdentity({
     email: "copilot@oneuptime.com",
