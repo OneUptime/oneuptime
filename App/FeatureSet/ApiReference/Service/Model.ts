@@ -14,14 +14,17 @@ import LocalCache from "CommonServer/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
 import LocalFile from "CommonServer/Utils/LocalFile";
 
+// Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
   ResourceUtil.getResourceDictionaryByPath();
 
+// Get all permission props
 const PermissionDictionary: Dictionary<PermissionProps> =
   PermissionHelper.getAllPermissionPropsAsDictionary();
 
 export default class ServiceHandler {
+  // Execute response for a given page
   public static async executeResponse(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -31,31 +34,35 @@ export default class ServiceHandler {
     let page: string | undefined = req.params["page"];
     const pageData: any = {};
 
+    // Check if page is provided
     if (!page) {
       return PageNotFoundServiceHandler.executeResponse(req, res);
     }
 
+    // Get current resource
     const currentResource: ModelDocumentation | undefined =
       ResourceDictionary[page];
 
+    // Check if current resource exists
     if (!currentResource) {
       return PageNotFoundServiceHandler.executeResponse(req, res);
     }
 
-    // Resource Page.
+    // Set page title and description
     pageTitle = currentResource.name;
     pageDescription = currentResource.description;
 
     page = "model";
 
+    // Get table columns for current resource
     const tableColumns: any = getTableColumns(currentResource.model);
 
+    // Filter out columns with no access
     for (const key in tableColumns) {
       const accessControl: ColumnAccessControl | null =
         currentResource.model.getColumnAccessControlFor(key);
 
       if (!accessControl) {
-        // remove columns with no access
         delete tableColumns[key];
         continue;
       }
@@ -65,7 +72,6 @@ export default class ServiceHandler {
         accessControl?.read.length === 0 &&
         accessControl?.update.length === 0
       ) {
-        // remove columns with no access
         delete tableColumns[key];
         continue;
       }
@@ -73,14 +79,17 @@ export default class ServiceHandler {
       tableColumns[key].permissions = accessControl;
     }
 
+    // Remove unnecessary columns
     delete tableColumns["deletedAt"];
     delete tableColumns["deletedByUserId"];
     delete tableColumns["deletedByUser"];
     delete tableColumns["version"];
 
+    // Set page data
     pageData.title = currentResource.model.singularName;
     pageData.description = currentResource.model.tableDescription;
     pageData.columns = tableColumns;
+
     pageData.tablePermissions = {
       read: currentResource.model.readRecordPermissions.map(
         (permission: Permission) => {
@@ -104,46 +113,56 @@ export default class ServiceHandler {
       ),
     };
 
+    // Cache the list request data
     pageData.listRequest = await LocalCache.getOrSetString(
       "model",
       "list-request",
       async () => {
+        // Read the list request data from a file
         return await LocalFile.read(`${CodeExamplesPath}/Model/ListRequest.md`);
       },
     );
 
+    // Cache the item request data
     pageData.itemRequest = await LocalCache.getOrSetString(
       "model",
       "item-request",
       async () => {
+        // Read the item request data from a file
         return await LocalFile.read(`${CodeExamplesPath}/Model/ItemRequest.md`);
       },
     );
 
+    // Cache the item response data
     pageData.itemResponse = await LocalCache.getOrSetString(
       "model",
       "item-response",
       async () => {
+        // Read the item response data from a file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/ItemResponse.md`,
         );
       },
     );
 
+    // Cache the count request data
     pageData.countRequest = await LocalCache.getOrSetString(
       "model",
       "count-request",
       async () => {
+        // Read the count request data from a file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/CountRequest.md`,
         );
       },
     );
 
+    // Cache the count response data
     pageData.countResponse = await LocalCache.getOrSetString(
       "model",
       "count-response",
       async () => {
+        // Read the CountResponse.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/CountResponse.md`,
         );
@@ -154,6 +173,7 @@ export default class ServiceHandler {
       "model",
       "update-request",
       async () => {
+        // Read the UpdateRequest.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/UpdateRequest.md`,
         );
@@ -164,6 +184,7 @@ export default class ServiceHandler {
       "model",
       "update-response",
       async () => {
+        // Read the UpdateResponse.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/UpdateResponse.md`,
         );
@@ -174,6 +195,7 @@ export default class ServiceHandler {
       "model",
       "create-request",
       async () => {
+        // Read the CreateRequest.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/CreateRequest.md`,
         );
@@ -184,6 +206,7 @@ export default class ServiceHandler {
       "model",
       "create-response",
       async () => {
+        // Read the CreateResponse.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/CreateResponse.md`,
         );
@@ -194,6 +217,7 @@ export default class ServiceHandler {
       "model",
       "delete-request",
       async () => {
+        // Read the DeleteRequest.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/DeleteRequest.md`,
         );
@@ -204,29 +228,36 @@ export default class ServiceHandler {
       "model",
       "delete-response",
       async () => {
+        // Read the DeleteResponse.md file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/DeleteResponse.md`,
         );
       },
     );
 
+    // Get list response from cache or set it if it's not available
     pageData.listResponse = await LocalCache.getOrSetString(
       "model",
       "list-response",
       async () => {
+        // Read the list response from a file
         return await LocalFile.read(
           `${CodeExamplesPath}/Model/ListResponse.md`,
         );
       },
     );
 
+    // Generate a unique ID for the example object
     pageData.exampleObjectID = ObjectID.generate();
 
+    // Construct the API path for the current resource
     pageData.apiPath =
       AppApiRoute.toString() + currentResource.model.crudApiPath?.toString();
 
+    // Check if the current resource is a master admin API
     pageData.isMasterAdminApiDocs = currentResource.model.isMasterAdminApiDocs;
 
+    // Render the index page with the required data
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
