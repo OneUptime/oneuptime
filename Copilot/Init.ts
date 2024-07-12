@@ -49,37 +49,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     haltProcessWithSuccess();
   }
 
-  logger.info(
-    `Cloning the repository ${codeRepositoryResult.codeRepository.name} to a temporary directory.`,
-  );
-
-  // now clone this repository to a temporary directory - /repository
-  await CodeRepositoryUtil.cloneRepository({
-    codeRepository: codeRepositoryResult.codeRepository,
+  await cloneRepository({
+    codeRepositoryResult,
   });
 
-  // Check if OneUptime Copilot has setup properly.
+  await refreshPullRequests();
 
-  const onAfterCloneScript: string | null =
-    await CodeRepositoryUtil.getRepoScript({
-      scriptType: RepoScriptType.OnAfterClone,
-    });
-
-  if (!onAfterCloneScript) {
-    logger.debug("No on-after-clone script found for this repository.");
-  }
-
-  if (onAfterCloneScript) {
-    logger.info("Executing on-after-clone script.");
-    await CodeRepositoryUtil.executeScript({
-      script: onAfterCloneScript,
-    });
-    logger.info("on-after-clone script executed successfully.");
-  }
-
-  logger.info(
-    `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,
-  );
+  await setUpRepository();
 
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
@@ -233,6 +209,48 @@ const executeAction: ExecutionActionFunction = async (
   }
 };
 
+type CloneRepositoryFunction = (data: {
+  codeRepositoryResult: CodeRepositoryResult;
+}) => Promise<void>;
+
+const cloneRepository: CloneRepositoryFunction = async (data: {
+  codeRepositoryResult: CodeRepositoryResult;
+}): Promise<void> => {
+  const { codeRepositoryResult } = data;
+
+  logger.info(
+    `Cloning the repository ${codeRepositoryResult.codeRepository.name} to a temporary directory.`,
+  );
+
+  // now clone this repository to a temporary directory - /repository
+  await CodeRepositoryUtil.cloneRepository({
+    codeRepository: codeRepositoryResult.codeRepository,
+  });
+
+  // Check if OneUptime Copilot has setup properly.
+
+  const onAfterCloneScript: string | null =
+    await CodeRepositoryUtil.getRepoScript({
+      scriptType: RepoScriptType.OnAfterClone,
+    });
+
+  if (!onAfterCloneScript) {
+    logger.debug("No on-after-clone script found for this repository.");
+  }
+
+  if (onAfterCloneScript) {
+    logger.info("Executing on-after-clone script.");
+    await CodeRepositoryUtil.executeScript({
+      script: onAfterCloneScript,
+    });
+    logger.info("on-after-clone script executed successfully.");
+  }
+
+  logger.info(
+    `Repository ${codeRepositoryResult.codeRepository.name} cloned successfully.`,
+  );
+};
+
 const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun: VoidFunction =
   (): void => {
     if (currentFixCount <= FixNumberOfCodeEventsInEachRun) {
@@ -246,6 +264,19 @@ const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun: VoidFuncti
 
 const haltProcessWithSuccess: VoidFunction = (): void => {
   process.exit(0);
+};
+
+const refreshPullRequests: PromiseVoidFunction = async (): Promise<void> => {};
+
+const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
+  const isSetupProperly: boolean =
+    await CodeRepositoryUtil.isRepoSetupProperly();
+
+  if (isSetupProperly) {
+    return;
+  }
+
+  // if the repo is not set up properly, then check if there's an outstanding setup Pr for this repo.
 };
 
 export default init;

@@ -22,6 +22,7 @@ import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import Text from "Common/Types/Text";
 import Execute from "CommonServer/Utils/Execute";
+import CopilotPullRequestService from "../Service/CopilotPullRequest";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
@@ -122,10 +123,16 @@ export default class CodeRepositoryUtil {
 
     // create a pull request.
 
-    await this.createPullRequest({
+    const pullRequest: PullRequest = await this.createPullRequest({
       branchName: branchName,
       title: "OneUptime Copilot Setup",
       body: "This pull request is created by OneUptime Copilot to setup the repository.",
+    });
+
+    // save this to the database.
+
+    await CopilotPullRequestService.addPullRequestToDatabase({
+      pullRequest: pullRequest,
     });
   }
 

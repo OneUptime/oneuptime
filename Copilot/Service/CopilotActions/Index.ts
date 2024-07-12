@@ -24,7 +24,7 @@ import RefactorCode from "./RefactorCode";
 import WriteUnitTests from "./WriteUnitTests";
 import ImproveReadme from "./ImroveReadme";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
-import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
+import CopilotPullRequestService from "../CopilotPullRequest";
 
 const actionDictionary: Dictionary<typeof CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: ImproveComments,
@@ -189,7 +189,7 @@ export default class CopilotActionService {
       throw new BadDataException("File commit hash not found");
     }
 
-    await CopilotActionService.addCopilotAction({
+    await CopilotActionService.addCopilotActionToDatabase({
       serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
       filePath: data.input.currentFilePath,
@@ -202,61 +202,7 @@ export default class CopilotActionService {
     return executionResult;
   }
 
-  private static async addPullRequestToDatabase(data: {
-    pullRequest: PullRequest;
-    serviceCatalogId?: ObjectID | undefined;
-    serviceRepositoryId?: ObjectID | undefined;
-  }): Promise<CopilotPullRequest> {
-    let copilotPullRequest: CopilotPullRequest | null = null;
-
-    if (data.pullRequest && data.pullRequest.pullRequestNumber) {
-      copilotPullRequest = new CopilotPullRequest();
-      copilotPullRequest.pullRequestId =
-        data.pullRequest.pullRequestNumber.toString();
-      copilotPullRequest.copilotPullRequestStatus =
-        CopilotPullRequestStatus.Created;
-
-      if (data.serviceCatalogId) {
-        copilotPullRequest.serviceCatalogId = data.serviceCatalogId;
-      }
-
-      if (data.serviceRepositoryId) {
-        copilotPullRequest.serviceRepositoryId = data.serviceRepositoryId;
-      }
-
-      // send this to the API.
-      const url: URL = URL.fromString(
-        GetOneUptimeURL().toString() + "/api",
-      ).addRoute(
-        `${new CopilotPullRequest()
-          .getCrudApiPath()
-          ?.toString()}/add-pull-request/${GetRepositorySecretKey()}`,
-      );
-
-      const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post(url, {
-          copilotPullRequest: CopilotPullRequest.toJSON(
-            copilotPullRequest,
-            CopilotPullRequest,
-          ),
-        });
-
-      if (codeRepositoryResult instanceof HTTPErrorResponse) {
-        throw codeRepositoryResult;
-      }
-
-      copilotPullRequest = CopilotPullRequest.fromJSON(
-        codeRepositoryResult.data,
-        CopilotPullRequest,
-      ) as CopilotPullRequest;
-
-      return copilotPullRequest;
-    }
-
-    throw new BadDataException("Pull Request Number not found");
-  }
-
-  private static async addCopilotAction(data: {
+  private static async addCopilotActionToDatabase(data: {
     serviceCatalogId: ObjectID;
     serviceRepositoryId: ObjectID;
     filePath: string;
@@ -270,11 +216,12 @@ export default class CopilotActionService {
     let copilotPullRequest: CopilotPullRequest | null = null;
 
     if (data.pullRequest) {
-      copilotPullRequest = await CopilotActionService.addPullRequestToDatabase({
-        pullRequest: data.pullRequest,
-        serviceCatalogId: data.serviceCatalogId,
-        serviceRepositoryId: data.serviceRepositoryId,
-      });
+      copilotPullRequest =
+        await CopilotPullRequestService.addPullRequestToDatabase({
+          pullRequest: data.pullRequest,
+          serviceCatalogId: data.serviceCatalogId,
+          serviceRepositoryId: data.serviceRepositoryId,
+        });
     }
 
     const copilotAction: CopilotAction = new CopilotAction();
