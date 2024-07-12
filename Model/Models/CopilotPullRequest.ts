@@ -440,4 +440,27 @@ export default class CopilotPullRequest extends BaseModel {
     nullable: false,
   })
   public copilotPullRequestStatus?: CopilotPullRequestStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCopilotPullRequest,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Is Setup Pull Request",
+    required: false,
+    description:
+      "Is this pull request created by Copilot for setting up the repository?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isSetupPullRequest?: CopilotPullRequestStatus = undefined;
 }

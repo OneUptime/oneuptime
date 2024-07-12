@@ -1,3 +1,4 @@
+import OneUptimeDate from "Common/Types/Date";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 import CopilotCodeRepositoryService, {
   Service as CopilotCodeRepositoryServiceType,
@@ -72,6 +73,18 @@ export default class CopilotCodeRepositoryAPI extends BaseAPI<
               "Code repository not found. Secret key is invalid.",
             );
           }
+
+          // update last run time.
+
+          await CopilotCodeRepositoryService.updateOneById({
+            id: codeRepository.id!,
+            data: {
+              lastCopilotRunDateTime: OneUptimeDate.getCurrentDate(),
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
           const servicesRepository: Array<ServiceCopilotCodeRepository> =
             await ServiceCopilotCodeRepositoryService.findBy({
