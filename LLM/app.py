@@ -26,8 +26,6 @@ if not HF_TOKEN:
     print("HF_TOKEN env var is required. This is the Hugging Face API token. You can get it from https://huggingface.co/account/overview. Exiting..")
     exit()
 
-print(f"ONEUPTIME_URL: {ONEUPTIME_URL}")
-
 # TODO: Store this in redis down the line. 
 items_pending = {}
 items_processed = {}
