@@ -22,7 +22,7 @@
         "@opentelemetry/context-zone": "^1.25.0",
         "@opentelemetry/exporter-trace-otlp-http": "^0.52.0",
         "@opentelemetry/instrumentation": "^0.52.0",
-        "@opentelemetry/instrumentation-fetch": "^0.51.0",
+        "@opentelemetry/instrumentation-fetch": "^0.52.0",
         "@opentelemetry/instrumentation-xml-http-request": "^0.52.0",
         "@opentelemetry/resources": "^1.25.0",
         "@opentelemetry/sdk-trace-web": "^1.23.0",
