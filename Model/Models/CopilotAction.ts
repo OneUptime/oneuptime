@@ -475,6 +475,7 @@ export default class CopilotAction extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "copilotPullRequestId",
     type: TableColumnType.Entity,
+    required: false,
     modelType: CopilotPullRequest,
     title: "Pull Request",
     description:
@@ -507,7 +508,7 @@ export default class CopilotAction extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Copilot Pull Request ID",
     description:
@@ -515,7 +516,7 @@ export default class CopilotAction extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public copilotPullRequestId?: ObjectID = undefined;
