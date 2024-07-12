@@ -1,6 +1,7 @@
 import CodeRepositoryUtil, {
   CodeRepositoryResult,
   RepoScriptType,
+  ServiceToImproveResult,
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
 import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceRepository";
@@ -25,6 +26,8 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequestService from "./Service/CopilotPullRequest";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 // import ArrayUtil from "Common/Types/ArrayUtil";
 
 let currentFixCount: number = 1;
@@ -45,28 +48,35 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
-  if (codeRepositoryResult.servicesToImprove.length === 0) {
-    logger.info("No services to improve. Exiting.");
-    haltProcessWithSuccess();
-  }
-
   await cloneRepository({
     codeRepositoryResult,
   });
 
-  await refreshPullRequests();
+  const openPullRequests: Array<CopilotPullRequest> = await getOpenPRs();
 
   await setUpRepository();
 
-  await refreshAllPullRequestsStatuses({
-    codeRepositoryResult,
-  });
+  const servicesToImproveResult: Array<ServiceToImproveResult> =
+    await CodeRepositoryUtil.getServicesToImproveCode({
+      codeRepository: codeRepositoryResult.codeRepository,
+      serviceRepositories: codeRepositoryResult.serviceRepositories,
+      openPullRequests: openPullRequests,
+    });
 
-  for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
+  const servicesToImprove: Array<ServiceCopilotCodeRepository> =
+    servicesToImproveResult.map(
+      (serviceToImproveResult: ServiceToImproveResult) => {
+        return serviceToImproveResult.serviceRepository;
+      },
+    );
+
+  if (servicesToImprove.length === 0) {
+    logger.info("No services to improve. Exiting.");
+    haltProcessWithSuccess();
+  }
+
+  for (const serviceRepository of servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
-
-    const serviceRepository: ServiceCopilotCodeRepository =
-      serviceToImrove.serviceRepository;
 
     const filesInService: Dictionary<CodeRepositoryFile> =
       await ServiceCopilotCodeRepositoryUtil.getFilesInServiceDirectory({
@@ -97,16 +107,23 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // check if there's an open PR for this file.
 
-      const openPullRequests: Array<PullRequest> =
-        CodeRepositoryUtil.getOpenPRForFile({
-          pullRequests: serviceToImrove.pullRequests,
-          filePath: file.filePath,
+      const openPullRequests: Array<CopilotPullRequest> = copilotActions
+        .filter((copilotAction: CopilotAction) => {
+          return (
+            copilotAction.copilotPullRequest &&
+            copilotAction.copilotPullRequest.pullRequestId &&
+            copilotAction.copilotPullRequest.copilotPullRequestStatus ===
+              PullRequestState.Open
+          );
+        })
+        .map((copilotAction: CopilotAction) => {
+          return copilotAction.copilotPullRequest!;
         });
 
       if (openPullRequests.length > 0) {
         const prNumbers: string = openPullRequests
-          .map((pr: PullRequest) => {
-            return `#${pr.pullRequestNumber.toString()}`;
+          .map((pr: CopilotPullRequest) => {
+            return `#${pr.pullRequestId?.toString()}`;
           })
           .join(", ");
 
@@ -271,7 +288,36 @@ const haltProcessWithSuccess: VoidFunction = (): void => {
   process.exit(0);
 };
 
-const refreshPullRequests: PromiseVoidFunction = async (): Promise<void> => {};
+type GetOpenPRFunction = () => Promise<Array<CopilotPullRequest>>;
+
+const getOpenPRs: GetOpenPRFunction = async (): Promise<
+  Array<CopilotPullRequest>
+> => {
+  const openPRs: Array<CopilotPullRequest> = [];
+
+  // get all open pull requests.
+  const openPullRequests: Array<CopilotPullRequest> =
+    await CopilotPullRequestService.getOpenPullRequestsFromDatabase();
+
+  for (const openPullRequest of openPullRequests) {
+    // refresh status of this PR.
+
+    if (!openPullRequest.pullRequestId) {
+      continue;
+    }
+
+    const pullRequestState: PullRequestState =
+      await CopilotPullRequestService.refreshPullRequestStatus({
+        copilotPullRequest: openPullRequest,
+      });
+
+    if (pullRequestState === PullRequestState.Open) {
+      openPRs.push(openPullRequest);
+    }
+  }
+
+  return openPRs;
+};
 
 const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
   const isSetupProperly: boolean =
@@ -307,14 +353,5 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
 
   haltProcessWithSuccess();
 };
-
-type RefreshAllPullRequestsStatusesFunction = (data: {
-  codeRepositoryResult: CodeRepositoryResult;
-}) => Promise<void>;
-
-const refreshAllPullRequestsStatuses: RefreshAllPullRequestsStatusesFunction =
-  async (_data: {
-    codeRepositoryResult: CodeRepositoryResult;
-  }): Promise<void> => {};
 
 export default init;

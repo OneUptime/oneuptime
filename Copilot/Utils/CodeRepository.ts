@@ -27,14 +27,13 @@ import CopilotPullRequest from "Model/Models/CopilotPullRequest";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
-  servicesToImprove: Array<ServiceToImproveResult>;
   serviceRepositories: Array<ServiceCopilotCodeRepository>;
 }
 
 export interface ServiceToImproveResult {
   serviceRepository: ServiceCopilotCodeRepository;
   numberOfOpenPullRequests: number;
-  pullRequests: Array<PullRequest>;
+  pullRequests: Array<CopilotPullRequest>;
 }
 
 export enum RepoScriptType {
@@ -604,11 +603,12 @@ export default class CodeRepositoryUtil {
 
   public static async getServicesToImproveCode(data: {
     codeRepository: CopilotCodeRepository;
-    services: Array<ServiceCopilotCodeRepository>;
+    serviceRepositories: Array<ServiceCopilotCodeRepository>;
+    openPullRequests: Array<CopilotPullRequest>;
   }): Promise<Array<ServiceToImproveResult>> {
     const servicesToImproveCode: Array<ServiceToImproveResult> = [];
 
-    for (const service of data.services) {
+    for (const service of data.serviceRepositories) {
       if (!data.codeRepository.mainBranchName) {
         throw new BadDataException("Main Branch Name is required");
       }
@@ -636,13 +636,12 @@ export default class CodeRepositoryUtil {
           throw new BadDataException("GitHub Token is required");
         }
 
-        const pullRequestByService: Array<PullRequest> =
-          await this.getGitHubUtil().getPullRequestsByService({
-            serviceRepository: service,
-            pullRequestState: PullRequestState.Open,
-            baseBranchName: data.codeRepository.mainBranchName,
-            organizationName: data.codeRepository.organizationName,
-            repositoryName: data.codeRepository.repositoryName,
+        const pullRequestByService: Array<CopilotPullRequest> =
+          data.openPullRequests.filter((pullRequest: CopilotPullRequest) => {
+            return (
+              pullRequest.serviceRepositoryId?.toString() ===
+              service.id?.toString()
+            );
           });
 
         const numberOfPullRequestForThisService: number =
@@ -736,10 +735,6 @@ export default class CodeRepositoryUtil {
 
     this.codeRepositoryResult = {
       codeRepository,
-      servicesToImprove: await this.getServicesToImproveCode({
-        codeRepository,
-        services: servicesRepository,
-      }),
       serviceRepositories: servicesRepository,
     };
 
@@ -753,20 +748,6 @@ export default class CodeRepositoryUtil {
     }
 
     return this.codeRepositoryResult.codeRepository;
-  }
-
-  public static async getServiceRepositories(): Promise<
-    Array<ServiceCopilotCodeRepository>
-  > {
-    if (!this.codeRepositoryResult) {
-      this.codeRepositoryResult = await this.getCodeRepositoryResult();
-    }
-
-    return this.codeRepositoryResult.servicesToImprove.map(
-      (serviceToImprove: ServiceToImproveResult) => {
-        return serviceToImprove.serviceRepository;
-      },
-    );
   }
 
   public static getCodeFileExtentions(): Array<string> {

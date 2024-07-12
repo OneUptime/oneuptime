@@ -82,6 +82,11 @@ export default class CopilotActionAPI extends BaseAPI<
                 copilotActionStatus: true,
                 copilotActionType: true,
                 createdAt: true,
+                copilotPullRequest: {
+                  _id: true,
+                  pullRequestId: true,
+                  copilotPullRequestStatus: true,
+                },
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,

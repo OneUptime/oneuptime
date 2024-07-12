@@ -69,6 +69,8 @@ export default class CopilotPullRequestAPI extends BaseAPI<
                 copilotPullRequestStatus: true,
                 pullRequestId: true,
                 isSetupPullRequest: true,
+                serviceCatalogId: true,
+                serviceRepositoryId: true,
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,
