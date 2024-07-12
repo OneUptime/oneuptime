@@ -37,7 +37,7 @@ No. We strictly do not send any telemetry data or code to any third-party.
 
 No, If you host LLM Server yourself. 
 
-Yes, if you choose to use OpenAI by setting `OPENAI_API_KEY` and `OPENAI_MODEL`. We recommend you to use OpenAI only if you are comfortable with OpenAI's privacy policy. We're not responsible for any data sent to OpenAI or how your code is analyzed / used by OpenAI.
+Yes, if you choose to use OpenAI by setting `OPENAI_API_KEY`. We recommend you to use OpenAI only if you are comfortable with OpenAI's privacy policy. We're not responsible for any data sent to OpenAI or how your code is analyzed / used by OpenAI.
 
 ### Pre-requisites
 
@@ -83,9 +83,7 @@ If you are using OpenAI, you need to set the following environment variables:
 
 - **OPENAI_API_KEY**: The API key of OpenAI. You can get this key from OpenAI Dashboard.
 
-- **OPENAI_MODEL**: The model of OpenAI. You can get this model from OpenAI Dashboard.
-
-**Important**: You need to provide either `ONEUPTIME_LLM_SERVER_URL` or `OPENAI_API_KEY` and `OPENAI_MODEL` in order to use Copilot.
+**Important**: You need to provide either `ONEUPTIME_LLM_SERVER_URL` or `OPENAI_API_KEY` in order to use Copilot.
 
 #### GitHub Actions 
 
@@ -121,7 +119,6 @@ jobs:
             -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
             -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
             -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
-            -e OPENAI_MODEL='<YOUR_OPENAI_MODEL>' # Optional. Leave empty to not use OpenAI.
 
 ```
 
@@ -137,7 +134,6 @@ docker run --rm oneuptime/copilot:release \
     -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
     -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
     -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
-    -e OPENAI_MODEL='<YOUR_OPENAI_MODEL>' # Optional. This can be for ex `gpt-4o` Leave empty to not use OpenAI.
 ```
 
 ### Support

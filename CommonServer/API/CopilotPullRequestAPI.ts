@@ -15,7 +15,7 @@ import ObjectID from "Common/Types/ObjectID";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
-import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 
 export default class CopilotPullRequestAPI extends BaseAPI<
   CopilotPullRequest,
@@ -60,7 +60,7 @@ export default class CopilotPullRequestAPI extends BaseAPI<
             await CopilotPullRequestService.findBy({
               query: {
                 codeRepositoryId: codeRepository.id!,
-                copilotPullRequestStatus: CopilotPullRequestStatus.Created, // only get pending pull requests
+                copilotPullRequestStatus: PullRequestState.Open, // only get pending pull requests
               },
               select: {
                 _id: true,
@@ -134,8 +134,7 @@ export default class CopilotPullRequestAPI extends BaseAPI<
 
           copilotPullRequest.codeRepositoryId = codeRepository.id!;
           copilotPullRequest.projectId = codeRepository.projectId!;
-          copilotPullRequest.copilotPullRequestStatus =
-            CopilotPullRequestStatus.Created;
+          copilotPullRequest.copilotPullRequestStatus = PullRequestState.Open;
 
           const createdPullRequest: CopilotPullRequest =
             await CopilotPullRequestService.create({

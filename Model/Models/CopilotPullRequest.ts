@@ -5,7 +5,7 @@ import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "Common/Types/Database/CanAccessIfCanReadOn";
@@ -441,7 +441,7 @@ export default class CopilotPullRequest extends BaseModel {
     type: ColumnType.ShortText,
     nullable: false,
   })
-  public copilotPullRequestStatus?: CopilotPullRequestStatus = undefined;
+  public copilotPullRequestStatus?: PullRequestState = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -464,5 +464,5 @@ export default class CopilotPullRequest extends BaseModel {
     type: ColumnType.Boolean,
     nullable: true,
   })
-  public isSetupPullRequest?: CopilotPullRequestStatus = undefined;
+  public isSetupPullRequest?: boolean = undefined;
 }

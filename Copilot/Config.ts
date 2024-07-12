@@ -54,7 +54,7 @@ export const GetOpenAIAPIKey: GetStringOrNullFunction = (): string | null => {
 };
 
 export const GetOpenAIModel: GetStringOrNullFunction = (): string | null => {
-  return process.env["OPENAI_MODEL"] || null;
+  return process.env["OPENAI_MODEL"] || "gpt-4o";
 };
 
 type GetLlmTypeFunction = () => LlmType;

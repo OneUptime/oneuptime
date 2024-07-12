@@ -76,6 +76,38 @@ export default class CodeRepositoryUtil {
     });
   }
 
+  public static async getPullRequestState(data: {
+    pullRequestId: string;
+  }): Promise<PullRequestState> {
+    // check if org name and repo name is present.
+
+    if (!this.codeRepositoryResult?.codeRepository.organizationName) {
+      throw new BadDataException("Organization Name is required");
+    }
+
+    if (!this.codeRepositoryResult?.codeRepository.repositoryName) {
+      throw new BadDataException("Repository Name is required");
+    }
+
+    if (!this.gitHubUtil) {
+      throw new BadDataException("GitHub Util is required");
+    }
+
+    const pullRequest: PullRequest | undefined =
+      await this.gitHubUtil.getPullRequestByNumber({
+        organizationName:
+          this.codeRepositoryResult.codeRepository.organizationName,
+        repositoryName: this.codeRepositoryResult.codeRepository.repositoryName,
+        pullRequestId: data.pullRequestId,
+      });
+
+    if (!pullRequest) {
+      throw new BadDataException("Pull Request not found");
+    }
+
+    return pullRequest.state;
+  }
+
   public static async setUpRepo(): Promise<void> {
     // check if the repository is setup properly.
     const isRepoSetupProperly: boolean = await this.isRepoSetupProperly();

@@ -1,7 +1,7 @@
 enum PullRequestState {
   Open = "open",
   Closed = "closed",
-  All = "all",
+  Merged = "merged",
 }
 
 export default PullRequestState;

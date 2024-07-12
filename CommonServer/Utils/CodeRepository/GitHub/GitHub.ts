@@ -16,13 +16,22 @@ export default class GitHubUtil extends HostedCodeRepository {
     organizationName: string;
     repositoryName: string;
   }): PullRequest {
+    let pullRequestState: PullRequestState =
+      data.pullRequest["state"] === "open"
+        ? PullRequestState.Open
+        : PullRequestState.Closed;
+
+    if (data.pullRequest["merged_at"]) {
+      pullRequestState = PullRequestState.Merged;
+    }
+
     return {
       pullRequestId: data.pullRequest["id"] as number,
       pullRequestNumber: data.pullRequest["number"] as number,
       title: data.pullRequest["title"] as string,
       body: data.pullRequest["body"] as string,
       url: URL.fromString(data.pullRequest["url"] as string),
-      state: data.pullRequest["state"] as PullRequestState,
+      state: pullRequestState,
       createdAt: OneUptimeDate.fromString(
         data.pullRequest["created_at"] as string,
       ),
@@ -42,12 +51,12 @@ export default class GitHubUtil extends HostedCodeRepository {
   public async getPullRequestByNumber(data: {
     organizationName: string;
     repositoryName: string;
-    pullRequestNumber: number;
+    pullRequestId: string;
   }): Promise<PullRequest> {
     const gitHubToken: string = this.authToken;
 
     const url: URL = URL.fromString(
-      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls/${data.pullRequestNumber}`,
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls/${data.pullRequestId}`,
     );
 
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(

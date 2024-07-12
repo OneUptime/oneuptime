@@ -8,19 +8,81 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
-import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
+import CodeRepositoryUtil from "../Utils/CodeRepository";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 
 export default class CopilotPullRequestService {
-  public static async getOpenPullRequests(): Promise<
+  public static async refreshPullRequestStatus(data: {
+    copilotPullRequest: CopilotPullRequest;
+  }): Promise<PullRequestState> {
+    if (!data.copilotPullRequest.pullRequestId) {
+      throw new BadDataException("Pull Request ID not found");
+    }
+
+    if (!data.copilotPullRequest.id) {
+      throw new BadDataException("Copilot Pull Request ID not found");
+    }
+
+    const currentState: PullRequestState =
+      await CodeRepositoryUtil.getPullRequestState({
+        pullRequestId: data.copilotPullRequest.pullRequestId,
+      });
+
+    // update the status of the pull request in the database.
+
+    const url: URL = URL.fromString(
+      GetOneUptimeURL().toString() + "/api",
+    ).addRoute(
+      `${new CopilotPullRequest()
+        .getCrudApiPath()
+        ?.toString()}/update-pull-request-status/${GetRepositorySecretKey()}`,
+    );
+
+    const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post(url, {
+        copilotPullRequestId: data.copilotPullRequest.id?.toString(),
+        copilotPullRequestStatus: currentState,
+      });
+
+    if (codeRepositoryResult instanceof HTTPErrorResponse) {
+      throw codeRepositoryResult;
+    }
+
+    return currentState;
+  }
+
+  public static async getOpenPullRequestsFromDatabase(): Promise<
     Array<CopilotPullRequest>
   > {
-    return [];
+    // send this to the API.
+    const url: URL = URL.fromString(
+      GetOneUptimeURL().toString() + "/api",
+    ).addRoute(
+      `${new CopilotPullRequest()
+        .getCrudApiPath()
+        ?.toString()}/get-pending-pull-requests/${GetRepositorySecretKey()}`,
+    );
+
+    const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get(url);
+
+    if (codeRepositoryResult instanceof HTTPErrorResponse) {
+      throw codeRepositoryResult;
+    }
+
+    const copilotPullRequestsJsonArray: Array<JSONObject> = codeRepositoryResult
+      .data["copilotPullRequests"] as Array<JSONObject>;
+    return CopilotPullRequest.fromJSONArray(
+      copilotPullRequestsJsonArray,
+      CopilotPullRequest,
+    ) as Array<CopilotPullRequest>;
   }
 
   public static async addPullRequestToDatabase(data: {
     pullRequest: PullRequest;
     serviceCatalogId?: ObjectID | undefined;
     serviceRepositoryId?: ObjectID | undefined;
+    isSetupPullRequest?: boolean | undefined;
   }): Promise<CopilotPullRequest> {
     let copilotPullRequest: CopilotPullRequest | null = null;
 
@@ -28,11 +90,14 @@ export default class CopilotPullRequestService {
       copilotPullRequest = new CopilotPullRequest();
       copilotPullRequest.pullRequestId =
         data.pullRequest.pullRequestNumber.toString();
-      copilotPullRequest.copilotPullRequestStatus =
-        CopilotPullRequestStatus.Created;
+      copilotPullRequest.copilotPullRequestStatus = PullRequestState.Open;
 
       if (data.serviceCatalogId) {
         copilotPullRequest.serviceCatalogId = data.serviceCatalogId;
+      }
+
+      if (data.isSetupPullRequest) {
+        copilotPullRequest.isSetupPullRequest = data.isSetupPullRequest;
       }
 
       if (data.serviceRepositoryId) {
