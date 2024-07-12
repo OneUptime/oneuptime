@@ -42,9 +42,9 @@ spec:
            pathType: Prefix
            backend:
              service:
-               name: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+               name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
                port:
-                 name: "http"
+                 name: "oneuptime-http"
     {{- end }}
     {{- if $.Values.fluentdHost }}
     - host: {{ $.Values.fluentdHost }}
