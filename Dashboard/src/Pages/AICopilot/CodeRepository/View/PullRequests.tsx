@@ -7,7 +7,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
+import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import PullRequestStatusElement from "../../../../Components/CodeRepository/PullRequestStatus";
 
 const CopilotPullRequestPage: FunctionComponent<
@@ -61,9 +61,8 @@ const CopilotPullRequestPage: FunctionComponent<
             },
             title: "Pull Request Status",
             type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              CopilotPullRequestStatus,
-            ),
+            filterDropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(PullRequestState),
           },
         ]}
         columns={[

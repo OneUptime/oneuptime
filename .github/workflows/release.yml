@@ -1031,6 +1031,9 @@ jobs:
         with:
           node-version: 18.3.0
 
+      - name: Setup Git LFS
+        run: git lfs install
+
       # Cannot do this, no space on the gitHub standard runner. We need to use the large runner which is selfhosted
       - name: Download the Model from Hugging Face
         run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct

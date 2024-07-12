@@ -23,6 +23,7 @@ import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeReposit
 import Text from "Common/Types/Text";
 import Execute from "CommonServer/Utils/Execute";
 import CopilotPullRequestService from "../Service/CopilotPullRequest";
+import CopilotPullRequest from "Model/Models/CopilotPullRequest";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
@@ -48,6 +49,19 @@ export default class CodeRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static gitHubUtil: GitHubUtil | null = null;
   public static folderNameOfClonedRepository: string | null = null;
+
+  public static async getOpenSetupPullRequest(): Promise<CopilotPullRequest | null> {
+    const openPullRequests: Array<CopilotPullRequest> =
+      await CopilotPullRequestService.getOpenPullRequestsFromDatabase();
+
+    for (const pullRequest of openPullRequests) {
+      if (pullRequest.isSetupPullRequest) {
+        return pullRequest;
+      }
+    }
+
+    return null;
+  }
 
   public static getLocalRepositoryPath(): string {
     if (this.folderNameOfClonedRepository) {
@@ -108,12 +122,12 @@ export default class CodeRepositoryUtil {
     return pullRequest.state;
   }
 
-  public static async setUpRepo(): Promise<void> {
+  public static async setUpRepo(): Promise<PullRequest> {
     // check if the repository is setup properly.
     const isRepoSetupProperly: boolean = await this.isRepoSetupProperly();
 
     if (isRepoSetupProperly) {
-      return;
+      throw new BadDataException("Repository is already setup properly.");
     }
 
     // otherwise, we copy the folder /usr/src/app/Templates/.oneuptime to the repository folder.
@@ -165,7 +179,10 @@ export default class CodeRepositoryUtil {
 
     await CopilotPullRequestService.addPullRequestToDatabase({
       pullRequest: pullRequest,
+      isSetupPullRequest: true,
     });
+
+    return pullRequest;
   }
 
   public static async isRepoSetupProperly(): Promise<boolean> {

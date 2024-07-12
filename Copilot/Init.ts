@@ -24,6 +24,7 @@ import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
+import CopilotPullRequest from "Model/Models/CopilotPullRequest";
 // import ArrayUtil from "Common/Types/ArrayUtil";
 
 let currentFixCount: number = 1;
@@ -56,6 +57,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   await refreshPullRequests();
 
   await setUpRepository();
+
+  await refreshAllPullRequestsStatuses({
+    codeRepositoryResult,
+  });
 
   for (const serviceToImrove of codeRepositoryResult.servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
@@ -277,6 +282,39 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
   }
 
   // if the repo is not set up properly, then check if there's an outstanding setup Pr for this repo.
+  logger.info("Setting up the repository.");
+
+  // check if there's an outstanding setup PR for this repo.
+  const setupPullRequest: CopilotPullRequest | null =
+    await CodeRepositoryUtil.getOpenSetupPullRequest();
+
+  if (setupPullRequest) {
+    logger.info(
+      `There's an open setup PR for this repository: ${setupPullRequest.pullRequestId}. Please merge this PR to continue using Copilot. Exiting...`,
+    );
+    haltProcessWithSuccess();
+    return;
+  }
+
+  // if there's no setup PR, then create a new setup PR.
+  const pullRequest: PullRequest = await CodeRepositoryUtil.setUpRepo();
+
+  logger.info(
+    "Repository setup PR created - #" +
+      pullRequest.pullRequestId +
+      ". Please megre this PR to continue using Copilot. Exiting..",
+  );
+
+  haltProcessWithSuccess();
 };
+
+type RefreshAllPullRequestsStatusesFunction = (data: {
+  codeRepositoryResult: CodeRepositoryResult;
+}) => Promise<void>;
+
+const refreshAllPullRequestsStatuses: RefreshAllPullRequestsStatusesFunction =
+  async (_data: {
+    codeRepositoryResult: CodeRepositoryResult;
+  }): Promise<void> => {};
 
 export default init;
