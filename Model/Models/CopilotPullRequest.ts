@@ -292,6 +292,7 @@ export default class CopilotPullRequest extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "serviceCatalogId",
     type: TableColumnType.Entity,
+    required: false,
     modelType: ServiceCatalog,
     title: "Service Catalog",
     description:
@@ -324,7 +325,7 @@ export default class CopilotPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Service Catalog ID",
     description:
@@ -332,7 +333,7 @@ export default class CopilotPullRequest extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serviceCatalogId?: ObjectID = undefined;
@@ -350,6 +351,7 @@ export default class CopilotPullRequest extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "serviceRepositoryId",
     type: TableColumnType.Entity,
+    required: false,
     modelType: ServiceCopilotCodeRepository,
     title: "Service Repository",
     description:
@@ -382,7 +384,7 @@ export default class CopilotPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Service Repository ID",
     description:
@@ -390,7 +392,7 @@ export default class CopilotPullRequest extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serviceRepositoryId?: ObjectID = undefined;

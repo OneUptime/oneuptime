@@ -202,17 +202,11 @@ export default class CopilotActionService {
     return executionResult;
   }
 
-  private static async addCopilotAction(data: {
-    serviceCatalogId: ObjectID;
-    serviceRepositoryId: ObjectID;
-    filePath: string;
-    commitHash: string;
-    copilotActionType: CopilotActionType;
-    pullRequest: PullRequest | null;
-    copilotActionStatus: CopilotActionStatus;
-  }): Promise<void> {
-    // add copilot action to the database.
-
+  private static async addPullRequestToDatabase(data: {
+    pullRequest: PullRequest;
+    serviceCatalogId?: ObjectID | undefined;
+    serviceRepositoryId?: ObjectID | undefined;
+  }): Promise<CopilotPullRequest> {
     let copilotPullRequest: CopilotPullRequest | null = null;
 
     if (data.pullRequest && data.pullRequest.pullRequestNumber) {
@@ -221,8 +215,14 @@ export default class CopilotActionService {
         data.pullRequest.pullRequestNumber.toString();
       copilotPullRequest.copilotPullRequestStatus =
         CopilotPullRequestStatus.Created;
-      copilotPullRequest.serviceCatalogId = data.serviceCatalogId;
-      copilotPullRequest.serviceRepositoryId = data.serviceRepositoryId;
+
+      if (data.serviceCatalogId) {
+        copilotPullRequest.serviceCatalogId = data.serviceCatalogId;
+      }
+
+      if (data.serviceRepositoryId) {
+        copilotPullRequest.serviceRepositoryId = data.serviceRepositoryId;
+      }
 
       // send this to the API.
       const url: URL = URL.fromString(
@@ -249,6 +249,32 @@ export default class CopilotActionService {
         codeRepositoryResult.data,
         CopilotPullRequest,
       ) as CopilotPullRequest;
+
+      return copilotPullRequest;
+    }
+
+    throw new BadDataException("Pull Request Number not found");
+  }
+
+  private static async addCopilotAction(data: {
+    serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
+    filePath: string;
+    commitHash: string;
+    copilotActionType: CopilotActionType;
+    pullRequest: PullRequest | null;
+    copilotActionStatus: CopilotActionStatus;
+  }): Promise<void> {
+    // add copilot action to the database.
+
+    let copilotPullRequest: CopilotPullRequest | null = null;
+
+    if (data.pullRequest) {
+      copilotPullRequest = await CopilotActionService.addPullRequestToDatabase({
+        pullRequest: data.pullRequest,
+        serviceCatalogId: data.serviceCatalogId,
+        serviceRepositoryId: data.serviceRepositoryId,
+      });
     }
 
     const copilotAction: CopilotAction = new CopilotAction();
