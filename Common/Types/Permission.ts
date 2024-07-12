@@ -467,6 +467,8 @@ enum Permission {
 
   ReadCopilotAction = "ReadCopilotAction",
 
+  ReadCopilotPullRequest = "ReadCopilotPullRequest",
+
   CreateProbeOwnerTeam = "CreateProbeOwnerTeam",
   DeleteProbeOwnerTeam = "DeleteProbeOwnerTeam",
   EditProbeOwnerTeam = "EditProbeOwnerTeam",

@@ -5,8 +5,7 @@ import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
-import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
-import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
+import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "Common/Types/Database/CanAccessIfCanReadOn";
@@ -22,7 +21,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import CopilotPullRequest from "./CopilotPullRequest";
 
 @CanAccessIfCanReadOn("codeRepository")
 @EnableDocumentation()
@@ -33,7 +31,7 @@ import CopilotPullRequest from "./CopilotPullRequest";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadCopilotAction,
+    Permission.ReadCopilotPullRequest,
   ],
   delete: [],
   update: [],
@@ -44,25 +42,26 @@ import CopilotPullRequest from "./CopilotPullRequest";
   update: true,
   read: false,
 })
-@CrudApiEndpoint(new Route("/copilot-action"))
+@CrudApiEndpoint(new Route("/copilot-pull-request"))
 @TableMetadata({
-  tableName: "CopilotAction",
-  singularName: "Copilot Event",
-  pluralName: "Copilot Events",
+  tableName: "CopilotPullRequest",
+  singularName: "Copilot Pull Request",
+  pluralName: "Copilot Pull Requests",
   icon: IconProp.Bolt,
-  tableDescription: "Copilot Event Resource",
+  tableDescription:
+    "List of pull reuqests created by Copilot and status of those requests.",
 })
 @Entity({
-  name: "CopilotAction",
+  name: "CopilotPullRequest",
 })
-export default class CopilotAction extends BaseModel {
+export default class CopilotPullRequest extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -93,7 +92,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -118,7 +117,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -150,7 +149,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -176,7 +175,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -208,7 +207,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -231,7 +230,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -263,7 +262,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -286,73 +285,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.LongText,
-    title: "File Path in Code Repository",
-    required: true,
-    description: "File Path in Code Repository where this event was triggered",
-  })
-  @Column({
-    type: ColumnType.LongText,
-    nullable: false,
-  })
-  public filePath?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.LongText,
-    title: "Commit Hash",
-    description:
-      "Commit Hash of the commit for this file in Code Repository where this event was triggered",
-  })
-  @Column({
-    type: ColumnType.LongText,
-    nullable: false,
-  })
-  public commitHash?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ShortText,
-    title: "Copilot Event Type",
-    description:
-      "Type of Copilot Event that was triggered for this file in Code Repository",
-  })
-  @Column({
-    type: ColumnType.ShortText,
-    nullable: false,
-  })
-  public copilotActionType?: CopilotActionType = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -384,7 +317,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -410,7 +343,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -442,7 +375,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -468,57 +401,23 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "copilotPullRequestId",
-    type: TableColumnType.Entity,
-    modelType: CopilotPullRequest,
-    title: "Pull Request",
+    type: TableColumnType.ShortText,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Pull Request ID",
     description:
-      "Relation to Pull Request Resource in which this object belongs",
-  })
-  @ManyToOne(
-    () => {
-      return CopilotPullRequest;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "copilotPullRequestId" })
-  public copilotPullRequest?: CopilotPullRequest = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: true,
-    canReadOnRelationQuery: true,
-    title: "Copilot Pull Request ID",
-    description:
-      "ID of your OneUptime Copilot Pull Request in which this object belongs",
+      "ID of Pull Request in the repository where this event was executed and then PR was created.",
   })
   @Column({
-    type: ColumnType.ObjectID,
-    nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
+    type: ColumnType.ShortText,
+    nullable: true,
   })
-  public copilotPullRequestId?: ObjectID = undefined;
+  public pullRequestId?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -526,7 +425,7 @@ export default class CopilotAction extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadCopilotPullRequest,
     ],
     update: [],
   })
@@ -540,5 +439,5 @@ export default class CopilotAction extends BaseModel {
     type: ColumnType.ShortText,
     nullable: false,
   })
-  public copilotActionStatus?: CopilotActionStatus = undefined;
+  public copilotPullRequestStatus?: CopilotPullRequestStatus = undefined;
 }

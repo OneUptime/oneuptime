@@ -48,6 +48,7 @@ const CodeRepositoryPage: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        createVerb="Add"
         name="Git Repositories"
         isViewable={true}
         cardProps={{

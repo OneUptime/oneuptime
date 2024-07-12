@@ -4,6 +4,7 @@ import BillingInvoiceAPI from "CommonServer/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "CommonServer/API/BillingPaymentMethodAPI";
 import CopilotCodeRepositoryAPI from "CommonServer/API/CopilotCodeRepositoryAPI";
 import CopilotActionAPI from "CommonServer/API/CopilotActionAPI";
+import CopilotPullRequestAPI from "CommonServer/API/CopilotPullRequestAPI";
 import FileAPI from "CommonServer/API/FileAPI";
 import GlobalConfigAPI from "CommonServer/API/GlobalConfigAPI";
 import MonitorGroupAPI from "CommonServer/API/MonitorGroupAPI";
@@ -1045,6 +1046,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CopilotActionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CopilotPullRequestAPI().getRouter(),
     );
 
     app.use(

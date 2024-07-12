@@ -126,6 +126,7 @@ import UserSms from "./UserSMS";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
+import CopilotPullRequest from "./CopilotPullRequest";
 
 export default [
   User,
@@ -270,6 +271,7 @@ export default [
   CopilotCodeRepository,
   CopilotAction,
   ServiceCopilotCodeRepository,
+  CopilotPullRequest,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,

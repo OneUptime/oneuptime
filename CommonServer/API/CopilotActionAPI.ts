@@ -143,14 +143,20 @@ export default class CopilotActionAPI extends BaseAPI<
           copilotAction.codeRepositoryId = codeRepository.id!;
           copilotAction.projectId = codeRepository.projectId!;
 
-          await CopilotActionService.create({
-            data: copilotAction,
-            props: {
-              isRoot: true,
-            },
-          });
+          const createdAction: CopilotAction =
+            await CopilotActionService.create({
+              data: copilotAction,
+              props: {
+                isRoot: true,
+              },
+            });
 
-          return Response.sendEmptySuccessResponse(req, res);
+          return Response.sendEntityResponse(
+            req,
+            res,
+            createdAction,
+            CopilotAction,
+          );
         } catch (err) {
           next(err);
         }

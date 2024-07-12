@@ -23,6 +23,8 @@ import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
 import RefactorCode from "./RefactorCode";
 import WriteUnitTests from "./WriteUnitTests";
 import ImproveReadme from "./ImroveReadme";
+import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
 
 const actionDictionary: Dictionary<typeof CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: ImproveComments,
@@ -211,6 +213,44 @@ export default class CopilotActionService {
   }): Promise<void> {
     // add copilot action to the database.
 
+    let copilotPullRequest: CopilotPullRequest | null = null;
+
+    if (data.pullRequest && data.pullRequest.pullRequestNumber) {
+      copilotPullRequest = new CopilotPullRequest();
+      copilotPullRequest.pullRequestId =
+        data.pullRequest.pullRequestNumber.toString();
+      copilotPullRequest.copilotPullRequestStatus =
+        CopilotPullRequestStatus.Created;
+      copilotPullRequest.serviceCatalogId = data.serviceCatalogId;
+      copilotPullRequest.serviceRepositoryId = data.serviceRepositoryId;
+
+      // send this to the API.
+      const url: URL = URL.fromString(
+        GetOneUptimeURL().toString() + "/api",
+      ).addRoute(
+        `${new CopilotPullRequest()
+          .getCrudApiPath()
+          ?.toString()}/add-pull-request/${GetRepositorySecretKey()}`,
+      );
+
+      const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post(url, {
+          copilotPullRequest: CopilotPullRequest.toJSON(
+            copilotPullRequest,
+            CopilotPullRequest,
+          ),
+        });
+
+      if (codeRepositoryResult instanceof HTTPErrorResponse) {
+        throw codeRepositoryResult;
+      }
+
+      copilotPullRequest = CopilotPullRequest.fromJSON(
+        codeRepositoryResult.data,
+        CopilotPullRequest,
+      ) as CopilotPullRequest;
+    }
+
     const copilotAction: CopilotAction = new CopilotAction();
 
     copilotAction.serviceCatalogId = data.serviceCatalogId;
@@ -220,9 +260,8 @@ export default class CopilotActionService {
     copilotAction.copilotActionType = data.copilotActionType;
     copilotAction.copilotActionStatus = data.copilotActionStatus;
 
-    if (data.pullRequest && data.pullRequest.pullRequestNumber) {
-      copilotAction.pullRequestId =
-        data.pullRequest?.pullRequestNumber.toString();
+    if (copilotPullRequest) {
+      copilotAction.copilotPullRequestId = copilotPullRequest.id!;
     }
 
     // send this to the API.
@@ -237,6 +276,9 @@ export default class CopilotActionService {
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(url, {
         copilotAction: CopilotAction.toJSON(copilotAction, CopilotAction),
+        copilotPullRequest: copilotPullRequest
+          ? CopilotPullRequest.toJSON(copilotPullRequest, CopilotPullRequest)
+          : null,
       });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {

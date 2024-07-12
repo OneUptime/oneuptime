@@ -603,4 +603,37 @@ export default class CopilotCodeRepository extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public repositoryName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadCopilotCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Copilot Run Date Time",
+    description: "When did the last Copilot run on this repository?",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastCopilotRunDateTime?: Date = undefined;
 }
