@@ -46,4 +46,16 @@ spec:
                port:
                  name: "http"
     {{- end }}
+    {{- if $.Values.fluentdHost }}
+    - host: {{ $.Values.fluentdHost }}
+      http:
+        paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+               port:
+                 name: "oneuptime-http"
+    {{- end }}
 {{- end }}
