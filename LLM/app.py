@@ -93,12 +93,12 @@ async def lifespan(app:FastAPI):
 # Declare a Pydantic model for the request body
 class Prompt(BaseModel):
    messages: list
-   secretkey: str
+   # secretkey: str
 
 # Declare a Pydantic model for the request body
 class PromptResult(BaseModel):
    id: str
-   secretkey: str
+   # secretkey: str
 
 app = FastAPI(lifespan=lifespan)
 
@@ -119,11 +119,11 @@ async def create_item(prompt: Prompt):
             return {"error": "Prompt is required"}
         
         # Validate the secret key
-        is_valid = await validateSecretKey(prompt.secretkey)
+        # is_valid = await validateSecretKey(prompt.secretkey)
 
-        if not is_valid:
-            print("Invalid secret key")
-            return {"error": "Invalid secret key"}
+        # if not is_valid:
+        #     print("Invalid secret key")
+        #     return {"error": "Invalid secret key"}
         
         # messages are in str format. We need to convert them fron json [] to list
         messages = prompt.messages
@@ -164,11 +164,11 @@ async def prompt_status(prompt_status: PromptResult):
         print(prompt_status)
 
         # Validate the secret key
-        is_valid = await validateSecretKey(prompt_status.secretkey)
+        # is_valid = await validateSecretKey(prompt_status.secretkey)
 
-        if not is_valid:
-            print("Invalid secret key")
-            return {"error": "Invalid secret key"}
+        # if not is_valid:
+        #     print("Invalid secret key")
+        #     return {"error": "Invalid secret key"}
         
         # If not prompt status then return bad request error
         if not prompt_status:

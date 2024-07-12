@@ -10,7 +10,6 @@ Before you deploy LLM Server, you need to make sure you have the following:
 - **Docker Compose**: You need to have Docker Compose installed on your machine.
 - **System Requirements**: You need to have at least 64 GB of RAM, 32 GB GPU (compitable with CUDA & Docker), 8 CPU cores, and 100 GB of disk space. You could get away with less resources, but we recommend the above configuration for optimal performance. 
 - **GPU is accessible by Docker**: You need to make sure that the GPU is accessible by Docker. Please read this [guide](https://docs.docker.com/compose/gpu-support/) for more information.
-- **OneUptime Server URL**: You need to have the URL of OneUptime Server. If you are using SaaS service its `https://oneuptime.com`. If you're self-hosting OneUptime, you need to have the URL of the self-hosted OneUptime Server.
 
 ### Installation
 
@@ -26,8 +25,6 @@ llm:
     ports:
         - '8547:8547'
     image: 'oneuptime/llm:release'
-    environment:    
-        ONEUPTIME_URL: 'https://oneuptime.com'
     deploy:
       resources:
         reservations:
@@ -53,3 +50,7 @@ You can set up TLS/SSL by having a reverse proxy in front of the LLM Server. Thi
 ### Public Access
 
 Please make sure this server is publicly accessible. So, it can be accessed by Copilot. 
+
+### Security
+
+Please also make sure to secure the server by setting up a firewall so only copilot can access it.
