@@ -22,6 +22,15 @@ export function getCodeRepositoryBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS,
+      [
+        "Project",
+        "Reliability Copilot",
+        "View Git Repository",
+        "Pull Requests",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS,
       ["Project", "Reliability Copilot", "View Git Repository", "Settings"],
     ),

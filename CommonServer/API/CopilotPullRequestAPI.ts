@@ -1,7 +1,7 @@
 import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import CopilotActionService, {
-  Service as CopilotActionServiceType,
-} from "../Services/CopilotActionService";
+import CopilotPullRequestService, {
+  Service as CopilotPullRequestServiceType,
+} from "../Services/CopilotPullRequestService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -12,19 +12,17 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import CopilotAction from "Model/Models/CopilotAction";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
 import CopilotPullRequestStatus from "Common/Types/Copilot/CopilotPullRequestStatus";
-import CopilotPullRequestService from "../Services/CopilotPullRequestService";
 
-export default class CopilotActionAPI extends BaseAPI<
-  CopilotAction,
-  CopilotActionServiceType
+export default class CopilotPullRequestAPI extends BaseAPI<
+  CopilotPullRequest,
+  CopilotPullRequestServiceType
 > {
   public constructor() {
-    super(CopilotAction, CopilotActionService);
+    super(CopilotPullRequest, CopilotPullRequestService);
 
     this.router.get(
       `${new this.entityType()

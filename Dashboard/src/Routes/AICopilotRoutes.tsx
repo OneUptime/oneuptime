@@ -29,6 +29,12 @@ const CodeRepositoryView: LazyExoticComponent<
   return import("../Pages/AICopilot/CodeRepository/View/Index");
 });
 
+const CodeRepositoryViewPullRequests: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AICopilot/CodeRepository/View/PullRequests");
+});
+
 const CodeRepositoryViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -78,6 +84,24 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewPullRequests
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                  ] as Route
                 }
               />
             </Suspense>

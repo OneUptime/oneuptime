@@ -42,6 +42,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Code">
+        <SideMenuItem
+          link={{
+            title: "Pull Requests",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Code}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

@@ -49,7 +49,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Copilot Pull Requests",
   icon: IconProp.Bolt,
   tableDescription:
-    "List of pull reuqests created by Copilot and status of those requests.",
+    "List of pull requests created by Copilot and status of those requests.",
 })
 @Entity({
   name: "CopilotPullRequest",
