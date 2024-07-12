@@ -5,18 +5,102 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import CopilotPullRequest from "Model/Models/CopilotPullRequest";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import PullRequestStatusElement from "../../../../Components/CodeRepository/PullRequestStatus";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
+import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import API from "CommonUI/src/Utils/API/API";
+import PullRequestViewElement from "../../../../Components/CodeRepository/PullRequestView";
+import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
+import OneUptimeDate from "Common/Types/Date";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 const CopilotPullRequestPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const codeRepositoryId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  const [codeRepository, setCodeRepository] =
+    useState<CopilotCodeRepository | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCodeRepository: PromiseVoidFunction = async (): Promise<void> => {
+    // get item.
+    setIsLoading(true);
+
+    setError("");
+    try {
+      const item: CopilotCodeRepository | null = await ModelAPI.getItem({
+        modelType: CopilotCodeRepository,
+        id: codeRepositoryId,
+        select: {
+          repositoryHostedAt: true,
+          repositoryName: true,
+          organizationName: true,
+          lastCopilotRunDateTime: true,
+        },
+      });
+
+      if (!item) {
+        setError(`Code Repository not found`);
+
+        return;
+      }
+
+      setCodeRepository(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCodeRepository().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
+
+  if (!codeRepository) {
+    return <ErrorMessage error={"Code Repository not found"} />;
+  }
+
   return (
     <Fragment>
+      {codeRepository.lastCopilotRunDateTime && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Last Run At: "
+          title={`${OneUptimeDate.getDateAsLocalFormattedString(codeRepository.lastCopilotRunDateTime)}. Please re-run copilot to update data.`}
+        />
+      )}
+
+      {!codeRepository.lastCopilotRunDateTime && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Last Run At: "
+          title={`No copilot run has been executed for this code repository. Please run copilot to update data.`}
+        />
+      )}
+
       <ModelTable<CopilotPullRequest>
         modelType={CopilotPullRequest}
         id="table-copiolt-pull-requests"
@@ -71,7 +155,17 @@ const CopilotPullRequestPage: FunctionComponent<
               pullRequestId: true,
             },
             title: "Pull Request ID",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: CopilotPullRequest): ReactElement => {
+              return (
+                <PullRequestViewElement
+                  pullRequestId={item.pullRequestId!}
+                  organizationName={codeRepository.organizationName!}
+                  repositoryName={codeRepository.repositoryName!}
+                  repoType={codeRepository.repositoryHostedAt!}
+                />
+              );
+            },
           },
           {
             field: {

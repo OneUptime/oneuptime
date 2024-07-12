@@ -1,25 +1,52 @@
 import LabelsElement from "../../../../Components/Label/Labels";
 import PageComponentProps from "../../../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
 import Label from "Model/Models/Label";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 const StatusPageView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
+  const [codeRepository, setCodeRepository] =
+    useState<CopilotCodeRepository | null>(null);
+
   return (
     <Fragment>
-      {/* CodeRepository View  */}
-      <CardModelDetail<CodeRepository>
+      {/* CopilotCodeRepository View  */}
+
+      {codeRepository && codeRepository.lastCopilotRunDateTime && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Last Run At: "
+          title={`${OneUptimeDate.getDateAsLocalFormattedString(codeRepository.lastCopilotRunDateTime)}. Please re-run copilot to update data.`}
+        />
+      )}
+
+      {codeRepository && !codeRepository.lastCopilotRunDateTime && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Last Run At: "
+          title={`No copilot run has been executed for this code repository. Please run copilot to update data.`}
+        />
+      )}
+
+      <CardModelDetail<CopilotCodeRepository>
         name="Git Repository > Repository Details"
         cardProps={{
           title: "Repository Details",
@@ -129,8 +156,14 @@ const StatusPageView: FunctionComponent<
           },
         ]}
         modelDetailProps={{
+          selectMoreFields: {
+            lastCopilotRunDateTime: true,
+          },
+          onItemLoaded: (item: CopilotCodeRepository) => {
+            setCodeRepository(item);
+          },
           showDetailsInNumberOfColumns: 2,
-          modelType: CodeRepository,
+          modelType: CopilotCodeRepository,
           id: "model-detail-service-catalog",
           fields: [
             {
@@ -154,7 +187,7 @@ const StatusPageView: FunctionComponent<
               },
               title: "Labels",
               fieldType: FieldType.Element,
-              getElement: (item: CodeRepository): ReactElement => {
+              getElement: (item: CopilotCodeRepository): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
