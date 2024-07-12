@@ -11,6 +11,14 @@ Before you deploy LLM Server, you need to make sure you have the following:
 - **System Requirements**: You need to have at least 64 GB of RAM, 32 GB GPU (compitable with CUDA & Docker), 8 CPU cores, and 100 GB of disk space. You could get away with less resources, but we recommend the above configuration for optimal performance. 
 - **GPU is accessible by Docker**: You need to make sure that the GPU is accessible by Docker. Please read this [guide](https://docs.docker.com/compose/gpu-support/) for more information.
 
+### Environment Variables
+
+You need to set the following environment variables in the `docker-compose.yml` file:
+
+- `HF_TOKEN`: This is the Hugging Face API token. You can get this token by signing up on Hugging Face and creating a new API token.
+- `HF_MODEL_NAME` (optional): This is the model name from Hugging Face. You can get this model name from the Hugging Face model hub. If you do not set this, we will use `meta-llama/Meta-Llama-3-8B-Instruct` as the default model.
+
+
 ### Installation
 
 To deploy LLM Server, you need to follow the following steps with docker-compose: 
@@ -25,6 +33,9 @@ llm:
     ports:
         - '8547:8547'
     image: 'oneuptime/llm:release'
+    environment:
+        - HF_TOKEN=<TOKEN_FROM_HUGGINGFACE>
+        - HF_MODEL_NAME=<MODEL_NAME_FROM_HUGGING_FACE>
     deploy:
       resources:
         reservations:

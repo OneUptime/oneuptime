@@ -188,6 +188,8 @@ services:
         environment:
             <<: *common-server-variables
             PORT: 8547
+            HF_TOKEN: ${LLM_SERVER_HUGGINGFACE_TOKEN}
+            HF_MODEL_NAME: ${LLM_SERVER_HUGGINGFACE_MODEL_NAME}
         volumes:
             - ./LLM/Models:/app/Models
         logging:

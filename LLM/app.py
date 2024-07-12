@@ -11,9 +11,19 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # ENV VARS
 ONEUPTIME_URL = os.getenv("ONEUPTIME_URL")
+HF_MODEL_NAME = os.getenv("HF_MODEL_NAME")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+if not HF_MODEL_NAME:
+    HF_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 if not ONEUPTIME_URL:
     ONEUPTIME_URL = "https://oneuptime.com"
+
+if not HF_TOKEN:
+    # Print error and exit
+    print("HF_TOKEN env var is required. This is the Hugging Face API token. You can get it from https://huggingface.co/account/overview. Exiting..")
+    exit()
 
 print(f"ONEUPTIME_URL: {ONEUPTIME_URL}")
 
@@ -44,9 +54,16 @@ async def validateSecretKey(secretKey):
         return False
 
 async def job(queue):
-    print("Processing queue...")
+    print("Downlaoding model from Hugging Face: "+HF_MODEL_NAME)
 
-    model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
+    # check if the model is meta-llama/Meta-Llama-3-8B-Instruct
+    if HF_MODEL_NAME == "meta-llama/Meta-Llama-3-8B-Instruct":
+        print("If you want to use a different model, please set the HF_MODEL_NAME environment variable.")
+
+    print("This may take a while (minutes or sometimes hours) depending on the model size.")
+
+    # model_path = "/app/Models/Meta-Llama-3-8B-Instruct"
+    model_path = HF_MODEL_NAME
 
     pipe = transformers.pipeline(
         "text-generation", 
@@ -55,6 +72,9 @@ async def job(queue):
         device="cuda" if torch.cuda.is_available() else "cpu",
         # max_new_tokens=8096
         )
+    
+
+    print("Model downloaded.")
 
     while True:
 
