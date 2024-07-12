@@ -1,5 +1,5 @@
 import URL from "Common/Types/API/URL";
-import { GetLlmServerUrl, GetRepositorySecretKey } from "../../Config";
+import { GetLlmServerUrl } from "../../Config";
 import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -39,7 +39,7 @@ export default class Llama extends LlmBase {
               role: message.role,
             };
           }),
-          secretkey: GetRepositorySecretKey(),
+          // secretkey: GetRepositorySecretKey(),
         },
         {},
         {
@@ -85,7 +85,7 @@ export default class Llama extends LlmBase {
           URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
           {
             id: idOfPrompt,
-            secretkey: GetRepositorySecretKey(),
+            // secretkey: GetRepositorySecretKey(),
           },
           {},
           {
