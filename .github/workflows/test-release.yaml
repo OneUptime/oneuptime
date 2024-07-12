@@ -23,7 +23,7 @@ jobs:
     needs: generate-build-number
     strategy:
       fail-fast: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-large
     steps:
 
       # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
@@ -60,9 +60,9 @@ jobs:
         with:
           node-version: 18.3.0
         
-      # Cannot do this, no space on the runner
-      # - name: Download the Model from Hugging Face
-      #   run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
+      # Cannot do this, no space on the gitHub standard runner. We need to use the large runner which is selfhosted
+      - name: Download the Model from Hugging Face
+        run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
