@@ -34,4 +34,16 @@ spec:
                 port:
                   name: "oneuptime-http"
     {{- end }}
+    {{- if $.Values.openTelemetryCollectorHost }}
+    - host: {{ $.Values.openTelemetryCollectorHost }}
+      http:
+        paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+               port:
+                 name: "http"
+    {{- end }}
 {{- end }}
