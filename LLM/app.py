@@ -16,6 +16,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 if not HF_MODEL_NAME:
     HF_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+    print(f"HF_MODEL_NAME not set. Using default model: {HF_MODEL_NAME}")
 
 if not ONEUPTIME_URL:
     ONEUPTIME_URL = "https://oneuptime.com"
