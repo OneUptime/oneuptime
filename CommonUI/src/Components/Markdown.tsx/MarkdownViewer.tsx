@@ -3,6 +3,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ReactMarkdown from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
+import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
+import {dark} from 'react-syntax-highlighter/dist/esm/styles/prism'
+
 
 export interface ComponentProps {
   text: string;
@@ -75,14 +78,23 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           ul: ({ ...props }: any) => {
             return <ul className="list-disc px-6 m-1" {...props} />;
           },
-          code: ({ ...props }: any) => {
-            return (
-              <pre
-                className="bg-gray-50 text-gray-600 p-3 pt-0 pb-0 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto"
-                {...props}
+          code: (props) => {
+            const {children, className, node, ...rest} = props
+            const match = /language-(\w+)/.exec(className || '')
+            return match ? (
+              <SyntaxHighlighter
+                {...rest}
+                PreTag="div"
+                children={String(children).replace(/\n$/, '')}
+                language={match[1]}
+                style={dark}
               />
-            );
-          },
+            ) : (
+              <code {...rest} className={className}>
+                {children}
+              </code>
+            )
+          }
         }}
         remarkPlugins={[remarkGfm]}
       >
