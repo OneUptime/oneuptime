@@ -18,8 +18,11 @@ const PullRequestViewElement: FunctionComponent<ComponentProps> = (
       `https://github.com/${props.organizationName}/${props.repositoryName}/pull/${props.pullRequestId}`,
     );
     return (
-      <Link to={to} openInNewTab={true}>
-        {props.pullRequestId}
+      <Link to={to} className="hover:underline" openInNewTab={true}>
+        <>
+          <span>#</span>
+          {props.pullRequestId}
+        </>
       </Link>
     );
   }

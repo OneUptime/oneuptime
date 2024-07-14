@@ -356,8 +356,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: copilot
-        environment:
-            - LOG_LEVEL=INFO
         build:
             network: host
             context: .

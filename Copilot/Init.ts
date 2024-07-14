@@ -347,7 +347,7 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
 
   logger.info(
     "Repository setup PR created - #" +
-      pullRequest.pullRequestId +
+      pullRequest.pullRequestNumber +
       ". Please megre this PR to continue using Copilot. Exiting..",
   );
 

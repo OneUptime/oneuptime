@@ -19,7 +19,7 @@ const CopilotLastRunAt: FunctionComponent<ComponentProps> = (
       {props.lastRunAt && (
         <Alert
           type={AlertType.INFO}
-          strongTitle="Last Run At: "
+          strongTitle="Copilot Last Ran At"
           title={`${OneUptimeDate.getDateAsLocalFormattedString(props.lastRunAt)}.`}
         />
       )}

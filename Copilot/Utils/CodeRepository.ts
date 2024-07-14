@@ -102,12 +102,14 @@ export default class CodeRepositoryUtil {
       throw new BadDataException("Repository Name is required");
     }
 
-    if (!this.gitHubUtil) {
+    const githubUtil: GitHubUtil = this.getGitHubUtil();
+
+    if (!githubUtil) {
       throw new BadDataException("GitHub Util is required");
     }
 
     const pullRequest: PullRequest | undefined =
-      await this.gitHubUtil.getPullRequestByNumber({
+      await githubUtil.getPullRequestByNumber({
         organizationName:
           this.codeRepositoryResult.codeRepository.organizationName,
         repositoryName: this.codeRepositoryResult.codeRepository.repositoryName,
@@ -135,7 +137,9 @@ export default class CodeRepositoryUtil {
       "/usr/src/app/Templates/.oneuptime",
     );
 
-    const repoPath: string = this.getLocalRepositoryPath();
+    const oneUptimeConfigPath: string = LocalFile.sanitizeFilePath(
+      this.getLocalRepositoryPath() + "/.oneuptime",
+    );
 
     // create a new branch called oneuptime-copilot-setup
 
@@ -145,9 +149,11 @@ export default class CodeRepositoryUtil {
       branchName: branchName,
     });
 
+    await LocalFile.makeDirectory(oneUptimeConfigPath);
+
     await LocalFile.copyDirectory({
       source: templateFolderPath,
-      destination: repoPath,
+      destination: oneUptimeConfigPath,
     });
 
     // add all the files to the git.
@@ -277,7 +283,11 @@ export default class CodeRepositoryUtil {
   }
 
   public static async executeScript(data: { script: string }): Promise<string> {
-    const commands: Array<string> = data.script.split("\n");
+    const commands: Array<string> = data.script
+      .split("\n")
+      .filter((command: string) => {
+        return command.trim() !== "" && !command.startsWith("#");
+      });
 
     const results: Array<string> = [];
 
