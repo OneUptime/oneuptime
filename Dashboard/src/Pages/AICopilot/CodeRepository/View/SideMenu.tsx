@@ -40,6 +40,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.SquareStack}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Info}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Code">

@@ -21,9 +21,8 @@ import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import API from "CommonUI/src/Utils/API/API";
 import PullRequestViewElement from "../../../../Components/CodeRepository/PullRequestView";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
-import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import CopilotLastRunAt from "../../../../Components/Copilot/LastRunMessage";
 
 const CopilotPullRequestPage: FunctionComponent<
   PageComponentProps
@@ -85,21 +84,7 @@ const CopilotPullRequestPage: FunctionComponent<
 
   return (
     <Fragment>
-      {codeRepository.lastCopilotRunDateTime && (
-        <Alert
-          type={AlertType.INFO}
-          strongTitle="Last Run At: "
-          title={`${OneUptimeDate.getDateAsLocalFormattedString(codeRepository.lastCopilotRunDateTime)}. Please re-run copilot to update data.`}
-        />
-      )}
-
-      {!codeRepository.lastCopilotRunDateTime && (
-        <Alert
-          type={AlertType.INFO}
-          strongTitle="Last Run At: "
-          title={`No copilot run has been executed for this code repository. Please run copilot to update data.`}
-        />
-      )}
+      <CopilotLastRunAt lastRunAt={codeRepository?.lastCopilotRunDateTime} />
 
       <ModelTable<CopilotPullRequest>
         modelType={CopilotPullRequest}

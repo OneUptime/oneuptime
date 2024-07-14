@@ -8,6 +8,7 @@ import Express, {
   ExpressResponse,
   ExpressStatic,
 } from "CommonServer/Utils/Express";
+import Response from "CommonServer/Utils/Response";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
 import "ejs";
@@ -19,6 +20,27 @@ const DocsFeatureSet: FeatureSet = {
     app.get("/docs", (_req: ExpressRequest, res: ExpressResponse) => {
       res.redirect("/docs/introduction/getting-started");
     });
+
+    app.get(
+      "/docs/as-markdown/:categorypath/:pagepath",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const fullPath: string =
+            `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();
+
+          // read file from Content folder.
+          const contentInMarkdown: string = await LocalFile.read(
+            `${ContentPath}/${fullPath}.md`,
+          );
+
+          return Response.sendMarkdownResponse(req, res, contentInMarkdown);
+        } catch (err) {
+          logger.error(err);
+          res.status(500);
+          return res.send("Internal Server Error");
+        }
+      },
+    );
 
     app.get(
       "/docs/:categorypath/:pagepath",

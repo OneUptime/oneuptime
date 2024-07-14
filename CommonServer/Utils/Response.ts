@@ -263,6 +263,14 @@ export default class Response {
     oneUptimeResponse.end(html);
   }
 
+  public static sendMarkdownResponse(
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    html: string,
+  ): void {
+    return Response.sendHtmlResponse(_req, res, html);
+  }
+
   public static sendXmlResponse(
     _req: ExpressRequest,
     res: ExpressResponse,

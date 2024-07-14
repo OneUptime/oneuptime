@@ -54,7 +54,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           pre: ({ ...props }: any) => {
             return (
               <pre
-                className="bg-gray-50 text-gray-600 p-3 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto"
+                className="bg-gray-50 text-gray-600 p-3 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto flex"
                 {...props}
               />
             );
