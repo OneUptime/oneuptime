@@ -33,16 +33,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             );
           },
           h3: ({ ...props }: any) => {
-            return <h3 className="text-xl mt-3" {...props} />;
+            return <h3 className="text-xl mt-8" {...props} />;
           },
           h4: ({ ...props }: any) => {
-            return <h4 className="text-lg mt-2" {...props} />;
+            return <h4 className="text-lg mt-5" {...props} />;
           },
           h5: ({ ...props }: any) => {
-            return <h5 className="text-lg mt-1" {...props} />;
+            return <h5 className="text-lg mt-2" {...props} />;
           },
           h6: ({ ...props }: any) => {
-            return <h6 className="text-base " {...props} />;
+            return <h6 className="text-base mt-1" {...props} />;
           },
           p: ({ ...props }: any) => {
             return <p className="text-sm mt-1 mb-3 text-gray-500" {...props} />;
@@ -54,7 +54,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           pre: ({ ...props }: any) => {
             return (
               <pre
-                className="bg-gray-50 text-gray-600 p-3 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto flex"
+                className="bg-gray-50 text-gray-600 p-3 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto"
                 {...props}
               />
             );

@@ -84,7 +84,10 @@ const CopilotPullRequestPage: FunctionComponent<
 
   return (
     <Fragment>
-      <CopilotLastRunAt lastRunAt={codeRepository?.lastCopilotRunDateTime} />
+      <CopilotLastRunAt
+        codeRepositoryId={codeRepositoryId}
+        lastRunAt={codeRepository?.lastCopilotRunDateTime}
+      />
 
       <ModelTable<CopilotPullRequest>
         modelType={CopilotPullRequest}

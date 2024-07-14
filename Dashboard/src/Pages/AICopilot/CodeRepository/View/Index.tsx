@@ -29,7 +29,10 @@ const StatusPageView: FunctionComponent<
     <Fragment>
       {/* CopilotCodeRepository View  */}
 
-      <CopilotLastRunAt lastRunAt={codeRepository?.lastCopilotRunDateTime} />
+      <CopilotLastRunAt
+        codeRepositoryId={modelId}
+        lastRunAt={codeRepository?.lastCopilotRunDateTime}
+      />
 
       <CardModelDetail<CopilotCodeRepository>
         name="Git Repository > Repository Details"

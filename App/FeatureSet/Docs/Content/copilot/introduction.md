@@ -21,19 +21,19 @@ There are three services when running copilot:
 
 ### FAQ
 
-##### Is my code sent to OneUptime?
+**Is my code sent to OneUptime?**
 
 No, your code is not sent to OneUptime. Copilot runs on your CI/CD pipeline and sends the code to LLM Server for analysis. LLM Server can be self-hosted. 
 
-##### Is my code sent to Self-Hosted LLM Server?
+**Is my code sent to Self-Hosted LLM Server?**
 
 Yes, but you can self host LLM server so code is not sent outside of your infrastructure. Your code is sent to LLM Server for analysis. LLM Server is responsible for analyzing the code and fixing issues.
 
-##### Is my code sent to any third-party?
+**Is my code sent to any third-party?**
 
 No. We strictly do not send any telemetry data or code to any third-party.
 
-##### Is my code sent to OpenAI? 
+**Is my code sent to OpenAI?**
 
 No, If you host LLM Server yourself. 
 
