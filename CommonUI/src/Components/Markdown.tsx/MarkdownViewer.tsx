@@ -35,13 +35,13 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             );
           },
           h3: ({ ...props }: any) => {
-            return <h3 className="text-xl mt-8" {...props} />;
+            return <h3 className="text-xl mt-8 mb-5" {...props} />;
           },
           h4: ({ ...props }: any) => {
-            return <h4 className="text-lg mt-5" {...props} />;
+            return <h4 className="text-lg mt-5 mb-3" {...props} />;
           },
           h5: ({ ...props }: any) => {
-            return <h5 className="text-lg mt-2" {...props} />;
+            return <h5 className="text-lg mt-2 mb-1" {...props} />;
           },
           h6: ({ ...props }: any) => {
             return <h6 className="text-base mt-1" {...props} />;
@@ -79,24 +79,28 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
           code: (props: any) => {
             const { children, className, ...rest } = props;
+
+            // eslint-disable-next-line wrap-regex
             const match: RegExpExecArray | null = /language-(\w+)/.exec(
               className || "",
             );
 
-            const content: string = String(children).replace(/\n$/, ""); 
+            const content: string = String(children as string).replace(
+              /\n$/,
+              "",
+            );
 
             return match ? (
               <SyntaxHighlighter
                 {...rest}
                 PreTag="div"
+                // eslint-disable-next-line react/no-children-prop
                 children={content}
                 language={match[1]}
                 style={a11yDark}
               />
             ) : (
-              <code {...rest} className={className}>
-                {children}
-              </code>
+              <code {...rest}>{children}</code>
             );
           },
         }}

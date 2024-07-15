@@ -38,27 +38,27 @@ const Alert: FunctionComponent<ComponentProps> = (
     type = props.type;
   }
 
-  let className: string = "text-blue";
-  let bgClassName: string = "bg-blue";
+  let className: string = "text-gray";
+  let bgClassName: string = "bg-gray";
 
   if (AlertType.DANGER === type) {
     className = "text-red";
-    bgClassName = "bg-red";
+    bgClassName = "bg-gray";
   } else if (AlertType.INFO === type) {
-    className = "text-blue";
-    bgClassName = "bg-blue";
+    className = "text-gray";
+    bgClassName = "bg-gray";
   } else if (AlertType.WARNING === type) {
     className = "text-yellow";
-    bgClassName = "bg-yellow";
+    bgClassName = "bg-gray";
   } else if (AlertType.SUCCESS === type) {
     className = "text-green";
-    bgClassName = "bg-green";
+    bgClassName = "bg-gray";
   }
 
   return (
     <div
       id={props.id}
-      className={`rounded-md ${bgClassName}-50 p-4`}
+      className={`rounded-md ${bgClassName}-700 p-4`}
       data-testid={props.dataTestId}
       onClick={() => {
         props.onClick && props.onClick();
@@ -76,10 +76,10 @@ const Alert: FunctionComponent<ComponentProps> = (
         {!props.doNotShowIcon && (
           <div className="flex-shrink-0">
             {AlertType.DANGER === type && (
-              <Icon icon={IconProp.Alert} className="h-5 w-5 text-red-400" />
+              <Icon icon={IconProp.Alert} className="h-5 w-5 text-red-200" />
             )}
             {AlertType.WARNING === type && (
-              <Icon icon={IconProp.Alert} className="h-5 w-5 text-yellow-400" />
+              <Icon icon={IconProp.Alert} className="h-5 w-5 text-yellow-200" />
             )}
             {AlertType.SUCCESS === type && (
               <Icon
@@ -88,14 +88,14 @@ const Alert: FunctionComponent<ComponentProps> = (
               />
             )}
             {AlertType.INFO === type && (
-              <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-400" />
+              <Icon icon={IconProp.Info} className="h-5 w-5 text-gray-200" />
             )}
           </div>
         )}
         <div
           className={`ml-3 flex-1 md:flex md:justify-between ${props.className}`}
         >
-          <p className={props.textClassName || `text-sm ${className}-600`}>
+          <p className={props.textClassName || `text-sm ${className}-200`}>
             <span className="font-medium">
               {props.strongTitle} {props.title && props.strongTitle ? "-" : ""}{" "}
             </span>
@@ -108,7 +108,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                   props.onClose && props.onClose();
                 }}
                 role={"alert-close-button"}
-                className={`whitespace-nowrap font-medium ${className}-500 hover:${className}-600`}
+                className={`whitespace-nowrap font-medium ${className}-200 hover:${className}-50`}
               >
                 Close
                 <span aria-hidden="true"> &rarr;</span>
