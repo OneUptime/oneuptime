@@ -17,9 +17,8 @@ import logger from "CommonServer/Utils/Logger";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
-    const llmServerUrl: URL = GetLlmServerUrl();
-
     if (GetLlmType() === LlmType.LLM) {
+      const llmServerUrl: URL = GetLlmServerUrl();
       // check status of ll, server
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get(URL.fromString(llmServerUrl.toString()));
