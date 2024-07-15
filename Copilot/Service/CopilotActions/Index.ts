@@ -135,7 +135,11 @@ export default class CopilotActionService {
 
       // add files to stage
 
-      logger.info("Adding files to stage");
+      logger.info("Adding files to stage: ");
+
+      for (const filePath of filePaths) {
+        logger.info(`- ${filePath}`);
+      }
 
       await CodeRepositoryUtil.addFilesToGit({
         filePaths: filePaths,

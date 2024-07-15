@@ -13,6 +13,7 @@ import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
+import logger from "CommonServer/Utils/Logger";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
@@ -40,6 +41,10 @@ export default class InitUtil {
     // Check if the repository type is GitHub and the GitHub token is provided
 
     if (codeRepositoryResult.serviceRepositories.length === 0) {
+      logger.error(
+        "No services found in the repository. Please add services to the repository in OneUptime Dashboard.",
+      );
+
       throw new BadDataException(
         "No services found in the repository. Please add services to the repository in OneUptime Dashboard.",
       );

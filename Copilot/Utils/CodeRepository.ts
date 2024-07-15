@@ -49,6 +49,10 @@ export default class CodeRepositoryUtil {
   public static gitHubUtil: GitHubUtil | null = null;
   public static folderNameOfClonedRepository: string | null = null;
 
+  public static isRepoCloned(): boolean {
+    return Boolean(this.folderNameOfClonedRepository);
+  }
+
   public static async getOpenSetupPullRequest(): Promise<CopilotPullRequest | null> {
     const openPullRequests: Array<CopilotPullRequest> =
       await CopilotPullRequestService.getOpenPullRequestsFromDatabase();
@@ -475,21 +479,29 @@ export default class CodeRepositoryUtil {
   }
 
   public static async discardChanges(): Promise<void> {
-    await CodeRepositoryServerUtil.discardChanges({
-      repoPath: this.getLocalRepositoryPath(),
-    });
+    if (this.isRepoCloned()) {
+      await CodeRepositoryServerUtil.discardChanges({
+        repoPath: this.getLocalRepositoryPath(),
+      });
+    }
   }
 
   public static async checkoutBranch(data: {
     branchName: string;
   }): Promise<void> {
-    await CodeRepositoryServerUtil.checkoutBranch({
-      repoPath: this.getLocalRepositoryPath(),
-      branchName: data.branchName,
-    });
+    if (this.isRepoCloned()) {
+      await CodeRepositoryServerUtil.checkoutBranch({
+        repoPath: this.getLocalRepositoryPath(),
+        branchName: data.branchName,
+      });
+    }
   }
 
   public static async checkoutMainBranch(): Promise<void> {
+    if (!this.isRepoCloned()) {
+      return;
+    }
+
     const codeRepository: CopilotCodeRepository =
       await this.getCodeRepository();
 
@@ -684,6 +696,8 @@ export default class CodeRepositoryUtil {
     if (this.codeRepositoryResult) {
       return this.codeRepositoryResult;
     }
+
+    logger.info("Fetching Code Repository...");
 
     const repositorySecretKey: string | null = GetRepositorySecretKey();
 

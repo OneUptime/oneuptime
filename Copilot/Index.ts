@@ -14,6 +14,7 @@ Init()
   })
   .catch(async (error: Error | HTTPErrorResponse) => {
     try {
+      logger.error(error);
       await CodeRepositoryUtil.discardChanges();
 
       // change back to main branch.
