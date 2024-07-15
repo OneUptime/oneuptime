@@ -117,8 +117,7 @@ jobs:
           -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
           -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
           -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
-          --net=host
-          oneuptime/copilot:release
+          --net=host oneuptime/copilot:release
 ```
 
 #### Docker
@@ -133,8 +132,7 @@ docker run --rm \
     -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
     -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
     -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
-    --net=host
-    oneuptime/copilot:release
+    --net=host oneuptime/copilot:release
 ```
 
 ### Support

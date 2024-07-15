@@ -39,6 +39,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Dependencies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.SquareStack}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

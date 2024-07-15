@@ -125,6 +125,7 @@ import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
 import CopilotPullRequestService from "./CopilotPullRequestService";
+import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -257,6 +258,7 @@ const services: Array<BaseService> = [
   ServiceCatalogService,
   ServiceCatalogOwnerTeamService,
   ServiceCatalogOwnerUserService,
+  ServiceCatalogDependencyService,
 
   CodeRepositoryService,
   CopilotActionService,

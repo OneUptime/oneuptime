@@ -460,7 +460,6 @@ enum Permission {
   EditServiceCatalog = "EditServiceCatalog",
   ReadServiceCatalog = "ReadServiceCatalog",
 
-
   CreateServiceCatlogDependency = "CreateServiceCatlogDependency",
   DeleteServiceCatlogDependency = "DeleteServiceCatlogDependency",
   EditServiceCatlogDependency = "EditServiceCatlogDependency",
@@ -2554,11 +2553,11 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
 
-
       {
         permission: Permission.CreateServiceCatlogDependency,
         title: "Create Service Catalog",
-        description: "This permission can create Service Catalog Dependencies this project.",
+        description:
+          "This permission can create Service Catalog Dependencies this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

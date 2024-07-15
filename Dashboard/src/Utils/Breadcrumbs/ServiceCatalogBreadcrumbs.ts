@@ -18,6 +18,12 @@ export function getServiceCatalogBreadcrumbs(
       "View Service",
       "Owners",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES, [
+      "Project",
+      "Service Catalog",
+      "View Service",
+      "Dependencies",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_DELETE, [
       "Project",
       "Service Catalog",

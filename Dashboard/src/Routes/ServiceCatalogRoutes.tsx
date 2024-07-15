@@ -44,6 +44,12 @@ const ServiceCatalogViewOwners: LazyExoticComponent<
   return import("../Pages/ServiceCatalog/View/Owners");
 });
 
+const ServiceCatalogViewDependencies: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Dependencies");
+});
+
 const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -119,6 +125,22 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SERVICE_CATALOG_VIEW_OWNERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewDependencies
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES] as Route
                 }
               />
             </Suspense>

@@ -1,16 +1,12 @@
-import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "Common/Models/BaseModel";
 import Route from "Common/Types/API/Route";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import Color from "Common/Types/Color";
 import ColumnAccessControl from "Common/Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "Common/Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "Common/Types/Database/AccessControl/TableBillingAccessControl";
-import AccessControlColumn from "Common/Types/Database/AccessControlColumn";
 import CanAccessIfCanReadOn from "Common/Types/Database/CanAccessIfCanReadOn";
-import ColumnLength from "Common/Types/Database/ColumnLength";
 import ColumnType from "Common/Types/Database/ColumnType";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "Common/Types/Database/EnableDocumentation";
@@ -20,20 +16,11 @@ import TableColumn from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import TableMetadata from "Common/Types/Database/TableMetadata";
 import TenantColumn from "Common/Types/Database/TenantColumn";
-import UniqueColumnBy from "Common/Types/Database/UniqueColumnBy";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import ServiceLanguage from "Common/Types/ServiceCatlogDependency/ServiceLanguage";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import ServiceCatalog from "./ServiceCatalog";
 
 @CanAccessIfCanReadOn("serviceCatalogId")
 @EnableDocumentation()
@@ -159,9 +146,145 @@ export default class ServiceCatlogDependency extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatlogDependency,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatlogDependency,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "serviceCatalogId",
+    type: TableColumnType.Entity,
+    modelType: ServiceCatalog,
+    title: "Service Catalog",
+    description:
+      "Relation to Service Catalog Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return ServiceCatalog;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "serviceCatalogId" })
+  public serviceCatalog?: ServiceCatalog = undefined;
 
-  
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatlogDependency,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatlogDependency,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Service Catalog ID",
+    description:
+      "ID of your OneUptime Service Catalog in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public serviceCatalogId?: ObjectID = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatlogDependency,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatlogDependency,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "dependencyServiceCatalogId",
+    type: TableColumnType.Entity,
+    modelType: ServiceCatalog,
+    title: "Service Catalog",
+    description:
+      "Relation to Service Catalog Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return ServiceCatalog;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "dependencyServiceCatalogId" })
+  public dependencyServiceCatalog?: ServiceCatalog = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatlogDependency,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatlogDependency,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Dependency Service Catalog ID",
+    description:
+      "ID of your OneUptime Service Catalog in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dependencyServiceCatalogId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -286,5 +409,4 @@ export default class ServiceCatlogDependency extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
 }

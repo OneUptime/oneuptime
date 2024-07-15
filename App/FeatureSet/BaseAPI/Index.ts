@@ -209,6 +209,9 @@ import ServiceCatalogService, {
 import ServiceCopilotCodeRepositoryService, {
   Service as ServiceCopilotCodeRepositoryType,
 } from "CommonServer/Services/ServiceCopilotCodeRepositoryService";
+import ServiceCatalogDependencyService, {
+  Service as ServiceCatalogDependencyServiceType,
+} from "CommonServer/Services/ServiceCatalogDependencyService";
 import ShortLinkService, {
   Service as ShortLinkServiceType,
 } from "CommonServer/Services/ShortLinkService";
@@ -389,6 +392,7 @@ import WorkflowLog from "Model/Models/WorkflowLog";
 import WorkflowVariable from "Model/Models/WorkflowVariable";
 import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
 import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
+import ServiceCatalogDependency from "Model/Models/ServiceCatalogDependency";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -439,6 +443,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         ShortLink,
         ShortLinkService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceCatalogDependency,
+        ServiceCatalogDependencyServiceType
+      >(ServiceCatalogDependency, ServiceCatalogDependencyService).getRouter(),
     );
 
     app.use(

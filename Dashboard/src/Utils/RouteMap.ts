@@ -28,6 +28,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
 export const ServiceCatalogRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
   [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
@@ -510,6 +511,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service-catalog/${
       ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]
     }`,
   ),
 

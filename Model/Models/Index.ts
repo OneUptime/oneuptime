@@ -127,6 +127,7 @@ import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
 import CopilotPullRequest from "./CopilotPullRequest";
+import ServiceCatalogDependency from "./ServiceCatalogDependency";
 
 export default [
   User,
@@ -267,6 +268,7 @@ export default [
   ServiceCatalog,
   ServiceCatalogOwnerTeam,
   ServiceCatalogOwnerUser,
+  ServiceCatalogDependency,
 
   CopilotCodeRepository,
   CopilotAction,
