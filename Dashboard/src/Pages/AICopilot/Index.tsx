@@ -99,21 +99,6 @@ const CodeRepositoryPage: FunctionComponent<
           },
           {
             field: {
-              mainBranchName: true,
-            },
-            title: "Main Branch Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "master",
-            validation: {
-              minLength: 2,
-              noSpaces: true,
-              noSpecialCharacters: true,
-            },
-            stepId: "details",
-          },
-          {
-            field: {
               repositoryHostedAt: true,
             },
             title: "Repository Hosted At",
@@ -141,6 +126,21 @@ const CodeRepositoryPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "repo-name",
+            stepId: "details",
+          },
+          {
+            field: {
+              mainBranchName: true,
+            },
+            title: "Main Branch Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "master",
+            validation: {
+              minLength: 2,
+              noSpaces: true,
+              noSpecialCharacters: true,
+            },
             stepId: "details",
           },
         ]}

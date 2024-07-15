@@ -56,6 +56,8 @@ const ServiceCopilotCodeRepositoryPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Select Service",
+            description:
+              "Select the service that this repository is for. You can add a service from the Service Catalog.",
             dropdownModal: {
               type: ServiceCatalog,
               labelField: "name",
