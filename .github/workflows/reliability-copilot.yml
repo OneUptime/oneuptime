@@ -17,22 +17,16 @@ jobs:
   analyze:
     name: Analyze Code
     runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    permissions:
-      actions: read
-      # We will never commit to the main/master branch. We will always create a PR.
-      contents: write
-      security-events: write
 
     steps:
       
     # Run Reliability Copilot in Doker Container
     - name: Run Copilot
       run: |
-        docker run --rm oneuptime/copilot:test \ 
+        docker run --rm  \ 
             -e ONEUPTIME_URL='https://test.oneuptime.com' \
             -e ONEUPTIME_REPOSITORY_SECRET_KEY=${{ secrets.COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY }} \
             -e CODE_REPOSITORY_PASSWORD=${{ github.token }} \
             -e CODE_REPOSITORY_USERNAME='simlarsen' \
-            -e ONEUPTIME_LLM_SERVER_URL='http://57.128.112.160:8547'
+            -e ONEUPTIME_LLM_SERVER_URL='http://57.128.112.160:8547' \ 
+            oneuptime/copilot:test

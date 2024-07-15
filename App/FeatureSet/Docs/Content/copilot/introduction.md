@@ -104,8 +104,6 @@ jobs:
   analyze:
     name: Analyze Code
     runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
 
     steps:
       
