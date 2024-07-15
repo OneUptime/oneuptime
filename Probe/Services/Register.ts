@@ -31,7 +31,7 @@ export default class Register {
     if (!pingMonitoringCheck && websiteMonitoringCheck) {
       // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
       logger.warn(
-        "Ping monitoring is disabled on this machine. Fallback to port monitoring",
+        "Ping monitoring is disabled on this machine. Ping/ICMP checks are usually disabled by cloud providers (Azure, AWS, GCP, etc.). If you need ICMP checks, please use a different provider or use port checks.",
       );
       LocalCache.setString("PROBE", "PING_MONITORING", "PORT");
     }
