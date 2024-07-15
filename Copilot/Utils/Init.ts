@@ -2,6 +2,7 @@ import {
   GetCodeRepositoryPassword,
   GetLlmServerUrl,
   GetLlmType,
+  GetOneUptimeURL,
   GetRepositorySecretKey,
 } from "../Config";
 import CodeRepositoryUtil, { CodeRepositoryResult } from "./CodeRepository";
@@ -28,6 +29,17 @@ export default class InitUtil {
           "Llama server is not reachable. Please check the server URL in the environment variables.",
         );
       }
+    }
+
+    // check if oneuptime server is up. 
+    const oneuptimeServerUrl: URL = GetOneUptimeURL();
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get(URL.fromString(oneuptimeServerUrl.toString()+"/status"));
+
+    if (result instanceof HTTPErrorResponse) {
+      throw new BadDataException(
+        `OneUptime ${GetOneUptimeURL().toString()} is not reachable.  Please check the server URL in the environment variables.`,
+      );
     }
 
     if (!GetRepositorySecretKey()) {
