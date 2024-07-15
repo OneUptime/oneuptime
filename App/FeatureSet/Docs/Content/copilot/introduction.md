@@ -111,14 +111,14 @@ jobs:
     - name: Run Copilot
       run: |
         docker run --rm  \ 
-            -e CODE_REPOSITORY_PASSWORD='<YOUR_GITHUB_PASSWORD>' \ # Required. Please make sure to use GitHub secrets. 
-            -e CODE_REPOSITORY_USERNAME='<YOUR_GITHUB_USERNAME>' \ # Required.
-            -e ONEUPTIME_URL='https://oneuptime.com' \ # Optional. Leave empty to use OneUptime Cloud. 
-            -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
-            -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
-            -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
-            --net=host
-            oneuptime/copilot:release
+          -e CODE_REPOSITORY_PASSWORD='<YOUR_GITHUB_PASSWORD>' \ # Required. Please make sure to use GitHub secrets. 
+          -e CODE_REPOSITORY_USERNAME='<YOUR_GITHUB_USERNAME>' \ # Required.
+          -e ONEUPTIME_URL='https://oneuptime.com' \ # Optional. Leave empty to use OneUptime Cloud. 
+          -e ONEUPTIME_REPOSITORY_SECRET_KEY='<ONEUPTIME_REPOSITORY_SECRET_KEY>' \ # Required. Please make sure to use GitHub secrets. 
+          -e ONEUPTIME_LLM_SERVER_URL='<YOUR_ONEUPTIME_LLM_SERVER>' \ # Optional. Leave empty to use OneUptime LLM Server. 
+          -e OPENAI_API_KEY='<YOUR_OPENAI_API_KEY>' \ # Optional. Leave empty to not use OpenAI.
+          --net=host
+          oneuptime/copilot:release
 ```
 
 #### Docker
