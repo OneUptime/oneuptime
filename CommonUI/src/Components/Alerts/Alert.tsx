@@ -43,7 +43,7 @@ const Alert: FunctionComponent<ComponentProps> = (
 
   if (AlertType.DANGER === type) {
     className = "text-red";
-    bgClassName = "bg-gray";
+    bgClassName = "bg-red";
   } else if (AlertType.INFO === type) {
     className = "text-gray";
     bgClassName = "bg-gray";

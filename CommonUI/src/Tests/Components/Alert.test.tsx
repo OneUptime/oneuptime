@@ -59,7 +59,7 @@ describe("alert tests", () => {
     const icon: HTMLElement = screen.getByRole("icon");
     expect(icon).toBeInTheDocument();
     const testId: HTMLElement = screen.getByTestId("test-id");
-    expect(testId).toHaveClass("rounded-md bg-gray-700 p-4");
+    expect(testId).toHaveClass("rounded-md bg-red-700 p-4");
   });
   test("it should have a title content displayed in document", () => {
     render(<Alert title="title" />);

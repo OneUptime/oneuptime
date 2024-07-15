@@ -123,6 +123,7 @@ enum IconProp {
   Template = "Template",
   NoSignal = "NoSignal",
   EyeSlash = "EyeSlash",
+  SquareStack3D = "SquareStack3D",
 }
 
 export default IconProp;
