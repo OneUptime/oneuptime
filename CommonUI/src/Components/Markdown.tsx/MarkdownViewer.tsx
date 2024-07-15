@@ -21,7 +21,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h1: ({ ...props }: any) => {
             return (
               <h1
-                className="text-3xl mt-5 border border-gray-200 border-r-0  border-l-0 border-t-0 pb-1 mb-5"
+                className="text-3xl mt-5 border border-gray-200 border-r-0  border-l-0 border-t-0 pb-1 mb-8 text-gray-800 font-medium"
                 {...props}
               />
             );
@@ -29,34 +29,56 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h2: ({ ...props }: any) => {
             return (
               <h2
-                className="text-2xl mt-4 border border-gray-200 border-r-0  border-l-0 border-t-0 pb-1 mb-4"
+                className="text-2xl mt-4 border border-gray-200 border-r-0  border-l-0 border-t-0 pb-1 mb-8 text-gray-800 font-medium"
                 {...props}
               />
             );
           },
           h3: ({ ...props }: any) => {
-            return <h3 className="text-xl mt-8 mb-5" {...props} />;
+            return (
+              <h3
+                className="text-xl mt-12 mb-3 text-gray-800 font-medium"
+                {...props}
+              />
+            );
           },
           h4: ({ ...props }: any) => {
-            return <h4 className="text-lg mt-5 mb-3" {...props} />;
+            return (
+              <h4
+                className="text-lg mt-8 mb-3 text-gray-800 font-medium"
+                {...props}
+              />
+            );
           },
           h5: ({ ...props }: any) => {
-            return <h5 className="text-lg mt-2 mb-1" {...props} />;
+            return (
+              <h5
+                className="text-lg mt-5 mb-1 text-gray-800 font-medium"
+                {...props}
+              />
+            );
           },
           h6: ({ ...props }: any) => {
-            return <h6 className="text-base mt-1" {...props} />;
+            return (
+              <h6
+                className="text-base mt-3 text-gray-800 font-medium"
+                {...props}
+              />
+            );
           },
           p: ({ ...props }: any) => {
-            return <p className="text-sm mt-1 mb-3 text-gray-500" {...props} />;
+            return <p className="text-sm mt-2 mb-3 text-gray-500" {...props} />;
           },
           a: ({ ...props }: any) => {
-            return <a className="underline text-blue-500" {...props} />;
+            return (
+              <a className="underline text-blue-500 font-medium" {...props} />
+            );
           },
 
           pre: ({ ...props }: any) => {
             return (
               <pre
-                className="bg-gray-50 text-gray-600 p-3 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto"
+                className="text-gray-600 mt-4 mb-2 rounded text-sm text-sm overflow-x-auto "
                 {...props}
               />
             );
@@ -90,6 +112,15 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               "",
             );
 
+            const codeClassName: string =
+              content.includes("\n") ||
+              (match &&
+                match?.filter((item: string) => {
+                  return item.includes("language-");
+                }).length > 0)
+                ? ""
+                : "text-sm p-1 bg-gray-100 rounded text-gray-900 pl-2 pr-2 text-xs";
+
             return match ? (
               <SyntaxHighlighter
                 {...rest}
@@ -100,7 +131,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                 style={a11yDark}
               />
             ) : (
-              <code {...rest}>{children}</code>
+              <code className={codeClassName} {...rest}>
+                {children}
+              </code>
             );
           },
         }}
