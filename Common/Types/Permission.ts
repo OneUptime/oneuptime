@@ -460,6 +460,12 @@ enum Permission {
   EditServiceCatalog = "EditServiceCatalog",
   ReadServiceCatalog = "ReadServiceCatalog",
 
+
+  CreateServiceCatlogDependency = "CreateServiceCatlogDependency",
+  DeleteServiceCatlogDependency = "DeleteServiceCatlogDependency",
+  EditServiceCatlogDependency = "EditServiceCatlogDependency",
+  ReadServiceCatlogDependency = "ReadServiceCatlogDependency",
+
   CreateCopilotCodeRepository = "CreateCopilotCodeRepository",
   DeleteCopilotCodeRepository = "DeleteCopilotCodeRepository",
   EditCopilotCodeRepository = "EditCopilotCodeRepository",
@@ -2546,6 +2552,39 @@ export class PermissionHelper {
           "This permission can read Service Catalog of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+      },
+
+
+      {
+        permission: Permission.CreateServiceCatlogDependency,
+        title: "Create Service Catalog",
+        description: "This permission can create Service Catalog Dependencies this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceCatlogDependency,
+        title: "Delete Service Catalog Dependency",
+        description:
+          "This permission can delete Service Catalog Dependencies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceCatlogDependency,
+        title: "Edit Service Catalog Dependency",
+        description:
+          "This permission can edit Service Catalog Dependencies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceCatlogDependency,
+        title: "Read Service Catalog Dependency",
+        description:
+          "This permission can read Service Catalog Dependencies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
       },
 
       {
