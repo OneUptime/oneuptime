@@ -21,7 +21,7 @@ export default class ServiceFileTypesUtil {
     return [".DS_Store", "Thumbs.db", ".gitignore", ".gitattributes"];
   }
 
-  public static getCommonFilesToIgnoreByServiceLanguage(
+  public static getCommonFilesToIgnoreByTechStackItem(
     techStack: TechStack,
   ): string[] {
     let filesToIgnore: string[] = [];
@@ -85,6 +85,20 @@ export default class ServiceFileTypesUtil {
         filesToIgnore = [];
     }
 
+    return filesToIgnore;
+  }
+
+  public static getCommonFilesToIgnoreByTechStack(
+    techStack: Array<TechStack>,
+  ): string[] {
+    let filesToIgnore: string[] = [];
+
+    for (const stack of techStack) {
+      filesToIgnore = filesToIgnore.concat(
+        this.getCommonFilesToIgnoreByTechStackItem(stack),
+      );
+    }
+
     return filesToIgnore
       .concat(this.getCommonFilesToIgnore())
       .concat(this.getCommonDirectoriesToIgnore());
@@ -95,7 +109,7 @@ export default class ServiceFileTypesUtil {
     return [".md", "dockerfile", ".yml", ".yaml", ".sh", ".gitignore"];
   }
 
-  public static getFileExtentionsByServiceLanguage(
+  public static getFileExtentionsByTechStackItem(
     techStack: TechStack,
   ): string[] {
     let fileExtentions: Array<string> = [];
@@ -151,6 +165,23 @@ export default class ServiceFileTypesUtil {
         break;
       default:
         fileExtentions = [];
+    }
+
+    return fileExtentions;
+  }
+
+  public static getFileExtentionsByTechStack(
+    techStack: Array<TechStack>,
+  ): string[] {
+    let fileExtentions: Array<string> = [];
+
+    for (let i: number = 0; i < techStack.length; i++) {
+      if (!techStack[i]) {
+        continue;
+      }
+      fileExtentions = fileExtentions.concat(
+        this.getFileExtentionsByTechStackItem(techStack[i]!),
+      );
     }
 
     // add common files extentions

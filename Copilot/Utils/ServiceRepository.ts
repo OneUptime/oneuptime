@@ -54,11 +54,11 @@ export default class ServiceCopilotCodeRepositoryUtil {
         repoPath: CodeRepositoryUtil.getLocalRepositoryPath(),
         directoryPath: serviceRepository.servicePathInRepository || ".",
         acceptedFileExtensions:
-          ServiceFileTypesUtil.getFileExtentionsByServiceLanguage(
+          ServiceFileTypesUtil.getFileExtentionsByTechStack(
             serviceRepository.serviceCatalog!.techStack!,
           ),
         ignoreFilesOrDirectories:
-          ServiceFileTypesUtil.getCommonFilesToIgnoreByServiceLanguage(
+          ServiceFileTypesUtil.getCommonFilesToIgnoreByTechStack(
             serviceRepository.serviceCatalog!.techStack!,
           ),
       });
