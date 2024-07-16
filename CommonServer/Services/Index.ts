@@ -84,6 +84,8 @@ import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStat
 import ServiceCatalogOwnerTeamService from "./ServiceCatalogOwnerTeamService";
 import ServiceCatalogOwnerUserService from "./ServiceCatalogOwnerUserService";
 import ServiceCatalogService from "./ServiceCatalogService";
+import ServiceCatalogMonitorService from "./ServiceCatalogMonitorService";
+import ServiceCatalogTelemetryServiceService from "./ServiceCatalogTelemetryServiceService";
 import ServiceCopilotCodeRepositoryService from "./ServiceCopilotCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
@@ -259,6 +261,8 @@ const services: Array<BaseService> = [
   ServiceCatalogOwnerTeamService,
   ServiceCatalogOwnerUserService,
   ServiceCatalogDependencyService,
+  ServiceCatalogMonitorService,
+  ServiceCatalogTelemetryServiceService,
 
   CodeRepositoryService,
   CopilotActionService,

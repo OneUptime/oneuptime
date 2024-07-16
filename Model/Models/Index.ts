@@ -129,7 +129,7 @@ import WorkflowVariables from "./WorkflowVariable";
 import CopilotPullRequest from "./CopilotPullRequest";
 import ServiceCatalogDependency from "./ServiceCatalogDependency";
 import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
-import ServiceCatalogTelemetryService from "./TelemetryServiceServiceCatalog";
+import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
 export default [
   User,

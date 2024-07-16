@@ -212,6 +212,16 @@ import ServiceCopilotCodeRepositoryService, {
 import ServiceCatalogDependencyService, {
   Service as ServiceCatalogDependencyServiceType,
 } from "CommonServer/Services/ServiceCatalogDependencyService";
+import ServiceCatalogMonitor from "Model/Models/ServiceCatalogMonitor";
+import ServiceCatalogMonitorService, {
+  Service as ServiceCatalogMonitorServiceType,
+} from "CommonServer/Services/ServiceCatalogMonitorService";
+
+import ServiceCatalogTelemetryService from "Model/Models/TelemetryServiceServiceCatalog";
+import ServiceCatalogTelemetryServiceService, {
+  Service as ServiceCatalogTelemetryServiceServiceType,
+} from "CommonServer/Services/ServiceCatalogTelemetryServiceService";
+
 import ShortLinkService, {
   Service as ShortLinkServiceType,
 } from "CommonServer/Services/ShortLinkService";
@@ -461,6 +471,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         StatusPageHistoryChartBarColorRule,
         StatusPageHistoryChartBarColorRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceCatalogMonitor, ServiceCatalogMonitorServiceType>(
+        ServiceCatalogMonitor,
+        ServiceCatalogMonitorService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceCatalogTelemetryService,
+        ServiceCatalogTelemetryServiceServiceType
+      >(
+        ServiceCatalogTelemetryService,
+        ServiceCatalogTelemetryServiceService,
       ).getRouter(),
     );
 
