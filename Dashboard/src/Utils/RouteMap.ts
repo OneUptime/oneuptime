@@ -535,6 +535,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_MONITORS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGES_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/*`,
   ),
