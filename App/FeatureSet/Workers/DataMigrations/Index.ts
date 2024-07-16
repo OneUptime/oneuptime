@@ -31,6 +31,7 @@ import MoveGreenlockCertsToAcmeCerts from "./MoveGreenlockCertsToAcmeCerts";
 import RemoveCanFromPermissions from "./RemoveCanFromPermissions";
 import UpdateActiveMonitorCountToBillingProvider from "./UpdateActiveMonitorCountToBillingProvider";
 import UpdateGlobalConfigFromEnv from "./UpdateGlobalCongfigFromEnv";
+import MigrateServiceLanguageToTechStack from "./MigrateServiceLanguageToTechStack";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -67,6 +68,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddAggregationTemporalityToMetric(),
   new AddPointTypeToMetric(),
   new AddIsMonotonicToMetric(),
+  new MigrateServiceLanguageToTechStack(),
 ];
 
 export default DataMigrations;

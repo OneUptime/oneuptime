@@ -23,7 +23,7 @@ import UniqueColumnBy from "Common/Types/Database/UniqueColumnBy";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import {
   Column,
   Entity,
@@ -460,6 +460,22 @@ export default class ServiceCatalog extends BaseModel {
   })
   public serviceColor?: Color = undefined;
 
+
+  // This column is deprecated and will be removed in the future.
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Service Language",
+    description: "Language in which this service is written",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public serviceLanguage?: TechStack = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -483,15 +499,14 @@ export default class ServiceCatalog extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
-    title: "Service Language",
-    description: "Language in which this service is written",
+    title: "Tech Stack",
+    description: "Tech stack used in the service. This will help other developers understand the service better.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.JSON,
   })
-  public serviceLanguage?: ServiceLanguage = undefined;
+  public techStack?: Array<TechStack> = undefined;
 }

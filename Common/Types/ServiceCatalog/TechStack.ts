@@ -1,4 +1,4 @@
-export enum ServiceLanguage {
+export enum TechStack {
   NodeJS = "NodeJS",
   React = "React",
   Python = "Python",
@@ -18,4 +18,4 @@ export enum ServiceLanguage {
   Other = "Other",
 }
 
-export default ServiceLanguage;
+export default TechStack;

@@ -217,7 +217,7 @@ import ServiceCatalogMonitorService, {
   Service as ServiceCatalogMonitorServiceType,
 } from "CommonServer/Services/ServiceCatalogMonitorService";
 
-import ServiceCatalogTelemetryService from "Model/Models/TelemetryServiceServiceCatalog";
+import ServiceCatalogTelemetryService from "Model/Models/ServiceCatalogTelemetryService";
 import ServiceCatalogTelemetryServiceService, {
   Service as ServiceCatalogTelemetryServiceServiceType,
 } from "CommonServer/Services/ServiceCatalogTelemetryServiceService";

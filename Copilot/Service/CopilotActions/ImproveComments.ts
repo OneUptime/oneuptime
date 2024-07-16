@@ -5,7 +5,7 @@ import CopilotActionBase, {
   PromptRole,
 } from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import { CopilotPromptResult } from "../LLM/LLMBase";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import Text from "Common/Types/Text";
@@ -204,9 +204,9 @@ export default class ImproveComments extends CopilotActionBase {
     data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt> {
-    const fileLanguage: ServiceLanguage = data.input.files[
+    const fileLanguage: TechStack = data.input.files[
       data.input.currentFilePath
-    ]?.fileLanguage as ServiceLanguage;
+    ]?.fileLanguage as TechStack;
 
     const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
 

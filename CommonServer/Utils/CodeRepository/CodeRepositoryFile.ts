@@ -1,4 +1,4 @@
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 
 export default interface CodeRepositoryFile {
   filePath: string;
@@ -6,5 +6,5 @@ export default interface CodeRepositoryFile {
   fileExtension: string;
   fileName: string;
   fileContent: string;
-  fileLanguage: ServiceLanguage;
+  fileLanguage: TechStack;
 }

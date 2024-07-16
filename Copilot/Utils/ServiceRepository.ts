@@ -1,26 +1,26 @@
 import ServiceFileTypesUtil from "./ServiceFileTypes";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import CodeRepositoryCommonServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
-import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
+import ServiceLanguageUtil from "Common/Utils/TechStack";
 import CodeRepositoryUtil from "./CodeRepository";
 
 export default class ServiceCopilotCodeRepositoryUtil {
   public static async getFileLanguage(data: {
     filePath: string;
-  }): Promise<ServiceLanguage> {
+  }): Promise<TechStack> {
     const fileExtention: string = LocalFile.getFileExtension(data.filePath);
 
-    const serviceLanguage: ServiceLanguage =
+    const techStack: TechStack =
       ServiceLanguageUtil.getLanguageByFileExtension({
         fileExtension: fileExtention,
       });
 
-    return serviceLanguage;
+    return techStack;
   }
 
   public static async getFileContent(data: {
@@ -42,7 +42,7 @@ export default class ServiceCopilotCodeRepositoryUtil {
   }): Promise<Dictionary<CodeRepositoryFile>> {
     const { serviceRepository } = data;
 
-    if (!serviceRepository.serviceCatalog?.serviceLanguage) {
+    if (!serviceRepository.serviceCatalog?.techStack) {
       throw new BadDataException(
         "Service language is not defined in the service catalog",
       );
@@ -54,11 +54,11 @@ export default class ServiceCopilotCodeRepositoryUtil {
         directoryPath: serviceRepository.servicePathInRepository || ".",
         acceptedFileExtensions:
           ServiceFileTypesUtil.getFileExtentionsByServiceLanguage(
-            serviceRepository.serviceCatalog!.serviceLanguage!,
+            serviceRepository.serviceCatalog!.techStack!,
           ),
         ignoreFilesOrDirectories:
           ServiceFileTypesUtil.getCommonFilesToIgnoreByServiceLanguage(
-            serviceRepository.serviceCatalog!.serviceLanguage!,
+            serviceRepository.serviceCatalog!.techStack!,
           ),
       });
 

@@ -1,7 +1,7 @@
 import LabelsElement from "../../../Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
@@ -62,17 +62,17 @@ const StatusPageView: FunctionComponent<
           },
           {
             field: {
-              serviceLanguage: true,
+              techStack: true,
             },
             stepId: "service-info",
-            title: "Service Language / Framework",
+            title: "Tech Stack",
             description:
               "The language or framework used to build this service.",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: true,
-            placeholder: "Service Language",
+            placeholder: "Tech Stack",
             dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(ServiceLanguage),
+              DropdownUtil.getDropdownOptionsFromEnum(TechStack),
           },
           {
             field: {
@@ -111,9 +111,9 @@ const StatusPageView: FunctionComponent<
             },
             {
               field: {
-                serviceLanguage: true,
+                techStack: true,
               },
-              title: "Service Language / Framework",
+              title: "TechStack",
             },
             {
               field: {

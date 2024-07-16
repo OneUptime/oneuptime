@@ -3,7 +3,7 @@ import LocalFile from "../LocalFile";
 import logger from "../Logger";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
-import ServiceLanguageUtil from "Common/Utils/ServiceLanguage";
+import ServiceLanguageUtil from "Common/Utils/TechStack";
 
 export default class CodeRepositoryUtil {
   public static async addAllChangedFilesToGit(data: {

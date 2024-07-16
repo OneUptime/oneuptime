@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
-import ServiceLanguage from "Common/Types/ServiceCatalog/ServiceLanguage";
+import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Page from "CommonUI/src/Components/Page/Page";
@@ -76,16 +76,16 @@ const ServiceCatalogPage: FunctionComponent<
           },
           {
             field: {
-              serviceLanguage: true,
+              techStack: true,
             },
-            title: "Service Language / Framework",
+            title: "Tech Stack",
             description:
-              "The language or framework used to build this service.",
-            fieldType: FormFieldSchemaType.Dropdown,
+              "Tech stack used in the service. This will help other developers understand the service better.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: true,
-            placeholder: "Service Language",
+            placeholder: "Tech Stack",
             dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(ServiceLanguage),
+              DropdownUtil.getDropdownOptionsFromEnum(TechStack),
           },
         ]}
         showRefreshButton={true}
@@ -148,9 +148,9 @@ const ServiceCatalogPage: FunctionComponent<
           },
           {
             field: {
-              serviceLanguage: true,
+              techStack: true,
             },
-            title: "Service Language / Framework",
+            title: "TechStack",
             type: FieldType.Text,
           },
           {

@@ -96,7 +96,7 @@ export default class CopilotCodeRepositoryAPI extends BaseAPI<
                 serviceCatalog: {
                   name: true,
                   _id: true,
-                  serviceLanguage: true,
+                  techStack: true,
                 },
                 servicePathInRepository: true,
                 limitNumberOfOpenPullRequestsCount: true,
