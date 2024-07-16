@@ -19,8 +19,8 @@ const CopilotLastRunAt: FunctionComponent<ComponentProps> = (
       {props.lastRunAt && (
         <Alert
           type={AlertType.INFO}
-          strongTitle="Copilot Last Ran At"
-          title={`${OneUptimeDate.getDateAsLocalFormattedString(props.lastRunAt)}.`}
+          strongTitle="Data Updated At"
+          title={`Copilot ran at ${OneUptimeDate.getDateAsLocalFormattedString(props.lastRunAt)}. Please run copilot again to update data.`}
         />
       )}
 

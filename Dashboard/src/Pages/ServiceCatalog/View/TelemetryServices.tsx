@@ -125,8 +125,8 @@ const ServiceCatalogTelemetryServices: FunctionComponent<
             isLoading: false,
           },
         ]}
-        title={"Service Telemetry Services"}
-        description="List of Telemetry Services that are added to this service."
+        title={"Telemetry Services for this Service"}
+        description="List of Telemetry Services that are assigned to this service."
         noItemsMessage={"No Telemetry Services added to this service."}
       />
 

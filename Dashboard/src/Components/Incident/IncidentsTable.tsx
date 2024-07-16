@@ -45,6 +45,7 @@ export interface ComponentProps {
   title?: string | undefined;
   description?: string | undefined;
   createInitialValues?: FormValues<Incident> | undefined;
+  disableCreate?: boolean | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -202,7 +203,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         }}
         query={props.query || {}}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={!props.disableCreate}
         isViewable={true}
         createInitialValues={
           Object.keys(initialValuesForIncident).length > 0
@@ -211,17 +212,19 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         }
         cardProps={{
           title: props.title || "Incidents",
-          buttons: [
-            {
-              title: "Create from Template",
-              icon: IconProp.Template,
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: async (): Promise<void> => {
-                setShowIncidentTemplateModal(true);
-                await fetchIncidentTemplates();
-              },
-            },
-          ],
+          buttons: props.disableCreate
+            ? []
+            : [
+                {
+                  title: "Create from Template",
+                  icon: IconProp.Template,
+                  buttonStyle: ButtonStyleType.OUTLINE,
+                  onClick: async (): Promise<void> => {
+                    setShowIncidentTemplateModal(true);
+                    await fetchIncidentTemplates();
+                  },
+                },
+              ],
           description:
             props.description ||
             "Here is a list of incidents for this project.",
