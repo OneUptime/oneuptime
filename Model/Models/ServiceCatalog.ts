@@ -460,7 +460,6 @@ export default class ServiceCatalog extends BaseModel {
   })
   public serviceColor?: Color = undefined;
 
-
   // This column is deprecated and will be removed in the future.
   @TableColumn({
     required: false,
@@ -502,7 +501,8 @@ export default class ServiceCatalog extends BaseModel {
     type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
     title: "Tech Stack",
-    description: "Tech stack used in the service. This will help other developers understand the service better.",
+    description:
+      "Tech stack used in the service. This will help other developers understand the service better.",
   })
   @Column({
     nullable: true,

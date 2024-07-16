@@ -72,8 +72,7 @@ const StatusPageView: FunctionComponent<
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: true,
             placeholder: "Tech Stack",
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(TechStack),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
           },
           {
             field: {
@@ -114,7 +113,7 @@ const StatusPageView: FunctionComponent<
               field: {
                 techStack: true,
               },
-              title: "TechStack",
+              title: "Tech Stack",
               fieldType: FieldType.Element,
               getElement: (item: ServiceCatalog): ReactElement => {
                 return (

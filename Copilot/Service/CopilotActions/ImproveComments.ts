@@ -204,9 +204,8 @@ export default class ImproveComments extends CopilotActionBase {
     data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt> {
-    const fileLanguage: TechStack = data.input.files[
-      data.input.currentFilePath
-    ]?.fileLanguage as TechStack;
+    const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
+      ?.fileLanguage as TechStack;
 
     const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
 

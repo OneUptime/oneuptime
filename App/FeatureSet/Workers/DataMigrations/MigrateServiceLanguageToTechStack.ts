@@ -10,38 +10,37 @@ export default class MigrateServiceLanguageToTechStack extends DataMigrationBase
   }
 
   public override async migrate(): Promise<void> {
-    
     // get all the users with email isVerified true.
-    const serviceCatalogs: Array<ServiceCatalog> = await ServiceCatalogService.findBy({
+    const serviceCatalogs: Array<ServiceCatalog> =
+      await ServiceCatalogService.findBy({
         query: {},
         select: {
-            _id: true,
-            serviceLanguage: true,
+          _id: true,
+          serviceLanguage: true,
         },
         skip: 0,
         limit: LIMIT_MAX,
         props: {
-            isRoot: true,
+          isRoot: true,
         },
-    });
+      });
 
-    for (const serviceCatalog of serviceCatalogs){
+    for (const serviceCatalog of serviceCatalogs) {
+      const techStack: Array<TechStack> = [];
+      if (serviceCatalog.serviceLanguage) {
+        techStack.push(serviceCatalog.serviceLanguage);
+      }
 
-        const techStack: Array<TechStack> = []; 
-        if(serviceCatalog.serviceLanguage){
-            techStack.push(serviceCatalog.serviceLanguage);
-        }
-
-        // update the service catalog with tech stack.
-        await ServiceCatalogService.updateOneById({
-            id: serviceCatalog.id!,
-            data: {
-                techStack: techStack,
-            },
-            props: {
-                isRoot: true,
-            },
-        });
+      // update the service catalog with tech stack.
+      await ServiceCatalogService.updateOneById({
+        id: serviceCatalog.id!,
+        data: {
+          techStack: techStack,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     }
   }
 

@@ -15,10 +15,11 @@ export default class ServiceCopilotCodeRepositoryUtil {
   }): Promise<TechStack> {
     const fileExtention: string = LocalFile.getFileExtension(data.filePath);
 
-    const techStack: TechStack =
-      ServiceLanguageUtil.getLanguageByFileExtension({
+    const techStack: TechStack = ServiceLanguageUtil.getLanguageByFileExtension(
+      {
         fileExtension: fileExtention,
-      });
+      },
+    );
 
     return techStack;
   }

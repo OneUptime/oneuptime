@@ -14,9 +14,7 @@ const TechStackView: FunctionComponent<ComponentProps> = (
       items={props.techStack}
       moreText="more"
       getEachElement={(techStack: TechStack) => {
-        return (
-          <p>{techStack}</p>
-        );
+        return <p>{techStack}</p>;
       }}
       noItemsMessage="No tech stack."
     />
