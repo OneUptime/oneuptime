@@ -465,6 +465,16 @@ enum Permission {
   EditServiceCatlogDependency = "EditServiceCatlogDependency",
   ReadServiceCatlogDependency = "ReadServiceCatlogDependency",
 
+  CreateServiceCatalogMonitor = "CreateServiceCatalogMonitor",
+  DeleteServiceCatalogMonitor = "DeleteServiceCatalogMonitor",
+  EditServiceCatalogMonitor = "EditServiceCatalogMonitor",
+  ReadServiceCatalogMonitor = "ReadServiceCatalogMonitor",
+
+  CreateServiceCatalogTelemetryService = "CreateServiceCatalogTelemetryService",
+  DeleteServiceCatalogTelemetryService = "DeleteServiceCatalogTelemetryService",
+  EditServiceCatalogTelemetryService = "EditServiceCatalogTelemetryService",
+  ReadServiceCatalogTelemetryService = "ReadServiceCatalogTelemetryService",
+
   CreateCopilotCodeRepository = "CreateCopilotCodeRepository",
   DeleteCopilotCodeRepository = "DeleteCopilotCodeRepository",
   EditCopilotCodeRepository = "EditCopilotCodeRepository",
@@ -2555,7 +2565,7 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateServiceCatlogDependency,
-        title: "Create Service Catalog",
+        title: "Create Service Catalog Dependency",
         description:
           "This permission can create Service Catalog Dependencies this project.",
         isAssignableToTenant: true,
@@ -2582,6 +2592,72 @@ export class PermissionHelper {
         title: "Read Service Catalog Dependency",
         description:
           "This permission can read Service Catalog Dependencies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateServiceCatalogMonitor,
+        title: "Create Service Catalog Monitor",
+        description:
+          "This permission can create Service Catalog Monitor this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceCatalogMonitor,
+        title: "Delete Service Catalog Monitor",
+        description:
+          "This permission can delete Service Catalog Monitor of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceCatalogMonitor,
+        title: "Edit Service Catalog Monitor",
+        description:
+          "This permission can edit Service Catalog Monitor of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceCatalogMonitor,
+        title: "Read Service Catalog Monitor",
+        description:
+          "This permission can read Service Catalog Monitor of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateServiceCatalogTelemetryService,
+        title: "Create Service Catalog Telemetry Service",
+        description:
+          "This permission can create Service Catalog Telemetry Service this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceCatalogTelemetryService,
+        title: "Delete Service Catalog Telemetry Service",
+        description:
+          "This permission can delete Service Catalog Telemetry Service of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceCatalogTelemetryService,
+        title: "Edit Service Catalog Telemetry Service",
+        description:
+          "This permission can edit Service Catalog Telemetry Service of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceCatalogTelemetryService,
+        title: "Read Service Catalog Telemetry Service",
+        description:
+          "This permission can read Service Catalog Telemetry Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
