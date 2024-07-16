@@ -11,7 +11,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   monitor: Monitor;
   onNavigateComplete?: (() => void) | undefined;
-  showIcon?: boolean;
+  showIcon?: boolean | undefined;
 }
 
 const MonitorElement: FunctionComponent<ComponentProps> = (

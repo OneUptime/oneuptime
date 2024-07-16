@@ -48,12 +48,10 @@ export function getServiceCatalogBreadcrumbs(
       "View Service",
       "Incidents",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES, [
-      "Project",
-      "Service Catalog",
-      "View Service",
-      "Telemetry",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES,
+      ["Project", "Service Catalog", "View Service", "Telemetry"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

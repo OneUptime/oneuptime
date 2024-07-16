@@ -27,20 +27,17 @@ const ServiceCatalogView: LazyExoticComponent<
   return import("../Pages/ServiceCatalog/View/Index");
 });
 
-
 const ServiceCatalogViewMonitors: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/ServiceCatalog/View/Monitors");
-}
-);
+});
 
 const ServiceCatalogViewIncidents: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/ServiceCatalog/View/Incidents");
-}
-);
+});
 
 const ServiceCatalogViewTelemetryServices: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -178,7 +175,9 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
               <ServiceCatalogViewTelemetryServices
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES] as Route
+                  RouteMap[
+                    PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
+                  ] as Route
                 }
               />
             </Suspense>

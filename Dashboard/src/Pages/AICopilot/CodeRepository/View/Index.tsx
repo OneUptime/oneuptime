@@ -72,7 +72,7 @@ const CopilotPageView: FunctionComponent<
           className="cursor-pointer"
           type={AlertType.WARNING}
           strongTitle="Next Step"
-          title="Pleas click here to add services to this code-repository."
+          title="Please click here to add services to this code repository."
           onClick={() => {
             return Navigation.navigate(
               RouteUtil.populateRouteParams(

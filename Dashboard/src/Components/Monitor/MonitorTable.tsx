@@ -35,6 +35,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
+import ActionButtonSchema from "CommonUI/src/Components/ActionButton/ActionButtonSchema";
+import { CardButtonSchema } from "CommonUI/src/Components/Card/Card";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -42,6 +44,8 @@ export interface ComponentProps {
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
+  actionButtons?: Array<ActionButtonSchema<Monitor>> | undefined;
+  cardButtons?: Array<CardButtonSchema> | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -169,6 +173,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           ModalTableBulkDefaultActions.Delete,
         ],
       }}
+      actionButtons={props.actionButtons}
       isDeleteable={false}
       showViewIdButton={true}
       isEditable={false}
@@ -204,6 +209,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         title: props.title || "Monitors",
         description:
           props.description || "Here is a list of monitors for this project.",
+        buttons: props.cardButtons,
       }}
       selectMoreFields={{
         disableActiveMonitoring: true,
