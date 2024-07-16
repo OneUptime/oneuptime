@@ -26,6 +26,28 @@ const ServiceCatalogView: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/ServiceCatalog/View/Index");
 });
+
+
+const ServiceCatalogViewMonitors: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Monitors");
+}
+);
+
+const ServiceCatalogViewIncidents: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Incidents");
+}
+);
+
+const ServiceCatalogViewTelemetryServices: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/TelemetryServices");
+});
+
 const ServiceCatalogViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -109,6 +131,54 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SERVICE_CATALOG_VIEW_SETTINGS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_MONITORS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewMonitors
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_MONITORS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_INCIDENTS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewIncidents
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewTelemetryServices
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES] as Route
                 }
               />
             </Suspense>

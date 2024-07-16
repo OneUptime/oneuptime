@@ -52,6 +52,43 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Resources">
+        <SideMenuItem
+          link={{
+            title: "Monitors",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_MONITORS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.AltGlobe}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Incidents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Telemetry",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

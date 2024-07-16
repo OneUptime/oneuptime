@@ -31,6 +31,9 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
   [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
