@@ -74,7 +74,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://gitlab.com/oneuptime/app.git"
+        "url": "git+https://github.com/oneuptime/oneuptime.git"
     },
     "keywords": [],
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
