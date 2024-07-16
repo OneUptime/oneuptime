@@ -10,8 +10,8 @@ export default class MigrateServiceLanguageToTechStack extends DataMigrationBase
   }
 
   public override async migrate(): Promise<void> {
+    
     // get all the users with email isVerified true.
-
     const serviceCatalogs: Array<ServiceCatalog> = await ServiceCatalogService.findBy({
         query: {},
         select: {

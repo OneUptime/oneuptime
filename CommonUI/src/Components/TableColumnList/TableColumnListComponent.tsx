@@ -1,25 +1,25 @@
 import Button, { ButtonStyleType } from "../Button/Button";
-import BaseModel from "Common/Models/BaseModel";
+import GenericObject from "Common/Types/GenericObject";
 import React, { ReactElement } from "react";
 
-export interface ComponentProps<TBaseModel extends BaseModel> {
-  items: Array<TBaseModel>;
-  getEachElement: (element: TBaseModel) => ReactElement;
+export interface ComponentProps<TGenericObject extends GenericObject> {
+  items: Array<TGenericObject>;
+  getEachElement: (element: TGenericObject) => ReactElement;
   noItemsMessage: string | undefined;
   className?: string | undefined;
   moreText?: string | undefined;
 }
 
-const TableColumnListComponent: <TBaseModel extends BaseModel>(
-  props: ComponentProps<TBaseModel>,
-) => ReactElement = <TBaseModel extends BaseModel>(
-  props: ComponentProps<TBaseModel>,
+const TableColumnListComponent: <TGenericObject extends GenericObject>(
+  props: ComponentProps<TGenericObject>,
+) => ReactElement = <TGenericObject extends GenericObject>(
+  props: ComponentProps<TGenericObject>,
 ): ReactElement => {
   if (!props.items || props.items.length === 0) {
     return <p>{props.noItemsMessage}</p>;
   }
 
-  const firstThreeItems: Array<TBaseModel> = [];
+  const firstThreeItems: Array<TGenericObject> = [];
 
   for (let i: number = 0; i < 3; i++) {
     if (props.items[i]) {
@@ -28,7 +28,7 @@ const TableColumnListComponent: <TBaseModel extends BaseModel>(
   }
 
   // remaining items
-  const remainingItems: Array<TBaseModel> = [];
+  const remainingItems: Array<TGenericObject> = [];
 
   for (let i: number = 3; i < props.items.length; i++) {
     if (props.items[i]) {
@@ -40,11 +40,11 @@ const TableColumnListComponent: <TBaseModel extends BaseModel>(
 
   return (
     <div className={props.className}>
-      {firstThreeItems.map((item: TBaseModel, i: number) => {
+      {firstThreeItems.map((item: TGenericObject, i: number) => {
         return <div key={i}>{props.getEachElement(item)}</div>;
       })}
       {showMoreItems ? (
-        remainingItems.map((item: TBaseModel, i: number) => {
+        remainingItems.map((item: TGenericObject, i: number) => {
           return <div key={i}>{props.getEachElement(item)}</div>;
         })
       ) : (

@@ -10,6 +10,7 @@ import Navigation from "CommonUI/src/Utils/Navigation";
 import Label from "Model/Models/Label";
 import ServiceCatalog from "Model/Models/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TechStackView from "../../../Components/TechStack/TechStackView";
 
 const StatusPageView: FunctionComponent<
   PageComponentProps
@@ -114,6 +115,14 @@ const StatusPageView: FunctionComponent<
                 techStack: true,
               },
               title: "TechStack",
+              fieldType: FieldType.Element,
+              getElement: (item: ServiceCatalog): ReactElement => {
+                return (
+                  <Fragment>
+                    <TechStackView techStack={item["techStack"] || []} />
+                  </Fragment>
+                );
+              },
             },
             {
               field: {
