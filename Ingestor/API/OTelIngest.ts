@@ -138,11 +138,13 @@ router.post(
                 ] as JSONArray
               ).length > 0
             ) {
-              attributesObject["resource"] = OTelIngestService.getAttributes(
-                (resourceSpan["resource"] as JSONObject)[
+              attributesObject["resource"] = OTelIngestService.getAttributes({
+                items: (resourceSpan["resource"] as JSONObject)[
                   "attributes"
                 ] as JSONArray,
-              );
+                telemetryServiceName: (req as TelemetryRequest).serviceName,
+                telemetryServiceId: (req as TelemetryRequest).serviceId,
+              });
             }
 
             // scope attributes
@@ -156,9 +158,11 @@ router.post(
 
             dbSpan.attributes = {
               ...attributesObject,
-              ...OTelIngestService.getAttributes(
-                span["attributes"] as JSONArray,
-              ),
+              ...OTelIngestService.getAttributes({
+                items: span["attributes"] as JSONArray,
+                telemetryServiceName: (req as TelemetryRequest).serviceName,
+                telemetryServiceId: (req as TelemetryRequest).serviceId,
+              }),
             };
 
             dbSpan.projectId = (req as TelemetryRequest).projectId;
@@ -241,9 +245,11 @@ router.post(
                   time: eventTime,
                   timeUnixNano: eventTimeUnixNano,
                   name: event["name"] as string,
-                  attributes: OTelIngestService.getAttributes(
-                    event["attributes"] as JSONArray,
-                  ),
+                  attributes: OTelIngestService.getAttributes({
+                    items: event["attributes"] as JSONArray,
+                    telemetryServiceName: (req as TelemetryRequest).serviceName,
+                    telemetryServiceId: (req as TelemetryRequest).serviceId,
+                  }),
                 });
               }
             }
@@ -257,9 +263,11 @@ router.post(
                 dbSpan.links.push({
                   traceId: Text.convertBase64ToHex(link["traceId"] as string),
                   spanId: Text.convertBase64ToHex(link["spanId"] as string),
-                  attributes: OTelIngestService.getAttributes(
-                    link["attributes"] as JSONArray,
-                  ),
+                  attributes: OTelIngestService.getAttributes({
+                    items: link["attributes"] as JSONArray,
+                    telemetryServiceName: (req as TelemetryRequest).serviceName,
+                    telemetryServiceId: (req as TelemetryRequest).serviceId,
+                  }),
                 });
               }
             }
@@ -344,9 +352,11 @@ router.post(
               metric["attributes"].length > 0
             ) {
               attributesObject = {
-                ...OTelIngestService.getAttributes(
-                  metric["attributes"] as JSONArray,
-                ),
+                ...OTelIngestService.getAttributes({
+                  items: metric["attributes"] as JSONArray,
+                  telemetryServiceName: (req as TelemetryRequest).serviceName,
+                  telemetryServiceId: (req as TelemetryRequest).serviceId,
+                }),
               };
             }
 
@@ -364,11 +374,13 @@ router.post(
             ) {
               attributesObject = {
                 ...attributesObject,
-                resource: OTelIngestService.getAttributes(
-                  (resourceMetric["resource"] as JSONObject)[
+                resource: OTelIngestService.getAttributes({
+                  items: (resourceMetric["resource"] as JSONObject)[
                     "attributes"
                   ] as JSONArray,
-                ),
+                  telemetryServiceName: (req as TelemetryRequest).serviceName,
+                  telemetryServiceId: (req as TelemetryRequest).serviceId,
+                }),
               };
             }
 
@@ -404,6 +416,8 @@ router.post(
                     isMonotonic: (metric["sum"] as JSONObject)[
                       "isMonotonic"
                     ] as boolean | undefined,
+                    telemetryServiceId: (req as TelemetryRequest).serviceId,
+                    telemetryServiceName: (req as TelemetryRequest).serviceName,
                   });
 
                 sumMetric.metricPointType = MetricPointType.Sum;
@@ -429,6 +443,8 @@ router.post(
                     isMonotonic: (metric["gauge"] as JSONObject)[
                       "isMonotonic"
                     ] as boolean | undefined,
+                    telemetryServiceId: (req as TelemetryRequest).serviceId,
+                    telemetryServiceName: (req as TelemetryRequest).serviceName,
                   });
 
                 guageMetric.metricPointType = MetricPointType.Gauge;
@@ -454,6 +470,8 @@ router.post(
                     isMonotonic: (metric["histogram"] as JSONObject)[
                       "isMonotonic"
                     ] as boolean | undefined,
+                    telemetryServiceId: (req as TelemetryRequest).serviceId,
+                    telemetryServiceName: (req as TelemetryRequest).serviceName,
                   });
 
                 histogramMetric.metricPointType = MetricPointType.Histogram;
@@ -547,11 +565,13 @@ router.post(
             ) {
               attributesObject = {
                 ...attributesObject,
-                resource: OTelIngestService.getAttributes(
-                  (resourceLog["resource"] as JSONObject)[
+                resource: OTelIngestService.getAttributes({
+                  items: (resourceLog["resource"] as JSONObject)[
                     "attributes"
                   ] as JSONArray,
-                ),
+                  telemetryServiceName: (req as TelemetryRequest).serviceName,
+                  telemetryServiceId: (req as TelemetryRequest).serviceId,
+                }),
               };
             }
 
@@ -567,9 +587,11 @@ router.post(
 
             dbLog.attributes = {
               ...attributesObject,
-              ...OTelIngestService.getAttributes(
-                log["attributes"] as JSONArray,
-              ),
+              ...OTelIngestService.getAttributes({
+                items: log["attributes"] as JSONArray,
+                telemetryServiceName: (req as TelemetryRequest).serviceName,
+                telemetryServiceId: (req as TelemetryRequest).serviceId,
+              }),
             };
 
             dbLog.projectId = (req as TelemetryRequest).projectId;

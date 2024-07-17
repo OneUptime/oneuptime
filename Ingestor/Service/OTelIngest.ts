@@ -1,6 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import ObjectID from "Common/Types/ObjectID";
 import Metric, { AggregationTemporality } from "Model/AnalyticsModels/Metric";
 
 export enum OtelAggregationTemporality {
@@ -9,7 +10,13 @@ export enum OtelAggregationTemporality {
 }
 
 export default class OTelIngestService {
-  public static getAttributes(items: JSONArray): JSONObject {
+  public static getAttributes(data: {
+    items: JSONArray;
+    telemetryServiceId?: ObjectID;
+    telemetryServiceName?: string;
+  }): JSONObject {
+    const { items } = data;
+
     const finalObj: JSONObject = {};
     // We need to convert this to date.
     const attributes: JSONArray = items;
@@ -40,6 +47,41 @@ export default class OTelIngestService {
       }
     }
 
+    // add oneuptime specific attributes
+    if (!finalObj["oneuptime"]) {
+      finalObj["oneuptime"] = {};
+    }
+
+    if (!(finalObj["oneuptime"] as JSONObject)["telemetry"]) {
+      (finalObj["oneuptime"] as JSONObject)["telemetry"] = {};
+    }
+
+    if (
+      !((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
+        "service"
+      ]
+    ) {
+      ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
+        "service"
+      ] = {};
+    }
+
+    if (data.telemetryServiceId) {
+      (
+        ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
+          "service"
+        ] as JSONObject
+      )["id"] = data.telemetryServiceId.toString();
+    }
+
+    if (data.telemetryServiceName) {
+      (
+        ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
+          "service"
+        ] as JSONObject
+      )["name"] = data.telemetryServiceName;
+    }
+
     return JSONFunctions.flattenObject(finalObj);
   }
 
@@ -48,6 +90,8 @@ export default class OTelIngestService {
     datapoint: JSONObject;
     aggregationTemporality: OtelAggregationTemporality;
     isMonotonic: boolean | undefined;
+    telemetryServiceId: ObjectID;
+    telemetryServiceName: string;
   }): Metric {
     const { dbMetric, datapoint, aggregationTemporality, isMonotonic } = data;
 
@@ -90,7 +134,11 @@ export default class OTelIngestService {
 
       newDbMetric.attributes = {
         ...(newDbMetric.attributes || {}),
-        ...this.getAttributes(datapoint["attributes"] as JSONArray),
+        ...this.getAttributes({
+          items: datapoint["attributes"] as JSONArray,
+          telemetryServiceId: data.telemetryServiceId,
+          telemetryServiceName: data.telemetryServiceName,
+        }),
       };
     }
 
