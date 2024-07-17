@@ -1,7 +1,6 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricView from "../../../../../../Components/Metrics/MetricVIew";
 import PageComponentProps from "../../../../../PageComponentProps";
-import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -10,7 +9,9 @@ const MetricViewPage: FunctionComponent<
 > = (): ReactElement => {
   const metricName: string =
     Navigation.getQueryStringByName("metricName") || "";
-  const serviceId: ObjectID = Navigation.getLastParamAsObjectID(2);
+
+  const serviceName: string =
+    Navigation.getQueryStringByName("serviceName") || "";
 
   return (
     <MetricView
@@ -26,7 +27,7 @@ const MetricViewPage: FunctionComponent<
               filterData: {
                 metricName: metricName,
                 attributes: {
-                  "oneuptime.telemetry.service.id": serviceId,
+                  "oneuptime.telemetry.service.name": serviceName,
                 },
                 aggregateBy: MetricsAggregationType.Avg,
               },
