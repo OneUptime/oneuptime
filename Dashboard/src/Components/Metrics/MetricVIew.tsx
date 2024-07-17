@@ -11,6 +11,7 @@ import MetricGraphConfig, {
 import Button, { ButtonSize } from "CommonUI/src/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -36,9 +37,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setCurrentQueryVariable(Text.getNextLowercaseLetter(currentVar));
 
       return {
-        metricAliasData: { metricVariable: currentVar, title: "", description: "" },
+        metricAliasData: {
+          metricVariable: currentVar,
+          title: "",
+          description: "",
+        },
         metricQueryData: {
-          filterData: {},
+          filterData: {
+            aggegationType: MetricsAggregationType.Avg,
+          },
         },
       };
     };

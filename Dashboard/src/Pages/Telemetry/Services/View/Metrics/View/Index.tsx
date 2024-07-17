@@ -1,3 +1,4 @@
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricView from "../../../../../../Components/Metrics/MetricVIew";
 import PageComponentProps from "../../../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,7 +20,7 @@ const MetricViewPage: FunctionComponent<
             metricAliasData: {
               metricVariable: "a",
               title: "",
-              description: ""
+              description: "",
             },
             metricQueryData: {
               filterData: {
@@ -27,6 +28,7 @@ const MetricViewPage: FunctionComponent<
                 attributes: {
                   "oneuptime.telemetry.service.id": serviceId,
                 },
+                aggregateBy: MetricsAggregationType.Avg,
               },
             },
           },
