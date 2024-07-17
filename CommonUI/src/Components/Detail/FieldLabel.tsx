@@ -23,7 +23,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
     <>
       {props.title && (
         <label
-          className={`${props.size || "text-sm"} font-medium text-gray-500`}
+          className={`${props.size || "text-sm"} font-medium text-gray-700`}
         >
           <span className={props.alignClassName}>{props.title}</span>
           {props.sideLink && props.sideLink?.text && props.sideLink?.url && (

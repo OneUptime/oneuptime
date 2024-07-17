@@ -155,7 +155,7 @@ export interface BaseTableProps<
   showViewIdButton?: undefined | boolean;
   enableDragAndDrop?: boolean | undefined;
   viewPageRoute?: undefined | Route;
-  onViewPage?: (item: TBaseModel) => Promise<Route>;
+  onViewPage?: (item: TBaseModel) => Promise<Route | URL>;
   query?: Query<TBaseModel>;
   groupBy?: GroupBy<TBaseModel> | undefined;
   onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
@@ -1050,7 +1050,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               }
 
               if (props.onViewPage) {
-                const route: Route = await props.onViewPage(baseModel);
+                const route: Route | URL = await props.onViewPage(baseModel);
 
                 onCompleteAction();
 
@@ -1586,7 +1586,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   ? "-ml-6 -mr-6 bg-gray-50 border-top"
                   : ""
               }
-              title={getCardTitle(props.cardProps.title)}
+              title={getCardTitle(props.cardProps.title || "")}
             >
               {tableColumns.length === 0 && props.columns.length > 0 ? (
                 <ErrorMessage
@@ -1623,7 +1623,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           <Card
             {...props.cardProps}
             buttons={cardButtons}
-            title={getCardTitle(props.cardProps.title)}
+            title={getCardTitle(props.cardProps.title || "")}
           >
             {getOrderedStatesList()}
           </Card>

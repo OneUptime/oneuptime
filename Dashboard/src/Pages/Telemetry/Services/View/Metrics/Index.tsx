@@ -9,6 +9,8 @@ import Metric from "Model/AnalyticsModels/Metric";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../../../../Utils/RouteMap";
 import PageMap from "../../../../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 
 const ServiceDelete: FunctionComponent<
   PageComponentProps
@@ -38,12 +40,20 @@ const ServiceDelete: FunctionComponent<
           name: true,
         }}
         onViewPage={async (item: Metric) => {
-          return RouteUtil.populateRouteParams(
+          const route: Route = RouteUtil.populateRouteParams(
             RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]!,
             {
               modelId: modelId,
-              subModelId: item.name,
             },
+          );
+
+          const currentUrl: URL = Navigation.getCurrentURL();
+
+          return new URL(
+            currentUrl.protocol,
+            currentUrl.hostname,
+            route,
+            `metricName=${item.name}`,
           );
         }}
         query={{

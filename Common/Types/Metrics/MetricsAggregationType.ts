@@ -1,9 +1,9 @@
 enum MetricsAggregationType {
-  Max = "max",
-  Min = "min",
-  Sum = "sum",
-  Avg = "avg",
-  Count = "count",
+  Max = "Max",
+  Min = "Min",
+  Sum = "Sum",
+  Avg = "Avg",
+  Count = "Count",
 }
 
 export default MetricsAggregationType;

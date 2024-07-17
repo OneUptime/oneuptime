@@ -7,10 +7,33 @@ import React, { FunctionComponent, ReactElement } from "react";
 const MetricViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const metricName: string = Navigation.getLastParamAsString();
+  const metricName: string =
+    Navigation.getQueryStringByName("metricName") || "";
   const serviceId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
-  return <MetricView metricName={metricName} serviceId={serviceId} />;
+  return (
+    <MetricView
+      data={{
+        queryConfigs: [
+          {
+            metricAliasData: {
+              metricVariable: "a",
+              metricAlias: "",
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: metricName,
+                attributes: {
+                  "oneuptime.telemetry.service.id": serviceId,
+                },
+              },
+            },
+          },
+        ],
+        formulaConfigs: [],
+      }}
+    />
+  );
 };
 
 export default MetricViewPage;

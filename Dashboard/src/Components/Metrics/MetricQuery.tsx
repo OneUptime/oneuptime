@@ -8,7 +8,7 @@ import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 
 export interface MetricQueryData {
-  filterData: FilterData<Metric>;
+  filterData: FilterData<MetricQuery>;
 }
 
 export interface ComponentProps {
@@ -38,7 +38,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             {
               key: "attributes",
               type: FieldType.JSON,
-              title: "Attributes",
+              title: "Filter by Attributes",
             },
             {
               key: "aggregateBy",

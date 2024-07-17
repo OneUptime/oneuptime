@@ -10,6 +10,7 @@ import MetricGraphConfig, {
 } from "./MetricFormulaConfig";
 import Button, { ButtonSize } from "CommonUI/src/Components/Button/Button";
 import Text from "Common/Types/Text";
+import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -23,7 +24,7 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [currentQueryVariable, setCurrentQueryVariable] = useState<string>("a");
+  const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(Text.getLetterFromAByNumber(props.data.queryConfigs.length));
 
   type GetEmptyQueryConfigFunction = () => MetricQueryConfigData;
 
@@ -62,7 +63,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <div>
+      <div className="space-y-3">
         {queryConfigs.map(
           (queryConfig: MetricQueryConfigData, index: number) => {
             return (
@@ -88,7 +89,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           },
         )}
       </div>
-      <div>
+      <div className="space-y-3">
         {formulaConfigs.map(
           (formulaConfig: MetricFormulaConfigData, index: number) => {
             return (
@@ -115,7 +116,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
       </div>
       <div>
-        <div className="flex">
+        <div className="flex -ml-3">
           <Button
             title="Add Query"
             buttonSize={ButtonSize.Small}
@@ -135,6 +136,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           />
         </div>
       </div>
+      <HorizontalRule />
     </Fragment>
   );
 };

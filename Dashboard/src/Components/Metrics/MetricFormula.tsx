@@ -1,5 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Input from "CommonUI/src/Components/Input/Input";
+import FieldLabelElement from "CommonUI/src/Components/Detail/FieldLabel";
 
 export interface MetricFormulaData {
   metricFormula: string;
@@ -15,8 +16,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Fragment>
-      <div className="flex">
+      <div className="flex mt-1">
         <div>
+            <FieldLabelElement title="Formula"/>
           <Input
             value={props.data.metricFormula}
             onChange={(value: string) => {
@@ -25,7 +27,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
                 metricFormula: value,
               });
             }}
-            placeholder="a + b"
+            placeholder="2 * a"
           />
         </div>
       </div>
