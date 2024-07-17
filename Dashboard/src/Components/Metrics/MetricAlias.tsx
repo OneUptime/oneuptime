@@ -20,12 +20,16 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="flex space-x-3">
-        {!props.isFormula && <div className="bg-indigo-500 h-9 rounded w-9 p-3 pt-2 mt-2 font-medium text-white">
-          {props.data.metricVariable}
-        </div>}
-        {props.isFormula && <div className="bg-indigo-500 h-9 p-2 rounded w-9 mt-2 font-bold text-white">
-        <Icon icon={IconProp.ChevronRight} />
-        </div>}
+        {!props.isFormula && (
+          <div className="bg-indigo-500 h-9 rounded w-9 p-3 pt-2 mt-2 font-medium text-white">
+            {props.data.metricVariable}
+          </div>
+        )}
+        {props.isFormula && (
+          <div className="bg-indigo-500 h-9 p-2 rounded w-9 mt-2 font-bold text-white">
+            <Icon icon={IconProp.ChevronRight} />
+          </div>
+        )}
         <div>
           <Input
             value={props.data.metricAlias}

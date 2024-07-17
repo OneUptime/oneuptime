@@ -3,7 +3,10 @@ import MetricAlias, { MetricAliasData } from "./MetricAlias";
 import MetricFormula, { MetricFormulaData } from "./MetricFormula";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Card from "CommonUI/src/Components/Card/Card";
-import Button, { ButtonSize, ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "CommonUI/src/Components/Button/Button";
 
 export interface MetricFormulaConfigData {
   metricAliasData: MetricAliasData;
@@ -28,8 +31,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Card
-    >
+    <Card>
       <div className="-mt-5 mb-2">
         <MetricAlias
           data={props.data.metricAliasData}
@@ -47,7 +49,14 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           />
         )}
         <div className="-ml-3 mt-5 -mb-2">
-        <Button title={'Remove'} onClick={() => props.onRemove()} buttonSize={ButtonSize.Small} buttonStyle={ButtonStyleType.DANGER_OUTLINE} />
+          <Button
+            title={"Remove"}
+            onClick={() => {
+              return props.onRemove();
+            }}
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+          />
         </div>
       </div>
     </Card>

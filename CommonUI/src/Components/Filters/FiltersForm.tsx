@@ -1,5 +1,6 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import FieldLabelElement from "../Forms/Fields/FieldLabel";
 import BooleanFilter from "./BooleanFilter";
 import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
@@ -54,9 +55,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
             props.filters.map((filter: Filter<T>, i: number) => {
               return (
                 <div key={i} className="col-span-3 sm:col-span-3 ">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {filter.title}
-                  </label>
+                  <FieldLabelElement required={true} title={filter.title} />
 
                   <DropdownFilter
                     filter={filter}

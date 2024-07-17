@@ -24,7 +24,9 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(Text.getLetterFromAByNumber(props.data.queryConfigs.length));
+  const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
+    Text.getLetterFromAByNumber(props.data.queryConfigs.length),
+  );
 
   type GetEmptyQueryConfigFunction = () => MetricQueryConfigData;
 
