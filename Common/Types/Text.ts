@@ -12,6 +12,12 @@ export default class Text {
     return hex;
   }
 
+  public static getNextLowercaseLetter(letter: string): string {
+    const charCode: number = letter.charCodeAt(0);
+    const nextLetter: string = String.fromCharCode(charCode + 1).toString();
+    return nextLetter;
+  }
+
   public static fromPascalCaseToDashes(text: string): string {
     let result: string = text.replace(/([A-Z])/g, " $1");
     result = result.trim();

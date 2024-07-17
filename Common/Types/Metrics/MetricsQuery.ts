@@ -6,6 +6,4 @@ export default interface MetricsQuery {
   attributes: Dictionary<string | boolean | number>;
   aggegationType: MetricsAggregationType;
   aggregateBy: Dictionary<boolean>;
-  startTime: Date;
-  endTime: Date;
 }

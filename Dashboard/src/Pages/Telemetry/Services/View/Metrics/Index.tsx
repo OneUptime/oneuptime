@@ -1,6 +1,5 @@
 import DashboardNavigation from "../../../../../Utils/Navigation";
 import PageComponentProps from "../../../../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
@@ -8,6 +7,8 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import Metric from "Model/AnalyticsModels/Metric";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import RouteMap, { RouteUtil } from "../../../../../Utils/RouteMap";
+import PageMap from "../../../../../Utils/PageMap";
 
 const ServiceDelete: FunctionComponent<
   PageComponentProps
@@ -36,8 +37,14 @@ const ServiceDelete: FunctionComponent<
         groupBy={{
           name: true,
         }}
-        onViewPage={async (_item: Metric) => {
-          return Promise.resolve(new Route(""));
+        onViewPage={async (item: Metric) => {
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]!,
+            {
+              modelId: modelId,
+              subModelId: item.name,
+            },
+          );
         }}
         query={{
           projectId: DashboardNavigation.getProjectId(),

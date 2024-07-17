@@ -23,6 +23,16 @@ export default class OTelIngestService {
             value = value["stringValue"] as string;
           } else if (value["intValue"]) {
             value = value["intValue"] as number;
+          } else if (value["doubleValue"]) {
+            value = value["doubleValue"] as number;
+          } else if (value["boolValue"]) {
+            value = value["boolValue"] as boolean;
+          } else if (value["arrayValue"]) {
+            value = value["arrayValue"] as JSONArray;
+          } else if (value["mapValue"]) {
+            value = value["mapValue"] as JSONObject;
+          } else if (value["nullValue"]) {
+            value = null;
           }
 
           finalObj[attribute["key"]] = value;

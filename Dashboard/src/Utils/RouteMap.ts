@@ -1251,8 +1251,8 @@ export class RouteUtil {
   public static populateRouteParams(
     route: Route,
     props?: {
-      modelId?: ObjectID;
-      subModelId?: ObjectID;
+      modelId?: ObjectID | string | undefined;
+      subModelId?: ObjectID | string | undefined;
     },
   ): Route {
     // populate projectid

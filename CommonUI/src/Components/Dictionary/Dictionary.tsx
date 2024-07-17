@@ -10,6 +10,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import NumberUtil from "Common/Utils/Number";
+import BooleanUtil from "Common/Utils/Boolean";
 
 export enum ValueType {
   Text = "Text",
@@ -26,6 +28,7 @@ export interface ComponentProps {
   valuePlaceholder?: string;
   addButtonSuffix?: string;
   valueTypes?: Array<ValueType>; // by default it'll be Text
+  autoConvertValueTypes?: boolean | undefined;
 }
 
 interface Item {
@@ -105,6 +108,15 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
     const result: Dictionary<string | number | boolean> = {};
     data.forEach((item: Item) => {
+      if (props.autoConvertValueTypes) {
+        if (NumberUtil.canBeConvertedToNumber(item.value)) {
+          item.value = Number(item.value);
+        }
+
+        if (BooleanUtil.canBeConvertedToBoolean(item.value)) {
+          item.value = Boolean(item.value);
+        }
+      }
       result[item.key] = item.value;
     });
     if (props.onChange) {

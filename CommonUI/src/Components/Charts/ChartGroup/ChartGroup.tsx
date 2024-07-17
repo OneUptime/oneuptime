@@ -7,12 +7,14 @@ export enum ChartGroupInterval {
 
 export enum ChartType {
   LINE = "line",
+  BAR = "bar",
+  AREA = "area",
 }
 
 export interface Chart {
   id: string;
   title: string;
-  description: string;
+  description?: string | undefined;
   type: ChartType;
   props: LineChartProps;
   sync: boolean;
@@ -44,12 +46,14 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 >
                   {chart.title}
                 </h2>
-                <p
-                  data-testid="card-description"
-                  className="mt-1 text-sm text-gray-500 w-full"
-                >
-                  {chart.description}
-                </p>
+                {chart.description && (
+                  <p
+                    data-testid="card-description"
+                    className="mt-1 text-sm text-gray-500 w-full"
+                  >
+                    {chart.description}
+                  </p>
+                )}
                 <LineChart
                   key={index}
                   {...chart.props}
