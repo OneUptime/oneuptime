@@ -16,8 +16,8 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Fragment>
-      <div className="flex mt-1">
-        <div>
+      <div className="flex mt-3">
+        <div className="w-full">
           <FieldLabelElement
             required={true}
             title="Formula"

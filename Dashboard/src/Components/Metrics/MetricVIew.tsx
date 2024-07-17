@@ -36,7 +36,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setCurrentQueryVariable(Text.getNextLowercaseLetter(currentVar));
 
       return {
-        metricAliasData: { metricVariable: currentVar, metricAlias: "" },
+        metricAliasData: { metricVariable: currentVar, title: "", description: "" },
         metricQueryData: {
           filterData: {},
         },
@@ -56,7 +56,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
     (): MetricFormulaConfigData => {
       return {
-        metricAliasData: { metricVariable: "", metricAlias: "" },
+        metricAliasData: { metricVariable: "", title: "", description: "" },
         metricFormulaData: {
           metricFormula: "",
         },

@@ -1,11 +1,12 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Input from "CommonUI/src/Components/Input/Input";
-import Icon from "CommonUI/src/Components/Icon/Icon";
+import Icon, { ThickProp } from "CommonUI/src/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
 export interface MetricAliasData {
   metricVariable: string;
-  metricAlias: string;
+  title: string;
+  description: string;
 }
 
 export interface ComponentProps {
@@ -26,21 +27,34 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
           </div>
         )}
         {props.isFormula && (
-          <div className="bg-indigo-500 h-9 p-2 rounded w-9 mt-2 font-bold text-white">
-            <Icon icon={IconProp.ChevronRight} />
+          <div className="bg-indigo-500 h-9 p-2 pt-2.5 rounded w-9 mt-2 font-bold text-white">
+            <Icon thick={ThickProp.Thick} icon={IconProp.ChevronRight} />
           </div>
         )}
         <div>
           <Input
-            value={props.data.metricAlias}
+            value={props.data.title}
             onChange={(value: string) => {
               return props.onDataChanged({
                 ...props.data,
                 metricVariable: props.data.metricVariable,
-                metricAlias: value,
+                title: value,
               });
             }}
-            placeholder="as ..."
+            placeholder="Title..."
+          />
+        </div>
+        <div className="w-full">
+          <Input
+            value={props.data.description}
+            onChange={(value: string) => {
+              return props.onDataChanged({
+                ...props.data,
+                metricVariable: props.data.metricVariable,
+                description: value,
+              });
+            }}
+            placeholder="Description..."
           />
         </div>
       </div>

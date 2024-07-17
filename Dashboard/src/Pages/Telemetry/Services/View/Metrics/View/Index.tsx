@@ -18,7 +18,8 @@ const MetricViewPage: FunctionComponent<
           {
             metricAliasData: {
               metricVariable: "a",
-              metricAlias: "",
+              title: "",
+              description: ""
             },
             metricQueryData: {
               filterData: {
