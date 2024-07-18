@@ -22,6 +22,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Model/Models/Project";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
   extends BaseListResult<TAnalyticsBaseModel> {}
@@ -187,7 +188,7 @@ export default class ModelAPI {
     modelType: { new (): TAnalyticsBaseModel };
     aggregateBy: AggregateBy<TAnalyticsBaseModel>;
     requestOptions?: RequestOptions | undefined;
-  }): Promise<ListResult<TAnalyticsBaseModel>> {
+  }): Promise<AggregatedResult> {
     const { modelType, aggregateBy, requestOptions } = data;
 
     const model: TAnalyticsBaseModel = new modelType();
@@ -225,17 +226,8 @@ export default class ModelAPI {
       );
 
     if (result.isSuccess()) {
-      const list: Array<TAnalyticsBaseModel> = AnalyticsBaseModel.fromJSONArray(
-        result.data as JSONArray,
-        modelType,
-      );
-
-      return {
-        data: list,
-        count: result.count,
-        skip: result.skip,
-        limit: result.limit,
-      };
+      const aggregatedResult: AggregatedResult = result.data as any;
+      return aggregatedResult;
     }
 
     this.checkStatusCode(result);
