@@ -88,7 +88,7 @@ const TracesList: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               startTime: true,
             },
-            type: FieldType.Date,
+            type: FieldType.DateTime,
             title: "Seen At",
           },
           {
