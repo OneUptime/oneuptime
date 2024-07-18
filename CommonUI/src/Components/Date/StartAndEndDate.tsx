@@ -5,13 +5,13 @@ import OneUptimeDate from "Common/Types/Date";
 import React, { ReactElement, useEffect } from "react";
 
 export enum StartAndEndDateType {
-  Date = 'Date',
-  DateTime = 'DateTime',
+  Date = "Date",
+  DateTime = "DateTime",
 }
 
 export interface ComponentProps {
-  initialValue?: InBetween;
-  onValueChanged: (inBetween: InBetween | null) => void;
+  initialValue?: InBetween | undefined;
+  onValueChanged: (value: InBetween | null) => void;
   type: StartAndEndDateType;
 }
 

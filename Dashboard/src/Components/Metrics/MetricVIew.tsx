@@ -12,10 +12,17 @@ import Button, { ButtonSize } from "CommonUI/src/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import StartAndEndDate, {
+  StartAndEndDateType,
+} from "CommonUI/src/Components/Date/StartAndEndDate";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
+import Card from "CommonUI/src/Components/Card/Card";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
+  startAndEndDate: InBetween | null;
 }
 
 export interface ComponentProps {
@@ -50,13 +57,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
       };
     };
 
-  const [queryConfigs, setQueryConfigs] = useState<
-    Array<MetricQueryConfigData>
-  >(props.data.queryConfigs || [getEmptyQueryConfigData()]);
-
-  const [formulaConfigs, setFormulaConfigs] = useState<
-    Array<MetricFormulaConfigData>
-  >(props.data.formulaConfigs);
+  const [metricViewData, setMetricViewData] = useState<MetricViewData>(
+    props.data,
+  );
 
   type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
 
@@ -73,25 +76,48 @@ const MetricView: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-3">
-        {queryConfigs.map(
+        <Card>
+          <div className="-mt-5">
+            <FieldLabelElement title="Start and End Time" required={true} />
+            <StartAndEndDate
+              type={StartAndEndDateType.DateTime}
+              initialValue={props.data.startAndEndDate || undefined}
+              onValueChanged={(startAndEndDate: InBetween | null) => {
+                setMetricViewData({
+                  ...metricViewData,
+                  startAndEndDate: startAndEndDate,
+                });
+              }}
+            />
+          </div>
+        </Card>
+
+        {metricViewData.queryConfigs.map(
           (queryConfig: MetricQueryConfigData, index: number) => {
             return (
               <MetricQueryConfig
                 key={index}
                 onDataChanged={(data: MetricQueryConfigData) => {
                   const newGraphConfigs: Array<MetricQueryConfigData> = [
-                    ...queryConfigs,
+                    ...metricViewData.queryConfigs,
                   ];
                   newGraphConfigs[index] = data;
-                  setQueryConfigs(newGraphConfigs);
+                  setMetricViewData({
+                    ...metricViewData,
+                    queryConfigs: newGraphConfigs,
+                  });
                 }}
                 data={queryConfig}
                 onRemove={() => {
                   const newGraphConfigs: Array<MetricQueryConfigData> = [
-                    ...queryConfigs,
+                    ...metricViewData.queryConfigs,
                   ];
                   newGraphConfigs.splice(index, 1);
-                  setQueryConfigs(newGraphConfigs);
+
+                  setMetricViewData({
+                    ...metricViewData,
+                    queryConfigs: newGraphConfigs,
+                  });
                 }}
               />
             );
@@ -99,25 +125,31 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
       </div>
       <div className="space-y-3">
-        {formulaConfigs.map(
+        {metricViewData.formulaConfigs.map(
           (formulaConfig: MetricFormulaConfigData, index: number) => {
             return (
               <MetricGraphConfig
                 key={index}
                 onDataChanged={(data: MetricFormulaConfigData) => {
                   const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                    ...formulaConfigs,
+                    ...metricViewData.formulaConfigs,
                   ];
                   newGraphConfigs[index] = data;
-                  setFormulaConfigs(newGraphConfigs);
+                  setMetricViewData({
+                    ...metricViewData,
+                    formulaConfigs: newGraphConfigs,
+                  });
                 }}
                 data={formulaConfig}
                 onRemove={() => {
                   const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                    ...formulaConfigs,
+                    ...metricViewData.formulaConfigs,
                   ];
                   newGraphConfigs.splice(index, 1);
-                  setFormulaConfigs(newGraphConfigs);
+                  setMetricViewData({
+                    ...metricViewData,
+                    formulaConfigs: newGraphConfigs,
+                  });
                 }}
               />
             );
@@ -130,17 +162,26 @@ const MetricView: FunctionComponent<ComponentProps> = (
             title="Add Query"
             buttonSize={ButtonSize.Small}
             onClick={() => {
-              setQueryConfigs([...queryConfigs, getEmptyQueryConfigData()]);
+              setMetricViewData({
+                ...metricViewData,
+                queryConfigs: [
+                  ...metricViewData.queryConfigs,
+                  getEmptyQueryConfigData(),
+                ],
+              });
             }}
           />
           <Button
             title="Add Formula"
             buttonSize={ButtonSize.Small}
             onClick={() => {
-              setFormulaConfigs([
-                ...formulaConfigs,
-                getEmptyFormulaConfigData(),
-              ]);
+              setMetricViewData({
+                ...metricViewData,
+                formulaConfigs: [
+                  ...metricViewData.formulaConfigs,
+                  getEmptyFormulaConfigData(),
+                ],
+              });
             }}
           />
         </div>
