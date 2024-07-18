@@ -49,6 +49,10 @@ import Typeof from "Common/Types/Typeof";
 import API from "Common/Utils/API";
 import { ModelEventType } from "Common/Utils/Realtime";
 import { Stream } from "node:stream";
+import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import Sort from "../Types/AnalyticsDatabase/Sort";
+import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
@@ -181,6 +185,73 @@ export default class AnalyticsDatabaseService<
 
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
+  }
+
+  public async aggregateBy(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): Promise<AggregatedResult> {
+    return await this._aggregateBy(aggregateBy);
+  }
+
+  private async _aggregateBy(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): Promise<AggregatedResult> {
+    try {
+      if (!aggregateBy.sort || Object.keys(aggregateBy.sort).length === 0) {
+        aggregateBy.sort = {
+          [aggregateBy.aggregationTimestampColumnName as keyof TBaseModel]:
+            SortOrder.Descending,
+        } as Sort<TBaseModel>;
+      }
+
+      const result: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          aggregateBy.query,
+          {
+            [aggregateBy.aggregateColumnName]: true,
+            [aggregateBy.aggregationTimestampColumnName]: true,
+          } as Select<TBaseModel>,
+          aggregateBy.props,
+        );
+
+      aggregateBy.query = result.query;
+
+      if (!(aggregateBy.skip instanceof PositiveNumber)) {
+        aggregateBy.skip = new PositiveNumber(aggregateBy.skip);
+      }
+
+      if (!(aggregateBy.limit instanceof PositiveNumber)) {
+        aggregateBy.limit = new PositiveNumber(aggregateBy.limit);
+      }
+
+      const findStatement: {
+        statement: Statement;
+        columns: Array<string>;
+      } = this.toAggregateStatement(aggregateBy);
+
+      const dbResult: ExecResult<Stream> = await this.execute(
+        findStatement.statement,
+      );
+
+      const strResult: string = await StreamUtil.convertStreamToText(
+        dbResult.stream,
+      );
+
+      const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(
+        strResult,
+        findStatement.columns,
+      );
+
+      const items: Array<AggregateModel> = jsonItems as any;
+
+      return {
+        data: items,
+      };
+    } catch (error) {
+      await this.onFindError(error as Exception);
+      throw this.getException(error as Exception);
+    }
   }
 
   private async _findBy(
@@ -326,12 +397,12 @@ export default class AnalyticsDatabaseService<
     );
 
     /* eslint-disable prettier/prettier */
-        const statement: Statement = SQL`
+    const statement: Statement = SQL`
             SELECT
                 count()
             FROM ${databaseName}.${this.model.tableName}
             WHERE TRUE `.append(whereStatement);
-        /* eslint-enable prettier/prettier */
+    
 
     if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0) {
       statement.append(
@@ -345,24 +416,79 @@ export default class AnalyticsDatabaseService<
     if (countBy.limit) {
       statement.append(SQL`
             LIMIT ${{
-              value: Number(countBy.limit),
-              type: TableColumnType.Number,
-            }}
+          value: Number(countBy.limit),
+          type: TableColumnType.Number,
+        }}
             `);
     }
 
     if (countBy.skip) {
       statement.append(SQL`
             OFFSET ${{
-              value: Number(countBy.skip),
-              type: TableColumnType.Number,
-            }}
+          value: Number(countBy.skip),
+          type: TableColumnType.Number,
+        }}
             `);
     }
     logger.debug(`${this.model.tableName} Count Statement`);
     logger.debug(statement);
 
     return statement;
+  }
+
+
+  public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
+    statement: Statement;
+    columns: Array<string>;
+  } {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const select: { statement: Statement; columns: Array<string> } =
+      this.statementGenerator.toAggregateSelectStatement(aggregateBy);
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      aggregateBy.query,
+    );
+
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(SQL`SELECT `.append(select.statement));
+    statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
+    statement.append(SQL` WHERE TRUE `).append(whereStatement);
+
+   
+      statement.append(SQL` GROUP BY `).append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+   
+
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+
+    statement.append(SQL` OFFSET ${{
+      value: Number(aggregateBy.skip),
+      type: TableColumnType.Number,
+    }}
+        `);
+
+    
+
+    logger.debug(`${this.model.tableName} Aggregate Statement`);
+    logger.debug(statement);
+
+    return { statement, columns: select.columns };
   }
 
   public toFindStatement(findBy: FindBy<TBaseModel>): {
@@ -423,7 +549,7 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
-    /* eslint-enable prettier/prettier */
+    
 
     logger.debug(`${this.model.tableName} Find Statement`);
     logger.debug(statement);
@@ -442,10 +568,10 @@ export default class AnalyticsDatabaseService<
     );
 
     /* eslint-disable prettier/prettier */
-        const statement: Statement = SQL`
+    const statement: Statement = SQL`
             ALTER TABLE ${databaseName}.${this.model.tableName}
             DELETE WHERE TRUE `.append(whereStatement);
-        /* eslint-enable prettier/prettier */
+    
 
     logger.debug(`${this.model.tableName} Delete Statement`);
     logger.debug(statement);
@@ -583,8 +709,8 @@ export default class AnalyticsDatabaseService<
       statement instanceof Statement
         ? statement
         : {
-            query: statement, // TODO remove and only accept Statements
-          },
+          query: statement, // TODO remove and only accept Statements
+        },
     );
   }
 
@@ -686,16 +812,16 @@ export default class AnalyticsDatabaseService<
 
       const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
         ? {
-            createBy: {
-              data: data,
-              props: createBy.props,
-            },
-            carryForward: [],
-          }
-        : await this._onBeforeCreate({
+          createBy: {
             data: data,
             props: createBy.props,
-          });
+          },
+          carryForward: [],
+        }
+        : await this._onBeforeCreate({
+          data: data,
+          props: createBy.props,
+        });
 
       data = onCreate.createBy.data;
 
@@ -797,8 +923,7 @@ export default class AnalyticsDatabaseService<
           await Promise.allSettled(promises);
         } else {
           logger.warn(
-            `Realtime is not initialized. Skipping emitModelEvent for ${
-              this.getModel().tableName
+            `Realtime is not initialized. Skipping emitModelEvent for ${this.getModel().tableName
             }`,
           );
         }

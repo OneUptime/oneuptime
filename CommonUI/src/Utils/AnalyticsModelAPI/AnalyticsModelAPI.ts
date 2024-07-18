@@ -21,6 +21,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Model/Models/Project";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
   extends BaseListResult<TAnalyticsBaseModel> {}
@@ -186,9 +187,10 @@ export default class ModelAPI {
     modelType: { new (): TAnalyticsBaseModel };
     query: Query<TAnalyticsBaseModel>;
     groupBy?: GroupBy<TAnalyticsBaseModel> | undefined;
+    aggregateBy?: AggregateBy<TAnalyticsBaseModel> | undefined;
     limit: number;
     skip: number;
-    select: Select<TAnalyticsBaseModel>;
+    select?: Select<TAnalyticsBaseModel> | undefined;
     sort: Sort<TAnalyticsBaseModel>;
     requestOptions?: RequestOptions | undefined;
   }): Promise<ListResult<TAnalyticsBaseModel>> {
@@ -201,7 +203,14 @@ export default class ModelAPI {
       sort,
       requestOptions,
       groupBy,
+      aggregateBy,
     } = data;
+
+    if (!aggregateBy && !select) {
+      throw new BadDataException(
+        "Either select or aggregateBy must be provided.",
+      );
+    }
 
     const model: TAnalyticsBaseModel = new modelType();
     const apiPath: Route | null = model.crudApiPath;
@@ -236,6 +245,7 @@ export default class ModelAPI {
           select: JSONFunctions.serialize(select as JSONObject),
           sort: JSONFunctions.serialize(sort as JSONObject),
           groupBy: JSONFunctions.serialize(groupBy as JSONObject),
+          aggregateBy: JSONFunctions.serialize(aggregateBy as any),
         },
         headers,
         {
