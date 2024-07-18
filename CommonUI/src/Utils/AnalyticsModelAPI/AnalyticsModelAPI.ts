@@ -181,13 +181,74 @@ export default class ModelAPI {
     throw apiResult;
   }
 
+  public static async aggregate<
+    TAnalyticsBaseModel extends AnalyticsBaseModel,
+  >(data: {
+    modelType: { new (): TAnalyticsBaseModel };
+    aggregateBy: AggregateBy<TAnalyticsBaseModel>;
+    requestOptions?: RequestOptions | undefined;
+  }): Promise<ListResult<TAnalyticsBaseModel>> {
+    const { modelType, aggregateBy, requestOptions } = data;
+
+    const model: TAnalyticsBaseModel = new modelType();
+    const apiPath: Route | null = model.crudApiPath;
+    if (!apiPath) {
+      throw new BadDataException(
+        "This model does not support aggregate operations.",
+      );
+    }
+
+    let apiUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute(apiPath)
+      .addRoute("/aggregate");
+
+    if (requestOptions?.overrideRequestUrl) {
+      apiUrl = requestOptions.overrideRequestUrl;
+    }
+
+    if (!apiUrl) {
+      throw new BadDataException(
+        "This model does not support list operations.",
+      );
+    }
+
+    const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
+
+    const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+      await API.fetch<JSONArray>(
+        HTTPMethod.POST,
+        apiUrl,
+        {
+          aggregateBy: JSONFunctions.serialize(aggregateBy as any),
+        },
+        headers,
+      );
+
+    if (result.isSuccess()) {
+      const list: Array<TAnalyticsBaseModel> = AnalyticsBaseModel.fromJSONArray(
+        result.data as JSONArray,
+        modelType,
+      );
+
+      return {
+        data: list,
+        count: result.count,
+        skip: result.skip,
+        limit: result.limit,
+      };
+    }
+
+    this.checkStatusCode(result);
+
+    throw result;
+  }
+
   public static async getList<
     TAnalyticsBaseModel extends AnalyticsBaseModel,
   >(data: {
     modelType: { new (): TAnalyticsBaseModel };
     query: Query<TAnalyticsBaseModel>;
     groupBy?: GroupBy<TAnalyticsBaseModel> | undefined;
-    aggregateBy?: AggregateBy<TAnalyticsBaseModel> | undefined;
     limit: number;
     skip: number;
     select?: Select<TAnalyticsBaseModel> | undefined;
@@ -203,14 +264,7 @@ export default class ModelAPI {
       sort,
       requestOptions,
       groupBy,
-      aggregateBy,
     } = data;
-
-    if (!aggregateBy && !select) {
-      throw new BadDataException(
-        "Either select or aggregateBy must be provided.",
-      );
-    }
 
     const model: TAnalyticsBaseModel = new modelType();
     const apiPath: Route | null = model.crudApiPath;
@@ -245,7 +299,6 @@ export default class ModelAPI {
           select: JSONFunctions.serialize(select as JSONObject),
           sort: JSONFunctions.serialize(sort as JSONObject),
           groupBy: JSONFunctions.serialize(groupBy as JSONObject),
-          aggregateBy: JSONFunctions.serialize(aggregateBy as any),
         },
         headers,
         {
