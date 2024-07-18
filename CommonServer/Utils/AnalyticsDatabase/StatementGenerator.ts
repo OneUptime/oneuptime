@@ -27,7 +27,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
+import AggregateBy, { AggregateUtil } from "../../Types/AnalyticsDatabase/AggregateBy";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -537,8 +537,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const aggregationMethod: string =
       aggregateBy.aggregateBy.toLocaleLowerCase();
-    const aggregationInterval: string =
-      aggregateBy.aggregationInterval!.toLocaleLowerCase();
+    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
 
     selectStatement.append(
       SQL`${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,

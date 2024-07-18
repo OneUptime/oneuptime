@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import MetricQueryConfig, { MetricQueryConfigData } from "./MetricQueryConfig";
@@ -18,6 +19,16 @@ import StartAndEndDate, {
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
 import Card from "CommonUI/src/Components/Card/Card";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import API from "CommonUI/src/Utils/API/API";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Metric from "Model/AnalyticsModels/Metric";
+import AggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import OneUptimeDate from "Common/Types/Date";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -60,6 +71,57 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [metricViewData, setMetricViewData] = useState<MetricViewData>(
     props.data,
   );
+
+  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>([]);
+  const [isMetricResultsLoading, setIsMetricResultsLoading] = useState<boolean>(false);
+  const [metricResultsError, setMetricResultsError] = useState<string>('');
+
+  const fetchAggregatedResults: PromiseVoidFunction = async (): Promise<void> => {
+
+    setIsMetricResultsLoading(true);
+
+
+    const results: Array<AggregatedResult> = [];
+    try {
+
+      for (const queryConfig of metricViewData.queryConfigs) {
+
+        const result: AggregatedResult = await ModelAPI.aggregate({
+          modelType: Metric,
+          aggregateBy: {
+            query: {
+              createdAt: metricViewData.startAndEndDate,
+              name: queryConfig.metricQueryData.filterData.metricName,
+              attributes: queryConfig.metricQueryData.filterData.attributes,
+            },
+            aggregateBy: queryConfig.metricQueryData.filterData.aggegationType as AggregationType,
+            aggregateColumnName: "value",
+            aggregationTimestampColumnName: "createdAt",
+            startTimestamp: metricViewData.startAndEndDate?.startValue as Date || OneUptimeDate.getCurrentDate(),
+            endTimestamp: metricViewData.startAndEndDate?.endValue as Date || OneUptimeDate.getCurrentDate(),
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+          }
+        });
+
+        results.push(result);
+      }
+
+      setMetricResults(results);
+
+      setMetricResultsError('');
+    } catch (err: unknown) {
+      setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsMetricResultsLoading(false);
+  }
+
+  useEffect(() => {
+    fetchAggregatedResults();
+  }, [metricViewData]);
+
+
 
   type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
 
@@ -187,6 +249,17 @@ const MetricView: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       <HorizontalRule />
+
+      {isMetricResultsLoading &&
+        <ComponentLoader />}
+
+      {metricResultsError &&
+        <ErrorMessage error={metricResultsError} />}
+
+      {!isMetricResultsLoading && !metricResultsError && <div className="grid grid-cols-1 gap-4">
+
+      </div>}
+
     </Fragment>
   );
 };
