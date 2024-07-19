@@ -257,7 +257,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
         <ErrorMessage error={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && <div className="grid grid-cols-1 gap-4">
+        
+        {/** charts */}
 
+        {metricResults.map((result, index) => {
+          return (
+            <Card> 
+
+            </Card>
+          );
+        })}
       </div>}
 
     </Fragment>
