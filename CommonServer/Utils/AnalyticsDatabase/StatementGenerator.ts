@@ -27,7 +27,9 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import AggregateBy, { AggregateUtil } from "../../Types/AnalyticsDatabase/AggregateBy";
+import AggregateBy, {
+  AggregateUtil,
+} from "../../Types/AnalyticsDatabase/AggregateBy";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;

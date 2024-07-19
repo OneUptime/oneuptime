@@ -24,13 +24,22 @@ import API from "CommonUI/src/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Model/AnalyticsModels/Metric";
-import AggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import ChartGroup, { Chart, ChartGroupInterval, ChartType } from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
-import { AxisType, ChartCurve, XScalePrecision, XScaleType, YScaleType } from "CommonUI/src/Components/Charts/Line/LineChart";
+import ChartGroup, {
+  Chart,
+  ChartGroupInterval,
+  ChartType,
+} from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
+import {
+  AxisType,
+  ChartCurve,
+  XScalePrecision,
+  XScaleType,
+  YScaleType,
+} from "CommonUI/src/Components/Charts/Line/LineChart";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 
 export interface MetricViewData {
@@ -75,35 +84,43 @@ const MetricView: FunctionComponent<ComponentProps> = (
     props.data,
   );
 
+  type GetChartsFunction = () => Array<Chart>;
 
-  const getCharts = (): Array<Chart> => {
+  const getCharts: GetChartsFunction = (): Array<Chart> => {
     const charts: Array<Chart> = [];
 
-
-
-    let index = 0; 
+    let index: number = 0;
 
     for (const queryConfig of metricViewData.queryConfigs) {
-      
-      if(!metricResults[index]){
+      if (!metricResults[index]) {
         continue;
       }
-     
+
       const chart: Chart = {
         id: index.toString(),
         type: ChartType.LINE,
-        title: queryConfig.metricAliasData.title || queryConfig.metricQueryData.filterData.metricName?.toString() || '',
+        title:
+          queryConfig.metricAliasData.title ||
+          queryConfig.metricQueryData.filterData.metricName?.toString() ||
+          "",
         description: queryConfig.metricAliasData.description,
         props: {
-          data: [{
-            seriesName: queryConfig.metricAliasData.title || queryConfig.metricQueryData.filterData.metricName?.toString() || '',
-            data: metricResults[index]!.data.map((result: AggregatedModel) => {
-              return {
-                x: result.timestamp,
-                y: result.value,
-              };
-            }),
-          }],
+          data: [
+            {
+              seriesName:
+                queryConfig.metricAliasData.title ||
+                queryConfig.metricQueryData.filterData.metricName?.toString() ||
+                "",
+              data: metricResults[index]!.data.map(
+                (result: AggregatedModel) => {
+                  return {
+                    x: result.timestamp,
+                    y: result.value,
+                  };
+                },
+              ),
+            },
+          ],
           xScale: {
             type: XScaleType.TIME,
             precision: XScalePrecision.HOUR,
@@ -121,7 +138,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           },
           axisLeft: {
             legend: "Value",
-            type: AxisType.Number
+            type: AxisType.Number,
           },
           curve: ChartCurve.LINEAR,
         },
@@ -129,62 +146,68 @@ const MetricView: FunctionComponent<ComponentProps> = (
       };
 
       charts.push(chart);
-      index ++ ;
+
+      index++;
     }
 
     return charts;
-  }
+  };
 
-  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>([]);
-  const [isMetricResultsLoading, setIsMetricResultsLoading] = useState<boolean>(false);
-  const [metricResultsError, setMetricResultsError] = useState<string>('');
+  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
+    [],
+  );
+  const [isMetricResultsLoading, setIsMetricResultsLoading] =
+    useState<boolean>(false);
+  const [metricResultsError, setMetricResultsError] = useState<string>("");
 
-  const fetchAggregatedResults: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchAggregatedResults: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsMetricResultsLoading(true);
 
-    setIsMetricResultsLoading(true);
-
-
-    const results: Array<AggregatedResult> = [];
-    try {
-
-      for (const queryConfig of metricViewData.queryConfigs) {
-
-        const result: AggregatedResult = await ModelAPI.aggregate({
-          modelType: Metric,
-          aggregateBy: {
-            query: {
-              createdAt: metricViewData.startAndEndDate,
-              name: queryConfig.metricQueryData.filterData.metricName,
-              attributes: queryConfig.metricQueryData.filterData.attributes,
+      const results: Array<AggregatedResult> = [];
+      try {
+        for (const queryConfig of metricViewData.queryConfigs) {
+          const result: AggregatedResult = await ModelAPI.aggregate({
+            modelType: Metric,
+            aggregateBy: {
+              query: {
+                createdAt: metricViewData.startAndEndDate,
+                name: queryConfig.metricQueryData.filterData.metricName,
+                attributes: queryConfig.metricQueryData.filterData.attributes,
+              },
+              aggregateBy:
+                (queryConfig.metricQueryData.filterData
+                  .aggegationType as MetricsAggregationType) ||
+                MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "createdAt",
+              startTimestamp:
+                (metricViewData.startAndEndDate?.startValue as Date) ||
+                OneUptimeDate.getCurrentDate(),
+              endTimestamp:
+                (metricViewData.startAndEndDate?.endValue as Date) ||
+                OneUptimeDate.getCurrentDate(),
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
             },
-            aggregateBy: queryConfig.metricQueryData.filterData.aggegationType as AggregationType || AggregationType.Avg,
-            aggregateColumnName: "value",
-            aggregationTimestampColumnName: "createdAt",
-            startTimestamp: metricViewData.startAndEndDate?.startValue as Date || OneUptimeDate.getCurrentDate(),
-            endTimestamp: metricViewData.startAndEndDate?.endValue as Date || OneUptimeDate.getCurrentDate(),
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-          }
-        });
+          });
 
-        results.push(result);
+          results.push(result);
+        }
+
+        setMetricResults(results);
+
+        setMetricResultsError("");
+      } catch (err: unknown) {
+        setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       }
 
-      setMetricResults(results);
-
-      setMetricResultsError('');
-    } catch (err: unknown) {
-      setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
-    }
-
-    setIsMetricResultsLoading(false);
-  }
+      setIsMetricResultsLoading(false);
+    };
 
   useEffect(() => {
     fetchAggregatedResults();
   }, [metricViewData]);
-
-
 
   type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
 
@@ -313,17 +336,19 @@ const MetricView: FunctionComponent<ComponentProps> = (
       </div>
       <HorizontalRule />
 
-      {isMetricResultsLoading &&
-        <ComponentLoader />}
+      {isMetricResultsLoading && <ComponentLoader />}
 
-      {metricResultsError &&
-        <ErrorMessage error={metricResultsError} />}
+      {metricResultsError && <ErrorMessage error={metricResultsError} />}
 
-      {!isMetricResultsLoading && !metricResultsError && <div className="grid grid-cols-1 gap-4">
-        {/** charts */}
-        <ChartGroup interval={ChartGroupInterval.ONE_HOUR} charts={getCharts()} />
-      </div>}
-
+      {!isMetricResultsLoading && !metricResultsError && (
+        <div className="grid grid-cols-1 gap-4">
+          {/** charts */}
+          <ChartGroup
+            interval={ChartGroupInterval.ONE_HOUR}
+            charts={getCharts()}
+          />
+        </div>
+      )}
     </Fragment>
   );
 };

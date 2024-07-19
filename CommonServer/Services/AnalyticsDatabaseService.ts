@@ -204,19 +204,21 @@ export default class AnalyticsDatabaseService<
         } as Sort<TBaseModel>;
       }
 
-      if(!aggregateBy.limit){
-        aggregateBy.limit = 10; 
+      if (!aggregateBy.limit) {
+        aggregateBy.limit = 10;
       }
 
-      if(!aggregateBy.aggregateBy){
+      if (!aggregateBy.aggregateBy) {
         throw new BadDataException("aggregateBy is required");
       }
 
-      if(!aggregateBy.aggregationTimestampColumnName){
-        throw new BadDataException("aggregationTimestampColumnName is required");
+      if (!aggregateBy.aggregationTimestampColumnName) {
+        throw new BadDataException(
+          "aggregationTimestampColumnName is required",
+        );
       }
 
-      if(!aggregateBy.aggregateColumnName){
+      if (!aggregateBy.aggregateColumnName) {
         throw new BadDataException("aggregateColumnName is required");
       }
 
