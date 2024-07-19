@@ -36,7 +36,7 @@ const MetricViewPage: FunctionComponent<
               filterData: {
                 metricName: metricName,
                 attributes: {
-                  "oneuptime.telemetry.service.name": serviceName,
+                  "resource.oneuptime.telemetry.service.name": serviceName,
                 },
                 aggregateBy: MetricsAggregationType.Avg,
               },

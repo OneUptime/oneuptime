@@ -9,7 +9,10 @@ import MetricQueryConfig, { MetricQueryConfigData } from "./MetricQueryConfig";
 import MetricGraphConfig, {
   MetricFormulaConfigData,
 } from "./MetricFormulaConfig";
-import Button, { ButtonSize } from "CommonUI/src/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "CommonUI/src/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -41,6 +44,7 @@ import {
   YScaleType,
 } from "CommonUI/src/Components/Charts/Line/LineChart";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -84,6 +88,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
     props.data,
   );
 
+  useEffect(() => {
+    fetchAggregatedResults().catch((err) => {
+      setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+    });
+  }, []);
+
   type GetChartsFunction = () => Array<Chart>;
 
   const getCharts: GetChartsFunction = (): Array<Chart> => {
@@ -114,7 +124,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               data: metricResults[index]!.data.map(
                 (result: AggregatedModel) => {
                   return {
-                    x: result.timestamp,
+                    x: OneUptimeDate.fromString(result.timestamp),
                     y: result.value,
                   };
                 },
@@ -177,7 +187,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               },
               aggregateBy:
                 (queryConfig.metricQueryData.filterData
-                  .aggegationType as MetricsAggregationType) ||
+                  .aggregateBy as MetricsAggregationType) ||
                 MetricsAggregationType.Avg,
               aggregateColumnName: "value",
               aggregationTimestampColumnName: "createdAt",
@@ -204,10 +214,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
       setIsMetricResultsLoading(false);
     };
-
-  useEffect(() => {
-    fetchAggregatedResults();
-  }, [metricViewData]);
 
   type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
 
@@ -305,33 +311,44 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
       </div>
       <div>
-        <div className="flex -ml-3">
-          <Button
-            title="Add Query"
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              setMetricViewData({
-                ...metricViewData,
-                queryConfigs: [
-                  ...metricViewData.queryConfigs,
-                  getEmptyQueryConfigData(),
-                ],
-              });
-            }}
-          />
-          <Button
-            title="Add Formula"
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              setMetricViewData({
-                ...metricViewData,
-                formulaConfigs: [
-                  ...metricViewData.formulaConfigs,
-                  getEmptyFormulaConfigData(),
-                ],
-              });
-            }}
-          />
+        <div className="flex -ml-3 justify-between w-full">
+          <div>
+            <Button
+              title="Add Query"
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                setMetricViewData({
+                  ...metricViewData,
+                  queryConfigs: [
+                    ...metricViewData.queryConfigs,
+                    getEmptyQueryConfigData(),
+                  ],
+                });
+              }}
+            />
+            <Button
+              title="Add Formula"
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                setMetricViewData({
+                  ...metricViewData,
+                  formulaConfigs: [
+                    ...metricViewData.formulaConfigs,
+                    getEmptyFormulaConfigData(),
+                  ],
+                });
+              }}
+            />
+          </div>
+          <div className="flex items-end -mr-3">
+            <Button
+              title="Apply"
+              icon={IconProp.Play}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
+              onClick={fetchAggregatedResults}
+            />
+          </div>
         </div>
       </div>
       <HorizontalRule />

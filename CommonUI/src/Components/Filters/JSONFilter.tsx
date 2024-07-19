@@ -31,14 +31,12 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
         autoConvertValueTypes={true}
         initialValue={(filterData[filter.key] as Dictionary<string>) || {}}
         onChange={(value: Dictionary<string | number | boolean>) => {
-          if (!value) {
-            delete filterData[filter.key];
-          }
-
           // if no keys in the dictionary, remove the filter
 
           if (Object.keys(value).length > 0) {
             filterData[filter.key] = value;
+          } else {
+            delete filterData[filter.key];
           }
 
           if (props.onFilterChanged) {

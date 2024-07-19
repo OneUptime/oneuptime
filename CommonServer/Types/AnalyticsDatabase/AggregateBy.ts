@@ -15,15 +15,20 @@ export class AggregateUtil {
   }): AggregationInterval {
     const diff: number = data.endDate.getTime() - data.startDate.getTime();
 
-    if (diff <= 1000 * 60) {
+    if (diff <= 1000 * 60 * 60 * 3) {
+      // if less than 3 hours, then get minute precision
       return AggregationInterval.Minute;
-    } else if (diff <= 1000 * 60 * 60 * 24) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 3) {
+      // 3 days
       return AggregationInterval.Hour;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 7) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 7 * 3) {
+      // 3 weeks
       return AggregationInterval.Day;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 30) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 30 * 3) {
+      // 3 months
       return AggregationInterval.Week;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 365) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 365 * 3) {
+      // 3 years
       return AggregationInterval.Month;
     }
     return AggregationInterval.Year;

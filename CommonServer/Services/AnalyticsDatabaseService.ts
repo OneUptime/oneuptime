@@ -53,6 +53,7 @@ import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
@@ -248,15 +249,44 @@ export default class AnalyticsDatabaseService<
         dbResult.stream,
       );
 
+      debugger;
+
       const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(
         strResult,
         findStatement.columns,
       );
 
-      const items: Array<AggregateModel> = jsonItems as any;
+      const items: Array<JSONObject> = jsonItems as any;
+
+      const aggregatedItems: Array<AggregatedModel> = [];
+
+      // convert date column from string to date.
+
+      for (const item of items) {
+        if (
+          !(item as JSONObject)[
+            aggregateBy.aggregationTimestampColumnName as string
+          ]
+        ) {
+          continue;
+        }
+
+        const aggregatedModel: AggregateModel = {
+          timestamp: OneUptimeDate.fromString(
+            (item as JSONObject)[
+              aggregateBy.aggregationTimestampColumnName as string
+            ] as string,
+          ),
+          value: (item as JSONObject)[
+            aggregateBy.aggregateColumnName as string
+          ] as number,
+        };
+
+        aggregatedItems.push(aggregatedModel);
+      }
 
       return {
-        data: items,
+        data: aggregatedItems,
       };
     } catch (error) {
       await this.onFindError(error as Exception);
@@ -366,6 +396,14 @@ export default class AnalyticsDatabaseService<
 
       for (let i: number = 0; i < columns.length; i++) {
         jsonItem[columns[i]!] = values[i];
+
+        if (values[i] === "NULL") {
+          jsonItem[columns[i]!] = null;
+        }
+
+        if (values[i] === "\\N") {
+          jsonItem[columns[i]!] = null;
+        }
       }
 
       jsonItems.push(jsonItem);
