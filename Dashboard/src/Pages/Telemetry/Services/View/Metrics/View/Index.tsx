@@ -1,5 +1,5 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import MetricView from "../../../../../../Components/Metrics/MetricVIew";
+import MetricView from "../../../../../../Components/Metrics/MetricView";
 import PageComponentProps from "../../../../../PageComponentProps";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";

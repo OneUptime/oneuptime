@@ -204,6 +204,22 @@ export default class AnalyticsDatabaseService<
         } as Sort<TBaseModel>;
       }
 
+      if(!aggregateBy.limit){
+        aggregateBy.limit = 10; 
+      }
+
+      if(!aggregateBy.aggregateBy){
+        throw new BadDataException("aggregateBy is required");
+      }
+
+      if(!aggregateBy.aggregationTimestampColumnName){
+        throw new BadDataException("aggregationTimestampColumnName is required");
+      }
+
+      if(!aggregateBy.aggregateColumnName){
+        throw new BadDataException("aggregateColumnName is required");
+      }
+
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -216,14 +232,6 @@ export default class AnalyticsDatabaseService<
         );
 
       aggregateBy.query = result.query;
-
-      if (!(aggregateBy.skip instanceof PositiveNumber)) {
-        aggregateBy.skip = new PositiveNumber(aggregateBy.skip);
-      }
-
-      if (!(aggregateBy.limit instanceof PositiveNumber)) {
-        aggregateBy.limit = new PositiveNumber(aggregateBy.limit);
-      }
 
       const findStatement: {
         statement: Statement;

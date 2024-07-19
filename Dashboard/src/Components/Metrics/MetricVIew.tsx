@@ -29,6 +29,9 @@ import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ChartGroup, { Chart, ChartGroupInterval, ChartType } from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
+import { AxisType, ChartCurve, XScalePrecision, XScaleType, YScaleType } from "CommonUI/src/Components/Charts/Line/LineChart";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -72,6 +75,66 @@ const MetricView: FunctionComponent<ComponentProps> = (
     props.data,
   );
 
+
+  const getCharts = (): Array<Chart> => {
+    const charts: Array<Chart> = [];
+
+
+
+    let index = 0; 
+
+    for (const queryConfig of metricViewData.queryConfigs) {
+      
+      if(!metricResults[index]){
+        continue;
+      }
+     
+      const chart: Chart = {
+        id: index.toString(),
+        type: ChartType.LINE,
+        title: queryConfig.metricAliasData.title || queryConfig.metricQueryData.filterData.metricName?.toString() || '',
+        description: queryConfig.metricAliasData.description,
+        props: {
+          data: [{
+            seriesName: queryConfig.metricAliasData.title || queryConfig.metricQueryData.filterData.metricName?.toString() || '',
+            data: metricResults[index]!.data.map((result: AggregatedModel) => {
+              return {
+                x: result.timestamp,
+                y: result.value,
+              };
+            }),
+          }],
+          xScale: {
+            type: XScaleType.TIME,
+            precision: XScalePrecision.HOUR,
+            max: "auto",
+            min: "auto",
+          },
+          yScale: {
+            type: YScaleType.LINEAR,
+            max: "auto",
+            min: "auto",
+          },
+          axisBottom: {
+            legend: "Time",
+            type: AxisType.Date,
+          },
+          axisLeft: {
+            legend: "Value",
+            type: AxisType.Number
+          },
+          curve: ChartCurve.LINEAR,
+        },
+        sync: true,
+      };
+
+      charts.push(chart);
+      index ++ ;
+    }
+
+    return charts;
+  }
+
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>([]);
   const [isMetricResultsLoading, setIsMetricResultsLoading] = useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>('');
@@ -94,7 +157,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               name: queryConfig.metricQueryData.filterData.metricName,
               attributes: queryConfig.metricQueryData.filterData.attributes,
             },
-            aggregateBy: queryConfig.metricQueryData.filterData.aggegationType as AggregationType,
+            aggregateBy: queryConfig.metricQueryData.filterData.aggegationType as AggregationType || AggregationType.Avg,
             aggregateColumnName: "value",
             aggregationTimestampColumnName: "createdAt",
             startTimestamp: metricViewData.startAndEndDate?.startValue as Date || OneUptimeDate.getCurrentDate(),
@@ -257,16 +320,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
         <ErrorMessage error={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && <div className="grid grid-cols-1 gap-4">
-        
         {/** charts */}
-
-        {metricResults.map((result, index) => {
-          return (
-            <Card> 
-
-            </Card>
-          );
-        })}
+        <ChartGroup interval={ChartGroupInterval.ONE_HOUR} charts={getCharts()} />
       </div>}
 
     </Fragment>
