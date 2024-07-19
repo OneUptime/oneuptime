@@ -9,11 +9,11 @@ import Permission from "Common/Types/Permission";
 export default class TelemetryAttribute extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "Metric",
+      tableName: "TelemetryAttribute",
       tableEngine: AnalyticsTableEngine.MergeTree,
-      singularName: "Metric",
-      pluralName: "Metrics",
-      crudApiPath: new Route("/metrics"),
+      singularName: "Telemetry Attribute",
+      pluralName: "Telemetry Attributes",
+      crudApiPath: new Route("/telemetry-attribute"),
       accessControl: {
         read: [
           Permission.ProjectOwner,
