@@ -98,56 +98,56 @@ const StartAndEndDate: DateFilterFunction = (
   }, [startDateTime, endDateTime]);
 
   // difference between both dates is 60 mins.
-  const is1Hour =
+  const is1Hour: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 60;
 
   // difference between both dates is 3 hours.
-  const is3Hours =
+  const is3Hours: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 180;
 
   // difference between both dates is 1 day.
-  const is1Day =
+  const is1Day: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 1440;
 
   // difference between both dates is 1 week.
-  const is1Week =
+  const is1Week: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 10080;
 
   // difference between both dates is 2 weeks.
-  const is2Weeks =
+  const is2Weeks: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 20160;
 
   // difference between both dates is 3 weeks.
-  const is3Weeks =
+  const is3Weeks: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMinutes(startDateTime, endDateTime) === 30240;
 
   // difference between both dates is 1 month.
-  const is1Month =
+  const is1Month: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
     OneUptimeDate.getDifferenceInMonths(startDateTime, endDateTime) === 1;
 
   // difference between both dates is 3 months.
-  const is3Months =
+  const is3Months: boolean | null =
     props.type === StartAndEndDateType.DateTime &&
     startDateTime &&
     endDateTime &&
