@@ -52,7 +52,6 @@ import { Stream } from "node:stream";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import Sort from "../Types/AnalyticsDatabase/Sort";
-import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 
 export default class AnalyticsDatabaseService<
@@ -249,8 +248,6 @@ export default class AnalyticsDatabaseService<
         dbResult.stream,
       );
 
-      debugger;
-
       const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(
         strResult,
         findStatement.columns,
@@ -271,7 +268,7 @@ export default class AnalyticsDatabaseService<
           continue;
         }
 
-        const aggregatedModel: AggregateModel = {
+        const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
               aggregateBy.aggregationTimestampColumnName as string

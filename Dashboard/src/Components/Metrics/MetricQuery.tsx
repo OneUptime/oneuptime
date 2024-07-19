@@ -1,19 +1,20 @@
 import FiltersForm from "CommonUI/src/Components/Filters/FiltersForm";
 import FilterData from "CommonUI/src/Components/Filters/Types/FilterData";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Metric from "Model/AnalyticsModels/Metric";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import MetricQuery from "Common/Types/Metrics/MetricsQuery";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import Query from "CommonUI/src/Utils/BaseDatabase/Query";
+import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 
 export interface MetricQueryData {
-  filterData: FilterData<MetricQuery>;
+  filterData: FilterData<MetricsQuery>;
 }
 
 export interface ComponentProps {
   data: MetricQueryData;
   onDataChanged: (filterData: MetricQueryData) => void;
+  metricNames: string[];
 }
 
 const MetricFilter: FunctionComponent<ComponentProps> = (
@@ -22,18 +23,23 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div>
-        <FiltersForm<MetricQuery>
+        <FiltersForm<MetricsQuery>
           showFilter={true}
           id="metrics-filter"
           filterData={props.data.filterData}
-          onFilterChanged={(filterData: FilterData<Metric>) => {
-            props.onDataChanged({ filterData });
+          onFilterChanged={(filterData: Query<MetricsQuery>) => {
+            props.onDataChanged({
+              filterData,
+            });
           }}
           filters={[
             {
               key: "metricName",
               title: "Metric Name",
-              type: FieldType.Text,
+              type: FieldType.Dropdown,
+              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
+                props.metricNames,
+              ),
             },
             {
               key: "attributes",

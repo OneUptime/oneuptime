@@ -45,6 +45,10 @@ import {
 } from "CommonUI/src/Components/Charts/Line/LineChart";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import IconProp from "Common/Types/Icon/IconProp";
+import DashboardNavigation from "../../Utils/Navigation";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
+import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -88,9 +92,17 @@ const MetricView: FunctionComponent<ComponentProps> = (
     props.data,
   );
 
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
+  const [pageError, setPageError] = useState<string>("");
+  const [allMetricNames, setAllMetricNames] = useState<Array<string>>([]);
+
   useEffect(() => {
-    fetchAggregatedResults().catch((err) => {
+    fetchAggregatedResults().catch((err: Error) => {
       setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+    });
+
+    loadAllMetricsTypes().catch((err: Error) => {
+      setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
 
@@ -170,6 +182,40 @@ const MetricView: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
 
+  const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsPageLoading(true);
+      const metrics: ListResult<Metric> = await ModelAPI.getList({
+        modelType: Metric,
+        select: {
+          name: true,
+        },
+        query: {
+          projectId: DashboardNavigation.getProjectId(),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        groupBy: {
+          name: true,
+        },
+      });
+
+      setAllMetricNames(
+        metrics.data.map((metric: Metric) => {
+          return metric.name!;
+        }),
+      );
+      setIsPageLoading(false);
+      setPageError("");
+    } catch (err) {
+      setIsPageLoading(false);
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
   const fetchAggregatedResults: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsMetricResultsLoading(true);
@@ -227,6 +273,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
       };
     };
 
+  if (isPageLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (pageError) {
+    return <ErrorMessage error={pageError} />;
+  }
+
   return (
     <Fragment>
       <div className="space-y-3">
@@ -262,6 +316,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   });
                 }}
                 data={queryConfig}
+                metricNames={allMetricNames}
                 onRemove={() => {
                   const newGraphConfigs: Array<MetricQueryConfigData> = [
                     ...metricViewData.queryConfigs,
