@@ -29,6 +29,7 @@ export interface ComponentProps {
   addButtonSuffix?: string;
   valueTypes?: Array<ValueType>; // by default it'll be Text
   autoConvertValueTypes?: boolean | undefined;
+  keys?: Array<string> | undefined;
 }
 
 interface Item {
@@ -134,6 +135,15 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     value: "False",
   };
 
+  const dropdownOptionsForKeys: Array<DropdownOption> = props.keys
+    ? props.keys.map((key: string) => {
+        return {
+          label: key,
+          value: key,
+        };
+      })
+    : [];
+
   return (
     <div>
       <div>
@@ -141,17 +151,43 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
           return (
             <div key={index} className="flex">
               <div className="mr-1">
-                <Input
-                  value={item.key}
-                  placeholder={props.keyPlaceholder}
-                  onChange={(value: string) => {
-                    const newData: Array<Item> = [...data];
-                    newData[index]!.key = value;
-                    setData(newData);
-                    onDataChange(newData);
-                  }}
-                />
+                {!props.keys && (
+                  <Input
+                    value={item.key}
+                    placeholder={props.keyPlaceholder}
+                    onChange={(value: string) => {
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.key = value;
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                )}
+
+                {props.keys && (
+                  <Dropdown
+                    value={dropdownOptionsForKeys.find(
+                      (option: DropdownOption) => {
+                        return option.value === item.key;
+                      },
+                    )}
+                    options={dropdownOptionsForKeys}
+                    isMultiSelect={false}
+                    onChange={(
+                      selectedOption:
+                        | DropdownValue
+                        | Array<DropdownValue>
+                        | null,
+                    ) => {
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.key = selectedOption as string;
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                )}
               </div>
+
               <div className="mr-1 ml-1 mt-auto mb-auto">
                 <Icon
                   className="h-3 w-3"

@@ -15,6 +15,7 @@ export interface ComponentProps {
   data: MetricQueryData;
   onDataChanged: (filterData: MetricQueryData) => void;
   metricNames: string[];
+  telemetryAttributes: string[];
 }
 
 const MetricFilter: FunctionComponent<ComponentProps> = (
@@ -45,6 +46,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               key: "attributes",
               type: FieldType.JSON,
               title: "Filter by Attributes",
+              jsonKeys: props.telemetryAttributes,
             },
             {
               key: "aggregateBy",

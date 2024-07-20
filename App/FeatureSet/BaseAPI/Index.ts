@@ -9,6 +9,7 @@ import FileAPI from "CommonServer/API/FileAPI";
 import GlobalConfigAPI from "CommonServer/API/GlobalConfigAPI";
 import MonitorGroupAPI from "CommonServer/API/MonitorGroupAPI";
 import NotificationAPI from "CommonServer/API/NotificationAPI";
+import TelemetryAPI from "CommonServer/API/TelemetryAPI";
 import Ingestor from "CommonServer/API/ProbeAPI";
 import ProjectAPI from "CommonServer/API/ProjectAPI";
 import ProjectSsoAPI from "CommonServer/API/ProjectSSO";
@@ -231,9 +232,6 @@ import SmsLogService, {
 import SpanService, {
   SpanService as SpanServiceType,
 } from "CommonServer/Services/SpanService";
-import TelemetryAttributeService, {
-  TelemetryAttributeService as TelemetryAttributeServiceType,
-} from "CommonServer/Services/TelemetryAttributeService";
 import StatusPageAnnouncementService, {
   Service as StatusPageAnnouncementServiceType,
 } from "CommonServer/Services/StatusPageAnnouncementService";
@@ -318,7 +316,6 @@ import Log from "Model/AnalyticsModels/Log";
 import Metric from "Model/AnalyticsModels/Metric";
 import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
 import Span from "Model/AnalyticsModels/Span";
-import TelemetryAttribute from "Model/AnalyticsModels/TelemetryAttribute";
 import ApiKey from "Model/Models/ApiKey";
 import ApiKeyPermission from "Model/Models/ApiKeyPermission";
 import CallLog from "Model/Models/CallLog";
@@ -456,14 +453,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ShortLink, ShortLinkServiceType>(
         ShortLink,
         ShortLinkService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
-        TelemetryAttribute,
-        TelemetryAttributeService,
       ).getRouter(),
     );
 
@@ -1288,6 +1277,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 
     //attach api's
     app.use(

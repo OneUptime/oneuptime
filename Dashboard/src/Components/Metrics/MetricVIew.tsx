@@ -49,6 +49,11 @@ import DashboardNavigation from "../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "CommonUI/src/Config";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -95,6 +100,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
   const [allMetricNames, setAllMetricNames] = useState<Array<string>>([]);
+
+  const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
+    [],
+  );
 
   useEffect(() => {
     fetchAggregatedResults().catch((err: Error) => {
@@ -185,6 +194,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
+
       const metrics: ListResult<Metric> = await ModelAPI.getList({
         modelType: Metric,
         select: {
@@ -208,6 +218,28 @@ const MetricView: FunctionComponent<ComponentProps> = (
           return metric.name!;
         }),
       );
+
+      const metricAttributesResponse:
+        | HTTPResponse<JSONObject>
+        | HTTPErrorResponse = await API.post(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/metrics/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
+
+      if (metricAttributesResponse instanceof HTTPErrorResponse) {
+        throw metricAttributesResponse;
+      } else {
+        const attributes: Array<string> = metricAttributesResponse.data[
+          "attributes"
+        ] as Array<string>;
+        setTelemetryAttributes(attributes);
+      }
+
       setIsPageLoading(false);
       setPageError("");
     } catch (err) {
@@ -316,6 +348,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   });
                 }}
                 data={queryConfig}
+                telemetryAttributes={telemetryAttributes}
                 metricNames={allMetricNames}
                 onRemove={() => {
                   const newGraphConfigs: Array<MetricQueryConfigData> = [

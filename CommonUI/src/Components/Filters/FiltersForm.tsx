@@ -91,6 +91,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                     filter={filter}
                     filterData={props.filterData}
                     onFilterChanged={changeFilterData}
+                    jsonKeys={filter.jsonKeys}
                   />
                 </div>
               );

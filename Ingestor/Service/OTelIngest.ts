@@ -21,27 +21,44 @@ export default class OTelIngestService {
     // We need to convert this to date.
     const attributes: JSONArray = items;
 
+    type GetValueFunction = (value: JSONValue) => JSONValue;
+
+    const getValue: GetValueFunction = (value: JSONValue): JSONValue => {
+      value = value as JSONObject;
+
+      if (value["stringValue"]) {
+        value = value["stringValue"] as string;
+      } else if (value["intValue"]) {
+        value = value["intValue"] as number;
+      } else if (value["doubleValue"]) {
+        value = value["doubleValue"] as number;
+      } else if (value["boolValue"]) {
+        value = value["boolValue"] as boolean;
+      } else if (
+        value["arrayValue"] &&
+        (value["arrayValue"] as JSONObject)["values"]
+      ) {
+        value = (
+          (value["arrayValue"] as JSONObject)["values"] as JSONArray
+        ).map((v: JSONObject) => {
+          return getValue(v);
+        });
+      } else if (
+        value["mapValue"] &&
+        (value["mapValue"] as JSONObject)["fields"]
+      ) {
+        value = getValue((value["mapValue"] as JSONObject)["fields"]);
+      } else if (value["nullValue"]) {
+        value = null;
+      }
+
+      return value;
+    };
+
     if (attributes) {
       for (const attribute of attributes) {
         if (attribute["key"] && typeof attribute["key"] === "string") {
-          let value: JSONValue = attribute["value"] as JSONObject;
-
-          if (value["stringValue"]) {
-            value = value["stringValue"] as string;
-          } else if (value["intValue"]) {
-            value = value["intValue"] as number;
-          } else if (value["doubleValue"]) {
-            value = value["doubleValue"] as number;
-          } else if (value["boolValue"]) {
-            value = value["boolValue"] as boolean;
-          } else if (value["arrayValue"]) {
-            value = value["arrayValue"] as JSONArray;
-          } else if (value["mapValue"]) {
-            value = value["mapValue"] as JSONObject;
-          } else if (value["nullValue"]) {
-            value = null;
-          }
-
+          const value: JSONValue = getValue(attribute["value"]);
           finalObj[attribute["key"]] = value;
         }
       }

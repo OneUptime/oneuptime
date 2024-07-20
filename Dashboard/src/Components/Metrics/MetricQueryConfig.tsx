@@ -17,6 +17,7 @@ export interface ComponentProps {
   data: MetricQueryConfigData;
   onDataChanged: (data: MetricQueryConfigData) => void;
   metricNames: string[];
+  telemetryAttributes: string[];
   onRemove: () => void;
 }
 
@@ -48,6 +49,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               props.onDataChanged({ ...props.data, metricQueryData: data });
             }}
             metricNames={props.metricNames}
+            telemetryAttributes={props.telemetryAttributes}
           />
         )}
         <div className="-ml-3">
