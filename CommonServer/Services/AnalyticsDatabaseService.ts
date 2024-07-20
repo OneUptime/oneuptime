@@ -291,6 +291,18 @@ export default class AnalyticsDatabaseService<
     }
   }
 
+
+  public async executeQuery(query: string): Promise<string> {
+    const dbResult =  await this.execute(query);
+    
+    const strResult: string = await StreamUtil.convertStreamToText(
+      dbResult.stream,
+    );
+
+    return strResult; 
+  }
+
+
   private async _findBy(
     findBy: FindBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {

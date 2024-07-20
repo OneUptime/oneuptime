@@ -128,7 +128,6 @@ import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
 import CopilotPullRequestService from "./CopilotPullRequestService";
 import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
-import TelemetryAttributeService from "./TelemetryAttributeService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -277,8 +276,7 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
-  MonitorMetricsByMinuteService,
-  TelemetryAttributeService,
+  MonitorMetricsByMinuteService
 ];
 
 export default services;
