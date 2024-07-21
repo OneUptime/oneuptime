@@ -6,9 +6,11 @@ import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
 import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -21,6 +23,19 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
   const spanKindDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
+
+  let viewRoute = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.TELEMETRY_TRACE_ROOT]!,
+  );
+
+  if (modelId) {
+    viewRoute = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]!,
+      {
+        modelId: modelId,
+      },
+    );
+  }
 
   return (
     <Fragment>
@@ -48,7 +63,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         showRefreshButton={true}
         sortBy="startTime"
         sortOrder={SortOrder.Descending}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        onViewPage={(span: Span) => {
+          return Promise.resolve(new Route(viewRoute.toString()).addRoute(span.traceId!.toString()));
+        }}
         filters={[
           {
             field: {

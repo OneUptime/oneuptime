@@ -26,6 +26,12 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       "Metrics",
       "Metrics Explorer",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_TRACE_VIEW, [
+      "Project",
+      "Telemetry",
+      "Traces",
+      "Trace Explorer",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_TRACES, [
       "Project",
       "Telemetry",

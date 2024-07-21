@@ -2,6 +2,7 @@ import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import TelemetryServiceViewLayout from "../Pages/Telemetry/Services/View/Layout";
 import TelemetryMetricLayout from "../Pages/Telemetry/Metrics/View/Layout";
+import TelemetryTraceLayout from "../Pages/Telemetry/Traces/View/Layout";
 import TelemetryViewLayout from "../Pages/Telemetry/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, TelemetryRoutePath } from "../Utils/RouteMap";
@@ -25,6 +26,11 @@ const TelemetryServices: LazyExoticComponent<
 const TelemetryLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Telemetry/Logs");
+  });
+
+const TelemetryViewTrace: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Traces/View/Index");
   });
 
 const TelemetryTraces: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -211,6 +217,38 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
               <TelemetryViewMetric
                 {...props}
                 pageRoute={RouteMap[PageMap.TELEMETRY_METRIC_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+
+       {/* Trace View */}
+
+       <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_TRACE_ROOT] || ""}
+        element={<TelemetryTraceLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewTrace
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TELEMETRY_TRACE_VIEW)}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewTrace
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACE_VIEW] as Route}
               />
             </Suspense>
           }
