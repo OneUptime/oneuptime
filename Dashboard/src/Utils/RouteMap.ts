@@ -56,7 +56,7 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
-export const TelemetryRouthPath: Dictionary<string> = {
+export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -813,67 +813,83 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/telemetry/services`,
   ),
 
+  [PageMap.TELEMETRY_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/logs`,
+  ),
+
+  [PageMap.TELEMETRY_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/metrics`,
+  ),
+
+  [PageMap.TELEMETRY_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/traces`,
+  ),
+
+  [PageMap.TELEMETRY_DASHBOARDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/dashboards`,
+  ),
+
   [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW]
     }`,
   ),
 
   [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]
     }`,
   ),
 
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_TRACE]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_TRACE]
     }`,
   ),
 
   [PageMap.TELEMETRY_SERVICES_VIEW_METRIC]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]
     }`,
   ),
 
   [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DELETE]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_DELETE]
     }`,
   ),
 
   [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]
     }`,
   ),
 
   //TELEMETRY_SERVICE_VIEW_LOGS
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_LOGS]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_LOGS]
     }`,
   ),
 
   //TELEMETRY_SERVICE_VIEW_TRACES
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]
     }`,
   ),
 
   // Metrics
   [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_METRICS]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_METRICS]
     }`,
   ),
 
   // Dashboard
   [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/services/${
-      TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]
     }`,
   ),
 

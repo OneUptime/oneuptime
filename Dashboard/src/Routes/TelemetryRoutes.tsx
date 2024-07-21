@@ -2,7 +2,7 @@ import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import TelemetryServiceViewLayout from "../Pages/Telemetry/Services/View/Layout";
 import PageMap from "../Utils/PageMap";
-import RouteMap, { RouteUtil, TelemetryRouthPath } from "../Utils/RouteMap";
+import RouteMap, { RouteUtil, TelemetryRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, {
   FunctionComponent,
@@ -19,6 +19,29 @@ const TelemetryServices: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Telemetry/Services");
 });
+
+const TelemetryLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Logs");
+}
+);
+
+const TelemetryTraces: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Traces");
+}
+);
+
+const TelemetryMetrics: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Metrics");
+});
+
+
+
 const TelemetryServiceView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -95,7 +118,47 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
       />
 
       <PageRoute
-        path={TelemetryRouthPath[PageMap.TELEMETRY_SERVICES] || ""}
+        path={TelemetryRoutePath[PageMap.TELEMETRY_LOGS] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <TelemetryLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.TELEMETRY_LOGS] as Route}
+            />
+          </Suspense>
+        }
+      />
+
+      <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <TelemetryTraces
+              {...props}
+              pageRoute={RouteMap[PageMap.TELEMETRY_TRACES] as Route}
+            />
+          </Suspense>
+        }
+
+      />
+
+      <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_METRICS] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <TelemetryMetrics
+              {...props}
+              pageRoute={RouteMap[PageMap.TELEMETRY_METRICS] as Route}
+            />
+          </Suspense>
+        }
+
+
+      />
+
+
+      <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
         element={
           <Suspense fallback={Loader}>
             <TelemetryServices
@@ -107,7 +170,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
       />
 
       <PageRoute
-        path={TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW] || ""}
+        path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW] || ""}
         element={<TelemetryServiceViewLayout {...props} />}
       >
         <PageRoute
@@ -260,7 +323,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                  PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
                   ] as Route
                 }
               />

@@ -70,6 +70,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ChartBar}
         />
+      </SideMenuSection>
+      <SideMenuSection title="Views">
         <SideMenuItem
           link={{
             title: "Dashboards",
@@ -80,6 +82,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Window}
         />
+
       </SideMenuSection>
       <SideMenuSection title="Advanced">
         <SideMenuItem
