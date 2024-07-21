@@ -82,7 +82,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Window}
         />
-
       </SideMenuSection>
       <SideMenuSection title="Advanced">
         <SideMenuItem

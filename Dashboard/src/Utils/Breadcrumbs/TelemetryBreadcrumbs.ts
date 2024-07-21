@@ -5,6 +5,31 @@ import Link from "Common/Types/Link";
 
 export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_SERVICES, [
+      "Project",
+      "Telemetry",
+      "Services"
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_LOGS, [
+      "Project",
+      "Telemetry",
+      "Logs"
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_METRICS, [
+      "Project",
+      "Telemetry",
+      "Metrics"
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_TRACES, [
+      "Project",
+      "Telemetry",
+      "Traces"
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_DASHBOARDS, [
+      "Project",
+      "Telemetry",
+      "Dashboards"
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_SERVICES_VIEW, [
       "Project",
       "Telemetry",

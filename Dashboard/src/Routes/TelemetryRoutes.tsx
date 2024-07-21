@@ -1,6 +1,7 @@
 import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import TelemetryServiceViewLayout from "../Pages/Telemetry/Services/View/Layout";
+import TelemetryViewLayout from "../Pages/Telemetry/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, TelemetryRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -20,27 +21,25 @@ const TelemetryServices: LazyExoticComponent<
   return import("../Pages/Telemetry/Services");
 });
 
-const TelemetryLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Logs");
-}
-);
+const TelemetryLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Logs");
+  });
 
-const TelemetryTraces: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Traces");
-}
-);
+const TelemetryTraces: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Traces");
+  });
 
-const TelemetryMetrics: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Metrics");
-});
+const TelemetryMetrics: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Metrics");
+  });
 
-
+const TelemetryDashboard: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Dashboard");
+  });
 
 const TelemetryServiceView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -106,68 +105,82 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
   return (
     <Routes>
       <PageRoute
-        index
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryServices
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
-            />
-          </Suspense>
-        }
-      />
+        path="/"
+        element={<TelemetryViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryServices
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_LOGS] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryLogs
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY_LOGS] as Route}
-            />
-          </Suspense>
-        }
-      />
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_LOGS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryTraces
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY_TRACES] as Route}
-            />
-          </Suspense>
-        }
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryTraces
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACES] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-      />
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_METRICS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryMetrics
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_METRICS] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_METRICS] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryMetrics
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY_METRICS] as Route}
-            />
-          </Suspense>
-        }
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_DASHBOARDS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryDashboard
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route}
+              />
+            </Suspense>
+          }
+        />
 
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryServices
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_SERVICES] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-      />
-
-
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryServices
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY_SERVICES] as Route}
-            />
-          </Suspense>
-        }
-      />
+      </PageRoute>
 
       <PageRoute
         path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW] || ""}
@@ -330,6 +343,8 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+
       </PageRoute>
     </Routes>
   );
