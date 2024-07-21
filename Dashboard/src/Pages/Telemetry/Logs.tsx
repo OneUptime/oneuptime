@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryServiceTable from "../../Components/TelemetryService/TelemetryServiceTable";
+import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
 
 const Services: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +15,14 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <TelemetryServiceTable />;
+  return (
+    <DashboardLogsViewer
+      showFilters={true}
+      telemetryServiceIds={[]}
+      enableRealtime={true}
+      id="logs"
+    />
+  );
 };
 
 export default Services;

@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryServiceTable from "../../Components/TelemetryService/TelemetryServiceTable";
+import TraceTable from "../../Components/Traces/TraceTable";
 
 const Services: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +15,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <TelemetryServiceTable />;
+  return <TraceTable />;
 };
 
 export default Services;
