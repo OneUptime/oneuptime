@@ -117,7 +117,6 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         statusCode: true,
       };
 
-
       // now get all the spans with the traceId
 
       const traceId: string = traceIdFromUrl;
@@ -446,77 +445,78 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="mb-8">
-      <Card
-        title={"Traces"}
-        description={"Traces for the request operation."}
-        buttons={[
-          {
-            ...getRefreshButton(),
-            className: "py-0 pr-0 pl-1 mt-1",
-            onClick: async () => {
-              await fetchItems();
+        <Card
+          title={"Traces"}
+          description={"Traces for the request operation."}
+          buttons={[
+            {
+              ...getRefreshButton(),
+              className: "py-0 pr-0 pl-1 mt-1",
+              onClick: async () => {
+                await fetchItems();
+              },
+              disabled: isLoading,
             },
-            disabled: isLoading,
-          },
-        ]}
-      >
-        <div className="overflow-x-auto">
-          {ganttChart ? (
-            <GanttChart chart={ganttChart} />
-          ) : (
-            <ErrorMessage error={"No spans found"} />
-          )}
-        </div>
-      </Card>
-
-      {traceId && (
-        <div className="mt-5">
-        <DashboardLogsViewer
-          id={"traces-logs-viewer"}
-          noLogsMessage="No logs found for this trace."
-          traceIds={[traceId]}
-          enableRealtime={false}
-        />
-        </div>
-      )}
-
-      {selectedSpans.length > 0 && (
-        <SideOver
-          title="View Span"
-          description="View the span details."
-          onClose={() => {
-            setSelectedSpans([]);
-          }}
-          size={SideOverSize.Large}
+          ]}
         >
-          <SpanViewer
-            id={"span-viewer"}
-            openTelemetrySpanId={selectedSpans[0] as string}
-            traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+          <div className="overflow-x-auto">
+            {ganttChart ? (
+              <GanttChart chart={ganttChart} />
+            ) : (
+              <ErrorMessage error={"No spans found"} />
+            )}
+          </div>
+        </Card>
+
+        {traceId && (
+          <div className="mt-5">
+            <DashboardLogsViewer
+              id={"traces-logs-viewer"}
+              noLogsMessage="No logs found for this trace."
+              traceIds={[traceId]}
+              enableRealtime={false}
+            />
+          </div>
+        )}
+
+        {selectedSpans.length > 0 && (
+          <SideOver
+            title="View Span"
+            description="View the span details."
             onClose={() => {
               setSelectedSpans([]);
             }}
-            telemetryService={
-              telemetryServices.find((service: TelemetryService) => {
-                const selectedSpan: Span | undefined = spans.find(
-                  (span: Span) => {
-                    return span.spanId?.toString() === selectedSpans[0]!;
-                  },
-                );
+            size={SideOverSize.Large}
+          >
+            <SpanViewer
+              id={"span-viewer"}
+              openTelemetrySpanId={selectedSpans[0] as string}
+              traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+              onClose={() => {
+                setSelectedSpans([]);
+              }}
+              telemetryService={
+                telemetryServices.find((service: TelemetryService) => {
+                  const selectedSpan: Span | undefined = spans.find(
+                    (span: Span) => {
+                      return span.spanId?.toString() === selectedSpans[0]!;
+                    },
+                  );
 
-                if (!selectedSpan) {
-                  throw new BadDataException("Selected span not found"); // this should never happen
-                }
+                  if (!selectedSpan) {
+                    throw new BadDataException("Selected span not found"); // this should never happen
+                  }
 
-                return (
-                  service._id?.toString() === selectedSpan.serviceId?.toString()
-                );
-              })!
-            }
-            divisibilityFactor={divisibilityFactor}
-          />
-        </SideOver>
-      )}
+                  return (
+                    service._id?.toString() ===
+                    selectedSpan.serviceId?.toString()
+                  );
+                })!
+              }
+              divisibilityFactor={divisibilityFactor}
+            />
+          </SideOver>
+        )}
       </div>
     </Fragment>
   );

@@ -24,7 +24,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   const spanKindDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
 
-  let viewRoute = RouteUtil.populateRouteParams(
+  let viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.TELEMETRY_TRACE_ROOT]!,
   );
 
@@ -64,7 +64,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         sortBy="startTime"
         sortOrder={SortOrder.Descending}
         onViewPage={(span: Span) => {
-          return Promise.resolve(new Route(viewRoute.toString()).addRoute(span.traceId!.toString()));
+          return Promise.resolve(
+            new Route(viewRoute.toString()).addRoute(span.traceId!.toString()),
+          );
         }}
         filters={[
           {

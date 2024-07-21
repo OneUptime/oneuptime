@@ -46,10 +46,9 @@ export default class Route extends DatabaseProperty {
   }
 
   public addRoute(route: Route | string): Route {
-
     route = route.toString();
 
-    if(!route.startsWith("/")) {
+    if (!route.startsWith("/")) {
       route = "/" + route;
     }
 

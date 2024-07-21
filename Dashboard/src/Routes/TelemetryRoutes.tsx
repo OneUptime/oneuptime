@@ -28,10 +28,11 @@ const TelemetryLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Telemetry/Logs");
   });
 
-const TelemetryViewTrace: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Telemetry/Traces/View/Index");
-  });
+const TelemetryViewTrace: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Traces/View/Index");
+});
 
 const TelemetryTraces: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
@@ -223,10 +224,9 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
         />
       </PageRoute>
 
+      {/* Trace View */}
 
-       {/* Trace View */}
-
-       <PageRoute
+      <PageRoute
         path={TelemetryRoutePath[PageMap.TELEMETRY_TRACE_ROOT] || ""}
         element={<TelemetryTraceLayout {...props} />}
       >
