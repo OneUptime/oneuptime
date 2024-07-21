@@ -259,7 +259,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             modelType: Metric,
             aggregateBy: {
               query: {
-                createdAt: metricViewData.startAndEndDate,
+                time: metricViewData.startAndEndDate,
                 name: queryConfig.metricQueryData.filterData.metricName,
                 attributes: queryConfig.metricQueryData.filterData.attributes,
               },
@@ -268,7 +268,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   .aggregateBy as MetricsAggregationType) ||
                 MetricsAggregationType.Avg,
               aggregateColumnName: "value",
-              aggregationTimestampColumnName: "createdAt",
+              aggregationTimestampColumnName: "time",
               startTimestamp:
                 (metricViewData.startAndEndDate?.startValue as Date) ||
                 OneUptimeDate.getCurrentDate(),
@@ -399,7 +399,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
       </div>
       <div>
-        <div className="flex -ml-3 justify-between w-full">
+        <div className="flex -ml-3 mt-8 justify-between w-full">
           <div>
             <Button
               title="Add Query"

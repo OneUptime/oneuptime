@@ -15,11 +15,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-   
-      <TelemetryServiceTable />
-  
-  );
+  return <TelemetryServiceTable />;
 };
 
 export default Services;

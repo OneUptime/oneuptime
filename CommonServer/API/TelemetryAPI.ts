@@ -64,7 +64,7 @@ const getAttributes: GetAttributesFunction = async (
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Session Token"),
+        new BadDataException("Invalid User Sesssion"),
       );
     }
 

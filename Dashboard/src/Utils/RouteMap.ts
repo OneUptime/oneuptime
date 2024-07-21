@@ -62,6 +62,16 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_TRACES]: "traces",
   [PageMap.TELEMETRY_METRICS]: "metrics",
   [PageMap.TELEMETRY_DASHBOARDS]: "dashboards",
+  [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: "service",
+
+  [PageMap.TELEMETRY_METRIC_ROOT]: `metric`,
+  [PageMap.TELEMETRY_METRIC_VIEW]: `metric/view`,
+
+  [PageMap.TELEMETRY_TRACE_ROOT]: `trace`,
+  [PageMap.TELEMETRY_TRACE_VIEW]: `trace/view`,
+
+  [PageMap.TELEMETRY_LOG_ROOT]: `log`,
+
   [PageMap.TELEMETRY_SERVICES_VIEW]: `service/${RouteParams.ModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `service/${RouteParams.ModelID}/delete`,
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `service/${RouteParams.ModelID}/logs`,
@@ -834,6 +844,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.TELEMETRY_METRIC_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_METRIC_VIEW]
+    }`,
+  ),
+
   [PageMap.TELEMETRY_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_TRACES]
@@ -843,6 +859,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TELEMETRY_DASHBOARDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_DASHBOARDS]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_ROOT]
     }`,
   ),
 
