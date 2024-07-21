@@ -293,17 +293,17 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsMetricResultsLoading(false);
     };
 
-  type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
+  // type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
 
-  const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
-    (): MetricFormulaConfigData => {
-      return {
-        metricAliasData: { metricVariable: "", title: "", description: "" },
-        metricFormulaData: {
-          metricFormula: "",
-        },
-      };
-    };
+  // const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
+  //   (): MetricFormulaConfigData => {
+  //     return {
+  //       metricAliasData: { metricVariable: "", title: "", description: "" },
+  //       metricFormulaData: {
+  //         metricFormula: "",
+  //       },
+  //     };
+  //   };
 
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
@@ -414,7 +414,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 });
               }}
             />
-            <Button
+            {/* <Button
               title="Add Formula"
               buttonSize={ButtonSize.Small}
               onClick={() => {
@@ -426,7 +426,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   ],
                 });
               }}
-            />
+            /> */}
           </div>
           <div className="flex items-end -mr-3">
             <Button
