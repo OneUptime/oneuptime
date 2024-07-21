@@ -19,7 +19,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     <DashboardLogsViewer
       showFilters={true}
       telemetryServiceIds={[]}
-      enableRealtime={true}
+      enableRealtime={false}
       id="logs"
     />
   );

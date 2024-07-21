@@ -129,7 +129,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         columns={[
           {
             field: {
-              traceId: true,
+              spanId: true,
             },
             title: "Span ID",
             type: FieldType.Element,
@@ -138,11 +138,18 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 <Fragment>
                   <SpanStatusElement
                     span={span}
-                    title={span.traceId?.toString()}
+                    title={span.spanId?.toString()}
                   />
                 </Fragment>
               );
             },
+          },
+          {
+            field: {
+              traceId: true,
+            },
+            title: "Trace ID",
+            type: FieldType.Text,
           },
           {
             field: {

@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   span: Span;
-  title?: string | undefined;
+  title?: SpanStatus | string | undefined;
   titleClassName?: string | undefined;
 }
 

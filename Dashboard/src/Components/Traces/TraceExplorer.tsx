@@ -31,7 +31,7 @@ import AnalyticsModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsMod
 import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
 import Select from "CommonUI/src/Utils/BaseDatabase/Select";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Span from "Model/AnalyticsModels/Span";
+import Span, { SpanStatus } from "Model/AnalyticsModels/Span";
 import TelemetryService from "Model/Models/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -238,17 +238,20 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
     return {
       id: span.spanId!,
-      label: (
-        <div className="mt-0.5">
-          <SpanStatusElement
-            span={span}
-            title={
-              "Status: " +
-              SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
-            }
-          />
-        </div>
-      ),
+      label:
+        span.statusCode === SpanStatus.Error ? (
+          <div className="mt-0.5">
+            <SpanStatusElement
+              span={span}
+              title={
+                "Status: " +
+                SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
+              }
+            />
+          </div>
+        ) : (
+          <></>
+        ),
       barColor: spanColor.barColor,
       barTimelineStart:
         (span.startTimeUnixNano! - timelineStartTimeUnixNano) /
