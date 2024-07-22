@@ -283,10 +283,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
           result.data.map((data: AggregatedModel) => {
             // convert to int from float
 
-            if(data.value){
+            if (data.value) {
               data.value = Math.round(data.value);
             }
 
+            return data;
           });
 
           results.push(result);

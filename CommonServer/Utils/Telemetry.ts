@@ -4,7 +4,6 @@ import {
   Counter,
   Histogram,
   MetricOptions,
-  ObservableGauge,
 } from "@opentelemetry/api/build/src/metrics/Metric";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
@@ -238,7 +237,7 @@ export default class Telemetry {
     name: string;
     description: string;
     unit?: string;
-  }): ObservableGauge {
+  }): opentelemetry.api.UpDownCounter<opentelemetry.api.Attributes> {
     const { name, description } = data;
 
     const metricOptions: MetricOptions = {
@@ -249,8 +248,8 @@ export default class Telemetry {
       metricOptions.unit = data.unit;
     }
 
-    const guage: ObservableGauge<opentelemetry.api.Attributes> =
-      this.getMeter().createObservableGauge(name, metricOptions);
+    const guage: opentelemetry.api.UpDownCounter<opentelemetry.api.Attributes> =
+      this.getMeter().createUpDownCounter(name, metricOptions);
 
     return guage;
   }
