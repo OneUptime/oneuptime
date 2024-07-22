@@ -20,6 +20,11 @@ import API from "../../Utils/API/API";
 import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import { Dictionary } from "lodash";
+import TelemetryService from "Model/Models/TelemetryService";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ListResult from "../../Utils/BaseDatabase/ListResult";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -48,9 +53,35 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
   const [pageError, setPageError] = React.useState<string>("");
 
+  const [serviceMap, setServiceMap] = React.useState<
+    Dictionary<TelemetryService>
+  >({});
+
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
+
+      const telemetryServices: ListResult<TelemetryService> =
+        await ModelAPI.getList({
+          modelType: TelemetryService,
+          query: {},
+          select: {
+            name: true,
+            serviceColor: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+      const services: Dictionary<TelemetryService> = {};
+
+      telemetryServices.data.forEach((service: TelemetryService) => {
+        services[service.id!.toString()!] = service;
+      });
+
+      setServiceMap(services);
 
       const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post(
@@ -202,7 +233,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           }}
         >
           {props.logs.map((log: Log, i: number) => {
-            return <LogItem key={i} log={log} />;
+            return <LogItem serviceMap={serviceMap} key={i} log={log} />;
           })}
 
           {props.logs.length === 0 && (

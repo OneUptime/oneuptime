@@ -164,14 +164,14 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               name: true,
             },
             type: FieldType.Text,
-            title: "Root Span Name",
+            title: "Span Name",
           },
           {
             field: {
               kind: true,
             },
             type: FieldType.Text,
-            title: "Root Span Kind",
+            title: "Span Kind",
             filterDropdownOptions: spanKindDropdownOptions,
           },
           {

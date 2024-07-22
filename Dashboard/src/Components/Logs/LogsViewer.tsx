@@ -32,15 +32,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const query: Query<Log> = {};
 
-  if (props.telemetryServiceIds) {
+  if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
     query.serviceId = new Includes(props.telemetryServiceIds);
   }
 
-  if (props.traceIds) {
+  if (props.traceIds && props.traceIds.length > 0) {
     query.traceId = new Includes(props.traceIds);
   }
 
-  if (props.spanIds) {
+  if (props.spanIds && props.spanIds.length > 0) {
     query.spanId = new Includes(props.spanIds);
   }
 
