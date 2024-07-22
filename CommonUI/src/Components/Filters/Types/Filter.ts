@@ -8,4 +8,5 @@ export default interface Filter<T extends GenericObject> {
   key: keyof T;
   type: FieldType;
   jsonKeys?: Array<string> | undefined;
+  isAdvancedFilter?: boolean | undefined;
 }

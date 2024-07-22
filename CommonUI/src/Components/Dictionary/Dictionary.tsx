@@ -150,7 +150,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         {data.map((item: Item, index: number) => {
           return (
             <div key={index} className="flex">
-              <div className="mr-1">
+              <div className="mr-1 w-1/2">
                 {!props.keys && (
                   <Input
                     value={item.key}
@@ -196,7 +196,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               {valueTypes.length > 1 && (
-                <div className="ml-1">
+                <div className="ml-1 w-1/2">
                   <Dropdown
                     value={dropdownOptionsForValueTypes.find(
                       (dropdownOption: DropdownOption) => {
@@ -220,7 +220,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
-              <div className="ml-1">
+              <div className="ml-1 w-1/2">
                 {item.type === ValueType.Text && (
                   <Input
                     value={item.value.toString()}

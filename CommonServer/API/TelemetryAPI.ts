@@ -3,10 +3,10 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Exception from "Common/Types/Exception/Exception";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -18,42 +18,44 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/telemetry/metrics/get-attributes",
   UserMiddleware.getUserMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    return getAttributes(req, res, TelemetryTableName.Metric);
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributes(req, res, next, TelemetryTableName.Metric);
   },
 );
 
 router.post(
   "/telemetry/logs/get-attributes",
   UserMiddleware.getUserMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    return getAttributes(req, res, TelemetryTableName.Logs);
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributes(req, res, next, TelemetryTableName.Log);
   },
 );
 
 router.post(
   "/telemetry/traces/get-attributes",
   UserMiddleware.getUserMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    return getAttributes(req, res, TelemetryTableName.Span);
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributes(req, res, next, TelemetryTableName.Span);
   },
 );
 
 enum TelemetryTableName {
   Metric = "Metric",
   Span = "Span",
-  Logs = "Logs",
+  Log = "Log",
 }
 
 type GetAttributesFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
+  next: NextFunction,
   telemetryTableName: TelemetryTableName,
 ) => Promise<void>;
 
 const getAttributes: GetAttributesFunction = async (
   req: ExpressRequest,
   res: ExpressResponse,
+  next: NextFunction,
   telemetryTableName: TelemetryTableName,
 ) => {
   try {
@@ -83,7 +85,7 @@ const getAttributes: GetAttributesFunction = async (
       attributes: arrayOfAttributeKeys.sort(),
     });
   } catch (err: any) {
-    return Response.sendErrorResponse(req, res, err as Exception);
+    next(err);
   }
 };
 

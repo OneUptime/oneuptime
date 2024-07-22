@@ -1,13 +1,30 @@
+import Query from "Common/Types/BaseDatabase/Query";
+import DropdownUtil from "../../Utils/Dropdown";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
+import FiltersForm from "../Filters/FiltersForm";
+import FieldType from "../Types/FieldType";
 import LogItem from "./LogItem";
-import LogsFilters, { FilterOption } from "./LogsFilters";
-import { VoidFunction } from "Common/Types/FunctionTypes";
-import Log from "Model/AnalyticsModels/Log";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, Ref } from "react";
+import Toggle from "../Toggle/Toggle";
+import Card from "../Card/Card";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import API from "../../Utils/API/API";
+import { APP_API_URL } from "../../Config";
+import PageLoader from "../Loader/PageLoader";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
   logs: Array<Log>;
-  onFilterChanged: (filterOptions: FilterOption) => void;
+  onFilterChanged: (filterOptions: Query<Log>) => void;
+  filterData: Query<Log>;
   isLoading: boolean;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
@@ -16,15 +33,60 @@ export interface ComponentProps {
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [filterData, setFilterData] = React.useState<Query<Log>>(
+    props.filterData,
+  );
+
   const [screenHeight, setScreenHeight] = React.useState<number>(
     window.innerHeight,
   );
   const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
   const logsViewerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
 
+  const [logAttributes, setLogAttributes] = React.useState<Array<string>>([]);
+
+  const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
+  const [pageError, setPageError] = React.useState<string>("");
+
+  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsPageLoading(true);
+
+      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/logs/get-attributes",
+          ),
+          {},
+          {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        );
+
+      if (attributeRepsonse instanceof HTTPErrorResponse) {
+        throw attributeRepsonse;
+      } else {
+        const attributes: Array<string> = attributeRepsonse.data[
+          "attributes"
+        ] as Array<string>;
+        setLogAttributes(attributes);
+      }
+
+      setIsPageLoading(false);
+      setPageError("");
+    } catch (err) {
+      setIsPageLoading(false);
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
   // Update the screen height when the window is resized
 
   React.useEffect(() => {
+    loadAttributes().catch((err: unknown) => {
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    });
+
     const handleResize: any = (): void => {
       setScreenHeight(window.innerHeight);
     };
@@ -54,20 +116,81 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     scrollToBottom();
   }, [props.logs]);
 
+  if (isPageLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (pageError) {
+    return <ErrorMessage error={pageError} />;
+  }
+
   return (
     <div>
       {props.showFilters && (
         <div className="mb-5">
-          <LogsFilters
-            onAutoScrollChanged={(autoscroll: boolean) => {
-              setAutoScroll(autoscroll);
+          <Card>
+            <div className="-mt-8">
+              <FiltersForm<Log>
+                id="logs-filter"
+                showFilter={props.showFilters}
+                filterData={props.filterData}
+                onFilterChanged={(filterData: Query<Log>) => {
+                  setFilterData(filterData);
+                }}
+                filters={[
+                  {
+                    key: "body",
+                    type: FieldType.Text,
+                    title: "Search Log",
+                  },
+                  {
+                    key: "severityText",
+                    filterDropdownOptions:
+                      DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
+                    type: FieldType.Dropdown,
+                    title: "Log Severity",
+                    isAdvancedFilter: true,
+                  },
+                  {
+                    key: "time",
+                    type: FieldType.DateTime,
+                    title: "Start and End Date",
+                    isAdvancedFilter: true,
+                  },
+                  {
+                    key: "attributes",
+                    type: FieldType.JSON,
+                    title: "Filter by Attributes",
+                    jsonKeys: logAttributes,
+                    isAdvancedFilter: true,
+                  },
+                ]}
+              />
+            </div>
 
-              if (autoScroll) {
-                scrollToBottom();
-              }
-            }}
-            onFilterChanged={props.onFilterChanged}
-          />
+            <div className="flex justify-between">
+              <div>
+                <Toggle
+                  title="Auto Scroll"
+                  value={autoScroll}
+                  onChange={(checked: boolean) => {
+                    setAutoScroll(checked);
+                  }}
+                />
+              </div>
+              <div>
+                <Button
+                  title="Search Logs"
+                  icon={IconProp.Search}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    props.onFilterChanged(filterData);
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
         </div>
       )}
       {!props.isLoading && (

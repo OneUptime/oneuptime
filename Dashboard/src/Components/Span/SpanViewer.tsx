@@ -141,6 +141,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
       <LogsViewer
         isLoading={isLoading}
         onFilterChanged={() => {}}
+        filterData={{}}
         logs={logs}
         showFilters={false}
         noLogsMessage={"No logs found for this span."}

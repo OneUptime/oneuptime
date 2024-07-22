@@ -600,6 +600,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               filterDropdownOptions: filter.filterDropdownOptions,
               key: key,
               type: filter.type,
+              jsonKeys: filter.jsonKeys,
             };
           })
           .filter((filter: ClassicFilterType<TBaseModel> | null) => {
