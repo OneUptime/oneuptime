@@ -142,6 +142,10 @@ export default class OTelIngestService {
     newDbMetric.bucketCounts = datapoint["bucketCounts"] as Array<number>;
     newDbMetric.explicitBounds = datapoint["explicitBounds"] as Array<number>;
 
+    if(!newDbMetric.value){
+      newDbMetric.value = newDbMetric.sum;
+    }
+
     // attrbutes
 
     if (Object.keys(datapoint).includes("attributes")) {
