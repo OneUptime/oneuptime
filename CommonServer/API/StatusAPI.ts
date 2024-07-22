@@ -45,11 +45,6 @@ export default class StatusAPI {
     description: "Live check counter",
   });
 
-  public static statusLiveGuage = Telemetry.getGauge({
-    name: "status.live.guage",
-    description: "Live check guage",
-  });
-
   public static init(options: StatusAPIOptions): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
@@ -60,9 +55,6 @@ export default class StatusAPI {
     // General status
     router.get("/status", (req: ExpressRequest, res: ExpressResponse) => {
       this.statusCheckSuccessCounter.add(1);
-
-      this.statusLiveGuage.add(-200);
-
 
       logger.info("Status check: ok");
 
