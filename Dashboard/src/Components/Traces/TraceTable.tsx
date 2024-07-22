@@ -7,7 +7,12 @@ import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsMod
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+} from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
@@ -69,9 +74,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    loadAttributes().catch((err: Error)=> {
+    loadAttributes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
-    })
+    });
   }, []);
 
   const spanKindDropdownOptions: Array<DropdownOption> =
