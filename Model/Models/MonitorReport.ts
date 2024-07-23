@@ -69,7 +69,7 @@ import {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/status-page"))
+@CrudApiEndpoint(new Route("/monitor-report"))
 @SlugifyColumn("name", "slug")
 @Entity({
   name: "MonitorReport",

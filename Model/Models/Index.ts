@@ -131,6 +131,10 @@ import ServiceCatalogDependency from "./ServiceCatalogDependency";
 import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
 import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
+
+// Monitor Report. 
+import MonitorReport from "./MonitorReport";
+
 export default [
   User,
   Probe,
@@ -281,4 +285,6 @@ export default [
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
+
+  MonitorReport
 ];
