@@ -204,7 +204,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               return (
                 <Fragment>
                   <SpanStatusElement
-                    span={span}
+                    traceId={span.traceId?.toString()}
+                    spanStatusCode={span.statusCode!}
                     title={span.spanId?.toString()}
                   />
                 </Fragment>

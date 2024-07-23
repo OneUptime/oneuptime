@@ -1,6 +1,7 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
 import TelemetryService from "Model/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
@@ -249,7 +250,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <pre className={`${bodyColor} courier-prime`}>
-            {JSON.stringify(props.log.attributes, null, 2)}
+            {JSON.stringify(
+              JSONFunctions.unflattenObject(props.log.attributes || {}),
+              null,
+              2,
+            )}
           </pre>
         </div>
       )}
