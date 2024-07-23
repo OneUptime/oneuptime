@@ -228,6 +228,33 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/*`,
   ),
+
+  [PageMap.MONITOR_REPORTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/reports`,
+  ),
+
+  [PageMap.MONITOR_REPORTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/reports`,
+  ),
+
+  [PageMap.MONITOR_REPORT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/reports/${
+      RouteParams.ModelID
+    }`,
+  ),
+
+  [PageMap.MONITOR_REPORT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/reports/${
+      RouteParams.ModelID
+    }/delete`,
+  ),
+
+  [PageMap.MONITOR_REPORT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/reports/${
+      RouteParams.ModelID
+    }/settings`,
+  ),
+
   [PageMap.MONITORS]: new Route(`/dashboard/${RouteParams.ProjectID}/monitors`),
 
   [PageMap.MONITORS_INOPERATIONAL]: new Route(

@@ -115,6 +115,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      <SideMenuSection title="More">
+        <SideMenuItem
+          link={{
+            title: "Monitor Reports",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_REPORTS] as Route,
+            ),
+          }}
+          icon={IconProp.DocumentText}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };
