@@ -65,7 +65,9 @@ export default class Recurring extends DatabaseProperty {
             );
             break;
           default:
-            throw new BadDataException("Invalid Interval Type");
+            throw new BadDataException(
+              "Invalid Interval Type: " + intervalType,
+            );
         }
       }
     }

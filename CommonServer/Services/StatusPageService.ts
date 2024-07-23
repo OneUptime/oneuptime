@@ -37,6 +37,13 @@ import {
 } from "../EnvironmentConfig";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Recurring from "Common/Types/Events/Recurring";
+import Email from "Common/Types/Email";
+import StatusPageSubscriberService from "./StatusPageSubscriberService";
+import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import MailService from "./MailService";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { FileRoute } from "Common/ServiceRoute";
+import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 
 export class Service extends DatabaseService<StatusPage> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -465,8 +472,10 @@ export class Service extends DatabaseService<StatusPage> {
           (updateBy.data.reportStartDateTime as Date) ||
           statusPage.reportStartDateTime;
         const reportRecurringInterval: Recurring | undefined =
-          (updateBy.data.reportRecurringInterval as Recurring) ||
-          statusPage.reportRecurringInterval;
+          Recurring.fromJSON(
+            (updateBy.data.reportRecurringInterval as Recurring) ||
+              statusPage.reportRecurringInterval,
+          );
 
         if (rerportStartDate && reportRecurringInterval) {
           const nextReportDate: Date = Recurring.getNextDate(
@@ -482,6 +491,128 @@ export class Service extends DatabaseService<StatusPage> {
       carryForward: null,
       updateBy: updateBy,
     };
+  }
+
+  public async sendEmailReport(data: {
+    statusPageId: ObjectID;
+    email?: Email | undefined;
+  }): Promise<void> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const statusPages: Array<StatusPage> =
+      await StatusPageSubscriberService.getStatusPagesToSendNotification([
+        data.statusPageId,
+      ]);
+
+    if (statusPages.length === 0) {
+      throw new BadDataException("Status page not found");
+    }
+
+    const statuspage: StatusPage = statusPages[0]!;
+
+    if (!statuspage.id) {
+      throw new BadDataException("Status page not found");
+    }
+
+    const statusPageURL: string = await this.getStatusPageURL(statuspage.id);
+    const statusPageName: string =
+      statuspage.pageTitle || statuspage.name || "Status Page";
+
+    type SendEmailFunction = (
+      email: Email,
+      unsubscribeUrl: URL | null,
+    ) => Promise<void>;
+
+    const sendEmail: SendEmailFunction = async (
+      email: Email,
+      unsubscribeUrl: URL | null,
+    ): Promise<void> => {
+      // send email here.
+
+      MailService.sendMail(
+        {
+          toEmail: email,
+          templateType: EmailTemplateType.StatusPageReport,
+          vars: {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            logoUrl: statuspage.logoFileId
+              ? new URL(httpProtocol, host)
+                  .addRoute(FileRoute)
+                  .addRoute("/image/" + statuspage.logoFileId)
+                  .toString()
+              : "",
+            isPublicStatusPage: statuspage.isPublicStatusPage
+              ? "true"
+              : "false",
+
+            unsubscribeUrl: unsubscribeUrl?.toString() || "",
+          },
+          subject: "[Report] " + statusPageName,
+        },
+        {
+          mailServer: ProjectSMTPConfigService.toEmailServer(
+            statuspage.smtpConfig,
+          ),
+          projectId: statuspage.projectId,
+        },
+      ).catch((err: Error) => {
+        logger.error(err);
+      });
+    };
+
+    if (data.email) {
+      // force send to this email instead of sending to all subscribers.
+      await sendEmail(data.email, null);
+    }
+
+    const subscribers: Array<StatusPageSubscriber> =
+      await StatusPageSubscriberService.getSubscribersByStatusPage(
+        statuspage.id!,
+        {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      );
+
+    for (const subscriber of subscribers) {
+      try {
+        if (!subscriber._id) {
+          continue;
+        }
+
+        const shouldNotifySubscriber: boolean =
+          StatusPageSubscriberService.shouldSendNotification({
+            subscriber: subscriber,
+            statusPageResources: [],
+            statusPage: statuspage,
+          });
+
+        if (!shouldNotifySubscriber) {
+          continue;
+        }
+
+        const unsubscribeUrl: string =
+          StatusPageSubscriberService.getUnsubscribeLink(
+            URL.fromString(statusPageURL),
+            subscriber.id!,
+          ).toString();
+
+        if (subscriber.subscriberEmail) {
+          await sendEmail(
+            subscriber.subscriberEmail,
+            URL.fromString(unsubscribeUrl),
+          );
+        }
+
+        if (subscriber.subscriberPhone) {
+          continue; // Cant send Status Page reports to SMS subscribers.
+        }
+      } catch (err) {
+        logger.error(err);
+      }
+    }
   }
 }
 export default new Service();

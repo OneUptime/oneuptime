@@ -12,6 +12,7 @@ import {
   IntegrationRoute,
   NotificationRoute,
   RealtimeRoute,
+  StatusPageApiRoute,
   StatusPageRoute,
   WorkflowRoute,
 } from "Common/ServiceRoute";
@@ -92,6 +93,12 @@ export const DOCS_URL: URL = new URL(
   HTTP_PROTOCOL,
   REALTIME_HOSTNAME,
   DocsRoute,
+);
+
+export const STATUS_PAGE_API_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  STATUS_PAGE_HOSTNAME,
+  StatusPageApiRoute,
 );
 
 export const IDENTITY_URL: URL = new URL(

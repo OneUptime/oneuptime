@@ -1,0 +1,47 @@
+{{> Start this}}
+
+
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat "Report: " statusPageName) }}
+
+{{> InfoBlock info="Here is the report for all the resources you are subscribed to:"}}
+
+
+{{> InfoBlock info="Overview: "}}
+
+{{> DetailBoxStart this}}
+{{> DetailBoxField title="Total Resources" text=totalResources}}
+{{> DetailBoxField title="Total Incidents" text=totalIncidents}}
+{{> DetailBoxField title="Total Downtime" text=totalDowntime}}
+{{> DetailBoxField title="Average Uptime" text=totalUptime}}
+{{> DetailBoxEnd this}}
+
+<table>
+    <tr>
+        <th>Reosurce Name</th>
+        <th>Uptime %</th>
+        <th>Downtime</th>
+        <th>Incidents</th>
+    </tr>
+    {{#each resources}}
+    <tr>
+        <td>{{this.resourceName}}</td>
+        <td>{{this.uptimePercent}}</td>
+        <td>{{this.downtime}}</td>
+        <td>{{this.incidentCount}}</td>
+    </tr>
+    {{/each}}
+</table>
+
+
+{{> InfoBlock info=(concat "This is an automated email sent to you because you are subscribed to " statusPageName) }}
+
+
+{{> InfoBlock info="You can visit the status page here:"}}
+{{> InfoBlock info=statusPageUrl}}
+
+{{> UnsubscribeBlock this}}
+{{> VerticalSpace this}}
+
+{{> End this}}

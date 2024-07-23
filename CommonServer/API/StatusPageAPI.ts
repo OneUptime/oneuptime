@@ -160,6 +160,28 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const email: Email = new Email(req.body["email"] as string);
+          const statusPageId: ObjectID = new ObjectID(
+            req.body["statusPageId"].toString() as string,
+          );
+
+          await StatusPageService.sendEmailReport({
+            emails: [email],
+            statusPageId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

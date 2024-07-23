@@ -31,3 +31,5 @@ export const IngestorRoute: Route = new Route("/ingestor");
 export const RealtimeRoute: Route = new Route("/realtime/socket");
 
 export const DocsRoute: Route = new Route("/docs");
+
+export const StatusPageApiRoute: Route = new Route("/status-page-api");
