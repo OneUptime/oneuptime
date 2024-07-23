@@ -36,6 +36,7 @@ import {
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import Recurring from "Common/Types/Events/Recurring";
 
 export class Service extends DatabaseService<StatusPage> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -436,6 +437,43 @@ export class Service extends DatabaseService<StatusPage> {
           throw new BadDataException(
             "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
           );
+        }
+      }
+    }
+
+    if (
+      updateBy.data.reportStartDateTime ||
+      updateBy.data.reportRecurringInterval ||
+      updateBy.data.sendNextReportBy
+    ) {
+      const statusPages: Array<StatusPage> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          reportStartDateTime: true,
+          reportRecurringInterval: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+
+      for (const statusPage of statusPages) {
+        const rerportStartDate: Date | undefined =
+          (updateBy.data.reportStartDateTime as Date) ||
+          statusPage.reportStartDateTime;
+        const reportRecurringInterval: Recurring | undefined =
+          (updateBy.data.reportRecurringInterval as Recurring) ||
+          statusPage.reportRecurringInterval;
+
+        if (rerportStartDate && reportRecurringInterval) {
+          const nextReportDate: Date = Recurring.getNextDate(
+            rerportStartDate,
+            reportRecurringInterval,
+          );
+          updateBy.data.sendNextReportBy = nextReportDate;
         }
       }
     }

@@ -1805,7 +1805,12 @@ export default class StatusPage extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectStatusPage,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
   })
   @TableColumn({
     type: TableColumnType.Date,
