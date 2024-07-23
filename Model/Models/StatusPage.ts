@@ -1783,6 +1783,7 @@ export default class StatusPage extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+    transformer: Recurring.getDatabaseTransformer(),
   })
   @ColumnBillingAccessControl({
     read: PlanType.Free,
@@ -1798,7 +1799,12 @@ export default class StatusPage extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectStatusPage,
     ],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
     update: [],
   })
   @TableColumn({

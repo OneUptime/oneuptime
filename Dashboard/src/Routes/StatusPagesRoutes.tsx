@@ -128,6 +128,12 @@ const StatusPageViewAuthenticationSettings: LazyExoticComponent<
   return import("../Pages/StatusPages/View/AuthenticationSettings");
 });
 
+const StatusPageViewReports: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/View/Reports");
+});
+
 const StatusPageViewSettings: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -309,6 +315,18 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                     PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
                   ] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_REPORTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageViewReports
+                {...props}
+                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route}
               />
             </Suspense>
           }
