@@ -21,6 +21,7 @@ const DocsFeatureSet: FeatureSet = {
       res.redirect("/docs/introduction/getting-started");
     });
 
+    // Handle requests to specific documentation pages
     app.get(
       "/docs/as-markdown/:categorypath/:pagepath",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -49,18 +50,19 @@ const DocsFeatureSet: FeatureSet = {
           const fullPath: string =
             `${_req.params["categorypath"]}/${_req.params["pagepath"]}`.toLowerCase();
 
-          // read file from Content folder.
+          // Read Markdown file from content folder
           let contentInMarkdown: string = await LocalFile.read(
             `${ContentPath}/${fullPath}.md`,
           );
 
-          // remove first line from content because we dont want to show title in content. Title is already in nav.
-
+          // Remove first line (title) from content as it is already present in the navigation
           contentInMarkdown = contentInMarkdown.split("\n").slice(1).join("\n");
 
+          // Render Markdown content to HTML
           const renderedContent: string =
             await DocsRender.render(contentInMarkdown);
 
+          // Find the current category and link from DocsNav
           const currentCategory: NavGroup | undefined = DocsNav.find(
             (category: NavGroup) => {
               return category.links.find((link: NavLink) => {
@@ -74,6 +76,7 @@ const DocsFeatureSet: FeatureSet = {
               return link.url.toLocaleLowerCase().includes(fullPath);
             });
 
+          // If no category or nav link matches the path, render 'not found'
           if (!currentCategory || !currrentNavLink) {
             // render not found.
 
