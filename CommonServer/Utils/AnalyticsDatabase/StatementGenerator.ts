@@ -27,6 +27,9 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import AggregateBy, {
+  AggregateUtil,
+} from "../../Types/AnalyticsDatabase/AggregateBy";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -449,7 +452,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 value: objKey,
                 type: TableColumnType.Text,
               }}) = ${{
-                value: flatValue[objKey] as number,
+                value: flatValue[objKey] as any,
                 type: TableColumnType.Boolean,
               }}`,
             );
@@ -521,6 +524,35 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     return {
       columns: columns,
+      statement: selectStatement,
+    };
+  }
+
+  public toAggregateSelectStatement(aggregateBy: AggregateBy<TBaseModel>): {
+    statement: Statement;
+    columns: Array<string>;
+  } {
+    // EXAMPLE:
+    // SELECT sum(Metric.value) as avg_value, date_trunc('hour', toStartOfInterval(createdAt, INTERVAL 1 hour)) as createdAt
+
+    const selectStatement: Statement = new Statement();
+
+    const aggregationMethod: string =
+      aggregateBy.aggregateBy.toLocaleLowerCase();
+    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    });
+
+    selectStatement.append(
+      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,
+    );
+
+    return {
+      columns: [
+        aggregateBy.aggregateColumnName.toString(),
+        aggregateBy.aggregationTimestampColumnName.toString(),
+      ],
       statement: selectStatement,
     };
   }

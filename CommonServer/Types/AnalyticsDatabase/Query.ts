@@ -1,11 +1,6 @@
 import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import CommonQuery from "Common/Types/BaseDatabase/Query";
 
-export type QueryPropertyOptions = JSONValue | JSONObject;
+type Query<TBaseModel extends AnalyticsBaseModel> = CommonQuery<TBaseModel>;
 
-export declare type QueryOptions<Entity> = {
-  [P in keyof Entity]?: QueryPropertyOptions;
-};
-
-type Query<TBaseModel extends AnalyticsBaseModel> = QueryOptions<TBaseModel>;
 export default Query;

@@ -71,7 +71,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
       ]}
       showRefreshButton={true}
       viewPageRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TELEMETRY_SERVICES]!,
+        RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_ROOT]!,
       )}
       filters={[
         {

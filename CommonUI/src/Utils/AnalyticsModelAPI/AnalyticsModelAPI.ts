@@ -21,6 +21,8 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Model/Models/Project";
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
   extends BaseListResult<TAnalyticsBaseModel> {}
@@ -180,6 +182,59 @@ export default class ModelAPI {
     throw apiResult;
   }
 
+  public static async aggregate<
+    TAnalyticsBaseModel extends AnalyticsBaseModel,
+  >(data: {
+    modelType: { new (): TAnalyticsBaseModel };
+    aggregateBy: AggregateBy<TAnalyticsBaseModel>;
+    requestOptions?: RequestOptions | undefined;
+  }): Promise<AggregatedResult> {
+    const { modelType, aggregateBy, requestOptions } = data;
+
+    const model: TAnalyticsBaseModel = new modelType();
+    const apiPath: Route | null = model.crudApiPath;
+    if (!apiPath) {
+      throw new BadDataException(
+        "This model does not support aggregate operations.",
+      );
+    }
+
+    let apiUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute(apiPath)
+      .addRoute("/aggregate");
+
+    if (requestOptions?.overrideRequestUrl) {
+      apiUrl = requestOptions.overrideRequestUrl;
+    }
+
+    if (!apiUrl) {
+      throw new BadDataException(
+        "This model does not support list operations.",
+      );
+    }
+
+    const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
+
+    const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+      await API.fetch<JSONArray>(
+        HTTPMethod.POST,
+        apiUrl,
+        {
+          aggregateBy: JSONFunctions.serialize(aggregateBy as any),
+        },
+        headers,
+      );
+
+    if (result.isSuccess()) {
+      const aggregatedResult: AggregatedResult = result.data as any;
+      return aggregatedResult;
+    }
+
+    this.checkStatusCode(result);
+
+    throw result;
+  }
+
   public static async getList<
     TAnalyticsBaseModel extends AnalyticsBaseModel,
   >(data: {
@@ -188,7 +243,7 @@ export default class ModelAPI {
     groupBy?: GroupBy<TAnalyticsBaseModel> | undefined;
     limit: number;
     skip: number;
-    select: Select<TAnalyticsBaseModel>;
+    select?: Select<TAnalyticsBaseModel> | undefined;
     sort: Sort<TAnalyticsBaseModel>;
     requestOptions?: RequestOptions | undefined;
   }): Promise<ListResult<TAnalyticsBaseModel>> {

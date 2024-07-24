@@ -7,4 +7,6 @@ export default interface Filter<T extends GenericObject> {
   filterDropdownOptions?: Array<DropdownOption> | undefined;
   key: keyof T;
   type: FieldType;
+  jsonKeys?: Array<string> | undefined;
+  isAdvancedFilter?: boolean | undefined;
 }

@@ -1,8 +1,11 @@
 import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import TelemetryServiceViewLayout from "../Pages/Telemetry/Services/View/Layout";
+import TelemetryMetricLayout from "../Pages/Telemetry/Metrics/View/Layout";
+import TelemetryTraceLayout from "../Pages/Telemetry/Traces/View/Layout";
+import TelemetryViewLayout from "../Pages/Telemetry/Layout";
 import PageMap from "../Utils/PageMap";
-import RouteMap, { RouteUtil, TelemetryRouthPath } from "../Utils/RouteMap";
+import RouteMap, { RouteUtil, TelemetryRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, {
   FunctionComponent,
@@ -19,6 +22,40 @@ const TelemetryServices: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Telemetry/Services");
 });
+
+const TelemetryLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Logs");
+  });
+
+const TelemetryViewTrace: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Traces/View/Index");
+});
+
+const TelemetryTraces: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Traces");
+  });
+
+const TelemetryMetrics: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Telemetry/Metrics");
+  });
+
+const TelemetryViewMetric: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Metrics/View/Index");
+});
+
+const TelemetryDashboard: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Dashboard");
+});
+
 const TelemetryServiceView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -82,32 +119,146 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute
-        index
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryServices
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
-            />
-          </Suspense>
-        }
-      />
+      <PageRoute path="/" element={<TelemetryViewLayout {...props} />}>
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryServices
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_LOGS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryTraces
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_METRICS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryMetrics
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_METRICS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_DASHBOARDS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryDashboard
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryServices
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_SERVICES] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Metric View */}
 
       <PageRoute
-        path={TelemetryRouthPath[PageMap.TELEMETRY_SERVICES] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <TelemetryServices
-              {...props}
-              pageRoute={RouteMap[PageMap.TELEMETRY_SERVICES] as Route}
-            />
-          </Suspense>
-        }
-      />
+        path={TelemetryRoutePath[PageMap.TELEMETRY_METRIC_ROOT] || ""}
+        element={<TelemetryMetricLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewMetric
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_METRIC_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TELEMETRY_METRIC_VIEW)}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewMetric
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_METRIC_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Trace View */}
 
       <PageRoute
-        path={TelemetryRouthPath[PageMap.TELEMETRY_SERVICES_VIEW] || ""}
+        path={TelemetryRoutePath[PageMap.TELEMETRY_TRACE_ROOT] || ""}
+        element={<TelemetryTraceLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewTrace
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TELEMETRY_TRACE_VIEW)}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewTrace
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_TRACE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Telemetry Service View */}
+
+      <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW] || ""}
         element={<TelemetryServiceViewLayout {...props} />}
       >
         <PageRoute

@@ -1,39 +1,59 @@
 import { Green, Red } from "Common/Types/BrandColors";
 import ColorCircle from "CommonUI/src/Components/ColorCircle/ColorCircle";
-import Span, { SpanStatus } from "Model/AnalyticsModels/Span";
+import Link from "CommonUI/src/Components/Link/Link";
+import { SpanStatus } from "Model/AnalyticsModels/Span";
 import React, { FunctionComponent, ReactElement } from "react";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
-  span: Span;
+  spanStatusCode: SpanStatus;
   title?: string | undefined;
   titleClassName?: string | undefined;
+  traceId?: string | undefined;
 }
 
 const SpanStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { span } = props;
+  const { spanStatusCode } = props;
 
   return (
     <div className="flex space-x-2">
       <div className="mt-1">
-        {span && (span.statusCode === SpanStatus.Unset || !span.statusCode) ? (
+        {(spanStatusCode !== null || spanStatusCode !== undefined) &&
+        spanStatusCode === SpanStatus.Unset ? (
           <ColorCircle color={Green} tooltip="Span Status: Unset" />
         ) : (
           <></>
         )}
-        {span && span.statusCode === SpanStatus.Ok ? (
+        {spanStatusCode && spanStatusCode === SpanStatus.Ok ? (
           <ColorCircle color={Green} tooltip="Span Status: Ok" />
         ) : (
           <></>
         )}
-        {span && span.statusCode === SpanStatus.Error ? (
+        {spanStatusCode && spanStatusCode === SpanStatus.Error ? (
           <ColorCircle color={Red} tooltip="Span Status: Error" />
         ) : (
           <></>
         )}
       </div>
-      {props.title && <div className={props.titleClassName}>{props.title}</div>}
+      {props.title ? (
+        <div className={`${props.titleClassName} hover:underline`}>
+          <Link
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+              {
+                modelId: props.traceId,
+              },
+            )}
+          >
+            <p>{props.title}</p>
+          </Link>
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

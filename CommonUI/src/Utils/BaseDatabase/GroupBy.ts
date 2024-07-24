@@ -1,8 +1,8 @@
-import AnalyticsDataModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
 import BaseModel from "Common/Models/BaseModel";
 import { JSONObject } from "Common/Types/JSON";
 
-type GroupBy<TBaseModel extends AnalyticsDataModel | BaseModel | JSONObject> = {
+type GroupBy<TBaseModel extends AnalyticsBaseModel | BaseModel | JSONObject> = {
   [P in keyof TBaseModel]?: true;
 };
 

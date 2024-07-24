@@ -1,3 +1,4 @@
+import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import AnalyticsDatabaseService from "../Services/AnalyticsDatabaseService";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
@@ -26,6 +27,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import { UserPermission } from "Common/Types/Permission";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 
 export default class BaseAnalyticsAPI<
   TAnalyticsDataModel extends AnalyticsDataModel,
@@ -75,6 +77,32 @@ export default class BaseAnalyticsAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getList(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Aggregate
+    router.post(
+      `${new this.entityType().crudApiPath?.toString()}/aggregate`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getAggregate(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Aggregate
+    router.get(
+      `${new this.entityType().crudApiPath?.toString()}/aggregate`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getAggregate(req, res);
         } catch (err) {
           next(err);
         }
@@ -249,6 +277,37 @@ export default class BaseAnalyticsAPI<
       count,
       this.entityType,
     );
+  }
+
+  public async getAggregate(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    await this.onBeforeList(req, res);
+
+    let aggregateBy: AggregateBy<AnalyticsDataModel> | null = null;
+
+    if (req.body && req.body["aggregateBy"]) {
+      aggregateBy = JSONFunctions.deserialize(
+        req.body["aggregateBy"] as JSONObject,
+      ) as any;
+    }
+
+    if (!aggregateBy) {
+      throw new BadRequestException("AggregateBy is required");
+    }
+
+    const databaseProps: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const aggregateResult: AggregatedResult = await this.service.aggregateBy({
+      ...aggregateBy,
+      props: databaseProps,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      ...(aggregateResult as any),
+    });
   }
 
   public async count(req: ExpressRequest, res: ExpressResponse): Promise<void> {

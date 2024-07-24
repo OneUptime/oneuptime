@@ -10,6 +10,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import NumberUtil from "Common/Utils/Number";
+import BooleanUtil from "Common/Utils/Boolean";
 
 export enum ValueType {
   Text = "Text",
@@ -26,6 +28,8 @@ export interface ComponentProps {
   valuePlaceholder?: string;
   addButtonSuffix?: string;
   valueTypes?: Array<ValueType>; // by default it'll be Text
+  autoConvertValueTypes?: boolean | undefined;
+  keys?: Array<string> | undefined;
 }
 
 interface Item {
@@ -105,6 +109,15 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
     const result: Dictionary<string | number | boolean> = {};
     data.forEach((item: Item) => {
+      if (props.autoConvertValueTypes) {
+        if (NumberUtil.canBeConvertedToNumber(item.value)) {
+          item.value = Number(item.value);
+        }
+
+        if (BooleanUtil.canBeConvertedToBoolean(item.value)) {
+          item.value = Boolean(item.value);
+        }
+      }
       result[item.key] = item.value;
     });
     if (props.onChange) {
@@ -122,24 +135,59 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     value: "False",
   };
 
+  const dropdownOptionsForKeys: Array<DropdownOption> = props.keys
+    ? props.keys.map((key: string) => {
+        return {
+          label: key,
+          value: key,
+        };
+      })
+    : [];
+
   return (
     <div>
       <div>
         {data.map((item: Item, index: number) => {
           return (
             <div key={index} className="flex">
-              <div className="mr-1">
-                <Input
-                  value={item.key}
-                  placeholder={props.keyPlaceholder}
-                  onChange={(value: string) => {
-                    const newData: Array<Item> = [...data];
-                    newData[index]!.key = value;
-                    setData(newData);
-                    onDataChange(newData);
-                  }}
-                />
+              <div className="mr-1 w-1/2">
+                {!props.keys && (
+                  <Input
+                    value={item.key}
+                    placeholder={props.keyPlaceholder}
+                    onChange={(value: string) => {
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.key = value;
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                )}
+
+                {props.keys && (
+                  <Dropdown
+                    value={dropdownOptionsForKeys.find(
+                      (option: DropdownOption) => {
+                        return option.value === item.key;
+                      },
+                    )}
+                    options={dropdownOptionsForKeys}
+                    isMultiSelect={false}
+                    onChange={(
+                      selectedOption:
+                        | DropdownValue
+                        | Array<DropdownValue>
+                        | null,
+                    ) => {
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.key = selectedOption as string;
+                      setData(newData);
+                      onDataChange(newData);
+                    }}
+                  />
+                )}
               </div>
+
               <div className="mr-1 ml-1 mt-auto mb-auto">
                 <Icon
                   className="h-3 w-3"
@@ -148,7 +196,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               {valueTypes.length > 1 && (
-                <div className="ml-1">
+                <div className="ml-1 w-1/2">
                   <Dropdown
                     value={dropdownOptionsForValueTypes.find(
                       (dropdownOption: DropdownOption) => {
@@ -172,7 +220,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
-              <div className="ml-1">
+              <div className="ml-1 w-1/2">
                 {item.type === ValueType.Text && (
                   <Input
                     value={item.value.toString()}

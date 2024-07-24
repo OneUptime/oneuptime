@@ -9,6 +9,7 @@ import FileAPI from "CommonServer/API/FileAPI";
 import GlobalConfigAPI from "CommonServer/API/GlobalConfigAPI";
 import MonitorGroupAPI from "CommonServer/API/MonitorGroupAPI";
 import NotificationAPI from "CommonServer/API/NotificationAPI";
+import TelemetryAPI from "CommonServer/API/TelemetryAPI";
 import Ingestor from "CommonServer/API/ProbeAPI";
 import ProjectAPI from "CommonServer/API/ProjectAPI";
 import ProjectSsoAPI from "CommonServer/API/ProjectSSO";
@@ -1276,6 +1277,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 
     //attach api's
     app.use(

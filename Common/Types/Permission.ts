@@ -43,18 +43,25 @@ enum Permission {
   EditProjectApiKeyPermissions = "EditProjectApiKeyPermissions",
 
   // Logs
-
   CreateTelemetryServiceLog = "CreateTelemetryServiceLog",
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
   EditTelemetryServiceLog = "EditTelemetryServiceLog",
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
 
   // Spans
-
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
   DeleteTelemetryServiceTraces = "DeleteTelemetryServiceTraces",
   EditTelemetryServiceTraces = "EditTelemetryServiceTraces",
   ReadTelemetryServiceTraces = "ReadTelemetryServiceTraces",
+
+  // Metrics
+  CreateTelemetryServiceMetrics = "CreateTelemetryServiceMetrics",
+  DeleteTelemetryServiceMetrics = "DeleteTelemetryServiceMetrics",
+  EditTelemetryServiceMetrics = "EditTelemetryServiceMetrics",
+  ReadTelemetryServiceMetrics = "ReadTelemetryServiceMetrics",
+
+  // Telemetry Attributes
+  DeleteTelemetryAttributes = "DeleteTelemetryAttributes",
 
   // Billing Permissions (Owner Permission)
   ManageProjectBilling = "ManageProjectBilling",
@@ -2691,6 +2698,39 @@ export class PermissionHelper {
         title: "Read Telemetry Service Traces",
         description:
           "This permission can read Telemetry Service Traces of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateTelemetryServiceMetrics,
+        title: "Create Telemetry Service Metrics",
+        description:
+          "This permission can create Telemetry Service Metrics this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTelemetryServiceMetrics,
+        title: "Delete Telemetry Service Metrics",
+        description:
+          "This permission can delete Telemetry Service Metrics of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTelemetryServiceMetrics,
+        title: "Edit Telemetry Service Metrics",
+        description:
+          "This permission can edit Telemetry Service Metrics of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTelemetryServiceMetrics,
+        title: "Read Telemetry Service Metrics",
+        description:
+          "This permission can read Telemetry Service Metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

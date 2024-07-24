@@ -1,13 +1,10 @@
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { ModelEventType } from "Common/Utils/Realtime";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { FilterOption } from "CommonUI/src/Components/LogsViewer/LogsFilters";
 import LogsViewer from "CommonUI/src/Components/LogsViewer/LogsViewer";
 import API from "CommonUI/src/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -24,8 +21,8 @@ export interface ComponentProps {
   id: string;
   telemetryServiceIds?: Array<ObjectID> | undefined;
   enableRealtime?: boolean;
-  traceIds?: Array<string>;
-  spanIds?: Array<string>;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
 }
@@ -33,10 +30,24 @@ export interface ComponentProps {
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const query: Query<Log> = {};
+
+  if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
+    query.serviceId = new Includes(props.telemetryServiceIds);
+  }
+
+  if (props.traceIds && props.traceIds.length > 0) {
+    query.traceId = new Includes(props.traceIds);
+  }
+
+  if (props.spanIds && props.spanIds.length > 0) {
+    query.spanId = new Includes(props.spanIds);
+  }
+
   const [logs, setLogs] = React.useState<Array<Log>>([]);
   const [error, setError] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [filterOptions, setFilterOptions] = React.useState<FilterOption>({});
+  const [filterOptions, setFilterOptions] = React.useState<Query<Log>>(query);
 
   const select: Select<Log> = {
     body: true,
@@ -52,36 +63,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   type GetQueryFunction = () => Query<Log>;
 
   const getQuery: GetQueryFunction = (): Query<Log> => {
-    const query: Query<Log> = {};
-
-    if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
-      query.serviceId = new Includes(props.telemetryServiceIds);
-    }
-
-    if (filterOptions.searchText) {
-      query.body = new Search(filterOptions.searchText);
-    }
-
-    if (filterOptions.endTime && filterOptions.startTime) {
-      query.createdAt = new InBetween(
-        filterOptions.startTime,
-        filterOptions.endTime,
-      );
-    }
-
-    if (filterOptions.logSeverity) {
-      query.severityText = filterOptions.logSeverity;
-    }
-
-    if (props.traceIds && props.traceIds.length > 0) {
-      query.traceId = new Includes(props.traceIds);
-    }
-
-    if (props.spanIds && props.spanIds.length > 0) {
-      query.spanId = new Includes(props.spanIds);
-    }
-
-    return query;
+    return filterOptions;
   };
 
   useEffect(() => {
@@ -151,9 +133,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     <div id={props.id}>
       <LogsViewer
         isLoading={isLoading}
-        onFilterChanged={(filterOptions: FilterOption) => {
+        onFilterChanged={(filterOptions: Query<Log>) => {
           setFilterOptions(filterOptions);
         }}
+        filterData={filterOptions}
         logs={logs}
         showFilters={props.showFilters}
         noLogsMessage={props.noLogsMessage}

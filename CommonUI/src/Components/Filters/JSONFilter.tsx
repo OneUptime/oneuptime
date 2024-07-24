@@ -1,4 +1,4 @@
-import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
+import DictionaryForm from "../Dictionary/Dictionary";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -10,6 +10,7 @@ export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
   filterData: FilterData<T>;
+  jsonKeys?: Array<string> | undefined;
 }
 
 type JSONFilterFunction = <T extends GenericObject>(
@@ -25,20 +26,19 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
   if (filter.type === FieldType.JSON) {
     return (
       <DictionaryForm
-        valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
+        keys={props.jsonKeys}
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}
         valuePlaceholder={"Value"}
+        autoConvertValueTypes={true}
         initialValue={(filterData[filter.key] as Dictionary<string>) || {}}
         onChange={(value: Dictionary<string | number | boolean>) => {
-          if (!value) {
-            delete filterData[filter.key];
-          }
-
           // if no keys in the dictionary, remove the filter
 
           if (Object.keys(value).length > 0) {
             filterData[filter.key] = value;
+          } else {
+            delete filterData[filter.key];
           }
 
           if (props.onFilterChanged) {

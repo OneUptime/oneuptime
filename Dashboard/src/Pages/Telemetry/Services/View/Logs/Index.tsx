@@ -14,7 +14,7 @@ const ServiceDelete: FunctionComponent<
       <DashboardLogsViewer
         showFilters={true}
         telemetryServiceIds={[modelId]}
-        enableRealtime={false}
+        enableRealtime={true}
         id="logs"
       />
     </Fragment>

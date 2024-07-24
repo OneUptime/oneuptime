@@ -12,6 +12,16 @@ export default class Text {
     return hex;
   }
 
+  public static getLetterFromAByNumber(number: number): string {
+    return String.fromCharCode("a".charCodeAt(0) + number);
+  }
+
+  public static getNextLowercaseLetter(letter: string): string {
+    const charCode: number = letter.charCodeAt(0);
+    const nextLetter: string = String.fromCharCode(charCode + 1).toString();
+    return nextLetter;
+  }
+
   public static fromPascalCaseToDashes(text: string): string {
     let result: string = text.replace(/([A-Z])/g, " $1");
     result = result.trim();

@@ -21,6 +21,46 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           icon={IconProp.SquareStack}
         />
       </SideMenuSection>
+      <SideMenuSection title="Telemetry">
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_LOGS] as Route,
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_TRACES] as Route,
+            ),
+          }}
+          icon={IconProp.RectangleStack}
+        />
+        <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_METRICS] as Route,
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
+      </SideMenuSection>
+      <SideMenuSection title="Views">
+        <SideMenuItem
+          link={{
+            title: "Dashboards",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route,
+            ),
+          }}
+          icon={IconProp.Window}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };
