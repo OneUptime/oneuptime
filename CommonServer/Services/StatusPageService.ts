@@ -19,7 +19,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Green } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import ObjectID from "Common/Types/ObjectID";
@@ -44,6 +44,32 @@ import MailService from "./MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { FileRoute } from "Common/ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
+import StatusPageResource from "Model/Models/StatusPageResource";
+import StatusPageResourceService from "./StatusPageResourceService";
+import Dictionary from "Common/Types/Dictionary";
+import MonitorGroupResource from "Model/Models/MonitorGroupResource";
+import MonitorGroupResourceService from "./MonitorGroupResourceService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import OneUptimeDate from "Common/Types/Date";
+import IncidentService from "./IncidentService";
+import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
+import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+
+export interface StatusPageReportItem {
+  resourceName: string;
+  totalIncidents: number;
+  uptimePercent: number;
+  downtimeInMinutes: number;
+}
+
+export interface StatusPageReport {
+  totalResources: number;
+  totalIncidents: number;
+  averageUptimePercent: number;
+  totalDowntimeInMinutes: number;
+  resources: Array<StatusPageReportItem>;
+}
 
 export class Service extends DatabaseService<StatusPage> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -343,6 +369,87 @@ export class Service extends DatabaseService<StatusPage> {
     return false;
   }
 
+  public async getMonitorStatusTimelineForStatusPage(data: {
+    monitorIds: Array<ObjectID>;
+    historyDays: number;
+  }): Promise<Array<MonitorStatusTimeline>> {
+    const startDate: Date = OneUptimeDate.getSomeDaysAgo(
+      data.historyDays || 14,
+    );
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+
+    let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
+
+    if (data.monitorIds.length > 0) {
+      monitorStatusTimelines = await MonitorStatusTimelineService.findBy({
+        query: {
+          monitorId: QueryHelper.any(data.monitorIds),
+          endsAt: QueryHelper.inBetween(startDate, endDate),
+        },
+        select: {
+          monitorId: true,
+          createdAt: true,
+          endsAt: true,
+          startsAt: true,
+          monitorStatus: {
+            name: true,
+            color: true,
+            priority: true,
+          } as any,
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_MAX, // This can be optimized.
+        props: {
+          isRoot: true,
+        },
+      });
+
+      monitorStatusTimelines = monitorStatusTimelines.concat(
+        await MonitorStatusTimelineService.findBy({
+          query: {
+            monitorId: QueryHelper.any(data.monitorIds),
+            endsAt: QueryHelper.isNull(),
+          },
+          select: {
+            monitorId: true,
+            createdAt: true,
+            endsAt: true,
+            startsAt: true,
+            monitorStatus: {
+              name: true,
+              color: true,
+              priority: true,
+            } as any,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_MAX, // This can be optimized.
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
+
+      // sort monitorStatusTimelines by createdAt.
+      monitorStatusTimelines = monitorStatusTimelines.sort(
+        (a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
+          if (!a.createdAt || !b.createdAt) {
+            return 0;
+          }
+
+          return b.createdAt!.getTime() - a.createdAt!.getTime();
+        },
+      );
+    }
+
+    return monitorStatusTimelines;
+  }
+
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
     const domains: Array<StatusPageDomain> =
       await StatusPageDomainService.findBy({
@@ -613,6 +720,170 @@ export class Service extends DatabaseService<StatusPage> {
         logger.error(err);
       }
     }
+  }
+
+  public async getReportByStatusPage(_data: {
+    statusPageId: ObjectID;
+    historyDays: number;
+  }): Promise<StatusPageReport> {
+    // const statusPageResources = await this.getStatusPageResources({
+    //   statusPageId: data.statusPageId,
+    // });
+
+    // const incidentCount: number = await this.getIncidentCountOnStatusPage({
+    //   statusPageId: data.statusPageId,
+    //   historyDays: data.historyDays,
+    // });
+
+    // const monitors = await this.getMonitorIdsOnStatusPage({
+    //   statusPageId: data.statusPageId,
+    // });
+
+    // const _timeline: Array<MonitorStatusTimeline> = await this.getMonitorStatusTimelineForStatusPage({
+    //   monitorIds: monitors.monitorsOnStatusPage,
+    //   historyDays: data.historyDays,
+    // });
+
+    throw new BadDataException("Not implemented");
+
+    // return {
+    //   totalResources: statusPageResources.length,
+    //   totalIncidents: incidentCount,
+    // }
+  }
+
+  public async getIncidentCountOnStatusPage(data: {
+    statusPageId: ObjectID;
+    historyDays: number;
+  }): Promise<number> {
+    const monitorsOnStatusPage = await this.getMonitorIdsOnStatusPage({
+      statusPageId: data.statusPageId,
+    });
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      data.historyDays || 14,
+    );
+
+    const incidentCount: PositiveNumber = await IncidentService.countBy({
+      query: {
+        monitors: monitorsOnStatusPage.monitorsOnStatusPage as any,
+        createdAt: QueryHelper.inBetween(historyDays, today),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return incidentCount.toNumber();
+  }
+
+  public async getMonitorIdsOnStatusPage(data: {
+    statusPageId: ObjectID;
+  }): Promise<{
+    monitorsOnStatusPage: Array<ObjectID>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+  }> {
+    const statusPageResources: Array<StatusPageResource> =
+      await this.getStatusPageResources(data);
+
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get current status of monitors in the group.
+
+      // get monitors in the group.
+
+      const groupResources: Array<MonitorGroupResource> =
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroupId,
+          },
+          select: {
+            monitorId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+        });
+
+      const monitorsInGroupIds: Array<ObjectID> = groupResources
+        .map((resource: MonitorGroupResource) => {
+          return resource.monitorId!;
+        })
+        .filter((id: ObjectID) => {
+          return Boolean(id); // remove nulls
+        });
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
+    return {
+      monitorsOnStatusPage: monitorsOnStatusPage,
+      monitorsInGroup: monitorsInGroup,
+    };
+  }
+
+  public async getStatusPageResources(data: {
+    statusPageId: ObjectID;
+  }): Promise<Array<StatusPageResource>> {
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageResourceService.findBy({
+        query: {
+          statusPageId: data.statusPageId,
+        },
+        select: {
+          statusPageGroupId: true,
+          monitorId: true,
+          displayTooltip: true,
+          displayDescription: true,
+          displayName: true,
+          monitor: {
+            _id: true,
+            currentMonitorStatusId: true,
+          },
+          monitorGroupId: true,
+        },
+
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return statusPageResources;
   }
 }
 export default new Service();

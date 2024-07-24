@@ -393,6 +393,8 @@ export class Service extends DatabaseService<Model> {
           twilioPhoneNumber: true,
         },
         subscriberTimezones: true,
+        reportDataInDays: true,
+        isReportEnabled: true,
       },
     });
   }

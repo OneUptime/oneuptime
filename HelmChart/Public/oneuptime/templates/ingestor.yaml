@@ -52,16 +52,16 @@ spec:
               path: /status/live
               port: {{ $.Values.port.ingestor }}
             initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 60
           # Readyness Probe
           readinessProbe:
             httpGet:
               path: /status/ready
               port: {{ $.Values.port.ingestor }}
             initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 60
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
