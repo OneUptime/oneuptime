@@ -2,6 +2,7 @@ import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
 
+// Retrieve resources documentation
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
 export default class ServiceHandler {
@@ -11,12 +12,16 @@ export default class ServiceHandler {
   ): Promise<void> {
     let pageTitle: string = "";
     let pageDescription: string = "";
+
+    // Extract page parameter from request
     const page: string | undefined = req.params["page"];
     const pageData: any = {};
 
+    // Set default page title and description for the authentication page
     pageTitle = "Authentication";
     pageDescription = "Learn how to authenticate requests with OneUptime API";
 
+    // Render the index page with the specified parameters
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,

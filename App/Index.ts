@@ -23,6 +23,7 @@ process.env["SERVICE_NAME"] = "app";
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
@@ -30,7 +31,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
     };
 
-    // init the app
+    // Initialize the app with service name and status checks
     await App.init({
       appName: process.env["SERVICE_NAME"] || "app",
       statusOptions: {
@@ -39,21 +40,23 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
-    // connect to the database.
+    // Connect to Postgres database
     await PostgresAppInstance.connect(
       PostgresAppInstance.getDatasourceOptions(),
     );
 
-    // connect redis
+    // Connect to Redis
     await Redis.connect();
 
+    // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(
       ClickhouseAppInstance.getDatasourceOptions(),
     );
 
+    // Initialize real-time functionalities
     await Realtime.init();
 
-    // init featuresets
+    // Initialize feature sets
     await IdentityRoutes.init();
     await NotificationRoutes.init();
     await DocsRoutes.init();
@@ -62,10 +65,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await Workers.init();
     await Workflow.init();
 
-    // home should be in the end because it has the catch all route.
+    // Initialize home routes at the end since it has a catch-all route
     await HomeRoutes.init();
 
-    // add default routes
+    // Add default routes to the app
     await App.addDefaultRoutes();
   } catch (err) {
     logger.error("App Init Failed:");
