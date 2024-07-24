@@ -44,7 +44,9 @@ import MailService from "./MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { FileRoute } from "Common/ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
-import StatusPageResource from "Model/Models/StatusPageResource";
+import StatusPageResource, {
+  UptimePrecision,
+} from "Model/Models/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Dictionary from "Common/Types/Dictionary";
 import MonitorGroupResource from "Model/Models/MonitorGroupResource";
@@ -61,14 +63,14 @@ export interface StatusPageReportItem {
   resourceName: string;
   totalIncidents: number;
   uptimePercent: number;
-  downtimeInMinutes: number;
+  downtimeInSeconds: number;
 }
 
 export interface StatusPageReport {
   totalResources: number;
   totalIncidents: number;
   averageUptimePercent: number;
-  totalDowntimeInMinutes: number;
+  totaldowntimeInSeconds: number;
   resources: Array<StatusPageReportItem>;
 }
 
@@ -727,7 +729,6 @@ export class Service extends DatabaseService<StatusPage> {
     statusPageId: ObjectID;
     historyDays: number;
   }): Promise<StatusPageReport> {
-
     const statusPage: StatusPage | null = await this.findOneById({
       id: data.statusPageId,
       props: {
@@ -735,46 +736,113 @@ export class Service extends DatabaseService<StatusPage> {
       },
       select: {
         downtimeMonitorStatuses: true,
-      }
+      },
     });
 
-    if(!statusPage) {
+    if (!statusPage) {
       throw new BadDataException("Status page not found");
     }
 
-    const statusPageResources = await this.getStatusPageResources({
-      statusPageId: data.statusPageId,
-    });
+    const statusPageResources: StatusPageResource[] =
+      await this.getStatusPageResources({
+        statusPageId: data.statusPageId,
+      });
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
       statusPageId: data.statusPageId,
       historyDays: data.historyDays,
     });
 
-    const monitors = await this.getMonitorIdsOnStatusPage({
+    const monitors: {
+      monitorsOnStatusPage: Array<ObjectID>;
+      monitorsInGroup: Dictionary<Array<ObjectID>>;
+    } = await this.getMonitorIdsOnStatusPage({
       statusPageId: data.statusPageId,
     });
 
-    const timeline: Array<MonitorStatusTimeline> = await this.getMonitorStatusTimelineForStatusPage({
-      monitorIds: monitors.monitorsOnStatusPage,
-      historyDays: data.historyDays,
-    });
+    const timeline: Array<MonitorStatusTimeline> =
+      await this.getMonitorStatusTimelineForStatusPage({
+        monitorIds: monitors.monitorsOnStatusPage,
+        historyDays: data.historyDays,
+      });
 
-   
+    const reportItems: Array<StatusPageReportItem> = [];
+
+    for (const resource of statusPageResources) {
+      // for each of these resource, calculate uptime percent.
+
+      let monitorIdsForThisResource: Array<ObjectID> = [];
+
+      if (resource.monitorId) {
+        monitorIdsForThisResource.push(resource.monitorId);
+      }
+
+      if (resource.monitorGroupId) {
+        const groupId: string = resource.monitorGroupId.toString();
+        monitorIdsForThisResource = monitorIdsForThisResource.concat(
+          monitors.monitorsInGroup[groupId] || [],
+        );
+      }
+
+      const timelineForThisResource: Array<MonitorStatusTimeline> =
+        timeline.filter((item: MonitorStatusTimeline) => {
+          return monitorIdsForThisResource.find((id: ObjectID) => {
+            return id.toString() === item.monitorId?.toString();
+          });
+        });
+
+      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+        timelineForThisResource,
+        resource.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
+        statusPage.downtimeMonitorStatuses!,
+      );
+      const downtime: {
+        totalDowntimeInSeconds: number;
+        totalSecondsInTimePeriod: number;
+      } = UptimeUtil.getTotalDowntimeInSeconds(
+        timelineForThisResource,
+        statusPage.downtimeMonitorStatuses!,
+      );
+
+      const reportItem: StatusPageReportItem = {
+        resourceName: resource.displayName || "",
+        totalIncidents: await this.getIncidentCountByMonitorIds({
+          monitorIds: monitorIdsForThisResource,
+          historyDays: data.historyDays,
+        }),
+        uptimePercent: uptimePercent,
+        downtimeInSeconds: downtime.totalDowntimeInSeconds,
+      };
+
+      reportItems.push(reportItem);
+    }
+
+    const avgUptimePercent: number =
+      reportItems.reduce((acc: number, item: StatusPageReportItem) => {
+        return acc + item.uptimePercent;
+      }, 0) / reportItems.length;
+
+    const totalDowntimeInSeconds: {
+      totalDowntimeInSeconds: number;
+      totalSecondsInTimePeriod: number;
+    } = UptimeUtil.getTotalDowntimeInSeconds(
+      timeline,
+      statusPage.downtimeMonitorStatuses!,
+    );
+
     return {
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
-    }
+      averageUptimePercent: avgUptimePercent,
+      resources: reportItems,
+      totaldowntimeInSeconds: totalDowntimeInSeconds.totalDowntimeInSeconds,
+    };
   }
 
-  public async getIncidentCountOnStatusPage(data: {
-    statusPageId: ObjectID;
+  public async getIncidentCountByMonitorIds(data: {
+    monitorIds: Array<ObjectID>;
     historyDays: number;
   }): Promise<number> {
-    const monitorsOnStatusPage = await this.getMonitorIdsOnStatusPage({
-      statusPageId: data.statusPageId,
-    });
-
     const today: Date = OneUptimeDate.getCurrentDate();
 
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
@@ -783,7 +851,7 @@ export class Service extends DatabaseService<StatusPage> {
 
     const incidentCount: PositiveNumber = await IncidentService.countBy({
       query: {
-        monitors: monitorsOnStatusPage.monitorsOnStatusPage as any,
+        monitors: data.monitorIds as any,
         createdAt: QueryHelper.inBetween(historyDays, today),
       },
       props: {
@@ -792,6 +860,23 @@ export class Service extends DatabaseService<StatusPage> {
     });
 
     return incidentCount.toNumber();
+  }
+
+  public async getIncidentCountOnStatusPage(data: {
+    statusPageId: ObjectID;
+    historyDays: number;
+  }): Promise<number> {
+    const monitorsOnStatusPage: {
+      monitorsOnStatusPage: Array<ObjectID>;
+      monitorsInGroup: Dictionary<Array<ObjectID>>;
+    } = await this.getMonitorIdsOnStatusPage({
+      statusPageId: data.statusPageId,
+    });
+
+    return this.getIncidentCountByMonitorIds({
+      monitorIds: monitorsOnStatusPage.monitorsOnStatusPage,
+      historyDays: data.historyDays,
+    });
   }
 
   public async getMonitorIdsOnStatusPage(data: {

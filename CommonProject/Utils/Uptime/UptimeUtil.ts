@@ -220,11 +220,13 @@ export default class UptimeUtil {
     return [...eventList];
   }
 
-  public static calculateUptimePercentage(
+  public static getTotalDowntimeInSeconds(
     items: Array<MonitorStatusTimeline>,
-    precision: UptimePrecision,
     downtimeMonitorStatuses: Array<MonitorStatus>,
-  ): number {
+  ): {
+    totalDowntimeInSeconds: number;
+    totalSecondsInTimePeriod: number;
+  } {
     const monitorEvents: Array<Event> =
       this.getNonOverlappingMonitorEvents(items);
 
@@ -245,7 +247,10 @@ export default class UptimeUtil {
     let totalSecondsInTimePeriod: number = 0;
 
     if (monitorEvents.length === 0) {
-      return 100;
+      return {
+        totalDowntimeInSeconds: 0,
+        totalSecondsInTimePeriod: 1,
+      };
     }
 
     if (
@@ -254,7 +259,10 @@ export default class UptimeUtil {
         OneUptimeDate.getCurrentDate(),
       )
     ) {
-      return 100;
+      return {
+        totalDowntimeInSeconds: 0,
+        totalSecondsInTimePeriod: 1,
+      };
     }
 
     totalSecondsInTimePeriod =
@@ -284,15 +292,38 @@ export default class UptimeUtil {
       }
     }
 
+    return {
+      totalDowntimeInSeconds: totalDowntime,
+      totalSecondsInTimePeriod,
+    };
+  }
+
+  public static calculateUptimePercentage(
+    items: Array<MonitorStatusTimeline>,
+    precision: UptimePrecision,
+    downtimeMonitorStatuses: Array<MonitorStatus>,
+  ): number {
     // calculate percentage.
 
+    const { totalDowntimeInSeconds, totalSecondsInTimePeriod } =
+      this.getTotalDowntimeInSeconds(items, downtimeMonitorStatuses);
+
+    if (totalSecondsInTimePeriod === 0) {
+      return 100;
+    }
+
+    if (totalDowntimeInSeconds === 0) {
+      return 100;
+    }
+
     const percentage: number =
-      ((totalSecondsInTimePeriod - totalDowntime) / totalSecondsInTimePeriod) *
+      ((totalSecondsInTimePeriod - totalDowntimeInSeconds) /
+        totalSecondsInTimePeriod) *
       100;
 
     if (precision === UptimePrecision.NO_DECIMAL) {
       const noDecimalPercent: number = Math.round(percentage);
-      if (noDecimalPercent === 100 && totalDowntime > 0) {
+      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
         return 99;
       }
 
@@ -301,7 +332,7 @@ export default class UptimeUtil {
 
     if (precision === UptimePrecision.ONE_DECIMAL) {
       const noDecimalPercent: number = Math.round(percentage * 10) / 10;
-      if (noDecimalPercent === 100 && totalDowntime > 0) {
+      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
         return 99.9;
       }
 
@@ -310,7 +341,7 @@ export default class UptimeUtil {
 
     if (precision === UptimePrecision.TWO_DECIMAL) {
       const noDecimalPercent: number = Math.round(percentage * 100) / 100;
-      if (noDecimalPercent === 100 && totalDowntime > 0) {
+      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
         return 99.99;
       }
 
@@ -319,7 +350,7 @@ export default class UptimeUtil {
 
     if (precision === UptimePrecision.THREE_DECIMAL) {
       const noDecimalPercent: number = Math.round(percentage * 1000) / 1000;
-      if (noDecimalPercent === 100 && totalDowntime > 0) {
+      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
         return 99.999;
       }
 

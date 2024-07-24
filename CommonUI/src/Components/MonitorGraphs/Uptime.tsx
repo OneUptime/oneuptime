@@ -14,7 +14,7 @@ import React, {
   useState,
 } from "react";
 
-export type MonitorEvent = CommonMonitorEvent; 
+export type MonitorEvent = CommonMonitorEvent;
 
 export interface ComponentProps {
   startDate: Date;

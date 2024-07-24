@@ -1,5 +1,5 @@
-import Color from 'Common/Types/Color';
-import ObjectID from 'Common/Types/ObjectID';
+import Color from "Common/Types/Color";
+import ObjectID from "Common/Types/ObjectID";
 
 export default interface Event {
   startDate: Date;
