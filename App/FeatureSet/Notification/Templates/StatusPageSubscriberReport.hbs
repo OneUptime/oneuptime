@@ -13,8 +13,8 @@
 {{> DetailBoxStart this}}
 {{> DetailBoxField title="Total Resources" text=totalResources}}
 {{> DetailBoxField title="Total Incidents" text=totalIncidents}}
-{{> DetailBoxField title="Total Downtime" text=totalDowntime}}
-{{> DetailBoxField title="Average Uptime" text=totalUptime}}
+{{> DetailBoxField title="Total Downtime" text=totalDowntimeInHoursAndMinutes}}
+{{> DetailBoxField title="Average Uptime" text=averageUptimePercent}}
 {{> DetailBoxEnd this}}
 
 <table>
@@ -24,12 +24,12 @@
         <th>Downtime</th>
         <th>Incidents</th>
     </tr>
-    {{#each resources}}
+    {{#each report.resources}}
     <tr>
         <td>{{this.resourceName}}</td>
         <td>{{this.uptimePercent}}</td>
-        <td>{{this.downtime}}</td>
-        <td>{{this.incidentCount}}</td>
+        <td>{{this.downtimeInHoursAndMinutes}}</td>
+        <td>{{this.totalIncidentCount}}</td>
     </tr>
     {{/each}}
 </table>

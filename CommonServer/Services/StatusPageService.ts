@@ -61,16 +61,16 @@ import UptimeUtil from "CommonProject/Utils/Uptime/UptimeUtil";
 
 export interface StatusPageReportItem {
   resourceName: string;
-  totalIncidents: number;
+  totalIncidentCount: number;
   uptimePercent: number;
-  downtimeInSeconds: number;
+  downtimeInHoursAndMinutes: string;
 }
 
 export interface StatusPageReport {
   totalResources: number;
   totalIncidents: number;
   averageUptimePercent: number;
-  totaldowntimeInSeconds: number;
+  totalDowntimeInHoursAndMinutes: string;
   resources: Array<StatusPageReportItem>;
 }
 
@@ -629,6 +629,11 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
+    const report: StatusPageReport = await this.getReportByStatusPage({
+      statusPageId: statuspage.id!,
+      historyDays: statuspage.reportDataInDays || 14,
+    });
+
     type SendEmailFunction = (
       email: Email,
       unsubscribeUrl: URL | null,
@@ -647,6 +652,7 @@ export class Service extends DatabaseService<StatusPage> {
           vars: {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
+            report: report as any,
             logoUrl: statuspage.logoFileId
               ? new URL(httpProtocol, host)
                   .addRoute(FileRoute)
@@ -806,12 +812,15 @@ export class Service extends DatabaseService<StatusPage> {
 
       const reportItem: StatusPageReportItem = {
         resourceName: resource.displayName || "",
-        totalIncidents: await this.getIncidentCountByMonitorIds({
+        totalIncidentCount: await this.getIncidentCountByMonitorIds({
           monitorIds: monitorIdsForThisResource,
           historyDays: data.historyDays,
         }),
         uptimePercent: uptimePercent,
-        downtimeInSeconds: downtime.totalDowntimeInSeconds,
+        downtimeInHoursAndMinutes:
+          OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+            downtime.totalDowntimeInSeconds / 60,
+          ),
       };
 
       reportItems.push(reportItem);
@@ -835,7 +844,10 @@ export class Service extends DatabaseService<StatusPage> {
       totalIncidents: incidentCount,
       averageUptimePercent: avgUptimePercent,
       resources: reportItems,
-      totaldowntimeInSeconds: totalDowntimeInSeconds.totalDowntimeInSeconds,
+      totalDowntimeInHoursAndMinutes:
+        OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+          totalDowntimeInSeconds.totalDowntimeInSeconds / 60,
+        ),
     };
   }
 
