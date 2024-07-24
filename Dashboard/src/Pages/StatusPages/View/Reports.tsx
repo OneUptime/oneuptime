@@ -146,6 +146,14 @@ const StatusPageDelete: FunctionComponent<
               );
             },
           },
+          {
+            field: {
+              reportDataInDays: true,
+            },
+            title:
+              "How many days of data would you like to include in the report?",
+            fieldType: FormFieldSchemaType.Number,
+          },
         ]}
         modelDetailProps={{
           selectMoreFields: {
@@ -190,6 +198,15 @@ const StatusPageDelete: FunctionComponent<
                   <RecurringViewElement value={item.reportRecurringInterval} />
                 );
               },
+            },
+            {
+              field: {
+                reportDataInDays: true,
+              },
+              title:
+                "How many days of data would you like to include in the report?",
+              fieldType: FieldType.Number,
+              placeholder: "-",
             },
           ],
           modelId: modelId,

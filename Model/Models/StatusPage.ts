@@ -1827,4 +1827,41 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public sendNextReportBy?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Report data for the last N days",
+    description: "How many days of data should be included in the report?",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: 30,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public reportDataInDays?: number = undefined;
 }
