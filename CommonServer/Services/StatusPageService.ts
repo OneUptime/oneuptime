@@ -55,6 +55,7 @@ import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import UptimeUtil from "CommonProject/Utils/Uptime/UptimeUtil";
 
 export interface StatusPageReportItem {
   resourceName: string;
@@ -722,34 +723,48 @@ export class Service extends DatabaseService<StatusPage> {
     }
   }
 
-  public async getReportByStatusPage(_data: {
+  public async getReportByStatusPage(data: {
     statusPageId: ObjectID;
     historyDays: number;
   }): Promise<StatusPageReport> {
-    // const statusPageResources = await this.getStatusPageResources({
-    //   statusPageId: data.statusPageId,
-    // });
 
-    // const incidentCount: number = await this.getIncidentCountOnStatusPage({
-    //   statusPageId: data.statusPageId,
-    //   historyDays: data.historyDays,
-    // });
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: data.statusPageId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        downtimeMonitorStatuses: true,
+      }
+    });
 
-    // const monitors = await this.getMonitorIdsOnStatusPage({
-    //   statusPageId: data.statusPageId,
-    // });
+    if(!statusPage) {
+      throw new BadDataException("Status page not found");
+    }
 
-    // const _timeline: Array<MonitorStatusTimeline> = await this.getMonitorStatusTimelineForStatusPage({
-    //   monitorIds: monitors.monitorsOnStatusPage,
-    //   historyDays: data.historyDays,
-    // });
+    const statusPageResources = await this.getStatusPageResources({
+      statusPageId: data.statusPageId,
+    });
 
-    throw new BadDataException("Not implemented");
+    const incidentCount: number = await this.getIncidentCountOnStatusPage({
+      statusPageId: data.statusPageId,
+      historyDays: data.historyDays,
+    });
 
-    // return {
-    //   totalResources: statusPageResources.length,
-    //   totalIncidents: incidentCount,
-    // }
+    const monitors = await this.getMonitorIdsOnStatusPage({
+      statusPageId: data.statusPageId,
+    });
+
+    const timeline: Array<MonitorStatusTimeline> = await this.getMonitorStatusTimelineForStatusPage({
+      monitorIds: monitors.monitorsOnStatusPage,
+      historyDays: data.historyDays,
+    });
+
+   
+    return {
+      totalResources: statusPageResources.length,
+      totalIncidents: incidentCount,
+    }
   }
 
   public async getIncidentCountOnStatusPage(data: {

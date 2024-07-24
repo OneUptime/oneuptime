@@ -318,9 +318,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             resource.monitor?.currentMonitorStatusId.toString() || "",
           )
         ) {
-          dict[resource.monitor?.currentMonitorStatusId.toString()] = 1;
+          dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
         } else {
-          dict[resource.monitor?.currentMonitorStatusId.toString()]++;
+          dict[resource.monitor?.currentMonitorStatusId?.toString()]++;
         }
       }
     }

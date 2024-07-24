@@ -44,6 +44,7 @@
         "jsonwebtoken": "^9.0.0",
         "marked": "^12.0.2",
         "Model": "file:../Model",
+        "CommonProject": "file:../CommonProject",
         "node-cron": "^3.0.3",
         "nodemailer": "^6.9.10",
         "pg": "^8.7.3",

@@ -10,15 +10,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import UptimeEvent from "Common/Utils/Uptime/Event";
 
-export interface Event {
-  startDate: Date;
-  endDate: Date;
-  label: string;
-  priority: number;
-  color: Color;
-  eventStatusId: ObjectID; // this is the id of the event status. for example, monitor status id.
-}
+export type Event = UptimeEvent;
 
 export interface BarChartRule {
   barColor: Color;
