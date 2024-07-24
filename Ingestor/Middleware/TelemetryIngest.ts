@@ -16,6 +16,7 @@ import { DEFAULT_RETENTION_IN_DAYS } from "Model/Models/TelemetryUsageBilling";
 
 export interface TelemetryRequest extends ExpressRequest {
   serviceId: ObjectID; // Service ID
+  serviceName: string; // Service Name
   projectId: ObjectID; // Project ID
   dataRententionInDays: number; // how long the data should be retained.
   productType: ProductType; // what is the product type of the request - logs, metrics or traces.
@@ -55,6 +56,7 @@ export default class TelemetryIngest {
             _id: true,
             projectId: true,
             retainTelemetryDataForDays: true,
+            name: true,
           },
           props: {
             isRoot: true,
@@ -69,6 +71,7 @@ export default class TelemetryIngest {
 
       (req as TelemetryRequest).serviceId = service.id as ObjectID;
       (req as TelemetryRequest).projectId = service.projectId as ObjectID;
+      (req as TelemetryRequest).serviceName = service.name as string;
       (req as TelemetryRequest).dataRententionInDays =
         service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
 

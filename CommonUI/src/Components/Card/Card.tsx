@@ -15,8 +15,8 @@ export interface CardButtonSchema {
 }
 
 export interface ComponentProps {
-  title: string | ReactElement;
-  description: string | ReactElement;
+  title?: string | ReactElement;
+  description?: string | ReactElement;
   buttons?: undefined | Array<CardButtonSchema>;
   children?: undefined | Array<ReactElement> | ReactElement;
   className?: string | undefined;
@@ -37,19 +37,23 @@ const Card: FunctionComponent<ComponentProps> = (
           <div className="bg-white py-6 px-4 sm:p-6">
             <div className="flex justify-between">
               <div className={`${noRightElementsOrButtons ? "w-full" : ""}`}>
-                <h2
-                  data-testid="card-details-heading"
-                  id="card-details-heading"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  {props.title}
-                </h2>
-                <p
-                  data-testid="card-description"
-                  className="mt-1 text-sm text-gray-500 w-full"
-                >
-                  {props.description}
-                </p>
+                {props.title && (
+                  <h2
+                    data-testid="card-details-heading"
+                    id="card-details-heading"
+                    className="text-lg font-medium leading-6 text-gray-900"
+                  >
+                    {props.title}
+                  </h2>
+                )}
+                {props.description && (
+                  <p
+                    data-testid="card-description"
+                    className="mt-1 text-sm text-gray-500 w-full"
+                  >
+                    {props.description}
+                  </p>
+                )}
               </div>
               <div className="flex w-fit">
                 {props.rightElement}

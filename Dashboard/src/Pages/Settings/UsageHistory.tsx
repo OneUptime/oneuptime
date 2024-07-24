@@ -110,6 +110,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               telemetryService: {
                 name: true,
                 _id: true,
+                serviceColor: true,
               },
             },
             title: "Telemetry Service",

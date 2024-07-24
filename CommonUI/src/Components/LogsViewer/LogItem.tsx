@@ -1,15 +1,24 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
+import TelemetryService from "Model/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
   log: Log;
+  serviceMap: Dictionary<TelemetryService>;
 }
 
 const LogItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const serviceId: string = props.log.serviceId?.toString() || "";
+  const serviceName: string = props.serviceMap[serviceId]?.name || serviceId;
+  const serviceColor: string =
+    props.serviceMap[serviceId]?.serviceColor?.toString() || "text-slate-200";
+
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(true);
 
   useEffect(() => {
@@ -64,9 +73,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
             className="text-slate-500 courier-prime flex-none"
             style={{
               width: "230px !important",
+              color: serviceColor,
             }}
           >
-            {OneUptimeDate.getDateAsLocalFormattedString(props.log.time)} &nbsp;{" "}
+            {serviceName} &nbsp;{" "}
           </div>
         )}
         {props.log.severityText === LogSeverity.Information && (
@@ -115,9 +125,24 @@ const LogItem: FunctionComponent<ComponentProps> = (
         setIsCollapsed(true);
       }}
     >
+      {serviceName && (
+        <div
+          className="text-slate-500 courier-prime"
+          style={{
+            color: serviceColor,
+          }}
+        >
+          {serviceName} &nbsp;{" "}
+        </div>
+      )}
       {props.log.time && (
-        <div className="text-slate-500 courier-prime">
-          {OneUptimeDate.getDateAsFormattedString(props.log.time)} &nbsp;{" "}
+        <div className="flex">
+          <div className="font-medium text-slate-200 courier-prime mr-2">
+            DATE TIME:
+          </div>
+          <div className="text-slate-500 courier-prime">
+            {OneUptimeDate.getDateAsFormattedString(props.log.time)} &nbsp;{" "}
+          </div>
         </div>
       )}
       {props.log.severityText === LogSeverity.Information && (
@@ -225,7 +250,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <pre className={`${bodyColor} courier-prime`}>
-            {JSON.stringify(props.log.attributes, null, 2)}
+            {JSON.stringify(
+              JSONFunctions.unflattenObject(props.log.attributes || {}),
+              null,
+              2,
+            )}
           </pre>
         </div>
       )}

@@ -1,9 +1,3 @@
-enum MetricsAggregationType {
-  Max = "max",
-  Min = "min",
-  Sum = "sum",
-  Avg = "avg",
-  Count = "count",
-}
+import AggregationType from "../BaseDatabase/AggregationType";
 
-export default MetricsAggregationType;
+export default AggregationType;
