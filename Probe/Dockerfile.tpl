@@ -78,7 +78,7 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
-RUN npx playwright install
+RUN npx playwright install --with-deps
 
 # Install app dependencies
 COPY ./Probe/package*.json /usr/src/app/

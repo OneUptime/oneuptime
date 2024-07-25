@@ -65,6 +65,35 @@ export default class LocalFile {
     );
   }
 
+  public static async getListOfDirectories(path: string): Promise<string[]> {
+    return new Promise(
+      (
+        resolve: (directories: string[]) => void,
+        reject: PromiseRejectErrorFunction,
+      ) => {
+        fs.readdir(
+          path,
+          { withFileTypes: true },
+          (err: Error | null, files: fs.Dirent[]) => {
+            if (err) {
+              return reject(err);
+            }
+
+            const directories: string[] = files
+              .filter((file: fs.Dirent) => {
+                return file.isDirectory();
+              })
+              .map((file: fs.Dirent) => {
+                return file.name;
+              });
+
+            resolve(directories);
+          },
+        );
+      },
+    );
+  }
+
   public static async doesFileExist(path: string): Promise<boolean> {
     return new Promise(
       (

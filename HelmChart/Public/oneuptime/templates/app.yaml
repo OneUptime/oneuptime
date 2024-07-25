@@ -42,7 +42,7 @@ spec:
             httpGet:
               path: /status/live
               port: {{ $.Values.port.app }}
-            initialDelaySeconds: 30
+            initialDelaySeconds: 300
             periodSeconds: 10
             timeoutSeconds: 30
           # Readyness Probe
@@ -50,7 +50,7 @@ spec:
             httpGet:
               path: /status/ready
               port: {{ $.Values.port.app }}
-            initialDelaySeconds: 30
+            initialDelaySeconds: 300
             periodSeconds: 10
             timeoutSeconds: 30
           {{- if $.Values.containerSecurityContext }}
