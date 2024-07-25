@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "Common": "file:../Common",
+    "CommonProject": "file:../CommonProject",
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.10",
     "Model": "file:../Model",

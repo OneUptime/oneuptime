@@ -31,6 +31,7 @@
         "@stripe/react-stripe-js": "^1.15.0",
         "@stripe/stripe-js": "^1.44.1",
         "Common": "file:../Common",
+    "CommonProject": "file:../CommonProject",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "dotenv": "^16.4.5",
