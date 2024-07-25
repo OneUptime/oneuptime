@@ -50,7 +50,7 @@ RunCron(
         },
       });
 
-      await StatusPageService.sendEmailReportToSubscribers({
+      await StatusPageService.sendEmailReport({
         statusPageId: statusPageToSendReport.id!,
       });
     }
