@@ -4,7 +4,7 @@
     "private": false,
     "dependencies": {
         "Common": "file:../Common",
-    "CommonProject": "file:../CommonProject",
+    
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "dotenv": "^16.4.5",
