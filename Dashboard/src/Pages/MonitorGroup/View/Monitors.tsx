@@ -189,9 +189,9 @@ const ServiceCatalogMonitors: FunctionComponent<
       {showModelForm ? (
         <ModelFormModal<MonitorGroupResource>
           modelType={MonitorGroupResource}
-          name="Assign Monitor to Service"
-          title="Assign Monitor to Service"
-          description="Assign a monitor to this service. This is helpful for determining the health of the service."
+          name="Assign Monitor to Group"
+          title="Assign Monitor to Group"
+          description="Assign a monitor to this group. This is helpful for determining the health of the group."
           onClose={() => {
             setShowModelForm(false);
           }}
