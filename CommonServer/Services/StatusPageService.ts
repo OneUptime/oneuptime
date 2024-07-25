@@ -756,15 +756,15 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageId: data.statusPageId,
       });
 
-      if(statusPageResources.length === 0) {
-        return {
-          totalResources: 0,
-          totalIncidents: 0,
-          averageUptimePercent: "0%",
-          totalDowntimeInHoursAndMinutes: "0",
-          resources: [],
-        };
-      }
+    if (statusPageResources.length === 0) {
+      return {
+        totalResources: 0,
+        totalIncidents: 0,
+        averageUptimePercent: "0%",
+        totalDowntimeInHoursAndMinutes: "0",
+        resources: [],
+      };
+    }
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
       statusPageId: data.statusPageId,

@@ -12,7 +12,6 @@ RunCron(
   "StatusPage:SendReportToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    debugger;
     // get all scheduled events of all the projects.
     const statusPageToSendReports: Array<StatusPage> =
       await StatusPageService.findBy({
