@@ -5,18 +5,20 @@ import Recurring from "Common/Types/Events/Recurring";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import StatusPageService from "CommonServer/Services/StatusPageService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import logger from "CommonServer/Utils/Logger";
 import StatusPage from "Model/Models/StatusPage";
 
 RunCron(
   "StatusPage:SendReportToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    debugger;
     // get all scheduled events of all the projects.
     const statusPageToSendReports: Array<StatusPage> =
       await StatusPageService.findBy({
         query: {
           isReportEnabled: true,
-          sendNextReportBy: QueryHelper.greaterThan(
+          sendNextReportBy: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
           ),
         },
@@ -50,9 +52,14 @@ RunCron(
         },
       });
 
-      await StatusPageService.sendEmailReport({
-        statusPageId: statusPageToSendReport.id!,
-      });
+      try {
+        await StatusPageService.sendEmailReport({
+          statusPageId: statusPageToSendReport.id!,
+        });
+      } catch (err) {
+        logger.error("Error sending report to subscribers");
+        logger.error(err);
+      }
     }
   },
 );

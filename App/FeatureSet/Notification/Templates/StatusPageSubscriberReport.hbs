@@ -14,8 +14,8 @@
 {{> DetailBoxField title="Average Uptime: " text=report.averageUptimePercent}}
 {{> DetailBoxEnd this}}
 
-{{> InfoBlock info="Here is the detailed report for each resource:"}}
-
+{{#ifCond hasResources "true"}}
+{{> InfoBlock info="The following resources have been monitored:"}}
 <table style="min-width: 500px;margin: 10px 50px; fotn-size: 15px; margin-top: 10px; margin-bottom: 20px">
     <tr style="background-color: #424761; color: white; padding: 1px">
         <th>Resource Name</th>
@@ -32,7 +32,11 @@
     </tr>
     {{/each}}
 </table>
-
+{{/ifCond}}
+    
+{{#ifCond hasResources "false"}}
+{{> InfoBlock info="No resources have been added to this status page yet."}}
+{{/ifCond}}
 
 {{> InfoBlock info=(concat "This is an automated email sent to you because you are subscribed to " statusPageName) }}
 

@@ -653,6 +653,7 @@ export class Service extends DatabaseService<StatusPage> {
           vars: {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
+            hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,
             logoUrl: statuspage.logoFileId
               ? new URL(httpProtocol, host)
@@ -754,6 +755,16 @@ export class Service extends DatabaseService<StatusPage> {
       await this.getStatusPageResources({
         statusPageId: data.statusPageId,
       });
+
+      if(statusPageResources.length === 0) {
+        return {
+          totalResources: 0,
+          totalIncidents: 0,
+          averageUptimePercent: "0%",
+          totalDowntimeInHoursAndMinutes: "0",
+          resources: [],
+        };
+      }
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
       statusPageId: data.statusPageId,

@@ -633,6 +633,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             currentStatus.priority &&
             currentMonitorStatus?.priority &&
             currentMonitorStatus?.priority > currentStatus.priority) ||
+          !currentStatus ||
           !currentStatus.priority
         ) {
           currentStatus = currentMonitorStatus!;

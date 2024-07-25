@@ -46,7 +46,7 @@ import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
 // Status Page Owners
 import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
 import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
-// Status Page Reports 
+// Status Page Reports
 import "./Jobs/StatusPage/SendReportsToSubscribers";
 // Telemetry Service
 import "./Jobs/TelemetryService/DeleteOldData";
