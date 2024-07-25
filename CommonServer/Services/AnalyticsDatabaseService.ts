@@ -154,7 +154,7 @@ export default class AnalyticsDatabaseService<
         dbResult.stream,
       );
 
-      let countPositive: PositiveNumber = new PositiveNumber(strResult);
+      let countPositive: PositiveNumber = new PositiveNumber(strResult || 0);
 
       if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0) {
         // this usually happens when group by is used. In this case we count the total number of groups and not rows in those groups.
