@@ -1,213 +1,242 @@
-import MonitorElement from "../../../Components/Monitor/Monitor";
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
-import Color from "Common/Types/Color";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
-import MonitorGroupResource from "Model/Models/MonitorGroupResource";
-import MonitorStatus from "Model/Models/MonitorStatus";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useState,
 } from "react";
+import MonitorsTable from "../../../Components/Monitor/MonitorTable";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import API from "CommonUI/src/Utils/API/API";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import Monitor from "Model/Models/Monitor";
+import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+import IconProp from "Common/Types/Icon/IconProp";
+import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
+import DashboardNavigation from "../../../Utils/Navigation";
+import { FormType } from "CommonUI/src/Components/Forms/ModelForm";
+import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
+import MonitorGroupResource from "Model/Models/MonitorGroupResource";
 
-const MonitorGroupResources: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const ServiceCatalogMonitors: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showUnassignModal, setShowUnassignModal] = useState<boolean>(false);
+  const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
+  const [isUnassignLoading, setIsUnassignLoading] = useState<boolean>(false);
+  const [unassignError, setUnassignError] = useState<string | null>(null);
+  const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-  const [monitorStatuses, setMonitorStatuses] = React.useState<MonitorStatus[]>(
-    [],
-  );
+  const fetchMonitorsInGroup: PromiseVoidFunction =
+    async (): Promise<void> => {
+      // Fetch MonitorStatus by ID
+      try {
+        setIsLoading(true);
+        const monitorGroupMonitors: ListResult<MonitorGroupResource> =
+          await ModelAPI.getList<MonitorGroupResource>({
+            modelType: MonitorGroupResource,
+            query: {
+              monitorGroupId: modelId,
+            },
+            select: {
+              monitorId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
 
-  const [error, setError] = React.useState<string | undefined>(undefined);
-
-  const loadMonitorStatuses: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-
-    try {
-      const monitorStatuses: ListResult<MonitorStatus> =
-        await ModelAPI.getList<MonitorStatus>({
-          modelType: MonitorStatus,
-          query: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+        const monitorIds: ObjectID[] = monitorGroupMonitors.data.map(
+          (monitorGroupMonitor: MonitorGroupResource) => {
+            return monitorGroupMonitor.monitorId!;
           },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-          },
-          sort: {},
-        });
+        );
 
-      setMonitorStatuses(monitorStatuses.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
+        setMonitorIds(monitorIds);
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
+      }
+    };
 
   useEffect(() => {
-    loadMonitorStatuses().catch(() => {});
+    fetchMonitorsInGroup().catch((error: Error) => {
+      setError(API.getFriendlyMessage(error));
+    });
   }, []);
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
 
   if (error) {
     return <ErrorMessage error={error} />;
   }
 
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
   return (
     <Fragment>
-      <>
-        <ModelTable<MonitorGroupResource>
-          modelType={MonitorGroupResource}
-          id={`monitor-group-resources`}
-          isDeleteable={true}
-          name="Monitor Group > Resources"
-          showViewIdButton={true}
-          isCreateable={true}
-          isViewable={false}
-          isEditable={true}
-          query={{
-            monitorGroupId: modelId,
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+      <MonitorsTable
+        disableCreate={true}
+        query={{
+          _id: new Includes(monitorIds || []),
+        }}
+        actionButtons={[
+          {
+            buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+            title: "Unassign",
+            onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
+              setSelectedMonitor(monitor);
+              setShowUnassignModal(true);
+              onCompleteAction();
+            },
+          },
+        ]}
+        cardButtons={[
+          {
+            title: "Assign Monitor",
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              setShowModelForm(true);
+            },
+            icon: IconProp.Add,
+            isLoading: false,
+          },
+        ]}
+        title={"Service Monitors"}
+        description="List of monitors that are added to this service."
+        noItemsMessage={"No monitors added to this service."}
+      />
+
+      {showUnassignModal ? (
+        <ConfirmModal
+          title={`Unassign Monitor from Service`}
+          description={
+            <div>
+              Are you sure you want to unassign the monitor from this service?
+            </div>
+          }
+          error={unassignError || ""}
+          isLoading={isUnassignLoading}
+          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonText={"Unassign"}
+          onClose={() => {
+            setShowUnassignModal(false);
+            setUnassignError(null);
+            setSelectedMonitor(null);
           }}
-          onBeforeCreate={(
-            item: MonitorGroupResource,
-          ): Promise<MonitorGroupResource> => {
-            if (!props.currentProject || !props.currentProject._id) {
-              throw new BadDataException("Project ID cannot be null");
+          onSubmit={async () => {
+            try {
+              setIsUnassignLoading(true);
+              // get ServiceCatalogMonitorId
+              const monitorGroupMonitor: ListResult<MonitorGroupResource> =
+                await ModelAPI.getList<MonitorGroupResource>({
+                  modelType: MonitorGroupResource,
+                  query: {
+                    monitorId: selectedMonitor!.id!,
+                    monitorGroupId: modelId!,
+                  },
+                  select: {
+                    _id: true,
+                  },
+                  limit: 1,
+                  skip: 0,
+                  sort: {},
+                });
+
+              if (monitorGroupMonitor.data.length === 0) {
+                setUnassignError("Service monitor not found");
+                setIsUnassignLoading(false);
+                return;
+              }
+
+              await ModelAPI.deleteItem<MonitorGroupResource>({
+                modelType: MonitorGroupResource,
+                id: monitorGroupMonitor.data[0]!.id!,
+              });
+
+              setIsUnassignLoading(false);
+              setSelectedMonitor(null);
+              setShowUnassignModal(false);
+              setUnassignError(null);
+              fetchMonitorsInGroup().catch((error: Error) => {
+                setError(API.getFriendlyMessage(error));
+              });
+            } catch (err) {
+              setIsUnassignLoading(false);
+              setUnassignError(API.getFriendlyMessage(err));
             }
-            item.monitorGroupId = modelId;
-            item.projectId = new ObjectID(props.currentProject._id);
-
-            return Promise.resolve(item);
           }}
-          cardProps={{
-            title: `Monitor Group Resources`,
-            description: "Resources that belong to this monitor group.",
-          }}
-          noItemsMessage={"No resources have been added to this monitor group."}
-          formFields={[
-            {
-              field: {
-                monitor: true,
-              },
-              title: "Monitor",
-              description: "Select monitor that will be added to this group.",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownModal: {
-                type: Monitor,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: true,
-              placeholder: "Select Monitor",
-            },
-          ]}
-          showRefreshButton={true}
-          viewPageRoute={Navigation.getCurrentRoute()}
-          filters={[
-            {
-              field: {
-                monitor: {
-                  name: true,
-                },
-              },
-              type: FieldType.Entity,
-              filterEntityType: Monitor,
-              filterQuery: {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-              title: "Monitor Name",
-            },
-          ]}
-          columns={[
-            {
-              field: {
-                monitor: {
-                  name: true,
-                  _id: true,
-                  projectId: true,
-                },
-              },
-              title: "Monitor",
-              type: FieldType.Entity,
-
-              getElement: (item: MonitorGroupResource): ReactElement => {
-                return <MonitorElement monitor={item["monitor"]!} />;
-              },
-            },
-            {
-              field: {
-                monitor: {
-                  currentMonitorStatusId: true,
-                },
-              },
-              title: "Current Status",
-              type: FieldType.Element,
-
-              getElement: (item: MonitorGroupResource): ReactElement => {
-                if (!item["monitor"]) {
-                  throw new BadDataException("Monitor not found");
-                }
-
-                if (!item["monitor"]["currentMonitorStatusId"]) {
-                  throw new BadDataException("Monitor Status not found");
-                }
-
-                const monitorStatus: MonitorStatus | undefined =
-                  monitorStatuses.find((monitorStatus: MonitorStatus) => {
-                    return (
-                      monitorStatus._id ===
-                      item["monitor"]!["currentMonitorStatusId"]?.toString()
-                    );
-                  });
-
-                if (!monitorStatus) {
-                  throw new BadDataException("Monitor Status not found");
-                }
-
-                return (
-                  <Statusbubble
-                    color={monitorStatus.color! as Color}
-                    text={monitorStatus.name! as string}
-                    shouldAnimate={true}
-                  />
-                );
-              },
-            },
-          ]}
         />
-      </>
+      ) : (
+        <></>
+      )}
+
+      {showModelForm ? (
+        <ModelFormModal<MonitorGroupResource>
+          modelType={MonitorGroupResource}
+          name="Assign Monitor to Service"
+          title="Assign Monitor to Service"
+          description="Assign a monitor to this service. This is helpful for determining the health of the service."
+          onClose={() => {
+            setShowModelForm(false);
+          }}
+          submitButtonText="Assign"
+          onSuccess={() => {
+            setShowModelForm(false);
+            fetchMonitorsInGroup().catch((error: Error) => {
+              setError(API.getFriendlyMessage(error));
+            });
+          }}
+          onBeforeCreate={(monitorGroupMonitor: MonitorGroupResource) => {
+            monitorGroupMonitor.monitorGroupId = modelId;
+            monitorGroupMonitor.projectId =
+              DashboardNavigation.getProjectId()!;
+            return Promise.resolve(monitorGroupMonitor);
+          }}
+          formProps={{
+            name: "Assign Monitor",
+            modelType: MonitorGroupResource,
+            id: "create-service-catalog-monitor",
+            fields: [
+              {
+                field: {
+                  monitor: true,
+                },
+                title: "Select Monitor",
+                description: "Select monitor to assign to this service.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: Monitor,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: true,
+                placeholder: "Select Monitor",
+              },
+            ],
+            formType: FormType.Create,
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };
 
-export default MonitorGroupResources;
+export default ServiceCatalogMonitors;

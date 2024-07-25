@@ -63,13 +63,14 @@ export interface StatusPageReportItem {
   resourceName: string;
   totalIncidentCount: number;
   uptimePercent: number;
+  uptimePercentAsString: string;
   downtimeInHoursAndMinutes: string;
 }
 
 export interface StatusPageReport {
   totalResources: number;
   totalIncidents: number;
-  averageUptimePercent: number;
+  averageUptimePercent: string;
   totalDowntimeInHoursAndMinutes: string;
   resources: Array<StatusPageReportItem>;
 }
@@ -171,9 +172,9 @@ export class Service extends DatabaseService<StatusPage> {
         createdItem.projectId!,
         createdItem.id!,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -584,7 +585,7 @@ export class Service extends DatabaseService<StatusPage> {
         const reportRecurringInterval: Recurring | undefined =
           Recurring.fromJSON(
             (updateBy.data.reportRecurringInterval as Recurring) ||
-              statusPage.reportRecurringInterval,
+            statusPage.reportRecurringInterval,
           );
 
         if (rerportStartDate && reportRecurringInterval) {
@@ -648,16 +649,16 @@ export class Service extends DatabaseService<StatusPage> {
       MailService.sendMail(
         {
           toEmail: email,
-          templateType: EmailTemplateType.StatusPageReport,
+          templateType: EmailTemplateType.StatusPageSubscriberReport,
           vars: {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
             report: report as any,
             logoUrl: statuspage.logoFileId
               ? new URL(httpProtocol, host)
-                  .addRoute(FileRoute)
-                  .addRoute("/image/" + statuspage.logoFileId)
-                  .toString()
+                .addRoute(FileRoute)
+                .addRoute("/image/" + statuspage.logoFileId)
+                .toString()
               : "",
             isPublicStatusPage: statuspage.isPublicStatusPage
               ? "true"
@@ -817,19 +818,21 @@ export class Service extends DatabaseService<StatusPage> {
           historyDays: data.historyDays,
         }),
         uptimePercent: uptimePercent,
+        uptimePercentAsString: `${uptimePercent}%`,
         downtimeInHoursAndMinutes:
           OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-            downtime.totalDowntimeInSeconds / 60,
+            Math.ceil(downtime.totalDowntimeInSeconds / 60),
           ),
       };
 
       reportItems.push(reportItem);
     }
 
-    const avgUptimePercent: number =
-      reportItems.reduce((acc: number, item: StatusPageReportItem) => {
+    const avgUptimePercent: number = reportItems.reduce((acc: number, item: StatusPageReportItem) => {
         return acc + item.uptimePercent;
       }, 0) / reportItems.length;
+
+    const avgUptimePercentString: string = avgUptimePercent.toFixed(2) + "%";
 
     const totalDowntimeInSeconds: {
       totalDowntimeInSeconds: number;
@@ -842,11 +845,11 @@ export class Service extends DatabaseService<StatusPage> {
     return {
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
-      averageUptimePercent: avgUptimePercent,
+      averageUptimePercent: avgUptimePercentString,
       resources: reportItems,
       totalDowntimeInHoursAndMinutes:
         OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-          totalDowntimeInSeconds.totalDowntimeInSeconds / 60,
+          Math.ceil(totalDowntimeInSeconds.totalDowntimeInSeconds / 60),
         ),
     };
   }
@@ -986,8 +989,8 @@ export class Service extends DatabaseService<StatusPage> {
             currentMonitorStatusId: true,
           },
           monitorGroupId: true,
+          order: true
         },
-
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props: {
@@ -995,7 +998,11 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-    return statusPageResources;
+      // sort by order and then return
+
+      return statusPageResources.sort((a: StatusPageResource, b: StatusPageResource) => {
+        return a.order! - b.order!;
+      });
   }
 }
 export default new Service();
