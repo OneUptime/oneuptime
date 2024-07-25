@@ -41,38 +41,37 @@ const ServiceCatalogMonitors: FunctionComponent<
   const [unassignError, setUnassignError] = useState<string | null>(null);
   const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-  const fetchMonitorsInGroup: PromiseVoidFunction =
-    async (): Promise<void> => {
-      // Fetch MonitorStatus by ID
-      try {
-        setIsLoading(true);
-        const monitorGroupMonitors: ListResult<MonitorGroupResource> =
-          await ModelAPI.getList<MonitorGroupResource>({
-            modelType: MonitorGroupResource,
-            query: {
-              monitorGroupId: modelId,
-            },
-            select: {
-              monitorId: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {},
-          });
-
-        const monitorIds: ObjectID[] = monitorGroupMonitors.data.map(
-          (monitorGroupMonitor: MonitorGroupResource) => {
-            return monitorGroupMonitor.monitorId!;
+  const fetchMonitorsInGroup: PromiseVoidFunction = async (): Promise<void> => {
+    // Fetch MonitorStatus by ID
+    try {
+      setIsLoading(true);
+      const monitorGroupMonitors: ListResult<MonitorGroupResource> =
+        await ModelAPI.getList<MonitorGroupResource>({
+          modelType: MonitorGroupResource,
+          query: {
+            monitorGroupId: modelId,
           },
-        );
+          select: {
+            monitorId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {},
+        });
 
-        setMonitorIds(monitorIds);
-        setIsLoading(false);
-      } catch (err) {
-        setIsLoading(false);
-        setError(API.getFriendlyMessage(err));
-      }
-    };
+      const monitorIds: ObjectID[] = monitorGroupMonitors.data.map(
+        (monitorGroupMonitor: MonitorGroupResource) => {
+          return monitorGroupMonitor.monitorId!;
+        },
+      );
+
+      setMonitorIds(monitorIds);
+      setIsLoading(false);
+    } catch (err) {
+      setIsLoading(false);
+      setError(API.getFriendlyMessage(err));
+    }
+  };
 
   useEffect(() => {
     fetchMonitorsInGroup().catch((error: Error) => {
@@ -117,17 +116,18 @@ const ServiceCatalogMonitors: FunctionComponent<
             isLoading: false,
           },
         ]}
-        title={"Service Monitors"}
-        description="List of monitors that are added to this service."
-        noItemsMessage={"No monitors added to this service."}
+        title={"Monitors in Group"}
+        description="List of monitors that are added to this monitor group."
+        noItemsMessage={"No monitors added to this monitor group."}
       />
 
       {showUnassignModal ? (
         <ConfirmModal
-          title={`Unassign Monitor from Service`}
+          title={`Unassign Monitor from Monitor Group`}
           description={
             <div>
-              Are you sure you want to unassign the monitor from this service?
+              Are you sure you want to unassign the monitor from this monitor
+              group?
             </div>
           }
           error={unassignError || ""}
@@ -204,8 +204,7 @@ const ServiceCatalogMonitors: FunctionComponent<
           }}
           onBeforeCreate={(monitorGroupMonitor: MonitorGroupResource) => {
             monitorGroupMonitor.monitorGroupId = modelId;
-            monitorGroupMonitor.projectId =
-              DashboardNavigation.getProjectId()!;
+            monitorGroupMonitor.projectId = DashboardNavigation.getProjectId()!;
             return Promise.resolve(monitorGroupMonitor);
           }}
           formProps={{

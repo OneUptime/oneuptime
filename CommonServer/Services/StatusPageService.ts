@@ -172,9 +172,9 @@ export class Service extends DatabaseService<StatusPage> {
         createdItem.projectId!,
         createdItem.id!,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -585,7 +585,7 @@ export class Service extends DatabaseService<StatusPage> {
         const reportRecurringInterval: Recurring | undefined =
           Recurring.fromJSON(
             (updateBy.data.reportRecurringInterval as Recurring) ||
-            statusPage.reportRecurringInterval,
+              statusPage.reportRecurringInterval,
           );
 
         if (rerportStartDate && reportRecurringInterval) {
@@ -656,9 +656,9 @@ export class Service extends DatabaseService<StatusPage> {
             report: report as any,
             logoUrl: statuspage.logoFileId
               ? new URL(httpProtocol, host)
-                .addRoute(FileRoute)
-                .addRoute("/image/" + statuspage.logoFileId)
-                .toString()
+                  .addRoute(FileRoute)
+                  .addRoute("/image/" + statuspage.logoFileId)
+                  .toString()
               : "",
             isPublicStatusPage: statuspage.isPublicStatusPage
               ? "true"
@@ -828,7 +828,8 @@ export class Service extends DatabaseService<StatusPage> {
       reportItems.push(reportItem);
     }
 
-    const avgUptimePercent: number = reportItems.reduce((acc: number, item: StatusPageReportItem) => {
+    const avgUptimePercent: number =
+      reportItems.reduce((acc: number, item: StatusPageReportItem) => {
         return acc + item.uptimePercent;
       }, 0) / reportItems.length;
 
@@ -989,7 +990,7 @@ export class Service extends DatabaseService<StatusPage> {
             currentMonitorStatusId: true,
           },
           monitorGroupId: true,
-          order: true
+          order: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -998,11 +999,13 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-      // sort by order and then return
+    // sort by order and then return
 
-      return statusPageResources.sort((a: StatusPageResource, b: StatusPageResource) => {
+    return statusPageResources.sort(
+      (a: StatusPageResource, b: StatusPageResource) => {
         return a.order! - b.order!;
-      });
+      },
+    );
   }
 }
 export default new Service();
