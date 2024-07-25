@@ -3,7 +3,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import DayUptimeGraph, { BarChartRule, Event } from "../Graphs/DayUptimeGraph";
 import UptimeUtil from "./UptimeUtil";
 import Color from "Common/Types/Color";
-import CommonMonitorEvent from "Common/Utils/Uptime/MonitorEvent";
+import CommonMonitorEvent from "CommonProject/Utils/Uptime/MonitorEvent";
 import MonitorStatus from "Model/Models/MonitorStatus";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
