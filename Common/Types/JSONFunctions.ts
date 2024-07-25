@@ -354,6 +354,45 @@ export default class JSONFunctions {
     return JSON.parse(JSON.stringify(val));
   }
 
+  public static unflattenArray(val: JSONArray): JSONArray {
+    const returnArr: JSONArray = [];
+
+    for (const obj of val) {
+      returnArr.push(this.unflattenObject(obj as JSONObject));
+    }
+
+    return returnArr;
+  }
+
+  public static unflattenObject(val: JSONObject): JSONObject {
+    const returnObj: JSONObject = {};
+
+    for (const key in val) {
+      const keys: Array<string> = key.split(".");
+      let currentObj: JSONObject = returnObj;
+
+      for (let i: number = 0; i < keys.length; i++) {
+        const k: string | undefined = keys[i];
+
+        if (!k) {
+          continue;
+        }
+
+        if (i === keys.length - 1) {
+          currentObj[k] = val[key];
+        } else {
+          if (!currentObj[k]) {
+            currentObj[k] = {};
+          }
+
+          currentObj = currentObj[k] as JSONObject;
+        }
+      }
+    }
+
+    return returnObj;
+  }
+
   public static flattenObject(val: JSONObject): JSONObject {
     const returnObj: JSONObject = {};
 

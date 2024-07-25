@@ -165,7 +165,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <div className="font-semibold">Span Status:</div>{" "}
             <div>
               <SpanStatusElement
-                span={span}
+                spanStatusCode={span.statusCode!}
+                traceId={span.traceId?.toString()}
                 title={
                   "Status: " +
                   SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
@@ -242,7 +243,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         span.statusCode === SpanStatus.Error ? (
           <div className="mt-0.5">
             <SpanStatusElement
-              span={span}
+              spanStatusCode={span.statusCode!}
+              traceId={span.traceId?.toString()}
               title={
                 "Status: " +
                 SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)

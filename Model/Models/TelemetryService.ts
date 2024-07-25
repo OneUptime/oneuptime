@@ -510,6 +510,7 @@ export default class TelemetryService extends BaseModel {
     type: TableColumnType.Color,
     title: "Service Color",
     description: "Color for this telemetry service",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Color,

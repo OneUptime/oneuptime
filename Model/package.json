@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "Common": "file:../Common",
+    
     "typeorm": "^0.3.20"
   },
   "devDependencies": {

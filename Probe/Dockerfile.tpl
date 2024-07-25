@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:22.3.0
+FROM node:22.5
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 ARG GIT_SHA
@@ -55,6 +55,13 @@ COPY ./Model/package*.json /usr/src/Model/
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
 RUN npm install
 COPY ./Model /usr/src/Model
+
+WORKDIR /usr/src/CommonProject
+COPY ./CommonProject/package*.json /usr/src/CommonProject/
+# Set version in ./CommonProject/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonProject/package.json
+RUN npm install
+COPY ./CommonProject /usr/src/CommonProject
 
 
 

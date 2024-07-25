@@ -374,7 +374,8 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
               return (
                 <div>
                   <SpanStatusElement
-                    span={span}
+                    traceId={span.traceId?.toString()}
+                    spanStatusCode={span.statusCode!}
                     title={
                       "Status: " +
                       SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)

@@ -156,7 +156,7 @@ export default class MailService {
 
   private static async compileEmailBody(
     emailTemplateType: EmailTemplateType,
-    vars: Dictionary<string>,
+    vars: Dictionary<string | JSONObject>,
   ): Promise<string> {
     // Localcache templates, so we don't read from disk all the time.
 
@@ -191,7 +191,7 @@ export default class MailService {
 
   private static compileText(
     subject: string,
-    vars: Dictionary<string>,
+    vars: Dictionary<string | JSONObject>,
   ): string {
     const subjectHandlebars: Handlebars.TemplateDelegate =
       Handlebars.compile(subject);

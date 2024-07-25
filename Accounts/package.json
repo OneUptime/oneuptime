@@ -27,6 +27,7 @@
     },
     "dependencies": {
         "Common": "file:../Common",
+    
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "css-loader": "^6.11.0",

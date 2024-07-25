@@ -44,6 +44,13 @@ RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Mode
 RUN npm install
 COPY ./Model /usr/src/Model
 
+WORKDIR /usr/src/CommonProject
+COPY ./CommonProject/package*.json /usr/src/CommonProject/
+# Set version in ./CommonProject/package.json to the APP_VERSION
+RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonProject/package.json
+RUN npm install
+COPY ./CommonProject /usr/src/CommonProject
+
 
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/

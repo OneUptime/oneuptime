@@ -237,6 +237,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Reports",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.TextFile}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS] as Route,

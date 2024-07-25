@@ -103,7 +103,7 @@ export default class Markdown {
     const renderer: Renderer = new Renderer();
 
     renderer.paragraph = function (text) {
-      return `<p class="mt-2 mb-2 leading-8 text-gray-600">${text}</p>`;
+      return `<p class="mt-5 mb-2 leading-8 text-gray-600 text-lg">${text}</p>`;
     };
 
     renderer.blockquote = function (quote) {

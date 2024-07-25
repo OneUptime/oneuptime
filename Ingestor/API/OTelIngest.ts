@@ -7,6 +7,7 @@ import OTelIngestService, {
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Text from "Common/Types/Text";
 import LogService from "CommonServer/Services/LogService";
@@ -272,6 +273,8 @@ router.post(
               }
             }
 
+            dbSpan.attributes = JSONFunctions.flattenObject(dbSpan.attributes);
+
             dbSpans.push(dbSpan);
           }
         }
@@ -422,6 +425,10 @@ router.post(
 
                 sumMetric.metricPointType = MetricPointType.Sum;
 
+                sumMetric.attributes = JSONFunctions.flattenObject(
+                  sumMetric.attributes || {},
+                );
+
                 dbMetrics.push(sumMetric);
               }
             } else if (
@@ -449,6 +456,10 @@ router.post(
 
                 guageMetric.metricPointType = MetricPointType.Gauge;
 
+                guageMetric.attributes = JSONFunctions.flattenObject(
+                  guageMetric.attributes || {},
+                );
+
                 dbMetrics.push(guageMetric);
               }
             } else if (
@@ -475,6 +486,10 @@ router.post(
                   });
 
                 histogramMetric.metricPointType = MetricPointType.Histogram;
+
+                histogramMetric.attributes = JSONFunctions.flattenObject(
+                  histogramMetric.attributes || {},
+                );
 
                 dbMetrics.push(histogramMetric);
               }
@@ -653,6 +668,8 @@ router.post(
 
             dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
             dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
+
+            dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
 
             dbLogs.push(dbLog);
           }

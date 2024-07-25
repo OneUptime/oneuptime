@@ -500,6 +500,7 @@ export default class Monitor extends BaseModel {
     required: true,
     title: "Current Monitor Status ID",
     description: "Whats the current status ID of this monitor?",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.ObjectID,

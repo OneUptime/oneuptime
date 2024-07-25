@@ -1,0 +1,50 @@
+{{> Start this}}
+
+
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat "Report: " statusPageName) }}
+
+{{> InfoBlock info="Here is the report for all the resources:"}}
+
+{{> DetailBoxStart this}}
+{{> DetailBoxField title="Total Resources: " text=report.totalResources}}
+{{> DetailBoxField title="Total Incidents: " text=report.totalIncidents}}
+{{> DetailBoxField title="Total Downtime: " text=report.totalDowntimeInHoursAndMinutes}}
+{{> DetailBoxField title="Average Uptime: " text=report.averageUptimePercent}}
+{{> DetailBoxEnd this}}
+
+{{#ifCond hasResources "true"}}
+{{> InfoBlock info="The following resources have been monitored:"}}
+<table style="min-width: 500px;margin: 10px 50px; fotn-size: 15px; margin-top: 10px; margin-bottom: 20px">
+    <tr style="background-color: #424761; color: white; padding: 1px">
+        <th>Resource Name</th>
+        <th>Uptime %</th>
+        <th>Downtime</th>
+        <th>Incidents</th>
+    </tr>
+    {{#each report.resources}}
+    <tr style="padding: 1px;">
+        <td>{{this.resourceName}}</td>
+        <td style="text-align: right">{{this.uptimePercentAsString}}</td>
+        <td style="text-align: right">{{this.downtimeInHoursAndMinutes}}</td>
+        <td style="text-align: right">{{this.totalIncidentCount}}</td>
+    </tr>
+    {{/each}}
+</table>
+{{/ifCond}}
+    
+{{#ifCond hasResources "false"}}
+{{> InfoBlock info="No resources have been added to this status page yet."}}
+{{/ifCond}}
+
+{{> InfoBlock info=(concat "This is an automated email sent to you because you are subscribed to " statusPageName) }}
+
+
+{{> InfoBlock info="You can visit the status page here:"}}
+{{> InfoBlock info=statusPageUrl}}
+
+{{> UnsubscribeBlock this}}
+{{> VerticalSpace this}}
+
+{{> End this}}

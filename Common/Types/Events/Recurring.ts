@@ -1,4 +1,5 @@
 import DatabaseProperty from "../Database/DatabaseProperty";
+import OneUptimeDate from "../Date";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
@@ -17,6 +18,61 @@ export default class Recurring extends DatabaseProperty {
       intervalType: EventInterval.Day,
       intervalCount: new PositiveNumber(1),
     };
+  }
+
+  public static getNextDate(startDate: Date, rotation: Recurring): Date {
+    const intervalType: EventInterval = rotation.intervalType;
+    const intervalCount: PositiveNumber = rotation.intervalCount;
+
+    let nextDate: Date = OneUptimeDate.fromString(startDate);
+    const dateNow: Date = OneUptimeDate.getCurrentDate();
+
+    // If the start date is in the past, we need to find the next date. The next date is the first date that is greater than the current date.
+
+    // If the start date is in the future, return the start date.
+
+    if (nextDate.getTime() <= dateNow.getTime()) {
+      while (nextDate.getTime() <= dateNow.getTime()) {
+        switch (intervalType) {
+          case EventInterval.Hour:
+            nextDate = OneUptimeDate.addRemoveHours(
+              nextDate,
+              intervalCount.toNumber(),
+            );
+            break;
+          case EventInterval.Day:
+            nextDate = OneUptimeDate.addRemoveDays(
+              nextDate,
+              intervalCount.toNumber(),
+            );
+            break;
+          case EventInterval.Week:
+            nextDate = OneUptimeDate.addRemoveDays(
+              nextDate,
+              intervalCount.toNumber() * 7,
+            );
+            break;
+          case EventInterval.Month:
+            nextDate = OneUptimeDate.addRemoveMonths(
+              nextDate,
+              intervalCount.toNumber(),
+            );
+            break;
+          case EventInterval.Year:
+            nextDate = OneUptimeDate.addRemoveYears(
+              nextDate,
+              intervalCount.toNumber(),
+            );
+            break;
+          default:
+            throw new BadDataException(
+              "Invalid Interval Type: " + intervalType,
+            );
+        }
+      }
+    }
+
+    return nextDate;
   }
 
   private data: RecurringData = Recurring.getDefaultRotationData();

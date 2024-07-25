@@ -5,7 +5,7 @@
     "main": "ts",
     "type": "module",
     "dependencies": {
-        "@types/lodash": "^4.17.1",
+        "@types/lodash": "^4.17.5",
         "eslint-plugin-react": "^7.34.3",
         "eslint-plugin-unused-imports": "^3.2.0",
         "globals": "^15.6.0",

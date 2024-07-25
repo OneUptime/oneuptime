@@ -3,7 +3,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import DayUptimeGraph, { BarChartRule, Event } from "../Graphs/DayUptimeGraph";
 import UptimeUtil from "./UptimeUtil";
 import Color from "Common/Types/Color";
-import ObjectID from "Common/Types/ObjectID";
+import CommonMonitorEvent from "CommonProject/Utils/Uptime/MonitorEvent";
 import MonitorStatus from "Model/Models/MonitorStatus";
 import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
@@ -14,9 +14,7 @@ import React, {
   useState,
 } from "react";
 
-export interface MonitorEvent extends Event {
-  monitorId: ObjectID;
-}
+export type MonitorEvent = CommonMonitorEvent;
 
 export interface ComponentProps {
   startDate: Date;

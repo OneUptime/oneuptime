@@ -16,6 +16,7 @@
     "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",
+    
         "CommonServer": "file:../CommonServer",
         "dotenv": "^16.4.5",
         "Model": "file:../Model",

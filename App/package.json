@@ -18,6 +18,7 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.0",
     "Common": "file:../Common",
+    
     "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.9",
     "handlebars": "^4.7.8",
