@@ -54,7 +54,7 @@
         "react-spinners": "^0.13.6",
         "react-syntax-highlighter": "^15.5.0",
         "react-toggle": "^4.1.3",
-        "reactflow": "^11.11.1",
+        "reactflow": "^11.11.4",
         "remark-gfm": "^3.0.1",
         "socket.io-client": "^4.7.5",
         "tippy.js": "^6.3.7",
