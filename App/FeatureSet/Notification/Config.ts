@@ -5,6 +5,7 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import { AdminDashboardClientURL } from "CommonServer/EnvironmentConfig";
 import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
 import GlobalConfig, { EmailServerType } from "Model/Models/GlobalConfig";
 
@@ -54,24 +55,59 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
     }
 
     if (
-      !globalConfig.smtpFromEmail ||
-      !globalConfig.smtpHost ||
-      !globalConfig.smtpPort ||
-      !globalConfig.smtpUsername ||
-      !globalConfig.smtpPassword ||
+      !globalConfig.smtpFromEmail &&
+      !globalConfig.smtpHost &&
+      !globalConfig.smtpPort &&
+      !globalConfig.smtpUsername &&
+      !globalConfig.smtpPassword &&
       !globalConfig.smtpFromName
     ) {
       return null;
     }
 
+    if (!globalConfig.smtpFromEmail) {
+      throw new BadDataException(
+        "Global SMTP From Email not found. Please set this in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    if (!globalConfig.smtpHost) {
+      throw new BadDataException(
+        "SMTP Host not found. Please set this in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    if (!globalConfig.smtpPort) {
+      throw new BadDataException(
+        "SMTP Port not found. Please set this in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    if (!globalConfig.smtpFromName) {
+      throw new BadDataException(
+        "SMTP From Name not found. Please set this in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    if (!globalConfig.smtpFromEmail) {
+      throw new BadDataException(
+        "SMTP From Email not found. Please set this in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
     return {
       host: globalConfig.smtpHost,
       port: globalConfig.smtpPort,
-      username: globalConfig.smtpUsername,
-      password: globalConfig.smtpPassword,
+      username: globalConfig.smtpUsername || undefined, // these can be optional. If not set, they will be undefined
+      password: globalConfig.smtpPassword || undefined, // these can be optional. If not set, they will be undefined
       secure: globalConfig.isSMTPSecure || false,
       fromEmail: globalConfig.smtpFromEmail,
-      fromName: globalConfig.smtpFromName,
+      fromName: globalConfig.smtpFromName || "OneUptime",
     };
   };
 

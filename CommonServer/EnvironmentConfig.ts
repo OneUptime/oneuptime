@@ -1,6 +1,12 @@
+import {
+  AccountsRoute,
+  AdminDashboardRoute,
+  DashboardRoute,
+} from "Common/ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
+import URL from "Common/Types/API/URL";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
@@ -103,6 +109,12 @@ export const AccountsHostname: Hostname = Hostname.fromString(
 export const DashboardHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_DASHBOARD_HOSTNAME"] || "localhost"}:${
     process.env["DASHBOARD_PORT"] || 80
+  }`,
+);
+
+export const AdminDashboardHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${
+    process.env["ADMIN_DASHBOARD_PORT"] || 80
   }`,
 );
 
@@ -225,3 +237,21 @@ export const AllowedSubscribersCountInFreePlan: number = process.env[
 
 export const NotificationWebhookOnCreateUser: string =
   process.env["NOTIFICATION_WEBHOOK_ON_CREATED_USER"] || "";
+
+export const AdminDashboardClientURL: URL = new URL(
+  HttpProtocol,
+  Host,
+  AdminDashboardRoute,
+);
+
+export const DashboardClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  DashboardRoute,
+);
+
+export const AccountsClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  AccountsRoute,
+);
