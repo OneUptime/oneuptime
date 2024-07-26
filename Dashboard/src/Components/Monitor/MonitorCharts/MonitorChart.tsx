@@ -1,4 +1,4 @@
-import MonitorChartTooltip from "./MonitorChartTooltip";
+import ChartTooltip from "CommonUI/src/Components/Charts/Tooltip/Tooltip";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
@@ -142,9 +142,7 @@ export class MonitorCharts {
 
     const axisBottom: AxisBottom = MonitorCharts.getAxisBottomFor();
 
-    const axisLeft: AxisLeft = MonitorCharts.getAxisLeftFor({
-      checkOn: checkOn,
-    });
+    const axisLeft: AxisLeft = MonitorCharts.getAxisLeftFor();
 
     const chartData: Array<LineChartData> = [];
 
@@ -191,7 +189,7 @@ export class MonitorCharts {
         axisLeft: axisLeft,
         getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
           return (
-            <MonitorChartTooltip
+            <ChartTooltip
               axisBottom={{
                 ...axisBottom,
                 legend: MonitorCharts.getAxisBottomLegend(),
@@ -268,9 +266,9 @@ export class MonitorCharts {
     };
   }
 
-  private static getAxisLeftFor(data: { checkOn: CheckOn }): AxisLeft {
+  private static getAxisLeftFor(): AxisLeft {
     return {
-      legend: data.checkOn,
+      legend: "",
       type: AxisType.Number,
     };
   }

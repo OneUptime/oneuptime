@@ -186,15 +186,21 @@ const LineChart: FunctionComponent<ComponentProps> = (
         axisBottom={{
           legend: props.axisBottom.legend,
           format: (value: XValue) => {
+            let strLabel: string = "";
             if (props.axisBottom.type === AxisType.Date) {
-              return OneUptimeDate.getDateAsLocalFormattedString(value as Date);
+              strLabel = OneUptimeDate.getDateAsLocalFormattedString(
+                value as Date,
+                true,
+              );
+            } else if (props.axisBottom.type === AxisType.Time) {
+              strLabel = OneUptimeDate.getLocalHourAndMinuteFromDate(
+                value as Date,
+              );
+            } else {
+              strLabel = value.toString();
             }
 
-            if (props.axisBottom.type === AxisType.Time) {
-              return OneUptimeDate.getLocalHourAndMinuteFromDate(value as Date);
-            }
-
-            return value.toString();
+            return strLabel;
           },
         }}
         useMesh={true}

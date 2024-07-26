@@ -33,12 +33,12 @@ import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLo
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import ChartGroup, {
   Chart,
-  ChartGroupInterval,
   ChartType,
 } from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
 import {
   AxisType,
   ChartCurve,
+  LineChartPoint,
   XScalePrecision,
   XScaleType,
   YScaleType,
@@ -54,6 +54,7 @@ import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "CommonUI/src/Config";
+import ChartTooltip from "CommonUI/src/Components/Charts/Tooltip/Tooltip";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -68,6 +69,20 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [xScalePrecision, setXScalePrecision] = useState<XScalePrecision>(
+    XScalePrecision.DAY,
+  );
+
+  const [xAxisType, setXAxisType] = useState<AxisType>(AxisType.Date);
+
+  const [chartStartDate, setChartStartDate] = useState<Date>(
+    OneUptimeDate.getCurrentDate(),
+  );
+
+  const [chartEndDate, setChartEndDate] = useState<Date>(
+    OneUptimeDate.getCurrentDate(),
+  );
+
   const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
     Text.getLetterFromAByNumber(props.data.queryConfigs.length),
   );
@@ -104,6 +119,48 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
   );
+
+  type GetChartXAxisTypeFunction = () => AxisType;
+
+  const getChartXAxisType: GetChartXAxisTypeFunction = (): AxisType => {
+    if (
+      metricViewData.startAndEndDate?.startValue &&
+      metricViewData.startAndEndDate?.endValue
+    ) {
+      // if these are less than a day then we can use time
+      const hourDifference: number = OneUptimeDate.getHoursBetweenTwoDates(
+        metricViewData.startAndEndDate.startValue as Date,
+        metricViewData.startAndEndDate.endValue as Date,
+      );
+
+      if (hourDifference <= 24) {
+        return AxisType.Time;
+      }
+    }
+
+    return AxisType.Date;
+  };
+
+  type GetXPrecisionFunction = () => XScalePrecision;
+
+  const getXPrecision: GetXPrecisionFunction = (): XScalePrecision => {
+    if (
+      metricViewData.startAndEndDate?.startValue &&
+      metricViewData.startAndEndDate?.endValue
+    ) {
+      // if these are less than a day then we can use time
+      const hourDifference: number = OneUptimeDate.getHoursBetweenTwoDates(
+        metricViewData.startAndEndDate.startValue as Date,
+        metricViewData.startAndEndDate.endValue as Date,
+      );
+
+      if (hourDifference <= 24) {
+        return XScalePrecision.MINUTE;
+      }
+    }
+
+    return XScalePrecision.DAY;
+  };
 
   useEffect(() => {
     fetchAggregatedResults().catch((err: Error) => {
@@ -154,9 +211,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
           ],
           xScale: {
             type: XScaleType.TIME,
-            precision: XScalePrecision.HOUR,
-            max: "auto",
-            min: "auto",
+            precision: xScalePrecision,
+            max: chartEndDate,
+            min: chartStartDate,
           },
           yScale: {
             type: YScaleType.LINEAR,
@@ -165,14 +222,32 @@ const MetricView: FunctionComponent<ComponentProps> = (
           },
           axisBottom: {
             legend: "Time",
-            type: AxisType.Date,
+            type: xAxisType,
           },
           axisLeft: {
-            legend: "Value",
+            legend: "",
             type: AxisType.Number,
+          },
+          getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
+            return (
+              <ChartTooltip
+                axisBottom={{
+                  type: xAxisType,
+                  legend: "Date and Time",
+                }}
+                axisLeft={{
+                  type: AxisType.Number,
+                  legend:
+                    queryConfig.metricQueryData.filterData.metricName?.toString() ||
+                    "",
+                }}
+                points={data.points}
+              />
+            );
           },
           curve: ChartCurve.LINEAR,
         },
+
         sync: true,
       };
 
@@ -294,6 +369,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
         }
 
         setMetricResults(results);
+        setXAxisType(getChartXAxisType());
+        setXScalePrecision(getXPrecision());
+        setChartStartDate(metricViewData.startAndEndDate?.startValue as Date);
+        setChartEndDate(metricViewData.startAndEndDate?.endValue as Date);
 
         setMetricResultsError("");
       } catch (err: unknown) {
@@ -458,10 +537,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {!isMetricResultsLoading && !metricResultsError && (
         <div className="grid grid-cols-1 gap-4">
           {/** charts */}
-          <ChartGroup
-            interval={ChartGroupInterval.ONE_HOUR}
-            charts={getCharts()}
-          />
+          <ChartGroup charts={getCharts()} />
         </div>
       )}
     </Fragment>

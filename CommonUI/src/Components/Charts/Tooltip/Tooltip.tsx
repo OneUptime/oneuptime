@@ -6,7 +6,7 @@ import {
   LineChartPoint,
   XValue,
   YValue,
-} from "CommonUI/src/Components/Charts/Line/LineChart";
+} from "../Line/LineChart";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,7 +15,7 @@ export interface ComponentProps {
   axisLeft: AxisLeft;
 }
 
-const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
+const ChartTooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   type FormatAxisValueFunction = (
@@ -32,7 +32,7 @@ const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
     }
 
     if (type === AxisType.Date) {
-      return OneUptimeDate.getDateAsLocalFormattedString(value);
+      return OneUptimeDate.getDateAsLocalFormattedString(value, true);
     }
 
     if (type === AxisType.Time) {
@@ -81,4 +81,4 @@ const MonitorChartTooltip: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default MonitorChartTooltip;
+export default ChartTooltip;

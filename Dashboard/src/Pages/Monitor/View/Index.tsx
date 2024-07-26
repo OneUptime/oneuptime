@@ -27,7 +27,6 @@ import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import Card from "CommonUI/src/Components/Card/Card";
 import ChartGroup, {
   Chart,
-  ChartGroupInterval,
 } from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
@@ -343,9 +342,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         probes: probes,
       });
 
-      return (
-        <ChartGroup interval={ChartGroupInterval.ONE_HOUR} charts={charts} />
-      );
+      return <ChartGroup charts={charts} />;
     };
 
   if (isLoading) {

@@ -1,10 +1,6 @@
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
-export enum ChartGroupInterval {
-  ONE_HOUR = "1 hour",
-}
-
 export enum ChartType {
   LINE = "line",
   BAR = "bar",
@@ -22,7 +18,6 @@ export interface Chart {
 
 export interface ComponentProps {
   charts: Array<Chart>;
-  interval: ChartGroupInterval;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (

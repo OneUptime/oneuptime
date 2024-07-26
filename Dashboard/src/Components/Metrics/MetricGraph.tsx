@@ -1,7 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ChartGroup, {
   Chart,
-  ChartGroupInterval,
 } from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
 
 export interface ComponentProps {
@@ -15,10 +14,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
     <Fragment>
       <div className="flex">
         <div>
-          <ChartGroup
-            charts={props.charts}
-            interval={ChartGroupInterval.ONE_HOUR}
-          />
+          <ChartGroup charts={props.charts} />
         </div>
       </div>
     </Fragment>
