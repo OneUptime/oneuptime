@@ -25,7 +25,7 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 RUN apt-get update
 
 # Install bash. 
-RUN apt-get install bash -y && apt-get install curl -y
+RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
 
 # Install python
 RUN apt-get update && apt-get install -y .gyp python3 make g++
