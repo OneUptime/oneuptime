@@ -25,7 +25,7 @@
     "ejs": "^3.1.10",
     "Model": "file:../Model",
     "ping": "^0.4.4",
-    "playwright": "latest",
+    "playwright": "1.45.1",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
