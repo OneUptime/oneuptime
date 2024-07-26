@@ -72,6 +72,8 @@ export class Service extends DatabaseService<MonitorGroup> {
         select: {
           createdAt: true,
           monitorId: true,
+          startsAt: true,
+          endsAt: true,
           monitorStatus: {
             name: true,
             color: true,
