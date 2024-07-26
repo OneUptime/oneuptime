@@ -72,6 +72,8 @@ WORKDIR /usr/src/app
 COPY ./Ingestor/package*.json /usr/src/app/
 RUN npm install
 
+ENV NODE_OPTIONS="--max-old-space-size=8192"
+
 # Expose ports.
 #   - 3400: OneUptime-ingestor
 EXPOSE 3400
