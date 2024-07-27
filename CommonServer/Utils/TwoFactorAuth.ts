@@ -1,5 +1,6 @@
 import Email from "Common/Types/Email";
 import speakeasy from "speakeasy";
+import logger from "./Logger";
 
 /**
  * Utility class for handling two-factor authentication.
@@ -20,11 +21,20 @@ export default class TwoFactorAuth {
    */
   public static verifyToken(data: { secret: string; token: string }): boolean {
     const { secret, token } = data;
-    return speakeasy.totp.verify({
+    debugger; 
+
+    const generatedToken = this.generateToken(secret);
+
+    logger.info("Generated token: "+generatedToken);
+
+    const isVerified: boolean = speakeasy.totp.verify({
       secret,
       encoding: "base32",
       token,
+      window: 3,
     });
+
+    return isVerified;
   }
 
   /**
@@ -51,8 +61,8 @@ export default class TwoFactorAuth {
     const { secret, userEmail } = data;
     return speakeasy.otpauthURL({
       secret,
-      label: userEmail.toString(),
-      issuer: "OneUptime",
+      label: "OneUptime:" +userEmail.toString(),
+      issuer: "oneuptime.com",
     });
   }
 }

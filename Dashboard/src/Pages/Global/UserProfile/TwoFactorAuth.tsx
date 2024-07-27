@@ -6,7 +6,7 @@ import SideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import Page from "CommonUI/src/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
-import User from "CommonUI/src/Utils/User";
+import UserUtil from "CommonUI/src/Utils/User";
 import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -21,6 +21,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "CommonUI/src/Utils/API/API";
 import { APP_API_URL } from "CommonUI/src/Config";
 import URL from "Common/Types/API/URL";
+import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
+import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import User from "Model/Models/User";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
@@ -68,7 +72,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           refreshToggle={tableRefreshToggle}
           filters={[]}
           query={{
-            userId: User.getUserId(),
+            userId: UserUtil.getUserId(),
           }}
           isEditable={true}
           showRefreshButton={true}
@@ -120,7 +124,6 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Name",
               type: FieldType.Text,
-              selectedProperty: "name",
             },
             {
               field: {
@@ -143,9 +146,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     qr: true,
                   },
                   title:
-                    "Please scan this QR code with your authenticator app.",
-                  required: false,
-                  getCustomElement: () => {
+                    "",
+                  required: true,
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  getCustomElement: (value: FormValues<JSONObject>,
+                    props: CustomElementProps) => {
+                    if (value && !value['qr']) {
+                      props?.onChange && props.onChange("code"); // set temporary value to trigger validation. This is a hack to make the form valid. 
+                    }
                     return (
                       <QRCodeElement
                         text={selectedTwoFactorAuth.twoFactorOtpUrl || ""}
@@ -181,14 +189,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 const response:
                   | HTTPResponse<EmptyResponseData>
                   | HTTPErrorResponse = await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-two-factor-auth/validate`,
-                  ),
-                  {
-                    code: values["code"],
-                    id: selectedTwoFactorAuth.id?.toString(),
-                  },
-                );
+                    URL.fromString(APP_API_URL.toString()).addRoute(
+                      `/user-two-factor-auth/validate`,
+                    ),
+                    {
+                      code: values["code"],
+                      id: selectedTwoFactorAuth.id?.toString(),
+                    },
+                  );
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);
@@ -213,6 +221,44 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <></>
         )}
       </div>
+      <CardModelDetail<User>
+        cardProps={{
+          title: "Enable Two Factor Authentication",
+          description: "Enable two factor authentication for your account.",
+        }}
+        name="User Profile > Enable Two Factor Authentication"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              enableTwoFactorAuth: true,
+            },
+            fieldType: FormFieldSchemaType.Toggle,
+            placeholder: "No",
+            required: true,
+            title: "Enable Two Factor Authentication",
+            description:
+              "Enable two factor authentication for your account.",
+          }
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: User,
+          id: "user-profile",
+          fields: [
+            {
+              field: {
+                enableTwoFactorAuth: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Two Factor Authentication",
+              placeholder: "No",
+            }
+          ],
+
+          modelId: UserUtil.getUserId(),
+        }}
+      />
     </Page>
   );
 };
