@@ -23,15 +23,18 @@ import { APP_API_URL } from "CommonUI/src/Config";
 import URL from "Common/Types/API/URL";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
+    React.useState<UserTwoFactorAuth | null>(null);
+  const [showVerificationModal, setShowVerificationModal] =
+    React.useState<boolean>(false);
+  const [verificationError, setVerificationError] = React.useState<
+    string | null
+  >(null);
+  const [verificationLoading, setVerificationLoading] =
+    React.useState<boolean>(false);
 
-
-  const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] = React.useState<UserTwoFactorAuth | null>(null);
-  const [showVerificationModal, setShowVerificationModal] = React.useState<boolean>(false);
-  const [verificationError, setVerificationError] = React.useState<string | null>(null);
-  const [verificationLoading, setVerificationLoading] = React.useState<boolean>(false);
-
-  const [tableRefreshToggle, setTableRefreshToggle] = React.useState<boolean>(false);
-
+  const [tableRefreshToggle, setTableRefreshToggle] =
+    React.useState<boolean>(false);
 
   return (
     <Page
@@ -83,7 +86,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Verify",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Check,
-              isVisible: (item: UserTwoFactorAuth) => !item.isVerified,
+              isVisible: (item: UserTwoFactorAuth) => {
+                return !item.isVerified;
+              },
               onClick: async (
                 item: UserTwoFactorAuth,
                 onCompleteAction: VoidFunction,
@@ -126,87 +131,87 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
-         {showVerificationModal && selectedTwoFactorAuth ? (
-        <BasicFormModal
-          title={`Verify ${selectedTwoFactorAuth.name}`}
-          description={`Please scan this QR code with your authenticator app and enter the code below.`}
-          
-          formProps={{
-            error: verificationError || undefined,
-            fields: [
-              {
-                field: {
-                  qr: true,
-                },
-                title: "Please scan this QR code with your authenticator app.",
-                required: false, 
-                getCustomElement: () => {
-                  return <QRCodeElement text={selectedTwoFactorAuth.twoFactorOtpUrl || ""} />; 
-                }
-              },
-              {
-                field: {
-                  code: true,
-                },
-                title: "Code",
-                description: "Please enter the code from your authenticator app.",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-              },
-            ],
-          }}
-          submitButtonText={"Validate"}
-          onClose={() => {
-            setShowVerificationModal(false);
-            setVerificationError(null);
-            setSelectedTwoFactorAuth(null);
-          }}
-          isLoading={verificationLoading}
-          onSubmit={async (values: JSONObject) => {
-            try {
-              setVerificationLoading(true);
-              setVerificationError("");
-
-              // test CallSMS config
-              const response:
-                | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post(
-                URL.fromString(APP_API_URL.toString()).addRoute(
-                  `/user-two-factor-auth/validate`,
-                ),
+        {showVerificationModal && selectedTwoFactorAuth ? (
+          <BasicFormModal
+            title={`Verify ${selectedTwoFactorAuth.name}`}
+            description={`Please scan this QR code with your authenticator app and enter the code below.`}
+            formProps={{
+              error: verificationError || undefined,
+              fields: [
                 {
-                  code: values['code'],
-                  id: selectedTwoFactorAuth.id?.toString(),
+                  field: {
+                    qr: true,
+                  },
+                  title:
+                    "Please scan this QR code with your authenticator app.",
+                  required: false,
+                  getCustomElement: () => {
+                    return (
+                      <QRCodeElement
+                        text={selectedTwoFactorAuth.twoFactorOtpUrl || ""}
+                      />
+                    );
+                  },
                 },
-              );
-              if (response.isSuccess()) {
-                setShowVerificationModal(false);
-                setVerificationError(null);
-                setSelectedTwoFactorAuth(null);
+                {
+                  field: {
+                    code: true,
+                  },
+                  title: "Code",
+                  description:
+                    "Please enter the code from your authenticator app.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: true,
+                },
+              ],
+            }}
+            submitButtonText={"Validate"}
+            onClose={() => {
+              setShowVerificationModal(false);
+              setVerificationError(null);
+              setSelectedTwoFactorAuth(null);
+            }}
+            isLoading={verificationLoading}
+            onSubmit={async (values: JSONObject) => {
+              try {
+                setVerificationLoading(true);
+                setVerificationError("");
+
+                // test CallSMS config
+                const response:
+                  | HTTPResponse<EmptyResponseData>
+                  | HTTPErrorResponse = await API.post(
+                  URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/user-two-factor-auth/validate`,
+                  ),
+                  {
+                    code: values["code"],
+                    id: selectedTwoFactorAuth.id?.toString(),
+                  },
+                );
+                if (response.isSuccess()) {
+                  setShowVerificationModal(false);
+                  setVerificationError(null);
+                  setSelectedTwoFactorAuth(null);
+                  setVerificationLoading(false);
+                }
+
+                if (response instanceof HTTPErrorResponse) {
+                  throw response;
+                }
+
+                setTableRefreshToggle(!tableRefreshToggle);
+              } catch (err) {
+                setVerificationError(API.getFriendlyMessage(err));
                 setVerificationLoading(false);
               }
 
-              if (response instanceof HTTPErrorResponse) {
-                throw response;
-              }
-
-              setTableRefreshToggle(!tableRefreshToggle);
-
-
-            } catch (err) {
-              setVerificationError(API.getFriendlyMessage(err));
               setVerificationLoading(false);
-            }
-
-            setVerificationLoading(false);
-
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </Page>
   );

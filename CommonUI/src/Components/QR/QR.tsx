@@ -9,27 +9,27 @@ export interface ComponentProps {
 const QRCodeElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [error, setError] = React.useState<string | null>(null);
+  const [data, setData] = React.useState<string | null>(null);
 
-    const [error, setError] = React.useState<string | null>(null);
-    const [data, setData] = React.useState<string | null>(null);
+  useEffect(() => {
+    QRCode.toDataURL(
+      props.text,
+      (err: Error | null | undefined, data: string) => {
+        if (err) {
+          setError(err.message);
+          return;
+        }
+        setData(data);
+      },
+    );
+  }, [props.text]);
 
-    useEffect(() => {
-        QRCode.toDataURL(props.text, function (err: Error | null | undefined, data: string) {
-            if(err) {
-                setError(err.message);
-                return; 
-            }
-            setData(data);
-          })
-    }, [props.text]);
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
 
-    if(error){
-        return <ErrorMessage error={error} />
-    }
-
-  return (
-    <img src={data || undefined} alt={props.text} />
-  );
+  return <img src={data || undefined} alt={props.text} />;
 };
 
 export default QRCodeElement;
