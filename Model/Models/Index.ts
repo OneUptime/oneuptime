@@ -131,6 +131,8 @@ import ServiceCatalogDependency from "./ServiceCatalogDependency";
 import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
 import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
+import UserTwoFactorAuth from "./UserTwoFactorAuth";
+
 export default [
   User,
   Probe,
@@ -281,4 +283,6 @@ export default [
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
+
+  UserTwoFactorAuth,
 ];

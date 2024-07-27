@@ -4,11 +4,13 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
 import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   return (
     <SideMenu>
+       <SideMenuSection title="Basic">
       <SideMenuItem
         link={{
           title: "Overview",
@@ -18,6 +20,18 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         }}
         icon={IconProp.Info}
       />
+
+      <SideMenuItem
+        link={{
+          title: "Profile Picture",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.USER_PROFILE_PICTURE] as Route,
+          ),
+        }}
+        icon={IconProp.Image}
+      />
+      </SideMenuSection>
+      <SideMenuSection title="Security">
 
       <SideMenuItem
         link={{
@@ -31,13 +45,14 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
       <SideMenuItem
         link={{
-          title: "Profile Picture",
+          title: "Two Factor Auth",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.USER_PROFILE_PICTURE] as Route,
+            RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route,
           ),
         }}
-        icon={IconProp.Image}
+        icon={IconProp.ShieldCheck}
       />
+      </SideMenuSection>
     </SideMenu>
   );
 };

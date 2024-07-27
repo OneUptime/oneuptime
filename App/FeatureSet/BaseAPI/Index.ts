@@ -20,6 +20,7 @@ import StatusPageAPI from "CommonServer/API/StatusPageAPI";
 import StatusPageDomainAPI from "CommonServer/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "CommonServer/API/StatusPageSubscriberAPI";
 import UserCallAPI from "CommonServer/API/UserCallAPI";
+import UserTwoFactorAuthAPI from "CommonServer/API/UserTwoFactorAuthAPI";
 // User Notification methods.
 import UserEmailAPI from "CommonServer/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "CommonServer/API/UserOnCallLogTimelineAPI";
@@ -1100,6 +1101,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new UserNotificationLogTimelineAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserTwoFactorAuthAPI().getRouter(),
+    );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new Ingestor().getRouter());

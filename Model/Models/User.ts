@@ -700,6 +700,23 @@ class User extends UserModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Two Factor Auth Enabled",
+    description: "Is two factor authentication enabled?",
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public enableTwoFactorAuth?: boolean = undefined;
 }
 
 export default User;

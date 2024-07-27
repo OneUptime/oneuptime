@@ -54,6 +54,7 @@ import {
   useParams,
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
+import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -403,6 +404,16 @@ const App: () => JSX.Element = () => {
             <UserProfilePassword
               {...commonPageProps}
               pageRoute={RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() || ""}
+          element={
+            <UseTwoFactorAuth
+              {...commonPageProps}
+              pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
             />
           }
         />

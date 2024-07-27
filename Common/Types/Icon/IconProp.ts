@@ -6,6 +6,7 @@ enum IconProp {
   TableCells = "TableCells",
   Layout = "Layout",
   Compass = "Compass",
+  ShieldCheck = "ShieldCheck",
   User = "User",
   Disc = "Disc",
   Settings = "Settings",

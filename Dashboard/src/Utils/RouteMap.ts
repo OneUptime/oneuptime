@@ -341,6 +341,9 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_PROFILE_PASSWORD]: new Route(
     `/dashboard/user-profile/password-management`,
   ),
+  [PageMap.USER_TWO_FACTOR_AUTH]: new Route(
+    `/dashboard/user-profile/two-factor-auth`,
+  ),
   [PageMap.USER_PROFILE_PICTURE]: new Route(
     `/dashboard/user-profile/profile-picture`,
   ),
