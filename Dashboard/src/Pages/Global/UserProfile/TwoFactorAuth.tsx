@@ -145,14 +145,15 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   field: {
                     qr: true,
                   },
-                  title:
-                    "",
+                  title: "",
                   required: true,
                   fieldType: FormFieldSchemaType.CustomComponent,
-                  getCustomElement: (value: FormValues<JSONObject>,
-                    props: CustomElementProps) => {
-                    if (value && !value['qr']) {
-                      props?.onChange && props.onChange("code"); // set temporary value to trigger validation. This is a hack to make the form valid. 
+                  getCustomElement: (
+                    value: FormValues<JSONObject>,
+                    props: CustomElementProps,
+                  ) => {
+                    if (value && !value["qr"]) {
+                      props?.onChange && props.onChange("code"); // set temporary value to trigger validation. This is a hack to make the form valid.
                     }
                     return (
                       <QRCodeElement
@@ -189,14 +190,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 const response:
                   | HTTPResponse<EmptyResponseData>
                   | HTTPErrorResponse = await API.post(
-                    URL.fromString(APP_API_URL.toString()).addRoute(
-                      `/user-two-factor-auth/validate`,
-                    ),
-                    {
-                      code: values["code"],
-                      id: selectedTwoFactorAuth.id?.toString(),
-                    },
-                  );
+                  URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/user-two-factor-auth/validate`,
+                  ),
+                  {
+                    code: values["code"],
+                    id: selectedTwoFactorAuth.id?.toString(),
+                  },
+                );
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);
@@ -237,9 +238,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "No",
             required: true,
             title: "Enable Two Factor Authentication",
-            description:
-              "Enable two factor authentication for your account.",
-          }
+            description: "Enable two factor authentication for your account.",
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -253,7 +253,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Boolean,
               title: "Enable Two Factor Authentication",
               placeholder: "No",
-            }
+            },
           ],
 
           modelId: UserUtil.getUserId(),

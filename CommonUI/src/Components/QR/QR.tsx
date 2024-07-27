@@ -29,7 +29,13 @@ const QRCodeElement: FunctionComponent<ComponentProps> = (
     return <ErrorMessage error={error} />;
   }
 
-  return <img className="h-42 w-42 flex align-center item-center" src={data || undefined} alt={props.text} />;
+  return (
+    <img
+      className="h-42 w-42 flex align-center item-center"
+      src={data || undefined}
+      alt={props.text}
+    />
+  );
 };
 
 export default QRCodeElement;

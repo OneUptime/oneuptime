@@ -30,6 +30,8 @@ import EmailVerificationToken from "Model/Models/EmailVerificationToken";
 import TeamMember from "Model/Models/TeamMember";
 import Model from "Model/Models/User";
 import SlackUtil from "../Utils/Slack";
+import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
+import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -76,6 +78,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    let carryForward: Array<Model> = [];
+
     if (updateBy.data.password || updateBy.data.email) {
       const users: Array<Model> = await this.findBy({
         query: updateBy.query,
@@ -90,9 +94,49 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
-      return { updateBy, carryForward: users };
+      carryForward = users;
     }
-    return { updateBy, carryForward: [] };
+
+    if (updateBy.data.enableTwoFactorAuth) {
+      // check if any two factor auth is verified.
+
+      const users: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      for (const user of users) {
+        const twoFactorAuth: UserTwoFactorAuth | null =
+          await UserTwoFactorAuthService.findOneBy({
+            query: {
+              userId: user.id!,
+              isVerified: true,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (twoFactorAuth) {
+          throw new Error(
+            "Please verify two factor authentication method before you enable two factor authentication.",
+          );
+        }
+      }
+    }
+
+    return { updateBy, carryForward: carryForward };
   }
 
   protected override async onUpdateSuccess(
