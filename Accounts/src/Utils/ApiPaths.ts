@@ -9,6 +9,10 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
 
+export const VERIFY_TWO_FACTOR_AUTH_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/verify-two-factor-auth"));
+
 export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/service-provider-login"));

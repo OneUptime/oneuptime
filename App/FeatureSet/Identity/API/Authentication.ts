@@ -519,59 +519,6 @@ router.post(
 );
 
 router.post(
-  "/fetch-two-factor-auth-list",
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const data: JSONObject = req.body["data"];
-
-      if (!data["userId"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException(
-            "User Id is required to fetch the two factor auth list.",
-          ),
-        );
-      }
-
-      const userId: ObjectID = new ObjectID(data["userId"] as string);
-
-      const twoFactorAuthList: Array<UserTwoFactorAuth> =
-        await UserTwoFactorAuthService.findBy({
-          query: {
-            userId: userId,
-            isVerified: true,
-          },
-          select: {
-            _id: true,
-            userId: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      return Response.sendEntityArrayResponse(
-        req,
-        res,
-        twoFactorAuthList,
-        twoFactorAuthList.length,
-        UserTwoFactorAuth,
-      );
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-router.post(
   "/login",
   async (
     req: ExpressRequest,
@@ -587,7 +534,42 @@ router.post(
   },
 );
 
-const login = async (options: {
+type FetchTwoFactorAuthListFunction = (
+  userId: ObjectID,
+) => Promise<Array<UserTwoFactorAuth>>;
+
+const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
+  userId: ObjectID,
+): Promise<Array<UserTwoFactorAuth>> => {
+  const twoFactorAuthList: Array<UserTwoFactorAuth> =
+    await UserTwoFactorAuthService.findBy({
+      query: {
+        userId: userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        userId: true,
+        name: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  return twoFactorAuthList;
+};
+
+type LoginFunction = (options: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  next: NextFunction;
+  verifyTwoFactorAuth: boolean;
+}) => Promise<void>;
+
+const login: LoginFunction = async (options: {
   req: ExpressRequest;
   res: ExpressResponse;
   next: NextFunction;
@@ -648,8 +630,25 @@ const login = async (options: {
 
       if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
+
+        const twoFactorAuthList: Array<UserTwoFactorAuth> =
+          await fetchTwoFactorAuthList(alreadySavedUser.id!);
+
+        if (!twoFactorAuthList || twoFactorAuthList.length === 0) {
+          const errorMessage: string = IsBillingEnabled
+            ? "Two Factor Authentication is enabled but no two factor auth is setup. Please contact OneUptime support for help."
+            : "Two Factor Authentication is enabled but no two factor auth is setup. Please contact your server admin to disable two factor auth for this account.";
+
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(errorMessage),
+          );
+        }
+
         return Response.sendJsonObjectResponse(req, res, {
           twoFactorAuth: true,
+          twoFactorAuthList: twoFactorAuthList,
           userId: alreadySavedUser.id?.toString(),
         });
       }
