@@ -28,7 +28,7 @@ export default class TwoFactorAuth {
       window: 3,
     });
 
-    return isVerified || true;
+    return isVerified;
   }
 
   /**

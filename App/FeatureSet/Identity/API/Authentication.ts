@@ -628,6 +628,14 @@ const login: LoginFunction = async (options: {
         );
       }
 
+      if (alreadySavedUser.password.toString() !== user.password!.toString()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid login: Email or password does not match."),
+        );
+      }
+
       if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
@@ -646,12 +654,14 @@ const login: LoginFunction = async (options: {
           );
         }
 
-        return Response.sendJsonObjectResponse(req, res, {
-          twoFactorAuth: true,
-          twoFactorAuthList: twoFactorAuthList,
-          userId: alreadySavedUser.id?.toString(),
-        });
-      }
+        return Response.sendEntityResponse(
+          req, res, user, User, { 
+            miscData: {
+              twoFactorAuthList: UserTwoFactorAuth.toJSONArray(twoFactorAuthList, UserTwoFactorAuth),
+              twoFactorAuth: true
+            },
+          });
+        }
 
       if (verifyTwoFactorAuth) {
         // code from req
@@ -661,7 +671,7 @@ const login: LoginFunction = async (options: {
         const twoFactorAuth: UserTwoFactorAuth | null =
           await UserTwoFactorAuthService.findOneBy({
             query: {
-              id: new ObjectID(twoFactorAuthId),
+              _id: twoFactorAuthId,
               userId: alreadySavedUser.id!,
               isVerified: true,
             },
@@ -691,7 +701,7 @@ const login: LoginFunction = async (options: {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid Two Factor authentication code."),
+            new BadDataException("Invalid code."),
           );
         }
       }

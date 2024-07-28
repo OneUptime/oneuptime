@@ -79,13 +79,20 @@ const LoginPage: () => JSX.Element = () => {
           src={OneUptimeLogo}
           alt="OneUptime"
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+        {!showTwoFactorAuth && <><h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Join thousands of business that use OneUptime to help them stay online
           all the time.
-        </p>
+        </p></>}
+
+        {showTwoFactorAuth && <><h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+          Two Factor Authentication
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Select two factor authentication method. You will be asked to enter a code from the selected method.
+        </p></>}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -136,10 +143,10 @@ const LoginPage: () => JSX.Element = () => {
                 value: User | JSONObject,
                 miscData: JSONObject | undefined,
               ) => {
-                if ((value as JSONObject)["twoFactorAuth"] === true) {
+                if ((miscData as JSONObject)["twoFactorAuth"] === true) {
                   const twoFactorAuthList: Array<UserTwoFactorAuth> =
                     UserTwoFactorAuth.fromJSONArray(
-                      (value as JSONObject)["twoFactorAuthList"] as JSONArray,
+                      (miscData as JSONObject)["twoFactorAuthList"] as JSONArray,
                       UserTwoFactorAuth,
                     );
                   setTwoFactorAuthList(twoFactorAuthList);
@@ -189,21 +196,25 @@ const LoginPage: () => JSX.Element = () => {
                   description: "Enter the code from your authenticator app",
                   required: true,
                   dataTestId: "code",
+                  fieldType: FormFieldSchemaType.Text
                 },
               ]}
+              submitButtonText={"Login"}
+              maxPrimaryButtonWidth={true}
               isLoading={isTwoFactorAuthLoading}
               error={twofactorAuthError}
-              submitButtonText={"Submit"}
               onSubmit={async (data: JSONObject) => {
                 setIsTwoFactorAuthLoading(true);
 
                 try {
                   const code: string = data["code"] as string;
+                  const twoFactorAuthId: string = selectedTwoFactorAuth.id?.toString() as string;
 
                   const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                     await API.post(VERIFY_TWO_FACTOR_AUTH_API_URL, {
                       data: initialValues,
                       code: code,
+                      twoFactorAuthId: twoFactorAuthId,
                     });
 
                   if (result instanceof HTTPErrorResponse) {
@@ -231,7 +242,7 @@ const LoginPage: () => JSX.Element = () => {
           )}
         </div>
         <div className="mt-10 text-center">
-          <div className="text-muted mb-0 text-gray-500">
+          {!selectedTwoFactorAuth && <div className="text-muted mb-0 text-gray-500">
             Don&apos;t have an account?{" "}
             <Link
               to={new Route("/accounts/register")}
@@ -239,7 +250,16 @@ const LoginPage: () => JSX.Element = () => {
             >
               Register.
             </Link>
-          </div>
+          </div>}
+          {selectedTwoFactorAuth ? <div className="text-muted mb-0 text-gray-500">
+            <Link
+              onClick={() => {
+                setSelectedTwoFactorAuth(undefined);
+              }}
+              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+            >
+              Select a different two factor authentication method
+            </Link></div> : <></>}
         </div>
       </div>
     </div>
