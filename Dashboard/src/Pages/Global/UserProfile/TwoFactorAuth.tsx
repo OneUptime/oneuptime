@@ -109,6 +109,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 name: true,
               },
               title: "Name",
+              placeholder: "Google Authenticator",
               fieldType: FormFieldSchemaType.Text,
               required: true,
             },
@@ -229,6 +230,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         name="User Profile > Enable Two Factor Authentication"
         isEditable={true}
+        editButtonText="Edit"
         formFields={[
           {
             field: {

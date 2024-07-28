@@ -58,11 +58,13 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+
     const itemsToBeDeleted: Array<Model> = await this.findBy({
       query: deleteBy.query,
       select: {
         userId: true,
         _id: true,
+        isVerified: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -105,7 +107,7 @@ export class Service extends DatabaseService<Model> {
 
           if (verifiedItems.length === 1) {
             throw new BadDataException(
-              "User must have atleast one verified two factor auth. Please disable two factor auth before deleting this item.",
+              "You must have atleast one verified two factor auth. Please disable two factor auth before deleting this item.",
             );
           }
         }

@@ -32,6 +32,7 @@ import Model from "Model/Models/User";
 import SlackUtil from "../Utils/Slack";
 import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
@@ -128,8 +129,8 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        if (twoFactorAuth) {
-          throw new Error(
+        if (!twoFactorAuth) {
+          throw new BadDataException(
             "Please verify two factor authentication method before you enable two factor authentication.",
           );
         }
