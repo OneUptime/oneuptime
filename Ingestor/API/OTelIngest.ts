@@ -1,3 +1,4 @@
+import ArrayUtil from "Common/Types/ArrayUtil";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "../Middleware/TelemetryIngest";
@@ -9,6 +10,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import Text from "Common/Types/Text";
 import LogService from "CommonServer/Services/LogService";
 import MetricService from "CommonServer/Services/MetricService";
@@ -117,6 +119,8 @@ router.post(
       const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
 
       const dbSpans: Array<Span> = [];
+
+      let attributes: string[] = [];
 
       for (const resourceSpan of resourceSpans) {
         const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
@@ -275,6 +279,11 @@ router.post(
 
             dbSpan.attributes = JSONFunctions.flattenObject(dbSpan.attributes);
 
+            attributes = [
+              ...attributes,
+              ...Object.keys(dbSpan.attributes || {}),
+            ];
+
             dbSpans.push(dbSpan);
           }
         }
@@ -285,6 +294,14 @@ router.post(
         props: {
           isRoot: true,
         },
+      });
+
+      OTelIngestService.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Trace,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -320,6 +337,8 @@ router.post(
       ] as JSONArray;
 
       const dbMetrics: Array<Metric> = new Array<Metric>();
+
+      let attributes: string[] = [];
 
       for (const resourceMetric of resourceMetrics) {
         const scopeMetrics: JSONArray = resourceMetric[
@@ -491,6 +510,11 @@ router.post(
                   histogramMetric.attributes || {},
                 );
 
+                attributes = [
+                  ...attributes,
+                  ...Object.keys(histogramMetric.attributes || {}),
+                ];
+
                 dbMetrics.push(histogramMetric);
               }
             } else {
@@ -506,6 +530,14 @@ router.post(
         props: {
           isRoot: true,
         },
+      });
+
+      OTelIngestService.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Metric,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -539,6 +571,8 @@ router.post(
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
       const dbLogs: Array<Log> = [];
+
+      let attributes: string[] = [];
 
       for (const resourceLog of resourceLogs) {
         const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
@@ -671,6 +705,11 @@ router.post(
 
             dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
 
+            attributes = [
+              ...attributes,
+              ...Object.keys(dbLog.attributes || {}),
+            ];
+
             dbLogs.push(dbLog);
           }
         }
@@ -681,6 +720,14 @@ router.post(
         props: {
           isRoot: true,
         },
+      });
+
+      OTelIngestService.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Log,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
 
       return Response.sendEmptySuccessResponse(req, res);

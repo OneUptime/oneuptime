@@ -15,14 +15,11 @@ export enum OtelAggregationTemporality {
 
 export default class OTelIngestService {
   public static async indexAttributes(data: {
-    attributes: JSONObject;
+    attributes: string[];
     projectId: ObjectID;
     telemetryType: TelemetryType;
   }): Promise<void> {
     // index attributes
-
-    const attributes: JSONObject = data.attributes;
-    const keys: Array<string> = Object.keys(attributes);
 
     const cacheKey: string =
       data.projectId.toString() + "_" + data.telemetryType;
@@ -36,7 +33,7 @@ export default class OTelIngestService {
 
     // check if keys are missing in cache
 
-    for (const key of keys) {
+    for (const key of data.attributes) {
       if (!cacheKeys.includes(key)) {
         isKeysMissingInCache = true;
         break;
@@ -52,7 +49,7 @@ export default class OTelIngestService {
 
       const mergedKeys: Array<string> = ArrayUtil.removeDuplicates([
         ...dbKeys,
-        ...keys,
+        ...data.attributes,
         ...cacheKey,
       ]);
 
