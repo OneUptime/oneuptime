@@ -50,7 +50,7 @@ export default class OTelIngestService {
       const mergedKeys: Array<string> = ArrayUtil.removeDuplicates([
         ...dbKeys,
         ...data.attributes,
-        ...cacheKey,
+        ...cacheKeys,
       ]);
 
       await GlobalCache.setStringArray(

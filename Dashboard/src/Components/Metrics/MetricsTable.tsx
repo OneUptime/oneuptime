@@ -9,7 +9,21 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+} from "react";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import API from "Common/Utils/API";
+import { APP_API_URL } from "CommonUI/src/Config";
+import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;
@@ -19,6 +33,57 @@ export interface ComponentProps {
 const MetricsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [attributes, setAttributes] = React.useState<Array<string>>([]);
+
+  const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
+  const [pageError, setPageError] = React.useState<string>("");
+
+  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsPageLoading(true);
+
+      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/metrics/get-attributes",
+          ),
+          {},
+          {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        );
+
+      if (attributeRepsonse instanceof HTTPErrorResponse) {
+        throw attributeRepsonse;
+      } else {
+        const attributes: Array<string> = attributeRepsonse.data[
+          "attributes"
+        ] as Array<string>;
+        setAttributes(attributes);
+      }
+
+      setIsPageLoading(false);
+      setPageError("");
+    } catch (err) {
+      setIsPageLoading(false);
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
+  useEffect(() => {
+    loadAttributes().catch((err: Error) => {
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    });
+  }, []);
+
+  if (isPageLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (pageError) {
+    return <ErrorMessage error={pageError} />;
+  }
+
   return (
     <Fragment>
       <AnalyticsModelTable<Metric>
@@ -97,6 +162,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             },
             type: FieldType.JSON,
             title: "Attributes",
+            jsonKeys: attributes,
           },
         ]}
         columns={[
