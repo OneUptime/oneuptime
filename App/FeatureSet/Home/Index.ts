@@ -20,6 +20,7 @@ import Express, {
 import "ejs";
 import builder from "xmlbuilder2";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
+import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
 
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -49,6 +50,20 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/support`);
     });
+
+    app.get(
+      "/oss-friends",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/oss-friends`, {
+          ossFriends: OSSFriends.map((friend: OSSFriend) => {
+            return {
+              ...friend,
+              repositoryUrl: friend.repositoryUrl.toString(),
+            };
+          }),
+        });
+      },
+    );
 
     app.get("/pricing", (_req: ExpressRequest, res: ExpressResponse) => {
       const pricing: Array<JSONObject> = [
