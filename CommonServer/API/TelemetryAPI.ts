@@ -7,11 +7,10 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import MetricService from "../Services/MetricService";
-import { JSONArray } from "Common/Types/JSON";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -19,7 +18,7 @@ router.post(
   "/telemetry/metrics/get-attributes",
   UserMiddleware.getUserMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    return getAttributes(req, res, next, TelemetryTableName.Metric);
+    return getAttributes(req, res, next, TelemetryType.Metric);
   },
 );
 
@@ -27,7 +26,7 @@ router.post(
   "/telemetry/logs/get-attributes",
   UserMiddleware.getUserMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    return getAttributes(req, res, next, TelemetryTableName.Log);
+    return getAttributes(req, res, next, TelemetryType.Log);
   },
 );
 
@@ -35,28 +34,22 @@ router.post(
   "/telemetry/traces/get-attributes",
   UserMiddleware.getUserMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    return getAttributes(req, res, next, TelemetryTableName.Span);
+    return getAttributes(req, res, next, TelemetryType.Trace);
   },
 );
-
-enum TelemetryTableName {
-  Metric = "Metric",
-  Span = "Span",
-  Log = "Log",
-}
 
 type GetAttributesFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
-  telemetryTableName: TelemetryTableName,
+  telemetryType: TelemetryType,
 ) => Promise<void>;
 
 const getAttributes: GetAttributesFunction = async (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
-  telemetryTableName: TelemetryTableName,
+  telemetryType: TelemetryType,
 ) => {
   try {
     const databaseProps: DatabaseCommonInteractionProps =
@@ -70,19 +63,22 @@ const getAttributes: GetAttributesFunction = async (
       );
     }
 
-    // Metric Query
-
-    const arrayOfAttributeKeysAsString: string =
-      await MetricService.executeQuery(
-        `SELECT groupUniqArrayArray(JSONExtractKeys(attributes)) AS keys FROM ${telemetryTableName} WHERE projectId = '${databaseProps.tenantId?.toString()}'`,
+    if (!databaseProps.tenantId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project ID"),
       );
+    }
 
-    const arrayOfAttributeKeys: JSONArray = JSONFunctions.parseJSONArray(
-      arrayOfAttributeKeysAsString,
-    );
+    const attributes: string[] =
+      await TelemetryAttributeService.fetchAttributes({
+        projectId: databaseProps.tenantId,
+        telemetryType,
+      });
 
     return Response.sendJsonObjectResponse(req, res, {
-      attributes: arrayOfAttributeKeys.sort(),
+      attributes: attributes,
     });
   } catch (err: any) {
     next(err);

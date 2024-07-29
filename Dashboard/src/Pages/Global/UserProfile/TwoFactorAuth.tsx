@@ -117,7 +117,6 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields={{
             twoFactorOtpUrl: true,
           }}
-          deleteButtonText="Reject"
           columns={[
             {
               field: {

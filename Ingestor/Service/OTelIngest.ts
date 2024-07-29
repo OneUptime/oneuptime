@@ -1,8 +1,12 @@
+import ArrayUtil from "Common/Types/ArrayUtil";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
+import GlobalCache from "CommonServer/Infrastructure/GlobalCache";
 import Metric, { AggregationTemporality } from "Model/AnalyticsModels/Metric";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import TelemetryAttributeService from "CommonServer/Services/TelemetryAttributeService";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
@@ -10,6 +14,62 @@ export enum OtelAggregationTemporality {
 }
 
 export default class OTelIngestService {
+  public static async indexAttributes(data: {
+    attributes: JSONObject;
+    projectId: ObjectID;
+    telemetryType: TelemetryType;
+  }): Promise<void> {
+    // index attributes
+
+    const attributes: JSONObject = data.attributes;
+    const keys: Array<string> = Object.keys(attributes);
+
+    const cacheKey: string =
+      data.projectId.toString() + "_" + data.telemetryType;
+
+    // get keys from cache
+    const cacheKeys: string[] =
+      (await GlobalCache.getStringArray("telemetryAttributesKeys", cacheKey)) ||
+      [];
+
+    let isKeysMissingInCache: boolean = false;
+
+    // check if keys are missing in cache
+
+    for (const key of keys) {
+      if (!cacheKeys.includes(key)) {
+        isKeysMissingInCache = true;
+        break;
+      }
+    }
+
+    // merge keys and remove duplicates
+    if (isKeysMissingInCache) {
+      const dbKeys: string[] = await TelemetryAttributeService.fetchAttributes({
+        projectId: data.projectId,
+        telemetryType: data.telemetryType,
+      });
+
+      const mergedKeys: Array<string> = ArrayUtil.removeDuplicates([
+        ...dbKeys,
+        ...keys,
+        ...cacheKey,
+      ]);
+
+      await GlobalCache.setStringArray(
+        "telemetryAttributesKeys",
+        cacheKey,
+        mergedKeys,
+      );
+
+      await TelemetryAttributeService.refreshAttributes({
+        projectId: data.projectId,
+        telemetryType: data.telemetryType,
+        attributes: mergedKeys,
+      });
+    }
+  }
+
   public static getAttributes(data: {
     items: JSONArray;
     telemetryServiceId?: ObjectID;

@@ -14,7 +14,7 @@ export default class TwoFactorAuth {
   }
 
   public static getLabel(data: { email: Email }): string {
-    return "OneUptime:" + data.email.toString();
+    return data.email.toString();
   }
 
   public static getTotp(data: { secret: string; email: Email }): OTPAuth.TOTP {
@@ -52,7 +52,7 @@ export default class TwoFactorAuth {
 
     const totp: OTPAuth.TOTP = this.getTotp({ secret, email });
 
-    const delta: number | null = totp.validate({ token, window: 1 });
+    const delta: number | null = totp.validate({ token, window: 3 });
 
     return delta !== null;
   }

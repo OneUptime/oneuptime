@@ -88,6 +88,10 @@ import LabelService, {
 import LogService, {
   LogService as LogServiceType,
 } from "CommonServer/Services/LogService";
+import TelemetryAttributeService, {
+  TelemetryAttributeService as TelemetryAttributeServiceType,
+} from "CommonServer/Services/TelemetryAttributeService";
+
 import MetricService, {
   MetricService as MetricServiceType,
 } from "CommonServer/Services/MetricService";
@@ -405,12 +409,21 @@ import WorkflowVariable from "Model/Models/WorkflowVariable";
 import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
 import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
 import ServiceCatalogDependency from "Model/Models/ServiceCatalogDependency";
+import TelemetryAttribute from "Model/AnalyticsModels/TelemetryAttribute";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
     const APP_NAME: string = "api";
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
+        TelemetryAttribute,
+        TelemetryAttributeService,
+      ).getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

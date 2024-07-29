@@ -1,6 +1,20 @@
 import ObjectID from "./ObjectID";
 
 export default class ArrayUtil {
+  public static mergeStringArrays(
+    array1: Array<string>,
+    array2: Array<string>,
+  ): Array<string> {
+    return ArrayUtil.removeDuplicates([...array1, ...array2]);
+  }
+
+  public static isStringArrayEqual(
+    array1: Array<string>,
+    array2: Array<string>,
+  ): boolean {
+    return ArrayUtil.isEqual(array1, array2);
+  }
+
   public static removeDuplicates(array: Array<any>): Array<any> {
     return array.filter((value: any, index: number, self: Array<any>) => {
       return self.indexOf(value) === index;

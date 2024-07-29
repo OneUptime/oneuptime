@@ -27,6 +27,35 @@ export default abstract class GlobalCache {
     return json;
   }
 
+  public static async getStringArray(
+    namespace: string,
+    key: string,
+  ): Promise<string[] | null> {
+    const value: string | null = await this.getString(namespace, key);
+
+    if (!value) {
+      return null;
+    }
+
+    const stringArr: string[] = JSON.parse(value) as string[];
+
+    if (!Array.isArray(stringArr)) {
+      throw new BadDataException(
+        "Expected String Array, but got something else",
+      );
+    }
+
+    return stringArr;
+  }
+
+  public static async setStringArray(
+    namespace: string,
+    key: string,
+    value: string[],
+  ): Promise<void> {
+    await this.setString(namespace, key, JSON.stringify(value));
+  }
+
   public static async getJSONArray(
     namespace: string,
     key: string,
