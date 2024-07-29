@@ -1,5 +1,5 @@
 import Email from "Common/Types/Email";
-import speakeasy from "speakeasy";
+import * as OTPAuth from "otpauth";
 
 /**
  * Utility class for handling two-factor authentication.
@@ -10,7 +10,32 @@ export default class TwoFactorAuth {
    * @returns The generated secret key.
    */
   public static generateSecret(): string {
-    return speakeasy.generateSecret().base32;
+    return new OTPAuth.Secret().base32;
+  }
+
+  public static getLabel(data: { email: Email }): string {
+    return "OneUptime:" + data.email.toString();
+  }
+
+  public static getTotp(data: { secret: string; email: Email }): OTPAuth.TOTP {
+    const totp: OTPAuth.TOTP = new OTPAuth.TOTP({
+      // Provider or service the account is associated with.
+      issuer: "OneUptime",
+      // Account identifier.
+      label: this.getLabel({
+        email: data.email,
+      }),
+      // Algorithm used for the HMAC function.
+      algorithm: "SHA256",
+      // Length of the generated tokens.
+      digits: 6,
+      // Interval of time for which a token is valid, in seconds.
+      period: 30,
+      // Arbitrary key encoded in Base32 or OTPAuth.Secret instance.
+      secret: data.secret,
+    });
+
+    return totp;
   }
 
   /**
@@ -18,29 +43,18 @@ export default class TwoFactorAuth {
    * @param data - The data object containing the secret key and token.
    * @returns A boolean indicating whether the token is valid or not.
    */
-  public static verifyToken(data: { secret: string; token: string }): boolean {
-    const { secret, token } = data;
+  public static verifyToken(data: {
+    secret: string;
+    token: string;
+    email: Email;
+  }): boolean {
+    const { secret, token, email } = data;
 
-    const isVerified: boolean = speakeasy.totp.verify({
-      secret,
-      encoding: "base32",
-      token,
-      window: 3,
-    });
+    const totp: OTPAuth.TOTP = this.getTotp({ secret, email });
 
-    return isVerified;
-  }
+    const delta: number | null = totp.validate({ token, window: 1 });
 
-  /**
-   * Generates a time-based one-time password (TOTP) token using the provided secret key.
-   * @param secret - The secret key used to generate the token.
-   * @returns The generated TOTP token.
-   */
-  public static generateToken(secret: string): string {
-    return speakeasy.totp({
-      secret,
-      encoding: "base32",
-    });
+    return delta !== null;
   }
 
   /**
@@ -53,10 +67,9 @@ export default class TwoFactorAuth {
     userEmail: Email;
   }): string {
     const { secret, userEmail } = data;
-    return speakeasy.otpauthURL({
-      secret,
-      label: "OneUptime:" + userEmail.toString(),
-      issuer: "oneuptime.com",
-    });
+
+    const totp: OTPAuth.TOTP = this.getTotp({ secret, email: userEmail });
+
+    return totp.toString();
   }
 }
