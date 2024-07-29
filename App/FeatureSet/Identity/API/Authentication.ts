@@ -632,7 +632,9 @@ const login: LoginFunction = async (options: {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid login: Email or password does not match."),
+          new BadDataException(
+            "Invalid login: Email or password does not match.",
+          ),
         );
       }
 
@@ -654,14 +656,16 @@ const login: LoginFunction = async (options: {
           );
         }
 
-        return Response.sendEntityResponse(
-          req, res, user, User, { 
-            miscData: {
-              twoFactorAuthList: UserTwoFactorAuth.toJSONArray(twoFactorAuthList, UserTwoFactorAuth),
-              twoFactorAuth: true
-            },
-          });
-        }
+        return Response.sendEntityResponse(req, res, user, User, {
+          miscData: {
+            twoFactorAuthList: UserTwoFactorAuth.toJSONArray(
+              twoFactorAuthList,
+              UserTwoFactorAuth,
+            ),
+            twoFactorAuth: true,
+          },
+        });
+      }
 
       if (verifyTwoFactorAuth) {
         // code from req
