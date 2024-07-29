@@ -699,6 +699,7 @@ const login: LoginFunction = async (options: {
         const isVerified: boolean = TwoFactorAuth.verifyToken({
           token: code,
           secret: twoFactorAuth.twoFactorSecret!,
+          email: alreadySavedUser.email!,
         });
 
         if (!isVerified) {

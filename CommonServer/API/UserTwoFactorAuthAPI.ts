@@ -14,6 +14,8 @@ import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import Response from "../Utils/Response";
+import User from "Model/Models/User";
+import UserService from "../Services/UserService";
 
 export default class UserTwoFactorAuthAPI extends BaseAPI<
   UserTwoFactorAuth,
@@ -50,9 +52,33 @@ export default class UserTwoFactorAuthAPI extends BaseAPI<
             throw new BadDataException("Two factor auth not found");
           }
 
+          if (!userTwoFactorAuth.userId) {
+            throw new BadDataException("User not found");
+          }
+
+          // get user email.
+          const user: User | null = await UserService.findOneById({
+            id: userTwoFactorAuth.userId!,
+            select: {
+              email: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!user) {
+            throw new BadDataException("User not found");
+          }
+
+          if (!user.email) {
+            throw new BadDataException("User email not found");
+          }
+
           const isValid: boolean = TwoFactorAuth.verifyToken({
             secret: userTwoFactorAuth.twoFactorSecret || "",
             token: req.body["code"] || "",
+            email: user.email!,
           });
 
           if (!isValid) {
