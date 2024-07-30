@@ -11,6 +11,7 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import ArrayUtil from "Common/Types/ArrayUtil";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -71,11 +72,12 @@ const getAttributes: GetAttributesFunction = async (
       );
     }
 
-    const attributes: string[] =
+    const attributes: string[] = ArrayUtil.removeDuplicates(
       await TelemetryAttributeService.fetchAttributes({
         projectId: databaseProps.tenantId,
         telemetryType,
-      });
+      }),
+    );
 
     return Response.sendJsonObjectResponse(req, res, {
       attributes: attributes,
