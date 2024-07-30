@@ -187,7 +187,7 @@ const Projects: FunctionComponent = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         name="Projects"
-        isViewable={false}
+        isViewable={true}
         cardProps={{
           title: "Projects",
           description: "Here is a list of proejcts in OneUptime.",
