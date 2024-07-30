@@ -23,6 +23,10 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import UserView from "./Pages/Users/View/Index";
+import UserDelete from "./Pages/Users/View/Delete";
+import ProjectView from "./Pages/Projects/View/Index";
+import ProjectDelete from "./Pages/Projects/View/Delete";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -59,6 +63,26 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.USERS]?.toString() || ""}
           element={<Users />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_VIEW]?.toString() || ""}
+          element={<UserView />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_DELETE]?.toString() || ""}
+          element={<UserDelete />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_VIEW]?.toString() || ""}
+          element={<ProjectView />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_DELETE]?.toString() || ""}
+          element={<ProjectDelete />}
         />
 
         <PageRoute
