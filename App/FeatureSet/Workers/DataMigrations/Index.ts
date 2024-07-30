@@ -32,6 +32,7 @@ import RemoveCanFromPermissions from "./RemoveCanFromPermissions";
 import UpdateActiveMonitorCountToBillingProvider from "./UpdateActiveMonitorCountToBillingProvider";
 import UpdateGlobalConfigFromEnv from "./UpdateGlobalCongfigFromEnv";
 import MigrateServiceLanguageToTechStack from "./MigrateServiceLanguageToTechStack";
+import DeleteOldTelemetryTable from "./DeleteOldTelelmetryTable";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -69,6 +70,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddPointTypeToMetric(),
   new AddIsMonotonicToMetric(),
   new MigrateServiceLanguageToTechStack(),
+  new DeleteOldTelemetryTable(),
 ];
 
 export default DataMigrations;

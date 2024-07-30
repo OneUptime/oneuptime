@@ -22,7 +22,7 @@ export enum MetricPointType {
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "Metric",
+      tableName: "MetricTelemetry",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Metric",
       pluralName: "Metrics",
@@ -522,7 +522,8 @@ export default class Metric extends AnalyticsBaseModel {
           },
         }),
       ],
-      primaryKeys: ["projectId", "serviceId", "time"],
+      sortKeys: ["projectId", "serviceId", "time"],
+      primaryKeys: ["projectId", "serviceId"],
     });
   }
 

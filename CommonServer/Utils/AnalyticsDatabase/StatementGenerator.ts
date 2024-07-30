@@ -705,25 +705,40 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // to specify the table engine
     const tableEngineStatement: string = this.model.tableEngine;
 
-    /* eslint-disable prettier/prettier */
-        const statement: Statement = SQL`
+    const statement: Statement = SQL`
             CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
             (\n`
-            .append(columnsStatement).append(SQL`
+      .append(columnsStatement)
+      .append(
+        SQL`
             )
-            ENGINE = `).append(tableEngineStatement).append(SQL`
+            ENGINE = `,
+      )
+      .append(tableEngineStatement).append(SQL`
             PRIMARY KEY (`);
 
-        for (let i: number = 0; i < this.model.primaryKeys.length; i++) {
-            const key: string = this.model.primaryKeys[i]!;
-            if (i !== 0) {
-                statement.append(SQL`, `);
-            }
-            statement.append(SQL`${key}`);
-        }
+    for (let i: number = 0; i < this.model.primaryKeys.length; i++) {
+      const key: string = this.model.primaryKeys[i]!;
+      if (i !== 0) {
+        statement.append(SQL`, `);
+      }
+      statement.append(SQL`${key}`);
+    }
 
-        statement.append(SQL`)`);
-        /* eslint-enable prettier/prettier */
+    statement.append(SQL`)
+            ORDER BY (`);
+
+    for (let i: number = 0; i < this.model.sortKeys.length; i++) {
+      const key: string = this.model.sortKeys[i]!;
+      if (i !== 0) {
+        statement.append(SQL`, `);
+      }
+      statement.append(SQL`${key}`);
+    }
+
+    statement.append(SQL`)`);
+
+    /* eslint-enable prettier/prettier */
 
     logger.debug(`${this.model.tableName} Table Create Statement`);
     logger.debug(statement);

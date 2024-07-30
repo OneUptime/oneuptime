@@ -34,6 +34,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     tableBillingAccessControl?: TableBillingAccessControl | undefined;
     accessControl?: TableAccessControl | undefined;
     primaryKeys: Array<string>; // this should be the subset of tableColumns
+    sortKeys: Array<string>; // this should be the subset of tableColumns
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
   }) {
@@ -107,7 +108,24 @@ export default class AnalyticsBaseModel extends CommonModel {
       }
     });
 
+    // check if sort keys are subset of tableColumns
+
+    data.sortKeys.forEach((sortKey: string) => {
+      const column: AnalyticsTableColumn | undefined = columns.find(
+        (column: AnalyticsTableColumn) => {
+          return column.key === sortKey;
+        },
+      );
+
+      if (!column) {
+        throw new BadDataException(
+          "Sort key " + sortKey + " is not part of tableColumns",
+        );
+      }
+    });
+
     this.primaryKeys = data.primaryKeys;
+    this.sortKeys = data.sortKeys;
     this.tableColumns = columns;
     this.singularName = data.singularName;
     this.pluralName = data.pluralName;
@@ -165,6 +183,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set primaryKeys(v: Array<string>) {
     this._primaryKeys = v;
+  }
+
+  private _sortKeys: Array<string> = [];
+  public get sortKeys(): Array<string> {
+    return this._sortKeys;
+  }
+  public set sortKeys(v: Array<string>) {
+    this._sortKeys = v;
   }
 
   private _singularName: string = "";

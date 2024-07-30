@@ -132,6 +132,7 @@ export default class TelemetryAttribute extends AnalyticsBaseModel {
           },
         }),
       ],
+      sortKeys: ["projectId", "telemetryType"],
       primaryKeys: ["projectId", "telemetryType"],
     });
   }

@@ -20,9 +20,10 @@ export interface MonitorMetricsMiscData {
 export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "MonitorMetricsByMinute",
+      tableName: "MonitorMetrics",
       tableEngine: AnalyticsTableEngine.MergeTree,
-      singularName: "Monitor Metrics By Minute",
+      singularName: "Monitor Metric",
+      pluralName: "Monitor Metrics",
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -34,8 +35,7 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
         update: [],
         delete: [],
       },
-      pluralName: "Monitor Metrics By Minutes",
-      crudApiPath: new Route("/monitor-metrics-by-minute"),
+      crudApiPath: new Route("/monitor-metrics"),
       tableColumns: [
         new AnalyticsTableColumn({
           key: "projectId",
@@ -128,7 +128,8 @@ export default class MonitorMetricsByMinute extends AnalyticsBaseModel {
           },
         }),
       ],
-      primaryKeys: ["projectId", "monitorId", "createdAt"],
+      sortKeys: ["projectId", "monitorId", "createdAt"],
+      primaryKeys: ["projectId", "monitorId"],
     });
   }
 

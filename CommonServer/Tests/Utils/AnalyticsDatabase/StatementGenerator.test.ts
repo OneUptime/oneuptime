@@ -50,6 +50,7 @@ describe("StatementGenerator", () => {
         ],
         crudApiPath: new Route("route"),
         primaryKeys: ["column_ObjectID"],
+        sortKeys: ["column_ObjectID"],
         tableEngine: AnalyticsTableEngine.MergeTree,
       });
     }
