@@ -343,6 +343,7 @@ describe("StatementGenerator", () => {
                 )
                 ENGINE = MergeTree
                 PRIMARY KEY (${'column_ObjectID'})
+                ORDER BY (${'column_ObjectID'})
             `;
             /* eslint-enable prettier/prettier */
 
