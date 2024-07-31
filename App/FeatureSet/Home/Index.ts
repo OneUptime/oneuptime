@@ -21,6 +21,7 @@ import "ejs";
 import builder from "xmlbuilder2";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
+import Reviews from "./Utils/Reviews";
 
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -28,12 +29,17 @@ const HomeFeatureSet: FeatureSet = {
 
     //Routes
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
+      const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
+
       res.render(`${ViewsPath}/index`, {
         support: false,
         footerCards: true,
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        reviewsList1,
+        reviewsList2,
+        reviewsList3,
       });
     });
 
