@@ -1,0 +1,87 @@
+
+<section id="reviews" aria-labelledby="reviews-title" class="pb-16 pt-20 sm:pb-24 sm:pt-32 bg-gray-50 border-gray-100 border-t-2 border-b-2">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 rounded bg-gray-50">
+        <h2 id="reviews-title" class="text-3xl font-medium tracking-tight text-gray-900 sm:text-center bg-gray-50">Here's what developers say about us.</h2>
+        <p class="mt-2 text-lg text-gray-600 sm:text-center bg-gray-50">OneUptime is used by thousands of companies worldwide. Here's what they say about us.</p>
+        <div
+            class="bg-gray-50 relative -mx-4 mt-16 grid h-[49rem] max-h-[150vh] grid-cols-1 items-start gap-8 overflow-hidden px-4 sm:mt-20 md:grid-cols-2 lg:grid-cols-3">
+            <div class="animate-marquee space-y-8 py-4" style="--marquee-duration: 28320ms;">
+                <% for(var i=0; i<reviewsList1.length; i++) {%>
+                    <%- include('./review', {
+                        review: reviewsList1[i]
+                    }) -%>
+                <% } %>
+                
+            </div>
+            <div class="animate-marquee space-y-8 py-4 hidden md:block" style="--marquee-duration: 48320ms;">
+                <% for(var i=0; i<reviewsList2.length; i++) {%>
+                    <%- include('./review', {
+                        review: reviewsList2[i]
+                    }) -%>
+                <% } %>
+                
+            </div>
+            <div class="animate-marquee space-y-8 py-4 hidden lg:block" style="--marquee-duration: 38320ms;">
+                <% for(var i=0; i<reviewsList3.length; i++) {%>
+                    <%- include('./review', {
+                        review: reviewsList3[i]
+                    }) -%>
+                <% } %>
+                
+            </div>
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-50"></div>
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50"></div>
+        </div>
+    </div>
+</section>
+
+<style>
+    @keyframes fade-in {
+    0% {
+        opacity: 0
+    }
+
+    to {
+        opacity: 1
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in .5s linear forwards
+}
+
+@keyframes marquee {
+    to {
+        transform: translateY(-50%)
+    }
+}
+
+.animate-marquee {
+    animation: marquee var(--marquee-duration) linear infinite
+}
+
+@keyframes spin-reverse {
+    to {
+        transform: rotate(-1turn)
+    }
+}
+
+.animate-spin-reverse-slower {
+    animation: spin-reverse 6s linear infinite
+}
+
+.animate-spin-slow {
+    animation: spin 4s linear infinite
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(1turn)
+    }
+}
+
+.animate-spin-slower {
+    animation: spin 6s linear infinite
+}
+
+</style>

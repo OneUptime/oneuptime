@@ -20,7 +20,7 @@ export enum LogSeverity {
 export default class Log extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "Log",
+      tableName: "LogTelemetry",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Log",
       enableRealtimeEventsOn: {
@@ -287,7 +287,8 @@ export default class Log extends AnalyticsBaseModel {
           },
         }),
       ],
-      primaryKeys: ["projectId", "serviceId", "time"],
+      sortKeys: ["projectId", "serviceId", "time"],
+      primaryKeys: ["projectId", "serviceId"],
     });
   }
 

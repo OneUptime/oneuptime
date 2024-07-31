@@ -50,6 +50,7 @@ describe("StatementGenerator", () => {
         ],
         crudApiPath: new Route("route"),
         primaryKeys: ["column_ObjectID"],
+        sortKeys: ["column_ObjectID"],
         tableEngine: AnalyticsTableEngine.MergeTree,
       });
     }
@@ -342,6 +343,7 @@ describe("StatementGenerator", () => {
                 )
                 ENGINE = MergeTree
                 PRIMARY KEY (${'column_ObjectID'})
+                ORDER BY (${'column_ObjectID'})
             `;
             /* eslint-enable prettier/prettier */
 
