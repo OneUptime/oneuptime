@@ -3,6 +3,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
 import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
 
+// Fetch resources for documentation
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
 export default class ServiceHandler {
@@ -14,11 +15,11 @@ export default class ServiceHandler {
     let pageTitle: string = "";
     let pageDescription: string = "";
 
-    // Get the requested page
+    // Get the requested page from URL parameters
     const page: string | undefined = req.params["page"];
     const pageData: any = {};
 
-    // Set page title and description
+    // Set static page title and description
     pageTitle = "Permissions";
     pageDescription = "Learn how permissions work with OneUptime";
 
@@ -29,7 +30,7 @@ export default class ServiceHandler {
       },
     );
 
-    // Render the page
+    // Render the page with the provided template and data
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
