@@ -40,6 +40,8 @@ import DomainService, {
 import EmailLogService, {
   Service as EmailLogServiceType,
 } from "CommonServer/Services/EmailLogService";
+import TelemetryIngestionKeyService, 
+  { Service as TelemetryIngestionKeyServiceType, } from "CommonServer/Services/TelemetryIngestionKeyService";
 import EmailVerificationTokenService, {
   Service as EmailVerificationTokenServiceType,
 } from "CommonServer/Services/EmailVerificationTokenService";
@@ -88,6 +90,8 @@ import LabelService, {
 import LogService, {
   LogService as LogServiceType,
 } from "CommonServer/Services/LogService";
+
+
 import TelemetryAttributeService, {
   TelemetryAttributeService as TelemetryAttributeServiceType,
 } from "CommonServer/Services/TelemetryAttributeService";
@@ -388,6 +392,7 @@ import StatusPageCustomField from "Model/Models/StatusPageCustomField";
 import StatusPageFooterLink from "Model/Models/StatusPageFooterLink";
 import StatusPageGroup from "Model/Models/StatusPageGroup";
 import StatusPageHeaderLink from "Model/Models/StatusPageHeaderLink";
+import TelemetryIngestionKey from "Model/Models/TelemetryIngestionKey";
 import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Model/Models/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Model/Models/StatusPageOwnerUser";
@@ -444,6 +449,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         MonitorMetricsByMinute,
         MonitorMetricsByMinuteServiceType
       >(MonitorMetricsByMinute, MonitorMetricsByMinuteService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryIngestionKey, TelemetryIngestionKeyServiceType>(
+        TelemetryIngestionKey,
+        TelemetryIngestionKeyService,
+      ).getRouter(),
     );
 
     app.use(
