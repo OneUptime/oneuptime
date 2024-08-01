@@ -416,8 +416,7 @@ export default class TelemetryService extends BaseModel {
   })
   public labels?: Array<Label> = undefined;
 
-
-  // This field is deprecared and is no longer used. 
+  // This field is deprecared and is no longer used.
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

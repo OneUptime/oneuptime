@@ -112,13 +112,6 @@ const ServiceDelete: FunctionComponent<
               },
               title: "Description",
             },
-            {
-              field: {
-                telemetryServiceToken: true,
-              },
-              title: "Service Token",
-              fieldType: FieldType.HiddenText,
-            },
           ],
           modelId: modelId,
         }}

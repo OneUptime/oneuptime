@@ -90,7 +90,6 @@ const ServiceDelete: FunctionComponent<
           modelId: modelId,
         }}
       />
-
     </Fragment>
   );
 };
