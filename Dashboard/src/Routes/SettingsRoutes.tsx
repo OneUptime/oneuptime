@@ -515,6 +515,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+            2,
           )}
           element={
             <Suspense fallback={Loader}>

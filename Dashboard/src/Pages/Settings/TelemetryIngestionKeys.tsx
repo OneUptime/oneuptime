@@ -4,30 +4,31 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ApiKey from "Model/Models/ApiKey";
+import TelemetryIngestionKey from "Model/Models/TelemetryIngestionKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
-      <ModelTable<ApiKey>
-        modelType={ApiKey}
+      <ModelTable<TelemetryIngestionKey>
+        modelType={TelemetryIngestionKey}
         query={{
           projectId: DashboardNavigation.getProjectId()?.toString(),
         }}
         id="api-keys-table"
-        name="Settings > API Keys"
+        name="Settings > Telemetry Ingestion Keys"
         isDeleteable={false}
         isEditable={false}
         showViewIdButton={false}
         isCreateable={true}
         isViewable={true}
+        singularName="Ingestion Key"
         cardProps={{
-          title: "API Keys",
+          title: "Telemetry Ingestion Keys",
           description:
-            "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.",
+            "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
         }}
-        noItemsMessage={"No API Keys found."}
+        noItemsMessage={"No telemetry ingestion keys found."}
         formFields={[
           {
             field: {
@@ -36,7 +37,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "API Key Name",
+            placeholder: "Ingestion Key Name",
             validation: {
               minLength: 2,
             },
@@ -48,19 +49,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
-            placeholder: "API Key Description",
-          },
-          {
-            field: {
-              expiresAt: true,
-            },
-            title: "Expires",
-            fieldType: FormFieldSchemaType.Date,
-            required: true,
-            placeholder: "Expires at",
-            validation: {
-              dateShouldBeInTheFuture: true,
-            },
+            placeholder: "Ingestion Key Description",
           },
         ]}
         showRefreshButton={true}
@@ -80,13 +69,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
             title: "Description",
           },
-          {
-            field: {
-              expiresAt: true,
-            },
-            type: FieldType.Date,
-            title: "Expires",
-          },
         ]}
         columns={[
           {
@@ -102,13 +84,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              expiresAt: true,
-            },
-            title: "Expires",
-            type: FieldType.Date,
           },
         ]}
       />

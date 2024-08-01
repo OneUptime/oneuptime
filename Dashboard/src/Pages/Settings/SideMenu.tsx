@@ -148,7 +148,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
             ),
           }}
-          icon={IconProp.Clock}
+          icon={IconProp.Terminal}
         />
       </SideMenuSection>
       <SideMenuSection title="Scheduled Maintenance">

@@ -40,8 +40,9 @@ import DomainService, {
 import EmailLogService, {
   Service as EmailLogServiceType,
 } from "CommonServer/Services/EmailLogService";
-import TelemetryIngestionKeyService, 
-  { Service as TelemetryIngestionKeyServiceType, } from "CommonServer/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyService, {
+  Service as TelemetryIngestionKeyServiceType,
+} from "CommonServer/Services/TelemetryIngestionKeyService";
 import EmailVerificationTokenService, {
   Service as EmailVerificationTokenServiceType,
 } from "CommonServer/Services/EmailVerificationTokenService";
@@ -90,7 +91,6 @@ import LabelService, {
 import LogService, {
   LogService as LogServiceType,
 } from "CommonServer/Services/LogService";
-
 
 import TelemetryAttributeService, {
   TelemetryAttributeService as TelemetryAttributeServiceType,

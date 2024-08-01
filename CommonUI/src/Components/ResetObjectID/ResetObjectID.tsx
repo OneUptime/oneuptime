@@ -69,7 +69,7 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         description={props.description}
         buttons={[
           {
-            title: `Reset ${tableColumnName}`,
+            title: `${props.title}`,
             buttonStyle: ButtonStyleType.NORMAL,
             onClick: () => {
               setShowModal(true);
