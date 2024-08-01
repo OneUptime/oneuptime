@@ -2,7 +2,6 @@ import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import TelemetryService from "Model/Models/TelemetryService";
@@ -92,13 +91,6 @@ const ServiceDelete: FunctionComponent<
         }}
       />
 
-      <ResetObjectID<TelemetryService>
-        modelType={TelemetryService}
-        fieldName={"telemetryServiceToken"}
-        title={"Reset Service Token"}
-        description={"Reset the service token to a new value."}
-        modelId={modelId}
-      />
     </Fragment>
   );
 };
