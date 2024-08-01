@@ -133,6 +133,8 @@ import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
 import UserTwoFactorAuth from "./UserTwoFactorAuth";
 
+import TelemetryIngestionKey from "./TelemetryIngestionKey";
+
 export default [
   User,
   Probe,
@@ -285,4 +287,6 @@ export default [
   ProbeOwnerUser,
 
   UserTwoFactorAuth,
+
+  TelemetryIngestionKey,
 ];

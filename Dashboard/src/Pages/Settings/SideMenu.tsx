@@ -140,6 +140,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.TextFile}
                 /> */}
       </SideMenuSection>
+      <SideMenuSection title="Telemetry & APM">
+        <SideMenuItem
+          link={{
+            title: "Ingestion Keys",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
+            ),
+          }}
+          icon={IconProp.Clock}
+        />
+      </SideMenuSection>
       <SideMenuSection title="Scheduled Maintenance">
         <SideMenuItem
           link={{

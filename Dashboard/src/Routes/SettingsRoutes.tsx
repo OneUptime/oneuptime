@@ -27,6 +27,19 @@ const SettingsApiKeyView: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Settings/APIKeyView");
 });
+
+const SettingsIngestionKeys: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/TelemetryIngestionKeys");
+});
+
+const SettingsIngestionKeyView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/TelemetryIngestionKeyView");
+});
+
 const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Labels");
@@ -478,6 +491,40 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsApiKeyView
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsIngestionKeys
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsIngestionKeyView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW
+                  ] as Route
+                }
               />
             </Suspense>
           }

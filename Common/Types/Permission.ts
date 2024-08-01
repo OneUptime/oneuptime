@@ -42,6 +42,11 @@ enum Permission {
   EditProjectApiKey = "EditProjectApiKey",
   EditProjectApiKeyPermissions = "EditProjectApiKeyPermissions",
 
+  CreateTelemetryIngestionKey = "CreateTelemetryIngestionKey",
+  DeleteTelemetryIngestionKey = "DeleteTelemetryIngestionKey",
+  ReadTelemetryIngestionKey = "ReadTelemetryIngestionKey",
+  EditTelemetryIngestionKey = "EditTelemetryIngestionKey",
+
   // Logs
   CreateTelemetryServiceLog = "CreateTelemetryServiceLog",
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
@@ -740,6 +745,39 @@ export class PermissionHelper {
         permission: Permission.ReadProjectApiKey,
         title: "Read API Key",
         description: "This permission can read api keys of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateTelemetryIngestionKey,
+        title: "Create Telemetry Ingestion Key",
+        description:
+          "This permission can create Telemetry Ingestion Keys of this project",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTelemetryIngestionKey,
+        title: "Delete Telemetry Ingestion Key",
+        description:
+          "This permission can delete Telemetry Ingestion Keys of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTelemetryIngestionKey,
+        title: "Edit Telemetry Ingestion Key",
+        description:
+          "This permission can edit Telemetry Ingestion Keys of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTelemetryIngestionKey,
+        title: "Read Telemetry Ingestion Key",
+        description:
+          "This permission can read Telemetry Ingestion Keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

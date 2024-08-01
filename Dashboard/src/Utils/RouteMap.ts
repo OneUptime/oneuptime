@@ -142,6 +142,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_CALL_LOGS]: "call-logs",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
+  [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_MONITORS_STATUS]: "monitors-status",
   [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: "monitor-custom-fields",
   [PageMap.SETTINGS_MONITOR_SECRETS]: "monitor-secrets",
@@ -1036,6 +1038,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_APIKEYS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_APIKEYS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]
     }`,
   ),
 
