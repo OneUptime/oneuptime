@@ -94,6 +94,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `deployment.replicaCount` | Number of replicas | `1` | |
 | `probe.<key>.name` | Probe name | `<key>` | |
 | `probe.<key>.description` | Probe description | `nil` | |
+| `probe.<key>.key` | Probe key. Please set this to long random string to secure your probes. | `nil` | |
 | `probe.<key>.monitoringWorkers` | Number of threads / parallel processes you need to monitor your resources | `3` | |
 | `probe.<key>.monitorFetchLimit` | Number of resources to be monitored in parallel | `10` | |
 | `probe.<key>.syntheticMonitorScriptTimeoutInMs` | Timeout for synthetic monitor script | `60000` | |
@@ -307,6 +308,7 @@ Please do the same for Redis and Clickhouse.
 - [ ] Please make sure you have a backups enabled for your PVCs. This is outside the scope of this chart. Please refer to your cloud provider's documentation on how to enable backups for PVCs.
 - [ ] Please make sure you have static passwords for your database passswords (for redis, clickhouse and postgres). You can refer to Bitnami documentation on how to set static passwords for these databases. 
 - [ ] Please set `oneuptimeSecret` and `encryptionSecret` to a long random string. You can use a password generator to generate these strings.
+- [ ] Please set `probe.<key>.key` to a long random string. This is used to secure your probes.
 - [ ] Please regularly update OneUptime. We release updates every day. We recommend you to update the software aleast once a week if you're running OneUptime production. 
 
 ## Releases 
