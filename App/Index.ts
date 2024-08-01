@@ -77,6 +77,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   }
 };
 
+// Call the initialization function and handle errors
 init().catch((err: Error) => {
   logger.error(err);
   logger.error("Exiting node process");
