@@ -29,7 +29,7 @@ export default class ServiceHandler {
       },
     );
 
-    // Render the page
+    // Render the page with the given parameters
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
