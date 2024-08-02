@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 Telemetry.init({
-  serviceName: "AdminDashboard",
+  serviceName: "admin-dashboard",
 });
 
 const root: any = ReactDOM.createRoot(
