@@ -10,7 +10,6 @@ import ColumnLength from "Common/Types/Database/ColumnLength";
 import ColumnType from "Common/Types/Database/ColumnType";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "Common/Types/Database/EnableDocumentation";
-import EnableWorkflow from "Common/Types/Database/EnableWorkflow";
 import SlugifyColumn from "Common/Types/Database/SlugifyColumn";
 import TableColumn from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
@@ -33,12 +32,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @SlugifyColumn("name", "slug")
 @Entity({
   name: "ApiKey",
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @TableAccessControl({
   create: [

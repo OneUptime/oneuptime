@@ -1,5 +1,5 @@
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -107,7 +107,9 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
+            ),
           );
         }}
       />

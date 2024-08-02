@@ -1,7 +1,7 @@
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -353,7 +353,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         modelType={ApiKey}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_APIKEYS] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+            ),
+          );
         }}
       />
     </Fragment>

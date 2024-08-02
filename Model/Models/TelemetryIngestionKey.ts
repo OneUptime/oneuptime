@@ -8,7 +8,6 @@ import ColumnLength from "Common/Types/Database/ColumnLength";
 import ColumnType from "Common/Types/Database/ColumnType";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "Common/Types/Database/EnableDocumentation";
-import EnableWorkflow from "Common/Types/Database/EnableWorkflow";
 import TableColumn from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import TableMetadata from "Common/Types/Database/TableMetadata";
@@ -23,12 +22,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/telemetry-ingestion-key"))
 @Entity({
   name: "TelemetryIngestionKey",
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @TableAccessControl({
   create: [

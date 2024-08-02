@@ -858,8 +858,16 @@ const getServiceNameFromAttributes: GetServiceNameFromAttributesFunction = (
   attributes: JSONArray,
 ): string => {
   for (const attribute of attributes) {
-    if (attribute["key"] === "service.name") {
-      return attribute["value"] as string;
+    if (
+      attribute["key"] === "service.name" &&
+      attribute["value"] &&
+      (attribute["value"] as JSONObject)["stringValue"]
+    ) {
+      if (
+        typeof (attribute["value"] as JSONObject)["stringValue"] === "string"
+      ) {
+        return (attribute["value"] as JSONObject)["stringValue"] as string;
+      }
     }
   }
 
