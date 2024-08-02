@@ -102,6 +102,7 @@ export default class Telemetry {
   }
 
   public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
+
     if (!this.sdk) {
       const headers: Dictionary<string> = this.getHeaders();
 
@@ -149,7 +150,7 @@ export default class Telemetry {
 
       logs.setGlobalLoggerProvider(loggerProvider);
 
-      this.logger = logs.getLogger("default");
+      
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {
@@ -189,10 +190,10 @@ export default class Telemetry {
 
   public static getLogger(): Logger {
     if (!this.logger) {
-      throw new Error("Logger not initialized");
+      this.logger = logs.getLogger("default");
     }
 
-    return this.logger!;
+    return this.logger;
   }
 
   public static getMeterProvider(): MeterProvider {
