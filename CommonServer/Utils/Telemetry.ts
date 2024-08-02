@@ -102,7 +102,6 @@ export default class Telemetry {
   }
 
   public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
-
     if (!this.sdk) {
       const headers: Dictionary<string> = this.getHeaders();
 
@@ -149,8 +148,6 @@ export default class Telemetry {
       }
 
       logs.setGlobalLoggerProvider(loggerProvider);
-
-      
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {

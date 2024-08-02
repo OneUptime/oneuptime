@@ -22,12 +22,11 @@ const APP_NAME: string = "app";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
-
     // Initialize telemetry
     Telemetry.init({
       serviceName: APP_NAME,
     });
-    
+
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
