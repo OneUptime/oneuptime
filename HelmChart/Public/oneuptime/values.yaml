@@ -148,6 +148,11 @@ internalSmtp:
 incidents:
   disableAutomaticCreation: false
 
+# If you would like to attach status page to custom domains use this setting.
+# For example, lets say you would like the status page to be hosted on status.yourcompany.com, then 
+# 1. Create a A record in your DNS provider with the name "oneuptime.yourcompany.com" and value to Public IP of the server oneuptime is deployed on.
+# 2. Set the statusPage.cnameRecord to "oneuptime.yourcompany.com"
+# 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
 statusPage: 
   cnameRecord: 
 

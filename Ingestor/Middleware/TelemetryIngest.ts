@@ -24,9 +24,16 @@ export default class TelemetryIngest {
     try {
       // check header.
 
-      const oneuptimeToken: string | undefined = req.headers[
+      let oneuptimeToken: string | undefined = req.headers[
         "x-oneuptime-token"
       ] as string | undefined;
+
+      // if x-oneuptime-service-token header is present then use that as token.
+      if (!oneuptimeToken) {
+        oneuptimeToken = req.headers["x-oneuptime-service-token"] as
+          | string
+          | undefined;
+      }
 
       if (!oneuptimeToken) {
         throw new BadRequestException("Missing header: x-oneuptime-token");

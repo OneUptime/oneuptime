@@ -16,6 +16,7 @@ import Response from "CommonServer/Utils/Response";
 import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
 import OTelIngestService from "../Service/OTelIngest";
 import ObjectID from "Common/Types/ObjectID";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export class FluentRequestMiddleware {
   public static async getProductType(
@@ -93,6 +94,21 @@ router.post(
         props: {
           isRoot: true,
         },
+      });
+
+      OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: {
+          [oneuptimeServiceName as string]: {
+            dataIngestedInGB: JSONFunctions.getSizeOfJSONinGB(req.body),
+            dataRententionInDays: telemetryService.dataRententionInDays,
+            serviceId: telemetryService.serviceId,
+            serviceName: oneuptimeServiceName as string,
+          },
+        },
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Logs,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
 
       return Response.sendEmptySuccessResponse(req, res);

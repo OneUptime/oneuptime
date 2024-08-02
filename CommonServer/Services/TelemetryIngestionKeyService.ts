@@ -13,7 +13,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    createBy.data.secretKey = ObjectID.generate();
+    if (!createBy.data.secretKey) {
+      createBy.data.secretKey = ObjectID.generate();
+    }
+
     return { createBy, carryForward: null };
   }
 }
