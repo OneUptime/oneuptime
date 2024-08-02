@@ -32,22 +32,24 @@ You can find the full list of supported sources [here](https://www.fluentd.org/d
 - **Step 1: Install Fluentd on your system** - You can install Fluentd using the instructions provided [here](https://docs.fluentd.org/installation)
 - **Step 2: Sign up for OneUptime account** -  You can sign up for a free account [here](https://oneuptime.com). Please note while the account is free, log ingestion is a paid feature. You can find more details about the pricing [here](https://oneuptime.com/pricing).
 - **Step 3: Create OneUptime Project** - Once you have the account, you can create a project from the OneUptime dashboard. If you need any help with creating a project or have any questions, please reach out to us at support@oneuptime.com
-- **Step 4: Create a OneUptime Telemetry Service on OneUptime Dashboard** 
+- **Step 4: Create Telemetry Ingestion Token** - Once you have created a OneUptime account, you can create a telemetry ingestion token to ingest logs, metrics and traces from your application.
 
-On the telemetry service page, click on "Create Telemetry Service" button.
+After you sign up to OneUptime and create a project. Click on "More" in the Navigation bar and click on "Project Settings".
 
-![Create Service](/docs/static/images/CreateService.png)
+On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token. 
 
-Once you create a telemetry service, click on "View Service" and you will be redirected to the telemetry service page.
+![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Click on View Service Token and copy the token. You will need this token to configure the telemetry service. **Please keep this token safe.**
+Once you created a token, click on "View" to view the token.
 
-![View Service](/docs/static/images/ViewServiceToken.png)
+![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
 
 ## Configuration
 
 You can use the following configuration to send the telemetry data to the OneUptime HTTP Source. You can add this configuration to the fluentd configuration file. The configuration file is usually located at `/etc/fluentd/fluent.conf` or `/etc/td-agent/td-agent.conf`. 
+
+You  need to replace the `YOUR_SERVICE_TOKEN` with the token you created in the previous step. You also need to replace the `YOUR_SERVICE_NAME` with the name of your service. name of the service can be any name you like. If the service does not exist in OneUptime, it will be created automatically.
 
 ```yaml
 # Match all patterns 

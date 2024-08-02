@@ -131,7 +131,11 @@ export default class Telemetry {
         });
       }
 
-      const loggerProvider: LoggerProvider = new LoggerProvider();
+      const loggerProvider: LoggerProvider = new LoggerProvider({
+        resource: this.getResource({
+          serviceName: data.serviceName,
+        }),
+      });
 
       if (this.getOltpLogsEndpoint() && hasHeaders) {
         const logExporter: OTLPLogExporter = new OTLPLogExporter({

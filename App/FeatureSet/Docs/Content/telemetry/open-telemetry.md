@@ -1,20 +1,18 @@
 # Integrate OpenTelemetry (logging, metrics and traces) with OneUptime. 
 
-### Step 1 - Create a OneUptime Telemetry Service. 
+### Step 1 - Create Telemetry Ingestion Token.
 
-Once you have created a OneUptime account, you can create a telemetry service by clicking on the "Add Service" button.
+Once you have created a OneUptime account, you can create a telemetry ingestion token to ingest logs, metrics and traces from your application.
 
-After you sign up to OneUptime and create a project. Click on more in the Navigation bar and click on "Telemetry".
+After you sign up to OneUptime and create a project. Click on "More" in the Navigation bar and click on "Project Settings".
 
-On the telemetry service page, click on "Create Telemetry Service" button.
+On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token. 
 
-![Create Service](/docs/static/images/CreateService.png)
+![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Once you create a telemetry service, click on "View Service" and you will be redirected to the telemetry service page.
+Once you created a token, click on "View" to view the token.
 
-Click on View Service Token and copy the token. You will need this token to configure the telemetry service. Please keep this token safe.
-
-![View Service](/docs/static/images/ViewServiceToken.png)
+![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
 
 ### Step 2 - Configure the telemetry service in your application.
@@ -42,9 +40,9 @@ Once you have configured the telemetry service in your application, you can inte
 
 | Environment Variable | Value |
 | --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=<YOUR_ONEUPTIME_SERVICE_TOKEN> |
+| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=YOUR_ONEUPTIME_SERVICE_TOKEN |
 | OTEL_EXPORTER_OTLP_ENDPOINT | https://otlp.oneuptime.com |
-| OTEL_SERVICE_NAME | <NAME_OF_YOUR_SERVICE> |
+| OTEL_SERVICE_NAME | NAME_OF_YOUR_SERVICE |
 
 
 **Example**
@@ -52,6 +50,7 @@ Once you have configured the telemetry service in your application, you can inte
 ```bash
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=9c8806e0-a4aa-11ee-be95-010d5967b068
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.oneuptime.com
+export OTEL_SERVICE_NAME=my-service
 ```
 
 If you're self-hosting oneuptime, this can be changed to your self hosted OpenTelemetry collector endpoint (eg: `http(s)://<your-oneuptime-host>/otlp`)
