@@ -15,13 +15,18 @@ import InfrastructureStatus from "CommonServer/Infrastructure/Status";
 import logger from "CommonServer/Utils/Logger";
 import Realtime from "CommonServer/Utils/Realtime";
 import App from "CommonServer/Utils/StartServer";
-import "CommonServer/Utils/Telemetry";
+import Telemetry from "CommonServer/Utils/Telemetry";
 import "ejs";
 
-process.env["SERVICE_NAME"] = "app";
+const APP_NAME: string = "app";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
@@ -33,7 +38,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Initialize the app with service name and status checks
     await App.init({
-      appName: process.env["SERVICE_NAME"] || "app",
+      appName: APP_NAME,
       statusOptions: {
         liveCheck: statusCheck,
         readyCheck: statusCheck,

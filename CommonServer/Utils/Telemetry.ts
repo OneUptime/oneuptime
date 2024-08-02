@@ -29,8 +29,6 @@ import Dictionary from "Common/Types/Dictionary";
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
-const serviceName: string = process.env["SERVICE_NAME"] || "oneuptime";
-
 export default class Telemetry {
   public static sdk: opentelemetry.NodeSDK | null = null;
   public static logger: Logger | null = null;
@@ -281,7 +279,3 @@ export default class Telemetry {
     return histogram;
   }
 }
-
-Telemetry.init({
-  serviceName: serviceName,
-});

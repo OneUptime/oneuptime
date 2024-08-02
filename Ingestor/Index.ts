@@ -15,6 +15,7 @@ import Express, { ExpressApplication } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Realtime from "CommonServer/Utils/Realtime";
 import App from "CommonServer/Utils/StartServer";
+import Telemetry from "CommonServer/Utils/Telemetry";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -39,6 +40,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         checkRedisStatus: true,
       });
     };
+
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
 
     // init the app
     await App.init({

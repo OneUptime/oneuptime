@@ -6,12 +6,18 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
 import logger from "CommonServer/Utils/Logger";
 import App from "CommonServer/Utils/StartServer";
+import Telemetry from "CommonServer/Utils/Telemetry";
 import "ejs";
 
 const APP_NAME: string = "probe";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     // init the app
     await App.init({
       appName: APP_NAME,

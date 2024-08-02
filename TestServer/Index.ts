@@ -4,6 +4,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Express, { ExpressApplication } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import App from "CommonServer/Utils/StartServer";
+import Telemetry from "CommonServer/Utils/Telemetry";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -15,6 +16,11 @@ app.use([`/${APP_NAME}`, "/"], SettingsAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     // init the app
     await App.init({
       appName: APP_NAME,
