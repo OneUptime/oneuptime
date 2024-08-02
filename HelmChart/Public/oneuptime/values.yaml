@@ -202,7 +202,7 @@ testServer:
 openTelemetryExporter:
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
-  headers: 
+  headers:
 
 containerSecurityContext:
 podSecurityContext:

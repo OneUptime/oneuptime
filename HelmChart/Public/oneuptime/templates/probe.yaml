@@ -47,7 +47,7 @@ spec:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $val.openTelemetryExporter.headers }}
+              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
               value: {{ $.Values.openTelemetryExporter.endpoint }}
             - name: ONEUPTIME_URL
