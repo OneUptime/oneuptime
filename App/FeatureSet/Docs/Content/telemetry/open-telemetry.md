@@ -42,13 +42,15 @@ Once you have configured the telemetry service in your application, you can inte
 
 | Environment Variable | Value |
 | --- | --- |
-| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-service-token=<YOUR_ONEUPTIME_SERVICE_TOKEN> |
+| OTEL_EXPORTER_OTLP_HEADERS | x-oneuptime-token=<YOUR_ONEUPTIME_SERVICE_TOKEN> |
 | OTEL_EXPORTER_OTLP_ENDPOINT | https://otlp.oneuptime.com |
+| OTEL_SERVICE_NAME | <NAME_OF_YOUR_SERVICE> |
+
 
 **Example**
 
 ```bash
-export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-service-token=9c8806e0-a4aa-11ee-be95-010d5967b068
+export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=9c8806e0-a4aa-11ee-be95-010d5967b068
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.oneuptime.com
 ```
 

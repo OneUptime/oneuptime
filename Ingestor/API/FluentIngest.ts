@@ -14,6 +14,8 @@ import Express, {
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
 import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
+import OTelIngestService from "../Service/OTelIngest";
+import ObjectID from "Common/Types/ObjectID";
 
 export class FluentRequestMiddleware {
   public static async getProductType(
@@ -50,11 +52,26 @@ router.post(
         JSONObject | string
       >;
 
+      let oneuptimeServiceName: string | string[] | undefined =
+        req.headers["x-oneuptime-service-name"];
+
+      if (!oneuptimeServiceName) {
+        oneuptimeServiceName = "Unknown Service";
+      }
+
+      const telemetryService: {
+        serviceId: ObjectID;
+        dataRententionInDays: number;
+      } = await OTelIngestService.telemetryServiceFromName({
+        serviceName: oneuptimeServiceName as string,
+        projectId: (req as TelemetryRequest).projectId,
+      });
+
       for (let logItem of logItems) {
         const dbLog: Log = new Log();
 
         dbLog.projectId = (req as TelemetryRequest).projectId;
-        dbLog.serviceId = (req as TelemetryRequest).serviceId;
+        dbLog.serviceId = telemetryService.serviceId;
         dbLog.severityNumber = 0;
         const currentTimeAndDate: Date = OneUptimeDate.getCurrentDate();
         dbLog.timeUnixNano = OneUptimeDate.toUnixNano(currentTimeAndDate);

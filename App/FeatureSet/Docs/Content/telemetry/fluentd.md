@@ -57,7 +57,7 @@ You can use the following configuration to send the telemetry data to the OneUpt
   endpoint https://oneuptime.com/fluentd/logs
   open_timeout 2
 
-  headers {"x-oneuptime-service-token":"<YOUR_SERVICE_TOKEN>"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
   content_type application/json
   json_array true
@@ -93,7 +93,7 @@ An example of full configuration file is shown below:
   endpoint https://oneuptime.com/fluentd/logs
   open_timeout 2
 
-  headers {"x-oneuptime-service-token":"<YOUR_SERVICE_TOKEN>"}
+  headers {"x-oneuptime-token":"YOUR_SERVICE_TOKEN", "x-oneuptime-service-name":"YOUR_SERVICE_NAME"}
 
   content_type application/json
   json_array true

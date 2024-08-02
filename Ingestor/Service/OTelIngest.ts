@@ -7,13 +7,110 @@ import GlobalCache from "CommonServer/Infrastructure/GlobalCache";
 import Metric, { AggregationTemporality } from "Model/AnalyticsModels/Metric";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "CommonServer/Services/TelemetryAttributeService";
+import Dictionary from "Common/Types/Dictionary";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
+import TelemetryUsageBillingService from "CommonServer/Services/TelemetryUsageBillingService";
+import logger from "CommonServer/Utils/Logger";
+import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
+import { DEFAULT_RETENTION_IN_DAYS } from "Model/Models/TelemetryUsageBilling";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",
   Delta = "AGGREGATION_TEMPORALITY_DELTA",
 }
 
+export interface TelemetryServiceDataIngested {
+  serviceName: string;
+  serviceId: ObjectID;
+  dataIngestedInGB: number;
+  dataRententionInDays: number;
+}
+
 export default class OTelIngestService {
+  public static async telemetryServiceFromName(data: {
+    serviceName: string;
+    projectId: ObjectID;
+  }): Promise<{
+    serviceId: ObjectID;
+    dataRententionInDays: number;
+  }> {
+    const service: TelemetryService | null =
+      await TelemetryServiceService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          name: data.serviceName,
+        },
+        select: {
+          _id: true,
+          retainTelemetryDataForDays: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!service) {
+      // create service
+
+      const newService: TelemetryService = new TelemetryService();
+      newService.projectId = data.projectId;
+      newService.name = data.serviceName;
+      newService.description = data.serviceName;
+      newService.retainTelemetryDataForDays = DEFAULT_RETENTION_IN_DAYS;
+
+      const createdService: TelemetryService =
+        await TelemetryServiceService.create({
+          data: newService,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return {
+        serviceId: createdService.id!,
+        dataRententionInDays: DEFAULT_RETENTION_IN_DAYS,
+      };
+    }
+
+    return {
+      serviceId: service.id!,
+      dataRententionInDays:
+        service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS,
+    };
+  }
+
+  public static async recordDataIngestedUsgaeBilling(data: {
+    services: Dictionary<TelemetryServiceDataIngested>;
+    projectId: ObjectID;
+    productType: ProductType;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      return;
+    }
+
+    for (const serviceName in data.services) {
+      const serviceData: TelemetryServiceDataIngested | undefined =
+        data.services[serviceName];
+
+      if (!serviceData) {
+        continue;
+      }
+
+      TelemetryUsageBillingService.updateUsageBilling({
+        projectId: data.projectId,
+        productType: data.productType,
+        dataIngestedInGB: serviceData.dataIngestedInGB || 0,
+        telemetryServiceId: serviceData.serviceId,
+        retentionInDays: serviceData.dataRententionInDays,
+      }).catch((err: Error) => {
+        logger.error("Failed to update usage billing for OTel");
+        logger.error(err);
+      });
+    }
+  }
+
   public static async indexAttributes(data: {
     attributes: string[];
     projectId: ObjectID;
