@@ -87,7 +87,7 @@ spec:
             - name: ONEUPTIME_HTTP_PORT
               value: {{ $.Values.port.nginxHttp | quote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers.nginx }}
+              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
               value: "7851" # Port for the nodejs server for live and ready status
           ports:

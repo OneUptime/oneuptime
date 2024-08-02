@@ -161,9 +161,6 @@ probes:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
-    # Feel free to leave this blank if you're not integrating this with OpenTelemetry Backend.
-    openTelemetryExporter: 
-      headers:
   # two: 
   #   name: "Probe 2"
   #   description: "Probe 2"
@@ -173,8 +170,6 @@ probes:
   #   replicaCount: 1
   #   syntheticMonitorScriptTimeoutInMs: 60000
   #   customCodeMonitorScriptTimeoutInMs: 60000
-  #   openTelemetryExporter:
-  #     headers:
 
 port: 
   app: 3002
@@ -200,17 +195,9 @@ testServer:
 
 
 openTelemetryExporter:
-  endpoint: 
-    server:
-    client:
+  endpoint:
+  # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
   headers: 
-    app: 
-    dashboard:
-    accounts:
-    statusPage:
-    adminDashboard:
-    ingestor:
-    nginx:
 
 containerSecurityContext:
 podSecurityContext:

@@ -1,5 +1,5 @@
 # OneUptime adminDashboard Deployment
-{{- $adminDashboardEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers.adminDashboard "PORT" $.Values.port.adminDashboard -}}
+{{- $adminDashboardEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers "PORT" $.Values.port.adminDashboard -}}
 {{- $adminDashboardPorts := dict "port" $.Values.port.adminDashboard -}}
 {{- $adminDashboardDeploymentArgs :=dict "IsUI" true  "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv -}}
 {{- include "oneuptime.deployment" $adminDashboardDeploymentArgs }}

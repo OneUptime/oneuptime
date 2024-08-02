@@ -89,7 +89,7 @@ Usage:
   value: {{ printf "false" | squote }}
 
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint.client }}
+  value: {{ $.Values.openTelemetryExporter.endpoint }}
 {{- end }}
 
 {{- define "oneuptime.env.oneuptimeSecret" }}
@@ -109,7 +109,7 @@ Usage:
   value: {{ printf "true" | squote }}
 
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint.server }}
+  value: {{ $.Values.openTelemetryExporter.endpoint }}
 
 - name: NOTIFICATION_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.onCreateUser }}

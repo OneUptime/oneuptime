@@ -2,8 +2,8 @@ extensions:
   headers_setter:
     headers:
       - action: upsert
-        key: x-oneuptime-service-token
-        from_context: x-oneuptime-service-token
+        key: x-oneuptime-token
+        from_context: x-oneuptime-token
 
 processors:
 

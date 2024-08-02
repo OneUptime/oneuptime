@@ -62,7 +62,7 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers.app }}
+              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
               value: {{ $.Values.port.app | quote }}
             - name: SMS_HIGH_RISK_COST_IN_CENTS
