@@ -34,6 +34,10 @@ spec:
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
       {{- end }}
