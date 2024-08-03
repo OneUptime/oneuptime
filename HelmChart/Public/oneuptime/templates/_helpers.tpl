@@ -145,19 +145,19 @@ Usage:
   {{- end }}
 - name: CLICKHOUSE_PASSWORD
   {{- if $.Values.clickhouse.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
   {{- else }}
   {{- if $.Values.externalClickhouse.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalClickhouse.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalClickhouse.existingSecret.name }}
         key: {{ $.Values.externalClickhouse.existingSecret.passwordKey }}
@@ -183,7 +183,7 @@ Usage:
   {{- end }}
 
 
-## REDIS SSL BLOCK 
+## REDIS SSL BLOCK
 {{- if $.Values.clickhouse.enabled }}
 # do nothing here.
 {{- else }}
@@ -191,7 +191,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.ca }}
 - name: CLICKHOUSE_TLS_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-ca
@@ -199,7 +199,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.cert }}
 - name: CLICKHOUSE_TLS_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-cert
@@ -207,7 +207,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.key }}
 - name: CLICKHOUSE_TLS_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-key
@@ -233,19 +233,19 @@ Usage:
   {{- end }}
 - name: REDIS_PASSWORD
   {{- if $.Values.redis.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "redis"  }}
         key: redis-password
   {{- else }}
   {{- if $.Values.externalRedis.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalRedis.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalRedis.existingSecret.name }}
         key: {{ $.Values.externalRedis.existingSecret.passwordKey }}
@@ -265,7 +265,7 @@ Usage:
   {{- end }}
 
 
-## REDIS SSL BLOCK 
+## REDIS SSL BLOCK
 {{- if $.Values.redis.enabled }}
 # do nothing here.
 {{- else }}
@@ -273,7 +273,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.ca }}
 - name: REDIS_TLS_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-ca
@@ -281,7 +281,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.cert }}
 - name: REDIS_TLS_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-cert
@@ -289,7 +289,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.key }}
 - name: REDIS_TLS_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-key
@@ -305,7 +305,7 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
-- name: DATABASE_PORT 
+- name: DATABASE_PORT
   {{- if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
@@ -317,27 +317,27 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
-- name: DATABASE_PASSWORD 
+- name: DATABASE_PASSWORD
   {{- if $.Values.postgresql.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
         key: postgres-password
   {{- else }}
   {{- if $.Values.externalPostgres.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalPostgres.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalPostgres.existingSecret.name }}
         key: {{ $.Values.externalPostgres.existingSecret.passwordKey }}
   {{- end }}
   {{- end }}
-- name: DATABASE_NAME 
+- name: DATABASE_NAME
   {{- if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
@@ -345,7 +345,7 @@ Usage:
   {{- end }}
 
 
-## DATABASE SSL BLOCK 
+## DATABASE SSL BLOCK
 {{- if $.Values.postgresql.enabled }}
 # do nothing here.
 {{- else }}
@@ -353,7 +353,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.ca }}
 - name: DATABASE_SSL_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-ca
@@ -361,7 +361,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.cert }}
 - name: DATABASE_SSL_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-cert
@@ -369,7 +369,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.key }}
 - name: DATABASE_SSL_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-key
@@ -378,7 +378,7 @@ Usage:
 {{- end }}
 {{- end }}
 
-## DATABASE SSL ENDS HERE 
+## DATABASE SSL ENDS HERE
 
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
@@ -479,6 +479,10 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
@@ -552,7 +556,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
-  labels: 
+  labels:
     appname: oneuptime
 spec:
   scaleTargetRef:
@@ -587,7 +591,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.Name  }}
-  labels: 
+  labels:
     appname: oneuptime
 spec:
   accessModes:

@@ -1,36 +1,36 @@
 global:
-  storageClass: 
+  storageClass:
   clusterDomain: &global-cluster-domain cluster.local
 
 
-# Please change this to the domain name / IP where OneUptime server is hosted on. 
+# Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
 httpProtocol: http
 
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
-oneuptimeSecret: 
-encryptionSecret: 
+oneuptimeSecret:
+encryptionSecret:
 
-# (Optional): You usually do not need to set this if you're self hosting. 
+# (Optional): You usually do not need to set this if you're self hosting.
 openTelemetryCollectorHost:
-fluentdHost: 
+fluentdHost:
 
-deployment: 
+deployment:
   # Default replica count for all deployments
   replicaCount: 1
   ingestor:
-    replicaCount: 
+    replicaCount:
 
-metalLb: 
+metalLb:
   enabled: false
-  ipAdddressPool: 
+  ipAdddressPool:
     enabled: false
-    addresses: 
+    addresses:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
-  service: 
-    loadBalancerIP: 
+  service:
+    loadBalancerIP:
     type: LoadBalancer
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
@@ -38,19 +38,19 @@ nginx:
 postgresql:
   enabled: true # Set this to false if you're using an external postgresql database.
   clusterDomain: *global-cluster-domain
-  auth: 
+  auth:
     username: oneuptime
     database: oneuptimedb
   architecture: standalone
   primary:
     service:
-      ports: 
+      ports:
          postgresql: "5432"
     terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
     persistence:
       size: 25Gi
   readReplicas:
-    terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5 
+    terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
     persistence:
       size: 25Gi
 
@@ -58,18 +58,18 @@ clickhouse:
   enabled: true
   clusterDomain: *global-cluster-domain
   service:
-    ports: 
+    ports:
       http: "8123"
   shards: 1
   replicaCount: 1
   terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
-  zookeeper: 
+  zookeeper:
     enabled: false
-  persistence: 
+  persistence:
     size: 25Gi
-  auth: 
+  auth:
     username: oneuptime
-  initdbScripts: 
+  initdbScripts:
     db-init.sql: |
       CREATE DATABASE oneuptime;
 
@@ -80,18 +80,18 @@ redis:
   auth:
     enabled: true
   master:
-    service: 
-      ports: 
+    service:
+      ports:
         redis: "6379"
     persistence:
-      enabled: false # We dont need redis persistence, because we dont do anything with it. 
+      enabled: false # We dont need redis persistence, because we dont do anything with it.
   replica:
     persistence:
       enabled: false # We dont need redis persistence, because we dont do anything with it.
   commonConfiguration: |-
    appendonly no
-   save "" 
-  
+   save ""
+
 
 image:
   registry: docker.io
@@ -99,6 +99,8 @@ image:
   pullPolicy: Always
   tag: release
   restartPolicy: Always
+# imagePullSecrets:
+#   - name: MyCustomSecretNameWithDockerCredentials
 
 autoscaling:
   enabled: false
@@ -109,36 +111,36 @@ autoscaling:
 
 nodeEnvironment: production
 
-billing: 
+billing:
   enabled: false
-  publicKey: 
-  privateKey: 
-  smsDefaultValueInCents: 
+  publicKey:
+  privateKey:
+  smsDefaultValueInCents:
   callDefaultValueInCentsPerMinute:
   smsHighRiskValueInCents:
-  callHighRiskValueInCentsPerMinute: 
+  callHighRiskValueInCentsPerMinute:
   allowedActiveMonitorCountInFreePlan: 10
 
-subscriptionPlan: 
-  basic: 
-  growth: 
-  scale: 
-  enterprise: 
+subscriptionPlan:
+  basic:
+  growth:
+  scale:
+  enterprise:
 
-analytics: 
+analytics:
   host:
-  key: 
+  key:
 
 internalSmtp:
   enabled: true
   incomingEmailDomain:
-  sendingDomain: 
-  dkimPrivateKey: 
-  dkimPublicKey: 
-  email: 
+  sendingDomain:
+  dkimPrivateKey:
+  dkimPublicKey:
+  email:
   name:
-  service: 
-    loadBalancerIP: 
+  service:
+    loadBalancerIP:
     # Change this to LoadBalancer if you want to receive emails from the internet. This could be useful for Incoming Email monitors.
     type: ClusterIP
     externalIPs:
@@ -149,15 +151,15 @@ incidents:
   disableAutomaticCreation: false
 
 # If you would like to attach status page to custom domains use this setting.
-# For example, lets say you would like the status page to be hosted on status.yourcompany.com, then 
+# For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
 # 1. Create a A record in your DNS provider with the name "oneuptime.yourcompany.com" and value to Public IP of the server oneuptime is deployed on.
 # 2. Set the statusPage.cnameRecord to "oneuptime.yourcompany.com"
 # 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
-statusPage: 
-  cnameRecord: 
+statusPage:
+  cnameRecord:
 
-probes: 
-  one: 
+probes:
+  one:
     name: "Probe"
     description: "Probe"
     monitoringWorkers: 3
@@ -166,7 +168,7 @@ probes:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
-  # two: 
+  # two:
   #   name: "Probe 2"
   #   description: "Probe 2"
   #   monitoringWorkers: 3
@@ -176,7 +178,7 @@ probes:
   #   syntheticMonitorScriptTimeoutInMs: 60000
   #   customCodeMonitorScriptTimeoutInMs: 60000
 
-port: 
+port:
   app: 3002
   ingestor: 3400
   testServer: 3800
@@ -195,7 +197,7 @@ port:
   isolatedVM: 4572
 
 
-testServer: 
+testServer:
   enabled: false
 
 
@@ -223,22 +225,22 @@ cronJobs:
     # Please do not enable this in producton. This is only for development purposes.
     enabled: false
     isUserRegistered: false
-    registeredUserEmail: 
+    registeredUserEmail:
     registeredUserPassword:
     # This is the URL of the status page you want to test. This is used to check if the status page is up and running.
     statusPageUrl:
-    failedWebhookUrl: 
-  
+    failedWebhookUrl:
 
-letsEncrypt: 
+
+letsEncrypt:
   # Generate a private key via openssl, encode it to base64
-  accountKey: 
+  accountKey:
   # Email address to register with letsencrypt for notifications
-  email: 
+  email:
 
-oneuptimeIngress: 
+oneuptimeIngress:
   enabled: false
-  annotations: 
+  annotations:
   # Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
   # If you dont have nginx ingress controller installed, please install it by going to https://kubernetes.github.io/ingress-nginx/deploy/
   className: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
@@ -247,12 +249,12 @@ oneuptimeIngress:
     # - "www.oneuptime.com" # Host 2
   tls:
     enabled: false
-    hosts: 
+    hosts:
       # - host: "oneuptime.com" # Host 1
       #   secretName: "oneuptime-tls
 
 
-script: 
+script:
   workflowScriptTimeoutInMs: 5000
 
 # extraTemplates -- Array of extra objects to deploy with the release. Strings
@@ -270,74 +272,74 @@ extraTemplates:
 
 # External Postgres Configuration
 # You need to set postgresql.enabled to false if you're using an external postgres database.
-externalPostgres: 
-  host: 
-  port: 
-  username: 
+externalPostgres:
+  host:
+  port:
+  username:
   password:
-  # If you're using an existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
-    name: 
+    name:
     # This is the key in the secret where the password is stored.
     passwordKey:
   database:
   ssl:
     enabled: false
     # If this is enabled, please set either "ca"
-    ca: 
+    ca:
     # (optional)
-    cert: 
+    cert:
     key:
 
 ## External Redis Configuration
 # You need to set redis.enabled to false if you're using an external redis database.
 
-externalRedis: 
-  host: 
-  port: 
+externalRedis:
+  host:
+  port:
   username:
   password:
-  # If you're using an existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
-    name: 
+    name:
     # This is the key in the secret where the password is stored.
-    passwordKey: 
-  database: 
+    passwordKey:
+  database:
   tls:
     enabled: false
     # If this is enabled, please set "ca" certificate.
     ca:
     # (optional)
-    cert: 
+    cert:
     key:
 
-  
+
 ## External Clickhouse Configuration
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.
 externalClickhouse:
-  host: 
+  host:
   ## If the host is https, set this to true. Otherwise, set it to false.
   isHostHttps: false
-  port: 
-  username: 
+  port:
+  username:
   password:
-  # If you're using an existing secret for the password, please use this instead of password. 
+  # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
-    name: 
+    name:
     # This is the key in the secret where the password is stored.
-    passwordKey: 
-  database: 
+    passwordKey:
+  database:
   tls:
     enabled: false
     # If this is enabled, please set either "ca"
-    ca: 
+    ca:
     # (optional)
-    cert: 
+    cert:
     key:
 
 
 # Notification webhooks when certain events happen in the system. (usually they are slack webhooks)
-notifications: 
-  webhooks: 
+notifications:
+  webhooks:
     # This is the webhook that will be called when a user is created or signs up.
-    onCreateUser: 
+    onCreateUser:
