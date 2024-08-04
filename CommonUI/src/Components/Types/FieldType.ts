@@ -11,6 +11,7 @@ enum FieldType {
   Number = "Number",
   Password = "Password",
   Dropdown = "Dropdown",
+  MultiSelectDropdown = "MultiSelectDropdown",
   Text = "Text",
   Email = "Email",
   Date = "Date",

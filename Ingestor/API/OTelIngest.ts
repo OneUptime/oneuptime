@@ -24,7 +24,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
+import Log, rity } from "Model/AnalyticsModels/Log";
 import Metric, { MetricPointType } from "Model/AnalyticsModels/Metric";
 import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
 import protobuf from "protobufjs";

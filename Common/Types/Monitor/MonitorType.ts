@@ -15,6 +15,11 @@ enum MonitorType {
   // These two monitor types are same but we are keeping them separate for now - this is for marketing purposes
   SyntheticMonitor = "Synthetic Monitor",
   CustomJavaScriptCode = "Custom JavaScript Code",
+
+  // Telemetry monitor types
+  Logs = "Logs",
+  Metrics = "Metrics",
+  Traces = "Traces",
 }
 
 export default MonitorType;
@@ -98,6 +103,23 @@ export class MonitorTypeHelper {
         title: "Custom JavaScript Code",
         description:
           "This monitor type lets you run custom JavaScript code on a schedule.",
+      },
+      {
+        monitorType: MonitorType.Logs,
+        title: "Logs",
+        description: "This monitor type lets you monitor logs from any source.",
+      },
+      {
+        monitorType: MonitorType.Metrics,
+        title: "Metrics",
+        description:
+          "This monitor type lets you monitor metrics from any source.",
+      },
+      {
+        monitorType: MonitorType.Traces,
+        title: "Traces",
+        description:
+          "This monitor type lets you monitor traces from any source.",
       },
     ];
 
