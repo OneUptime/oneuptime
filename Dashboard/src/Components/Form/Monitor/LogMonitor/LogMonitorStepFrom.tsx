@@ -84,7 +84,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               value: 86400,
             },
           ],
-          title: "Check Last X Seconds of Logs",
+          title: "Monitor Last X Time of Logs",
           isAdvancedFilter: true,
         },
         {

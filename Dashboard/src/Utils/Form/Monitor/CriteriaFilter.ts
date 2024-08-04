@@ -225,6 +225,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Logs) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.LogCount;
+      });
+    }
+
     return options;
   }
 
@@ -239,6 +245,17 @@ export default class CriteriaFilterUtil {
     }
 
     if (checkOn === CheckOn.ResponseTime || checkOn === CheckOn.ExecutionTime) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.LogCount) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||
@@ -467,6 +484,10 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ServerProcessPID) {
       return "1234";
+    }
+
+    if (checkOn === CheckOn.LogCount) {
+      return "1";
     }
 
     if (checkOn === CheckOn.ServerProcessCommand) {

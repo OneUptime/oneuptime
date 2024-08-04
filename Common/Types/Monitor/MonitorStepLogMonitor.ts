@@ -12,7 +12,6 @@ export default interface MonitorStepLogMonitor {
 }
 
 export class MonitorStepLogMonitorUtil {
-
   public static getDefault(): MonitorStepLogMonitor {
     return {
       attributes: {},

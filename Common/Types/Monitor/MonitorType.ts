@@ -181,6 +181,9 @@ export class MonitorTypeHelper {
       MonitorType.CustomJavaScriptCode,
       MonitorType.IncomingRequest,
       MonitorType.Server,
+      MonitorType.Logs,
+      MonitorType.Metrics,
+      MonitorType.Traces,
     ];
   }
 

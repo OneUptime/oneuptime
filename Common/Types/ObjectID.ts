@@ -49,6 +49,9 @@ export default class ObjectID extends DatabaseProperty {
 
   public static toJSONArray(ids: Array<ObjectID>): Array<JSONObject> {
     return ids.map((id: ObjectID) => {
+      if (typeof id === "string") {
+        id = new ObjectID(id);
+      }
       return id.toJSON();
     });
   }

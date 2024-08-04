@@ -10,7 +10,9 @@ import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 import MonitorCriteria from "./MonitorCriteria";
-import MonitorStepLogMonitor, { MonitorStepLogMonitorUtil } from "./MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "./MonitorStepLogMonitor";
 import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
@@ -194,6 +196,16 @@ export default class MonitorStep extends DatabaseProperty {
       return "Monitor Destination is required.";
     }
 
+    if (monitorType === MonitorType.Logs) {
+      if (!value.data.logMonitor) {
+        return "Log Monitor is required";
+      }
+
+      if (!value.data.logMonitor.lastXSecondsOfLogs) {
+        return "Monitor Last Minutes of Logs is required.";
+      }
+    }
+
     if (
       !value.data.customCode &&
       (monitorType === MonitorType.CustomJavaScriptCode ||
@@ -252,7 +264,9 @@ export default class MonitorStep extends DatabaseProperty {
           customCode: this.data.customCode || undefined,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
-          logMonitor: this.data.logMonitor ? MonitorStepLogMonitorUtil.toJSON(this.data.logMonitor) : undefined,
+          logMonitor: this.data.logMonitor
+            ? MonitorStepLogMonitorUtil.toJSON(this.data.logMonitor)
+            : undefined,
         },
       });
     }

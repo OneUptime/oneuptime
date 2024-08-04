@@ -34,6 +34,9 @@ export enum CheckOn {
 
   ScreenSizeType = "Screen Size",
   BrowserType = "Browser Type",
+
+  // Log monitors.
+  LogCount = "Log Count",
 }
 
 export interface ServerMonitorOptions {

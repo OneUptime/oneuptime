@@ -8,7 +8,9 @@ import Exception from "Common/Types/Exception/Exception";
 import IP from "Common/Types/IP/IP";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorStepLogMonitor, { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
@@ -367,29 +369,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             </div>
           )}
 
-          {props.monitorType === MonitorType.Logs && (
-            <div className="mt-5">
-              <FieldLabelElement
-                title={"Log Query"}
-                description={
-                  "Please select the subset of logs you want to monitor."
-                }
-                required={true}
-              />
-              <LogMonitorStepForm
-                monitorStepLogMonitor={monitorStep.data?.logMonitor || MonitorStepLogMonitorUtil.getDefault()}
-                onMonitorStepLogMonitorChanged={(
-                  value: MonitorStepLogMonitor,
-                ) => {
-                  monitorStep.setLogMonitor(value);
-                  setMonitorStep(MonitorStep.clone(monitorStep));
-                }}
-                attributeKeys={attributeKeys}
-                telemetryServices={telemetryServices}
-              />
-            </div>
-          )}
-
           {props.monitorType === MonitorType.API && (
             <div className="mt-5">
               <FieldLabelElement
@@ -522,6 +501,30 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             )}
 
           <HorizontalRule />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Logs && (
+        <div className="mt-5">
+          <FieldLabelElement
+            title={"Log Query"}
+            description={
+              "Please select the subset of logs you want to monitor."
+            }
+            required={true}
+          />
+          <LogMonitorStepForm
+            monitorStepLogMonitor={
+              monitorStep.data?.logMonitor ||
+              MonitorStepLogMonitorUtil.getDefault()
+            }
+            onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
+              monitorStep.setLogMonitor(value);
+              setMonitorStep(MonitorStep.clone(monitorStep));
+            }}
+            attributeKeys={attributeKeys}
+            telemetryServices={telemetryServices}
+          />
         </div>
       )}
 
