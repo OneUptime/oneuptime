@@ -48,7 +48,7 @@ llm:
 Run the following command to start the LLM Server:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 You can now access the LLM Server at `http://localhost:8547`. 

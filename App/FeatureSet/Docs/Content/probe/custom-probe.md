@@ -38,7 +38,7 @@ services:
 Then run the following command:
 
 ```
-docker-compose up -d
+docker compose up -d
 ```
 
 If you are self hosting OneUptime, you can change `ONEUPTIME_URL` to your custom self hosted instance.

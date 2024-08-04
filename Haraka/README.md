@@ -38,7 +38,7 @@ bash generate.sh
 cd ..
 ```
 
-`public` and `private` files should have been generated inside of `dkim` folder. Please also add DNS and env vars to docker-compose files. Values of that should be shown on the console.
+`public` and `private` files should have been generated inside of `dkim` folder. Please also add DNS and env vars to docker compose files. Values of that should be shown on the console.
 
 
 
