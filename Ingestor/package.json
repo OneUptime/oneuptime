@@ -19,7 +19,6 @@
     
         "CommonServer": "file:../CommonServer",
         "ejs": "^3.1.10",
-        "Model": "file:../Model",
         "protobufjs": "^7.3.2",
         "ts-node": "^10.9.1"
     },

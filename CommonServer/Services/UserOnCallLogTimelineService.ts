@@ -12,8 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
-import User from "Model/Models/User";
-import Model from "Model/Models/UserOnCallLogTimeline";
+import User from "Common/Models/DatabaseModels/User";
+import Model from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

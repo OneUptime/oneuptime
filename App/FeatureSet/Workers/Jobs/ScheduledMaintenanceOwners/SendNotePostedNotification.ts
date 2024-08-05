@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
@@ -15,10 +15,10 @@ import ScheduledMaintenancePublicNoteService from "CommonServer/Services/Schedul
 import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceInternalNote from "Model/Models/ScheduledMaintenanceInternalNote";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import User from "Model/Models/User";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",

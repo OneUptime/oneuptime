@@ -7,7 +7,7 @@ import BasicForm, {
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
   MutableRefObject,
   ReactElement,

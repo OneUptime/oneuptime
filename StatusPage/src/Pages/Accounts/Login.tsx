@@ -14,7 +14,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import Link from "CommonUI/src/Components/Link/Link";
 import { FILE_URL } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect } from "react";
 
 export interface ComponentProps {

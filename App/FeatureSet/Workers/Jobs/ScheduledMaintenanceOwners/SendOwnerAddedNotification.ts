@@ -14,10 +14,10 @@ import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintena
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceOwnerTeam from "Model/Models/ScheduledMaintenanceOwnerTeam";
-import ScheduledMaintenanceOwnerUser from "Model/Models/ScheduledMaintenanceOwnerUser";
-import User from "Model/Models/User";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",

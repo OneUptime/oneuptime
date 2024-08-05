@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -29,12 +29,12 @@ import EventItem, {
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import StatusPageResource from "Model/Models/StatusPageResource";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,

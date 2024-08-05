@@ -1,4 +1,4 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -25,8 +25,8 @@ import Express, {
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -8,7 +8,7 @@ import {
   NextFunction,
 } from "CommonServer/Utils/Express";
 import TelemetryIngestionKeyService from "CommonServer/Services/TelemetryIngestionKeyService";
-import TelemetryIngestionKey from "Model/Models/TelemetryIngestionKey";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID

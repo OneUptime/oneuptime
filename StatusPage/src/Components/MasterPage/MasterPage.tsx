@@ -9,7 +9,7 @@ import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -26,7 +26,7 @@ import MasterPage from "CommonUI/src/Components/MasterPage/MasterPage";
 import JSONWebToken from "CommonUI/src/Utils/JsonWebToken";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import File from "Model/Models/File";
+import File from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,

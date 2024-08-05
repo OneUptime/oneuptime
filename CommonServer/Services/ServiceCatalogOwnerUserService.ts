@@ -1,6 +1,6 @@
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DatabaseService from "./DatabaseService";
-import Model from "Model/Models/ServiceCatalogOwnerUser";
+import Model from "Common/Models/DatabaseModels/ServiceCatalogOwnerUser";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

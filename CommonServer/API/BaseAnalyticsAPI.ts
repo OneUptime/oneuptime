@@ -15,7 +15,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
-import AnalyticsDataModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsDataModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DEFAULT_LIMIT,

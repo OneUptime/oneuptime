@@ -17,13 +17,13 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
-import Monitor from "Model/Models/Monitor";
-import Model from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceOwnerTeam from "Model/Models/ScheduledMaintenanceOwnerTeam";
-import ScheduledMaintenanceOwnerUser from "Model/Models/ScheduledMaintenanceOwnerUser";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import User from "Model/Models/User";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Model from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

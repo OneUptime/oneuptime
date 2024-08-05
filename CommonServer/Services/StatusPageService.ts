@@ -25,12 +25,12 @@ import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Typeof from "Common/Types/Typeof";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageDomain from "Model/Models/StatusPageDomain";
-import StatusPageOwnerTeam from "Model/Models/StatusPageOwnerTeam";
-import StatusPageOwnerUser from "Model/Models/StatusPageOwnerUser";
-import User from "Model/Models/User";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
+import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
 import {
   AllowedStatusPageCountInFreePlan,
   IsBillingEnabled,
@@ -39,25 +39,25 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Recurring from "Common/Types/Events/Recurring";
 import Email from "Common/Types/Email";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { FileRoute } from "Common/ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource, {
   UptimePrecision,
-} from "Model/Models/StatusPageResource";
+} from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Dictionary from "Common/Types/Dictionary";
-import MonitorGroupResource from "Model/Models/MonitorGroupResource";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
 import IncidentService from "./IncidentService";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import UptimeUtil from "CommonProject/Utils/Uptime/UptimeUtil";
+import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 
 export interface StatusPageReportItem {
   resourceName: string;

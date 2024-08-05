@@ -15,7 +15,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectCallSMSConfig from "Model/Models/ProjectCallSMSConfig";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import React, {
   FunctionComponent,
   ReactElement,

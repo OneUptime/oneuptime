@@ -9,7 +9,7 @@ import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
 import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 RunCron(
   "ServerMonitor:CheckOnlineStatus",

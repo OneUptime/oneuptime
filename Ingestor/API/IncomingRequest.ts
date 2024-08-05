@@ -16,7 +16,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 const router: ExpressRouter = Express.getRouter();
 

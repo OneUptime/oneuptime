@@ -10,7 +10,7 @@ import Decimal from "Common/Types/Decimal";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
-import Model from "Model/Models/TelemetryUsageBilling";
+import Model from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

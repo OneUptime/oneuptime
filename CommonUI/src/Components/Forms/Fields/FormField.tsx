@@ -18,7 +18,7 @@ import FieldLabelElement from "../Fields/FieldLabel";
 import Field, { FormFieldStyleType } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
-import FileModel from "Common/Models/FileModel";
+import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CodeType from "Common/Types/Code/CodeType";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";

@@ -1,4 +1,4 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DatabaseProperty from "Common/Types/Database/DatabaseProperty";
 import { FindOptionsOrderProperty, FindOptionsOrderValue } from "typeorm";

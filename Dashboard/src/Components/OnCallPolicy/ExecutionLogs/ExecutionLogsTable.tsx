@@ -16,9 +16,9 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Query from "CommonUI/src/Utils/BaseDatabase/Query";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorGroup from "Model/Models/MonitorGroup";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 

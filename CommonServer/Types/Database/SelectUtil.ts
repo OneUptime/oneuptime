@@ -1,12 +1,14 @@
 import RelationSelect from "./RelationSelect";
 import Select from "./Select";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
 import Typeof from "Common/Types/Typeof";
 
 export default class SelectUtil {
   public static sanitizeSelect<TBaseModel extends BaseModel>(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,
   ): {
     select: Select<TBaseModel>;

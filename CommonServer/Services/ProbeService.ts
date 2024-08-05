@@ -1,15 +1,17 @@
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "Common/Types/ObjectID";
 import Version from "Common/Types/Version";
-import Model, { ProbeConnectionStatus } from "Model/Models/Probe";
-import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
+import Model, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
+import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
+import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
 import BadDataException from "Common/Types/Exception/BadDataException";

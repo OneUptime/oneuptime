@@ -1,7 +1,7 @@
 import CreateBy from "../../../Types/Database/CreateBy";
 import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
-import Project from "Model/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class ProjectTestService {
   public static generateRandomProject(userId?: ObjectID): CreateBy<Project> {

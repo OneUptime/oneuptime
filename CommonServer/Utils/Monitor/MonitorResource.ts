@@ -40,15 +40,16 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
-import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Monitor from "Model/Models/Monitor";
-import MonitorProbe from "Model/Models/MonitorProbe";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
+import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -1199,6 +1200,19 @@ export default class MonitorResourceUtil {
 
       if (serverMonitorResult) {
         return serverMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      // check server monitor
+      const logMonitorResult: string | null =
+        await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (logMonitorResult) {
+        return logMonitorResult;
       }
     }
 

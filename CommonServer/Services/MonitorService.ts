@@ -31,14 +31,16 @@ import MonitorType, {
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Typeof from "Common/Types/Typeof";
-import Model from "Model/Models/Monitor";
-import MonitorOwnerTeam from "Model/Models/MonitorOwnerTeam";
-import MonitorOwnerUser from "Model/Models/MonitorOwnerUser";
-import MonitorProbe from "Model/Models/MonitorProbe";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
-import User from "Model/Models/User";
+import Model from "Common/Models/DatabaseModels/Monitor";
+import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
+import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
+import User from "Common/Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";

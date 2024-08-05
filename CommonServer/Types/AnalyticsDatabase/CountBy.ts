@@ -1,6 +1,6 @@
 import GroupBy from "./GroupBy";
 import Query from "./Query";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "Common/Types/PositiveNumber";
 

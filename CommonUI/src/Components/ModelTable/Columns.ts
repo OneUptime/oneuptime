@@ -1,6 +1,6 @@
 import Column from "./Column";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
-import BaseModel from "Common/Models/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 type Columns<T extends BaseModel | AnalyticsBaseModel> = Array<Column<T>>;
 

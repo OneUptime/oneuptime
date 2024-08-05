@@ -11,8 +11,8 @@ import ProjectService from "CommonServer/Services/ProjectService";
 import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import User from "Model/Models/User";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",

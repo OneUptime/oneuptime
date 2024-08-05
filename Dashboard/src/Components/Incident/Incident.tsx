@@ -3,7 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Link from "CommonUI/src/Components/Link/Link";
-import Incident from "Model/Models/Incident";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -18,14 +18,14 @@ import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
 import DashboardNavigation from "../../../Utils/Navigation";
 import { FormType } from "CommonUI/src/Components/Forms/ModelForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import MonitorGroupResource from "Model/Models/MonitorGroupResource";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 
 const ServiceCatalogMonitors: FunctionComponent<
   PageComponentProps

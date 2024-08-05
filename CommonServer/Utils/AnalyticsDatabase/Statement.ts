@@ -1,6 +1,6 @@
 import { BaseQueryParams } from "@clickhouse/client";
 import { integer } from "@elastic/elasticsearch/lib/api/types";
-import { RecordValue } from "Common/AnalyticsModels/CommonModel";
+import { RecordValue } from "Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";

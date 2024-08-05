@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 

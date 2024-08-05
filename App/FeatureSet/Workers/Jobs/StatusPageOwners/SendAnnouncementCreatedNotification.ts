@@ -12,9 +12,9 @@ import StatusPageAnnouncementService from "CommonServer/Services/StatusPageAnnou
 import StatusPageService from "CommonServer/Services/StatusPageService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
-import User from "Model/Models/User";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",

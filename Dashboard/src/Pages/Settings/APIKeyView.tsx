@@ -19,10 +19,10 @@ import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import PermissionUtil from "CommonUI/src/Utils/Permission";
-import ApiKey from "Model/Models/ApiKey";
-import ApiKeyPermission from "Model/Models/ApiKeyPermission";
-import Label from "Model/Models/Label";
-import TeamPermission from "Model/Models/TeamPermission";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
+import Label from "Common/Models/DatabaseModels/Label";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import React, {
   Fragment,
   FunctionComponent,

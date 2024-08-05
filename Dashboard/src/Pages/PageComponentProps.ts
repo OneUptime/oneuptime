@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Project from "Model/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default interface ComponentProps {
   pageRoute: Route;

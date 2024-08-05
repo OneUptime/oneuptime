@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Dictionary from "Common/Types/Dictionary";
 
 export type SelectPropertyOptions = true | Dictionary<true>;

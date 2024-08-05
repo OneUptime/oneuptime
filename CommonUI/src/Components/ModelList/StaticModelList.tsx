@@ -1,7 +1,7 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import Typeof from "Common/Types/Typeof";
 import React, { ReactElement } from "react";

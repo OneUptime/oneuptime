@@ -8,7 +8,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import GlobalConfig from "Model/Models/GlobalConfig";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 
 // import ObjectID from 'Common/Types/ObjectID';
 

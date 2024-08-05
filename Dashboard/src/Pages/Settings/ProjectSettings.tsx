@@ -4,7 +4,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Model/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { BILLING_ENABLED } from "CommonUI/src/Config";
 

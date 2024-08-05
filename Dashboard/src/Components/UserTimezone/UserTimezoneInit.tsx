@@ -7,7 +7,7 @@ import API from "CommonUI/src/Utils/API/API";
 import { ToastType } from "CommonUI/src/Components/Toast/Toast";
 import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import UserModel from "Model/Models/User";
+import UserModel from "Common/Models/DatabaseModels/User";
 import useAsyncEffect from "use-async-effect";
 
 const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {

@@ -15,7 +15,6 @@
     "Common": "file:../Common",
     
     "CommonServer": "file:../CommonServer",
-    "Model": "file:../Model",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {

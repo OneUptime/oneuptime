@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import OnCallDutySchedule from "Model/Models/OnCallDutyPolicySchedule";
+import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 

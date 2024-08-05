@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import CrudApiEndpoint from "Common/Types/Database/CrudApiEndpoint";
 import TableMetaData from "Common/Types/Database/TableMetadata";

@@ -8,7 +8,7 @@ import ModelList from "CommonUI/src/Components/ModelList/ModelList";
 import Page from "CommonUI/src/Components/Page/Page";
 import { APP_API_URL, IDENTITY_URL } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectSSO from "Model/Models/ProjectSso";
+import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {

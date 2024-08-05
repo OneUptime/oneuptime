@@ -2,8 +2,8 @@ import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IncidentPublicNoteService from "CommonServer/Services/IncidentPublicNoteService";
 import ScheduledMaintenancePublicNoteService from "CommonServer/Services/ScheduledMaintenancePublicNoteService";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 
 export default class AddPostedAtToPublicNotes extends DataMigrationBase {
   public constructor() {

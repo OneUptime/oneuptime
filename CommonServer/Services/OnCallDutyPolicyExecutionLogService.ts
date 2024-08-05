@@ -5,8 +5,8 @@ import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
-import OnCallDutyPolicyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
-import Model from "Model/Models/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

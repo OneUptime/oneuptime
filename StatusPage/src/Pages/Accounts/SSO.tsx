@@ -12,7 +12,7 @@ import ModelList from "CommonUI/src/Components/ModelList/ModelList";
 import { FILE_URL } from "CommonUI/src/Config";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPageSSO from "Model/Models/StatusPageSso";
+import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, { FunctionComponent, useState } from "react";
 
 export interface ComponentProps {

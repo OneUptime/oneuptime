@@ -5,9 +5,9 @@ import ProjectService from "CommonServer/Services/ProjectService";
 import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "CommonServer/Services/ScheduledMaintenanceStateTimelineService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Project from "Model/Models/Project";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
+import Project from "Common/Models/DatabaseModels/Project";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 
 export default class AddEndDateToScheduledEventsStateTimeline extends DataMigrationBase {
   public constructor() {

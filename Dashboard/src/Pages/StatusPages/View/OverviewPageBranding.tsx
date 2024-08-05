@@ -9,9 +9,9 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

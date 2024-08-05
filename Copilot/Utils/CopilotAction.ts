@@ -1,5 +1,5 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
-import CopilotAction from "Model/Models/CopilotAction";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import { GetOneUptimeURL, GetRepositorySecretKey } from "../Config";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";

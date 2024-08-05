@@ -3,8 +3,8 @@ import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import LogService from "CommonServer/Services/LogService";
 import SpanService from "CommonServer/Services/SpanService";
-import Log from "Model/AnalyticsModels/Log";
-import Span from "Model/AnalyticsModels/Span";
+import Log from "Common/Models/AnalyticsModels/Log";
+import Span from "Common/Models/AnalyticsModels/Span";
 
 export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
   public constructor() {

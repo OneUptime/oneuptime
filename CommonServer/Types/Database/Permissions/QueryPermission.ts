@@ -2,7 +2,9 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -21,7 +23,7 @@ import Typeof from "Common/Types/Typeof";
 
 export default class QueryPermission {
   public static checkRelationQueryPermission<TBaseModel extends BaseModel>(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): void {
@@ -120,7 +122,7 @@ export default class QueryPermission {
   }
 
   public static checkQueryPermission<TBaseModel extends BaseModel>(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): void {

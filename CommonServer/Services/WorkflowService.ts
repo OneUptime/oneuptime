@@ -15,7 +15,7 @@ import {
   NodeType,
 } from "Common/Types/Workflow/Component";
 import API from "Common/Utils/API";
-import Model from "Model/Models/Workflow";
+import Model from "Common/Models/DatabaseModels/Workflow";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

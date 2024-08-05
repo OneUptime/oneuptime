@@ -14,11 +14,11 @@ import UserNotificationSettingService from "CommonServer/Services/UserNotificati
 import Select from "CommonServer/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
 import logger from "CommonServer/Utils/Logger";
-import Incident from "Model/Models/Incident";
-import IncidentState from "Model/Models/IncidentState";
-import Monitor from "Model/Models/Monitor";
-import Project from "Model/Models/Project";
-import User from "Model/Models/User";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",

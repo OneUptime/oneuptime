@@ -3,7 +3,7 @@ import ArrayUtil from "Common/Types/ArrayUtil";
 import { BrightColors } from "Common/Types/BrandColors";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 export default class AddTelemetryServiceColor extends DataMigrationBase {
   public constructor() {

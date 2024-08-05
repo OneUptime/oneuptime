@@ -1,6 +1,6 @@
 import Query from "../Query";
-import BaseModel from "Common/Models/BaseModel";
-import UserModel from "Common/Models/UserModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import UserModel from "Common/Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 

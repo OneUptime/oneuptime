@@ -26,9 +26,9 @@ import Components from "CommonServer/Types/Workflow/Components/Index";
 import { RunProps } from "CommonServer/Types/Workflow/Workflow";
 import logger from "CommonServer/Utils/Logger";
 import VMAPI from "CommonServer/Utils/VM/VMAPI";
-import Workflow from "Model/Models/Workflow";
-import WorkflowLog from "Model/Models/WorkflowLog";
-import WorkflowVariable from "Model/Models/WorkflowVariable";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 

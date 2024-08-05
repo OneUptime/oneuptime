@@ -4,7 +4,7 @@ import FiltersForm from "CommonUI/src/Components/Filters/FiltersForm";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Query from "CommonUI/src/Utils/BaseDatabase/Query";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -84,7 +84,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               value: 86400,
             },
           ],
-          title: "Monitor Last X Time of Logs",
+          title: "Monitor Logs for Last",
           isAdvancedFilter: true,
         },
         {
@@ -96,7 +96,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           isAdvancedFilter: true,
         },
         {
-          key: "telemetryServiceId",
+          key: "telemetryServiceIds",
           type: FieldType.MultiSelectDropdown,
           filterDropdownOptions: props.telemetryServices.map(
             (telemetryService: TelemetryService) => {

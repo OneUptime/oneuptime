@@ -19,9 +19,9 @@ import StatusPageSubscriberService from "CommonServer/Services/StatusPageSubscri
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
 import logger from "CommonServer/Utils/Logger";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 
 RunCron(
   "Announcement:SendNotificationToSubscribers",

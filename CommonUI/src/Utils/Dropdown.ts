@@ -1,5 +1,5 @@
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
 
