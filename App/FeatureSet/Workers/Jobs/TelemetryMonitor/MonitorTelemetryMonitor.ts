@@ -7,7 +7,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import MonitorResourceService from "CommonServer/Utils/Monitor/MonitorResource";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Monitor from "Model/Models/Monitor";
 import CronTab from "CommonServer/Utils/CronTab";
 
@@ -98,7 +98,7 @@ RunCron(
           onlyCheckForIncomingRequestReceivedAt: true,
         };
 
-        await MonitorResourceService.monitorResource(incomingRequest);
+        await MonitorResourceUtil.monitorResource(incomingRequest);
       } catch (error) {
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,

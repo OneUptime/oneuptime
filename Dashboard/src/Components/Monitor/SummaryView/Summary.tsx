@@ -1,11 +1,11 @@
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbePicker from "./ProbePicker";
 import SummaryInfo from "./SummaryInfo";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Card from "CommonUI/src/Components/Card/Card";
 import { MonitorStepProbeResponse } from "Model/Models/MonitorProbe";
 import Probe from "Model/Models/Probe";
@@ -14,7 +14,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 export interface ComponentProps {
   probeMonitors?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
-  serverMonitor?: ServerMonitor | undefined;
+  serverMonitor?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
 }
@@ -38,13 +38,13 @@ const Summary: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const probeResponses: Array<ProbeMonitor> = [];
+  const probeResponses: Array<ProbeMonitorResponse> = [];
 
   for (const probeResponse of props.probeMonitors || []) {
     for (const monitorStepId in probeResponse) {
-      const probeMonitor: ProbeMonitor = probeResponse[
+      const probeMonitor: ProbeMonitorResponse = probeResponse[
         monitorStepId
-      ] as ProbeMonitor;
+      ] as ProbeMonitorResponse;
       if (
         probeMonitor.probeId?.toString() ===
         selectedProbe?.id?.toString()

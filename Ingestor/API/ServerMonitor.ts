@@ -2,7 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import MonitorService from "CommonServer/Services/MonitorService";
@@ -12,7 +12,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "CommonServer/Utils/Express";
-import MonitorService from "CommonServer/Utils/Monitor/Monitor";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
 import Monitor from "Model/Models/Monitor";
 
@@ -92,7 +92,7 @@ router.post(
 
       // now process this request.
 
-      const serverMonitor: ServerMonitor =
+      const serverMonitorResponse: ServerMonitorResponse =
         JSONFunctions.deserialize(
           req.body["serverMonitor"] as JSONObject,
         ) as any;
@@ -109,7 +109,7 @@ router.post(
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceService.monitorResource(
+        await MonitorResourceUtil.monitorResource(
           serverMonitor,
         );
 

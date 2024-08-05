@@ -1,12 +1,12 @@
 import SyntheticMonitorItemView from "./SyntheticMonitorItemView";
-import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitor;
+  probeMonitor: ProbeMonitorResponse;
 }
 
 const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
@@ -21,7 +21,7 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const syntheticMonitors: Array<SyntheticMonitor> =
+  const syntheticMonitors: Array<SyntheticMonitorResponse> =
     props.probeMonitor.syntheticMonitor;
 
   return (
@@ -29,7 +29,7 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
       {syntheticMonitors &&
         syntheticMonitors.map(
           (
-            syntheticMonitor: SyntheticMonitor,
+            syntheticMonitor: SyntheticMonitorResponse,
             index: number,
           ) => {
             return (

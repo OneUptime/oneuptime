@@ -1,5 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
-import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
+import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Field from "CommonUI/src/Components/Detail/Field";
@@ -9,7 +9,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  customCodeMonitor: CustomCodeMonitor;
+  customCodeMonitor: CustomCodeMonitorResponse;
   moreDetailElement?: ReactElement;
   monitoredAt: Date;
 }
@@ -25,7 +25,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const customMonitor: CustomCodeMonitor =
+  const customMonitor: CustomCodeMonitorResponse =
     props.customCodeMonitor;
 
   let executionTimeInMS: number = customMonitor.executionTimeInMS || 0;
@@ -34,7 +34,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     executionTimeInMS = Math.round(executionTimeInMS);
   }
 
-  const fields: Array<Field<CustomCodeMonitor>> = [];
+  const fields: Array<Field<CustomCodeMonitorResponse>> = [];
 
   if (
     customMonitor.logMessages &&
@@ -95,7 +95,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
         {showMoreDetails && (
           <div>
-            <Detail<CustomCodeMonitor>
+            <Detail<CustomCodeMonitorResponse>
               id={"custom-code-monitor-summary-detail"}
               item={customMonitor}
               fields={fields}

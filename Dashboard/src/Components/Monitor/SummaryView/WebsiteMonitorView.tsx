@@ -1,5 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Field from "CommonUI/src/Components/Detail/Field";

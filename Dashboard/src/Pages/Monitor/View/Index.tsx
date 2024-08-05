@@ -21,7 +21,7 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import Card from "CommonUI/src/Components/Card/Card";

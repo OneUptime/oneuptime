@@ -3,12 +3,12 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import MonitorService from "CommonServer/Utils/Monitor/Monitor";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Monitor from "Model/Models/Monitor";
 
 RunCron(
@@ -48,7 +48,7 @@ RunCron(
           continue;
         }
 
-        const serverMonitor: ServerMonitor = {
+        const serverMonitorResponse: ServerMonitorResponse = {
           monitorId: monitor.id!,
           onlyCheckRequestReceivedAt: true,
           requestReceivedAt:
@@ -56,9 +56,10 @@ RunCron(
           hostname: "",
         };
 
-        await MonitorResourceService.monitorResource(
-          serverMonitor,
+        await MonitorResourceUtil.monitorResource(
+          serverMonitorResponse,
         );
+        
       } catch (error) {
         logger.error(
           `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,

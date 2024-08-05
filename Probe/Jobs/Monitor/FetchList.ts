@@ -9,7 +9,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";

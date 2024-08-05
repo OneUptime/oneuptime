@@ -6,7 +6,7 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import { DisableAutomaticIncidentCreation } from "CommonServer/EnvironmentConfig";
 import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
@@ -20,7 +20,7 @@ import Express, {
   NextFunction,
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
-import MonitorService from "CommonServer/Utils/Monitor/Monitor";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
 import GlobalConfig from "Model/Models/GlobalConfig";
 import Probe from "Model/Models/Probe";
@@ -232,7 +232,7 @@ router.post(
         });
       }
 
-      const probeResponse: ProbeMonitor = JSONFunctions.deserialize(
+      const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
         req.body["probeMonitor"],
       ) as any;
 
@@ -240,13 +240,13 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeMonitor not found"),
+          new BadDataException("ProbeMonitorResponse not found"),
         );
       }
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceService.monitorResource(probeResponse);
+        await MonitorResourceUtil.monitorResource(probeResponse);
 
       return Response.sendJsonObjectResponse(req, res, {
         probeApiIngestResponse: probeApiIngestResponse,

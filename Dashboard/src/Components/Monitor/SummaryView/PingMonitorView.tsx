@@ -1,10 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitor;
+  probeMonitor: ProbeMonitorResponse;
 }
 
 const PingMonitorView: FunctionComponent<ComponentProps> = (

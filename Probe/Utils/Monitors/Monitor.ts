@@ -23,7 +23,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
 import Port from "Common/Types/Port";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
 import LocalCache from "CommonServer/Infrastructure/LocalCache";

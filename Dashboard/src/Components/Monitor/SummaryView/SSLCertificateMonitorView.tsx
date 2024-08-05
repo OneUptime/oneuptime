@@ -1,13 +1,13 @@
 import OneUptimeDate from "Common/Types/Date";
-import SslMonitor from "Common/Types/Monitor/SSLMonitor/SslMonitor";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitor;
+  probeMonitor: ProbeMonitorResponse;
 }
 
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
@@ -19,7 +19,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const sslResponse: SslMonitor =
+  const sslResponse: SslMonitorResponse =
     props.probeMonitor.sslResponse;
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);

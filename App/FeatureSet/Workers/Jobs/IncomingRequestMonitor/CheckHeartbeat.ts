@@ -6,7 +6,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import logger from "CommonServer/Utils/Logger";
-import MonitorService from "CommonServer/Utils/Monitor/Monitor";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Monitor from "Model/Models/Monitor";
 
 RunCron(
@@ -67,7 +67,7 @@ RunCron(
           onlyCheckForIncomingRequestReceivedAt: true,
         };
 
-        await MonitorResourceService.monitorResource(incomingRequest);
+        await MonitorResourceUtil.monitorResource(incomingRequest);
       } catch (error) {
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,

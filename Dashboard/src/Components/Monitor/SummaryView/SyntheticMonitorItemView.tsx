@@ -1,12 +1,12 @@
 import CustomCodeMonitorSummaryView from "./CustomMonitorSummaryView";
 import SummaryScreenshotGroup from "./ScreenshotGroup";
-import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
+import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  syntheticMonitor: SyntheticMonitor;
+  syntheticMonitor: SyntheticMonitorResponse;
   monitoredAt: Date;
 }
 
@@ -19,7 +19,7 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const syntheticMonitor: SyntheticMonitor =
+  const syntheticMonitor: SyntheticMonitorResponse =
     props.syntheticMonitor;
 
   const getMoreDetails: GetReactElementFunction = (): ReactElement => {

@@ -1,6 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import { BasicDiskMetrics } from "Common/Types/Infrastructure/BasicMetrics";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Field from "CommonUI/src/Components/Detail/Field";
@@ -12,7 +12,7 @@ import MemoryUtil from "Common/Utils/Memory";
 import NumberUtil from "Common/Utils/Number";
 
 export interface ComponentProps {
-  serverMonitor: ServerMonitor;
+  serverMonitorResponse: ServerMonitorResponse;
 }
 
 const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
@@ -20,9 +20,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const fields: Array<Field<ServerMonitor>> = [];
+  const fields: Array<Field<ServerMonitorResponse>> = [];
 
-  if (props.serverMonitor?.processes) {
+  if (props.serverMonitorResponse?.processes) {
     fields.push({
       key: "processes",
       title: "Processes",
@@ -38,9 +38,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/2 shadow-none border-2 border-gray-100 "
           title="CPU % Used"
           value={
-            props.serverMonitor?.basicInfrastructureMetrics?.cpuMetrics?.percentUsed?.toString()
+            props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics?.percentUsed?.toString()
               ? NumberUtil.convertToTwoDecimalPlaces(
-                  props.serverMonitor.basicInfrastructureMetrics
+                  props.serverMonitorResponse.basicInfrastructureMetrics
                     .cpuMetrics.percentUsed,
                 ).toString()
               : "-"
@@ -50,7 +50,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/2 shadow-none border-2 border-gray-100 "
           title="CPU Cores"
           value={
-            props.serverMonitor?.basicInfrastructureMetrics?.cpuMetrics?.cores?.toString() ||
+            props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics?.cores?.toString() ||
             "-" ||
             "-"
           }
@@ -66,9 +66,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Total Memory (GB)"
           value={
-            props.serverMonitor?.basicInfrastructureMetrics?.memoryMetrics?.total?.toString()
+            props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.total?.toString()
               ? MemoryUtil.convertToGb(
-                  props.serverMonitor.basicInfrastructureMetrics
+                  props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.total,
                 ).toString()
               : "-"
@@ -78,9 +78,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Memory % Used"
           value={
-            props.serverMonitor?.basicInfrastructureMetrics?.memoryMetrics?.percentUsed?.toString()
+            props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.percentUsed?.toString()
               ? NumberUtil.convertToTwoDecimalPlaces(
-                  props.serverMonitor.basicInfrastructureMetrics
+                  props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.percentUsed,
                 ).toString()
               : "-"
@@ -90,9 +90,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Memory % Free"
           value={
-            props.serverMonitor?.basicInfrastructureMetrics?.memoryMetrics?.percentFree?.toString()
+            props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.percentFree?.toString()
               ? NumberUtil.convertToTwoDecimalPlaces(
-                  props.serverMonitor.basicInfrastructureMetrics
+                  props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.percentFree,
                 ).toString()
               : "-"
@@ -104,7 +104,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const getDiskMetrics: GetReactElementFunction = (): ReactElement => {
     const diskMetrics: Array<BasicDiskMetrics> | undefined =
-      props.serverMonitor?.basicInfrastructureMetrics?.diskMetrics;
+      props.serverMonitorResponse?.basicInfrastructureMetrics?.diskMetrics;
 
     if (!diskMetrics) {
       return <div></div>;
@@ -162,45 +162,45 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100 "
           title="Hostname"
-          value={props.serverMonitor?.hostname || "-"}
+          value={props.serverMonitorResponse?.hostname || "-"}
         />
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100 "
           title="Last Ping At"
           value={
-            props.serverMonitor?.requestReceivedAt
+            props.serverMonitorResponse?.requestReceivedAt
               ? OneUptimeDate.getDateAsLocalFormattedString(
-                  props.serverMonitor.requestReceivedAt,
+                  props.serverMonitorResponse.requestReceivedAt,
                 )
               : "-"
           }
         />
       </div>
 
-      {props.serverMonitor.failureCause && (
+      {props.serverMonitorResponse.failureCause && (
         <div className="flex space-x-3">
           <InfoCard
             className="w-full shadow-none border-2 border-gray-100 "
             title="Error"
-            value={props.serverMonitor.failureCause?.toString() || "-"}
+            value={props.serverMonitorResponse.failureCause?.toString() || "-"}
           />
         </div>
       )}
 
       {showMoreDetails && fields.length > 0 && (
         <div>
-          {props.serverMonitor?.basicInfrastructureMetrics
+          {props.serverMonitorResponse?.basicInfrastructureMetrics
             ?.cpuMetrics && getCpuMetrics()}
 
-          {props.serverMonitor?.basicInfrastructureMetrics
+          {props.serverMonitorResponse?.basicInfrastructureMetrics
             ?.memoryMetrics && getMemoryMetrics()}
 
-          {props.serverMonitor?.basicInfrastructureMetrics
+          {props.serverMonitorResponse?.basicInfrastructureMetrics
             ?.diskMetrics && getDiskMetrics()}
 
-          <Detail<ServerMonitor>
+          <Detail<ServerMonitorResponse>
             id={"website-monitor-summary-detail"}
-            item={props.serverMonitor}
+            item={props.serverMonitorResponse}
             fields={fields}
             showDetailsInNumberOfColumns={1}
           />
