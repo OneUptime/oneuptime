@@ -84,7 +84,7 @@ export default class FetchListAndProbe {
       );
 
       const probeMonitorPromises: Array<
-        Promise<Array<ProbeMonitor | null>>
+        Promise<Array<ProbeMonitorResponse | null>>
       > = []; // Array of promises to probe monitors
 
       for (const monitor of monitors) {
@@ -93,7 +93,7 @@ export default class FetchListAndProbe {
 
       // all settled
       // eslint-disable-next-line no-undef
-      const results: PromiseSettledResult<(ProbeMonitor | null)[]>[] =
+      const results: PromiseSettledResult<(ProbeMonitorResponse | null)[]>[] =
         await Promise.allSettled(probeMonitorPromises);
 
       let resultIndex: number = 0;

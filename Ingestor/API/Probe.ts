@@ -233,7 +233,7 @@ router.post(
       }
 
       const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-        req.body["probeMonitor"],
+        req.body["probeMonitorResponse"],
       ) as any;
 
       if (!probeResponse) {

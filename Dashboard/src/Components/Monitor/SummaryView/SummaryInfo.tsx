@@ -15,7 +15,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   monitorType: MonitorType;
-  probeMonitors?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
+  probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
 }
@@ -24,15 +24,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   type GetProbeableMonitorSummarysInfo = (
-    probeMonitor: ProbeMonitorResponse,
+    probeMonitorResponse: ProbeMonitorResponse,
     key: number,
   ) => ReactElement;
 
   const getProbableMonitorSummarysInfo: GetProbeableMonitorSummarysInfo = (
-    probeMonitor: ProbeMonitorResponse,
+    probeMonitorResponse: ProbeMonitorResponse,
     key: number,
   ): ReactElement => {
-    if (!probeMonitor) {
+    if (!probeMonitorResponse) {
       return (
         <ErrorMessage
           error={
@@ -49,7 +49,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <WebsiteMonitorSummaryView
           key={key}
-          probeMonitor={probeMonitor}
+          probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
@@ -62,7 +62,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <PingMonitorView
           key={key}
-          probeMonitor={probeMonitor}
+          probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
@@ -71,7 +71,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <SSLCertificateMonitorView
           key={key}
-          probeMonitor={probeMonitor}
+          probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
@@ -80,7 +80,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <SyntheticMonitorView
           key={key}
-          probeMonitor={probeMonitor}
+          probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
@@ -90,7 +90,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
   if (
     MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
-    (!props.probeMonitors || props.probeMonitors.length === 0)
+    (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
   ) {
     return (
       <ErrorMessage
@@ -116,10 +116,10 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {props.probeMonitors &&
-        props.probeMonitors.map(
-          (probeMonitor: ProbeMonitorResponse, index: number) => {
-            return getProbableMonitorSummarysInfo(probeMonitor, index);
+      {props.probeMonitorResponses &&
+        props.probeMonitorResponses.map(
+          (probeMonitorResponses: ProbeMonitorResponse, index: number) => {
+            return getProbableMonitorSummarysInfo(probeMonitorResponses, index);
           },
         )}
 

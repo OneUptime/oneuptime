@@ -4,14 +4,14 @@ import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitorResponse;
+  probeMonitorResponse: ProbeMonitorResponse;
 }
 
 const PingMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   let responseTimeInMs: number =
-    props.probeMonitor?.responseTimeInMs || 0;
+    props.probeMonitorResponse?.responseTimeInMs || 0;
 
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
@@ -24,9 +24,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           className="w-full shadow-none border-2 border-gray-100 "
           title="Hostname or IP address"
           value={
-            (props.probeMonitor.monitorDestination?.toString() || "") +
-              (props.probeMonitor.monitorDestinationPort?.toString()
-                ? `:${props.probeMonitor.monitorDestinationPort.toString()}`
+            (props.probeMonitorResponse.monitorDestination?.toString() || "") +
+              (props.probeMonitorResponse.monitorDestinationPort?.toString()
+                ? `:${props.probeMonitorResponse.monitorDestinationPort.toString()}`
                 : "") || "-"
           }
         />
@@ -35,7 +35,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Status"
-          value={props.probeMonitor.isOnline ? "Online" : "Offline"}
+          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
         />
 
         <InfoCard
@@ -47,9 +47,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Monitored At"
           value={
-            props.probeMonitor?.monitoredAt
+            props.probeMonitorResponse?.monitoredAt
               ? OneUptimeDate.getDateAsLocalFormattedString(
-                  props.probeMonitor.monitoredAt,
+                  props.probeMonitorResponse.monitoredAt,
                 )
               : "-"
           }

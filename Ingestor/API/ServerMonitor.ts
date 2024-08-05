@@ -94,10 +94,10 @@ router.post(
 
       const serverMonitorResponse: ServerMonitorResponse =
         JSONFunctions.deserialize(
-          req.body["serverMonitor"] as JSONObject,
+          req.body["serverMonitorResponse"] as JSONObject,
         ) as any;
 
-      if (!serverMonitor) {
+      if (!serverMonitorResponse) {
         throw new BadDataException("Invalid Server Monitor Response");
       }
 
@@ -105,12 +105,12 @@ router.post(
         throw new BadDataException("Monitor id not found");
       }
 
-      serverMonitor.monitorId = monitor.id;
+      serverMonitorResponse.monitorId = monitor.id;
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
         await MonitorResourceUtil.monitorResource(
-          serverMonitor,
+          serverMonitorResponse,
         );
 
       return Response.sendJsonObjectResponse(req, res, {

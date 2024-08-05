@@ -9,7 +9,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  customCodeMonitor: CustomCodeMonitorResponse;
+  customCodeMonitorResponse: CustomCodeMonitorResponse;
   moreDetailElement?: ReactElement;
   monitoredAt: Date;
 }
@@ -17,7 +17,7 @@ export interface ComponentProps {
 const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.customCodeMonitor) {
+  if (!props.customCodeMonitorResponse) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
@@ -25,10 +25,10 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const customMonitor: CustomCodeMonitorResponse =
-    props.customCodeMonitor;
+  const customCodeMonitorResponse: CustomCodeMonitorResponse =
+    props.customCodeMonitorResponse;
 
-  let executionTimeInMS: number = customMonitor.executionTimeInMS || 0;
+  let executionTimeInMS: number = customCodeMonitorResponse.executionTimeInMS || 0;
 
   if (executionTimeInMS > 0) {
     executionTimeInMS = Math.round(executionTimeInMS);
@@ -37,8 +37,8 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const fields: Array<Field<CustomCodeMonitorResponse>> = [];
 
   if (
-    customMonitor.logMessages &&
-    customMonitor.logMessages.length > 0
+    customCodeMonitorResponse.logMessages &&
+    customCodeMonitorResponse.logMessages.length > 0
   ) {
     fields.push({
       key: "logMessages",
@@ -48,7 +48,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitor.result) {
+  if (customCodeMonitorResponse.result) {
     fields.push({
       key: "result",
       title: "Result",
@@ -57,7 +57,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitor.scriptError) {
+  if (customCodeMonitorResponse.scriptError) {
     fields.push({
       key: "scriptError",
       title: "Script Error",
@@ -79,7 +79,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <InfoCard
             className="w-1/3 shadow-none border-2 border-gray-100 "
             title="Error"
-            value={customMonitor.scriptError ? "Yes" : "No"}
+            value={customCodeMonitorResponse.scriptError ? "Yes" : "No"}
           />
 
           <InfoCard
@@ -97,7 +97,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <div>
             <Detail<CustomCodeMonitorResponse>
               id={"custom-code-monitor-summary-detail"}
-              item={customMonitor}
+              item={customCodeMonitorResponse}
               fields={fields}
               showDetailsInNumberOfColumns={1}
             />

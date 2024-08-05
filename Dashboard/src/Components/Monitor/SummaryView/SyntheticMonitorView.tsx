@@ -6,15 +6,15 @@ import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRul
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitorResponse;
+  probeMonitorResponse: ProbeMonitorResponse;
 }
 
 const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (
-    !props.probeMonitor ||
-    !props.probeMonitor.syntheticMonitor
+    !props.probeMonitorResponse ||
+    !props.probeMonitorResponse.syntheticMonitorResponse
   ) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
@@ -22,22 +22,22 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
   }
 
   const syntheticMonitors: Array<SyntheticMonitorResponse> =
-    props.probeMonitor.syntheticMonitor;
+    props.probeMonitorResponse.syntheticMonitorResponse;
 
   return (
     <div>
       {syntheticMonitors &&
         syntheticMonitors.map(
           (
-            syntheticMonitor: SyntheticMonitorResponse,
+            syntheticMonitorResponse: SyntheticMonitorResponse,
             index: number,
           ) => {
             return (
               <div key={index}>
                 <SyntheticMonitorItemView
                   key={index}
-                  syntheticMonitor={syntheticMonitor}
-                  monitoredAt={props.probeMonitor.monitoredAt}
+                  syntheticMonitorResponse={syntheticMonitorResponse}
+                  monitoredAt={props.probeMonitorResponse.monitoredAt}
                 />
                 {index !== syntheticMonitors.length - 1 && (
                   <HorizontalRule />

@@ -26,7 +26,7 @@ import {
   CriteriaFilter,
   FilterCondition,
 } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -35,7 +35,7 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
@@ -50,7 +50,7 @@ import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
 
-export default class MonitorResourceService {
+export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
@@ -196,15 +196,15 @@ export default class MonitorResourceService {
 
     if (
       monitor.monitorType === MonitorType.Server &&
-      (dataToProcess as ServerMonitor).requestReceivedAt
+      (dataToProcess as ServerMonitorResponse).requestReceivedAt
     ) {
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
           serverMonitorRequestReceivedAt: (
-            dataToProcess as ServerMonitor
+            dataToProcess as ServerMonitorResponse
           ).requestReceivedAt!,
-          serverMonitorResponse: dataToProcess as ServerMonitor, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
+          serverMonitorResponse: dataToProcess as ServerMonitorResponse, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
         },
         props: {
           isRoot: true,
@@ -313,7 +313,7 @@ export default class MonitorResourceService {
 
     // now process probe response monitors
 
-    response = await MonitorResourceService.processMonitorStep({
+    response = await MonitorResourceUtil.processMonitorStep({
       dataToProcess: dataToProcess,
       monitorStep: monitorStep,
       monitor: monitor,
@@ -400,16 +400,16 @@ export default class MonitorResourceService {
     const itemsToSave: Array<MonitorMetricsByMinute> = [];
 
     if (
-      (data.dataToProcess as ServerMonitor).basicInfrastructureMetrics
+      (data.dataToProcess as ServerMonitorResponse).basicInfrastructureMetrics
     ) {
       // store cpu, memory, disk metrics.
 
-      if ((data.dataToProcess as ServerMonitor).requestReceivedAt) {
+      if ((data.dataToProcess as ServerMonitorResponse).requestReceivedAt) {
         let isOnline: boolean = true;
 
         const differenceInMinutes: number =
           OneUptimeDate.getDifferenceInMinutes(
-            (data.dataToProcess as ServerMonitor).requestReceivedAt,
+            (data.dataToProcess as ServerMonitorResponse).requestReceivedAt,
             OneUptimeDate.getCurrentDate(),
           );
 
@@ -429,7 +429,7 @@ export default class MonitorResourceService {
       }
 
       const basicMetrics: BasicInfrastructureMetrics | undefined = (
-        data.dataToProcess as ServerMonitor
+        data.dataToProcess as ServerMonitorResponse
       ).basicInfrastructureMetrics;
 
       if (!basicMetrics) {
@@ -533,10 +533,10 @@ export default class MonitorResourceService {
       itemsToSave.push(monitorMetricsByMinute);
     }
 
-    if ((data.dataToProcess as ProbeMonitorResponse).syntheticMonitor) {
+    if ((data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse) {
       for (const syntheticMonitor of (
         data.dataToProcess as ProbeMonitorResponse
-      ).syntheticMonitor || []) {
+      ).syntheticMonitorResponse || []) {
         const monitorMetricsByMinute: MonitorMetricsByMinute =
           new MonitorMetricsByMinute();
         monitorMetricsByMinute.monitorId = data.monitorId;
@@ -557,11 +557,11 @@ export default class MonitorResourceService {
     }
 
     if (
-      (data.dataToProcess as ProbeMonitorResponse).customCodeMonitor
+      (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
     ) {
-      const customCodeMonitor: CustomCodeMonitor = (
+      const customCodeMonitor: CustomCodeMonitorResponse = (
         data.dataToProcess as ProbeMonitorResponse
-      ).customCodeMonitor!;
+      ).customCodeMonitorResponse!;
 
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
@@ -620,7 +620,7 @@ export default class MonitorResourceService {
     // check if should close the incident.
 
     for (const openIncident of openIncidents) {
-      const shouldClose: boolean = MonitorResourceService.shouldCloseIncident({
+      const shouldClose: boolean = MonitorResourceUtil.shouldCloseIncident({
         openIncident,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary:
           input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
@@ -629,7 +629,7 @@ export default class MonitorResourceService {
 
       if (shouldClose) {
         // then resolve incident.
-        await MonitorResourceService.resolveOpenIncident({
+        await MonitorResourceUtil.resolveOpenIncident({
           openIncident: openIncident,
           rootCause: input.rootCause,
           dataToProcess: input.dataToProcess,
@@ -911,7 +911,7 @@ export default class MonitorResourceService {
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       const rootCause: string | null =
-        await MonitorResourceService.processMonitorCriteiaInstance({
+        await MonitorResourceUtil.processMonitorCriteiaInstance({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,
@@ -956,7 +956,7 @@ export default class MonitorResourceService {
     // process monitor criteria instance here.
 
     const rootCause: string | null =
-      await MonitorResourceService.isMonitorInstanceCriteriaFiltersMet({
+      await MonitorResourceUtil.isMonitorInstanceCriteriaFiltersMet({
         dataToProcess: input.dataToProcess,
         monitorStep: input.monitorStep,
         monitor: input.monitor,
@@ -984,7 +984,7 @@ export default class MonitorResourceService {
 
     for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
       const rootCause: string | null =
-        await MonitorResourceService.isMonitorInstanceCriteriaFilterMet({
+        await MonitorResourceUtil.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,
@@ -1129,12 +1129,12 @@ export default class MonitorResourceService {
 
     if (
       input.monitor.monitorType === MonitorType.CustomJavaScriptCode &&
-      (input.dataToProcess as ProbeMonitorResponse).customCodeMonitor
+      (input.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
     ) {
       const criteriaResult: string | null =
         await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          Monitor: (input.dataToProcess as ProbeMonitorResponse)
-            .customCodeMonitor!,
+          monitorResponse: (input.dataToProcess as ProbeMonitorResponse)
+            .customCodeMonitorResponse!,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -1145,13 +1145,13 @@ export default class MonitorResourceService {
 
     if (
       input.monitor.monitorType === MonitorType.SyntheticMonitor &&
-      (input.dataToProcess as ProbeMonitorResponse).syntheticMonitor
+      (input.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse
     ) {
       const criteriaResult: string | null =
         await SyntheticMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          Monitor:
+          monitorResponse:
             (input.dataToProcess as ProbeMonitorResponse)
-              .syntheticMonitor || [],
+              .syntheticMonitorResponse || [],
           criteriaFilter: input.criteriaFilter,
         });
 

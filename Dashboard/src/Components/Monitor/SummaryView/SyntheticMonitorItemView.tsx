@@ -6,27 +6,27 @@ import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  syntheticMonitor: SyntheticMonitorResponse;
+  syntheticMonitorResponse: SyntheticMonitorResponse;
   monitoredAt: Date;
 }
 
 const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.syntheticMonitor) {
+  if (!props.syntheticMonitorResponse) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 
-  const syntheticMonitor: SyntheticMonitorResponse =
-    props.syntheticMonitor;
+  const syntheticMonitorResponse: SyntheticMonitorResponse =
+    props.syntheticMonitorResponse;
 
   const getMoreDetails: GetReactElementFunction = (): ReactElement => {
     return (
       <div>
         <SummaryScreenshotGroup
-          screenshots={props.syntheticMonitor.screenshots || {}}
+          screenshots={props.syntheticMonitorResponse.screenshots || {}}
         />
       </div>
     );
@@ -35,11 +35,11 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <div className="mb-3">
-        {props.syntheticMonitor.browserType} -{" "}
-        {props.syntheticMonitor.screenSizeType}
+        {props.syntheticMonitorResponse.browserType} -{" "}
+        {props.syntheticMonitorResponse.screenSizeType}
       </div>
       <CustomCodeMonitorSummaryView
-        customCodeMonitor={syntheticMonitor}
+        customCodeMonitorResponse={syntheticMonitorResponse}
         monitoredAt={props.monitoredAt}
         moreDetailElement={getMoreDetails()}
       />

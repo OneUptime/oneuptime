@@ -12,9 +12,9 @@ import Probe from "Model/Models/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
-  probeMonitors?: Array<MonitorStepProbeResponse> | undefined;
+  probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
-  serverMonitor?: ServerMonitorResponse | undefined;
+  serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
 }
@@ -40,16 +40,16 @@ const Summary: FunctionComponent<ComponentProps> = (
 
   const probeResponses: Array<ProbeMonitorResponse> = [];
 
-  for (const probeResponse of props.probeMonitors || []) {
+  for (const probeResponse of props.probeMonitorResponses || []) {
     for (const monitorStepId in probeResponse) {
-      const probeMonitor: ProbeMonitorResponse = probeResponse[
+      const probeMonitorResponse: ProbeMonitorResponse = probeResponse[
         monitorStepId
       ] as ProbeMonitorResponse;
       if (
-        probeMonitor.probeId?.toString() ===
+        probeMonitorResponse.probeId?.toString() ===
         selectedProbe?.id?.toString()
       ) {
-        probeResponses.push(probeMonitor);
+        probeResponses.push(probeMonitorResponse);
       }
     }
   }
@@ -78,9 +78,9 @@ const Summary: FunctionComponent<ComponentProps> = (
       <div>
         <SummaryInfo
           monitorType={props.monitorType}
-          probeMonitors={probeResponses}
+          probeMonitorResponses={probeResponses}
           incomingMonitorRequest={props.incomingMonitorRequest}
-          serverMonitor={props.serverMonitor}
+          serverMonitorResponse={props.serverMonitorResponse}
         />
       </div>
     </Card>

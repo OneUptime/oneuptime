@@ -9,7 +9,7 @@ import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMoni
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 
-export default interface ProbeMonitor {
+export default interface ProbeMonitorResponse {
   isOnline?: boolean | undefined;
   monitorDestination?: URL | IP | Hostname | undefined;
   monitorDestinationPort?: Port | undefined;
@@ -22,7 +22,7 @@ export default interface ProbeMonitor {
   probeId: ObjectID;
   failureCause: string;
   sslResponse?: SslMonitorResponse| undefined;
-  syntheticMonitor?: Array<SyntheticMonitorResponse> | undefined;
-  customCodeMonitor?: CustomCodeMonitorResponse | undefined;
+  syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
+  customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
   monitoredAt: Date;
 }

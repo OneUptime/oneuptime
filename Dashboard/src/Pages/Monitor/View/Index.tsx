@@ -104,8 +104,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     IncomingMonitorRequest | undefined
   >(undefined);
 
-  const [serverMonitor, setServerMonitor] = useState<
-    ServerMonitor | undefined
+  const [serverMonitorResponse, setServerMonitorResponse] = useState<
+    ServerMonitorResponse | undefined
   >(undefined);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
@@ -181,7 +181,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           serverMonitorRequestReceivedAt: true,
           incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
-          serverMonitor: true,
+          serverMonitorResponse: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
         },
@@ -193,8 +193,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setIncomingMonitorRequest(item.incomingMonitorRequest);
       }
 
-      if (item?.serverMonitor) {
-        setServerMonitor(item.serverMonitor);
+      if (item?.serverMonitorResponse) {
+        setServerMonitorResponse(item.serverMonitorResponse);
       }
 
       const monitorStatuses: ListResult<MonitorStatus> = await ModelAPI.getList(
@@ -604,8 +604,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         monitorType={monitorType!}
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
-        probeMonitors={probeResponses}
-        serverMonitor={serverMonitor}
+        probeMonitorResponses={probeResponses}
+        serverMonitorResponse={serverMonitorResponse}
       />
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}

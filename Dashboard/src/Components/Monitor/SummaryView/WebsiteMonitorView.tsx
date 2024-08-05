@@ -8,7 +8,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitor;
+  probeMonitorResponse: ProbeMonitorResponse;
 }
 
 const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
@@ -17,15 +17,15 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   let responseTimeInMs: number =
-    props.probeMonitor?.responseTimeInMs || 0;
+    props.probeMonitorResponse?.responseTimeInMs || 0;
 
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
   }
 
-  const fields: Array<Field<ProbeMonitor>> = [];
+  const fields: Array<Field<ProbeMonitorResponse>> = [];
 
-  if (props.probeMonitor?.responseHeaders) {
+  if (props.probeMonitorResponse?.responseHeaders) {
     fields.push({
       key: "responseHeaders",
       title: "Response Headers",
@@ -34,7 +34,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (props.probeMonitor?.responseBody) {
+  if (props.probeMonitorResponse?.responseBody) {
     fields.push({
       key: "responseBody",
       title: "Response Body",
@@ -50,7 +50,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-full shadow-none border-2 border-gray-100 "
           title="URL"
           value={
-            props.probeMonitor.monitorDestination?.toString() || "-"
+            props.probeMonitorResponse.monitorDestination?.toString() || "-"
           }
         />
       </div>
@@ -58,7 +58,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Response Staus Code"
-          value={props.probeMonitor?.responseCode?.toString() || "-"}
+          value={props.probeMonitorResponse?.responseCode?.toString() || "-"}
         />
         <InfoCard
           className="w-1/3 shadow-none border-2 border-gray-100 "
@@ -69,30 +69,30 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Monitored At"
           value={
-            props.probeMonitor?.monitoredAt
+            props.probeMonitorResponse?.monitoredAt
               ? OneUptimeDate.getDateAsLocalFormattedString(
-                  props.probeMonitor.monitoredAt,
+                  props.probeMonitorResponse.monitoredAt,
                 )
               : "-"
           }
         />
       </div>
 
-      {props.probeMonitor.failureCause && (
+      {props.probeMonitorResponse.failureCause && (
         <div className="flex space-x-3">
           <InfoCard
             className="w-full shadow-none border-2 border-gray-100 "
             title="Error"
-            value={props.probeMonitor.failureCause?.toString() || "-"}
+            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
           />
         </div>
       )}
 
       {showMoreDetails && fields.length > 0 && (
         <div>
-          <Detail<ProbeMonitor>
+          <Detail<ProbeMonitorResponse>
             id={"website-monitor-summary-detail"}
-            item={props.probeMonitor}
+            item={props.probeMonitorResponse}
             fields={fields}
             showDetailsInNumberOfColumns={1}
           />

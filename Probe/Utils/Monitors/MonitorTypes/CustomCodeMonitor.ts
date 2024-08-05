@@ -1,6 +1,6 @@
 import { PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
-import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
+import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "CommonServer/Utils/Logger";
 import VMRunner from "CommonServer/Utils/VM/VMRunner";
@@ -21,7 +21,7 @@ export default class CustomCodeMonitor {
       };
     }
 
-    const scriptResult: CustomCodeMonitor = {
+    const scriptResult: CustomCodeMonitorResponse = {
       logMessages: [],
       scriptError: undefined,
       result: undefined,

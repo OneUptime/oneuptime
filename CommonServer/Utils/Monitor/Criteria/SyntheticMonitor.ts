@@ -5,17 +5,17 @@ import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/Syn
 
 export default class SyntheticMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    Monitor: Array<SyntheticMonitorResponse>;
+    monitorResponse: Array<SyntheticMonitorResponse>;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
-    for (const syntheticMonitor of input.Monitor) {
+    for (const syntheticMonitorResponse of input.monitorResponse) {
       const threshold: number | string | undefined | null =
         input.criteriaFilter.value;
 
       // check custom code monitoring criteria first
       const result: string | null =
         await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          Monitor: syntheticMonitor,
+          monitorResponse: syntheticMonitorResponse,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -27,7 +27,7 @@ export default class SyntheticMonitoringCriteria {
 
       if (CheckOn.ScreenSizeType === input.criteriaFilter.checkOn) {
         return CompareCriteria.checkEqualToOrNotEqualTo({
-          value: syntheticMonitor.screenSizeType,
+          value: syntheticMonitorResponse.screenSizeType,
           threshold: threshold as number,
           criteriaFilter: input.criteriaFilter,
         });
@@ -35,7 +35,7 @@ export default class SyntheticMonitoringCriteria {
 
       if (CheckOn.BrowserType === input.criteriaFilter.checkOn) {
         return CompareCriteria.checkEqualToOrNotEqualTo({
-          value: syntheticMonitor.browserType,
+          value: syntheticMonitorResponse.browserType,
           threshold: threshold as number,
           criteriaFilter: input.criteriaFilter,
         });

@@ -4,7 +4,7 @@ import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/Cu
 
 export default class CustomCodeMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    Monitor: CustomCodeMonitorResponse;
+    monitorResponse: CustomCodeMonitorResponse;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
     // Server Monitoring Checks
@@ -12,14 +12,14 @@ export default class CustomCodeMonitoringCriteria {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
 
-    const syntheticMonitor: CustomCodeMonitorResponse =
-      input.Monitor;
+    const syntheticMonitorResponse: CustomCodeMonitorResponse =
+      input.monitorResponse;
 
     if (input.criteriaFilter.checkOn === CheckOn.ExecutionTime) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentExecutionTime: number =
-        syntheticMonitor.executionTimeInMS || 0;
+      syntheticMonitorResponse.executionTimeInMS || 0;
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentExecutionTime,
@@ -31,7 +31,7 @@ export default class CustomCodeMonitoringCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.Error) {
       const emptyNotEmptyResult: string | null =
         CompareCriteria.compareEmptyAndNotEmpty({
-          value: syntheticMonitor.scriptError,
+          value: syntheticMonitorResponse.scriptError,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -41,10 +41,10 @@ export default class CustomCodeMonitoringCriteria {
 
       if (
         threshold &&
-        typeof syntheticMonitor.scriptError === "string"
+        typeof syntheticMonitorResponse.scriptError === "string"
       ) {
         const result: string | null = CompareCriteria.compareCriteriaStrings({
-          value: syntheticMonitor.scriptError!,
+          value: syntheticMonitorResponse.scriptError!,
           threshold: threshold.toString(),
           criteriaFilter: input.criteriaFilter,
         });
@@ -58,7 +58,7 @@ export default class CustomCodeMonitoringCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.ResultValue) {
       const emptyNotEmptyResult: string | null =
         CompareCriteria.compareEmptyAndNotEmpty({
-          value: syntheticMonitor.result,
+          value: syntheticMonitorResponse.result,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -78,10 +78,10 @@ export default class CustomCodeMonitoringCriteria {
 
       if (
         thresholdAsNumber !== null &&
-        typeof syntheticMonitor.result === "number"
+        typeof syntheticMonitorResponse.result === "number"
       ) {
         const result: string | null = CompareCriteria.compareCriteriaNumbers({
-          value: syntheticMonitor.result,
+          value: syntheticMonitorResponse.result,
           threshold: thresholdAsNumber as number,
           criteriaFilter: input.criteriaFilter,
         });
@@ -91,9 +91,9 @@ export default class CustomCodeMonitoringCriteria {
         }
       }
 
-      if (threshold && typeof syntheticMonitor.result === "string") {
+      if (threshold && typeof syntheticMonitorResponse.result === "string") {
         const result: string | null = CompareCriteria.compareCriteriaStrings({
-          value: syntheticMonitor.result,
+          value: syntheticMonitorResponse.result,
           threshold: threshold.toString(),
           criteriaFilter: input.criteriaFilter,
         });

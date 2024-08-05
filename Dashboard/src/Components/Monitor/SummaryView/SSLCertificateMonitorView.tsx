@@ -7,20 +7,20 @@ import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitor: ProbeMonitorResponse;
+  probeMonitorResponse: ProbeMonitorResponse;
 }
 
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.probeMonitor || !props.probeMonitor.sslResponse) {
+  if (!props.probeMonitorResponse || !props.probeMonitorResponse.sslResponse) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 
   const sslResponse: SslMonitorResponse =
-    props.probeMonitor.sslResponse;
+    props.probeMonitorResponse.sslResponse;
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
@@ -32,7 +32,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             className="w-full shadow-none border-2 border-gray-100 "
             title="URL"
             value={
-              props.probeMonitor.monitorDestination?.toString() || "-"
+              props.probeMonitorResponse.monitorDestination?.toString() || "-"
             }
           />
         </div>

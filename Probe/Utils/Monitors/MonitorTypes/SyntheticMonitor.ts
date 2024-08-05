@@ -3,7 +3,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
-import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
+import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "CommonServer/Utils/Logger";
 import VMRunner from "CommonServer/Utils/VM/VMRunner";
@@ -20,8 +20,8 @@ export interface SyntheticMonitorOptions {
 export default class SyntheticMonitor {
   public static async execute(
     options: SyntheticMonitorOptions,
-  ): Promise<Array<SyntheticMonitor> | null> {
-    const results: Array<SyntheticMonitor> = [];
+  ): Promise<Array<SyntheticMonitorResponse> | null> {
+    const results: Array<SyntheticMonitorResponse> = [];
 
     for (const browserType of options.browserTypes || []) {
       for (const screenSizeType of options.screenSizeTypes || []) {
@@ -29,7 +29,7 @@ export default class SyntheticMonitor {
           `Running Synthetic Monitor: ${options?.monitorId?.toString()}, Screen Size: ${screenSizeType}, Browser: ${browserType}`,
         );
 
-        const result: SyntheticMonitor | null =
+        const result: SyntheticMonitorResponse | null =
           await this.executeByBrowserAndScreenSize({
             script: options.script,
             browserType: browserType,
@@ -51,7 +51,7 @@ export default class SyntheticMonitor {
     script: string;
     browserType: BrowserType;
     screenSizeType: ScreenSizeType;
-  }): Promise<SyntheticMonitor | null> {
+  }): Promise<SyntheticMonitorResponse | null> {
     if (!options) {
       // this should never happen
       options = {
@@ -61,7 +61,7 @@ export default class SyntheticMonitor {
       };
     }
 
-    const scriptResult: SyntheticMonitor = {
+    const scriptResult: SyntheticMonitorResponse = {
       logMessages: [],
       scriptError: undefined,
       result: undefined,

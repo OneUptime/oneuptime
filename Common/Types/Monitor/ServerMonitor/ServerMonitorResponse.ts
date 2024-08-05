@@ -7,7 +7,7 @@ export interface ServerProcess {
   command: string;
 }
 
-export default interface ServerMonitor {
+export default interface ServerMonitorResponse {
   monitorId: ObjectID;
   hostname: string; // Hostname of the server
   basicInfrastructureMetrics?: BasicInfrastructureMetrics | undefined;

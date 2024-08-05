@@ -114,9 +114,9 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 	}
 
 	reqData := struct {
-		ServerMonitor *model.ServerMonitorReport `json:"serverMonitor"`
+		ServerMonitorResponse *model.ServerMonitorReport `json:"serverMonitorResponse"`
 	}{
-		ServerMonitor: metricsReport,
+		ServerMonitorResponse: metricsReport,
 	}
 	postBuilder := greq.New(oneuptimeURL).Post("/server-monitor/response/ingest/" + secretKey).
 		JSONType().JSONBody(reqData)
