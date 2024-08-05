@@ -14,11 +14,11 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Common/AppModels/Models/Label";
-import Probe from "Common/AppModels/Models/Probe";
-import ProbeOwnerTeam from "Common/AppModels/Models/ProbeOwnerTeam";
-import ProbeOwnerUser from "Common/AppModels/Models/ProbeOwnerUser";
-import User from "Common/AppModels/Models/User";
+import Label from "Common/Models/DatabaseModels/Label";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,
@@ -26,7 +26,7 @@ import React, {
   useState,
 } from "react";
 import TeamElement from "../../Components/Team/Team";
-import Team from "Common/AppModels/Models/Team";
+import Team from "Common/Models/DatabaseModels/Team";
 import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../Components/Probe/CustomProbeDocumentation";

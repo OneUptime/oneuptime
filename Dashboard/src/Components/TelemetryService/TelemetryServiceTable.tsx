@@ -4,12 +4,12 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import Label from "Common/AppModels/Models/Label";
-import Monitor from "Common/AppModels/Models/Monitor";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ActionButtonSchema from "CommonUI/src/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "CommonUI/src/Components/Card/Card";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import TelemetryServiceElement from "./TelemetryServiceElement";

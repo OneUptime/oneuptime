@@ -1,5 +1,5 @@
 import FindOneBy from "./FindOneBy";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import PositiveNumber from "Common/Types/PositiveNumber";
 
 export default interface FindBy<TBaseModel extends AnalyticsBaseModel>

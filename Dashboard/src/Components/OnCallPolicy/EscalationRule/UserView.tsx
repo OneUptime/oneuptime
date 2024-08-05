@@ -5,8 +5,8 @@ import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLo
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import OnCallDutyPolicyEscalationRuleUser from "Common/AppModels/Models/OnCallDutyPolicyEscalationRuleUser";
-import User from "Common/AppModels/Models/User";
+import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 

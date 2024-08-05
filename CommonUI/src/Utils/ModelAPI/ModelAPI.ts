@@ -9,7 +9,7 @@ import Select from "../BaseDatabase/Select";
 import Sort from "../BaseDatabase/Sort";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -20,7 +20,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export class ModelAPIHttpResponse<
   TBaseModel extends BaseModel,

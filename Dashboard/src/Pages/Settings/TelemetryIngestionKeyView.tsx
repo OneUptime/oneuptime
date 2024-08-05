@@ -9,7 +9,7 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import TelemetryIngestionKey from "Common/AppModels/Models/TelemetryIngestionKey";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export enum PermissionType {

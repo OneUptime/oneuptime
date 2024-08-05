@@ -1,5 +1,5 @@
-import AnalyticsDataModel from "Common/AnalyticsModels/BaseModel";
-import BaseModel from "Common/Models/BaseModel";
+import AnalyticsDataModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 

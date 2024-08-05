@@ -9,7 +9,7 @@ import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import TimezoneUtil from "CommonUI/src/Utils/Timezone";
 import UserUtil from "CommonUI/src/Utils/User";
-import User from "Common/AppModels/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
 

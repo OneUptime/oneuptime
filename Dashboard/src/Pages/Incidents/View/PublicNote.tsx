@@ -2,7 +2,7 @@ import UserElement from "../../../Components/User/User";
 import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -23,9 +23,9 @@ import API from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentNoteTemplate from "Common/AppModels/Models/IncidentNoteTemplate";
-import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
-import User from "Common/AppModels/Models/User";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,

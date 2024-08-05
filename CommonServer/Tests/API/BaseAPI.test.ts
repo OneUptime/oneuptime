@@ -13,7 +13,7 @@ import Express, {
 import Response from "../../Utils/Response";
 import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -73,7 +73,7 @@ jest.mock("../../Services/DatabaseService", () => {
   });
 });
 
-jest.mock("Common/Models/BaseModel", () => {
+jest.mock("Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel", () => {
   return jest.fn().mockImplementation((initObject: GenericObject) => {
     return {
       ...initObject,

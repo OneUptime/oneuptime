@@ -21,9 +21,9 @@ import {
 } from "CommonUI/src/Config";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Common/AppModels/Models/Project";
-import ProjectSSO from "Common/AppModels/Models/ProjectSso";
-import Team from "Common/AppModels/Models/Team";
+import Project from "Common/Models/DatabaseModels/Project";
+import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, {
   Fragment,
   FunctionComponent,

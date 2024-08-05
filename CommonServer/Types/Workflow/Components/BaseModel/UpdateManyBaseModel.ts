@@ -1,7 +1,7 @@
 import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import BadDataException from "Common/Types/Exception/BadDataException";

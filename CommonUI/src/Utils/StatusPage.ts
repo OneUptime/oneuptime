@@ -7,8 +7,8 @@ import ModelAPI, { ListResult } from "../Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
-import StatusPageGroup from "Common/AppModels/Models/StatusPageGroup";
-import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 
 export default class StatusPageUtil {
   public static async getCategoryCheckboxPropsBasedOnResources(

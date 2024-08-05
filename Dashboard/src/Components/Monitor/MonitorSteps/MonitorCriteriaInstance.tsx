@@ -8,9 +8,9 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 import Icon from "CommonUI/src/Components/Icon/Icon";
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

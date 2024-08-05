@@ -10,8 +10,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import UserCall from "Common/AppModels/Models/UserCall";
-import UserSMS from "Common/AppModels/Models/UserSMS";
+import UserCall from "Common/Models/DatabaseModels/UserCall";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 
 export default class UserCallAPI extends BaseAPI<
   UserCall,

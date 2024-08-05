@@ -5,7 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "CommonUI/src/Components/Icon/Icon";
 import Link from "CommonUI/src/Components/Link/Link";
-import Monitor from "Common/AppModels/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

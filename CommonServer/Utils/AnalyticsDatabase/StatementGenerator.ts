@@ -6,7 +6,7 @@ import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
   Record,
   RecordValue,

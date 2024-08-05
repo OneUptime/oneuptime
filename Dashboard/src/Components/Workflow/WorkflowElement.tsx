@@ -1,6 +1,6 @@
 import Route from "Common/Types/API/Route";
 import Link from "CommonUI/src/Components/Link/Link";
-import Workflow from "Common/AppModels/Models/Workflow";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

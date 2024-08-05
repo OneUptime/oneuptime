@@ -14,7 +14,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DEFAULT_LIMIT,

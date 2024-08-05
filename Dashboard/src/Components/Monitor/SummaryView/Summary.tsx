@@ -7,8 +7,8 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Card from "CommonUI/src/Components/Card/Card";
-import { MonitorStepProbeResponse } from "Common/AppModels/Models/MonitorProbe";
-import Probe from "Common/AppModels/Models/Probe";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

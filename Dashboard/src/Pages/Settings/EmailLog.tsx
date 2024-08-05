@@ -12,8 +12,8 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import EmailLog from "Common/AppModels/Models/EmailLog";
-import ProjectSmtpConfig from "Common/AppModels/Models/ProjectSmtpConfig";
+import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
   Fragment,
   FunctionComponent,

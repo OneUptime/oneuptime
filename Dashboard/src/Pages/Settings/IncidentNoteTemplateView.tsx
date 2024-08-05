@@ -8,7 +8,7 @@ import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentNoteTemplate from "Common/AppModels/Models/IncidentNoteTemplate";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {

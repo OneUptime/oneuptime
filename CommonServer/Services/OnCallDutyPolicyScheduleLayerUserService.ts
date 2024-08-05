@@ -10,7 +10,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Model from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
+import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

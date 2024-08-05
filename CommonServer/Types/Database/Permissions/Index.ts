@@ -4,7 +4,7 @@ import CreatePermission from "./CreatePermission";
 import DeletePermission from "./DeletePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import UpdatePermission from "./UpdatePermission";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 

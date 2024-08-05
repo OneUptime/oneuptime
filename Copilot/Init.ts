@@ -11,7 +11,7 @@ import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepository
 import logger from "CommonServer/Utils/Logger";
 import CopilotActionUtil from "./Utils/CopilotAction";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotAction from "Common/AppModels/Models/CopilotAction";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import {
   FixNumberOfCodeEventsInEachRun,
   GetIsCopilotDisabled,
@@ -23,9 +23,9 @@ import CopilotActionService, {
 } from "./Service/CopilotActions/Index";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
-import ServiceCopilotCodeRepository from "Common/AppModels/Models/ServiceCopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
-import CopilotPullRequest from "Common/AppModels/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import CopilotPullRequestService from "./Service/CopilotPullRequest";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 // import ArrayUtil from "Common/Types/ArrayUtil";

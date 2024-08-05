@@ -4,7 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import ScheduledMaintenanceNoteTemplate from "Common/AppModels/Models/ScheduledMaintenanceNoteTemplate";
+import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceNoteTemplates: FunctionComponent<

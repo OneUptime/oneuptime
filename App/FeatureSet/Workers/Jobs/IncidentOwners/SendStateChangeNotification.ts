@@ -15,11 +15,11 @@ import IncidentStateTimelineService from "CommonServer/Services/IncidentStateTim
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import Monitor from "Common/AppModels/Models/Monitor";
-import User from "Common/AppModels/Models/User";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",

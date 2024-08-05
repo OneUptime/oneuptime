@@ -9,11 +9,11 @@ import { BadgeType } from "CommonUI/src/Components/Badge/Badge";
 import SideMenuItem from "CommonUI/src/Components/SideMenu/CountModelSideMenuItem";
 import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
 import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import Monitor from "Common/AppModels/Models/Monitor";
-import Project from "Common/AppModels/Models/Project";
-import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import React, {
   FunctionComponent,
   ReactElement,

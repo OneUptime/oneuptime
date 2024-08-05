@@ -19,16 +19,16 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import IncidentTemplate from "Common/AppModels/Models/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "Common/AppModels/Models/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "Common/AppModels/Models/IncidentTemplateOwnerUser";
-import Label from "Common/AppModels/Models/Label";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
-import Team from "Common/AppModels/Models/Team";
-import User from "Common/AppModels/Models/User";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {

@@ -1,5 +1,5 @@
 import TeamElement from "./Team";
-import Team from "Common/AppModels/Models/Team";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

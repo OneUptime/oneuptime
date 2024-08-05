@@ -9,7 +9,7 @@ import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Page from "CommonUI/src/Components/Page/Page";
 import UserUtil from "CommonUI/src/Utils/User";
-import User from "Common/AppModels/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 class UserWithConfirmPassword extends User {

@@ -10,7 +10,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 
 export class Service extends DatabaseService<IncidentState> {
   public constructor(postgresDatabase?: PostgresDatabase) {

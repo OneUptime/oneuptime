@@ -8,7 +8,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentsPage: FunctionComponent<

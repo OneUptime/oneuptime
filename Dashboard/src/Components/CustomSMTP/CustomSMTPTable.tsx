@@ -15,7 +15,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectSmtpConfig from "Common/AppModels/Models/ProjectSmtpConfig";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
   FunctionComponent,
   ReactElement,

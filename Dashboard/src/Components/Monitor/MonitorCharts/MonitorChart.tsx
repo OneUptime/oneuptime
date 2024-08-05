@@ -24,7 +24,7 @@ import {
 import MonitorMetricsByMinute, {
   MonitorMetricsMiscData,
 } from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
-import Probe from "Common/AppModels/Models/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React from "react";
 
 export class MonitorCharts {

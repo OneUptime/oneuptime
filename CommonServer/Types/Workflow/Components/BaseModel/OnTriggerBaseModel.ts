@@ -7,7 +7,7 @@ import Response from "../../../../Utils/Response";
 import Select from "../../../Database/Select";
 import { RunOptions, RunReturnType } from "../../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../../TriggerCode";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -16,7 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
-import Workflow from "Common/AppModels/Models/Workflow";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,

@@ -14,7 +14,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import User from "CommonUI/src/Utils/User";
-import UserEmail from "Common/AppModels/Models/UserEmail";
+import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import React, { ReactElement, useEffect, useState } from "react";
 
 const Email: () => JSX.Element = (): ReactElement => {

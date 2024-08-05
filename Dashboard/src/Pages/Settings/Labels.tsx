@@ -6,7 +6,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Common/AppModels/Models/Label";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {

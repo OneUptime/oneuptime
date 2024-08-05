@@ -1,4 +1,4 @@
-import ProjectCallSMSConfig from "Common/AppModels/Models/ProjectCallSMSConfig";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

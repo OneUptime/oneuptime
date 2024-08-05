@@ -12,8 +12,8 @@ import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Common/AppModels/Models/Label";
-import ServiceCatalog from "Common/AppModels/Models/ServiceCatalog";
+import Label from "Common/Models/DatabaseModels/Label";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceCatalogPage: FunctionComponent<

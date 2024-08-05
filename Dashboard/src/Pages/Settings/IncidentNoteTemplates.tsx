@@ -4,7 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import IncidentNoteTemplate from "Common/AppModels/Models/IncidentNoteTemplate";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (

@@ -14,7 +14,7 @@ import SimpleLogViewer from "CommonUI/src/Components/SimpleLogViewer/SimpleLogVi
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { BILLING_ENABLED } from "CommonUI/src/Config";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import CallLog from "Common/AppModels/Models/CallLog";
+import CallLog from "Common/Models/DatabaseModels/CallLog";
 import React, {
   Fragment,
   FunctionComponent,

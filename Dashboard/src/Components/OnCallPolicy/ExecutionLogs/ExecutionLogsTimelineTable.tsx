@@ -1,7 +1,7 @@
 import DashboardNavigation from "../../../Utils/Navigation";
 import UserElement from "../../User/User";
 import EscalationRule from "../EscalationRule/EscalationRule";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -13,9 +13,9 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import OnCallDutyPolicyEscalationRule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicyExecutionLogTimeline from "Common/AppModels/Models/OnCallDutyPolicyExecutionLogTimeline";
-import User from "Common/AppModels/Models/User";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

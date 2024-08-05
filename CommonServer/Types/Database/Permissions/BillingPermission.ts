@@ -1,6 +1,6 @@
 import { IsBillingEnabled, getAllEnvVars } from "../../../EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";

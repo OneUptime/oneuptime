@@ -1,8 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
-import TelemetryIngestionKey from "Common/AppModels/Models/TelemetryIngestionKey";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyService from "CommonServer/Services/TelemetryIngestionKeyService";
 
 export default class MoveTelemetryServiceTokenToTelemetryIngestionKey extends DataMigrationBase {

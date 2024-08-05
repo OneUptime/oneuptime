@@ -13,10 +13,10 @@ import { ShowAs } from "CommonUI/src/Components/ModelTable/BaseModelTable";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
-import OnCallDutyEscalationRule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicySchedule from "Common/AppModels/Models/OnCallDutyPolicySchedule";
-import Team from "Common/AppModels/Models/Team";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (

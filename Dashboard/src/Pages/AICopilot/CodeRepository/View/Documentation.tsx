@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import PageComponentProps from "../../../PageComponentProps";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CopilotCodeRepository from "Common/AppModels/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import API from "CommonUI/src/Utils/API/API";

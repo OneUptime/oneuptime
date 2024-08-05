@@ -15,7 +15,7 @@ import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,

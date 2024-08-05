@@ -6,7 +6,7 @@ import Domain from "../Types/Domain";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Text from "Common/Types/Text";
-import Model from "Common/AppModels/Models/Domain";
+import Model from "Common/Models/DatabaseModels/Domain";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

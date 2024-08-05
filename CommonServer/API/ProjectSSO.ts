@@ -8,7 +8,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import ProjectSSO from "Common/AppModels/Models/ProjectSso";
+import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 
 export default class ProjectSsoAPI extends BaseAPI<
   ProjectSSO,

@@ -19,9 +19,9 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/AppModels/Models/Project";
-import PromoCode from "Common/AppModels/Models/PromoCode";
-import ResellerPlan from "Common/AppModels/Models/ResellerPlan";
+import Project from "Common/Models/DatabaseModels/Project";
+import PromoCode from "Common/Models/DatabaseModels/PromoCode";
+import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
 
 export default class ResellerPlanAPI extends BaseAPI<
   ResellerPlan,

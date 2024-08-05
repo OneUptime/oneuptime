@@ -3,7 +3,7 @@ import Hostname from "Common/Types/API/Hostname";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
-import { EmailServerType } from "Common/AppModels/Models/GlobalConfig";
+import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 
 export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
   public constructor() {

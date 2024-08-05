@@ -23,12 +23,12 @@ import StatusPageSubscriberService from "CommonServer/Services/StatusPageSubscri
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
 import logger from "CommonServer/Utils/Logger";
-import Monitor from "Common/AppModels/Models/Monitor";
-import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
-import StatusPageSubscriber from "Common/AppModels/Models/StatusPageSubscriber";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",

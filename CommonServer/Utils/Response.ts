@@ -8,9 +8,9 @@ import JsonToCsv from "./JsonToCsv";
 import logger from "./Logger";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
-} from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
-import FileModel from "Common/Models/FileModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import EmptyResponse from "Common/Types/API/EmptyResponse";
 import StatusCode from "Common/Types/API/StatusCode";
 import URL from "Common/Types/API/URL";

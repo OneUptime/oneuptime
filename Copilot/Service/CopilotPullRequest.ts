@@ -7,7 +7,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import CopilotPullRequest from "Common/AppModels/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import CodeRepositoryUtil from "../Utils/CodeRepository";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 

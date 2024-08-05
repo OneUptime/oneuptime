@@ -14,8 +14,8 @@ import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import Model from "Common/AppModels/Models/StatusPagePrivateUser";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Model from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

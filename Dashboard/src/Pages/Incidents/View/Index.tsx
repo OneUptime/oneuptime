@@ -6,7 +6,7 @@ import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -28,11 +28,11 @@ import BaseAPI from "CommonUI/src/Utils/API/API";
 import GlobalEvent from "CommonUI/src/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import Label from "Common/AppModels/Models/Label";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
   FunctionComponent,

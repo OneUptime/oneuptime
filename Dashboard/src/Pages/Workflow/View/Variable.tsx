@@ -5,7 +5,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import WorkflowVariable from "Common/AppModels/Models/WorkflowVariable";
+import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {

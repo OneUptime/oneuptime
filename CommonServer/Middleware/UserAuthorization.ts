@@ -30,7 +30,7 @@ import {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class UserMiddleware {
   /*

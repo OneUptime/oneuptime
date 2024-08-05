@@ -7,8 +7,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Common/AppModels/Models/Label";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallDutyPage: FunctionComponent<

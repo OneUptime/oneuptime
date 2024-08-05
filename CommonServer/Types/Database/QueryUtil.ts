@@ -1,6 +1,6 @@
 import Query from "./Query";
 import QueryHelper from "./QueryHelper";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";

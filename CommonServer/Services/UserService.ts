@@ -26,11 +26,11 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
-import EmailVerificationToken from "Common/AppModels/Models/EmailVerificationToken";
-import TeamMember from "Common/AppModels/Models/TeamMember";
-import Model from "Common/AppModels/Models/User";
+import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import Model from "Common/Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Slack";
-import UserTwoFactorAuth from "Common/AppModels/Models/UserTwoFactorAuth";
+import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 

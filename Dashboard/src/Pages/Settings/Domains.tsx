@@ -11,7 +11,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Domain from "Common/AppModels/Models/Domain";
+import Domain from "Common/Models/DatabaseModels/Domain";
 import React, {
   Fragment,
   FunctionComponent,

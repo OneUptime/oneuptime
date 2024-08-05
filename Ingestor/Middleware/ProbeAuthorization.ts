@@ -8,7 +8,7 @@ import { ClusterKey as ONEUPTIME_SECRET } from "CommonServer/EnvironmentConfig";
 import ProbeService from "CommonServer/Services/ProbeService";
 import { ExpressResponse, NextFunction } from "CommonServer/Utils/Express";
 import Response from "CommonServer/Utils/Response";
-import Probe from "Common/AppModels/Models/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeAuthorization {
   public static getClusterKeyHeaders(): Dictionary<string> {

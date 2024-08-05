@@ -4,8 +4,8 @@ import ObjectID from "Common/Types/ObjectID";
 import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorCustomField from "Common/AppModels/Models/MonitorCustomField";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorCustomFields: FunctionComponent<

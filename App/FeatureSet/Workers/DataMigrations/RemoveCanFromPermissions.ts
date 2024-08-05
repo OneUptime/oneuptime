@@ -3,8 +3,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Permission from "Common/Types/Permission";
 import ApiKeyPermissionService from "CommonServer/Services/ApiKeyPermissionService";
 import TeamPermissionService from "CommonServer/Services/TeamPermissionService";
-import APIKeyPermission from "Common/AppModels/Models/ApiKeyPermission";
-import TeamPermission from "Common/AppModels/Models/TeamPermission";
+import APIKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 
 export default class RemoveCanFromPermissions extends DataMigrationBase {
   public constructor() {

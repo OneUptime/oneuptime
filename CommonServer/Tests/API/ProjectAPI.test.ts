@@ -13,8 +13,8 @@ import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedEx
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Common/AppModels/Models/Project";
-import TeamMember from "Common/AppModels/Models/TeamMember";
+import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 jest.mock("../../Utils/Express", () => {
   return {

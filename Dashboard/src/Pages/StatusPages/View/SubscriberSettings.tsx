@@ -8,9 +8,9 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import TimezoneUtil from "CommonUI/src/Utils/Timezone";
-import ProjectCallSMSConfig from "Common/AppModels/Models/ProjectCallSMSConfig";
-import ProjectSmtpConfig from "Common/AppModels/Models/ProjectSmtpConfig";
-import StatusPage from "Common/AppModels/Models/StatusPage";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
 

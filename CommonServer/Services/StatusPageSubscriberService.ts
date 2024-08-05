@@ -25,9 +25,9 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
-import Model from "Common/AppModels/Models/StatusPageSubscriber";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import Model from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import PositiveNumber from "Common/Types/PositiveNumber";
 
 export class Service extends DatabaseService<Model> {

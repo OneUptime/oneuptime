@@ -2,7 +2,7 @@ import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import Select from "../../../Database/Select";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";

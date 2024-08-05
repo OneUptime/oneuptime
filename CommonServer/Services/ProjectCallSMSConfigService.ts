@@ -2,7 +2,7 @@ import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DatabaseService from "./DatabaseService";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Model from "Common/AppModels/Models/ProjectCallSMSConfig";
+import Model from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

@@ -5,7 +5,7 @@ import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import WorkflowLogService from "CommonServer/Services/WorkflowLogService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import WorkflowLog from "Common/AppModels/Models/WorkflowLog";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 
 RunCron(
   "Workflow:TimeoutJobs",

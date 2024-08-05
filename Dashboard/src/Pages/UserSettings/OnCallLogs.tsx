@@ -13,9 +13,9 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import User from "CommonUI/src/Utils/User";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
-import OnCallDutyPolicyEscalationRule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
-import UserOnCallLog from "Common/AppModels/Models/UserOnCallLog";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import React, {
   Fragment,
   FunctionComponent,

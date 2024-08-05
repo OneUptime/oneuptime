@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ColorSquareCube from "CommonUI/src/Components/ColorSquareCube/ColorSquareCube";
 import Link from "CommonUI/src/Components/Link/Link";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import ServiceCatalog from "Common/AppModels/Models/ServiceCatalog";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

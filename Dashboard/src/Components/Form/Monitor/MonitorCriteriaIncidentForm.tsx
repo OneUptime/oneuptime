@@ -4,7 +4,7 @@ import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import Incident from "Common/AppModels/Models/Incident";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

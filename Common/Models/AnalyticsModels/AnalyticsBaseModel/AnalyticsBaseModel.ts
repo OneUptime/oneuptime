@@ -15,7 +15,9 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import Text from "../../../Types/Text";
 import { EnableRealtimeEventsOn } from "../../../Utils/Realtime";
 import CommonModel from "./CommonModel";

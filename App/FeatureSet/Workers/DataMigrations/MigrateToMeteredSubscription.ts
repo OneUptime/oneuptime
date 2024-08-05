@@ -8,7 +8,7 @@ import BillingService, {
 import ProjectService from "CommonServer/Services/ProjectService";
 import AllMeteredPlans from "CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class MigrateToMeteredSubscription extends DataMigrationBase {
   public constructor() {

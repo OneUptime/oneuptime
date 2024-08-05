@@ -33,7 +33,7 @@ import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { WorkflowRoute } from "Common/ServiceRoute";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";

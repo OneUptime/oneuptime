@@ -18,7 +18,9 @@ import BaseAPI from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import BillingInvoice, { InvoiceStatus } from "Common/AppModels/Models/BillingInvoice";
+import BillingInvoice, {
+  InvoiceStatus,
+} from "Common/Models/DatabaseModels/BillingInvoice";
 import React, {
   Fragment,
   FunctionComponent,

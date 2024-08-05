@@ -22,7 +22,7 @@ import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import { Dictionary } from "lodash";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "../../Utils/BaseDatabase/ListResult";

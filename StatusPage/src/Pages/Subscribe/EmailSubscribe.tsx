@@ -23,7 +23,7 @@ import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPageSubscriber from "Common/AppModels/Models/StatusPageSubscriber";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,
   ReactElement,

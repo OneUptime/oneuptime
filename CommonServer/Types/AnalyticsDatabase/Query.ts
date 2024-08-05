@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonQuery from "Common/Types/BaseDatabase/Query";
 
 type Query<TBaseModel extends AnalyticsBaseModel> = CommonQuery<TBaseModel>;

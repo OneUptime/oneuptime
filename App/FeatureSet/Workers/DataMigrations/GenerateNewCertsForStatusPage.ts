@@ -2,7 +2,7 @@ import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
 import logger from "CommonServer/Utils/Logger";
-import StatusPageDomain from "Common/AppModels/Models/StatusPageDomain";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 
 export default class GenerateNewCertsForStatusPage extends DataMigrationBase {
   public constructor() {

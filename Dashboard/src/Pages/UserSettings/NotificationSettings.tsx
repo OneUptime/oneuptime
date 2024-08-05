@@ -6,7 +6,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import User from "CommonUI/src/Utils/User";
-import UserNotificationSetting from "Common/AppModels/Models/UserNotificationSetting";
+import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {

@@ -18,10 +18,10 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { SMSMessage } from "Common/Types/SMS/SMS";
-import UserCall from "Common/AppModels/Models/UserCall";
-import UserEmail from "Common/AppModels/Models/UserEmail";
-import UserNotificationSetting from "Common/AppModels/Models/UserNotificationSetting";
-import UserSMS from "Common/AppModels/Models/UserSMS";
+import UserCall from "Common/Models/DatabaseModels/UserCall";
+import UserEmail from "Common/Models/DatabaseModels/UserEmail";
+import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor(postgresDatabase?: PostgresDatabase) {

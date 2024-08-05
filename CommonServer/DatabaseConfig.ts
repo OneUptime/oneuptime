@@ -6,7 +6,7 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import GlobalConfig from "Common/AppModels/Models/GlobalConfig";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 
 export default class DatabaseConfig {
   public static async getFromGlobalConfig(key: string): Promise<JSONValue> {

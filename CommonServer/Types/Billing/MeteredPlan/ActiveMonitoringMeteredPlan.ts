@@ -7,7 +7,7 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
   public override getProductType(): ProductType {

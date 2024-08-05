@@ -13,8 +13,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, {
   FunctionComponent,
   ReactElement,

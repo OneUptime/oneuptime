@@ -1,7 +1,7 @@
 import ProbeAuthorization from "../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../Types/Request";
 import MonitorUtil from "../Utils/Monitor";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -27,8 +27,8 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorProbe from "Common/AppModels/Models/MonitorProbe";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -21,7 +21,9 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Text from "../../../Types/Text";
@@ -33,8 +35,6 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from "typeorm";
-
-
 
 export type DbTypes =
   | string
@@ -547,7 +547,10 @@ export default class DatabaseBaseModel extends BaseEntity {
     return Text.pascalCaseToDashes(this.tableName as string);
   }
 
-  public static toJSON(model: DatabaseBaseModel, modelType: DatabaseBaseModelType): JSONObject {
+  public static toJSON(
+    model: DatabaseBaseModel,
+    modelType: DatabaseBaseModelType,
+  ): JSONObject {
     const json: JSONObject = this.toJSONObject(model, modelType);
     return JSONFunctions.serialize(json);
   }

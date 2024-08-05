@@ -3,7 +3,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 
 export default class IncidentStateUtil {
   public static async getUnresolvedIncidentStates(

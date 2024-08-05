@@ -4,9 +4,9 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import MonitorService from "CommonServer/Services/MonitorService";
 import MonitorStatusTimelineService from "CommonServer/Services/MonitorStatusTimelineService";
 import ProjectService from "CommonServer/Services/ProjectService";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
-import Project from "Common/AppModels/Models/Project";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class AddEndDateToMonitorStatusTimelineWhereEndDateIsMissing extends DataMigrationBase {
   public constructor() {

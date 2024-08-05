@@ -17,8 +17,8 @@ import { APP_API_URL, StatusPageCNameRecord } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Domain from "Common/AppModels/Models/Domain";
-import StatusPageDomain from "Common/AppModels/Models/StatusPageDomain";
+import Domain from "Common/Models/DatabaseModels/Domain";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import React, {
   Fragment,
   FunctionComponent,

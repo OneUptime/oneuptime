@@ -2,7 +2,7 @@ import Navigation from "../../../Utils/Navigation";
 import Icon from "../../Icon/Icon";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

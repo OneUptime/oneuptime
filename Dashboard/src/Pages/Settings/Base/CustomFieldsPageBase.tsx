@@ -5,11 +5,11 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentCustomField from "Common/AppModels/Models/IncidentCustomField";
-import MonitorCustomField from "Common/AppModels/Models/MonitorCustomField";
-import OnCallDutyPolicyCustomField from "Common/AppModels/Models/OnCallDutyPolicyCustomField";
-import ScheduledMaintenanceCustomField from "Common/AppModels/Models/ScheduledMaintenanceCustomField";
-import StatusPageCustomField from "Common/AppModels/Models/StatusPageCustomField";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
+import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
+import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import React, { Fragment, ReactElement } from "react";
 
 export type CustomFieldsBaseModels =

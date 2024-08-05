@@ -13,7 +13,7 @@ import TopAlert, {
 } from "CommonUI/src/Components/TopAlert/TopAlert";
 import { BILLING_ENABLED } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

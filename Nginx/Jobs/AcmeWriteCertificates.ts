@@ -6,7 +6,7 @@ import BasicCron from "CommonServer/Utils/BasicCron";
 import LocalFile from "CommonServer/Utils/LocalFile";
 // @ts-ignore
 import logger from "CommonServer/Utils/Logger";
-import AcmeCertificate from "Common/AppModels/Models/AcmeCertificate";
+import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 
 export default class Jobs {
   public static init(): void {

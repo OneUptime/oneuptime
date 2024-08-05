@@ -14,9 +14,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/Utils/API";
-import AcmeCertificate from "Common/AppModels/Models/AcmeCertificate";
-import Domain from "Common/AppModels/Models/Domain";
-import StatusPageDomain from "Common/AppModels/Models/StatusPageDomain";
+import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
+import Domain from "Common/Models/DatabaseModels/Domain";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 
 export class Service extends DatabaseService<StatusPageDomain> {

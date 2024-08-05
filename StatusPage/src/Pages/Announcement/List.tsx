@@ -7,7 +7,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import { getAnnouncementEventItem } from "./Detail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -26,7 +26,7 @@ import EventHistoryList, {
 } from "CommonUI/src/Components/EventHistoryList/EventHistoryList";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import StatusPageAnnouncement from "Common/AppModels/Models/StatusPageAnnouncement";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import React, {
   FunctionComponent,
   ReactElement,

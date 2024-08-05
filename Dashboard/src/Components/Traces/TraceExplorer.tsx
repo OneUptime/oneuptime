@@ -32,7 +32,7 @@ import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
 import Select from "CommonUI/src/Utils/BaseDatabase/Select";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Span, { SpanStatus } from "Common/AppModels/AnalyticsModels/Span";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

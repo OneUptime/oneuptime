@@ -1,6 +1,6 @@
 import LayersPreview from "./LayersPreview";
-import OnCallDutyPolicyScheduleLayer from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

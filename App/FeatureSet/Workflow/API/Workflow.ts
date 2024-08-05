@@ -11,7 +11,7 @@ import Express, {
   ExpressRouter,
 } from "CommonServer/Utils/Express";
 import Response from "CommonServer/Utils/Response";
-import Workflow from "Common/AppModels/Models/Workflow";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 
 export default class WorkflowAPI {
   public router!: ExpressRouter;

@@ -2,9 +2,9 @@ import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import Text from "Common/Types/Text";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

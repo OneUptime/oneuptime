@@ -12,7 +12,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import WorkflowStatusElement from "CommonUI/src/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import WorkflowLogs from "Common/AppModels/Models/WorkflowLog";
+import WorkflowLogs from "Common/Models/DatabaseModels/WorkflowLog";
 import React, {
   Fragment,
   FunctionComponent,

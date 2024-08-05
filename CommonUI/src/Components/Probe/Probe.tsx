@@ -1,11 +1,11 @@
 import { FILE_URL } from "../../Config";
 import Icon from "../Icon/Icon";
 import Image from "../Image/Image";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import Probe from "Common/AppModels/Models/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

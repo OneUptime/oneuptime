@@ -1,5 +1,5 @@
 import DeleteOneBy from "./DeleteOneBy";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PositiveNumber from "Common/Types/PositiveNumber";
 
 interface DeleteBy<TBaseModel extends BaseModel>

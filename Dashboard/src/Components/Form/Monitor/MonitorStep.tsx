@@ -39,7 +39,7 @@ import React, {
   useState,
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import DashboardNavigation from "../../../Utils/Navigation";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";

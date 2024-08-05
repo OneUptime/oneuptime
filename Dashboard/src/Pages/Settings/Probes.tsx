@@ -13,8 +13,8 @@ import ProbeElement from "CommonUI/src/Components/Probe/Probe";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL } from "CommonUI/src/Config";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Common/AppModels/Models/Label";
-import Probe from "Common/AppModels/Models/Probe";
+import Label from "Common/Models/DatabaseModels/Label";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
   Fragment,
   FunctionComponent,

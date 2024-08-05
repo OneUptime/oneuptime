@@ -1,6 +1,6 @@
 import { IsBillingEnabled, getAllEnvVars } from "../../../EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";

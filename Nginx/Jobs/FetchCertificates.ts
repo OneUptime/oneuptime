@@ -7,7 +7,7 @@ import BasicCron from "CommonServer/Utils/BasicCron";
 import LocalFile from "CommonServer/Utils/LocalFile";
 // @ts-ignore
 import logger from "CommonServer/Utils/Logger";
-import GreenlockCertificate from "Common/AppModels/Models/GreenlockCertificate";
+import GreenlockCertificate from "Common/Models/DatabaseModels/GreenlockCertificate";
 
 export default class Jobs {
   public static init(): void {

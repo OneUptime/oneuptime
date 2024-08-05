@@ -9,8 +9,8 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "CommonServer/Services/MonitorSecretService";
 import VMUtil from "CommonServer/Utils/VM/VMAPI";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorSecret from "Common/AppModels/Models/MonitorSecret";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 
 export default class MonitorUtil {
   public static async populateSecrets(monitor: Monitor): Promise<Monitor> {

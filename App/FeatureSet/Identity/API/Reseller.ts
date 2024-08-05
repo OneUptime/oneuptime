@@ -9,7 +9,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import Response from "CommonServer/Utils/Response";
-import Reseller from "Common/AppModels/Models/Reseller";
+import Reseller from "Common/Models/DatabaseModels/Reseller";
 
 const router: ExpressRouter = Express.getRouter();
 

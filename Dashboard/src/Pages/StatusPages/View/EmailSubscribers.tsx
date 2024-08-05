@@ -19,8 +19,8 @@ import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import StatusPageSubscriber from "Common/AppModels/Models/StatusPageSubscriber";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   Fragment,
   FunctionComponent,

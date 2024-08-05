@@ -7,7 +7,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import { getIncidentEventItem } from "./Detail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -27,11 +27,11 @@ import EventHistoryList, {
 } from "CommonUI/src/Components/EventHistoryList/EventHistoryList";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,

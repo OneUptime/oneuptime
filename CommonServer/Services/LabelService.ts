@@ -4,7 +4,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Model from "Common/AppModels/Models/Label";
+import Model from "Common/Models/DatabaseModels/Label";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

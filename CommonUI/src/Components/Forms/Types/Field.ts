@@ -7,7 +7,7 @@ import { DropdownOption } from "../../Dropdown/Dropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
 import FormValues from "./FormValues";
-import { DatabaseBaseModelType } from "Common/Models/BaseModel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import MimeType from "Common/Types/File/MimeType";

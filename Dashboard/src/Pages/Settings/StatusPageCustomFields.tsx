@@ -1,6 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import CustomFieldsPageBase from "./Base/CustomFieldsPageBase";
-import StatusPageCustomField from "Common/AppModels/Models/StatusPageCustomField";
+import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const StatusPageCustomFields: FunctionComponent<PageComponentProps> = (

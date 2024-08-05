@@ -6,7 +6,7 @@ import ArrayUtil from "Common/Types/ArrayUtil";
 import { BrightColors } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Model from "Common/AppModels/Models/TelemetryService";
+import Model from "Common/Models/DatabaseModels/TelemetryService";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

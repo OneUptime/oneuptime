@@ -9,10 +9,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorGroupOwnerTeam from "Common/AppModels/Models/MonitorGroupOwnerTeam";
-import MonitorGroupOwnerUser from "Common/AppModels/Models/MonitorGroupOwnerUser";
-import Team from "Common/AppModels/Models/Team";
-import User from "Common/AppModels/Models/User";
+import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
+import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorGroupOwners: FunctionComponent<

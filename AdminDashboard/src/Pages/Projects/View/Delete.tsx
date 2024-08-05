@@ -6,7 +6,7 @@ import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import SideMenuComponent from "./SideMenu";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 
 const DeletePage: FunctionComponent = (): ReactElement => {

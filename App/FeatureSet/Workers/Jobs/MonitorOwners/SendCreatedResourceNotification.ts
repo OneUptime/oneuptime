@@ -11,8 +11,8 @@ import MonitorService from "CommonServer/Services/MonitorService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Monitor from "Common/AppModels/Models/Monitor";
-import User from "Common/AppModels/Models/User";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "MonitorOwner:SendCreatedResourceEmail",

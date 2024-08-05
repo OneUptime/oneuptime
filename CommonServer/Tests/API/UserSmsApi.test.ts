@@ -11,7 +11,7 @@ import { describe, expect, it } from "@jest/globals";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import ObjectID from "Common/Types/ObjectID";
-import UserSMS from "Common/AppModels/Models/UserSMS";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 
 jest.mock("../../Utils/Express", () => {
   return {

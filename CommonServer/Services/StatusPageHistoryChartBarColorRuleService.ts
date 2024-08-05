@@ -11,7 +11,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Model from "Common/AppModels/Models/StatusPageHistoryChartBarColorRule";
+import Model from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

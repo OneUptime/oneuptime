@@ -3,7 +3,7 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import { CookieOptions } from "express";
 import JSONWebToken from "./JsonWebToken";
-import User from "Common/AppModels/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import CookieName from "Common/Types/CookieName";

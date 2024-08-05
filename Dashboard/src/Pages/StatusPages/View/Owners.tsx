@@ -9,10 +9,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPageOwnerTeam from "Common/AppModels/Models/StatusPageOwnerTeam";
-import StatusPageOwnerUser from "Common/AppModels/Models/StatusPageOwnerUser";
-import Team from "Common/AppModels/Models/Team";
-import User from "Common/AppModels/Models/User";
+import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageOwners: FunctionComponent<

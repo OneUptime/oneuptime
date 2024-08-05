@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from "../../Models/BaseModels/AnalyticsBaseModel/BaseModel";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONArray, JSONObject, JSONObjectOrArray } from "../JSON";
 import JSONFunctions from "../JSONFunctions";

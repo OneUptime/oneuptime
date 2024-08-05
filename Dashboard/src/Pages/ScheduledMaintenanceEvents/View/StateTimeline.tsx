@@ -9,8 +9,8 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (

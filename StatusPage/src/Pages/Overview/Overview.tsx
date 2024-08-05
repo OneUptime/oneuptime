@@ -10,7 +10,7 @@ import { getAnnouncementEventItem } from "../Announcement/Detail";
 import { getIncidentEventItem } from "../Incidents/Detail";
 import PageComponentProps from "../PageComponentProps";
 import { getScheduledEventEventItem } from "../ScheduledEvent/Detail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -34,21 +34,21 @@ import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import MarkdownViewer from "CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
-import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import StatusPageAnnouncement from "Common/AppModels/Models/StatusPageAnnouncement";
-import StatusPageGroup from "Common/AppModels/Models/StatusPageGroup";
-import StatusPageHistoryChartBarColorRule from "Common/AppModels/Models/StatusPageHistoryChartBarColorRule";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageResource, {
   UptimePrecision,
-} from "Common/AppModels/Models/StatusPageResource";
+} from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,

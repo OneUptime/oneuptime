@@ -11,8 +11,8 @@ import DatabaseConfig from "CommonServer/DatabaseConfig";
 import EmailVerificationTokenService from "CommonServer/Services/EmailVerificationTokenService";
 import MailService from "CommonServer/Services/MailService";
 import logger from "CommonServer/Utils/Logger";
-import EmailVerificationToken from "Common/AppModels/Models/EmailVerificationToken";
-import User from "Common/AppModels/Models/User";
+import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+import User from "Common/Models/DatabaseModels/User";
 
 export default class AuthenticationEmail {
   public static async sendVerificationEmail(user: User): Promise<void> {

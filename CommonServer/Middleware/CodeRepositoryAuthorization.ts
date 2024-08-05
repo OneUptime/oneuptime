@@ -4,7 +4,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import CopilotCodeRepository from "Common/AppModels/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import ObjectID from "Common/Types/ObjectID";
 

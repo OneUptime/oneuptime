@@ -6,8 +6,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalog from "Common/AppModels/Models/ServiceCatalog";
-import ServiceCatalogDependency from "Common/AppModels/Models/ServiceCatalogDependency";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
+import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ServiceCatalogElement from "../../../Components/ServiceCatalog/ServiceElement";
 

@@ -6,7 +6,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import StatusPageService from "CommonServer/Services/StatusPageService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import StatusPage from "Common/AppModels/Models/StatusPage";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 RunCron(
   "StatusPage:SendReportToSubscribers",

@@ -1,11 +1,11 @@
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 
 export default interface IncidentGroup {
   incident: Incident;

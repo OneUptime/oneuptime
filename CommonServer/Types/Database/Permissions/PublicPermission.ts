@@ -1,6 +1,6 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import TablePermission from "./TablePermission";
-import { DatabaseBaseModelType } from "Common/Models/BaseModel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import Permission from "Common/Types/Permission";

@@ -6,8 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Version from "Common/Types/Version";
 import Faker from "Common/Utils/Faker";
-import Probe from "Common/AppModels/Models/Probe";
-import User from "Common/AppModels/Models/User";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import User from "Common/Models/DatabaseModels/User";
 import { fail } from "assert";
 import { describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 

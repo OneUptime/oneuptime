@@ -2,7 +2,7 @@ import NotificationMethodView from "../../Components/NotificationMethods/Notific
 import NotifyAfterDropdownOptions from "../../Components/NotificationRule/NotifyAfterMinutesDropdownOptions";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -17,11 +17,11 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import User from "CommonUI/src/Utils/User";
-import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
-import UserCall from "Common/AppModels/Models/UserCall";
-import UserEmail from "Common/AppModels/Models/UserEmail";
-import UserNotificationRule from "Common/AppModels/Models/UserNotificationRule";
-import UserSMS from "Common/AppModels/Models/UserSMS";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import UserCall from "Common/Models/DatabaseModels/UserCall";
+import UserEmail from "Common/Models/DatabaseModels/UserEmail";
+import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import React, {
   Fragment,
   FunctionComponent,

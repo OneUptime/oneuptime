@@ -4,7 +4,7 @@ import AccessControlUtil from "./AccessControlPermission";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
 import TablePermission from "./TablePermission";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 

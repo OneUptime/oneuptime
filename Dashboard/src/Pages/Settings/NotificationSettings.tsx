@@ -14,7 +14,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL, BILLING_ENABLED } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   Fragment,
   FunctionComponent,

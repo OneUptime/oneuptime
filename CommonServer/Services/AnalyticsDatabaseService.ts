@@ -30,7 +30,7 @@ import Realtime from "../Utils/Realtime";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
 import { ExecResult } from "@clickhouse/client";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { WorkflowRoute } from "Common/ServiceRoute";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";

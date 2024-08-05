@@ -1,5 +1,5 @@
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
-import BaseModel from "Common/Models/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";

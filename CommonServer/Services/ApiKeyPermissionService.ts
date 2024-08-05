@@ -5,7 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Model from "Common/AppModels/Models/ApiKeyPermission";
+import Model from "Common/Models/DatabaseModels/ApiKeyPermission";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

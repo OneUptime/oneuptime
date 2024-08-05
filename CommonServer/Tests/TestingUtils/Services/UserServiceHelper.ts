@@ -2,7 +2,7 @@ import CreateBy from "../../../Types/Database/CreateBy";
 import CompanySize from "Common/Types/Company/CompanySize";
 import JobRole from "Common/Types/Company/JobRole";
 import Faker from "Common/Utils/Faker";
-import User from "Common/AppModels/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 
 export default class UserTestService {
   public static generateRandomUser(): CreateBy<User> {

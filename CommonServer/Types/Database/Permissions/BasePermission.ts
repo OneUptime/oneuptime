@@ -10,7 +10,7 @@ import SelectPermission from "./SelectPermission";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
 import UserPermissions from "./UserPermission";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";

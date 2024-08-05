@@ -1,8 +1,8 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "Common/Types/ArrayUtil";
 import Dictionary from "Common/Types/Dictionary";
 import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
-import Models from "Common/AppModels/Models/Index";
+import Models from "Common/Models/DatabaseModels/Index";
 
 export interface ModelDocumentation {
   name: string;

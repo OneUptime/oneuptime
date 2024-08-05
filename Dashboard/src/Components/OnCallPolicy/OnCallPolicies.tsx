@@ -1,6 +1,6 @@
 import OnCallPolicyElement from "./OnCallPolicy";
-import Monitor from "Common/AppModels/Models/Monitor";
-import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

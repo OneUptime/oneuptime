@@ -19,10 +19,10 @@ import { faker } from "@faker-js/faker";
 import { describe, expect, it } from "@jest/globals";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/AppModels/Models/Project";
-import Team from "Common/AppModels/Models/Team";
-import TeamMember from "Common/AppModels/Models/TeamMember";
-import User from "Common/AppModels/Models/User";
+import Project from "Common/Models/DatabaseModels/Project";
+import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 

@@ -10,13 +10,13 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import Label from "Common/AppModels/Models/Label";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
-import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
-import StatusPage from "Common/AppModels/Models/StatusPage";
-import Team from "Common/AppModels/Models/Team";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

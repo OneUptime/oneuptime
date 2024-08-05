@@ -15,7 +15,7 @@ import {
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import MimeType from "Common/Types/File/MimeType";
 import ObjectID from "Common/Types/ObjectID";
-import FileModel from "Common/AppModels/Models/File";
+import FileModel from "Common/Models/DatabaseModels/File";
 import React from "react";
 import { act } from "react-test-renderer";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";

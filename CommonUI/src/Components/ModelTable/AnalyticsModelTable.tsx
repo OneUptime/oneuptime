@@ -7,8 +7,8 @@ import Sort from "../../Utils/BaseDatabase/Sort";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
-} from "Common/AnalyticsModels/BaseModel";
-import { DatabaseBaseModelType } from "Common/Models/BaseModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";

@@ -14,8 +14,8 @@ import Page from "CommonUI/src/Components/Page/Page";
 import API from "CommonUI/src/Utils/API/API";
 import UiAnalytics from "CommonUI/src/Utils/Analytics";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import Project from "Common/AppModels/Models/Project";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,

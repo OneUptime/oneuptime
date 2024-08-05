@@ -15,8 +15,8 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import SimpleLogViewer from "CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentState from "Common/AppModels/Models/IncidentState";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import React, {
   Fragment,
   FunctionComponent,

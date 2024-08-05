@@ -5,9 +5,9 @@ import IncidentService from "CommonServer/Services/IncidentService";
 import IncidentStateTimelineService from "CommonServer/Services/IncidentStateTimelineService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
-import Project from "Common/AppModels/Models/Project";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class AddStartDateToIncidentStateTimeline extends DataMigrationBase {
   public constructor() {

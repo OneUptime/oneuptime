@@ -4,7 +4,7 @@ import AccessControlUtil from "./AccessControlPermission";
 import PermissionUtil from "./PermissionsUtil";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class DeletePermission {

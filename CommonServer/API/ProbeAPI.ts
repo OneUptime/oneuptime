@@ -11,7 +11,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Probe from "Common/AppModels/Models/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class Ingestor extends BaseAPI<Probe, ProbeServiceType> {
   public constructor() {

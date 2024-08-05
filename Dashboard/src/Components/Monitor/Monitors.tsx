@@ -1,6 +1,6 @@
 import MonitorElement from "./Monitor";
 import TableColumnListComponent from "CommonUI/src/Components/TableColumnList/TableColumnListComponent";
-import Monitor from "Common/AppModels/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -2,7 +2,7 @@ import UserElement from "../../../Components/User/User";
 import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -21,9 +21,9 @@ import API from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ScheduledMaintenanceInternalNote from "Common/AppModels/Models/ScheduledMaintenanceInternalNote";
-import ScheduledMaintenanceNoteTemplate from "Common/AppModels/Models/ScheduledMaintenanceNoteTemplate";
-import User from "Common/AppModels/Models/User";
+import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,

@@ -3,8 +3,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import UserService from "CommonServer/Services/UserService";
-import TeamMember from "Common/AppModels/Models/TeamMember";
-import User from "Common/AppModels/Models/User";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 
 export default class MigrateDefaultUserNotificationSetting extends DataMigrationBase {
   public constructor() {

@@ -2,7 +2,7 @@
 import Route from "Common/Types/API/Route";
 import URLFromProject from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import File from "Common/AppModels/Models/File";
+import File from "Common/Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

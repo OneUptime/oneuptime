@@ -16,7 +16,7 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import StatusPageDomain from "Common/AppModels/Models/StatusPageDomain";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 
 export default class StatusPageDomainAPI extends BaseAPI<
   StatusPageDomain,

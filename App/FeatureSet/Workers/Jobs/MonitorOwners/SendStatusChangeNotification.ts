@@ -13,10 +13,10 @@ import MonitorStatusTimelineService from "CommonServer/Services/MonitorStatusTim
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Monitor from "Common/AppModels/Models/Monitor";
-import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
-import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
-import User from "Common/AppModels/Models/User";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "MonitorOwner:SendStatusChangeEmail",

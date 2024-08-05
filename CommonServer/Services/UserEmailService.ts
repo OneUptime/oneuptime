@@ -11,7 +11,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
-import Model from "Common/AppModels/Models/UserEmail";
+import Model from "Common/Models/DatabaseModels/UserEmail";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

@@ -10,7 +10,7 @@ import {
 import BillingService from "CommonServer/Services/BillingService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import logger from "CommonServer/Utils/Logger";
-import Project from "Common/AppModels/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(
   "PaymentProvider:CheckSubscriptionStatus",

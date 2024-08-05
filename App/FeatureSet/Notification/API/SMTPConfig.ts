@@ -14,7 +14,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import ProjectSmtpConfig from "Common/AppModels/Models/ProjectSmtpConfig";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 
 const router: ExpressRouter = Express.getRouter();
 

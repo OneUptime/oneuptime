@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
@@ -15,11 +15,11 @@ import IncidentService from "CommonServer/Services/IncidentService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Incident from "Common/AppModels/Models/Incident";
-import IncidentInternalNote from "Common/AppModels/Models/IncidentInternalNote";
-import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
-import Monitor from "Common/AppModels/Models/Monitor";
-import User from "Common/AppModels/Models/User";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",

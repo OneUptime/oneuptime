@@ -1,7 +1,7 @@
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
-import TenantModel from "../../Models/BaseModels/BaseModel/TenantModel";
+import TenantModel from "../../Models/DatabaseModels/DatabaseBaseModel/TenantModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
@@ -64,7 +64,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   name: "Project",
 })
 @TenantColumn("_id")
-export default class Model extends TenantModel {
+export default class Project extends TenantModel {
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

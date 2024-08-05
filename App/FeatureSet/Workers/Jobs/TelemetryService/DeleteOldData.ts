@@ -7,7 +7,7 @@ import LogService from "CommonServer/Services/LogService";
 import SpanService from "CommonServer/Services/SpanService";
 import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
 import QueryHelper from "CommonServer/Types/AnalyticsDatabase/QueryHelper";
-import TelemetryService from "Common/AppModels/Models/TelemetryService";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 RunCron(
   "TelemetryService:DeleteOldData",

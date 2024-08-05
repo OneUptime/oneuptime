@@ -1,4 +1,4 @@
-import GlobalConfigModel from "../../Models/BaseModels/BaseModel/GlobalConfig";
+import GlobalConfigModel from "../../Models/DatabaseModels/DatabaseBaseModel/GlobalConfig";
 import Hostname from "../../Types/API/Hostname";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

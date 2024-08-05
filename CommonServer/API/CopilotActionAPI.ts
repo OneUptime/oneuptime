@@ -1,4 +1,4 @@
-import CopilotCodeRepository from "Common/AppModels/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import CopilotActionService, {
   Service as CopilotActionServiceType,
 } from "../Services/CopilotActionService";
@@ -12,7 +12,7 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import CopilotAction from "Common/AppModels/Models/CopilotAction";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 

@@ -5,7 +5,7 @@ import {
   CategoryCheckboxValue,
   CheckboxCategory,
 } from "./CategoryCheckboxTypes";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface CategoryCheckboxOptionsAndCategories {
