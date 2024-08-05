@@ -15,7 +15,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 import LogMonitorSummaryView from "./LogMonitorView";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 
-
 export interface ComponentProps {
   monitorType: MonitorType;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
@@ -137,7 +136,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         )}
 
       {props.incomingMonitorRequest &&
-        props.monitorType === MonitorType.IncomingRequest ? (
+      props.monitorType === MonitorType.IncomingRequest ? (
         <IncomingRequestMonitorView
           incomingMonitorRequest={props.incomingMonitorRequest}
         />
@@ -146,7 +145,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       )}
 
       {props.monitorType === MonitorType.Server &&
-        props.serverMonitorResponse ? (
+      props.serverMonitorResponse ? (
         <ServerMonitorSummaryView
           serverMonitorResponse={props.serverMonitorResponse}
         />

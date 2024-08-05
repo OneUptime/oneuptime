@@ -610,7 +610,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         serverMonitorResponse={serverMonitorResponse}
         telemetryMonitorSummary={{
           lastCheckedAt: monitor?.telemetryMonitorLastMonitorAt,
-          nextCheckAt: monitor?.telemetryMonitorNextMonitorAt
+          nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
         }}
       />
 

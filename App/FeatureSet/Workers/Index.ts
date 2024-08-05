@@ -67,7 +67,7 @@ import logger from "CommonServer/Utils/Logger";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
-// Telemetry Monitors. 
+// Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 const WorkersFeatureSet: FeatureSet = {
