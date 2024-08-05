@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from "../AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "../Models/BaseModels/AnalyticsBaseModel/BaseModel";
 import BaseModel from "../Models/BaseModels/BaseModel/BaseModel";
 import HTTPErrorResponse from "../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../Types/API/HTTPMethod";

@@ -1,4 +1,4 @@
-import BaseModel from "../Models/BaseModel";
+import BaseModel from "../Models/BaseModels/BaseModel/BaseModel";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import OneUptimeDate from "./Date";
 import DiskSize from "./DiskSize";

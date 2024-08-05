@@ -1,5 +1,5 @@
 import AnalyticsBaseModel from "../../Models/BaseModels/AnalyticsBaseModel/BaseModel";
-import BaseModel from "../../BaseModel/BaseModel";
+import BaseModel from "../../Models/BaseModels/BaseModel/BaseModel";
 import { JSONArray, JSONObject, JSONObjectOrArray } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import Typeof from "../Typeof";
