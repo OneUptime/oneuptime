@@ -1,5 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
-import BaseModel from "./BaseModel";
+import BaseModel from "./DatabaseBaseModel";
 
 export default class AccessControlModel extends BaseModel {
   // Please override this property in the child class

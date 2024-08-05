@@ -7,7 +7,7 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import BaseModel from "./BaseModel";
+import BaseModel from "./DatabaseBaseModel";
 import { Column } from "typeorm";
 
 @SlugifyColumn("name", "slug")
