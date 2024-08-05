@@ -23,7 +23,7 @@ import {
 } from "CommonUI/src/Components/Charts/Line/LineChart";
 import MonitorMetricsByMinute, {
   MonitorMetricsMiscData,
-} from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+} from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React from "react";
 

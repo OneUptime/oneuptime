@@ -5,7 +5,7 @@ import FiltersForm from "../Filters/FiltersForm";
 import FieldType from "../Types/FieldType";
 import LogItem from "./LogItem";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import Log from "Common/AppModels/AnalyticsModels/Log";
+import Log from "Common/Models/AnalyticsModels/Log";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import React, { FunctionComponent, ReactElement, Ref } from "react";
 import Toggle from "../Toggle/Toggle";

@@ -4,7 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Metric from "Common/AppModels/AnalyticsModels/Metric";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";

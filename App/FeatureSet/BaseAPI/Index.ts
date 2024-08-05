@@ -321,10 +321,10 @@ import ProbeOwnerUserService, {
 
 import FeatureSet from "CommonServer/Types/FeatureSet";
 import Express, { ExpressApplication } from "CommonServer/Utils/Express";
-import Log from "Common/AppModels/AnalyticsModels/Log";
-import Metric from "Common/AppModels/AnalyticsModels/Metric";
-import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
-import Span from "Common/AppModels/AnalyticsModels/Span";
+import Log from "Common/Models/AnalyticsModels/Log";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
+import Span from "Common/Models/AnalyticsModels/Span";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
@@ -414,7 +414,7 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
-import TelemetryAttribute from "Common/AppModels/AnalyticsModels/TelemetryAttribute";
+import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {

@@ -24,14 +24,14 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Log from "Common/AppModels/AnalyticsModels/Log";
+import Log from "Common/Models/AnalyticsModels/Log";
 import Metric, {
   MetricPointType,
-} from "Common/AppModels/AnalyticsModels/Metric";
+} from "Common/Models/AnalyticsModels/Metric";
 import Span, {
   SpanKind,
   SpanStatus,
-} from "Common/AppModels/AnalyticsModels/Span";
+} from "Common/Models/AnalyticsModels/Span";
 import protobuf from "protobufjs";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";

@@ -1,3 +1,3 @@
-import UptimeUtil from "CommonProject/Utils/Uptime/UptimeUtil";
+import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 
 export default UptimeUtil;

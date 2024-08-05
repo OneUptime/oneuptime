@@ -10,7 +10,7 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import CommonModel, {
   Record,
   RecordValue,
-} from "Common/AnalyticsModels/CommonModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";

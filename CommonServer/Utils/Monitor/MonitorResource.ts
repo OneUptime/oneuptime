@@ -40,7 +40,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
-import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";

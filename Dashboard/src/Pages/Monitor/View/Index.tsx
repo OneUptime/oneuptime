@@ -44,7 +44,7 @@ import AnalyticsModelAPI, {
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe, {

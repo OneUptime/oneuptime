@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import GlobalCache from "CommonServer/Infrastructure/GlobalCache";
 import Metric, {
   AggregationTemporality,
-} from "Common/AppModels/AnalyticsModels/Metric";
+} from "Common/Models/AnalyticsModels/Metric";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "CommonServer/Services/TelemetryAttributeService";
 import Dictionary from "Common/Types/Dictionary";

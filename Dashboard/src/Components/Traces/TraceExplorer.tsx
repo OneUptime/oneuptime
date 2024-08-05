@@ -31,7 +31,7 @@ import AnalyticsModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsMod
 import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
 import Select from "CommonUI/src/Utils/BaseDatabase/Select";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Span, { SpanStatus } from "Common/AppModels/AnalyticsModels/Span";
+import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

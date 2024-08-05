@@ -1,6 +1,6 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import Span from "Common/AppModels/AnalyticsModels/Span";
+import Span from "Common/Models/AnalyticsModels/Span";
 
 export class SpanService extends AnalyticsDatabaseService<Span> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

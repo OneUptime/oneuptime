@@ -2,7 +2,7 @@ import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import Log from "Common/AppModels/AnalyticsModels/Log";
+import Log from "Common/Models/AnalyticsModels/Log";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";

@@ -57,7 +57,7 @@ import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import UptimeUtil from "CommonProject/Utils/Uptime/UptimeUtil";
+import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 
 export interface StatusPageReportItem {
   resourceName: string;

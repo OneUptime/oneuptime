@@ -10,7 +10,7 @@ import {
   EvaluateOverTimeType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 
 export default class EvaluateOverTime {
   public static async getValueOverTime(data: {

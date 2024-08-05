@@ -9,7 +9,7 @@ import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Span, {
   SpanKind,
   SpanStatus,
-} from "Common/AppModels/AnalyticsModels/Span";
+} from "Common/Models/AnalyticsModels/Span";
 import React, {
   Fragment,
   FunctionComponent,
