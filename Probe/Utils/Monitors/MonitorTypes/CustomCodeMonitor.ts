@@ -13,7 +13,7 @@ export interface CustomCodeMonitorOptions {
 export default class CustomCodeMonitor {
   public static async execute(
     options: CustomCodeMonitorOptions,
-  ): Promise<CustomCodeMonitor | null> {
+  ): Promise<CustomCodeMonitorResponse | null> {
     if (!options) {
       // this should never happen
       options = {

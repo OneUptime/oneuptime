@@ -28,7 +28,8 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const customCodeMonitorResponse: CustomCodeMonitorResponse =
     props.customCodeMonitorResponse;
 
-  let executionTimeInMS: number = customCodeMonitorResponse.executionTimeInMS || 0;
+  let executionTimeInMS: number =
+    customCodeMonitorResponse.executionTimeInMS || 0;
 
   if (executionTimeInMS > 0) {
     executionTimeInMS = Math.round(executionTimeInMS);

@@ -21,7 +21,7 @@ export default interface ProbeMonitorResponse {
   monitorId: ObjectID;
   probeId: ObjectID;
   failureCause: string;
-  sslResponse?: SslMonitorResponse| undefined;
+  sslResponse?: SslMonitorResponse | undefined;
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
   monitoredAt: Date;

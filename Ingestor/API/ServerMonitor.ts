@@ -109,9 +109,7 @@ router.post(
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceUtil.monitorResource(
-          serverMonitorResponse,
-        );
+        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
 
       return Response.sendJsonObjectResponse(req, res, {
         probeApiIngestResponse: probeApiIngestResponse,

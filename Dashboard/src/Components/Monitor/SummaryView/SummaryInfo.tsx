@@ -118,8 +118,8 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     <div>
       {props.probeMonitorResponses &&
         props.probeMonitorResponses.map(
-          (probeMonitorResponses: ProbeMonitorResponse, index: number) => {
-            return getProbableMonitorSummarysInfo(probeMonitorResponses, index);
+          (probeMonitorResponse: ProbeMonitorResponse, index: number) => {
+            return getProbableMonitorSummarysInfo(probeMonitorResponse, index);
           },
         )}
 
@@ -135,7 +135,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       {props.monitorType === MonitorType.Server &&
       props.serverMonitorResponse ? (
         <ServerMonitorSummaryView
-        serverMonitorResponse={props.serverMonitorResponse}
+          serverMonitorResponse={props.serverMonitorResponse}
         />
       ) : (
         <></>

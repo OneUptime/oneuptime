@@ -21,13 +21,13 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const syntheticMonitors: Array<SyntheticMonitorResponse> =
+  const syntheticMonitorResponses: Array<SyntheticMonitorResponse> =
     props.probeMonitorResponse.syntheticMonitorResponse;
 
   return (
     <div>
-      {syntheticMonitors &&
-        syntheticMonitors.map(
+      {syntheticMonitorResponses &&
+        syntheticMonitorResponses.map(
           (
             syntheticMonitorResponse: SyntheticMonitorResponse,
             index: number,
@@ -39,7 +39,7 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
                   syntheticMonitorResponse={syntheticMonitorResponse}
                   monitoredAt={props.probeMonitorResponse.monitoredAt}
                 />
-                {index !== syntheticMonitors.length - 1 && (
+                {index !== syntheticMonitorResponses.length - 1 && (
                   <HorizontalRule />
                 )}
               </div>

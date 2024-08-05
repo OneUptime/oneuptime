@@ -19,7 +19,7 @@ export default class CustomCodeMonitoringCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentExecutionTime: number =
-      syntheticMonitorResponse.executionTimeInMS || 0;
+        syntheticMonitorResponse.executionTimeInMS || 0;
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentExecutionTime,

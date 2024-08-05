@@ -56,10 +56,7 @@ RunCron(
           hostname: "",
         };
 
-        await MonitorResourceUtil.monitorResource(
-          serverMonitorResponse,
-        );
-        
+        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
       } catch (error) {
         logger.error(
           `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,

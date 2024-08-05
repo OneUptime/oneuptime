@@ -294,7 +294,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         });
 
-        const probeMonitors: Array<MonitorStepProbeResponse> = [];
+        const probeMonitorResponses: Array<MonitorStepProbeResponse> = [];
 
         for (let i: number = 0; i < monitorProbes.data.length; i++) {
           const monitorProbe: MonitorProbe | undefined = monitorProbes.data[i];
@@ -311,10 +311,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             continue;
           }
 
-          probeMonitors.push(monitorProbe?.lastMonitoringLog);
+          probeMonitorResponses.push(monitorProbe?.lastMonitoringLog);
         }
 
-        setProbeResponses(probeMonitors);
+        setProbeResponses(probeMonitorResponses);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));

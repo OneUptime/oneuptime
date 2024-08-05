@@ -2,11 +2,11 @@ import { INGESTOR_URL } from "../../Config";
 import ProbeUtil from "../Probe";
 import ProbeAPIRequest from "../ProbeAPIRequest";
 import ApiMonitor, { APIResponse } from "./MonitorTypes/ApiMonitor";
-import CustomCodeMonitorResponse from "./MonitorTypes/CustomCodeMonitorResponse";
+import CustomCodeMonitor from "./MonitorTypes/CustomCodeMonitor";
 import PingMonitor, { PingResponse } from "./MonitorTypes/PingMonitor";
-import PortMonitorResponse, { PortMonitorResponse } from "./MonitorTypes/PortMonitorResponse";
+import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
-import SyntheticMonitorResponse from "./MonitorTypes/SyntheticMonitorResponse";
+import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";
@@ -16,7 +16,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitorResponse/CustomCodeMonitorResponse";
+import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -31,7 +31,7 @@ import logger from "CommonServer/Utils/Logger";
 import Monitor from "Model/Models/Monitor";
 
 export default class MonitorUtil {
-  public static async probeMonitorResponse(
+  public static async probeMonitor(
     monitor: Monitor,
   ): Promise<Array<ProbeMonitorResponse | null>> {
     const results: Array<ProbeMonitorResponse | null> = [];
@@ -145,7 +145,7 @@ export default class MonitorUtil {
       if (LocalCache.getString("PROBE", "PING_MONITORING") === "PORT") {
         // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
 
-        const response: PortMonitorResponse | null = await PortMonitorResponse.ping(
+        const response: PortMonitorResponse | null = await PortMonitor.ping(
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
@@ -197,7 +197,7 @@ export default class MonitorUtil {
 
       result.monitorDestinationPort = monitorStep.data.monitorDestinationPort;
 
-      const response: PortMonitorResponse | null = await PortMonitorResponse.ping(
+      const response: PortMonitorResponse | null = await PortMonitor.ping(
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
@@ -223,7 +223,7 @@ export default class MonitorUtil {
       }
 
       const response: Array<SyntheticMonitorResponse> | null =
-        await SyntheticMonitorResponse.execute({
+        await SyntheticMonitor.execute({
           script: monitorStep.data.customCode,
           monitorId: monitor.id!,
           screenSizeTypes: monitorStep.data
@@ -246,7 +246,7 @@ export default class MonitorUtil {
       }
 
       const response: CustomCodeMonitorResponse | null =
-        await CustomCodeMonitorResponse.execute({
+        await CustomCodeMonitor.execute({
           script: monitorStep.data.customCode,
           monitorId: monitor.id!,
         });

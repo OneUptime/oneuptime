@@ -534,7 +534,7 @@ export default class MonitorResourceUtil {
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse) {
-      for (const syntheticMonitor of (
+      for (const syntheticMonitorResponse of (
         data.dataToProcess as ProbeMonitorResponse
       ).syntheticMonitorResponse || []) {
         const monitorMetricsByMinute: MonitorMetricsByMinute =
@@ -543,13 +543,13 @@ export default class MonitorResourceUtil {
         monitorMetricsByMinute.projectId = data.projectId;
         monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
         monitorMetricsByMinute.metricValue =
-          syntheticMonitor.executionTimeInMS;
+          syntheticMonitorResponse.executionTimeInMS;
         monitorMetricsByMinute.miscData = {
           probeId: (
             data.dataToProcess as ProbeMonitorResponse
           ).probeId.toString(),
-          browserType: syntheticMonitor.browserType,
-          screenSizeType: syntheticMonitor.screenSizeType,
+          browserType: syntheticMonitorResponse.browserType,
+          screenSizeType: syntheticMonitorResponse.screenSizeType,
         };
 
         itemsToSave.push(monitorMetricsByMinute);
@@ -559,7 +559,7 @@ export default class MonitorResourceUtil {
     if (
       (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
     ) {
-      const customCodeMonitor: CustomCodeMonitorResponse = (
+      const customCodeMonitorResponse: CustomCodeMonitorResponse = (
         data.dataToProcess as ProbeMonitorResponse
       ).customCodeMonitorResponse!;
 
@@ -569,7 +569,7 @@ export default class MonitorResourceUtil {
       monitorMetricsByMinute.projectId = data.projectId;
       monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
       monitorMetricsByMinute.metricValue =
-        customCodeMonitor.executionTimeInMS;
+        customCodeMonitorResponse.executionTimeInMS;
       monitorMetricsByMinute.miscData = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
