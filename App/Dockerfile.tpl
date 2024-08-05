@@ -39,13 +39,6 @@ RUN npm install
 COPY ./Common /usr/src/Common
 
 
-WORKDIR /usr/src/Model
-COPY ./Model/package*.json /usr/src/Model/
-# Set version in ./Model/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
-RUN npm install
-COPY ./Model /usr/src/Model
-
 WORKDIR /usr/src/CommonProject
 COPY ./CommonProject/package*.json /usr/src/CommonProject/
 # Set version in ./CommonProject/package.json to the APP_VERSION
@@ -53,15 +46,12 @@ RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Comm
 RUN npm install
 COPY ./CommonProject /usr/src/CommonProject
 
-
-
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 # Set version in ./CommonServer/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
-
 
 
 ENV PRODUCTION=true

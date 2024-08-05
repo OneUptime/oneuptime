@@ -7,7 +7,7 @@ import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
 import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

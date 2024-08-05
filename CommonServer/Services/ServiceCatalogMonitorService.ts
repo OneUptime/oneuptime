@@ -3,7 +3,7 @@ import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Model/Models/ServiceCatalogMonitor";
+import Model from "Common/AppModels/Models/ServiceCatalogMonitor";
 import ObjectID from "Common/Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {

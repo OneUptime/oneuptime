@@ -2,8 +2,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
 import React, {
   FunctionComponent,
   ReactElement,

@@ -24,7 +24,7 @@ import EventItem, {
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
+import StatusPageAnnouncement from "Common/AppModels/Models/StatusPageAnnouncement";
 import React, {
   FunctionComponent,
   ReactElement,

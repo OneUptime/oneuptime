@@ -15,9 +15,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { UserTenantAccessPermission } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
-import ApiKey from "Model/Models/ApiKey";
-import GlobalConfig from "Model/Models/GlobalConfig";
-import User from "Model/Models/User";
+import ApiKey from "Common/AppModels/Models/ApiKey";
+import GlobalConfig from "Common/AppModels/Models/GlobalConfig";
+import User from "Common/AppModels/Models/User";
 
 export default class ProjectMiddleware {
   public static getProjectId(req: ExpressRequest): ObjectID | null {

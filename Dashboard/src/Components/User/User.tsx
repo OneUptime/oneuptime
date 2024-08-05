@@ -6,7 +6,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import Image from "CommonUI/src/Components/Image/Image";
 import { FILE_URL } from "CommonUI/src/Config";
 import BlankProfilePic from "CommonUI/src/Images/users/blank-profile.svg";
-import User from "Model/Models/User";
+import User from "Common/AppModels/Models/User";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

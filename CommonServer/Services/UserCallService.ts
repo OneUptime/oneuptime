@@ -13,8 +13,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
-import Project from "Model/Models/Project";
-import Model from "Model/Models/UserCall";
+import Project from "Common/AppModels/Models/Project";
+import Model from "Common/AppModels/Models/UserCall";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

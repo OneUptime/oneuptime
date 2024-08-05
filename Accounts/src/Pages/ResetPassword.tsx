@@ -6,7 +6,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import Link from "CommonUI/src/Components/Link/Link";
 import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import User from "Model/Models/User";
+import User from "Common/AppModels/Models/User";
 import React, { useState } from "react";
 
 const RegisterPage: () => JSX.Element = () => {

@@ -2,7 +2,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import TeamMember from "Model/Models/TeamMember";
+import TeamMember from "Common/AppModels/Models/TeamMember";
 
 export default class ProjectUser {
   public static async fetchProjectUsersAsDropdownOptions(

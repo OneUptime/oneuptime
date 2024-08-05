@@ -8,8 +8,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
 import ModelList from "CommonUI/src/Components/ModelList/ModelList";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleLayer from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

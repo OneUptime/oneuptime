@@ -24,9 +24,9 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Log from "Model/AnalyticsModels/Log";
-import Metric, { MetricPointType } from "Model/AnalyticsModels/Metric";
-import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
+import Log from "Common/AppModels/AnalyticsModels/Log";
+import Metric, { MetricPointType } from "Common/AppModels/AnalyticsModels/Metric";
+import Span, { SpanKind, SpanStatus } from "Common/AppModels/AnalyticsModels/Span";
 import protobuf from "protobufjs";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";

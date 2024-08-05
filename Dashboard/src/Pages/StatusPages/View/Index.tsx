@@ -6,8 +6,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import StatusPage from "Model/Models/StatusPage";
+import Label from "Common/AppModels/Models/Label";
+import StatusPage from "Common/AppModels/Models/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageView: FunctionComponent<

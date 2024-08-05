@@ -9,7 +9,7 @@ import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorGroupResource from "Model/Models/MonitorGroupResource";
+import MonitorGroupResource from "Common/AppModels/Models/MonitorGroupResource";
 import React, {
   Fragment,
   FunctionComponent,

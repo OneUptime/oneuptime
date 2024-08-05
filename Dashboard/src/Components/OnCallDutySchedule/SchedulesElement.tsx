@@ -1,5 +1,5 @@
 import OnCallDutyScheduleElement from "./ScheduleElement";
-import OnCallDutySchedule from "Model/Models/OnCallDutyPolicySchedule";
+import OnCallDutySchedule from "Common/AppModels/Models/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

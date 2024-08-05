@@ -6,7 +6,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "CommonServer/EnvironmentConfig";
 import UserOnCallLogService from "CommonServer/Services/UserOnCallLogService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import UserOnCallLog from "Model/Models/UserOnCallLog";
+import UserOnCallLog from "Common/AppModels/Models/UserOnCallLog";
 
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error

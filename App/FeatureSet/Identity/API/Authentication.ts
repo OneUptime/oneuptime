@@ -35,9 +35,9 @@ import Express, {
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
 import TwoFactorAuth from "CommonServer/Utils/TwoFactorAuth";
-import EmailVerificationToken from "Model/Models/EmailVerificationToken";
-import User from "Model/Models/User";
-import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
+import EmailVerificationToken from "Common/AppModels/Models/EmailVerificationToken";
+import User from "Common/AppModels/Models/User";
+import UserTwoFactorAuth from "Common/AppModels/Models/UserTwoFactorAuth";
 
 const router: ExpressRouter = Express.getRouter();
 

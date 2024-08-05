@@ -6,10 +6,10 @@ import ScheduledMaintenanceServiceHelper from "../TestingUtils/Services/Schedule
 import ScheduledMaintenanceStateServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceStateServiceHelper";
 import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
 import { describe, expect, it } from "@jest/globals";
-import Project from "Model/Models/Project";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import User from "Model/Models/User";
+import Project from "Common/AppModels/Models/Project";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
+import User from "Common/AppModels/Models/User";
 
 // mock PostgresDatabase
 const testDatabase: Database = new Database();

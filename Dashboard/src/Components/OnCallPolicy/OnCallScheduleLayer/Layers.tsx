@@ -23,8 +23,8 @@ import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleLayer from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

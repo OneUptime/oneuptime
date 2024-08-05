@@ -23,7 +23,7 @@ import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import {
   describe,
   expect,

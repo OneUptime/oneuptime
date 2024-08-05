@@ -26,7 +26,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import API from "CommonUI/src/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Model/AnalyticsModels/Metric";
+import Metric from "Common/AppModels/AnalyticsModels/Metric";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";

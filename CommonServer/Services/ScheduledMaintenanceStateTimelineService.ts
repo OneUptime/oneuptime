@@ -16,13 +16,13 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor(postgresDatabase?: PostgresDatabase) {

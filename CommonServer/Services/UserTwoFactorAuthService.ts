@@ -2,11 +2,11 @@ import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Model/Models/UserTwoFactorAuth";
+import Model from "Common/AppModels/Models/UserTwoFactorAuth";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import UserService from "./UserService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import User from "Model/Models/User";
+import User from "Common/AppModels/Models/User";
 import DeleteBy from "../Types/Database/DeleteBy";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 

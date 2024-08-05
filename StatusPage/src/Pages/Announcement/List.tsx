@@ -26,7 +26,7 @@ import EventHistoryList, {
 } from "CommonUI/src/Components/EventHistoryList/EventHistoryList";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
+import StatusPageAnnouncement from "Common/AppModels/Models/StatusPageAnnouncement";
 import React, {
   FunctionComponent,
   ReactElement,

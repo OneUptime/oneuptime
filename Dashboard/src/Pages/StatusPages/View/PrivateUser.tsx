@@ -7,7 +7,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPagePrivateUser from "Common/AppModels/Models/StatusPagePrivateUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageDelete: FunctionComponent<

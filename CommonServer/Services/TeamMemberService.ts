@@ -30,9 +30,9 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Model/Models/Project";
-import TeamMember from "Model/Models/TeamMember";
-import User from "Model/Models/User";
+import Project from "Common/AppModels/Models/Project";
+import TeamMember from "Common/AppModels/Models/TeamMember";
+import User from "Common/AppModels/Models/User";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
   public constructor(postgresDatabase?: PostgresDatabase) {

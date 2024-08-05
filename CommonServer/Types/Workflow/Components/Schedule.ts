@@ -13,7 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import ScheduleComponents from "Common/Types/Workflow/Components/Schedule";
-import Workflow from "Model/Models/Workflow";
+import Workflow from "Common/AppModels/Models/Workflow";
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {

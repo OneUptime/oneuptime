@@ -22,9 +22,9 @@ import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
 import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import User from "CommonUI/src/Utils/User";
-import Incident from "Model/Models/Incident";
-import Project from "Model/Models/Project";
-import TeamMember from "Model/Models/TeamMember";
+import Incident from "Common/AppModels/Models/Incident";
+import Project from "Common/AppModels/Models/Project";
+import TeamMember from "Common/AppModels/Models/TeamMember";
 import React, {
   FunctionComponent,
   ReactElement,

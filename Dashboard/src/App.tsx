@@ -43,8 +43,8 @@ import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import BillingPaymentMethod from "Model/Models/BillingPaymentMethod";
-import Project from "Model/Models/Project";
+import BillingPaymentMethod from "Common/AppModels/Models/BillingPaymentMethod";
+import Project from "Common/AppModels/Models/Project";
 import React, { useEffect, useState } from "react";
 import {
   Route as PageRoute,

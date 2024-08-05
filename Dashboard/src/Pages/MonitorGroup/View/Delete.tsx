@@ -5,7 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorGroup from "Model/Models/MonitorGroup";
+import MonitorGroup from "Common/AppModels/Models/MonitorGroup";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorGroupDelete: FunctionComponent<

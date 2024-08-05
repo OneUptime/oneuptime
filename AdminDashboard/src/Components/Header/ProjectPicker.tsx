@@ -10,7 +10,7 @@ import Toggle from "CommonUI/src/Components/Toggle/Toggle";
 import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import React, {
   FunctionComponent,
   ReactElement,

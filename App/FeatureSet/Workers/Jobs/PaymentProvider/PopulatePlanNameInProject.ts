@@ -8,7 +8,7 @@ import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
 import ProjectService from "CommonServer/Services/ProjectService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 
 RunCron(
   "PaymentProvider:PopulatePlanNameInProject",

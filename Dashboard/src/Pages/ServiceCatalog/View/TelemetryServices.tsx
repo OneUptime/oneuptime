@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalogTelemetryService from "Model/Models/ServiceCatalogTelemetryService";
+import ServiceCatalogTelemetryService from "Common/AppModels/Models/ServiceCatalogTelemetryService";
 import React, {
   Fragment,
   FunctionComponent,
@@ -19,7 +19,7 @@ import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";

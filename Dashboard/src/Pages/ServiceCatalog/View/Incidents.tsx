@@ -16,7 +16,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import API from "CommonUI/src/Utils/API/API";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ServiceCatalogMonitor from "Model/Models/ServiceCatalogMonitor";
+import ServiceCatalogMonitor from "Common/AppModels/Models/ServiceCatalogMonitor";
 
 const ServiceCatalogIncidents: FunctionComponent<
   PageComponentProps

@@ -5,13 +5,13 @@ import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentTemplate from "Model/Models/IncidentTemplate";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import Team from "Model/Models/Team";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import IncidentTemplate from "Common/AppModels/Models/IncidentTemplate";
+import Label from "Common/AppModels/Models/Label";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import Team from "Common/AppModels/Models/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (

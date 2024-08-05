@@ -3,7 +3,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPage from "Model/Models/StatusPage";
+import StatusPage from "Common/AppModels/Models/StatusPage";
 import React, {
   Fragment,
   FunctionComponent,

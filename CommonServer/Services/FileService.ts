@@ -5,7 +5,7 @@ import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
-import File from "Model/Models/File";
+import File from "Common/AppModels/Models/File";
 
 export class Service extends DatabaseService<File> {
   public constructor(postgresDatabase?: PostgresDatabase) {

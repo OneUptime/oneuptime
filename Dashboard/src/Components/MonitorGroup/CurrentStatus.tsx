@@ -9,8 +9,8 @@ import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import { APP_API_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import MonitorGroup from "Common/AppModels/Models/MonitorGroup";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

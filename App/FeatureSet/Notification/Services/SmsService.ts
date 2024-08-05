@@ -17,8 +17,8 @@ import ProjectService from "CommonServer/Services/ProjectService";
 import SmsLogService from "CommonServer/Services/SmsLogService";
 import UserOnCallLogTimelineService from "CommonServer/Services/UserOnCallLogTimelineService";
 import logger from "CommonServer/Utils/Logger";
-import Project from "Model/Models/Project";
-import SmsLog from "Model/Models/SmsLog";
+import Project from "Common/AppModels/Models/Project";
+import SmsLog from "Common/AppModels/Models/SmsLog";
 import Twilio from "twilio";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 

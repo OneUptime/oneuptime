@@ -28,11 +28,11 @@ import BaseAPI from "CommonUI/src/Utils/API/API";
 import GlobalEvent from "CommonUI/src/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Label from "Model/Models/Label";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import Label from "Common/AppModels/Models/Label";
 import React, {
   Fragment,
   FunctionComponent,

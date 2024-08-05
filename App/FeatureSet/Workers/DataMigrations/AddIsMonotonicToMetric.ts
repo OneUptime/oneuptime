@@ -2,7 +2,7 @@ import DataMigrationBase from "./DataMigrationBase";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import MetricService from "CommonServer/Services/MetricService";
-import Metric from "Model/AnalyticsModels/Metric";
+import Metric from "Common/AppModels/AnalyticsModels/Metric";
 
 export default class AddIsMonotonicToMetric extends DataMigrationBase {
   public constructor() {

@@ -17,11 +17,11 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import User from "CommonUI/src/Utils/User";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import UserCall from "Model/Models/UserCall";
-import UserEmail from "Model/Models/UserEmail";
-import UserNotificationRule from "Model/Models/UserNotificationRule";
-import UserSMS from "Model/Models/UserSMS";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import UserCall from "Common/AppModels/Models/UserCall";
+import UserEmail from "Common/AppModels/Models/UserEmail";
+import UserNotificationRule from "Common/AppModels/Models/UserNotificationRule";
+import UserSMS from "Common/AppModels/Models/UserSMS";
 import React, {
   Fragment,
   FunctionComponent,

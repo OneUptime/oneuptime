@@ -7,7 +7,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import StatusPageSubscriber from "Common/AppModels/Models/StatusPageSubscriber";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

@@ -16,7 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
-import Workflow from "Model/Models/Workflow";
+import Workflow from "Common/AppModels/Models/Workflow";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,

@@ -13,9 +13,9 @@ import CommonAPI from "./CommonAPI";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
+import MonitorGroup from "Common/AppModels/Models/MonitorGroup";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
 
 export default class MonitorGroupAPI extends BaseAPI<
   MonitorGroup,

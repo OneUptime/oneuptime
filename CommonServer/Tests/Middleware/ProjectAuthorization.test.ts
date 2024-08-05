@@ -14,7 +14,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { UserTenantAccessPermission } from "Common/Types/Permission";
-import ApiKey from "Model/Models/ApiKey";
+import ApiKey from "Common/AppModels/Models/ApiKey";
 import { describe, expect, afterEach, jest } from "@jest/globals";
 import getJestMockFunction from "Common/Tests/MockType";
 import { getJestSpyOn } from "Common/Tests/Spy";

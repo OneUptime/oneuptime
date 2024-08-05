@@ -13,8 +13,8 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
-import MonitorSecret from "Model/Models/MonitorSecret";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorSecret from "Common/AppModels/Models/MonitorSecret";
 import React, {
   Fragment,
   FunctionComponent,

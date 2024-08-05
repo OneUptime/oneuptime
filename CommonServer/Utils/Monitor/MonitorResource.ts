@@ -40,14 +40,14 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
-import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Monitor from "Model/Models/Monitor";
-import MonitorProbe from "Model/Models/MonitorProbe";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorProbe from "Common/AppModels/Models/MonitorProbe";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
+import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
 
 export default class MonitorResourceUtil {

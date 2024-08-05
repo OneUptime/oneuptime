@@ -6,8 +6,8 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyEscalationRuleService from "CommonServer/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "CommonServer/Services/OnCallDutyPolicyExecutionLogService";
 import logger from "CommonServer/Utils/Logger";
-import OnCallDutyPolicyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyEscalationRule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLog from "Common/AppModels/Models/OnCallDutyPolicyExecutionLog";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",

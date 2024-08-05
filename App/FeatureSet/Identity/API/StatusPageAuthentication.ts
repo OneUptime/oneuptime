@@ -25,8 +25,8 @@ import Express, {
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPage from "Common/AppModels/Models/StatusPage";
+import StatusPagePrivateUser from "Common/AppModels/Models/StatusPagePrivateUser";
 
 const router: ExpressRouter = Express.getRouter();
 

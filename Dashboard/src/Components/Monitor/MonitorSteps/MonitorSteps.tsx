@@ -13,9 +13,9 @@ import Icon from "CommonUI/src/Components/Icon/Icon";
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 

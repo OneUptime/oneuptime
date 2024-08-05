@@ -20,7 +20,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 
 export class ModelAPIHttpResponse<
   TBaseModel extends BaseModel,

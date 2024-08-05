@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 

@@ -14,7 +14,7 @@ import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import User from "CommonUI/src/Utils/User";
-import UserOnCallLogTimeline from "Model/Models/UserOnCallLogTimeline";
+import UserOnCallLogTimeline from "Common/AppModels/Models/UserOnCallLogTimeline";
 import React, {
   Fragment,
   FunctionComponent,

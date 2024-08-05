@@ -13,8 +13,8 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Model/Models/Project";
-import User from "Model/Models/User";
+import Project from "Common/AppModels/Models/Project";
+import User from "Common/AppModels/Models/User";
 import React, {
   FunctionComponent,
   ReactElement,

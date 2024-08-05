@@ -18,8 +18,8 @@ import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { UserPermission } from "Common/Types/Permission";
-import BillingInvoice, { InvoiceStatus } from "Model/Models/BillingInvoice";
-import Project from "Model/Models/Project";
+import BillingInvoice, { InvoiceStatus } from "Common/AppModels/Models/BillingInvoice";
+import Project from "Common/AppModels/Models/Project";
 
 export default class UserAPI extends BaseAPI<
   BillingInvoice,

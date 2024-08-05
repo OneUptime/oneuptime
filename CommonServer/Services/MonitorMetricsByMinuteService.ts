@@ -1,6 +1,6 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
+import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
 
 export class MonitorMetricsByMinuteService extends AnalyticsDatabaseService<MonitorMetricsByMinute> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

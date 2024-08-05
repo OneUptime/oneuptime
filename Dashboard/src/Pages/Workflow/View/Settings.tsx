@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "CommonUI/src/Components/DuplicateModel/DuplicateModel";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Workflow from "Model/Models/Workflow";
+import Workflow from "Common/AppModels/Models/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {

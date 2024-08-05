@@ -12,7 +12,7 @@ import {
 } from "../../EnvironmentConfig";
 import Migrations from "./SchemaMigrations/Index";
 import DatabaseType from "Common/Types/DatabaseType";
-import Entities from "Model/Models/Index";
+import Entities from "Common/AppModels/Models/Index";
 import { DataSourceOptions } from "typeorm";
 
 const dataSourceOptions: DataSourceOptions = {

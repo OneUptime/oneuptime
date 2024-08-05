@@ -1,7 +1,7 @@
 import CreateBy from "../../../Types/Database/CreateBy";
 import { Black, Yellow } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
+import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
 
 export default class ScheduledMaintenanceStateTestService {
   public static generateScheduledState(

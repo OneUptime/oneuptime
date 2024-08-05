@@ -5,8 +5,8 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "CommonServer/Services/ScheduledMaintenanceStateService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
 
 RunCron(
   "ScheduledMaintenance:ChangeStateToOngoing",

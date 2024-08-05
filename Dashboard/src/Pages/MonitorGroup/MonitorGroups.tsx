@@ -13,8 +13,8 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import MonitorGroup from "Model/Models/MonitorGroup";
+import Label from "Common/AppModels/Models/Label";
+import MonitorGroup from "Common/AppModels/Models/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (

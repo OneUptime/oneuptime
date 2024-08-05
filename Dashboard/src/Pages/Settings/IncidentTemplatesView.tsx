@@ -19,16 +19,16 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentTemplate from "Model/Models/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "Model/Models/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "Model/Models/IncidentTemplateOwnerUser";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import IncidentTemplate from "Common/AppModels/Models/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "Common/AppModels/Models/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "Common/AppModels/Models/IncidentTemplateOwnerUser";
+import Label from "Common/AppModels/Models/Label";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import OnCallDutyPolicy from "Common/AppModels/Models/OnCallDutyPolicy";
+import Team from "Common/AppModels/Models/Team";
+import User from "Common/AppModels/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {

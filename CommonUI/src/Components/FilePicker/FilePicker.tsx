@@ -8,7 +8,7 @@ import CommonURL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import MimeType from "Common/Types/File/MimeType";
 import IconProp from "Common/Types/Icon/IconProp";
-import FileModel from "Model/Models/File";
+import FileModel from "Common/AppModels/Models/File";
 import React, {
   FunctionComponent,
   ReactElement,

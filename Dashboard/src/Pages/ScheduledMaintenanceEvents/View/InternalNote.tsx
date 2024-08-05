@@ -21,9 +21,9 @@ import API from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ScheduledMaintenanceInternalNote from "Model/Models/ScheduledMaintenanceInternalNote";
-import ScheduledMaintenanceNoteTemplate from "Model/Models/ScheduledMaintenanceNoteTemplate";
-import User from "Model/Models/User";
+import ScheduledMaintenanceInternalNote from "Common/AppModels/Models/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenanceNoteTemplate from "Common/AppModels/Models/ScheduledMaintenanceNoteTemplate";
+import User from "Common/AppModels/Models/User";
 import React, {
   Fragment,
   FunctionComponent,

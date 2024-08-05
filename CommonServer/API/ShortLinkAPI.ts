@@ -5,7 +5,7 @@ import { ExpressRequest, ExpressResponse } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ShortLink from "Model/Models/ShortLink";
+import ShortLink from "Common/AppModels/Models/ShortLink";
 
 export default class ShortLinkAPI extends BaseAPI<
   ShortLink,

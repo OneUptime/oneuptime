@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ColorSquareCube from "CommonUI/src/Components/ColorSquareCube/ColorSquareCube";
 import Link from "CommonUI/src/Components/Link/Link";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

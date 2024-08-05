@@ -22,8 +22,8 @@ import ProjectService from "CommonServer/Services/ProjectService";
 import UserOnCallLogTimelineService from "CommonServer/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
-import CallLog from "Model/Models/CallLog";
-import Project from "Model/Models/Project";
+import CallLog from "Common/AppModels/Models/CallLog";
+import Project from "Common/AppModels/Models/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 

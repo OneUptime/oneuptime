@@ -8,9 +8,9 @@ import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import Calendar from "CommonUI/src/Components/Calendar/Calendar";
 import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
-import User from "Model/Models/User";
+import OnCallDutyPolicyScheduleLayer from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
+import User from "Common/AppModels/Models/User";
 import React, {
   FunctionComponent,
   ReactElement,

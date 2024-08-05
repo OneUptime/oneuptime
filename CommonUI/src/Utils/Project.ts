@@ -6,7 +6,7 @@ import SubscriptionPlan, {
 } from "Common/Types/Billing/SubscriptionPlan";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 
 export default class ProjectUtil {
   public static getCurrentProject(): Project | null {

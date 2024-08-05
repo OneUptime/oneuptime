@@ -6,7 +6,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "CommonServer/EnvironmentConfig";
 import OnCallDutyPolicyExecutionLogService from "CommonServer/Services/OnCallDutyPolicyExecutionLogService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLog from "Common/AppModels/Models/OnCallDutyPolicyExecutionLog";
 
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error

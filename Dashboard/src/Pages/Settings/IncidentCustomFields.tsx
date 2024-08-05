@@ -1,6 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import CustomFieldsPageBase from "./Base/CustomFieldsPageBase";
-import IncidentCustomField from "Model/Models/IncidentCustomField";
+import IncidentCustomField from "Common/AppModels/Models/IncidentCustomField";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const IncidentCustomFields: FunctionComponent<PageComponentProps> = (

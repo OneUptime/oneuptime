@@ -7,10 +7,10 @@ import MonitorUptimeGraph from "CommonUI/src/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "CommonUI/src/Components/MonitorGraphs/UptimeUtil";
 import Tooltip from "CommonUI/src/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimelne from "Model/Models/MonitorStatusTimeline";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimelne from "Common/AppModels/Models/MonitorStatusTimeline";
+import StatusPageHistoryChartBarColorRule from "Common/AppModels/Models/StatusPageHistoryChartBarColorRule";
+import { UptimePrecision } from "Common/AppModels/Models/StatusPageResource";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -6,9 +6,9 @@ import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
-import Model from "Model/Models/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "Model/Models/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "Model/Models/IncidentTemplateOwnerUser";
+import Model from "Common/AppModels/Models/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "Common/AppModels/Models/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "Common/AppModels/Models/IncidentTemplateOwnerUser";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

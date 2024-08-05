@@ -14,11 +14,11 @@ import IncidentService from "CommonServer/Services/IncidentService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Incident from "Model/Models/Incident";
-import IncidentOwnerTeam from "Model/Models/IncidentOwnerTeam";
-import IncidentOwnerUser from "Model/Models/IncidentOwnerUser";
-import Monitor from "Model/Models/Monitor";
-import User from "Model/Models/User";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentOwnerTeam from "Common/AppModels/Models/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/AppModels/Models/IncidentOwnerUser";
+import Monitor from "Common/AppModels/Models/Monitor";
+import User from "Common/AppModels/Models/User";
 
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",

@@ -12,10 +12,10 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
-import APIKeyPermission from "Model/Models/ApiKeyPermission";
-import Label from "Model/Models/Label";
-import TeamMember from "Model/Models/TeamMember";
-import TeamPermission from "Model/Models/TeamPermission";
+import APIKeyPermission from "Common/AppModels/Models/ApiKeyPermission";
+import Label from "Common/AppModels/Models/Label";
+import TeamMember from "Common/AppModels/Models/TeamMember";
+import TeamPermission from "Common/AppModels/Models/TeamPermission";
 
 enum PermissionNamespace {
   GlobalPermission = "global-permissions",

@@ -10,7 +10,7 @@ import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Probe from "Model/Models/Probe";
+import Probe from "Common/AppModels/Models/Probe";
 
 jest.mock("../../Utils/Express", () => {
   return {

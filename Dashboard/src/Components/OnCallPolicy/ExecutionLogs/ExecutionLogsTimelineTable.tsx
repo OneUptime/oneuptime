@@ -13,9 +13,9 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import OnCallDutyPolicyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicyExecutionLogTimeline from "Model/Models/OnCallDutyPolicyExecutionLogTimeline";
-import User from "Model/Models/User";
+import OnCallDutyPolicyEscalationRule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLogTimeline from "Common/AppModels/Models/OnCallDutyPolicyExecutionLogTimeline";
+import User from "Common/AppModels/Models/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

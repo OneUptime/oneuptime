@@ -10,7 +10,7 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import UserSMS from "Model/Models/UserSMS";
+import UserSMS from "Common/AppModels/Models/UserSMS";
 
 export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
   public constructor() {

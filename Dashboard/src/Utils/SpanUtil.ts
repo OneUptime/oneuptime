@@ -1,7 +1,7 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
-import TelemetryService from "Model/Models/TelemetryService";
+import Span, { SpanKind, SpanStatus } from "Common/AppModels/AnalyticsModels/Span";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 
 export enum IntervalUnit {
   Nanoseconds = "ns",

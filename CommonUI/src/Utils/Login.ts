@@ -7,7 +7,7 @@ import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
-import User from "Model/Models/User";
+import User from "Common/AppModels/Models/User";
 
 export default abstract class LoginUtil {
   public static login(value: JSONObject): void {

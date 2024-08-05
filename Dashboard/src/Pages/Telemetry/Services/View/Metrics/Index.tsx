@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";

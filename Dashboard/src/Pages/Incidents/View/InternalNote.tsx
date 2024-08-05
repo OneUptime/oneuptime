@@ -21,9 +21,9 @@ import API from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentInternalNote from "Model/Models/IncidentInternalNote";
-import IncidentNoteTemplate from "Model/Models/IncidentNoteTemplate";
-import User from "Model/Models/User";
+import IncidentInternalNote from "Common/AppModels/Models/IncidentInternalNote";
+import IncidentNoteTemplate from "Common/AppModels/Models/IncidentNoteTemplate";
+import User from "Common/AppModels/Models/User";
 import React, {
   Fragment,
   FunctionComponent,

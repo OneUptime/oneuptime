@@ -10,7 +10,7 @@ import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import EmailVerificationToken from "Model/Models/EmailVerificationToken";
+import EmailVerificationToken from "Common/AppModels/Models/EmailVerificationToken";
 import React, { useEffect, useState } from "react";
 
 const VerifyEmail: () => JSX.Element = () => {

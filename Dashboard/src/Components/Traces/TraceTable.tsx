@@ -6,7 +6,7 @@ import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
+import Span, { SpanKind, SpanStatus } from "Common/AppModels/AnalyticsModels/Span";
 import React, {
   Fragment,
   FunctionComponent,

@@ -1,5 +1,5 @@
 import SearchBox from "CommonUI/src/Components/Header/SearchBox";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

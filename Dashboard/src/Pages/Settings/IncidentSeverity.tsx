@@ -7,7 +7,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentSeverityPage: FunctionComponent<

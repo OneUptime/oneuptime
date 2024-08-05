@@ -14,10 +14,10 @@ import MonitorService from "CommonServer/Services/MonitorService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import Monitor from "Model/Models/Monitor";
-import MonitorOwnerTeam from "Model/Models/MonitorOwnerTeam";
-import MonitorOwnerUser from "Model/Models/MonitorOwnerUser";
-import User from "Model/Models/User";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorOwnerTeam from "Common/AppModels/Models/MonitorOwnerTeam";
+import MonitorOwnerUser from "Common/AppModels/Models/MonitorOwnerUser";
+import User from "Common/AppModels/Models/User";
 
 RunCron(
   "MonitorOwner:SendOwnerAddedEmail",

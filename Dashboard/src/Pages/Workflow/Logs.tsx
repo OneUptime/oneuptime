@@ -11,7 +11,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import WorkflowStatusElement from "CommonUI/src/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import WorkflowLog from "Model/Models/WorkflowLog";
+import WorkflowLog from "Common/AppModels/Models/WorkflowLog";
 import React, {
   Fragment,
   FunctionComponent,

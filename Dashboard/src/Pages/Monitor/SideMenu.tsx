@@ -7,8 +7,8 @@ import CountModelSideMenuItem from "CommonUI/src/Components/SideMenu/CountModelS
 import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
 import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Monitor from "Model/Models/Monitor";
-import Project from "Model/Models/Project";
+import Monitor from "Common/AppModels/Models/Monitor";
+import Project from "Common/AppModels/Models/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

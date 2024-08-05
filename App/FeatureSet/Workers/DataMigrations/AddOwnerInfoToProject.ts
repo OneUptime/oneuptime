@@ -3,8 +3,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ProjectService from "CommonServer/Services/ProjectService";
 import UserService from "CommonServer/Services/UserService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Project from "Model/Models/Project";
-import User from "Model/Models/User";
+import Project from "Common/AppModels/Models/Project";
+import User from "Common/AppModels/Models/User";
 
 export default class AddOwnerInfoToProjects extends DataMigrationBase {
   public constructor() {

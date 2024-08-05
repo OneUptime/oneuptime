@@ -25,12 +25,12 @@ import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
-import Model from "Model/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicyEscalationRuleSchedule from "Model/Models/OnCallDutyPolicyEscalationRuleSchedule";
-import OnCallDutyPolicyEscalationRuleTeam from "Model/Models/OnCallDutyPolicyEscalationRuleTeam";
-import OnCallDutyPolicyEscalationRuleUser from "Model/Models/OnCallDutyPolicyEscalationRuleUser";
-import OnCallDutyPolicyExecutionLogTimeline from "Model/Models/OnCallDutyPolicyExecutionLogTimeline";
-import User from "Model/Models/User";
+import Model from "Common/AppModels/Models/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyEscalationRuleSchedule from "Common/AppModels/Models/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicyEscalationRuleTeam from "Common/AppModels/Models/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleUser from "Common/AppModels/Models/OnCallDutyPolicyEscalationRuleUser";
+import OnCallDutyPolicyExecutionLogTimeline from "Common/AppModels/Models/OnCallDutyPolicyExecutionLogTimeline";
+import User from "Common/AppModels/Models/User";
 
 export class Service extends DatabaseService<Model> {
   public async startRuleExecution(

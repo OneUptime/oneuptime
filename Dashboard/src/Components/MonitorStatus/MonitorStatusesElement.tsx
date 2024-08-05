@@ -1,5 +1,5 @@
 import MonitorStatusElement from "./MonitorStatusElement";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

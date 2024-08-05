@@ -18,12 +18,12 @@ import CodeRepositoryServerUtil from "CommonServer/Utils/CodeRepository/CodeRepo
 import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
 import LocalFile from "CommonServer/Utils/LocalFile";
 import logger from "CommonServer/Utils/Logger";
-import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import CopilotCodeRepository from "Common/AppModels/Models/CopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/AppModels/Models/ServiceCopilotCodeRepository";
 import Text from "Common/Types/Text";
 import Execute from "CommonServer/Utils/Execute";
 import CopilotPullRequestService from "../Service/CopilotPullRequest";
-import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/AppModels/Models/CopilotPullRequest";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;

@@ -5,7 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
+import ServiceCatalog from "Common/AppModels/Models/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceCatalogDelete: FunctionComponent<

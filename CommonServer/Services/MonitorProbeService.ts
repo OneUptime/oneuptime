@@ -5,7 +5,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import MonitorProbe from "Model/Models/MonitorProbe";
+import MonitorProbe from "Common/AppModels/Models/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorService from "./MonitorService";

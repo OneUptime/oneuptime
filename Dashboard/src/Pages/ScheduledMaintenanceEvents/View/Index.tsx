@@ -18,11 +18,11 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import StatusPage from "Model/Models/StatusPage";
+import Label from "Common/AppModels/Models/Label";
+import Monitor from "Common/AppModels/Models/Monitor";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
+import StatusPage from "Common/AppModels/Models/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceView: FunctionComponent<

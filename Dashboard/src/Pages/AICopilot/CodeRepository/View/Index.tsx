@@ -7,8 +7,8 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import Label from "Model/Models/Label";
+import CopilotCodeRepository from "Common/AppModels/Models/CopilotCodeRepository";
+import Label from "Common/AppModels/Models/Label";
 import React, {
   Fragment,
   FunctionComponent,
@@ -19,7 +19,7 @@ import React, {
 import CopilotLastRunAt from "../../../../Components/Copilot/LastRunMessage";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import PageMap from "../../../../Utils/PageMap";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/AppModels/Models/ServiceCopilotCodeRepository";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import API from "CommonUI/src/Utils/API/API";
 import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";

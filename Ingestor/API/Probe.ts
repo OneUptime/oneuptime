@@ -22,9 +22,9 @@ import Express, {
 import logger from "CommonServer/Utils/Logger";
 import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
-import GlobalConfig from "Model/Models/GlobalConfig";
-import Probe from "Model/Models/Probe";
-import User from "Model/Models/User";
+import GlobalConfig from "Common/AppModels/Models/GlobalConfig";
+import Probe from "Common/AppModels/Models/Probe";
+import User from "Common/AppModels/Models/User";
 
 const router: ExpressRouter = Express.getRouter();
 

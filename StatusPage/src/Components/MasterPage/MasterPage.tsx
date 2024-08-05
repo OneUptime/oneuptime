@@ -26,7 +26,7 @@ import MasterPage from "CommonUI/src/Components/MasterPage/MasterPage";
 import JSONWebToken from "CommonUI/src/Utils/JsonWebToken";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import File from "Model/Models/File";
+import File from "Common/AppModels/Models/File";
 import React, {
   FunctionComponent,
   ReactElement,

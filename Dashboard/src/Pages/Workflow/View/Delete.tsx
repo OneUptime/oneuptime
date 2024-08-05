@@ -5,7 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Workflow from "Model/Models/Workflow";
+import Workflow from "Common/AppModels/Models/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {

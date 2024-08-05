@@ -7,8 +7,8 @@ import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
-import User from "Model/Models/User";
+import StatusPagePrivateUser from "Common/AppModels/Models/StatusPagePrivateUser";
+import User from "Common/AppModels/Models/User";
 import jwt from "jsonwebtoken";
 
 class JSONWebToken {

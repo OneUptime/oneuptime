@@ -27,8 +27,8 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Monitor from "Model/Models/Monitor";
-import MonitorProbe from "Model/Models/MonitorProbe";
+import Monitor from "Common/AppModels/Models/Monitor";
+import MonitorProbe from "Common/AppModels/Models/MonitorProbe";
 
 const router: ExpressRouter = Express.getRouter();
 

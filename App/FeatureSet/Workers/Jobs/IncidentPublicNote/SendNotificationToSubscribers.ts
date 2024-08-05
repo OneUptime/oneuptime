@@ -23,12 +23,12 @@ import StatusPageSubscriberService from "CommonServer/Services/StatusPageSubscri
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
 import logger from "CommonServer/Utils/Logger";
-import Incident from "Model/Models/Incident";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import Monitor from "Model/Models/Monitor";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageResource from "Model/Models/StatusPageResource";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
+import Monitor from "Common/AppModels/Models/Monitor";
+import StatusPage from "Common/AppModels/Models/StatusPage";
+import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
+import StatusPageSubscriber from "Common/AppModels/Models/StatusPageSubscriber";
 
 RunCron(
   "IncidentPublicNote:SendNotificationToSubscribers",

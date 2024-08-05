@@ -15,7 +15,7 @@ import {
   TracesDataIngestMetredPlan,
 } from "CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans";
 import logger from "CommonServer/Utils/Logger";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 
 RunCron(
   "MeteredPlan:ReportTelemetryMeteredPlan",

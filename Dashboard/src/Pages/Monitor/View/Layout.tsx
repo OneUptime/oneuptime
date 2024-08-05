@@ -9,7 +9,7 @@ import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/AppModels/Models/Monitor";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";

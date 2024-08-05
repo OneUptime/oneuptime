@@ -31,10 +31,10 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Project from "Model/Models/Project";
-import ProjectSSO from "Model/Models/ProjectSso";
-import TeamMember from "Model/Models/TeamMember";
-import User from "Model/Models/User";
+import Project from "Common/AppModels/Models/Project";
+import ProjectSSO from "Common/AppModels/Models/ProjectSso";
+import TeamMember from "Common/AppModels/Models/TeamMember";
+import User from "Common/AppModels/Models/User";
 import xml2js from "xml2js";
 
 const router: ExpressRouter = Express.getRouter();

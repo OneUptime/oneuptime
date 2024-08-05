@@ -10,7 +10,7 @@ import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
 import Page from "CommonUI/src/Components/Page/Page";
 import PermissionUtil from "CommonUI/src/Utils/Permission";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps extends PageComponentProps {

@@ -3,8 +3,8 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import GreenlockCertificateService from "CommonServer/Services/GreenlockCertificateService";
 import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
 import logger from "CommonServer/Utils/Logger";
-import GreenlockCertificate from "Model/Models/GreenlockCertificate";
-import StatusPageDomain from "Model/Models/StatusPageDomain";
+import GreenlockCertificate from "Common/AppModels/Models/GreenlockCertificate";
+import StatusPageDomain from "Common/AppModels/Models/StatusPageDomain";
 
 export default class MoveGreenlockCertsToAcmeCerts extends DataMigrationBase {
   public constructor() {

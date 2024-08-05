@@ -16,8 +16,8 @@ import SimpleLogViewer from "CommonUI/src/Components/SimpleLogViewer/SimpleLogVi
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
 import React, {
   Fragment,
   FunctionComponent,

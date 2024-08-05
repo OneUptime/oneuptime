@@ -9,7 +9,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Model from "Model/Models/ScheduledMaintenanceState";
+import Model from "Common/AppModels/Models/ScheduledMaintenanceState";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

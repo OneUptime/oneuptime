@@ -1,6 +1,6 @@
 import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DatabaseService from "./DatabaseService";
-import MonitorSecret from "Model/Models/MonitorSecret";
+import MonitorSecret from "Common/AppModels/Models/MonitorSecret";
 
 export class Service extends DatabaseService<MonitorSecret> {
   public constructor(postgresDatabase?: PostgresDatabase) {

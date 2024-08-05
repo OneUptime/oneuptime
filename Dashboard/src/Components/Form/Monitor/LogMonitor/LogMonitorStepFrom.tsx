@@ -4,7 +4,7 @@ import FiltersForm from "CommonUI/src/Components/Filters/FiltersForm";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Query from "CommonUI/src/Utils/BaseDatabase/Query";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

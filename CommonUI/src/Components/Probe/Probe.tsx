@@ -5,7 +5,7 @@ import BaseModel from "Common/Models/BaseModel";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import Probe from "Model/Models/Probe";
+import Probe from "Common/AppModels/Models/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

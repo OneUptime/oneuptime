@@ -34,21 +34,21 @@ import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import MarkdownViewer from "CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
-import StatusPageGroup from "Model/Models/StatusPageGroup";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
+import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
+import StatusPage from "Common/AppModels/Models/StatusPage";
+import StatusPageAnnouncement from "Common/AppModels/Models/StatusPageAnnouncement";
+import StatusPageGroup from "Common/AppModels/Models/StatusPageGroup";
+import StatusPageHistoryChartBarColorRule from "Common/AppModels/Models/StatusPageHistoryChartBarColorRule";
 import StatusPageResource, {
   UptimePrecision,
-} from "Model/Models/StatusPageResource";
+} from "Common/AppModels/Models/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,

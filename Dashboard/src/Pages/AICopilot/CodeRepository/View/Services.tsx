@@ -7,8 +7,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import ServiceCatalog from "Common/AppModels/Models/ServiceCatalog";
+import ServiceCopilotCodeRepository from "Common/AppModels/Models/ServiceCopilotCodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceCopilotCodeRepositoryPage: FunctionComponent<

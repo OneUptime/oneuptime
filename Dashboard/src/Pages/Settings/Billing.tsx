@@ -36,10 +36,10 @@ import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import BaseAPI from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import BillingPaymentMethod from "Model/Models/BillingPaymentMethod";
-import Project from "Model/Models/Project";
-import Reseller from "Model/Models/Reseller";
-import ResellerPlan from "Model/Models/ResellerPlan";
+import BillingPaymentMethod from "Common/AppModels/Models/BillingPaymentMethod";
+import Project from "Common/AppModels/Models/Project";
+import Reseller from "Common/AppModels/Models/Reseller";
+import ResellerPlan from "Common/AppModels/Models/ResellerPlan";
 import React, {
   Fragment,
   FunctionComponent,

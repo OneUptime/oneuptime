@@ -10,7 +10,7 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import UserEmail from "Model/Models/UserEmail";
+import UserEmail from "Common/AppModels/Models/UserEmail";
 
 export default class UserEmailAPI extends BaseAPI<
   UserEmail,

@@ -1,10 +1,10 @@
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import StatusPageResource from "Model/Models/StatusPageResource";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "Common/AppModels/Models/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/AppModels/Models/ScheduledMaintenanceStateTimeline";
+import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
 
 export default interface ScheduledMaintenanceGroup {
   scheduledMaintenance: ScheduledMaintenance;

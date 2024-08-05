@@ -23,9 +23,9 @@ import AnalyticsModelAPI, {
 } from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Select from "CommonUI/src/Utils/BaseDatabase/Select";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Log from "Model/AnalyticsModels/Log";
-import Span, { SpanEvent, SpanEventType } from "Model/AnalyticsModels/Span";
-import TelemetryService from "Model/Models/TelemetryService";
+import Log from "Common/AppModels/AnalyticsModels/Log";
+import Span, { SpanEvent, SpanEventType } from "Common/AppModels/AnalyticsModels/Span";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

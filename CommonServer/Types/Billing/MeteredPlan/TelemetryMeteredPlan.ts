@@ -5,8 +5,8 @@ import ServerMeteredPlan from "./ServerMeteredPlan";
 import OneUptimeDate from "Common/Types/Date";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
-import Project from "Model/Models/Project";
-import TelemetryUsageBilling from "Model/Models/TelemetryUsageBilling";
+import Project from "Common/AppModels/Models/Project";
+import TelemetryUsageBilling from "Common/AppModels/Models/TelemetryUsageBilling";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
   private _productType!: ProductType;

@@ -7,7 +7,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import logger from "CommonServer/Utils/Logger";
 import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/AppModels/Models/Monitor";
 
 RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",

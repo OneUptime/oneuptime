@@ -4,8 +4,8 @@ import Color from "Common/Types/Color";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorStatusService from "CommonServer/Services/MonitorStatusService";
 import StatusPageService from "CommonServer/Services/StatusPageService";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import StatusPage from "Model/Models/StatusPage";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import StatusPage from "Common/AppModels/Models/StatusPage";
 
 export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationBase {
   public constructor() {

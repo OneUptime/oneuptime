@@ -27,11 +27,11 @@ import EventHistoryList, {
 } from "CommonUI/src/Components/EventHistoryList/EventHistoryList";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Incident from "Model/Models/Incident";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import StatusPageResource from "Model/Models/StatusPageResource";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
+import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import StatusPageResource from "Common/AppModels/Models/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,

@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "CommonUI/src/Components/Page/ModelPage";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 

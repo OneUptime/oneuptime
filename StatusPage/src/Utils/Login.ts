@@ -5,7 +5,7 @@ import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Cookie from "CommonUI/src/Utils/Cookie";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+import StatusPagePrivateUser from "Common/AppModels/Models/StatusPagePrivateUser";
 
 export default abstract class LoginUtil {
   public static login(value: JSONObject): void {

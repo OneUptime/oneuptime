@@ -5,8 +5,8 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Workflow from "Model/Models/Workflow";
+import Label from "Common/AppModels/Models/Label";
+import Workflow from "Common/AppModels/Models/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {

@@ -19,7 +19,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import UserOnCallLogTimeline from "Model/Models/UserOnCallLogTimeline";
+import UserOnCallLogTimeline from "Common/AppModels/Models/UserOnCallLogTimeline";
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
   UserOnCallLogTimeline,

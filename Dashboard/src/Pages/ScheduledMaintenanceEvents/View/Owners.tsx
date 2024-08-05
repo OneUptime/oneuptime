@@ -9,10 +9,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ScheduledMaintenanceOwnerTeam from "Model/Models/ScheduledMaintenanceOwnerTeam";
-import ScheduledMaintenanceOwnerUser from "Model/Models/ScheduledMaintenanceOwnerUser";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import ScheduledMaintenanceOwnerTeam from "Common/AppModels/Models/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/AppModels/Models/ScheduledMaintenanceOwnerUser";
+import Team from "Common/AppModels/Models/Team";
+import User from "Common/AppModels/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceOwners: FunctionComponent<

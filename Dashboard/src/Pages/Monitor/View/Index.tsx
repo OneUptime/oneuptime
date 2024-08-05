@@ -44,16 +44,16 @@ import AnalyticsModelAPI, {
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
+import MonitorMetricsByMinute from "Common/AppModels/AnalyticsModels/MonitorMetricsByMinute";
+import Label from "Common/AppModels/Models/Label";
+import Monitor from "Common/AppModels/Models/Monitor";
 import MonitorProbe, {
   MonitorStepProbeResponse,
-} from "Model/Models/MonitorProbe";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import Probe from "Model/Models/Probe";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+} from "Common/AppModels/Models/MonitorProbe";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
+import MonitorStatusTimeline from "Common/AppModels/Models/MonitorStatusTimeline";
+import Probe from "Common/AppModels/Models/Probe";
+import { UptimePrecision } from "Common/AppModels/Models/StatusPageResource";
 import React, {
   Fragment,
   FunctionComponent,

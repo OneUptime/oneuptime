@@ -10,10 +10,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorOwnerTeam from "Model/Models/MonitorOwnerTeam";
-import MonitorOwnerUser from "Model/Models/MonitorOwnerUser";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import MonitorOwnerTeam from "Common/AppModels/Models/MonitorOwnerTeam";
+import MonitorOwnerUser from "Common/AppModels/Models/MonitorOwnerUser";
+import Team from "Common/AppModels/Models/Team";
+import User from "Common/AppModels/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorOwners: FunctionComponent<

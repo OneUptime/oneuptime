@@ -33,13 +33,13 @@ import SMS from "Common/Types/SMS/SMS";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import ShortLink from "Model/Models/ShortLink";
-import UserEmail from "Model/Models/UserEmail";
-import Model from "Model/Models/UserNotificationRule";
-import UserOnCallLog from "Model/Models/UserOnCallLog";
-import UserOnCallLogTimeline from "Model/Models/UserOnCallLogTimeline";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentSeverity from "Common/AppModels/Models/IncidentSeverity";
+import ShortLink from "Common/AppModels/Models/ShortLink";
+import UserEmail from "Common/AppModels/Models/UserEmail";
+import Model from "Common/AppModels/Models/UserNotificationRule";
+import UserOnCallLog from "Common/AppModels/Models/UserOnCallLog";
+import UserOnCallLogTimeline from "Common/AppModels/Models/UserOnCallLogTimeline";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

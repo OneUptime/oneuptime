@@ -7,8 +7,8 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Model from "Model/Models/BillingPaymentMethod";
-import Project from "Model/Models/Project";
+import Model from "Common/AppModels/Models/BillingPaymentMethod";
+import Project from "Common/AppModels/Models/Project";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

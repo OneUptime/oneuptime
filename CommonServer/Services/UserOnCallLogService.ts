@@ -13,9 +13,9 @@ import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/
 import PositiveNumber from "Common/Types/PositiveNumber";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
-import Incident from "Model/Models/Incident";
-import UserNotificationRule from "Model/Models/UserNotificationRule";
-import Model from "Model/Models/UserOnCallLog";
+import Incident from "Common/AppModels/Models/Incident";
+import UserNotificationRule from "Common/AppModels/Models/UserNotificationRule";
+import Model from "Common/AppModels/Models/UserOnCallLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

@@ -14,7 +14,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { APP_API_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import User from "CommonUI/src/Utils/User";
-import UserCall from "Model/Models/UserCall";
+import UserCall from "Common/AppModels/Models/UserCall";
 import React, { ReactElement, useEffect, useState } from "react";
 
 const Call: () => JSX.Element = (): ReactElement => {

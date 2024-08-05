@@ -1,6 +1,6 @@
 import Route from "Common/Types/API/Route";
 import Link from "CommonUI/src/Components/Link/Link";
-import Project from "Model/Models/Project";
+import Project from "Common/AppModels/Models/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

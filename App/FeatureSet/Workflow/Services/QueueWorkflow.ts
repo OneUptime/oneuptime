@@ -11,8 +11,8 @@ import WorkflowLogService from "CommonServer/Services/WorkflowLogService";
 import WorkflowService from "CommonServer/Services/WorkflowService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import { ExecuteWorkflowType } from "CommonServer/Types/Workflow/TriggerCode";
-import Workflow from "Model/Models/Workflow";
-import WorkflowLog from "Model/Models/WorkflowLog";
+import Workflow from "Common/AppModels/Models/Workflow";
+import WorkflowLog from "Common/AppModels/Models/WorkflowLog";
 
 export default class QueueWorkflow {
   public static async removeWorkflow(workflowId: ObjectID): Promise<void> {

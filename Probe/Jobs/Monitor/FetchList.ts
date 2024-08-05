@@ -13,7 +13,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/AppModels/Models/Monitor";
 
 export default class FetchListAndProbe {
   private workerName: string = "";

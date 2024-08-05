@@ -14,7 +14,7 @@ import Query from "CommonUI/src/Utils/BaseDatabase/Query";
 import Select from "CommonUI/src/Utils/BaseDatabase/Select";
 import ProjectUtil from "CommonUI/src/Utils/Project";
 import Realtime from "CommonUI/src/Utils/Realtime";
-import Log from "Model/AnalyticsModels/Log";
+import Log from "Common/AppModels/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

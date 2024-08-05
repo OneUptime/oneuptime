@@ -3,8 +3,8 @@ import ObjectID from "Common/Types/ObjectID";
 import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Incident from "Model/Models/Incident";
-import IncidentCustomField from "Model/Models/IncidentCustomField";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentCustomField from "Common/AppModels/Models/IncidentCustomField";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const IncidentCustomFields: FunctionComponent<

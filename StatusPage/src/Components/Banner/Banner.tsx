@@ -1,5 +1,5 @@
 import Image from "CommonUI/src/Components/Image/Image";
-import File from "Model/Models/File";
+import File from "Common/AppModels/Models/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

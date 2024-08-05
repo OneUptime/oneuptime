@@ -22,11 +22,11 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import PermissionUtil from "CommonUI/src/Utils/Permission";
-import Label from "Model/Models/Label";
-import Team from "Model/Models/Team";
-import TeamMember from "Model/Models/TeamMember";
-import TeamPermission from "Model/Models/TeamPermission";
-import User from "Model/Models/User";
+import Label from "Common/AppModels/Models/Label";
+import Team from "Common/AppModels/Models/Team";
+import TeamMember from "Common/AppModels/Models/TeamMember";
+import TeamPermission from "Common/AppModels/Models/TeamPermission";
+import User from "Common/AppModels/Models/User";
 import React, {
   Fragment,
   FunctionComponent,

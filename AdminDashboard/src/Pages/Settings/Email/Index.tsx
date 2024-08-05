@@ -14,7 +14,7 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import GlobalConfig, { EmailServerType } from "Model/Models/GlobalConfig";
+import GlobalConfig, { EmailServerType } from "Common/AppModels/Models/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {

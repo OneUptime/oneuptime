@@ -4,7 +4,7 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import GlobalCache from "CommonServer/Infrastructure/GlobalCache";
-import Metric, { AggregationTemporality } from "Model/AnalyticsModels/Metric";
+import Metric, { AggregationTemporality } from "Common/AppModels/AnalyticsModels/Metric";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "CommonServer/Services/TelemetryAttributeService";
 import Dictionary from "Common/Types/Dictionary";
@@ -12,9 +12,9 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
 import TelemetryUsageBillingService from "CommonServer/Services/TelemetryUsageBillingService";
 import logger from "CommonServer/Utils/Logger";
-import TelemetryService from "Model/Models/TelemetryService";
+import TelemetryService from "Common/AppModels/Models/TelemetryService";
 import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
-import { DEFAULT_RETENTION_IN_DAYS } from "Model/Models/TelemetryUsageBilling";
+import { DEFAULT_RETENTION_IN_DAYS } from "Common/AppModels/Models/TelemetryUsageBilling";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",

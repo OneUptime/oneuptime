@@ -7,7 +7,7 @@ import Route from "Common/Types/API/Route";
 import Page from "CommonUI/src/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "CommonUI/src/Utils/User";
-import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
+import UserTwoFactorAuth from "Common/AppModels/Models/UserTwoFactorAuth";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
@@ -24,7 +24,7 @@ import URL from "Common/Types/API/URL";
 import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import User from "Model/Models/User";
+import User from "Common/AppModels/Models/User";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =

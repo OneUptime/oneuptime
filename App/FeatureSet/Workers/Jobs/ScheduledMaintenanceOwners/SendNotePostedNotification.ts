@@ -15,10 +15,10 @@ import ScheduledMaintenancePublicNoteService from "CommonServer/Services/Schedul
 import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceInternalNote from "Model/Models/ScheduledMaintenanceInternalNote";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import User from "Model/Models/User";
+import ScheduledMaintenance from "Common/AppModels/Models/ScheduledMaintenance";
+import ScheduledMaintenanceInternalNote from "Common/AppModels/Models/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenancePublicNote from "Common/AppModels/Models/ScheduledMaintenancePublicNote";
+import User from "Common/AppModels/Models/User";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",

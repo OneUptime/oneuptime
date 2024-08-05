@@ -10,9 +10,9 @@ import TeamService from "./TeamService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Team from "Model/Models/Team";
-import TeamMember from "Model/Models/TeamMember";
-import Model from "Model/Models/TeamPermission";
+import Team from "Common/AppModels/Models/Team";
+import TeamMember from "Common/AppModels/Models/TeamMember";
+import Model from "Common/AppModels/Models/TeamPermission";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

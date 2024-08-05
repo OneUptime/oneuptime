@@ -22,7 +22,7 @@ import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/AppModels/Models/Monitor";
 import React, {
   Fragment,
   FunctionComponent,

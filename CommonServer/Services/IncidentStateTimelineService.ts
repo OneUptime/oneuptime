@@ -14,11 +14,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Incident from "Model/Models/Incident";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import User from "Model/Models/User";
+import Incident from "Common/AppModels/Models/Incident";
+import IncidentPublicNote from "Common/AppModels/Models/IncidentPublicNote";
+import IncidentState from "Common/AppModels/Models/IncidentState";
+import IncidentStateTimeline from "Common/AppModels/Models/IncidentStateTimeline";
+import User from "Common/AppModels/Models/User";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor(postgresDatabase?: PostgresDatabase) {

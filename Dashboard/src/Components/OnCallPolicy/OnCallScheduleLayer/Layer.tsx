@@ -9,8 +9,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import Card from "CommonUI/src/Components/Card/Card";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyScheduleLayer from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/AppModels/Models/OnCallDutyPolicyScheduleLayerUser";
 import React, {
   FunctionComponent,
   ReactElement,

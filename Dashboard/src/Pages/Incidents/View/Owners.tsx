@@ -9,10 +9,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentOwnerTeam from "Model/Models/IncidentOwnerTeam";
-import IncidentOwnerUser from "Model/Models/IncidentOwnerUser";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import IncidentOwnerTeam from "Common/AppModels/Models/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/AppModels/Models/IncidentOwnerUser";
+import Team from "Common/AppModels/Models/Team";
+import User from "Common/AppModels/Models/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentOwners: FunctionComponent<

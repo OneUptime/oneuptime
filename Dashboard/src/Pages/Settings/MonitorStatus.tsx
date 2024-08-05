@@ -10,7 +10,7 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import StatusBubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import MonitorStatus from "Common/AppModels/Models/MonitorStatus";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Monitors: FunctionComponent<PageComponentProps> = (
