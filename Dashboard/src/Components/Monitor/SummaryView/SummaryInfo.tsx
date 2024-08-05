@@ -12,12 +12,16 @@ import MonitorType, {
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
+import LogMonitorSummaryView from "./LogMonitorView";
+import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+
 
 export interface ComponentProps {
   monitorType: MonitorType;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
+  telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -85,6 +89,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (props.monitorType === MonitorType.Logs) {
+      return (
+        <LogMonitorSummaryView
+          key={key}
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
+        />
+      );
+    }
+
     return <></>;
   };
 
@@ -124,7 +137,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         )}
 
       {props.incomingMonitorRequest &&
-      props.monitorType === MonitorType.IncomingRequest ? (
+        props.monitorType === MonitorType.IncomingRequest ? (
         <IncomingRequestMonitorView
           incomingMonitorRequest={props.incomingMonitorRequest}
         />
@@ -133,7 +146,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       )}
 
       {props.monitorType === MonitorType.Server &&
-      props.serverMonitorResponse ? (
+        props.serverMonitorResponse ? (
         <ServerMonitorSummaryView
           serverMonitorResponse={props.serverMonitorResponse}
         />

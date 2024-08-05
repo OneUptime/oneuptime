@@ -3,7 +3,7 @@ import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
 import { MonitorCharts } from "../../../Components/Monitor/MonitorCharts/MonitorChart";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
-import Metrics from "../../../Components/Monitor/SummaryView/Summary";
+import Summary from "../../../Components/Monitor/SummaryView/Summary";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -184,6 +184,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           serverMonitorResponse: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
+          telemetryMonitorLastMonitorAt: true,
+          telemetryMonitorNextMonitorAt: true,
         },
       });
 
@@ -600,12 +602,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
       </Card>
 
-      <Metrics
+      <Summary
         monitorType={monitorType!}
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
         probeMonitorResponses={probeResponses}
         serverMonitorResponse={serverMonitorResponse}
+        telemetryMonitorSummary={{
+          lastCheckedAt: monitor?.telemetryMonitorLastMonitorAt,
+          nextCheckAt: monitor?.telemetryMonitorNextMonitorAt
+        }}
       />
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}

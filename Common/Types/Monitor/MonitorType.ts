@@ -108,7 +108,7 @@ export class MonitorTypeHelper {
         monitorType: MonitorType.Logs,
         title: "Logs",
         description: "This monitor type lets you monitor logs from any source.",
-      }
+      },
       // ,
       // {
       //   monitorType: MonitorType.Metrics,

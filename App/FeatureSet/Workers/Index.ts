@@ -67,6 +67,9 @@ import logger from "CommonServer/Utils/Logger";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
+// Telemetry Monitors. 
+import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+
 const WorkersFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {

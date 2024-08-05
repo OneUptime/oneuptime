@@ -48,8 +48,7 @@ export default class ObjectID extends DatabaseProperty {
   }
 
   public static toJSONArray(ids: Array<ObjectID>): Array<JSONObject> {
-
-    if(!ids || ids.length === 0) {
+    if (!ids || ids.length === 0) {
       return [];
     }
 
