@@ -1,11 +1,11 @@
 import CompareCriteria from "./CompareCriteria";
 import CustomCodeMonitoringCriteria from "./CustomCodeMonitorCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
+import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 
 export default class SyntheticMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    Monitor: Array<SyntheticMonitor>;
+    Monitor: Array<SyntheticMonitorResponse>;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
     for (const syntheticMonitor of input.Monitor) {

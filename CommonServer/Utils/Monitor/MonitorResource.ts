@@ -26,7 +26,7 @@ import {
   CriteriaFilter,
   FilterCondition,
 } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
+import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -35,10 +35,10 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
 import Incident from "Model/Models/Incident";
@@ -128,13 +128,13 @@ export default class MonitorResourceService {
       monitor.monitorType &&
       MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
     ) {
-      dataToProcess = dataToProcess as ProbeMonitor;
-      if ((dataToProcess as ProbeMonitor).probeId) {
+      dataToProcess = dataToProcess as ProbeMonitorResponse;
+      if ((dataToProcess as ProbeMonitorResponse).probeId) {
         const monitorProbe: MonitorProbe | null =
           await MonitorProbeService.findOneBy({
             query: {
               monitorId: monitor.id!,
-              probeId: (dataToProcess as ProbeMonitor).probeId!,
+              probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
             },
             select: {
               lastMonitoringLog: true,
@@ -151,13 +151,13 @@ export default class MonitorResourceService {
         await MonitorProbeService.updateOneBy({
           query: {
             monitorId: monitor.id!,
-            probeId: (dataToProcess as ProbeMonitor).probeId!,
+            probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
           },
           data: {
             lastMonitoringLog: {
               ...(monitorProbe.lastMonitoringLog || {}),
               [(
-                dataToProcess as ProbeMonitor
+                dataToProcess as ProbeMonitorResponse
               ).monitorStepId.toString()]: {
                 ...JSON.parse(JSON.stringify(dataToProcess)),
                 monitoredAt: OneUptimeDate.getCurrentDate(),
@@ -204,7 +204,7 @@ export default class MonitorResourceService {
           serverMonitorRequestReceivedAt: (
             dataToProcess as ServerMonitor
           ).requestReceivedAt!,
-          serverMonitor: dataToProcess as ServerMonitor, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
+          serverMonitorResponse: dataToProcess as ServerMonitor, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
         },
         props: {
           isRoot: true,
@@ -280,12 +280,12 @@ export default class MonitorResourceService {
     const monitorStep: MonitorStep | undefined =
       monitorSteps.data.monitorStepsInstanceArray[0];
 
-    if ((dataToProcess as ProbeMonitor).monitorStepId) {
+    if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
       monitorSteps.data.monitorStepsInstanceArray.find(
         (monitorStep: MonitorStep) => {
           return (
             monitorStep.id.toString() ===
-            (dataToProcess as ProbeMonitor).monitorStepId.toString()
+            (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
           );
         },
       );
@@ -477,25 +477,25 @@ export default class MonitorResourceService {
       }
     }
 
-    if ((data.dataToProcess as ProbeMonitor).responseTimeInMs) {
+    if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
       monitorMetricsByMinute.monitorId = data.monitorId;
       monitorMetricsByMinute.projectId = data.projectId;
       monitorMetricsByMinute.metricType = CheckOn.ResponseTime;
       monitorMetricsByMinute.metricValue = (
-        data.dataToProcess as ProbeMonitor
+        data.dataToProcess as ProbeMonitorResponse
       ).responseTimeInMs;
       monitorMetricsByMinute.miscData = {
         probeId: (
-          data.dataToProcess as ProbeMonitor
+          data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
       itemsToSave.push(monitorMetricsByMinute);
     }
 
-    if ((data.dataToProcess as ProbeMonitor).isOnline !== undefined) {
+    if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
       monitorMetricsByMinute.monitorId = data.monitorId;
@@ -504,38 +504,38 @@ export default class MonitorResourceService {
       monitorMetricsByMinute.metricValue = 0;
       monitorMetricsByMinute.miscData = {
         probeId: (
-          data.dataToProcess as ProbeMonitor
+          data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
-      if ((data.dataToProcess as ProbeMonitor).isOnline) {
+      if ((data.dataToProcess as ProbeMonitorResponse).isOnline) {
         monitorMetricsByMinute.metricValue = 1;
       }
 
       itemsToSave.push(monitorMetricsByMinute);
     }
 
-    if ((data.dataToProcess as ProbeMonitor).responseCode) {
+    if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
       monitorMetricsByMinute.monitorId = data.monitorId;
       monitorMetricsByMinute.projectId = data.projectId;
       monitorMetricsByMinute.metricType = CheckOn.ResponseStatusCode;
       monitorMetricsByMinute.metricValue = (
-        data.dataToProcess as ProbeMonitor
+        data.dataToProcess as ProbeMonitorResponse
       ).responseCode;
       monitorMetricsByMinute.miscData = {
         probeId: (
-          data.dataToProcess as ProbeMonitor
+          data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
       itemsToSave.push(monitorMetricsByMinute);
     }
 
-    if ((data.dataToProcess as ProbeMonitor).syntheticMonitor) {
+    if ((data.dataToProcess as ProbeMonitorResponse).syntheticMonitor) {
       for (const syntheticMonitor of (
-        data.dataToProcess as ProbeMonitor
+        data.dataToProcess as ProbeMonitorResponse
       ).syntheticMonitor || []) {
         const monitorMetricsByMinute: MonitorMetricsByMinute =
           new MonitorMetricsByMinute();
@@ -546,7 +546,7 @@ export default class MonitorResourceService {
           syntheticMonitor.executionTimeInMS;
         monitorMetricsByMinute.miscData = {
           probeId: (
-            data.dataToProcess as ProbeMonitor
+            data.dataToProcess as ProbeMonitorResponse
           ).probeId.toString(),
           browserType: syntheticMonitor.browserType,
           screenSizeType: syntheticMonitor.screenSizeType,
@@ -557,10 +557,10 @@ export default class MonitorResourceService {
     }
 
     if (
-      (data.dataToProcess as ProbeMonitor).customCodeMonitor
+      (data.dataToProcess as ProbeMonitorResponse).customCodeMonitor
     ) {
       const customCodeMonitor: CustomCodeMonitor = (
-        data.dataToProcess as ProbeMonitor
+        data.dataToProcess as ProbeMonitorResponse
       ).customCodeMonitor!;
 
       const monitorMetricsByMinute: MonitorMetricsByMinute =
@@ -572,7 +572,7 @@ export default class MonitorResourceService {
         customCodeMonitor.executionTimeInMS;
       monitorMetricsByMinute.miscData = {
         probeId: (
-          data.dataToProcess as ProbeMonitor
+          data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
@@ -791,10 +791,10 @@ export default class MonitorResourceService {
 
         if (
           input.dataToProcess &&
-          (input.dataToProcess as ProbeMonitor).probeId
+          (input.dataToProcess as ProbeMonitorResponse).probeId
         ) {
           incident.createdByProbeId = (
-            input.dataToProcess as ProbeMonitor
+            input.dataToProcess as ProbeMonitorResponse
           ).probeId;
         }
 
@@ -816,7 +816,7 @@ export default class MonitorResourceService {
     openIncident: Incident;
     rootCause: string;
     dataToProcess:
-      | ProbeMonitor
+      | ProbeMonitorResponse
       | IncomingMonitorRequest
       | DataToProcess;
   }): Promise<void> {
@@ -933,9 +933,9 @@ export default class MonitorResourceService {
 `;
         }
 
-        if ((input.dataToProcess as ProbeMonitor).failureCause) {
+        if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
           input.probeApiIngestResponse.rootCause += `
-**Cause**: ${(input.dataToProcess as ProbeMonitor).failureCause || ""}
+**Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
         }
         break;
@@ -1046,11 +1046,11 @@ export default class MonitorResourceService {
         let responseBody: JSONObject | null = null;
         try {
           responseBody = JSON.parse(
-            ((input.dataToProcess as ProbeMonitor)
+            ((input.dataToProcess as ProbeMonitorResponse)
               .responseBody as string) || "{}",
           );
         } catch (err) {
-          responseBody = (input.dataToProcess as ProbeMonitor)
+          responseBody = (input.dataToProcess as ProbeMonitorResponse)
             .responseBody as JSONObject;
         }
 
@@ -1064,13 +1064,13 @@ export default class MonitorResourceService {
 
         storageMap = {
           responseBody: responseBody,
-          responseHeaders: (input.dataToProcess as ProbeMonitor)
+          responseHeaders: (input.dataToProcess as ProbeMonitorResponse)
             .responseHeaders,
-          responseStatusCode: (input.dataToProcess as ProbeMonitor)
+          responseStatusCode: (input.dataToProcess as ProbeMonitorResponse)
             .responseCode,
-          responseTimeInMs: (input.dataToProcess as ProbeMonitor)
+          responseTimeInMs: (input.dataToProcess as ProbeMonitorResponse)
             .responseTimeInMs,
-          isOnline: (input.dataToProcess as ProbeMonitor).isOnline,
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
         };
       }
 
@@ -1129,11 +1129,11 @@ export default class MonitorResourceService {
 
     if (
       input.monitor.monitorType === MonitorType.CustomJavaScriptCode &&
-      (input.dataToProcess as ProbeMonitor).customCodeMonitor
+      (input.dataToProcess as ProbeMonitorResponse).customCodeMonitor
     ) {
       const criteriaResult: string | null =
         await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          Monitor: (input.dataToProcess as ProbeMonitor)
+          Monitor: (input.dataToProcess as ProbeMonitorResponse)
             .customCodeMonitor!,
           criteriaFilter: input.criteriaFilter,
         });
@@ -1145,12 +1145,12 @@ export default class MonitorResourceService {
 
     if (
       input.monitor.monitorType === MonitorType.SyntheticMonitor &&
-      (input.dataToProcess as ProbeMonitor).syntheticMonitor
+      (input.dataToProcess as ProbeMonitorResponse).syntheticMonitor
     ) {
       const criteriaResult: string | null =
         await SyntheticMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
           Monitor:
-            (input.dataToProcess as ProbeMonitor)
+            (input.dataToProcess as ProbeMonitorResponse)
               .syntheticMonitor || [],
           criteriaFilter: input.criteriaFilter,
         });

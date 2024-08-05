@@ -1,10 +1,10 @@
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 type DataToProcess =
-  | ProbeMonitor
+  | ProbeMonitorResponse
   | IncomingMonitorRequest
-  | ServerMonitor;
+  | ServerMonitorResponse;
 
 export default DataToProcess;

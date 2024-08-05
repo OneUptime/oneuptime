@@ -22,7 +22,7 @@ import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import {
@@ -993,7 +993,7 @@ export default class Monitor extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public serverMonitor?: ServerMonitor = undefined;
+  public serverMonitorResponse?: ServerMonitorResponse = undefined;
 
   @ColumnAccessControl({
     create: [],

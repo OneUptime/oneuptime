@@ -1,10 +1,10 @@
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
+import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 
 export default class CustomCodeMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    Monitor: CustomCodeMonitor;
+    Monitor: CustomCodeMonitorResponse;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
     // Server Monitoring Checks
@@ -12,7 +12,7 @@ export default class CustomCodeMonitoringCriteria {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
 
-    const syntheticMonitor: CustomCodeMonitor =
+    const syntheticMonitor: CustomCodeMonitorResponse =
       input.Monitor;
 
     if (input.criteriaFilter.checkOn === CheckOn.ExecutionTime) {

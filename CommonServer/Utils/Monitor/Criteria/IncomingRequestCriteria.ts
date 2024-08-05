@@ -11,7 +11,7 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import Typeof from "Common/Types/Typeof";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CompareCriteria from "./CompareCriteria";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 export default class IncomingRequestCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -60,7 +60,7 @@ export default class IncomingRequestCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ||
-        (input.dataToProcess as ProbeMonitor).isOnline;
+        (input.dataToProcess as ProbeMonitorResponse).isOnline;
 
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,

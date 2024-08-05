@@ -6,8 +6,8 @@ import {
   CriteriaFilter,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
-import SslMonitor from "Common/Types/Monitor/SSLMonitor/SslMonitor";
-import ProbeMonitor from "Common/Types/Monitor/Monitor";
+import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 
 export default class ServerMonitorCriteria {
@@ -18,10 +18,10 @@ export default class ServerMonitorCriteria {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
 
-    const dataToProcess: ProbeMonitor =
-      input.dataToProcess as ProbeMonitor;
+    const dataToProcess: ProbeMonitorResponse =
+      input.dataToProcess as ProbeMonitorResponse;
 
-    const sslResponse: SslMonitor | undefined =
+    const sslResponse: SslMonitorResponse | undefined =
       dataToProcess.sslResponse;
 
     let overTimeValue: Array<number | boolean> | number | boolean | undefined =
@@ -49,7 +49,7 @@ export default class ServerMonitorCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ||
-        (input.dataToProcess as ProbeMonitor).isOnline;
+        (input.dataToProcess as ProbeMonitorResponse).isOnline;
 
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
