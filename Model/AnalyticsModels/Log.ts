@@ -6,16 +6,7 @@ import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-
-export enum LogSeverity {
-  Unspecified = "Unspecified",
-  Information = "Information",
-  Warning = "Warning",
-  Error = "Error",
-  Trace = "Trace",
-  Debug = "Debug",
-  Fatal = "Fatal",
-}
+import LogSeverity from "Common/Types/Log/LogSeverity";
 
 export default class Log extends AnalyticsBaseModel {
   public constructor() {

@@ -25,10 +25,11 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const customMonitorResponse: CustomCodeMonitorResponse =
+  const customCodeMonitorResponse: CustomCodeMonitorResponse =
     props.customCodeMonitorResponse;
 
-  let executionTimeInMS: number = customMonitorResponse.executionTimeInMS || 0;
+  let executionTimeInMS: number =
+    customCodeMonitorResponse.executionTimeInMS || 0;
 
   if (executionTimeInMS > 0) {
     executionTimeInMS = Math.round(executionTimeInMS);
@@ -37,8 +38,8 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const fields: Array<Field<CustomCodeMonitorResponse>> = [];
 
   if (
-    customMonitorResponse.logMessages &&
-    customMonitorResponse.logMessages.length > 0
+    customCodeMonitorResponse.logMessages &&
+    customCodeMonitorResponse.logMessages.length > 0
   ) {
     fields.push({
       key: "logMessages",
@@ -48,7 +49,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.result) {
+  if (customCodeMonitorResponse.result) {
     fields.push({
       key: "result",
       title: "Result",
@@ -57,7 +58,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.scriptError) {
+  if (customCodeMonitorResponse.scriptError) {
     fields.push({
       key: "scriptError",
       title: "Script Error",
@@ -79,7 +80,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <InfoCard
             className="w-1/3 shadow-none border-2 border-gray-100 "
             title="Error"
-            value={customMonitorResponse.scriptError ? "Yes" : "No"}
+            value={customCodeMonitorResponse.scriptError ? "Yes" : "No"}
           />
 
           <InfoCard
@@ -97,7 +98,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <div>
             <Detail<CustomCodeMonitorResponse>
               id={"custom-code-monitor-summary-detail"}
-              item={customMonitorResponse}
+              item={customCodeMonitorResponse}
               fields={fields}
               showDetailsInNumberOfColumns={1}
             />

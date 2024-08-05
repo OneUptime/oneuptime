@@ -2,6 +2,7 @@ import Button, { ButtonStyleType } from "../Button/Button";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FieldLabelElement from "../Forms/Fields/FieldLabel";
+import FieldType from "../Types/FieldType";
 import BooleanFilter from "./BooleanFilter";
 import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
@@ -74,6 +75,9 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                       filter={filter}
                       filterData={props.filterData}
                       onFilterChanged={changeFilterData}
+                      isMultiSelect={
+                        filter.type === FieldType.MultiSelectDropdown
+                      }
                     />
 
                     <EntityFilter

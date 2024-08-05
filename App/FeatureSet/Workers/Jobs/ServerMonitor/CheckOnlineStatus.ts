@@ -8,7 +8,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Monitor from "Model/Models/Monitor";
 
 RunCron(
@@ -56,9 +56,7 @@ RunCron(
           hostname: "",
         };
 
-        await ProbeMonitorResponseService.processProbeResponse(
-          serverMonitorResponse,
-        );
+        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
       } catch (error) {
         logger.error(
           `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,

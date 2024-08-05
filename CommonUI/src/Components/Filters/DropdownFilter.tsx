@@ -9,6 +9,7 @@ export interface ComponentProps<T extends GenericObject> {
   filter: Filter<T>;
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
   filterData: FilterData<T>;
+  isMultiSelect?: boolean | undefined;
 }
 
 type DropdownFilterFunction = <T extends GenericObject>(
@@ -50,7 +51,7 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
           }
         }}
         value={dropdownValue}
-        isMultiSelect={false}
+        isMultiSelect={props.isMultiSelect || false}
         placeholder={`Filter by ${filter.title}`}
       />
     );

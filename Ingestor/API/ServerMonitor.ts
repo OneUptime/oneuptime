@@ -12,7 +12,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "CommonServer/Utils/Express";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
 import Monitor from "Model/Models/Monitor";
 
@@ -109,9 +109,7 @@ router.post(
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await ProbeMonitorResponseService.processProbeResponse(
-          serverMonitorResponse,
-        );
+        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
 
       return Response.sendJsonObjectResponse(req, res, {
         probeApiIngestResponse: probeApiIngestResponse,

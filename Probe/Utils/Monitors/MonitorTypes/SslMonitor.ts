@@ -2,7 +2,7 @@ import OnlineCheck from "../../OnlineCheck";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import SSLMonitorReponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
@@ -13,7 +13,7 @@ import { ClientRequest, IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
 import tls, { TLSSocket } from "tls";
 
-export interface SslResponse extends SSLMonitorReponse {
+export interface SslResponse extends SslMonitorResponse {
   isOnline: boolean;
   failureCause: string;
 }

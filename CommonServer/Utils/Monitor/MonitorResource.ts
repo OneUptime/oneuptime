@@ -5,7 +5,7 @@ import MonitorMetricsByMinuteService from "../../Services/MonitorMetricsByMinute
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
-import logger from "../../Utils/Logger";
+import logger from "../Logger";
 import VMUtil from "../VM/VMAPI";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
@@ -50,8 +50,8 @@ import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
 
-export default class ProbeMonitorResponseService {
-  public static async processProbeResponse(
+export default class MonitorResourceUtil {
+  public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
     let response: ProbeApiIngestResponse = {
@@ -313,7 +313,7 @@ export default class ProbeMonitorResponseService {
 
     // now process probe response monitors
 
-    response = await ProbeMonitorResponseService.processMonitorStep({
+    response = await MonitorResourceUtil.processMonitorStep({
       dataToProcess: dataToProcess,
       monitorStep: monitorStep,
       monitor: monitor,
@@ -620,17 +620,16 @@ export default class ProbeMonitorResponseService {
     // check if should close the incident.
 
     for (const openIncident of openIncidents) {
-      const shouldClose: boolean =
-        ProbeMonitorResponseService.shouldCloseIncident({
-          openIncident,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-          criteriaInstance: input.criteriaInstance,
-        });
+      const shouldClose: boolean = MonitorResourceUtil.shouldCloseIncident({
+        openIncident,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        criteriaInstance: input.criteriaInstance,
+      });
 
       if (shouldClose) {
         // then resolve incident.
-        await ProbeMonitorResponseService.resolveOpenIncident({
+        await MonitorResourceUtil.resolveOpenIncident({
           openIncident: openIncident,
           rootCause: input.rootCause,
           dataToProcess: input.dataToProcess,
@@ -912,7 +911,7 @@ export default class ProbeMonitorResponseService {
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       const rootCause: string | null =
-        await ProbeMonitorResponseService.processMonitorCriteiaInstance({
+        await MonitorResourceUtil.processMonitorCriteiaInstance({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,
@@ -957,7 +956,7 @@ export default class ProbeMonitorResponseService {
     // process monitor criteria instance here.
 
     const rootCause: string | null =
-      await ProbeMonitorResponseService.isMonitorInstanceCriteriaFiltersMet({
+      await MonitorResourceUtil.isMonitorInstanceCriteriaFiltersMet({
         dataToProcess: input.dataToProcess,
         monitorStep: input.monitorStep,
         monitor: input.monitor,
@@ -985,7 +984,7 @@ export default class ProbeMonitorResponseService {
 
     for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
       const rootCause: string | null =
-        await ProbeMonitorResponseService.isMonitorInstanceCriteriaFilterMet({
+        await MonitorResourceUtil.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,

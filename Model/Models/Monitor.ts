@@ -710,6 +710,76 @@ export default class Monitor extends BaseModel {
   public incomingRequestReceivedAt?: Date = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Telemetry Monitor Next Monitor At",
+    description:
+      "This field is for Telemetry Monitor only. When is the next time we should monitor?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public telemetryMonitorNextMonitorAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Telemetry Monitor Last Monitor At",
+    description:
+      "This field is for Telemetry Monitor only. When was the last time we monitored?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public telemetryMonitorLastMonitorAt?: Date = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
