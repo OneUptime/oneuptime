@@ -5,7 +5,7 @@ import StatementGenerator from "../../../Utils/AnalyticsDatabase/StatementGenera
 import logger from "../../../Utils/Logger";
 import "../../TestingUtils/Init";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import NestedModel from "Common/Models/AnalyticsModels/AnalyticsBaseModelNestedModel";
+import NestedModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/NestedModel";
 import Route from "Common/Types/API/Route";
 import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
