@@ -1,5 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Field from "CommonUI/src/Components/Detail/Field";
@@ -9,7 +9,7 @@ import FieldType from "CommonUI/src/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  customCodeMonitorResponse: CustomCodeMonitorResponse;
+  customCodeMonitor: CustomCodeMonitor;
   moreDetailElement?: ReactElement;
   monitoredAt: Date;
 }
@@ -17,7 +17,7 @@ export interface ComponentProps {
 const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.customCodeMonitorResponse) {
+  if (!props.customCodeMonitor) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
@@ -25,20 +25,20 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const customMonitorResponse: CustomCodeMonitorResponse =
-    props.customCodeMonitorResponse;
+  const customMonitor: CustomCodeMonitor =
+    props.customCodeMonitor;
 
-  let executionTimeInMS: number = customMonitorResponse.executionTimeInMS || 0;
+  let executionTimeInMS: number = customMonitor.executionTimeInMS || 0;
 
   if (executionTimeInMS > 0) {
     executionTimeInMS = Math.round(executionTimeInMS);
   }
 
-  const fields: Array<Field<CustomCodeMonitorResponse>> = [];
+  const fields: Array<Field<CustomCodeMonitor>> = [];
 
   if (
-    customMonitorResponse.logMessages &&
-    customMonitorResponse.logMessages.length > 0
+    customMonitor.logMessages &&
+    customMonitor.logMessages.length > 0
   ) {
     fields.push({
       key: "logMessages",
@@ -48,7 +48,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.result) {
+  if (customMonitor.result) {
     fields.push({
       key: "result",
       title: "Result",
@@ -57,7 +57,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.scriptError) {
+  if (customMonitor.scriptError) {
     fields.push({
       key: "scriptError",
       title: "Script Error",
@@ -79,7 +79,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <InfoCard
             className="w-1/3 shadow-none border-2 border-gray-100 "
             title="Error"
-            value={customMonitorResponse.scriptError ? "Yes" : "No"}
+            value={customMonitor.scriptError ? "Yes" : "No"}
           />
 
           <InfoCard
@@ -95,9 +95,9 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
         {showMoreDetails && (
           <div>
-            <Detail<CustomCodeMonitorResponse>
+            <Detail<CustomCodeMonitor>
               id={"custom-code-monitor-summary-detail"}
-              item={customMonitorResponse}
+              item={customMonitor}
               fields={fields}
               showDetailsInNumberOfColumns={1}
             />

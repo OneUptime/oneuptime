@@ -2,7 +2,7 @@ import OnlineCheck from "../../OnlineCheck";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import SSLMonitorReponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import SSLMonitorReponse from "Common/Types/Monitor/SSLMonitor/SslMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
@@ -48,7 +48,7 @@ export default class SSLMonitor {
     );
 
     try {
-      const res: SslResponse = await this.getSslMonitorResponse(
+      const res: SslResponse = await this.getSslMonitor(
         url.hostname.hostname,
         url.hostname.port?.toNumber() || 443,
       );
@@ -111,7 +111,7 @@ export default class SSLMonitor {
     }
   }
 
-  public static async getSslMonitorResponse(
+  public static async getSslMonitor(
     host: string,
     port = 443,
   ): Promise<SslResponse> {

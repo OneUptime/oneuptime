@@ -21,7 +21,7 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
 import Card from "CommonUI/src/Components/Card/Card";
@@ -104,8 +104,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     IncomingMonitorRequest | undefined
   >(undefined);
 
-  const [serverMonitorResponse, setServerMonitorResponse] = useState<
-    ServerMonitorResponse | undefined
+  const [serverMonitor, setServerMonitor] = useState<
+    ServerMonitor | undefined
   >(undefined);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
@@ -181,7 +181,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           serverMonitorRequestReceivedAt: true,
           incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
-          serverMonitorResponse: true,
+          serverMonitor: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
         },
@@ -193,8 +193,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setIncomingMonitorRequest(item.incomingMonitorRequest);
       }
 
-      if (item?.serverMonitorResponse) {
-        setServerMonitorResponse(item.serverMonitorResponse);
+      if (item?.serverMonitor) {
+        setServerMonitor(item.serverMonitor);
       }
 
       const monitorStatuses: ListResult<MonitorStatus> = await ModelAPI.getList(
@@ -294,7 +294,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         });
 
-        const probeMonitorResponses: Array<MonitorStepProbeResponse> = [];
+        const probeMonitors: Array<MonitorStepProbeResponse> = [];
 
         for (let i: number = 0; i < monitorProbes.data.length; i++) {
           const monitorProbe: MonitorProbe | undefined = monitorProbes.data[i];
@@ -311,10 +311,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             continue;
           }
 
-          probeMonitorResponses.push(monitorProbe?.lastMonitoringLog);
+          probeMonitors.push(monitorProbe?.lastMonitoringLog);
         }
 
-        setProbeResponses(probeMonitorResponses);
+        setProbeResponses(probeMonitors);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -604,8 +604,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         monitorType={monitorType!}
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
-        probeMonitorResponses={probeResponses}
-        serverMonitorResponse={serverMonitorResponse}
+        probeMonitors={probeResponses}
+        serverMonitor={serverMonitor}
       />
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}

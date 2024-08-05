@@ -1,4 +1,4 @@
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
 import PingMonitorView from "./PingMonitorView";
 import SSLCertificateMonitorView from "./SSLCertificateMonitorView";
@@ -9,30 +9,30 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   monitorType: MonitorType;
-  probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
+  probeMonitors?: Array<ProbeMonitor> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
-  serverMonitorResponse?: ServerMonitorResponse | undefined;
+  serverMonitor?: ServerMonitor | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   type GetProbeableMonitorSummarysInfo = (
-    probeMonitorResponse: ProbeMonitorResponse,
+    probeMonitor: ProbeMonitor,
     key: number,
   ) => ReactElement;
 
   const getProbableMonitorSummarysInfo: GetProbeableMonitorSummarysInfo = (
-    probeMonitorResponse: ProbeMonitorResponse,
+    probeMonitor: ProbeMonitor,
     key: number,
   ): ReactElement => {
-    if (!probeMonitorResponse) {
+    if (!probeMonitor) {
       return (
         <ErrorMessage
           error={
@@ -49,7 +49,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <WebsiteMonitorSummaryView
           key={key}
-          probeMonitorResponse={probeMonitorResponse}
+          probeMonitor={probeMonitor}
         />
       );
     }
@@ -62,7 +62,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <PingMonitorView
           key={key}
-          probeMonitorResponse={probeMonitorResponse}
+          probeMonitor={probeMonitor}
         />
       );
     }
@@ -71,7 +71,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <SSLCertificateMonitorView
           key={key}
-          probeMonitorResponse={probeMonitorResponse}
+          probeMonitor={probeMonitor}
         />
       );
     }
@@ -80,7 +80,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <SyntheticMonitorView
           key={key}
-          probeMonitorResponse={probeMonitorResponse}
+          probeMonitor={probeMonitor}
         />
       );
     }
@@ -90,7 +90,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
   if (
     MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
-    (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
+    (!props.probeMonitors || props.probeMonitors.length === 0)
   ) {
     return (
       <ErrorMessage
@@ -116,10 +116,10 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {props.probeMonitorResponses &&
-        props.probeMonitorResponses.map(
-          (probeMonitorResponse: ProbeMonitorResponse, index: number) => {
-            return getProbableMonitorSummarysInfo(probeMonitorResponse, index);
+      {props.probeMonitors &&
+        props.probeMonitors.map(
+          (probeMonitor: ProbeMonitor, index: number) => {
+            return getProbableMonitorSummarysInfo(probeMonitor, index);
           },
         )}
 
@@ -133,9 +133,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       )}
 
       {props.monitorType === MonitorType.Server &&
-      props.serverMonitorResponse ? (
+      props.serverMonitor ? (
         <ServerMonitorSummaryView
-          serverMonitorResponse={props.serverMonitorResponse}
+          serverMonitor={props.serverMonitor}
         />
       ) : (
         <></>

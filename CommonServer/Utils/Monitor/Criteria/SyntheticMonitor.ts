@@ -1,21 +1,21 @@
 import CompareCriteria from "./CompareCriteria";
 import CustomCodeMonitoringCriteria from "./CustomCodeMonitorCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
 
 export default class SyntheticMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    monitorResponse: Array<SyntheticMonitorResponse>;
+    Monitor: Array<SyntheticMonitor>;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
-    for (const syntheticMonitorResponse of input.monitorResponse) {
+    for (const syntheticMonitor of input.Monitor) {
       const threshold: number | string | undefined | null =
         input.criteriaFilter.value;
 
       // check custom code monitoring criteria first
       const result: string | null =
         await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          monitorResponse: syntheticMonitorResponse,
+          Monitor: syntheticMonitor,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -27,7 +27,7 @@ export default class SyntheticMonitoringCriteria {
 
       if (CheckOn.ScreenSizeType === input.criteriaFilter.checkOn) {
         return CompareCriteria.checkEqualToOrNotEqualTo({
-          value: syntheticMonitorResponse.screenSizeType,
+          value: syntheticMonitor.screenSizeType,
           threshold: threshold as number,
           criteriaFilter: input.criteriaFilter,
         });
@@ -35,7 +35,7 @@ export default class SyntheticMonitoringCriteria {
 
       if (CheckOn.BrowserType === input.criteriaFilter.checkOn) {
         return CompareCriteria.checkEqualToOrNotEqualTo({
-          value: syntheticMonitorResponse.browserType,
+          value: syntheticMonitor.browserType,
           threshold: threshold as number,
           criteriaFilter: input.criteriaFilter,
         });

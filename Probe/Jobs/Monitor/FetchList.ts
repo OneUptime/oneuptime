@@ -9,7 +9,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";
@@ -84,7 +84,7 @@ export default class FetchListAndProbe {
       );
 
       const probeMonitorPromises: Array<
-        Promise<Array<ProbeMonitorResponse | null>>
+        Promise<Array<ProbeMonitor | null>>
       > = []; // Array of promises to probe monitors
 
       for (const monitor of monitors) {
@@ -93,7 +93,7 @@ export default class FetchListAndProbe {
 
       // all settled
       // eslint-disable-next-line no-undef
-      const results: PromiseSettledResult<(ProbeMonitorResponse | null)[]>[] =
+      const results: PromiseSettledResult<(ProbeMonitor | null)[]>[] =
         await Promise.allSettled(probeMonitorPromises);
 
       let resultIndex: number = 0;

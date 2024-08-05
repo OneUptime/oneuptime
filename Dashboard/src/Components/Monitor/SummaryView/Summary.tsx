@@ -1,20 +1,20 @@
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import ProbePicker from "./ProbePicker";
 import SummaryInfo from "./SummaryInfo";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import Card from "CommonUI/src/Components/Card/Card";
 import { MonitorStepProbeResponse } from "Model/Models/MonitorProbe";
 import Probe from "Model/Models/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
-  probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
+  probeMonitors?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
-  serverMonitorResponse?: ServerMonitorResponse | undefined;
+  serverMonitor?: ServerMonitor | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
 }
@@ -38,18 +38,18 @@ const Summary: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const probeResponses: Array<ProbeMonitorResponse> = [];
+  const probeResponses: Array<ProbeMonitor> = [];
 
-  for (const probeResponse of props.probeMonitorResponses || []) {
+  for (const probeResponse of props.probeMonitors || []) {
     for (const monitorStepId in probeResponse) {
-      const probeMonitorResponse: ProbeMonitorResponse = probeResponse[
+      const probeMonitor: ProbeMonitor = probeResponse[
         monitorStepId
-      ] as ProbeMonitorResponse;
+      ] as ProbeMonitor;
       if (
-        probeMonitorResponse.probeId?.toString() ===
+        probeMonitor.probeId?.toString() ===
         selectedProbe?.id?.toString()
       ) {
-        probeResponses.push(probeMonitorResponse);
+        probeResponses.push(probeMonitor);
       }
     }
   }
@@ -78,9 +78,9 @@ const Summary: FunctionComponent<ComponentProps> = (
       <div>
         <SummaryInfo
           monitorType={props.monitorType}
-          probeMonitorResponses={probeResponses}
+          probeMonitors={probeResponses}
           incomingMonitorRequest={props.incomingMonitorRequest}
-          serverMonitorResponse={props.serverMonitorResponse}
+          serverMonitor={props.serverMonitor}
         />
       </div>
     </Card>

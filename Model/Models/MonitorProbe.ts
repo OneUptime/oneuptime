@@ -18,10 +18,10 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
+export type MonitorStepProbeResponse = Dictionary<ProbeMonitor>;
 
 @EnableDocumentation()
 @TenantColumn("projectId")

@@ -1,6 +1,6 @@
 import { PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "CommonServer/Utils/Logger";
 import VMRunner from "CommonServer/Utils/VM/VMRunner";
@@ -13,7 +13,7 @@ export interface CustomCodeMonitorOptions {
 export default class CustomCodeMonitor {
   public static async execute(
     options: CustomCodeMonitorOptions,
-  ): Promise<CustomCodeMonitorResponse | null> {
+  ): Promise<CustomCodeMonitor | null> {
     if (!options) {
       // this should never happen
       options = {
@@ -21,7 +21,7 @@ export default class CustomCodeMonitor {
       };
     }
 
-    const scriptResult: CustomCodeMonitorResponse = {
+    const scriptResult: CustomCodeMonitor = {
       logMessages: [],
       scriptError: undefined,
       result: undefined,

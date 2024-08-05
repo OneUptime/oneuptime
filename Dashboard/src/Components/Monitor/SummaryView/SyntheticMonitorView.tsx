@@ -1,45 +1,45 @@
 import SyntheticMonitorItemView from "./SyntheticMonitorItemView";
-import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitorResponse: ProbeMonitorResponse;
+  probeMonitor: ProbeMonitor;
 }
 
 const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (
-    !props.probeMonitorResponse ||
-    !props.probeMonitorResponse.syntheticMonitorResponse
+    !props.probeMonitor ||
+    !props.probeMonitor.syntheticMonitor
   ) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 
-  const syntheticMonitorResponses: Array<SyntheticMonitorResponse> =
-    props.probeMonitorResponse.syntheticMonitorResponse;
+  const syntheticMonitors: Array<SyntheticMonitor> =
+    props.probeMonitor.syntheticMonitor;
 
   return (
     <div>
-      {syntheticMonitorResponses &&
-        syntheticMonitorResponses.map(
+      {syntheticMonitors &&
+        syntheticMonitors.map(
           (
-            syntheticMonitorResponse: SyntheticMonitorResponse,
+            syntheticMonitor: SyntheticMonitor,
             index: number,
           ) => {
             return (
               <div key={index}>
                 <SyntheticMonitorItemView
                   key={index}
-                  syntheticMonitorResponse={syntheticMonitorResponse}
-                  monitoredAt={props.probeMonitorResponse.monitoredAt}
+                  syntheticMonitor={syntheticMonitor}
+                  monitoredAt={props.probeMonitor.monitoredAt}
                 />
-                {index !== syntheticMonitorResponses.length - 1 && (
+                {index !== syntheticMonitors.length - 1 && (
                   <HorizontalRule />
                 )}
               </div>

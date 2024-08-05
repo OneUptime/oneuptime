@@ -22,7 +22,7 @@ import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import {
@@ -710,6 +710,76 @@ export default class Monitor extends BaseModel {
   public incomingRequestReceivedAt?: Date = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Telemetry Monitor Next Monitor At",
+    description:
+      "This field is for Telemetry Monitor only. When is the next time we should monitor?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public telemetryMonitorNextMonitorAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Telemetry Monitor Last Monitor At",
+    description:
+      "This field is for Telemetry Monitor only. When was the last time we monitored?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public telemetryMonitorLastMonitorAt?: Date = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
@@ -923,7 +993,7 @@ export default class Monitor extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public serverMonitorResponse?: ServerMonitorResponse = undefined;
+  public serverMonitor?: ServerMonitor = undefined;
 
   @ColumnAccessControl({
     create: [],

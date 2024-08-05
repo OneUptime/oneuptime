@@ -2,7 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import MonitorService from "CommonServer/Services/MonitorService";
@@ -12,7 +12,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "CommonServer/Utils/Express";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorService from "CommonServer/Utils/Monitor/Monitor";
 import Response from "CommonServer/Utils/Response";
 import Monitor from "Model/Models/Monitor";
 
@@ -92,12 +92,12 @@ router.post(
 
       // now process this request.
 
-      const serverMonitorResponse: ServerMonitorResponse =
+      const serverMonitor: ServerMonitor =
         JSONFunctions.deserialize(
-          req.body["serverMonitorResponse"] as JSONObject,
+          req.body["serverMonitor"] as JSONObject,
         ) as any;
 
-      if (!serverMonitorResponse) {
+      if (!serverMonitor) {
         throw new BadDataException("Invalid Server Monitor Response");
       }
 
@@ -105,12 +105,12 @@ router.post(
         throw new BadDataException("Monitor id not found");
       }
 
-      serverMonitorResponse.monitorId = monitor.id;
+      serverMonitor.monitorId = monitor.id;
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await ProbeMonitorResponseService.processProbeResponse(
-          serverMonitorResponse,
+        await MonitorResourceService.monitorResource(
+          serverMonitor,
         );
 
       return Response.sendJsonObjectResponse(req, res, {

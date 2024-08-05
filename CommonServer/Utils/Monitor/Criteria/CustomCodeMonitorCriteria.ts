@@ -1,10 +1,10 @@
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
 
 export default class CustomCodeMonitoringCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
-    monitorResponse: CustomCodeMonitorResponse;
+    Monitor: CustomCodeMonitor;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
     // Server Monitoring Checks
@@ -12,14 +12,14 @@ export default class CustomCodeMonitoringCriteria {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
 
-    const syntheticMonitorResponse: CustomCodeMonitorResponse =
-      input.monitorResponse;
+    const syntheticMonitor: CustomCodeMonitor =
+      input.Monitor;
 
     if (input.criteriaFilter.checkOn === CheckOn.ExecutionTime) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentExecutionTime: number =
-        syntheticMonitorResponse.executionTimeInMS || 0;
+        syntheticMonitor.executionTimeInMS || 0;
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentExecutionTime,
@@ -31,7 +31,7 @@ export default class CustomCodeMonitoringCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.Error) {
       const emptyNotEmptyResult: string | null =
         CompareCriteria.compareEmptyAndNotEmpty({
-          value: syntheticMonitorResponse.scriptError,
+          value: syntheticMonitor.scriptError,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -41,10 +41,10 @@ export default class CustomCodeMonitoringCriteria {
 
       if (
         threshold &&
-        typeof syntheticMonitorResponse.scriptError === "string"
+        typeof syntheticMonitor.scriptError === "string"
       ) {
         const result: string | null = CompareCriteria.compareCriteriaStrings({
-          value: syntheticMonitorResponse.scriptError!,
+          value: syntheticMonitor.scriptError!,
           threshold: threshold.toString(),
           criteriaFilter: input.criteriaFilter,
         });
@@ -58,7 +58,7 @@ export default class CustomCodeMonitoringCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.ResultValue) {
       const emptyNotEmptyResult: string | null =
         CompareCriteria.compareEmptyAndNotEmpty({
-          value: syntheticMonitorResponse.result,
+          value: syntheticMonitor.result,
           criteriaFilter: input.criteriaFilter,
         });
 
@@ -78,10 +78,10 @@ export default class CustomCodeMonitoringCriteria {
 
       if (
         thresholdAsNumber !== null &&
-        typeof syntheticMonitorResponse.result === "number"
+        typeof syntheticMonitor.result === "number"
       ) {
         const result: string | null = CompareCriteria.compareCriteriaNumbers({
-          value: syntheticMonitorResponse.result,
+          value: syntheticMonitor.result,
           threshold: thresholdAsNumber as number,
           criteriaFilter: input.criteriaFilter,
         });
@@ -91,9 +91,9 @@ export default class CustomCodeMonitoringCriteria {
         }
       }
 
-      if (threshold && typeof syntheticMonitorResponse.result === "string") {
+      if (threshold && typeof syntheticMonitor.result === "string") {
         const result: string | null = CompareCriteria.compareCriteriaStrings({
-          value: syntheticMonitorResponse.result,
+          value: syntheticMonitor.result,
           threshold: threshold.toString(),
           criteriaFilter: input.criteriaFilter,
         });

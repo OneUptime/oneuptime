@@ -1,17 +1,17 @@
 import OneUptimeDate from "Common/Types/Date";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitorResponse: ProbeMonitorResponse;
+  probeMonitor: ProbeMonitor;
 }
 
 const PingMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   let responseTimeInMs: number =
-    props.probeMonitorResponse?.responseTimeInMs || 0;
+    props.probeMonitor?.responseTimeInMs || 0;
 
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
@@ -24,9 +24,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           className="w-full shadow-none border-2 border-gray-100 "
           title="Hostname or IP address"
           value={
-            (props.probeMonitorResponse.monitorDestination?.toString() || "") +
-              (props.probeMonitorResponse.monitorDestinationPort?.toString()
-                ? `:${props.probeMonitorResponse.monitorDestinationPort.toString()}`
+            (props.probeMonitor.monitorDestination?.toString() || "") +
+              (props.probeMonitor.monitorDestinationPort?.toString()
+                ? `:${props.probeMonitor.monitorDestinationPort.toString()}`
                 : "") || "-"
           }
         />
@@ -35,7 +35,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={props.probeMonitor.isOnline ? "Online" : "Offline"}
         />
 
         <InfoCard
@@ -47,9 +47,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           className="w-1/3 shadow-none border-2 border-gray-100 "
           title="Monitored At"
           value={
-            props.probeMonitorResponse?.monitoredAt
+            props.probeMonitor?.monitoredAt
               ? OneUptimeDate.getDateAsLocalFormattedString(
-                  props.probeMonitorResponse.monitoredAt,
+                  props.probeMonitor.monitoredAt,
                 )
               : "-"
           }

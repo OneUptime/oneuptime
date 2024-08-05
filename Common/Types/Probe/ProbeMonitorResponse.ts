@@ -3,13 +3,13 @@ import URL from "../API/URL";
 import Dictionary from "../Dictionary";
 import IP from "../IP/IP";
 import { JSONObject } from "../JSON";
-import CustomCodeMonitorResponse from "../Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
-import SslMonitorResponse from "../Monitor/SSLMonitor/SslMonitorResponse";
-import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import CustomCodeMonitor from "../Monitor/CustomCodeMonitor/CustomCodeMonitor";
+import SslMonitor from "../Monitor/SSLMonitor/SslMonitor";
+import SyntheticMonitor from "../Monitor/SyntheticMonitors/SyntheticMonitor";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 
-export default interface ProbeMonitorResponse {
+export default interface ProbeMonitor {
   isOnline?: boolean | undefined;
   monitorDestination?: URL | IP | Hostname | undefined;
   monitorDestinationPort?: Port | undefined;
@@ -21,8 +21,8 @@ export default interface ProbeMonitorResponse {
   monitorId: ObjectID;
   probeId: ObjectID;
   failureCause: string;
-  sslResponse?: SslMonitorResponse | undefined;
-  syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
-  customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
+  sslResponse?: SslMonitor | undefined;
+  syntheticMonitor?: Array<SyntheticMonitor> | undefined;
+  customCodeMonitor?: CustomCodeMonitor | undefined;
   monitoredAt: Date;
 }

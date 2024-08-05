@@ -4,7 +4,7 @@ import ProbeAPIRequest from "../ProbeAPIRequest";
 import ApiMonitor, { APIResponse } from "./MonitorTypes/ApiMonitor";
 import CustomCodeMonitor from "./MonitorTypes/CustomCodeMonitor";
 import PingMonitor, { PingResponse } from "./MonitorTypes/PingMonitor";
-import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
+import PortMonitor, { PortMonitor } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
 import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
 import WebsiteMonitor, {
@@ -16,14 +16,14 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CustomCodeMonitor from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitor";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
-import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import SyntheticMonitor from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitor";
 import Port from "Common/Types/Port";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
 import LocalCache from "CommonServer/Infrastructure/LocalCache";
@@ -33,8 +33,8 @@ import Monitor from "Model/Models/Monitor";
 export default class MonitorUtil {
   public static async probeMonitor(
     monitor: Monitor,
-  ): Promise<Array<ProbeMonitorResponse | null>> {
-    const results: Array<ProbeMonitorResponse | null> = [];
+  ): Promise<Array<ProbeMonitor | null>> {
+    const results: Array<ProbeMonitor | null> = [];
 
     if (
       !monitor.monitorSteps ||
@@ -50,7 +50,7 @@ export default class MonitorUtil {
         continue;
       }
 
-      const result: ProbeMonitorResponse | null = await this.probeMonitorStep(
+      const result: ProbeMonitor | null = await this.probeMonitorStep(
         monitorStep,
         monitor,
       );
@@ -65,7 +65,7 @@ export default class MonitorUtil {
           ),
           {
             ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
+            probeMonitor: result as any,
           },
           {},
           {},
@@ -119,8 +119,8 @@ export default class MonitorUtil {
   public static async probeMonitorStep(
     monitorStep: MonitorStep,
     monitor: Monitor,
-  ): Promise<ProbeMonitorResponse | null> {
-    const result: ProbeMonitorResponse = {
+  ): Promise<ProbeMonitor | null> {
+    const result: ProbeMonitor = {
       monitorStepId: monitorStep.id,
       monitorId: monitor.id!,
       probeId: ProbeUtil.getProbeId(),
@@ -145,7 +145,7 @@ export default class MonitorUtil {
       if (LocalCache.getString("PROBE", "PING_MONITORING") === "PORT") {
         // probe is online but ping monitoring is blocked by the cloud provider. Fallback to port monitoring.
 
-        const response: PortMonitorResponse | null = await PortMonitor.ping(
+        const response: PortMonitor | null = await PortMonitor.ping(
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
@@ -197,7 +197,7 @@ export default class MonitorUtil {
 
       result.monitorDestinationPort = monitorStep.data.monitorDestinationPort;
 
-      const response: PortMonitorResponse | null = await PortMonitor.ping(
+      const response: PortMonitor | null = await PortMonitor.ping(
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
@@ -222,7 +222,7 @@ export default class MonitorUtil {
         return result;
       }
 
-      const response: Array<SyntheticMonitorResponse> | null =
+      const response: Array<SyntheticMonitor> | null =
         await SyntheticMonitor.execute({
           script: monitorStep.data.customCode,
           monitorId: monitor.id!,
@@ -235,7 +235,7 @@ export default class MonitorUtil {
         return null;
       }
 
-      result.syntheticMonitorResponse = response;
+      result.syntheticMonitor = response;
     }
 
     if (monitor.monitorType === MonitorType.CustomJavaScriptCode) {
@@ -245,7 +245,7 @@ export default class MonitorUtil {
         return result;
       }
 
-      const response: CustomCodeMonitorResponse | null =
+      const response: CustomCodeMonitor | null =
         await CustomCodeMonitor.execute({
           script: monitorStep.data.customCode,
           monitorId: monitor.id!,
@@ -255,7 +255,7 @@ export default class MonitorUtil {
         return null;
       }
 
-      result.customCodeMonitorResponse = response;
+      result.customCodeMonitor = response;
     }
 
     if (monitor.monitorType === MonitorType.SSLCertificate) {

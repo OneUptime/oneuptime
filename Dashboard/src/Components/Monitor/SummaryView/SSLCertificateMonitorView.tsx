@@ -1,26 +1,26 @@
 import OneUptimeDate from "Common/Types/Date";
-import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import SslMonitor from "Common/Types/Monitor/SSLMonitor/SslMonitor";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  probeMonitorResponse: ProbeMonitorResponse;
+  probeMonitor: ProbeMonitor;
 }
 
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.probeMonitorResponse || !props.probeMonitorResponse.sslResponse) {
+  if (!props.probeMonitor || !props.probeMonitor.sslResponse) {
     return (
       <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 
-  const sslResponse: SslMonitorResponse =
-    props.probeMonitorResponse.sslResponse;
+  const sslResponse: SslMonitor =
+    props.probeMonitor.sslResponse;
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
@@ -32,7 +32,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             className="w-full shadow-none border-2 border-gray-100 "
             title="URL"
             value={
-              props.probeMonitorResponse.monitorDestination?.toString() || "-"
+              props.probeMonitor.monitorDestination?.toString() || "-"
             }
           />
         </div>

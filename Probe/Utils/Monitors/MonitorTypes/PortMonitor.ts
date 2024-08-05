@@ -14,7 +14,7 @@ import logger from "CommonServer/Utils/Logger";
 import net from "net";
 
 // TODO - make sure it  work for the IPV6
-export interface PortMonitorResponse {
+export interface PortMonitor {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;
   failureCause: string;
@@ -33,7 +33,7 @@ export default class PortMonitor {
     host: Hostname | IPv4 | IPv6 | URL,
     port: Port,
     pingOptions?: PingOptions,
-  ): Promise<PortMonitorResponse | null> {
+  ): Promise<PortMonitor | null> {
     if (!pingOptions) {
       pingOptions = {};
     }

@@ -9,9 +9,9 @@ import {
   CriteriaFilter,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
-import ServerMonitorResponse, {
+import ServerMonitor, {
   ServerProcess,
-} from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+} from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 
 export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -45,7 +45,7 @@ export default class ServerMonitorCriteria {
       }
     }
 
-    const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
+    const lastCheckTime: Date = (input.dataToProcess as ServerMonitor)
       .requestReceivedAt;
 
     const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
@@ -92,13 +92,13 @@ export default class ServerMonitorCriteria {
 
     if (
       input.criteriaFilter.checkOn === CheckOn.CPUUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentCpuPercent: number | Array<number> =
         (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (input.dataToProcess as ServerMonitor)
           .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
         0;
 
@@ -111,13 +111,13 @@ export default class ServerMonitorCriteria {
 
     if (
       input.criteriaFilter.checkOn === CheckOn.MemoryUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const memoryPercent: number | Array<number> =
         (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (input.dataToProcess as ServerMonitor)
           .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
         0;
 
@@ -130,7 +130,7 @@ export default class ServerMonitorCriteria {
 
     if (
       input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
@@ -139,7 +139,7 @@ export default class ServerMonitorCriteria {
 
       const diskPercent: number =
         (
-          input.dataToProcess as ServerMonitorResponse
+          input.dataToProcess as ServerMonitor
         ).basicInfrastructureMetrics?.diskMetrics.filter(
           (item: BasicDiskMetrics) => {
             return (
@@ -159,7 +159,7 @@ export default class ServerMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessName &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       const thresholdProcessName: string = threshold
         .toString()
@@ -168,7 +168,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         const processNames: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.name.trim().toLowerCase();
             },
@@ -183,7 +183,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
         const processNames: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.name.trim().toLowerCase();
             },
@@ -200,7 +200,7 @@ export default class ServerMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessPID &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       const thresholdProcessPID: string = threshold
         .toString()
@@ -209,7 +209,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         const processPIDs: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.pid.toString().trim().toLowerCase();
             },
@@ -224,7 +224,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
         const processPIDs: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.pid.toString().trim().toLowerCase();
             },
@@ -243,7 +243,7 @@ export default class ServerMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.ServerProcessCommand &&
       threshold &&
-      !(input.dataToProcess as ServerMonitorResponse).onlyCheckRequestReceivedAt
+      !(input.dataToProcess as ServerMonitor).onlyCheckRequestReceivedAt
     ) {
       const thresholdProcessCommand: string = threshold
         .toString()
@@ -252,7 +252,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsExecuting) {
         const processCommands: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.command.trim().toLowerCase();
             },
@@ -267,7 +267,7 @@ export default class ServerMonitorCriteria {
 
       if (input.criteriaFilter.filterType === FilterType.IsNotExecuting) {
         const processCommands: Array<string> =
-          (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
+          (input.dataToProcess as ServerMonitor)?.processes?.map(
             (item: ServerProcess) => {
               return item.command.trim().toLowerCase();
             },

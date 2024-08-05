@@ -3,12 +3,12 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitor from "Common/Types/Monitor/ServerMonitor/ServerMonitor";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorService from "CommonServer/Utils/Monitor/Monitor";
 import Monitor from "Model/Models/Monitor";
 
 RunCron(
@@ -48,7 +48,7 @@ RunCron(
           continue;
         }
 
-        const serverMonitorResponse: ServerMonitorResponse = {
+        const serverMonitor: ServerMonitor = {
           monitorId: monitor.id!,
           onlyCheckRequestReceivedAt: true,
           requestReceivedAt:
@@ -56,8 +56,8 @@ RunCron(
           hostname: "",
         };
 
-        await ProbeMonitorResponseService.processProbeResponse(
-          serverMonitorResponse,
+        await MonitorResourceService.monitorResource(
+          serverMonitor,
         );
       } catch (error) {
         logger.error(

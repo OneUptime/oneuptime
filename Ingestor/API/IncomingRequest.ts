@@ -14,7 +14,7 @@ import Express, {
   NextFunction,
   RequestHandler,
 } from "CommonServer/Utils/Express";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorService from "CommonServer/Utils/Monitor/Monitor";
 import Response from "CommonServer/Utils/Response";
 import Monitor from "Model/Models/Monitor";
 
@@ -77,7 +77,7 @@ const processIncomingRequest: RequestHandler = async (
     };
 
     // process probe response here.
-    await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
+    await MonitorResourceService.monitorResource(incomingRequest);
 
     return Response.sendEmptySuccessResponse(req, res);
   } catch (err) {

@@ -7,7 +7,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitor from "Common/Types/Monitor/Monitor";
 import Typeof from "Common/Types/Typeof";
 
 export default class APIRequestCriteria {
@@ -46,7 +46,7 @@ export default class APIRequestCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ||
-        (input.dataToProcess as ProbeMonitorResponse).isOnline;
+        (input.dataToProcess as ProbeMonitor).isOnline;
 
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
@@ -60,7 +60,7 @@ export default class APIRequestCriteria {
 
       const value: Array<number> | number =
         (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs!;
+        (input.dataToProcess as ProbeMonitor).responseTimeInMs!;
 
       return CompareCriteria.compareCriteriaNumbers({
         value: value,
@@ -75,7 +75,7 @@ export default class APIRequestCriteria {
 
       const value: Array<number> | number =
         (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ProbeMonitorResponse).responseCode!;
+        (input.dataToProcess as ProbeMonitor).responseCode!;
 
       return CompareCriteria.compareCriteriaNumbers({
         value: value,
@@ -86,7 +86,7 @@ export default class APIRequestCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResponseBody) {
       let responseBody: string | JSONObject | undefined = (
-        input.dataToProcess as ProbeMonitorResponse
+        input.dataToProcess as ProbeMonitor
       ).responseBody;
 
       if (responseBody && typeof responseBody === Typeof.Object) {
@@ -123,7 +123,7 @@ export default class APIRequestCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
       const headerKeys: Array<string> = Object.keys(
-        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {},
+        (input.dataToProcess as ProbeMonitor).responseHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });
@@ -154,7 +154,7 @@ export default class APIRequestCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
       const headerValues: Array<string> = Object.values(
-        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {},
+        (input.dataToProcess as ProbeMonitor).responseHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });

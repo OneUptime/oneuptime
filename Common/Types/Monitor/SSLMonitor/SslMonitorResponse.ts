@@ -1,4 +1,4 @@
-export default interface SslMonitorResponse {
+export default interface SslMonitor {
   isSelfSigned?: boolean;
   createdAt?: Date;
   expiresAt?: Date;
