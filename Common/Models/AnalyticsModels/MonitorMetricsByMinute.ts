@@ -1,4 +1,4 @@
-import AnalyticsBaseModel from "../BaseModels/AnalyticsBaseModel/BaseModel";
+import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";

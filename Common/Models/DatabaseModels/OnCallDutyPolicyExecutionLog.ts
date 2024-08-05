@@ -4,7 +4,7 @@ import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

@@ -1,5 +1,5 @@
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

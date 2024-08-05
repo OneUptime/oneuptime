@@ -1,4 +1,4 @@
-import NestedModel from "../../Models/BaseModels/AnalyticsBaseModel/NestedModel";
+import NestedModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/NestedModel";
 import TableColumnType from "../AnalyticsDatabase/TableColumnType";
 import { ColumnAccessControl } from "../BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../BaseDatabase/ColumnBillingAccessControl";

@@ -2,7 +2,7 @@ import ApiKey from "./ApiKey";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

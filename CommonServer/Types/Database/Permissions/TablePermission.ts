@@ -1,7 +1,7 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "./BillingPermission";
 import PublicPermission from "./PublicPermission";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -14,7 +14,7 @@ import Permission, {
 
 export default class TablePermission {
   public static getTablePermission(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
   ): Array<Permission> {
     let modelPermissions: Array<Permission> = [];
@@ -40,7 +40,7 @@ export default class TablePermission {
   }
 
   public static checkTableLevelPermissions(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {
@@ -79,7 +79,7 @@ export default class TablePermission {
   }
 
   public static checkTableLevelBlockPermissions(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {

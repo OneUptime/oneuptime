@@ -1,4 +1,4 @@
-import BaseModel, { BaseModelType } from "../../Models/BaseModels/BaseModel/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../Dictionary";
 import { ReflectionMetadataType } from "../Reflection";
 import TableColumnType from "./TableColumnType";
@@ -18,7 +18,7 @@ export interface TableColumnMetadata {
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;
-  modelType?: BaseModelType;
+  modelType?: DatabaseBaseModelType;
   forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
 }
 

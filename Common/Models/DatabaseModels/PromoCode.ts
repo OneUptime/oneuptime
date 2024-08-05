@@ -2,7 +2,7 @@ import Project from "./Project";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

@@ -1,6 +1,6 @@
-import File from "../../Models/BaseModels/BaseModel/FileModel";
+import File from "../../Models/DatabaseModels/File";
 import { describe, expect, it } from "@jest/globals";
-import BaseModel from "../../Models/BaseModels/BaseModel/BaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 
 describe("File", () => {

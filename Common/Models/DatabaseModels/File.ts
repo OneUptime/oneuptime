@@ -1,4 +1,4 @@
-import FileModel from "../BaseModels/BaseModel/FileModel";
+import FileModel from "./DatabaseBaseModel/FileModel";
 import Route from "../../Types/API/Route";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";

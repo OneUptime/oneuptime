@@ -1,5 +1,5 @@
 import File from "./File";
-import UserModel from "../../Models/BaseModels/BaseModel/UserModel";
+import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import CompanySize from "../../Types/Company/CompanySize";

@@ -1,6 +1,6 @@
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Hostname from "../../Types/API/Hostname";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";

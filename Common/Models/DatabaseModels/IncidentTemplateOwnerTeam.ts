@@ -2,7 +2,7 @@ import IncidentTemplate from "./IncidentTemplate";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";

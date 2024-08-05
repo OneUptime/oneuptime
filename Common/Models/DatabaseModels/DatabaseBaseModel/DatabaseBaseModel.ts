@@ -34,7 +34,7 @@ import {
   VersionColumn,
 } from "typeorm";
 
-export type BaseModelType = { new (): BaseModel };
+
 
 export type DbTypes =
   | string
@@ -49,7 +49,7 @@ export type DbTypes =
   | JSONArray
   | Buffer;
 
-export default class BaseModel extends BaseEntity {
+export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "ID",
     type: TableColumnType.ObjectID,
@@ -348,7 +348,7 @@ export default class BaseModel extends BaseEntity {
 
   public getColumnValue(
     columnName: string,
-  ): JSONValue | BaseModel | Array<BaseModel> | null {
+  ): JSONValue | DatabaseBaseModel | Array<DatabaseBaseModel> | null {
     if (getTableColumn(this, columnName) && (this as any)[columnName]) {
       return (this as any)[columnName] as JSONValue;
     }
@@ -358,7 +358,7 @@ export default class BaseModel extends BaseEntity {
 
   public setColumnValue(
     columnName: string,
-    value: JSONValue | BaseModel | Array<BaseModel>,
+    value: JSONValue | DatabaseBaseModel | Array<DatabaseBaseModel>,
   ): void {
     if (getTableColumn(this, columnName)) {
       return ((this as any)[columnName] = value as any);
@@ -412,7 +412,7 @@ export default class BaseModel extends BaseEntity {
       return false;
     }
 
-    const fileModel: BaseModel = new tableColumnType.modelType();
+    const fileModel: DatabaseBaseModel = new tableColumnType.modelType();
 
     if (fileModel.isFileModel()) {
       return true;
@@ -547,18 +547,18 @@ export default class BaseModel extends BaseEntity {
     return Text.pascalCaseToDashes(this.tableName as string);
   }
 
-  public static toJSON(model: BaseModel, modelType: BaseModelType): JSONObject {
+  public static toJSON(model: DatabaseBaseModel, modelType: DatabaseBaseModelType): JSONObject {
     const json: JSONObject = this.toJSONObject(model, modelType);
     return JSONFunctions.serialize(json);
   }
 
   public static toJSONObject(
-    model: BaseModel,
-    modelType: BaseModelType,
+    model: DatabaseBaseModel,
+    modelType: DatabaseBaseModelType,
   ): JSONObject {
     const json: JSONObject = {};
 
-    const vanillaModel: BaseModel = new modelType();
+    const vanillaModel: DatabaseBaseModel = new modelType();
 
     for (const key of vanillaModel.getTableColumns().columns) {
       if ((model as any)[key] === undefined) {
@@ -573,7 +573,7 @@ export default class BaseModel extends BaseEntity {
           (model as any)[key] &&
           tableColumnMetadata.modelType &&
           tableColumnMetadata.type === TableColumnType.Entity &&
-          (model as any)[key] instanceof BaseModel
+          (model as any)[key] instanceof DatabaseBaseModel
         ) {
           (json as any)[key] = this.toJSONObject(
             (model as any)[key],
@@ -587,7 +587,7 @@ export default class BaseModel extends BaseEntity {
           tableColumnMetadata.type === TableColumnType.EntityArray
         ) {
           (json as any)[key] = this.toJSONObjectArray(
-            (model as any)[key] as Array<BaseModel>,
+            (model as any)[key] as Array<DatabaseBaseModel>,
             tableColumnMetadata.modelType,
           );
         } else {
@@ -600,8 +600,8 @@ export default class BaseModel extends BaseEntity {
   }
 
   public static toJSONObjectArray(
-    list: Array<BaseModel>,
-    modelType: BaseModelType,
+    list: Array<DatabaseBaseModel>,
+    modelType: DatabaseBaseModelType,
   ): JSONArray {
     const array: JSONArray = [];
 
@@ -613,8 +613,8 @@ export default class BaseModel extends BaseEntity {
   }
 
   public static toJSONArray(
-    list: Array<BaseModel>,
-    modelType: BaseModelType,
+    list: Array<DatabaseBaseModel>,
+    modelType: DatabaseBaseModelType,
   ): JSONArray {
     const array: JSONArray = [];
 
@@ -625,11 +625,11 @@ export default class BaseModel extends BaseEntity {
     return array;
   }
 
-  private static _fromJSON<T extends BaseModel>(
+  private static _fromJSON<T extends DatabaseBaseModel>(
     json: JSONObject | T,
     type: { new (): T },
   ): T {
-    if (json instanceof BaseModel) {
+    if (json instanceof DatabaseBaseModel) {
       return json;
     }
 
@@ -679,15 +679,15 @@ export default class BaseModel extends BaseEntity {
     return baseModel as T;
   }
 
-  public static fromJSON<T extends BaseModel>(
-    json: JSONObject | JSONArray | BaseModel | Array<BaseModel>,
+  public static fromJSON<T extends DatabaseBaseModel>(
+    json: JSONObject | JSONArray | DatabaseBaseModel | Array<DatabaseBaseModel>,
     type: { new (): T },
   ): T | Array<T> {
     if (Array.isArray(json)) {
       const arr: Array<T> = [];
 
       for (const item of json) {
-        if (item instanceof BaseModel) {
+        if (item instanceof DatabaseBaseModel) {
           arr.push(item as T);
           continue;
         }
@@ -698,25 +698,25 @@ export default class BaseModel extends BaseEntity {
       return arr;
     }
 
-    if (json instanceof BaseModel) {
+    if (json instanceof DatabaseBaseModel) {
       return json as T;
     }
 
     return this._fromJSON<T>(json, type);
   }
 
-  public static fromJSONObject<T extends BaseModel>(
+  public static fromJSONObject<T extends DatabaseBaseModel>(
     json: JSONObject | T,
     type: { new (): T },
   ): T {
-    if (json instanceof BaseModel) {
+    if (json instanceof DatabaseBaseModel) {
       return json;
     }
 
     return this.fromJSON<T>(json, type) as T;
   }
 
-  public static fromJSONArray<T extends BaseModel>(
+  public static fromJSONArray<T extends DatabaseBaseModel>(
     json: Array<JSONObject | T>,
     type: { new (): T },
   ): Array<T> {
@@ -729,3 +729,5 @@ export default class BaseModel extends BaseEntity {
     return arr;
   }
 }
+
+export type DatabaseBaseModelType = { new (): DatabaseBaseModel };

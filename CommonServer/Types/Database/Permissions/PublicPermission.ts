@@ -1,6 +1,6 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import TablePermission from "./TablePermission";
-import { BaseModelType } from "Common/Models/BaseModel";
+import { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import Permission from "Common/Types/Permission";
@@ -8,7 +8,7 @@ import UserType from "Common/Types/UserType";
 
 export default class PublicPermission {
   public static isPublicPermissionAllowed(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
   ): boolean {
     let isPublicAllowed: boolean = false;
@@ -20,7 +20,7 @@ export default class PublicPermission {
   }
 
   public static checkIfUserIsLoggedIn(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {

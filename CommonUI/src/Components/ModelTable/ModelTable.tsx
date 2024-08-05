@@ -7,7 +7,7 @@ import { FormType, ModelField } from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import { AnalyticsBaseModelType } from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -49,7 +49,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
         },
 
         getList: async (data: {
-          modelType: BaseModelType | AnalyticsBaseModelType;
+          modelType: DatabaseBaseModelType | AnalyticsBaseModelType;
           query: Query<TBaseModel>;
           groupBy?: GroupBy<TBaseModel> | undefined;
           limit: number;

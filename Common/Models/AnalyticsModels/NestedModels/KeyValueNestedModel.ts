@@ -1,6 +1,6 @@
-import NestedModel from "../../BaseModels/AnalyticsBaseModel/NestedModel";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import NestedModel from "../AnalyticsBaseModel/NestedModel";
 
 export default class KeyValueNestedModel extends NestedModel {
   public constructor() {

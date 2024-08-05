@@ -5,7 +5,7 @@ import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Color from "../../Types/Color";

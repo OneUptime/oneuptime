@@ -1,5 +1,5 @@
 import { JSONObject } from "../../Types/JSON";
-import BaseModel from "../../Models/BaseModels/BaseModel/BaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import JSONFunctions from "../../Types/JSONFunctions";
 
 describe("JSONFunctions Class", () => {

@@ -3,7 +3,7 @@ import logger from "./Logger";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -122,7 +122,7 @@ export default abstract class Realtime {
     if (data.model instanceof BaseModel) {
       jsonObject = BaseModel.toJSON(
         data.model,
-        data.modelType as BaseModelType,
+        data.modelType as DatabaseBaseModelType,
       );
     }
 

@@ -2,7 +2,7 @@ import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import Color from "../../Types/Color";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

@@ -11,7 +11,7 @@ import UserEmail from "./UserEmail";
 import UserNotificationRule from "./UserNotificationRule";
 import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

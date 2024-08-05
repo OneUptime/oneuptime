@@ -3,9 +3,9 @@ import MonitorEvent from "./MonitorEvent";
 import { Green } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
-import MonitorStatus from "../../Models/Models/MonitorStatus";
-import MonitorStatusTimeline from "../../Models/Models/MonitorStatusTimeline";
-import { UptimePrecision } from "../../Models/Models/StatusPageResource";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import { UptimePrecision } from "../../Models/DatabaseModels/StatusPageResource";
 
 export default class UptimeUtil {
   /**

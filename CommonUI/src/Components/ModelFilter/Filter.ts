@@ -5,7 +5,7 @@ import FieldType from "../Types/FieldType";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 
 export default interface Filter<
   TEntity extends BaseModel | AnalyticsBaseModel,
@@ -13,7 +13,7 @@ export default interface Filter<
   title: string;
   type: FieldType;
   field: SelectEntityField<TEntity>;
-  filterEntityType?: BaseModelType | AnalyticsBaseModelType | undefined;
+  filterEntityType?: DatabaseBaseModelType | AnalyticsBaseModelType | undefined;
   filterQuery?: Query<TEntity> | undefined;
   filterDropdownField?:
     | {

@@ -2,7 +2,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";

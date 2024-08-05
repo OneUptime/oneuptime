@@ -1,5 +1,5 @@
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";

@@ -1,6 +1,6 @@
 import Project from "./Project";
 import User from "./User";
-import AccessControlModel from "../BaseModels/BaseModel/AccessControlModel";
+import AccessControlModel from "./DatabaseBaseModel/AccessControlModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Color from "../../Types/Color";

@@ -1,4 +1,4 @@
-import BaseModel from "../../../Models/BaseModels/BaseModel/BaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ColumnBillingAccessControl from "../../BaseDatabase/ColumnBillingAccessControl";
 import Dictionary from "../../Dictionary";
 import { ReflectionMetadataType } from "../../Reflection";

@@ -6,7 +6,7 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -19,8 +19,8 @@ export interface ComponentProps {
   title: string;
   description: string;
   modelId: ObjectID;
-  modelType: BaseModelType;
-  customFieldType: BaseModelType;
+  modelType: DatabaseBaseModelType;
+  customFieldType: DatabaseBaseModelType;
   projectId: ObjectID;
   name: string;
 }

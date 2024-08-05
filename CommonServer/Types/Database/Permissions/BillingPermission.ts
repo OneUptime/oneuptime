@@ -1,13 +1,13 @@
 import { IsBillingEnabled, getAllEnvVars } from "../../../EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 
 export default class BillingPermissions {
   public static checkBillingPermissions(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {

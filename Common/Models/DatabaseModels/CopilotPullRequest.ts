@@ -3,7 +3,7 @@ import Project from "./Project";
 import ServiceCatalog from "./ServiceCatalog";
 import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import User from "./User";
-import BaseModel from "../BaseModels/BaseModel/BaseModel";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

@@ -1,4 +1,4 @@
-import UserModel from "../../Models/BaseModels/BaseModel/UserModel";
+import UserModel from "../../Models/DatabaseModels/User";
 import CalendarEvent from "../Calendar/CalendarEvent";
 import OneUptimeDate from "../Date";
 import DayOfWeek from "../Day/DayOfWeek";

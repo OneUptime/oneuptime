@@ -8,7 +8,7 @@ import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/AnalyticsModels/BaseModel";
-import { BaseModelType } from "Common/Models/BaseModel";
+import { DatabaseBaseModelType } from "Common/Models/BaseModel";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -65,7 +65,7 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
         },
 
         getList: async (data: {
-          modelType: BaseModelType | AnalyticsBaseModelType;
+          modelType: DatabaseBaseModelType | AnalyticsBaseModelType;
           query: Query<TBaseModel>;
           groupBy?: GroupBy<TBaseModel> | undefined;
           limit: number;
