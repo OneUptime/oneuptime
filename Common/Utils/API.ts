@@ -1,5 +1,5 @@
 import AnalyticsBaseModel from "../AnalyticsModels/BaseModel";
-import BaseModel from "../Models/BaseModel";
+import BaseModel from "../Models/BaseModels/BaseModel/BaseModel";
 import HTTPErrorResponse from "../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../Types/API/HTTPMethod";
 import HTTPResponse from "../Types/API/HTTPResponse";

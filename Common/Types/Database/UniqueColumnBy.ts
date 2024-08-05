@@ -1,4 +1,4 @@
-import BaseModel from "../../Models/BaseModel";
+import BaseModel from "../BaseModels/BaseModel/BaseModel";
 import Dictionary from "../Dictionary";
 import { ReflectionMetadataType } from "../Reflection";
 import "reflect-metadata";

@@ -38,14 +38,6 @@ RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Comm
 RUN npm install
 COPY ./Common /usr/src/Common
 
-
-WORKDIR /usr/src/CommonProject
-COPY ./CommonProject/package*.json /usr/src/CommonProject/
-# Set version in ./CommonProject/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonProject/package.json
-RUN npm install
-COPY ./CommonProject /usr/src/CommonProject
-
 WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 # Set version in ./CommonServer/package.json to the APP_VERSION

@@ -20,8 +20,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd Accounts && npm install && npm run compile && npm run dep-check
@@ -36,7 +34,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
       - run: cd CommonServer && npm install
       - run: cd IsolatedVM && npm install && npm run compile && npm run dep-check
 
@@ -50,8 +47,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install && npm run compile && npm run dep-check
 
   compile-common-project:
@@ -63,9 +58,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd Model && npm install
-      - run: cd CommonProject && npm install && npm run compile && npm run dep-check
+      - run: cd Common && npm install && npm run compile && npm run dep-check
 
   compile-common-ui:
     runs-on: ubuntu-latest
@@ -77,8 +70,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonUI && npm install --force && npm run compile && npm run dep-check
 
   compile-common:
@@ -90,9 +81,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install && npm run compile && npm run dep-check
+      - run: cd Common && npm install && npm run compile && npm run dep-check
 
   compile-app:
     runs-on: ubuntu-latest
@@ -104,8 +93,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd App && npm install && npm run compile && npm run dep-check
@@ -120,8 +107,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd Copilot && npm install && npm run compile && npm run dep-check
 
@@ -135,8 +120,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd Nginx && npm install && npm run compile && npm run dep-check
@@ -162,8 +145,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd AdminDashboard && npm install && npm run compile && npm run dep-check
@@ -178,8 +159,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd Dashboard && npm install && npm run compile && npm run dep-check
@@ -194,10 +173,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0
-      - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
-      - run: cd Model && npm install && npm run compile && npm run dep-check
+      - run: cd Common && npm install && npm run compile && npm run dep-check
 
   compile-e2e:
     runs-on: ubuntu-latest
@@ -209,7 +185,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
       - run: cd E2E && npm install && npm run compile && npm run dep-check
 
   compile-probe:
@@ -222,8 +197,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd Probe && npm install && npm run compile && npm run dep-check
 
@@ -237,8 +210,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd Ingestor && npm install && npm run compile && npm run dep-check
   
@@ -253,8 +224,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install --force
       - run: cd StatusPage && npm install && npm run compile && npm run dep-check
@@ -269,7 +238,5 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonProject && npm install
-      - run: cd Model && npm install
       - run: cd CommonServer && npm install
       - run: cd TestServer && npm install && npm run compile && npm run dep-check
