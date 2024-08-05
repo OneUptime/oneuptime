@@ -4,7 +4,9 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProbeService from "CommonServer/Services/ProbeService";
 import logger from "CommonServer/Utils/Logger";
-import Probe, { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 
 RunCron(
   "Probe:UpdateConnectionStatus",

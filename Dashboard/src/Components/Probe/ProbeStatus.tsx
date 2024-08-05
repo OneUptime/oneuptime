@@ -1,7 +1,9 @@
 import { Green, Red } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import Probe, { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

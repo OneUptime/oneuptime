@@ -5,7 +5,9 @@ import FieldType from "../Types/FieldType";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export default interface Filter<
   TEntity extends BaseModel | AnalyticsBaseModel,

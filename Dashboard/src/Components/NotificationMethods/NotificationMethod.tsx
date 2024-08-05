@@ -1,4 +1,6 @@
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
 import React, { FunctionComponent, ReactElement } from "react";
 

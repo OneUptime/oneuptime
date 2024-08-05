@@ -48,7 +48,9 @@ import Columns from "./Columns";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";

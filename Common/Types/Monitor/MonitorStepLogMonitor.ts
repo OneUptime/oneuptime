@@ -7,7 +7,7 @@ export default interface MonitorStepLogMonitor {
   attributes: Dictionary<string | number | boolean>;
   body: string;
   severityText: Array<LogSeverity>;
-  telemetryServiceId: Array<ObjectID>;
+  telemetryServiceIds: Array<ObjectID>;
   lastXSecondsOfLogs: number;
 }
 
@@ -17,7 +17,7 @@ export class MonitorStepLogMonitorUtil {
       attributes: {},
       body: "",
       severityText: [],
-      telemetryServiceId: [],
+      telemetryServiceIds: [],
       lastXSecondsOfLogs: 60,
     };
   }
@@ -28,8 +28,8 @@ export class MonitorStepLogMonitorUtil {
         (json["attributes"] as Dictionary<string | number | boolean>) || {},
       body: json["body"] as string,
       severityText: json["severityText"] as Array<LogSeverity>,
-      telemetryServiceId: ObjectID.fromJSONArray(
-        json["telemetryServiceId"] as Array<JSONObject>,
+      telemetryServiceIds: ObjectID.fromJSONArray(
+        json["telemetryServiceIds"] as Array<JSONObject>,
       ),
       lastXSecondsOfLogs: json["lastXSecondsOfLogs"] as number,
     };
@@ -40,7 +40,7 @@ export class MonitorStepLogMonitorUtil {
       attributes: monitor.attributes,
       body: monitor.body,
       severityText: monitor.severityText,
-      telemetryServiceId: ObjectID.toJSONArray(monitor.telemetryServiceId),
+      telemetryServiceId: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       lastXSecondsOfLogs: monitor.lastXSecondsOfLogs,
     };
   }

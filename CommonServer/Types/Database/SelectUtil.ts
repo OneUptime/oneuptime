@@ -1,6 +1,8 @@
 import RelationSelect from "./RelationSelect";
 import Select from "./Select";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
 import Typeof from "Common/Types/Typeof";
 

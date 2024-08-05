@@ -37,7 +37,9 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import Probe, { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";

@@ -7,7 +7,9 @@ import ProjectService from "./ProjectService";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Model, { InvoiceStatus } from "Common/Models/DatabaseModels/BillingInvoice";
+import Model, {
+  InvoiceStatus,
+} from "Common/Models/DatabaseModels/BillingInvoice";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export class Service extends DatabaseService<Model> {

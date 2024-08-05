@@ -73,19 +73,22 @@ jest.mock("../../Services/DatabaseService", () => {
   });
 });
 
-jest.mock("Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel", () => {
-  return jest.fn().mockImplementation((initObject: GenericObject) => {
-    return {
-      ...initObject,
-      getCrudApiPath: jest.fn().mockImplementation(() => {
-        return "/mock";
-      }),
-      getTableColumnMetadata: jest.fn().mockImplementation(() => {
-        return null;
-      }),
-    };
-  });
-});
+jest.mock(
+  "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel",
+  () => {
+    return jest.fn().mockImplementation((initObject: GenericObject) => {
+      return {
+        ...initObject,
+        getCrudApiPath: jest.fn().mockImplementation(() => {
+          return "/mock";
+        }),
+        getTableColumnMetadata: jest.fn().mockImplementation(() => {
+          return null;
+        }),
+      };
+    });
+  },
+);
 
 jest.mock("../../Services/ProjectService", () => {
   return {

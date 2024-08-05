@@ -5,7 +5,9 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "Common/Types/ObjectID";
 import Version from "Common/Types/Version";
-import Model, { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import Model, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";

@@ -36,6 +36,12 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import TelemetryType from "../../Types/Telemetry/TelemetryType";
+
+export interface TelemetryIncidentQuery {
+  telemetryType: TelemetryType;
+  telemetryQuery: JSONObject;
+}
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1048,4 +1054,37 @@ export default class Incident extends BaseModel {
     type: ColumnType.Markdown,
   })
   public remediationNotes?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Telemetry Query",
+    description: "Telemetry query for this incident",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryQuery?: TelemetryIncidentQuery = undefined;
 }

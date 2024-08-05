@@ -3,7 +3,9 @@ import logger from "./Logger";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";

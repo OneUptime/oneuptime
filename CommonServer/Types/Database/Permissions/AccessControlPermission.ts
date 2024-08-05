@@ -3,7 +3,9 @@ import Query from "../Query";
 import Select from "../Select";
 import TablePermission from "./TablePermission";
 import AccessControlModel from "Common/Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "Common/Types/ArrayUtil";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";

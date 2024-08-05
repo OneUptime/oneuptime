@@ -9,7 +9,9 @@ import logger from "./Logger";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
 } from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel, { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import EmptyResponse from "Common/Types/API/EmptyResponse";
 import StatusCode from "Common/Types/API/StatusCode";
