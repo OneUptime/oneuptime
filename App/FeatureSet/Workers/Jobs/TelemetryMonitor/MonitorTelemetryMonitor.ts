@@ -32,7 +32,7 @@ RunCron(
       query: {
         disableActiveMonitoring: false,
         disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
-        disableActiveMonitoringBecauseOfManualIncident: false, 
+        disableActiveMonitoringBecauseOfManualIncident: false,
 
         monitorType: DatabaseQueryHelper.any([
           MonitorType.Logs,
@@ -104,7 +104,8 @@ RunCron(
       try {
         if (
           !monitor.monitorSteps ||
-          monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
+          !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
+          monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
         ) {
           logger.debug("Monitor has no steps. Skipping...");
           continue;
@@ -113,7 +114,7 @@ RunCron(
         monitorResponses.push(
           monitorTelemetryMonitor({
             monitorStep:
-              monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!,
+              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!,
             monitorType: monitor.monitorType!,
             monitorId: monitor.id!,
           }),
@@ -135,7 +136,13 @@ RunCron(
   },
 );
 
-const monitorTelemetryMonitor = async (data: {
+type MonitorTelemetryMonitorFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorType: MonitorType;
+  monitorId: ObjectID;
+}) => Promise<LogMonitorResponse>;
+
+const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
@@ -152,7 +159,12 @@ const monitorTelemetryMonitor = async (data: {
   throw new BadDataException("Monitor type is not supported");
 };
 
-const monitorLogs = async (data: {
+type MonitorLogsFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+}) => Promise<LogMonitorResponse>;
+
+const monitorLogs: MonitorLogsFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
 }): Promise<LogMonitorResponse> => {

@@ -84,7 +84,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               value: 86400,
             },
           ],
-          title: "Monitor Last X Time of Logs",
+          title: "Monitor Logs for Last",
           isAdvancedFilter: true,
         },
         {
@@ -96,7 +96,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           isAdvancedFilter: true,
         },
         {
-          key: "telemetryServiceId",
+          key: "telemetryServiceIds",
           type: FieldType.MultiSelectDropdown,
           filterDropdownOptions: props.telemetryServices.map(
             (telemetryService: TelemetryService) => {

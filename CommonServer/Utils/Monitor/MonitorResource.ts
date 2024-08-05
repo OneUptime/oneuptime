@@ -49,6 +49,7 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
+import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -1199,6 +1200,19 @@ export default class MonitorResourceUtil {
 
       if (serverMonitorResult) {
         return serverMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      // check server monitor
+      const logMonitorResult: string | null =
+        await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (logMonitorResult) {
+        return logMonitorResult;
       }
     }
 
