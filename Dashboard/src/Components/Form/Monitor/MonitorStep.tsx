@@ -506,13 +506,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       {props.monitorType === MonitorType.Logs && (
         <div className="mt-5">
-          <FieldLabelElement
-            title={"Log Query"}
-            description={
-              "Please select the subset of logs you want to monitor."
-            }
-            required={true}
-          />
           <LogMonitorStepForm
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||

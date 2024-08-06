@@ -29,6 +29,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "CommonUI/src/Utils/API/API";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import OneUptimeDate from "Common/Types/Date";
+import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -43,6 +45,7 @@ export interface LogMonitorStepView {
   severityTexts: Array<string> | undefined;
   attributes: JSONObject | undefined;
   telemetryServices: Array<TelemetryService> | undefined;
+  lastXSecondsOfLogs: number | undefined;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -63,6 +66,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     severityTexts: undefined,
     attributes: undefined,
     telemetryServices: undefined,
+    lastXSecondsOfLogs: undefined,
   };
 
   const fetchTelemetryServices: PromiseVoidFunction =
@@ -249,6 +253,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       });
     }
 
+    if (props.monitorStep.data?.logMonitor?.lastXSecondsOfLogs) {
+      logMonitorDetailView.lastXSecondsOfLogs =
+        props.monitorStep.data?.logMonitor?.lastXSecondsOfLogs;
+
+      logFields.push({
+        key: "lastXSecondsOfLogs",
+        title: "Monitor logs for the last (time)",
+        description: "How many seconds of logs to monitor.",
+        fieldType: FieldType.Element,
+        placeholder: "1 minute",
+        getElement: (item: LogMonitorStepView): ReactElement => {
+          return (
+            <p>
+              {OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                item.lastXSecondsOfLogs || 0,
+              )}
+            </p>
+          );
+        },
+      });
+    }
+
     if (props.monitorStep.data?.logMonitor?.severityTexts) {
       logMonitorDetailView.severityTexts =
         props.monitorStep.data?.logMonitor?.severityTexts;
@@ -292,6 +318,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         description: "Telemetry services to monitor.",
         fieldType: FieldType.Element,
         placeholder: "No telemetry services entered",
+        getElement: (): ReactElement => {
+          return (
+            <TelemetryServicesElement telemetryServices={telemetryServices} />
+          );
+        },
       });
     }
   }
@@ -307,14 +338,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         isHeading={true}
       />
       <div className="mt-5">
-        {fields && fields.length && (
+        {fields && fields.length > 0 && (
           <Detail<MonitorStepType>
             id={"monitor-step"}
             item={props.monitorStep.data!}
             fields={fields}
           />
         )}
-        {logFields && logFields.length && (
+        {logFields && logFields.length > 0 && (
           <Detail<LogMonitorStepView>
             id={"monitor-logs"}
             item={logMonitorDetailView}
