@@ -32,7 +32,9 @@ export interface ComponentProps {
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const refreshQuery = (): Query<Log> => {
+  type RefreshQueryFunction = () => Query<Log>;
+
+  const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
     let query: Query<Log> = {};
 
     if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {

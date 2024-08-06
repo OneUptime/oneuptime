@@ -1,4 +1,6 @@
-import MonitorStepLogMonitor, { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
@@ -27,7 +29,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepLogMonitor, setMonitorStepLogMonitor] =
     React.useState<MonitorStepLogMonitor>(props.monitorStepLogMonitor);
 
-  let showAdvancedOptionsByDefault = false;
+  let showAdvancedOptionsByDefault: boolean = false;
 
   if (
     monitorStepLogMonitor.attributes ||
@@ -41,8 +43,10 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
     showAdvancedOptionsByDefault,
   );
 
-  const refreshQuery = (): Query<Log> => {
-    return MonitorStepLogMonitorUtil.toQuery(monitorStepLogMonitor);    
+  type RefreshQueryFunction = () => Query<Log>;
+
+  const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
+    return MonitorStepLogMonitorUtil.toQuery(monitorStepLogMonitor);
   };
 
   const [logQuery, setLogQuery] = React.useState<Query<Log>>(refreshQuery());

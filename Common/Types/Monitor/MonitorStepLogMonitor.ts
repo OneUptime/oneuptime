@@ -18,10 +18,10 @@ export default interface MonitorStepLogMonitor {
 }
 
 export class MonitorStepLogMonitorUtil {
-
-  public static toQuery(monitorStepLogMonitor: MonitorStepLogMonitor): Query<Log> {
-
-    let query: Query<Log> = {};
+  public static toQuery(
+    monitorStepLogMonitor: MonitorStepLogMonitor,
+  ): Query<Log> {
+    const query: Query<Log> = {};
 
     if (
       monitorStepLogMonitor.telemetryServiceIds &&
