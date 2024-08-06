@@ -25,29 +25,43 @@ export interface ComponentProps {
   spanIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  logQuery?: Query<Log> | undefined;
+  limit?: number | undefined;
 }
 
 const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const query: Query<Log> = {};
+  const refreshQuery = (): Query<Log> => {
+    let query: Query<Log> = {};
 
-  if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
-    query.serviceId = new Includes(props.telemetryServiceIds);
-  }
+    if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
+      query.serviceId = new Includes(props.telemetryServiceIds);
+    }
 
-  if (props.traceIds && props.traceIds.length > 0) {
-    query.traceId = new Includes(props.traceIds);
-  }
+    if (props.traceIds && props.traceIds.length > 0) {
+      query.traceId = new Includes(props.traceIds);
+    }
 
-  if (props.spanIds && props.spanIds.length > 0) {
-    query.spanId = new Includes(props.spanIds);
-  }
+    if (props.spanIds && props.spanIds.length > 0) {
+      query.spanId = new Includes(props.spanIds);
+    }
+
+    if (props.logQuery) {
+      query = {
+        ...query,
+        ...props.logQuery,
+      };
+    }
+
+    return query;
+  };
 
   const [logs, setLogs] = React.useState<Array<Log>>([]);
   const [error, setError] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [filterOptions, setFilterOptions] = React.useState<Query<Log>>(query);
+  const [filterOptions, setFilterOptions] =
+    React.useState<Query<Log>>(refreshQuery());
 
   const select: Select<Log> = {
     body: true,
@@ -72,6 +86,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [filterOptions]);
 
+  useEffect(() => {
+    setFilterOptions(refreshQuery());
+  }, [
+    props.telemetryServiceIds,
+    props.traceIds,
+    props.spanIds,
+    props.logQuery,
+  ]);
+
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -80,7 +103,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
         modelType: Log,
         query: getQuery(),
-        limit: LIMIT_PER_PROJECT,
+        limit: props.limit || LIMIT_PER_PROJECT,
         skip: 0,
         select: select,
         sort: {

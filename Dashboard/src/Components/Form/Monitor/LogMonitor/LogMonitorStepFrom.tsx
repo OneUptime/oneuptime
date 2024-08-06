@@ -1,11 +1,16 @@
-import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
+import DashboardLogsViewer from "../../../Logs/LogsViewer";
+import Query from "Common/Types/BaseDatabase/Query";
+import Log from "Common/Models/AnalyticsModels/Log";
+import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
 
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
@@ -19,15 +24,43 @@ export interface ComponentProps {
 const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(false);
+  const [monitorStepLogMonitor, setMonitorStepLogMonitor] =
+    React.useState<MonitorStepLogMonitor>(props.monitorStepLogMonitor);
+
+  let showAdvancedOptionsByDefault = false;
+
+  if (
+    monitorStepLogMonitor.attributes ||
+    monitorStepLogMonitor.severityTexts ||
+    monitorStepLogMonitor.telemetryServiceIds
+  ) {
+    showAdvancedOptionsByDefault = true;
+  }
+
+  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
+    showAdvancedOptionsByDefault,
+  );
+
+  const refreshQuery = (): Query<Log> => {
+    return MonitorStepLogMonitorUtil.toQuery(monitorStepLogMonitor);    
+  };
+
+  const [logQuery, setLogQuery] = React.useState<Query<Log>>(refreshQuery());
+
+  useEffect(() => {
+    setLogQuery(refreshQuery());
+  }, [monitorStepLogMonitor]);
 
   return (
     <div>
       <BasicForm
         id="logs-filter"
         hideSubmitButton={true}
-        initialValue={props.monitorStepLogMonitor}
-        onChange={props.onMonitorStepLogMonitorChanged}
+        initialValues={monitorStepLogMonitor}
+        onChange={(values: MonitorStepLogMonitor) => {
+          setMonitorStepLogMonitor(values);
+          props.onMonitorStepLogMonitorChanged(values);
+        }}
         fields={[
           {
             field: {
@@ -35,6 +68,8 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.Text,
             title: "Monitor Logs that include this text",
+            description:
+              "This monitor will filter all the logs that include this text.",
             hideOptionalLabel: true,
           },
           {
@@ -91,7 +126,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             ],
             title: "Monitor Logs for (time)",
             description:
-              "Select the time interval for which you want to monitor logs.",
+              "We will fetch all the logs that were generated in the last X time.",
             hideOptionalLabel: true,
           },
           {
@@ -102,6 +137,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             title: "Log Severity",
+            description: "Select the severity of the logs you want to monitor.",
             hideOptionalLabel: true,
             showIf: () => {
               return showAdvancedOptions;
@@ -121,6 +157,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
+            description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,
             showIf: () => {
               return showAdvancedOptions;
@@ -133,6 +170,8 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Filter by Attributes",
             jsonKeysForDictionary: props.attributeKeys,
+            description:
+              "You can filter the logs based on the attributes that are attached to the logs.",
             hideOptionalLabel: true,
             showIf: () => {
               return showAdvancedOptions;
@@ -140,19 +179,37 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
-
-      <Button
-        className="-ml-3 -mt-10"
-        buttonStyle={ButtonStyleType.SECONDARY_LINK}
-        title={
-          showAdvancedOptions
-            ? "Hide Advanced Options"
-            : "Show Advanced Options"
-        }
-        onClick={() => {
-          return setShowAdvancedOptions(!showAdvancedOptions);
-        }}
-      />
+      <div className="-ml-3">
+        <Button
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          title={
+            showAdvancedOptions
+              ? "Hide Advanced Options"
+              : "Show Advanced Options"
+          }
+          onClick={() => {
+            return setShowAdvancedOptions(!showAdvancedOptions);
+          }}
+        />
+      </div>
+      <div>
+        <HorizontalRule />
+        <FieldLabelElement
+          title={"Logs Preview"}
+          description={
+            "Here is the preview of the logs that will be monitored based on the filters you have set above."
+          }
+          hideOptionalLabel={true}
+          isHeading={true}
+        />
+        <div className="mt-5 mb-5">
+          <DashboardLogsViewer
+            id="logs-preview"
+            logQuery={logQuery}
+            limit={10}
+          />
+        </div>
+      </div>
     </div>
   );
 };

@@ -48,23 +48,23 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           }}
         />
-
-        {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
-          <SideMenuSection title="Monitor Groups">
-            <SideMenuItem
-              link={{
-                title: "All Groups",
-                to: RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.MONITOR_GROUPS] as Route,
-                ),
-              }}
-              icon={IconProp.Squares}
-            />
-          </SideMenuSection>
-        ) : (
-          <></>
-        )}
       </SideMenuSection>
+
+      {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
+        <SideMenuSection title="Monitor Groups">
+          <SideMenuItem
+            link={{
+              title: "All Groups",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_GROUPS] as Route,
+              ),
+            }}
+            icon={IconProp.Squares}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Not Being Monitored">
         <CountModelSideMenuItem<Monitor>

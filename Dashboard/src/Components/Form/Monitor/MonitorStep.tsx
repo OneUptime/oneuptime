@@ -618,14 +618,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       <div className="mt-5">
         {props.monitorType !== MonitorType.IncomingRequest && (
-          <FieldLabelElement
-            title="Monitor Criteria"
-            isHeading={true}
-            description={
-              "Add Monitoring Criteria for this monitor. Monitor different properties."
-            }
-            required={true}
-          />
+          <>
+            <HorizontalRule />
+            <FieldLabelElement
+              title="Monitor Criteria"
+              isHeading={true}
+              description={
+                "Add Monitoring Criteria for this monitor. Monitor different properties."
+              }
+              required={true}
+            />
+          </>
         )}
         <MonitorCriteriaElement
           monitorType={props.monitorType}

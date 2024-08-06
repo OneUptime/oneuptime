@@ -1,10 +1,11 @@
-import { FILE_URL } from "../Config";
-import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { FileRoute } from "Common/ServiceRoute";
 
 export default class FileUtil {
-  public static getFileURL(fileId: ObjectID): URL {
-    return URL.fromString(FILE_URL.toString())
+  public static getFileRoute(fileId: ObjectID): Route {
+   
+    return Route.fromString(FileRoute.toString())
       .addRoute("/image")
       .addRoute(`/${fileId.toString()}`);
   }
