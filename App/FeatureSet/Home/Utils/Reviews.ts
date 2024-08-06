@@ -6,9 +6,9 @@ export interface Review {
 
 const reviews: Review[] = [
   {
-    name: "Alice",
-    text: "OneUptime has been a game-changer for our team. The alerts are timely and the status page keeps our customers informed.",
-    title: "Game-changer!",
+    name: "Anderson, GK2 Cloud",
+    text: "Thanks for building OneUptime, it really is fantastic. We are getting more excited every day!",
+    title: "OneUptime is fantastic!",
   },
   {
     name: "Bob",

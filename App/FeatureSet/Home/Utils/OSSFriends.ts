@@ -37,6 +37,12 @@ const OSSFriends: OSSFriend[] = [
       "PostHog is open-source product analytics, built for developers.",
     repositoryUrl: URL.fromString("https://github.com/PostHog/posthog"),
   },
+  {
+    name: "Twenty",
+    description:
+      "Twenty is building an open-source modern CRM. It's alternative to Salesforce and HubSpot.",
+    repositoryUrl: URL.fromString("https://github.com/twentyhq/twenty"),
+  },
 ];
 
 export default OSSFriends;

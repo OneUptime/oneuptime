@@ -88,15 +88,6 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (props.monitorType === MonitorType.Logs) {
-      return (
-        <LogMonitorSummaryView
-          key={key}
-          telemetryMonitorSummary={props.telemetryMonitorSummary}
-        />
-      );
-    }
-
     return <></>;
   };
 
@@ -151,6 +142,12 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         />
       ) : (
         <></>
+      )}
+
+      {props.monitorType === MonitorType.Logs && (
+        <LogMonitorSummaryView
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
+        />
       )}
     </div>
   );
