@@ -48,7 +48,7 @@ export const DefaultValidateFunction: DefaultValidateFunctionType = (
   return {};
 };
 
-export interface BaseComponentProps<T extends GenericObject> {
+export interface BaseComponentProps<T> {
   submitButtonStyleType?: ButtonStyleType | undefined;
   initialValues?: FormValues<T> | undefined;
   onValidate?: undefined | ((values: FormValues<T>) => JSONObject);

@@ -11,9 +11,9 @@ const reviews: Review[] = [
     title: "OneUptime is fantastic!",
   },
   {
-    name: "Bob",
-    text: "The incident management feature is top-notch. It has streamlined our response process significantly.",
-    title: "Top-notch incident management",
+    name: "Reg, Skillable",
+    text: "We use OneUptime to reliably monitor endpoint availability globally, and it delivers.",
+    title: "OneUptime delivers!",
   },
   {
     name: "Charlie",

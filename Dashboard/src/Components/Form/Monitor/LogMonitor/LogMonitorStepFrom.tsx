@@ -1,11 +1,10 @@
-import LogSeverity from "Common/Types/Log/LogSeverity";
 import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
-import FiltersForm from "CommonUI/src/Components/Filters/FiltersForm";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
+import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
+import LogSeverity from "Common/Types/Log/LogSeverity";
+import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
@@ -20,24 +19,24 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <FiltersForm<MonitorStepLogMonitor>
+    <BasicForm
       id="logs-filter"
-      showFilter={true}
-      filterData={props.monitorStepLogMonitor}
-      onFilterChanged={(filterData: Query<MonitorStepLogMonitor>) => {
-        props.onMonitorStepLogMonitorChanged(
-          filterData as MonitorStepLogMonitor,
-        );
-      }}
-      filters={[
+      hideSubmitButton={true}
+      initialValue={props.monitorStepLogMonitor}
+      onChange={props.onMonitorStepLogMonitorChanged}
+      fields={[
         {
-          key: "body",
-          type: FieldType.Text,
+          field: {
+            body: true,
+          },
+          type: FormFieldSchemaType.Text,
           title: "Search Log Body",
         },
         {
-          key: "lastXSecondsOfLogs",
-          type: FieldType.Dropdown,
+          field: {
+            lastXSecondsOfLogs: true,
+          },
+          type: FormFieldSchemaType.Dropdown,
           filterDropdownOptions: [
             {
               label: "Last 5 seconds",
@@ -88,16 +87,20 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           isAdvancedFilter: true,
         },
         {
-          key: "severityText",
+          field: {
+            severityTexts: true,
+          },
           filterDropdownOptions:
             DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
-          type: FieldType.MultiSelectDropdown,
+          type: FormFieldSchemaType.MultiSelectDropdown,
           title: "Log Severity",
           isAdvancedFilter: true,
         },
         {
-          key: "telemetryServiceIds",
-          type: FieldType.MultiSelectDropdown,
+          field: {
+            telemetryServiceIds: true,
+          },
+          type: FormFieldSchemaType.MultiSelectDropdown,
           filterDropdownOptions: props.telemetryServices.map(
             (telemetryService: TelemetryService) => {
               return {
@@ -110,8 +113,10 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           isAdvancedFilter: true,
         },
         {
-          key: "attributes",
-          type: FieldType.JSON,
+          field: {
+            attributes: true,
+          },
+          type: FormFieldSchemaType.JSON,
           title: "Filter by Attributes",
           jsonKeys: props.attributeKeys,
           isAdvancedFilter: true,
