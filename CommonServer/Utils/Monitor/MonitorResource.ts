@@ -41,7 +41,9 @@ import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
-import Incident from "Common/Models/DatabaseModels/Incident";
+import Incident, {
+  TelemetryIncidentQuery,
+} from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -50,6 +52,8 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
+import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -333,12 +337,24 @@ export default class MonitorResourceUtil {
         }`,
       );
 
+      let telemetryQuery: TelemetryIncidentQuery | undefined = undefined;
+
+      if (dataToProcess && (dataToProcess as LogMonitorResponse).logQuery) {
+        telemetryQuery = {
+          telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
+          telemetryType: TelemetryType.Log,
+        };
+      }
+
       await this.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
         monitor: monitor,
         rootCause: response.rootCause,
         dataToProcess: dataToProcess,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
       });
     } else if (
       !response.criteriaMetId &&
@@ -649,6 +665,9 @@ export default class MonitorResourceUtil {
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
+    props: {
+      telemetryQuery?: TelemetryIncidentQuery | undefined;
+    };
   }): Promise<void> {
     // criteria filters are met, now process the actions.
 
@@ -789,6 +808,10 @@ export default class MonitorResourceUtil {
           }) || [];
 
         incident.isCreatedAutomatically = true;
+
+        if (input.props.telemetryQuery) {
+          incident.telemetryQuery = input.props.telemetryQuery;
+        }
 
         if (
           input.dataToProcess &&
