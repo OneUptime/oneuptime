@@ -8,9 +8,7 @@ import { SubscriptionStatusUtil } from "Common/Types/Billing/SubscriptionStatus"
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import Link from "Common/UI/Components/Link/Link";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
-import TopAlert, {
-  TopAlertType,
-} from "Common/UI/Components/TopAlert/TopAlert";
+import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";

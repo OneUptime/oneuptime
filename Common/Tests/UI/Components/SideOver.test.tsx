@@ -1,4 +1,6 @@
-import SideOver, { ComponentProps } from "../../../UI/Components/SideOver/SideOver";
+import SideOver, {
+  ComponentProps,
+} from "../../../UI/Components/SideOver/SideOver";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";

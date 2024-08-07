@@ -1,6 +1,9 @@
 import { ClickhouseAppInstance } from "../../../../Server/Infrastructure/ClickhouseDatabase";
 import UpdateBy from "../../../../Server/Types/AnalyticsDatabase/UpdateBy";
-import { SQL, Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../../../../Server/Utils/AnalyticsDatabase/StatementGenerator";
 import logger from "../../../../Server/Utils/Logger";
 import "../../TestingUtils/Init";

@@ -158,12 +158,11 @@ describe("DuplicateModel", () => {
       });
     });
     await waitFor(() => {
-      return expect(require("../../../UI/Utils/Navigation").navigate).toBeCalledWith(
-        new Route("/done/foobar"),
-        {
-          forceNavigate: true,
-        },
-      );
+      return expect(
+        require("../../../UI/Utils/Navigation").navigate,
+      ).toBeCalledWith(new Route("/done/foobar"), {
+        forceNavigate: true,
+      });
     });
   });
   it("closes confirmation dialog when close button is clicked", () => {

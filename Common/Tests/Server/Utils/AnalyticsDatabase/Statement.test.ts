@@ -1,4 +1,7 @@
-import { SQL, Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import "../../TestingUtils/Init";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 

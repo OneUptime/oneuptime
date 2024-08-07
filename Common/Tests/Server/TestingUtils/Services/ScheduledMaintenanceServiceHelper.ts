@@ -18,7 +18,10 @@ export default class ScheduledMaintenanceTestService {
     maintenance.title = Faker.generateName();
     maintenance.description = Faker.generateName();
     maintenance.startsAt = OneUptimeDate.getCurrentDate();
-    maintenance.endsAt = OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(),2);
+    maintenance.endsAt = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      2,
+    );
     maintenance.isOwnerNotifiedOfResourceCreation = false;
     maintenance.slug = maintenance.title;
 

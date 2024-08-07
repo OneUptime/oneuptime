@@ -1,5 +1,8 @@
 import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
-import { SQL, Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";

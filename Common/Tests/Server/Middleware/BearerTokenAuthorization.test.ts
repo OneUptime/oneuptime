@@ -1,5 +1,8 @@
 import BearerTokenAuthorization from "../../../Server/Middleware/BearerTokenAuthorization";
-import { ExpressResponse, OneUptimeRequest } from "../../../Server/Utils/Express";
+import {
+  ExpressResponse,
+  OneUptimeRequest,
+} from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { describe, expect, it } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";

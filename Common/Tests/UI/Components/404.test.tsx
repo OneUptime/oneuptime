@@ -55,16 +55,18 @@ describe("NotFound Component", () => {
   test('should navigate to the home route when "Go Home" button is clicked', () => {
     const goHomeButton: HTMLElement = screen.getByText("Go Home");
     fireEvent.click(goHomeButton);
-    expect(require("../../../UI/Utils/Navigation").navigate).toHaveBeenCalledWith(
-      mockProps.homeRoute,
-    );
+    expect(
+      require("../../../UI/Utils/Navigation").navigate,
+    ).toHaveBeenCalledWith(mockProps.homeRoute);
   });
 
   test('should navigate to the support email when "Contact Support" button is clicked', () => {
     const contactSupportButton: HTMLElement =
       screen.getByText("Contact Support");
     fireEvent.click(contactSupportButton);
-    expect(require("../../../UI/Utils/Navigation").navigate).toHaveBeenCalledWith(
+    expect(
+      require("../../../UI/Utils/Navigation").navigate,
+    ).toHaveBeenCalledWith(
       URL.fromString("mailto:" + mockProps.supportEmail.toString()),
     );
   });

@@ -290,7 +290,7 @@ describe("UserMiddleware", () => {
       req = { headers: {} } as ExpressRequest;
 
       res = {} as ExpressResponse;
-      res.set = jest.fn();
+      res.set = jest.fn() as any;
     });
 
     afterEach(() => {

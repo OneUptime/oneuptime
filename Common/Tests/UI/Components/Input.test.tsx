@@ -1,4 +1,7 @@
-import Input, { ComponentProps, InputType } from "../../../UI/Components/Input/Input";
+import Input, {
+  ComponentProps,
+  InputType,
+} from "../../../UI/Components/Input/Input";
 import "@testing-library/jest-dom/extend-expect";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";

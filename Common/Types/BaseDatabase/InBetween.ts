@@ -25,8 +25,8 @@ export default class InBetween extends SerializableObject {
     endValue: number | Date | string,
   ) {
     super();
-      this.startValue = startValue;
-      this.endValue = endValue;
+    this.startValue = startValue;
+    this.endValue = endValue;
   }
 
   public override toJSON(): JSONObject {

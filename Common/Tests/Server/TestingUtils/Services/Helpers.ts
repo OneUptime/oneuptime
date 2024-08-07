@@ -26,7 +26,9 @@ const mockIsBillingEnabled: MockIsBillingEnabledFunction = (
       IsBillingEnabled: value,
     };
   });
-  const { BillingService } = require("../../../../Server/Services/BillingService");
+  const {
+    BillingService,
+  } = require("../../../../Server/Services/BillingService");
   return new BillingService();
 };
 

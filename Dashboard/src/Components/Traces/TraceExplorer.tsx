@@ -23,9 +23,7 @@ import GanttChart, {
 } from "Common/UI/Components/GanttChart/Index";
 import { GanttChartRow } from "Common/UI/Components/GanttChart/Row/Row";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import SideOver, {
-  SideOverSize,
-} from "Common/UI/Components/SideOver/SideOver";
+import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
