@@ -14,8 +14,8 @@ import SyslogImage from "../Images/SvgImages/syslog.svg";
 import SystemdImage from "../Images/SvgImages/systemd.svg";
 import TypeScriptImage from "../Images/SvgImages/typescript.svg";
 import Route from "Common/Types/API/Route";
-import Card from "CommonUI/src/Components/Card/Card";
-import ImageTiles from "CommonUI/src/Components/ImageTiles/ImageTiles";
+import Card from "Common/UI/Components/Card/Card";
+import ImageTiles from "Common/UI/Components/ImageTiles/ImageTiles";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const TelemetryDocumentation: FunctionComponent = (): ReactElement => {

@@ -5,8 +5,8 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
-import { AdminDashboardClientURL } from "CommonServer/EnvironmentConfig";
-import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
+import { AdminDashboardClientURL } from "Common/Server/EnvironmentConfig";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";

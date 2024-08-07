@@ -1,11 +1,11 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import User from "CommonUI/src/Utils/User";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import User from "Common/UI/Utils/User";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

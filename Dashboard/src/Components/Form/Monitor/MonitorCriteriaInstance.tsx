@@ -13,18 +13,18 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
+} from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import Input from "CommonUI/src/Components/Input/Input";
-import Radio from "CommonUI/src/Components/Radio/Radio";
-import TextArea from "CommonUI/src/Components/TextArea/TextArea";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Input from "Common/UI/Components/Input/Input";
+import Radio from "Common/UI/Components/Radio/Radio";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,

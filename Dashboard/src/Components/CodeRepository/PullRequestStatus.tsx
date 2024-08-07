@@ -1,6 +1,6 @@
 import { Green500, Purple500, Red500 } from "Common/Types/BrandColors";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
-import Pill from "CommonUI/src/Components/Pill/Pill";
+import Pill from "Common/UI/Components/Pill/Pill";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

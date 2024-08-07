@@ -4,15 +4,15 @@ import TelemetryIngest, {
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import LogService from "CommonServer/Services/LogService";
+import LogService from "Common/Server/Services/LogService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import OTelIngestService from "../Service/OTelIngest";

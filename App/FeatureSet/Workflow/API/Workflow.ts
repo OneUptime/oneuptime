@@ -1,16 +1,16 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
-import WorkflowService from "CommonServer/Services/WorkflowService";
-import ComponentCode from "CommonServer/Types/Workflow/ComponentCode";
-import Components from "CommonServer/Types/Workflow/Components/Index";
-import TriggerCode from "CommonServer/Types/Workflow/TriggerCode";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import ComponentCode from "Common/Server/Types/Workflow/ComponentCode";
+import Components from "Common/Server/Types/Workflow/Components/Index";
+import TriggerCode from "Common/Server/Types/Workflow/TriggerCode";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-} from "CommonServer/Utils/Express";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 
 export default class WorkflowAPI {

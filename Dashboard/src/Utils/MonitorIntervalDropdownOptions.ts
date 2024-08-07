@@ -1,4 +1,4 @@
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 const MonitoringInterval: Array<DropdownOption> = [
   {

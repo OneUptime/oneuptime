@@ -15,26 +15,26 @@ import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   EncryptionSecret,
   IsBillingEnabled,
-} from "CommonServer/EnvironmentConfig";
-import AccessTokenService from "CommonServer/Services/AccessTokenService";
-import EmailVerificationTokenService from "CommonServer/Services/EmailVerificationTokenService";
-import MailService from "CommonServer/Services/MailService";
-import UserService from "CommonServer/Services/UserService";
-import UserTwoFactorAuthService from "CommonServer/Services/UserTwoFactorAuthService";
-import CookieUtil from "CommonServer/Utils/Cookie";
+} from "Common/Server/EnvironmentConfig";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
+import MailService from "Common/Server/Services/MailService";
+import UserService from "Common/Server/Services/UserService";
+import UserTwoFactorAuthService from "Common/Server/Services/UserTwoFactorAuthService";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import TwoFactorAuth from "CommonServer/Utils/TwoFactorAuth";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import TwoFactorAuth from "Common/Server/Utils/TwoFactorAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";

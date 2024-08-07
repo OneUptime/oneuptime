@@ -1,9 +1,9 @@
 import DataMigrationBase from "./DataMigrationBase";
-import LogService from "CommonServer/Services/LogService";
-import MetricService from "CommonServer/Services/MetricService";
-import MonitorMetricsByMinuteService from "CommonServer/Services/MonitorMetricsByMinuteService";
-import SpanService from "CommonServer/Services/SpanService";
-import logger from "CommonServer/Utils/Logger";
+import LogService from "Common/Server/Services/LogService";
+import MetricService from "Common/Server/Services/MetricService";
+import MonitorMetricsByMinuteService from "Common/Server/Services/MonitorMetricsByMinuteService";
+import SpanService from "Common/Server/Services/SpanService";
+import logger from "Common/Server/Utils/Logger";
 
 export default class DeleteOldTelemetryTable extends DataMigrationBase {
   public constructor() {

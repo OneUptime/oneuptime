@@ -7,7 +7,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Sleep from "Common/Types/Sleep";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import {
   CopilotActionPrompt,
   Prompt,

@@ -16,14 +16,14 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
   ComponentProps as EventItemComponentProps,
-} from "CommonUI/src/Components/EventItem/EventItem";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/Components/EventItem/EventItem";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import React, {
   FunctionComponent,

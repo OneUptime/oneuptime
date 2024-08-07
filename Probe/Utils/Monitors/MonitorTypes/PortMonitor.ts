@@ -10,7 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import net from "net";
 
 // TODO - make sure it  work for the IPV6

@@ -1,8 +1,8 @@
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
   Fragment,
@@ -10,25 +10,25 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
-import RecurringFieldElement from "CommonUI/src/Components/Events/RecurringFieldElement";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import RecurringViewElement from "CommonUI/src/Components/Events/RecurringViewElement";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import RecurringViewElement from "Common/UI/Components/Events/RecurringViewElement";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
-import Card from "CommonUI/src/Components/Card/Card";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Email from "Common/Types/Email";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import API from "CommonUI/src/Utils/API/API";
-import { STATUS_PAGE_API_URL } from "CommonUI/src/Config";
+import API from "Common/UI/Utils/API/API";
+import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 
 export interface TestEmailObject {

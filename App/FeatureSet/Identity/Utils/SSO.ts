@@ -4,7 +4,7 @@ import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import xmlCrypto, { FileKeyInfo } from "xml-crypto";
 import xmldom from "xmldom";
 import zlib from "zlib";

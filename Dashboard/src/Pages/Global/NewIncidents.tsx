@@ -5,11 +5,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { RequestOptions } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { RequestOptions } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 

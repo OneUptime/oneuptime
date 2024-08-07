@@ -15,9 +15,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { ClusterKey, HasClusterKey } from "CommonServer/EnvironmentConfig";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import logger from "CommonServer/Utils/Logger";
+import { ClusterKey, HasClusterKey } from "Common/Server/EnvironmentConfig";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import logger from "Common/Server/Utils/Logger";
 
 export default class Register {
   public static async reportIfOffline(): Promise<void> {

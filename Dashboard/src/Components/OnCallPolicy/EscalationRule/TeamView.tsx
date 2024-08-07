@@ -1,10 +1,10 @@
 import TeamsElement from "../../Team/TeamsElement";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement, useState } from "react";

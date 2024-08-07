@@ -4,8 +4,8 @@ import MailAPI from "./API/Mail";
 import SmsAPI from "./API/SMS";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import "./Utils/Handlebars";
-import FeatureSet from "CommonServer/Types/FeatureSet";
-import Express, { ExpressApplication } from "CommonServer/Utils/Express";
+import FeatureSet from "Common/Server/Types/FeatureSet";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const NotificationFeatureSet: FeatureSet = {

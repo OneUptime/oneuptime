@@ -10,13 +10,13 @@ import StatusServiceHandler from "./Service/Status";
 import { StaticPath } from "./Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "./Utils/Resources";
 import Dictionary from "Common/Types/Dictionary";
-import FeatureSet from "CommonServer/Types/FeatureSet";
+import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
   ExpressStatic,
-} from "CommonServer/Utils/Express";
+} from "Common/Server/Utils/Express";
 
 const APIReferenceFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {

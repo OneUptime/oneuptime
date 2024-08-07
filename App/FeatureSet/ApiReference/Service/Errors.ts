@@ -1,6 +1,6 @@
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
-import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 
 // Fetch a list of resources used in the application
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();

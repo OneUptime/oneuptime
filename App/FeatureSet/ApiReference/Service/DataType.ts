@@ -1,8 +1,8 @@
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
-import LocalFile from "CommonServer/Utils/LocalFile";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import LocalFile from "Common/Server/Utils/LocalFile";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 

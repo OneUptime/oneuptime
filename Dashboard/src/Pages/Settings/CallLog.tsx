@@ -3,17 +3,17 @@ import PageComponentProps from "../PageComponentProps";
 import { Green, Red } from "Common/Types/BrandColors";
 import CallStatus from "Common/Types/Call/CallStatus";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import Filter from "CommonUI/src/Components/ModelFilter/Filter";
-import Column from "CommonUI/src/Components/ModelTable/Column";
-import Columns from "CommonUI/src/Components/ModelTable/Columns";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import SimpleLogViewer from "CommonUI/src/Components/SimpleLogViewer/SimpleLogViewer";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { BILLING_ENABLED } from "CommonUI/src/Config";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Filter from "Common/UI/Components/ModelFilter/Filter";
+import Column from "Common/UI/Components/ModelTable/Column";
+import Columns from "Common/UI/Components/ModelTable/Columns";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import React, {
   Fragment,

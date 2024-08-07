@@ -1,7 +1,7 @@
 import JobDictionary from "./JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Queue, { QueueName } from "CommonServer/Infrastructure/Queue";
-import logger from "CommonServer/Utils/Logger";
+import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import logger from "Common/Server/Utils/Logger";
 
 type RunCronFunction = (
   jobName: string,

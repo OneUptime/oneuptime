@@ -10,13 +10,13 @@ import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import FeatureSet from "CommonServer/Types/FeatureSet";
+import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
   ExpressStatic,
-} from "CommonServer/Utils/Express";
+} from "Common/Server/Utils/Express";
 import "ejs";
 import builder from "xmlbuilder2";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";

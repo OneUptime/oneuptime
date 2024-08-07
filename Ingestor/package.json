@@ -17,7 +17,6 @@
     "dependencies": {
         "Common": "file:../Common",
     
-        "CommonServer": "file:../CommonServer",
         "ejs": "^3.1.10",
         "protobufjs": "^7.3.2",
         "ts-node": "^10.9.1"

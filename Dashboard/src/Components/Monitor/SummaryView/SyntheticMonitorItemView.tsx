@@ -1,8 +1,8 @@
 import CustomCodeMonitorSummaryView from "./CustomMonitorSummaryView";
 import SummaryScreenshotGroup from "./ScreenshotGroup";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

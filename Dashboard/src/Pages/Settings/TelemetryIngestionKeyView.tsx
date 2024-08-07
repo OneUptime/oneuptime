@@ -3,12 +3,12 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

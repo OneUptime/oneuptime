@@ -1,5 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
+import Card from "Common/UI/Components/Card/Card";
 import React, {
   Fragment,
   FunctionComponent,
@@ -8,16 +8,16 @@ import React, {
   useState,
 } from "react";
 import PageComponentProps from "../../../PageComponentProps";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import API from "CommonUI/src/Utils/API/API";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import MarkdownViewer from "CommonUI/src/Components/Markdown.tsx/MarkdownViewer";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import URL from "Common/Types/API/URL";
-import { DOCS_URL } from "CommonUI/src/Config";
+import { DOCS_URL } from "Common/UI/Config";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";

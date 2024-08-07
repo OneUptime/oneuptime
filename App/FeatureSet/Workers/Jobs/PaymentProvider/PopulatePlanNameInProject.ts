@@ -4,10 +4,10 @@ import SubscriptionPlan, {
 } from "Common/Types/Billing/SubscriptionPlan";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_WEEK } from "Common/Utils/CronTime";
-import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
-import ProjectService from "CommonServer/Services/ProjectService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import logger from "CommonServer/Utils/Logger";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import ProjectService from "Common/Server/Services/ProjectService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(

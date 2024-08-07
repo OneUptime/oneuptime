@@ -7,13 +7,13 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL, BILLING_ENABLED } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   Fragment,

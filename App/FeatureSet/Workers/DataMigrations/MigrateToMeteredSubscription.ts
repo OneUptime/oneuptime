@@ -1,13 +1,13 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Sleep from "Common/Types/Sleep";
-import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import BillingService, {
   SubscriptionItem,
-} from "CommonServer/Services/BillingService";
-import ProjectService from "CommonServer/Services/ProjectService";
-import AllMeteredPlans from "CommonServer/Types/Billing/MeteredPlan/AllMeteredPlans";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+} from "Common/Server/Services/BillingService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import AllMeteredPlans from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export default class MigrateToMeteredSubscription extends DataMigrationBase {

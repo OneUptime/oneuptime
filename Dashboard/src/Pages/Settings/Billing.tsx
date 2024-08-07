@@ -13,29 +13,29 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ButtonType from "CommonUI/src/Components/Button/ButtonTypes";
-import Card from "CommonUI/src/Components/Card/Card";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Icon from "CommonUI/src/Components/Icon/Icon";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import Modal from "CommonUI/src/Components/Modal/Modal";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import { RadioButton } from "CommonUI/src/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ButtonType from "Common/UI/Components/Button/ButtonTypes";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Icon from "Common/UI/Components/Icon/Icon";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Modal from "Common/UI/Components/Modal/Modal";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import {
   APP_API_URL,
   BILLING_ENABLED,
   BILLING_PUBLIC_KEY,
   getAllEnvVars,
-} from "CommonUI/src/Config";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import BaseAPI from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/Config";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import BaseAPI from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 import Reseller from "Common/Models/DatabaseModels/Reseller";

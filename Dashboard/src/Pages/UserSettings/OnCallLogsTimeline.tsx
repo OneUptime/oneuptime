@@ -5,15 +5,15 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import User from "CommonUI/src/Utils/User";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
+import User from "Common/UI/Utils/User";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import React, {
   Fragment,

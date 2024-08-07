@@ -1,10 +1,10 @@
 import MainAPI from "./API/Main";
 import SettingsAPI from "./API/Settings";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Express, { ExpressApplication } from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
-import Telemetry from "CommonServer/Utils/Telemetry";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
+import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();

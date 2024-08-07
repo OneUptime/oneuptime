@@ -2,11 +2,11 @@ import LabelsElement from "../../../../Components/Label/Labels";
 import PageComponentProps from "../../../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, {
@@ -17,12 +17,12 @@ import React, {
   useState,
 } from "react";
 import CopilotLastRunAt from "../../../../Components/Copilot/LastRunMessage";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageMap from "../../../../Utils/PageMap";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import API from "CommonUI/src/Utils/API/API";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 
 const CopilotPageView: FunctionComponent<

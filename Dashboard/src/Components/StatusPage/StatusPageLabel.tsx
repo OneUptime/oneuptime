@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "CommonUI/src/Components/Link/Link";
+import Link from "Common/UI/Components/Link/Link";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";

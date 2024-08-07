@@ -1,8 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import LogService from "CommonServer/Services/LogService";
-import SpanService from "CommonServer/Services/SpanService";
+import LogService from "Common/Server/Services/LogService";
+import SpanService from "Common/Server/Services/SpanService";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 

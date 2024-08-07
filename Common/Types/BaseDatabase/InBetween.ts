@@ -25,24 +25,8 @@ export default class InBetween extends SerializableObject {
     endValue: number | Date | string,
   ) {
     super();
-
-    if (
-      typeof startValue === "string" &&
-      OneUptimeDate.isValidDateString(startValue)
-    ) {
-      this.startValue = OneUptimeDate.fromString(startValue);
-    } else {
-      this.startValue = startValue;
-    }
-
-    if (
-      typeof endValue === "string" &&
-      OneUptimeDate.isValidDateString(endValue)
-    ) {
-      this.endValue = OneUptimeDate.fromString(endValue);
-    } else {
-      this.endValue = endValue;
-    }
+    this.startValue = startValue;
+    this.endValue = endValue;
   }
 
   public override toJSON(): JSONObject {

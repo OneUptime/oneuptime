@@ -5,11 +5,11 @@ import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
   IsBillingEnabled,
   IsDevelopment,
-} from "CommonServer/EnvironmentConfig";
-import DatabaseService from "CommonServer/Services/DatabaseService";
-import Services from "CommonServer/Services/Index";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import logger from "CommonServer/Utils/Logger";
+} from "Common/Server/EnvironmentConfig";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import Services from "Common/Server/Services/Index";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
 
 RunCron(
   "HardDelete:HardDeleteItemsInDatabase",

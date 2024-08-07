@@ -1,6 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Input from "CommonUI/src/Components/Input/Input";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
+import Input from "Common/UI/Components/Input/Input";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 
 export interface MetricFormulaData {
   metricFormula: string;

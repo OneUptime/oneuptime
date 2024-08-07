@@ -1,8 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import React, { FunctionComponent, ReactElement } from "react";

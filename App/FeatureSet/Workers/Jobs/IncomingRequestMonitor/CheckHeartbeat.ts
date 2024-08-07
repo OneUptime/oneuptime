@@ -4,9 +4,9 @@ import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "CommonServer/Services/MonitorService";
-import logger from "CommonServer/Utils/Logger";
-import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
+import MonitorService from "Common/Server/Services/MonitorService";
+import logger from "Common/Server/Utils/Logger";
+import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 RunCron(

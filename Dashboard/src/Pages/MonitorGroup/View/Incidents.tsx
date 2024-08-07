@@ -4,11 +4,11 @@ import PageComponentProps from "../../PageComponentProps";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import React, {
   Fragment,

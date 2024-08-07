@@ -5,15 +5,15 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
-import ProjectCallSMSConfigService from "CommonServer/Services/ProjectCallSMSConfigService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 const router: ExpressRouter = Express.getRouter();

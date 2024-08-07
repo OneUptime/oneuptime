@@ -1,6 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 export default class ProbeUtil {
   public static getProbeId(): ObjectID {

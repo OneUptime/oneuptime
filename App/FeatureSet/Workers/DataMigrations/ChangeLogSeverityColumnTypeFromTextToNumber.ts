@@ -1,7 +1,7 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import LogService from "CommonServer/Services/LogService";
+import LogService from "Common/Server/Services/LogService";
 import Log from "Common/Models/AnalyticsModels/Log";
 
 export default class ChangeLogSeverityColumnTypeFromTextToNumber extends DataMigrationBase {

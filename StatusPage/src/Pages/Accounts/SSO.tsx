@@ -7,11 +7,11 @@ import UserUtil from "../../Utils/User";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ModelList from "CommonUI/src/Components/ModelList/ModelList";
-import { FILE_URL } from "CommonUI/src/Config";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ModelList from "Common/UI/Components/ModelList/ModelList";
+import { FILE_URL } from "Common/UI/Config";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, { FunctionComponent, useState } from "react";
 

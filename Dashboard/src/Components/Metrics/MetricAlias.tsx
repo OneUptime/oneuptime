@@ -1,6 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Input from "CommonUI/src/Components/Input/Input";
-import Icon, { ThickProp } from "CommonUI/src/Components/Icon/Icon";
+import Input from "Common/UI/Components/Input/Input";
+import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 
 export interface MetricAliasData {

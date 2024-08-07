@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import ComingSoon from "CommonUI/src/Components/ComingSoon/ComingSoon";
+import ComingSoon from "Common/UI/Components/ComingSoon/ComingSoon";
 
 const Services: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

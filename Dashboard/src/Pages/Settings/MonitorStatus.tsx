@@ -4,12 +4,12 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import { ShowAs } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import StatusBubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import StatusBubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

@@ -5,8 +5,8 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-} from "CommonServer/Utils/Express";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
 
 export default class ManualAPI {
   public router!: ExpressRouter;

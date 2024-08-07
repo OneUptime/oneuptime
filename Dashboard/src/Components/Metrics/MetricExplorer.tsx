@@ -1,6 +1,6 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricView from "./MetricView";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";

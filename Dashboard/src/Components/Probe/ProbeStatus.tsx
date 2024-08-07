@@ -1,6 +1,6 @@
 import { Green, Red } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";

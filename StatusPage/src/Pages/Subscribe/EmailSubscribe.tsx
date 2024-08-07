@@ -11,18 +11,18 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
-import { CategoryCheckboxOptionsAndCategories } from "CommonUI/src/Components/CategoryCheckbox/Index";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import Card from "Common/UI/Components/Card/Card";
+import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelForm, {
   FormType,
   ModelField,
-} from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
+} from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,

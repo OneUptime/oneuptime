@@ -1,7 +1,7 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "Common/Types/ArrayUtil";
 import Dictionary from "Common/Types/Dictionary";
-import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import Models from "Common/Models/DatabaseModels/Index";
 
 export interface ModelDocumentation {

@@ -8,12 +8,12 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorOwnerTeamService from "CommonServer/Services/MonitorOwnerTeamService";
-import MonitorOwnerUserService from "CommonServer/Services/MonitorOwnerUserService";
-import MonitorService from "CommonServer/Services/MonitorService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import MonitorOwnerTeamService from "Common/Server/Services/MonitorOwnerTeamService";
+import MonitorOwnerUserService from "Common/Server/Services/MonitorOwnerUserService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";

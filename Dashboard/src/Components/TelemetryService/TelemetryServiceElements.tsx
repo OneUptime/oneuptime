@@ -1,5 +1,5 @@
 import TelemetryServiceElement from "./TelemetryServiceElement";
-import TableColumnListComponent from "CommonUI/src/Components/TableColumnList/TableColumnListComponent";
+import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 

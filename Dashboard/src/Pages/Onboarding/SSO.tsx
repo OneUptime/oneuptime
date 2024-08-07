@@ -2,12 +2,12 @@ import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import Card from "CommonUI/src/Components/Card/Card";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ModelList from "CommonUI/src/Components/ModelList/ModelList";
-import Page from "CommonUI/src/Components/Page/Page";
-import { APP_API_URL, IDENTITY_URL } from "CommonUI/src/Config";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Card from "Common/UI/Components/Card/Card";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ModelList from "Common/UI/Components/ModelList/ModelList";
+import Page from "Common/UI/Components/Page/Page";
+import { APP_API_URL, IDENTITY_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 

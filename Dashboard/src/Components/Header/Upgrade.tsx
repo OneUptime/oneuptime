@@ -1,15 +1,15 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
-import { RadioButton } from "CommonUI/src/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { ReactElement, useState } from "react";
 

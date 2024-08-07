@@ -107,7 +107,7 @@ jobs:
 
     steps:
       
-    # Run Reliability Copilot in Doker Container
+    # Run Reliability Copilot in Docker Container
     - name: Run Copilot
       run: |
         docker run --rm  \ 

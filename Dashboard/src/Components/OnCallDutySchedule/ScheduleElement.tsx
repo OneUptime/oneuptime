@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "CommonUI/src/Components/Link/Link";
+import Link from "Common/UI/Components/Link/Link";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement } from "react";
 

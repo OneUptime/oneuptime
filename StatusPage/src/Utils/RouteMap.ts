@@ -3,7 +3,7 @@ import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 const RouteMap: Dictionary<Route> = {
   [PageMap.OVERVIEW]: new Route(`/`),

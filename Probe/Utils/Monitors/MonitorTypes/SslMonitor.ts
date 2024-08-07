@@ -8,7 +8,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import ObjectUtil from "Common/Utils/ObjectUtil";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import { ClientRequest, IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
 import tls, { TLSSocket } from "tls";

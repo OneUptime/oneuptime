@@ -14,23 +14,23 @@ import ServerException from "Common/Types/Exception/ServerException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
-import { Host, HttpProtocol } from "CommonServer/EnvironmentConfig";
-import AccessTokenService from "CommonServer/Services/AccessTokenService";
-import ProjectSSOService from "CommonServer/Services/ProjectSsoService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserService from "CommonServer/Services/UserService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Select from "CommonServer/Types/Database/Select";
-import CookieUtil from "CommonServer/Utils/Cookie";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserService from "Common/Server/Services/UserService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";

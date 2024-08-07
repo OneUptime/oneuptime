@@ -11,23 +11,23 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
-} from "CommonUI/src/Components/BulkUpdate/BulkUpdateForm";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import {
   CustomElementProps,
   FormFieldStyleType,
-} from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import { ModalWidth } from "CommonUI/src/Components/Modal/Modal";
-import { ModalTableBulkDefaultActions } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+} from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import Query from "Common/UI/Utils/BaseDatabase/Query";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -35,8 +35,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
-import ActionButtonSchema from "CommonUI/src/Components/ActionButton/ActionButtonSchema";
-import { CardButtonSchema } from "CommonUI/src/Components/Card/Card";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;

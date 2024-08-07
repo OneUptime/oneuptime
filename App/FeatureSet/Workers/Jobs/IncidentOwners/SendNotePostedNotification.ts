@@ -9,12 +9,12 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import IncidentInternalNoteService from "CommonServer/Services/IncidentInternalNoteService";
-import IncidentPublicNoteService from "CommonServer/Services/IncidentPublicNoteService";
-import IncidentService from "CommonServer/Services/IncidentService";
-import ProjectService from "CommonServer/Services/ProjectService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import IncidentInternalNoteService from "Common/Server/Services/IncidentInternalNoteService";
+import IncidentPublicNoteService from "Common/Server/Services/IncidentPublicNoteService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";

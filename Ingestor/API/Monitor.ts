@@ -12,21 +12,21 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Semaphore, {
   SemaphoreMutex,
-} from "CommonServer/Infrastructure/Semaphore";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
-import MonitorProbeService from "CommonServer/Services/MonitorProbeService";
-import Query from "CommonServer/Types/Database/Query";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import CronTab from "CommonServer/Utils/CronTab";
+} from "Common/Server/Infrastructure/Semaphore";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import Query from "Common/Server/Types/Database/Query";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import CronTab from "Common/Server/Utils/CronTab";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
   OneUptimeRequest,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 

@@ -1,10 +1,10 @@
 import RunCron from "../../Utils/Cron";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import ProjectService from "CommonServer/Services/ProjectService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import ProjectService from "Common/Server/Services/ProjectService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(

@@ -1,8 +1,8 @@
 import DataMigrations from "../DataMigrations/Index";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import DataMigrationService from "CommonServer/Services/DataMigrationService";
-import logger from "CommonServer/Utils/Logger";
+import DataMigrationService from "Common/Server/Services/DataMigrationService";
+import logger from "Common/Server/Utils/Logger";
 import DataMigration from "Common/Models/DatabaseModels/DataMigration";
 
 const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {

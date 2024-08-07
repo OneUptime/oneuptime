@@ -1,11 +1,11 @@
 import { RESET_PASSWORD_API_URL } from "../Utils/ApiPaths";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Link from "CommonUI/src/Components/Link/Link";
-import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Link from "Common/UI/Components/Link/Link";
+import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 

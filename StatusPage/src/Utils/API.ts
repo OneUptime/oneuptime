@@ -2,7 +2,7 @@ import StatusPageUtil from "./StatusPage";
 import Headers from "Common/Types/API/Headers";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import BaseAPI from "CommonUI/src/Utils/API/API";
+import BaseAPI from "Common/UI/Utils/API/API";
 
 export default class API extends BaseAPI {
   public static override getDefaultHeaders(statusPageId: ObjectID): Headers {

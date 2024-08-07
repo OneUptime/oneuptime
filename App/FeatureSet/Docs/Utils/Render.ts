@@ -1,4 +1,4 @@
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 
 // This class is responsible for rendering markdown content to HTML
 export default class DocsRender {

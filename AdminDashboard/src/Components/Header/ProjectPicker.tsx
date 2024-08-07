@@ -1,15 +1,15 @@
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
-import { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import Field from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ProjectPicker from "CommonUI/src/Components/Header/ProjectPicker/ProjectPicker";
-import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
-import { RadioButton } from "CommonUI/src/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import ProjectUtil from "CommonUI/src/Utils/Project";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ProjectPicker from "Common/UI/Components/Header/ProjectPicker/ProjectPicker";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,

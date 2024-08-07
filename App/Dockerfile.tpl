@@ -38,14 +38,6 @@ RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Comm
 RUN npm install
 COPY ./Common /usr/src/Common
 
-WORKDIR /usr/src/CommonServer
-COPY ./CommonServer/package*.json /usr/src/CommonServer/
-# Set version in ./CommonServer/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
-RUN npm install
-COPY ./CommonServer /usr/src/CommonServer
-
-
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app

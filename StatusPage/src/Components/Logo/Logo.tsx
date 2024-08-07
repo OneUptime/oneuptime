@@ -1,4 +1,4 @@
-import Image from "CommonUI/src/Components/Image/Image";
+import Image from "Common/UI/Components/Image/Image";
 import File from "Common/Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 

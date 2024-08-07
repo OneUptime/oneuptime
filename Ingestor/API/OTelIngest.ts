@@ -13,17 +13,17 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import Text from "Common/Types/Text";
-import LogService from "CommonServer/Services/LogService";
-import MetricService from "CommonServer/Services/MetricService";
-import SpanService from "CommonServer/Services/SpanService";
+import LogService from "Common/Server/Services/LogService";
+import MetricService from "Common/Server/Services/MetricService";
+import SpanService from "Common/Server/Services/SpanService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric, { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";

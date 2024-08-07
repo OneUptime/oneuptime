@@ -8,12 +8,12 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import ScheduledMaintenanceOwnerTeamService from "CommonServer/Services/ScheduledMaintenanceOwnerTeamService";
-import ScheduledMaintenanceOwnerUserService from "CommonServer/Services/ScheduledMaintenanceOwnerUserService";
-import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
+import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
+import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";

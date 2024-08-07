@@ -6,10 +6,10 @@ import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
   IsBillingEnabled,
   IsDevelopment,
-} from "CommonServer/EnvironmentConfig";
-import BillingService from "CommonServer/Services/BillingService";
-import ProjectService from "CommonServer/Services/ProjectService";
-import logger from "CommonServer/Utils/Logger";
+} from "Common/Server/EnvironmentConfig";
+import BillingService from "Common/Server/Services/BillingService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(

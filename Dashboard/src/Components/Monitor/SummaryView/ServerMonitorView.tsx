@@ -1,12 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
 import { BasicDiskMetrics } from "Common/Types/Infrastructure/BasicMetrics";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Detail from "CommonUI/src/Components/Detail/Detail";
-import Field from "CommonUI/src/Components/Detail/Field";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Field from "Common/UI/Components/Detail/Field";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 import MemoryUtil from "Common/Utils/Memory";
 import NumberUtil from "Common/Utils/Number";

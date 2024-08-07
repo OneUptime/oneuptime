@@ -6,9 +6,9 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+} from "Common/UI/Components/Button/Button";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

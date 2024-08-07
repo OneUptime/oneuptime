@@ -1,6 +1,6 @@
 import PageComponentProps from "../../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TraceTable from "../../../../../Components/Traces/TraceTable";
 

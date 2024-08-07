@@ -12,20 +12,20 @@ import ComponentMetadata, {
   NodeDataProp,
   NodeType,
 } from "Common/Types/Workflow/Component";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Card from "CommonUI/src/Components/Card/Card";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import { loadComponentsAndCategories } from "CommonUI/src/Components/Workflow/Utils";
+import Banner from "Common/UI/Components/Banner/Banner";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
-} from "CommonUI/src/Components/Workflow/Workflow";
-import { WORKFLOW_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/Components/Workflow/Workflow";
+import { WORKFLOW_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import React, {
   Fragment,
