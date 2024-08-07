@@ -1,4 +1,4 @@
-import NotFound, { ComponentProps } from "../../Components/404";
+import NotFound, { ComponentProps } from "../../../UI/Components/404";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Route from "Common/Types/API/Route";
@@ -8,7 +8,7 @@ import * as React from "react";
 import { describe, expect, jest } from "@jest/globals";
 
 // Mock the Navigation module to avoid real navigation
-jest.mock("../../Utils/Navigation", () => {
+jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     navigate: jest.fn(),
   };
@@ -55,7 +55,7 @@ describe("NotFound Component", () => {
   test('should navigate to the home route when "Go Home" button is clicked', () => {
     const goHomeButton: HTMLElement = screen.getByText("Go Home");
     fireEvent.click(goHomeButton);
-    expect(require("../../Utils/Navigation").navigate).toHaveBeenCalledWith(
+    expect(require("../../../UI/Utils/Navigation").navigate).toHaveBeenCalledWith(
       mockProps.homeRoute,
     );
   });
@@ -64,7 +64,7 @@ describe("NotFound Component", () => {
     const contactSupportButton: HTMLElement =
       screen.getByText("Contact Support");
     fireEvent.click(contactSupportButton);
-    expect(require("../../Utils/Navigation").navigate).toHaveBeenCalledWith(
+    expect(require("../../../UI/Utils/Navigation").navigate).toHaveBeenCalledWith(
       URL.fromString("mailto:" + mockProps.supportEmail.toString()),
     );
   });

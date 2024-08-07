@@ -1,4 +1,4 @@
-import ComponentsModal from "../../Components/Workflow/ComponentsModal";
+import ComponentsModal from "../../../UI/Components/Workflow/ComponentsModal";
 import { faker } from "@faker-js/faker";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";

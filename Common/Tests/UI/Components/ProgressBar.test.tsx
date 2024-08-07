@@ -1,4 +1,4 @@
-import ProgressBar from "../../Components/ProgressBar/ProgressBar";
+import ProgressBar from "../../../UI/Components/ProgressBar/ProgressBar";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import * as React from "react";

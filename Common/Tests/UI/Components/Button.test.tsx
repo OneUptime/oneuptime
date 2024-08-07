@@ -1,9 +1,9 @@
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "../../Components/Button/Button";
-import ButtonType from "../../Components/Button/ButtonTypes";
-import ShortcutKey from "../../Components/ShortcutKey/ShortcutKey";
+} from "../../../UI/Components/Button/Button";
+import ButtonType from "../../../UI/Components/Button/ButtonTypes";
+import ShortcutKey from "../../../UI/Components/ShortcutKey/ShortcutKey";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";

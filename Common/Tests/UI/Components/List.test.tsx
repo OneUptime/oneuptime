@@ -1,5 +1,5 @@
-import List, { ComponentProps } from "../../Components/List/List";
-import FieldType from "../../Components/Types/FieldType";
+import List, { ComponentProps } from "../../../UI/Components/List/List";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";

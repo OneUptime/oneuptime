@@ -1,6 +1,6 @@
 import TopSection, {
   ComponentProps,
-} from "../../Components/TopSection/TopSection";
+} from "../../../UI/Components/TopSection/TopSection";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";

@@ -1,7 +1,7 @@
-import BasicForm from "../../Components/Forms/BasicForm";
-import Fields from "../../Components/Forms/Types/Fields";
-import FormFieldSchemaType from "../../Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "../../Components/Forms/Types/FormValues";
+import BasicForm from "../../../UI/Components/Forms/BasicForm";
+import Fields from "../../../UI/Components/Forms/Types/Fields";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

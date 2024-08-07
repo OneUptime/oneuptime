@@ -1,4 +1,4 @@
-import ErrorBoundary from "../../Components/ErrorBoundary";
+import ErrorBoundary from "../../../UI/Components/ErrorBoundary";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import React, { FunctionComponent, useEffect } from "react";

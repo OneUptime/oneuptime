@@ -1,6 +1,6 @@
 import RadioButtons, {
   RadioButton,
-} from "../../Components/RadioButtons/GroupRadioButtons";
+} from "../../../UI/Components/RadioButtons/GroupRadioButtons";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
 import React from "react";

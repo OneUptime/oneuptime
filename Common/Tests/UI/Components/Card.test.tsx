@@ -1,8 +1,8 @@
-import { ButtonStyleType } from "../../Components/Button/Button";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps,
-} from "../../Components/Card/Card";
+} from "../../../UI/Components/Card/Card";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "Common/Types/Icon/IconProp";

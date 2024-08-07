@@ -1,6 +1,6 @@
-import DuplicateModel from "../../Components/DuplicateModel/DuplicateModel";
-import { ModelField } from "../../Components/Forms/ModelForm";
-import Select from "../../Utils/BaseDatabase/Select";
+import DuplicateModel from "../../../UI/Components/DuplicateModel/DuplicateModel";
+import { ModelField } from "../../../UI/Components/Forms/ModelForm";
+import Select from "../../../UI/Utils/BaseDatabase/Select";
 import { describe, expect, it, jest } from "@jest/globals";
 import {
   fireEvent,
@@ -30,7 +30,7 @@ class TestModel extends BaseModel {
   public changeThis?: string = "original";
 }
 
-jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     getItem: (jest.fn() as jest.Mock)
       .mockResolvedValueOnce({
@@ -59,7 +59,7 @@ jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../Utils/Navigation", () => {
+jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     navigate: jest.fn(),
   };
@@ -158,7 +158,7 @@ describe("DuplicateModel", () => {
       });
     });
     await waitFor(() => {
-      return expect(require("../../Utils/Navigation").navigate).toBeCalledWith(
+      return expect(require("../../../UI/Utils/Navigation").navigate).toBeCalledWith(
         new Route("/done/foobar"),
         {
           forceNavigate: true,

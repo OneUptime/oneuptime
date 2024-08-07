@@ -1,5 +1,5 @@
-import { ButtonStyleType } from "../../Components/Button/Button";
-import Item, { ComponentProps } from "../../Components/OrderedStatesList/Item";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import Item, { ComponentProps } from "../../../UI/Components/OrderedStatesList/Item";
 import { describe, expect, jest } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";

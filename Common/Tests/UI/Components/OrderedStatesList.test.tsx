@@ -1,6 +1,6 @@
 import OrderedStatesList, {
   ComponentProps,
-} from "../../Components/OrderedStatesList/OrderedStatesList";
+} from "../../../UI/Components/OrderedStatesList/OrderedStatesList";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";

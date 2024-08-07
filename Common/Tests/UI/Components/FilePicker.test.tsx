@@ -1,5 +1,5 @@
-import FilePicker from "../../Components/FilePicker/FilePicker";
-import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { faker } from "@faker-js/faker";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
@@ -23,7 +23,7 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 const mockOnChange: MockFunction = getJestMockFunction();
 const mockOnBlur: MockFunction = getJestMockFunction();
 
-jest.mock("../../Utils/ModelAPI/ModelAPI", () => {
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     create: jest.fn(),
   };

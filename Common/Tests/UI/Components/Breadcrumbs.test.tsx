@@ -1,5 +1,5 @@
-import Breadcrumbs from "../../Components/Breadcrumbs/Breadcrumbs";
-import Navigation from "../../Utils/Navigation";
+import Breadcrumbs from "../../../UI/Components/Breadcrumbs/Breadcrumbs";
+import Navigation from "../../../UI/Utils/Navigation";
 import { describe, expect, test, jest } from "@jest/globals";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";

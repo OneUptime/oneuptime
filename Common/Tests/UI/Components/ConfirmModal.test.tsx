@@ -1,7 +1,7 @@
-import { ButtonStyleType } from "../../Components/Button/Button";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ConfirmModal, {
   ComponentProps,
-} from "../../Components/Modal/ConfirmModal";
+} from "../../../UI/Components/Modal/ConfirmModal";
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";

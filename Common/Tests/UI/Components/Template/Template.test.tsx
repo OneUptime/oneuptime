@@ -1,6 +1,6 @@
 import Component, {
   ComponentProps,
-} from "../../../Components/Template/Template";
+} from "../../../../UI/Components/Template/Template";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";

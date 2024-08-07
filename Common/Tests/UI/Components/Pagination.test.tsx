@@ -1,6 +1,6 @@
 import Pagination, {
   ComponentProps,
-} from "../../Components/Pagination/Pagination";
+} from "../../../UI/Components/Pagination/Pagination";
 import { describe, expect, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

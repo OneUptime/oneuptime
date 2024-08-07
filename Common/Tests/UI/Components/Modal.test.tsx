@@ -1,6 +1,6 @@
-import { ButtonStyleType } from "../../Components/Button/Button";
-import ButtonType from "../../Components/Button/ButtonTypes";
-import Modal, { ModalWidth } from "../../Components/Modal/Modal";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import ButtonType from "../../../UI/Components/Button/ButtonTypes";
+import Modal, { ModalWidth } from "../../../UI/Components/Modal/Modal";
 import { describe, expect, it, test } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";

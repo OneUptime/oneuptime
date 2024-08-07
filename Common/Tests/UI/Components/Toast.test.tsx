@@ -1,4 +1,4 @@
-import Toast, { ToastType } from "../../Components/Toast/Toast";
+import Toast, { ToastType } from "../../../UI/Components/Toast/Toast";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

@@ -1,4 +1,4 @@
-import Loader, { LoaderType } from "../../Components/Loader/Loader";
+import Loader, { LoaderType } from "../../../UI/Components/Loader/Loader";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import Color from "Common/Types/Color";

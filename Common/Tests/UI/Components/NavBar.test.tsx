@@ -1,4 +1,4 @@
-import Navbar, { ComponentProps } from "../../Components/Navbar/NavBar";
+import Navbar, { ComponentProps } from "../../../UI/Components/Navbar/NavBar";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";

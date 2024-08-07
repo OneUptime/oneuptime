@@ -1,10 +1,10 @@
 // Libraries
-import { BadgeType } from "../../Components/Badge/Badge";
+import { BadgeType } from "../../../UI/Components/Badge/Badge";
 // Components
 import SideMenuItem, {
   ComponentProps,
-} from "../../Components/SideMenu/SideMenuItem";
-import * as Navigation from "../../Utils/Navigation";
+} from "../../../UI/Components/SideMenu/SideMenuItem";
+import * as Navigation from "../../../UI/Utils/Navigation";
 import { describe, expect, afterEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -17,7 +17,7 @@ import getJestMockFunction from "Common/Tests/MockType";
 const highlightClassList: string =
   "bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium";
 
-jest.mock("../../Utils/Navigation.ts", () => {
+jest.mock("../../../UI/Utils/Navigation.ts", () => {
   return {
     isOnThisPage: jest.fn().mockReturnValue(false),
     navigate: jest.fn(),
