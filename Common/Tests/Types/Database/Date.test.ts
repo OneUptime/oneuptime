@@ -32,12 +32,9 @@ describe("DatabaseDate", () => {
         DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
           inputDate,
         ).toJSON();
-      const expectedStart: string = moment(inputDate)
-        .startOf("day")
-        .format("YYYY-MM-DD HH:mm:ss");
-      const expectedEnd: string = moment(inputDate)
-        .endOf("day")
-        .format("YYYY-MM-DD HH:mm:ss");
+      const expectedStart: Date = moment(inputDate).startOf("day").toDate();
+      const expectedEnd: Date = moment(inputDate).endOf("day").toDate();
+
       expect(result).toEqual({
         startValue: expectedStart,
         endValue: expectedEnd,

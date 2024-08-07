@@ -234,7 +234,6 @@ export default class BaseAnalyticsAPI<
     let groupBy: GroupBy<AnalyticsDataModel> = {};
 
     if (req.body) {
-
       query = JSONFunctions.deserialize(
         req.body["query"],
       ) as Query<AnalyticsDataModel>;
