@@ -19,9 +19,13 @@ describe("DatabaseDate", () => {
       const expectedEnd: string = moment(inputDate)
         .endOf("day")
         .format("YYYY-MM-DD HH:mm:ss");
-      expect(result).toEqual({
-        startValue: expectedStart,
-        endValue: expectedEnd,
+      expect({
+        startValue: expectedStart.toString(),
+        endValue: expectedEnd.toString(),
+        ...result,
+      }).toEqual({
+        startValue: expectedStart.toString(),
+        endValue: expectedEnd.toString(),
         _type: "InBetween",
       });
     });
