@@ -223,7 +223,9 @@ describe("ProjectMiddleware", () => {
         "findOneBy",
       ).mockResolvedValue(null);
 
-      jest.spyOn(QueryHelper, "greaterThan").mockImplementation(jest.fn() as any);
+      jest
+        .spyOn(QueryHelper, "greaterThan")
+        .mockImplementation(jest.fn() as any);
 
       await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
         req,
