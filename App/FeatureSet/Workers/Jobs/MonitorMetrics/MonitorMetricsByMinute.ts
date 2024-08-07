@@ -2,7 +2,7 @@ import RunCron from "../../Utils/Cron";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorMetricsByMinuteService from "CommonServer/Services/MonitorMetricsByMinuteService";
+import MonitorMetricsByMinuteService from "Common/Server/Services/MonitorMetricsByMinuteService";
 
 RunCron(
   "MonitorMetrics:HardDeleteMonitorMetricsByMinute",

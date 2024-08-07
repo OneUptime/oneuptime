@@ -4,15 +4,15 @@ import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { QueueJob, QueueName } from "CommonServer/Infrastructure/Queue";
-import QueueWorker from "CommonServer/Infrastructure/QueueWorker";
-import FeatureSet from "CommonServer/Types/FeatureSet";
+import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
+import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 
 const APP_NAME: string = "api/workflow";
 

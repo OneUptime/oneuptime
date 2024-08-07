@@ -10,9 +10,9 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "Common/Types/Permission";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import { ExpressRequest, ExpressResponse } from "CommonServer/Utils/Express";
-import LocalFile from "CommonServer/Utils/LocalFile";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import LocalFile from "Common/Server/Utils/LocalFile";
 
 // Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();

@@ -4,9 +4,9 @@ import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import BasicCron from "CommonServer/Utils/BasicCron";
-import logger from "CommonServer/Utils/Logger";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import BasicCron from "Common/Server/Utils/BasicCron";
+import logger from "Common/Server/Utils/Logger";
 
 BasicCron({
   jobName: "Basic:Alive",

@@ -3,9 +3,9 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import UserOnCallLogService from "CommonServer/Services/UserOnCallLogService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 
 /**

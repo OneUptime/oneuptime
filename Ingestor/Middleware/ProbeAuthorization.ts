@@ -4,10 +4,10 @@ import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ClusterKey as ONEUPTIME_SECRET } from "CommonServer/EnvironmentConfig";
-import ProbeService from "CommonServer/Services/ProbeService";
-import { ExpressResponse, NextFunction } from "CommonServer/Utils/Express";
-import Response from "CommonServer/Utils/Response";
+import { ClusterKey as ONEUPTIME_SECRET } from "Common/Server/EnvironmentConfig";
+import ProbeService from "Common/Server/Services/ProbeService";
+import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
 import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeAuthorization {

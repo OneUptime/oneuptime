@@ -18,7 +18,6 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd CommonServer && npm install
       - run: cd Probe && npm install
       - run: cd Probe && npm run test
   

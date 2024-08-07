@@ -1,4 +1,4 @@
-import Exec from "CommonServer/Utils/Execute";
+import Exec from "Common/Server/Utils/Execute";
 
 export default class SelfSignedSSL {
   public static async generate(path: string, host: string): Promise<void> {

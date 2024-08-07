@@ -1,7 +1,7 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import MonitorService from "CommonServer/Services/MonitorService";
+import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 export default class AddSecretKeyToIncomingRequestMonitor extends DataMigrationBase {

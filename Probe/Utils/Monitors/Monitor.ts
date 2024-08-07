@@ -26,8 +26,8 @@ import Port from "Common/Types/Port";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import logger from "CommonServer/Utils/Logger";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 export default class MonitorUtil {

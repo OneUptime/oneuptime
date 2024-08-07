@@ -7,10 +7,10 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "CommonServer/Services/MonitorService";
-import ProjectService from "CommonServer/Services/ProjectService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import MonitorService from "Common/Server/Services/MonitorService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 

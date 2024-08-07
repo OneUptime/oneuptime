@@ -7,7 +7,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import API from "Common/Utils/API";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 
 export default class CopilotActionUtil {
   public static async getCopilotActions(data: {

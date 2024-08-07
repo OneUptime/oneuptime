@@ -7,7 +7,7 @@ import CopilotActionBase, {
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import { CopilotPromptResult } from "../LLM/LLMBase";
-import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
+import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
 import Text from "Common/Types/Text";
 
 export default class ImproveComments extends CopilotActionBase {

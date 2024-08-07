@@ -1,5 +1,5 @@
 import { ViewsPath } from "./Config";
-import { ExpressResponse } from "CommonServer/Utils/Express";
+import { ExpressResponse } from "Common/Server/Utils/Express";
 
 export default class ServerErrorUtil {
   public static renderServerError(res: ExpressResponse): void {

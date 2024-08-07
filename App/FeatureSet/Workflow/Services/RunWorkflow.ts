@@ -15,17 +15,17 @@ import ComponentMetadata, {
   Port,
 } from "Common/Types/Workflow/Component";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
-import WorkflowLogService from "CommonServer/Services/WorkflowLogService";
-import WorkflowService from "CommonServer/Services/WorkflowService";
-import WorkflowVariableService from "CommonServer/Services/WorkflowVariableService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
+import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ComponentCode, {
   RunReturnType,
-} from "CommonServer/Types/Workflow/ComponentCode";
-import Components from "CommonServer/Types/Workflow/Components/Index";
-import { RunProps } from "CommonServer/Types/Workflow/Workflow";
-import logger from "CommonServer/Utils/Logger";
-import VMAPI from "CommonServer/Utils/VM/VMAPI";
+} from "Common/Server/Types/Workflow/ComponentCode";
+import Components from "Common/Server/Types/Workflow/Components/Index";
+import { RunProps } from "Common/Server/Types/Workflow/Workflow";
+import logger from "Common/Server/Utils/Logger";
+import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";

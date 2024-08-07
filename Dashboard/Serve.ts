@@ -1,7 +1,7 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Express, { ExpressApplication } from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
 
 export const APP_NAME: string = "dashboard";
 

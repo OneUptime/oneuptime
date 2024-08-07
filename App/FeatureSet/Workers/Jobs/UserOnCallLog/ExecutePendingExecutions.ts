@@ -5,11 +5,11 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import IncidentService from "CommonServer/Services/IncidentService";
-import UserNotificationRuleService from "CommonServer/Services/UserNotificationRuleService";
-import UserOnCallLogService from "CommonServer/Services/UserOnCallLogService";
-import logger from "CommonServer/Utils/Logger";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import IncidentService from "Common/Server/Services/IncidentService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";

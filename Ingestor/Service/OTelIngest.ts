@@ -3,19 +3,19 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import GlobalCache from "CommonServer/Infrastructure/GlobalCache";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import Metric, {
   AggregationTemporality,
 } from "Common/Models/AnalyticsModels/Metric";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
-import TelemetryAttributeService from "CommonServer/Services/TelemetryAttributeService";
+import TelemetryAttributeService from "Common/Server/Services/TelemetryAttributeService";
 import Dictionary from "Common/Types/Dictionary";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import { IsBillingEnabled } from "CommonServer/EnvironmentConfig";
-import TelemetryUsageBillingService from "CommonServer/Services/TelemetryUsageBillingService";
-import logger from "CommonServer/Utils/Logger";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import TelemetryUsageBillingService from "Common/Server/Services/TelemetryUsageBillingService";
+import logger from "Common/Server/Utils/Logger";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
+import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 
 export enum OtelAggregationTemporality {

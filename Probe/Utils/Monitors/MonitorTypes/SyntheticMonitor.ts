@@ -5,10 +5,10 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "CommonServer/Utils/Logger";
-import VMRunner from "CommonServer/Utils/VM/VMRunner";
+import logger from "Common/Server/Utils/Logger";
+import VMRunner from "Common/Server/Utils/VM/VMRunner";
 import { Browser, Page, chromium, firefox } from "playwright";
-import LocalFile from "CommonServer/Utils/LocalFile";
+import LocalFile from "Common/Server/Utils/LocalFile";
 
 export interface SyntheticMonitorOptions {
   monitorId?: ObjectID | undefined;

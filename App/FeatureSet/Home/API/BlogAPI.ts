@@ -7,8 +7,8 @@ import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 
 const app: ExpressApplication = Express.getExpressApp();
 

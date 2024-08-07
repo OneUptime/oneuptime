@@ -3,9 +3,9 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Recurring from "Common/Types/Events/Recurring";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import StatusPageService from "CommonServer/Services/StatusPageService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import logger from "CommonServer/Utils/Logger";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 RunCron(

@@ -7,10 +7,10 @@ import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
-import EmailVerificationTokenService from "CommonServer/Services/EmailVerificationTokenService";
-import MailService from "CommonServer/Services/MailService";
-import logger from "CommonServer/Utils/Logger";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
+import MailService from "Common/Server/Services/MailService";
+import logger from "Common/Server/Utils/Logger";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 

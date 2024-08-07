@@ -1,12 +1,12 @@
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import GreenlockCertificateService from "CommonServer/Services/GreenlockCertificateService";
-import BasicCron from "CommonServer/Utils/BasicCron";
-import LocalFile from "CommonServer/Utils/LocalFile";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import GreenlockCertificateService from "Common/Server/Services/GreenlockCertificateService";
+import BasicCron from "Common/Server/Utils/BasicCron";
+import LocalFile from "Common/Server/Utils/LocalFile";
 // @ts-ignore
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import GreenlockCertificate from "Common/Models/DatabaseModels/GreenlockCertificate";
 
 export default class Jobs {

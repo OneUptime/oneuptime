@@ -2,11 +2,11 @@ import RunCron from "../../Utils/Cron";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_HOUR, EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import LogService from "CommonServer/Services/LogService";
-import SpanService from "CommonServer/Services/SpanService";
-import TelemetryServiceService from "CommonServer/Services/TelemetryServiceService";
-import QueryHelper from "CommonServer/Types/AnalyticsDatabase/QueryHelper";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import LogService from "Common/Server/Services/LogService";
+import SpanService from "Common/Server/Services/SpanService";
+import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";
+import QueryHelper from "Common/Server/Types/AnalyticsDatabase/QueryHelper";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 RunCron(

@@ -18,7 +18,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
 import RefactorCode from "./RefactorCode";
 import WriteUnitTests from "./WriteUnitTests";

@@ -9,12 +9,12 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import ProjectService from "CommonServer/Services/ProjectService";
-import ScheduledMaintenanceInternalNoteService from "CommonServer/Services/ScheduledMaintenanceInternalNoteService";
-import ScheduledMaintenancePublicNoteService from "CommonServer/Services/ScheduledMaintenancePublicNoteService";
-import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintenanceService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
+import ProjectService from "Common/Server/Services/ProjectService";
+import ScheduledMaintenanceInternalNoteService from "Common/Server/Services/ScheduledMaintenanceInternalNoteService";
+import ScheduledMaintenancePublicNoteService from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
+import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";

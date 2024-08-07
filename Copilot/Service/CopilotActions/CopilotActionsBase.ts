@@ -4,12 +4,12 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
-import LocalFile from "CommonServer/Utils/LocalFile";
-import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
+import LocalFile from "Common/Server/Utils/LocalFile";
+import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
 import { CopilotPromptResult } from "../LLM/LLMBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
 
 export interface CopilotActionRunResult {

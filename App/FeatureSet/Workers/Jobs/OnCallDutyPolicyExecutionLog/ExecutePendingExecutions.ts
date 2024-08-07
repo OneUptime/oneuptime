@@ -3,9 +3,9 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import OnCallDutyPolicyEscalationRuleService from "CommonServer/Services/OnCallDutyPolicyEscalationRuleService";
-import OnCallDutyPolicyExecutionLogService from "CommonServer/Services/OnCallDutyPolicyExecutionLogService";
-import logger from "CommonServer/Utils/Logger";
+import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
+import logger from "Common/Server/Utils/Logger";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 

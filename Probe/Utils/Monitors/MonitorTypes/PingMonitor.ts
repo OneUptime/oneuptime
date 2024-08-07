@@ -8,7 +8,7 @@ import IPv6 from "Common/Types/IP/IPv6";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 
 // TODO - make sure it  work for the IPV6

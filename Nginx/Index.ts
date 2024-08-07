@@ -1,9 +1,9 @@
 import AcmeWriteCertificatesJob from "./Jobs/AcmeWriteCertificates";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { PostgresAppInstance } from "CommonServer/Infrastructure/PostgresDatabase";
-import InfrastructureStatus from "CommonServer/Infrastructure/Status";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
+import { PostgresAppInstance } from "Common/Server/Infrastructure/PostgresDatabase";
+import InfrastructureStatus from "Common/Server/Infrastructure/Status";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
 
 process.env["SERVICE_NAME"] = "ingress";
 

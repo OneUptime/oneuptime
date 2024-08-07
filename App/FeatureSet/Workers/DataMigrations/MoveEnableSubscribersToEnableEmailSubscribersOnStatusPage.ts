@@ -1,6 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import StatusPageService from "CommonServer/Services/StatusPageService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 export default class MoveEnableSubscribersToEnableEmailSubscribersOnStatusPage extends DataMigrationBase {

@@ -8,15 +8,15 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import ProbeOwnerTeamService from "CommonServer/Services/ProbeOwnerTeamService";
-import ProbeOwnerUserService from "CommonServer/Services/ProbeOwnerUserService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
+import ProbeOwnerTeamService from "Common/Server/Services/ProbeOwnerTeamService";
+import ProbeOwnerUserService from "Common/Server/Services/ProbeOwnerUserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import ProbeService from "CommonServer/Services/ProbeService";
+import ProbeService from "Common/Server/Services/ProbeService";
 
 RunCron(
   "ProbeOwner:SendOwnerAddedEmail",

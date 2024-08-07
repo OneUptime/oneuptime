@@ -9,20 +9,20 @@ import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import { Host, HttpProtocol } from "CommonServer/EnvironmentConfig";
-import StatusPagePrivateUserService from "CommonServer/Services/StatusPagePrivateUserService";
-import StatusPageService from "CommonServer/Services/StatusPageService";
-import StatusPageSsoService from "CommonServer/Services/StatusPageSsoService";
-import CookieUtil from "CommonServer/Utils/Cookie";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageSsoService from "Common/Server/Services/StatusPageSsoService";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import xml2js from "xml2js";

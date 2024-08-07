@@ -1,6 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import SpanService from "CommonServer/Services/SpanService";
+import SpanService from "Common/Server/Services/SpanService";
 import Span from "Common/Models/AnalyticsModels/Span";
 
 export default class AddDurationColumnToSpanTable extends DataMigrationBase {

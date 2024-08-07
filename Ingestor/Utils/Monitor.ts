@@ -7,8 +7,8 @@ import IP from "Common/Types/IP/IP";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import MonitorSecretService from "CommonServer/Services/MonitorSecretService";
-import VMUtil from "CommonServer/Utils/VM/VMAPI";
+import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
+import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 

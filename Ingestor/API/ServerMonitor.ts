@@ -5,15 +5,15 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
-import MonitorService from "CommonServer/Services/MonitorService";
+import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 const router: ExpressRouter = Express.getRouter();

@@ -1,4 +1,4 @@
-import { AnalyticsServices } from "CommonServer/Services/Index";
+import { AnalyticsServices } from "Common/Server/Services/Index";
 
 export default class AnalyticsTableManagement {
   public static async createTables(): Promise<void> {

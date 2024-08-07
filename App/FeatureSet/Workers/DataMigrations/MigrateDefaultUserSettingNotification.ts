@@ -1,8 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import UserService from "CommonServer/Services/UserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import UserService from "Common/Server/Services/UserService";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 

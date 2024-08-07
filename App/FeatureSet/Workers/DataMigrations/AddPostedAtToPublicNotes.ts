@@ -1,7 +1,7 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import IncidentPublicNoteService from "CommonServer/Services/IncidentPublicNoteService";
-import ScheduledMaintenancePublicNoteService from "CommonServer/Services/ScheduledMaintenancePublicNoteService";
+import IncidentPublicNoteService from "Common/Server/Services/IncidentPublicNoteService";
+import ScheduledMaintenancePublicNoteService from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 

@@ -1,8 +1,8 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
-import logger from "CommonServer/Utils/Logger";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
+import logger from "Common/Server/Utils/Logger";
 
 RunCron(
   "StatusPageCerts:RenewCerts",

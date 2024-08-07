@@ -2,8 +2,8 @@ import { PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config"
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "CommonServer/Utils/Logger";
-import VMRunner from "CommonServer/Utils/VM/VMRunner";
+import logger from "Common/Server/Utils/Logger";
+import VMRunner from "Common/Server/Utils/VM/VMRunner";
 
 export interface CustomCodeMonitorOptions {
   monitorId?: ObjectID | undefined;

@@ -6,8 +6,8 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import TelemetryIngestionKeyService from "CommonServer/Services/TelemetryIngestionKeyService";
+} from "Common/Server/Utils/Express";
+import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 
 export interface TelemetryRequest extends ExpressRequest {

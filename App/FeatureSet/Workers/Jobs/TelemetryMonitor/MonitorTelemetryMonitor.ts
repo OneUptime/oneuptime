@@ -3,23 +3,23 @@ import RunCron from "../../Utils/Cron";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "CommonServer/Services/MonitorService";
-import logger from "CommonServer/Utils/Logger";
-import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
+import MonitorService from "Common/Server/Services/MonitorService";
+import logger from "Common/Server/Utils/Logger";
+import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import CronTab from "CommonServer/Utils/CronTab";
+import CronTab from "Common/Server/Utils/CronTab";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import LogService from "CommonServer/Services/LogService";
-import Query from "CommonServer/Types/AnalyticsDatabase/Query";
+import LogService from "Common/Server/Services/LogService";
+import Query from "Common/Server/Types/AnalyticsDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import DatabaseQueryHelper from "CommonServer/Types/Database/QueryHelper";
+import DatabaseQueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ObjectID from "Common/Types/ObjectID";
 
 RunCron(

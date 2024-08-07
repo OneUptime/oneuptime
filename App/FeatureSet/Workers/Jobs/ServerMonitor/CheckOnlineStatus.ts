@@ -5,10 +5,10 @@ import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "CommonServer/Services/MonitorService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import logger from "CommonServer/Utils/Logger";
-import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
+import MonitorService from "Common/Server/Services/MonitorService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
+import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 RunCron(

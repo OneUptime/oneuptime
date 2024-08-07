@@ -5,12 +5,12 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
-import Queue, { QueueName } from "CommonServer/Infrastructure/Queue";
-import ProjectService from "CommonServer/Services/ProjectService";
-import WorkflowLogService from "CommonServer/Services/WorkflowLogService";
-import WorkflowService from "CommonServer/Services/WorkflowService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import { ExecuteWorkflowType } from "CommonServer/Types/Workflow/TriggerCode";
+import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import ProjectService from "Common/Server/Services/ProjectService";
+import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
+import WorkflowService from "Common/Server/Services/WorkflowService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 

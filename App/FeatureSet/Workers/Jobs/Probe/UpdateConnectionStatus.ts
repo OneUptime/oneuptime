@@ -2,8 +2,8 @@ import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import ProbeService from "CommonServer/Services/ProbeService";
-import logger from "CommonServer/Utils/Logger";
+import ProbeService from "Common/Server/Services/ProbeService";
+import logger from "Common/Server/Utils/Logger";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";

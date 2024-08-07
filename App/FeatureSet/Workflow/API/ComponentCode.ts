@@ -1,12 +1,12 @@
 import QueueWorkflow from "../Services/QueueWorkflow";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentCode from "CommonServer/Types/Workflow/ComponentCode";
-import Components from "CommonServer/Types/Workflow/Components/Index";
+import ComponentCode from "Common/Server/Types/Workflow/ComponentCode";
+import Components from "Common/Server/Types/Workflow/Components/Index";
 import TriggerCode, {
   ExecuteWorkflowType,
-} from "CommonServer/Types/Workflow/TriggerCode";
-import Express, { ExpressRouter } from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
+} from "Common/Server/Types/Workflow/TriggerCode";
+import Express, { ExpressRouter } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 
 export default class ComponentCodeAPI {
   public router!: ExpressRouter;

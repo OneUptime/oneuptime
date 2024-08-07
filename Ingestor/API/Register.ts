@@ -1,15 +1,15 @@
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
-import ProbeService from "CommonServer/Services/ProbeService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import ProbeService from "Common/Server/Services/ProbeService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";

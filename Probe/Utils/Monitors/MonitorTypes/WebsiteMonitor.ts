@@ -9,7 +9,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
 
 export interface ProbeWebsiteResponse {

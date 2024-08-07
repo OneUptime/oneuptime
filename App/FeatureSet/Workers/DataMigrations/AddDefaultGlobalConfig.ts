@@ -1,6 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import ObjectID from "Common/Types/ObjectID";
-import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
