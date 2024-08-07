@@ -57,9 +57,9 @@ services:
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         build:
             network: host
@@ -80,9 +80,9 @@ services:
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         build:
             network: host
@@ -104,9 +104,9 @@ services:
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         build:
             network: host
@@ -127,9 +127,9 @@ services:
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         build:
             network: host
@@ -144,9 +144,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         extends:
             file: ./docker-compose.base.yml
@@ -167,9 +167,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         extends:
             file: ./docker-compose.base.yml
@@ -189,9 +189,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
               
         extends:
             file: ./docker-compose.base.yml
@@ -210,9 +210,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
               
         extends:
             file: ./docker-compose.base.yml
@@ -231,9 +231,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         ports:
           - '9974:9229' # Debugging port.
@@ -252,9 +252,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         ports:
           - '9932:9229' # Debugging port.
@@ -314,9 +314,9 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-            - ./CommonServer:/usr/src/CommonServer
+
             - /usr/src/Common/node_modules/
-            - /usr/src/CommonServer/node_modules/
+
             
         ports:
             - '9985:9229' # Debugging port.

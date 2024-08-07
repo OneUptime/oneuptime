@@ -29,7 +29,7 @@
   "dependencies": {
     "Common": "file:../Common",
     
-    "CommonServer": "file:../CommonServer",
+
     "css-loader": "^6.11.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

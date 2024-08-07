@@ -218,12 +218,12 @@
             "autoAttachChildProcesses": true
         },
         {
-            "name": "CommonServer: Debug Tests",
+            "name": "Common: Debug Tests",
             "type": "node",
             "restart": true,
             "autoAttachChildProcesses": true,
             "request": "launch",
-            "cwd": "${workspaceRoot}/CommonServer",
+            "cwd": "${workspaceRoot}/Common",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
                 "run-script",

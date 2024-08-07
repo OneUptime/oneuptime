@@ -12,7 +12,7 @@ if (Env === AppEnvironment.Development || Env === AppEnvironment.Test) {
     path: "../Common/.env",
   });
   dotenv.config({
-    path: "../CommonServer/.env",
+    path: "../Common/Server/.env",
   });
   dotenv.config({
     path: "./.env",

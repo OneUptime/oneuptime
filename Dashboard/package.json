@@ -32,7 +32,6 @@
         "@stripe/stripe-js": "^1.44.1",
         "Common": "file:../Common",
     
-        "CommonServer": "file:../CommonServer",
         "dotenv": "^16.4.5",
         "file-loader": "^6.2.0",
         "react": "^18.3.1",
