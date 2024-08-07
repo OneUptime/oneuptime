@@ -261,6 +261,8 @@ export default class JSONFunctions {
       return val;
     } else if (val instanceof DatabaseProperty) {
       return val;
+    } else if (val instanceof SerializableObject) {
+      return val;
     } else if (
       val &&
       typeof val === Typeof.Object &&

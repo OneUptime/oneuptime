@@ -113,11 +113,15 @@ const IncidentView: FunctionComponent<
         },
       });
 
-      setTelemetryQuery(
-        incident?.telemetryQuery
-          ? (JSONFunctions.deserialize(incident?.telemetryQuery as any) as any)
-          : null,
-      );
+      let telemetryQuery: TelemetryIncidentQuery | null = null;
+
+      if (incident?.telemetryQuery) {
+        telemetryQuery = JSONFunctions.deserialize(
+          incident?.telemetryQuery as any,
+        ) as any;
+      }
+
+      setTelemetryQuery(telemetryQuery);
       setIncidentStates(incidentStates.data as IncidentState[]);
       setIncidentStateTimeline(
         incidentTimelines.data as IncidentStateTimeline[],
