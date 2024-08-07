@@ -22,4 +22,4 @@ No such file or directory for /var/lib/docker/overlay2
 
 Solution:
 
-Remove node_modules from the Common, CommonServer, Model, CommonUI project.
+Remove node_modules from the Common project.
