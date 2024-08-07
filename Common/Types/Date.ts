@@ -935,6 +935,10 @@ export default class OneUptimeDate {
     return this.getGmtOffsetFriendlyString(offset) + " " + timezone;
   }
 
+  public static isValidDateString(date: string): boolean {
+    return moment(date).isValid();
+  }
+
   public static getGmtOffsetFriendlyString(offset: number): string {
     const hours: number = Math.abs(offset) / 60;
     const minutes: number = Math.abs(offset) % 60;

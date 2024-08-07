@@ -37,10 +37,14 @@ import {
   ManyToOne,
 } from "typeorm";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import Query from "../../Types/BaseDatabase/Query";
+import Log from "../AnalyticsModels/Log";
+import Span from "../AnalyticsModels/Span";
+import Metric from "../AnalyticsModels/Metric";
 
 export interface TelemetryIncidentQuery {
   telemetryType: TelemetryType;
-  telemetryQuery: JSONObject;
+  telemetryQuery: Query<Log> | Query<Span> | Query<Metric>;
 }
 
 @EnableDocumentation()

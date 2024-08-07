@@ -4,19 +4,19 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
-import QueryHelper from "CommonServer/Types/AnalyticsDatabase/QueryHelper";
 import logger from "CommonServer/Utils/Logger";
 import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import CronTab from "CommonServer/Utils/CronTab";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
-import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import LogService from "CommonServer/Services/LogService";
 import Query from "CommonServer/Types/AnalyticsDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
-import Search from "Common/Types/BaseDatabase/Search";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DatabaseQueryHelper from "CommonServer/Types/Database/QueryHelper";
@@ -176,39 +176,7 @@ const monitorLogs: MonitorLogsFunction = async (data: {
     throw new BadDataException("Log query is missing");
   }
 
-  const query: Query<Log> = {};
-
-  if (logQuery.attributes) {
-    query.attributes = logQuery.attributes;
-  }
-
-  if (logQuery.body) {
-    query.body = new Search(logQuery.body);
-  }
-
-  if (logQuery.severityTexts && logQuery.severityTexts.length > 0) {
-    query.severityText = QueryHelper.any(
-      logQuery.severityTexts as Array<string>,
-    );
-  }
-
-  if (logQuery.telemetryServiceIds && logQuery.telemetryServiceIds.length > 0) {
-    query.serviceId = QueryHelper.any(logQuery.telemetryServiceIds);
-  }
-
-  if (!logQuery.lastXSecondsOfLogs) {
-    throw new BadDataException("Last X seconds of logs is missing");
-  }
-
-  const lastXSecondsOfLogs: number = logQuery.lastXSecondsOfLogs;
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveSeconds(
-    endDate,
-    lastXSecondsOfLogs * -1,
-  );
-
-  query.time = QueryHelper.inBetween(startDate, endDate);
+  const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
 
   const countLogs: PositiveNumber = await LogService.countBy({
     query: query,

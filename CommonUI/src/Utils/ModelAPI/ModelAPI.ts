@@ -386,10 +386,12 @@ export default class ModelAPI {
       );
 
     if (result.isSuccess()) {
-      return BaseModel.fromJSONObject(
+      const baseModel: TBaseModel = BaseModel.fromJSONObject(
         result.data as JSONObject,
         data.modelType,
       );
+
+      return baseModel;
     }
 
     this.checkStatusCode(result);

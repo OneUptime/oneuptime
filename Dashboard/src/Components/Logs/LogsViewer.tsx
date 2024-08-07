@@ -35,7 +35,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   type RefreshQueryFunction = () => Query<Log>;
 
   const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
-    let query: Query<Log> = {};
+    const query: Query<Log> = {};
 
     if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
       query.serviceId = new Includes(props.telemetryServiceIds);
@@ -49,11 +49,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       query.spanId = new Includes(props.spanIds);
     }
 
-    if (props.logQuery) {
-      query = {
-        ...query,
-        ...props.logQuery,
-      };
+    if (props.logQuery && Object.keys(props.logQuery).length > 0) {
+      for (const key in props.logQuery) {
+        (query as any)[key] = (props.logQuery as any)[key] as any;
+      }
     }
 
     return query;
