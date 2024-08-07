@@ -4,10 +4,10 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar from "CommonUI/src/Components/Navbar/NavBar";
-import NavBarItem from "CommonUI/src/Components/Navbar/NavBarItem";
-import NavBarMenu from "CommonUI/src/Components/Navbar/NavBarMenu";
-import NavBarMenuItem from "CommonUI/src/Components/Navbar/NavBarMenuItem";
+import NavBar from "Common/UI/src/Components/Navbar/NavBar";
+import NavBarItem from "Common/UI/src/Components/Navbar/NavBarItem";
+import NavBarMenu from "Common/UI/src/Components/Navbar/NavBarMenu";
+import NavBarMenuItem from "Common/UI/src/Components/Navbar/NavBarMenuItem";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

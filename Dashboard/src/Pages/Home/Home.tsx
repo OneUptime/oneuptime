@@ -8,12 +8,12 @@ import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import Page from "CommonUI/src/Components/Page/Page";
-import API from "CommonUI/src/Utils/API/API";
-import UiAnalytics from "CommonUI/src/Utils/Analytics";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import Page from "Common/UI/src/Components/Page/Page";
+import API from "Common/UI/src/Utils/API/API";
+import UiAnalytics from "Common/UI/src/Utils/Analytics";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {

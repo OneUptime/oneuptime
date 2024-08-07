@@ -2,7 +2,7 @@ import SummarysScreenshot from "./Screenshot";
 import Screenshots, {
   Screenshot,
 } from "Common/Types/Monitor/SyntheticMonitors/Screenshot";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -5,11 +5,11 @@ import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import API from "Common/UI/src/Utils/API/API";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,

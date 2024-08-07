@@ -1,7 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
-import CodeBlock from "CommonUI/src/Components/CodeBlock/CodeBlock";
-import { HOST, HTTP_PROTOCOL } from "CommonUI/src/Config";
+import Card from "Common/UI/src/Components/Card/Card";
+import CodeBlock from "Common/UI/src/Components/CodeBlock/CodeBlock";
+import { HOST, HTTP_PROTOCOL } from "Common/UI/src/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

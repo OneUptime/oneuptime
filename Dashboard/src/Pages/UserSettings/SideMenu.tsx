@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import SideMenu from "Common/UI/src/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/src/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/src/Components/SideMenu/SideMenuSection";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {

@@ -2,11 +2,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MetricAlias, { MetricAliasData } from "./MetricAlias";
 import MetricFormula, { MetricFormulaData } from "./MetricFormula";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Card from "CommonUI/src/Components/Card/Card";
+import Card from "Common/UI/src/Components/Card/Card";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
+} from "Common/UI/src/Components/Button/Button";
 
 export interface MetricFormulaConfigData {
   metricAliasData: MetricAliasData;

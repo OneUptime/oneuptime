@@ -1,5 +1,5 @@
 import StatusPageElement from "./StatusPageLabel";
-import TableColumnListComponent from "CommonUI/src/Components/TableColumnList/TableColumnListComponent";
+import TableColumnListComponent from "Common/UI/src/Components/TableColumnList/TableColumnListComponent";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 

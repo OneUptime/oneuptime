@@ -2,11 +2,11 @@ import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/src/Components/Pill/Pill";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

@@ -1,6 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, {
   Fragment,
   FunctionComponent,
@@ -10,12 +10,12 @@ import React, {
 } from "react";
 import IncidentsTable from "../../../Components/Incident/IncidentsTable";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import ListResult from "Common/UI/src/Utils/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import API from "CommonUI/src/Utils/API/API";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
+import API from "Common/UI/src/Utils/API/API";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
 import ServiceCatalogMonitor from "Common/Models/DatabaseModels/ServiceCatalogMonitor";
 
 const ServiceCatalogIncidents: FunctionComponent<

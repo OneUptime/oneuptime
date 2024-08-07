@@ -7,21 +7,21 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/src/Components/ComponentLoader/ComponentLoader";
+import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
 import {
   CustomElementProps,
   FormFieldStyleType,
-} from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import { ModalWidth } from "CommonUI/src/Components/Modal/Modal";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/src/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/src/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/src/Components/Modal/Modal";
+import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
+import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
+import API from "Common/UI/src/Utils/API/API";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,

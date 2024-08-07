@@ -1,5 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
+import InfoCard from "Common/UI/src/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 

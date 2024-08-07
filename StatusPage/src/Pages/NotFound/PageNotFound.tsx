@@ -1,7 +1,7 @@
 import Page from "../../Components/Page/Page";
 import PageComponentProps from "../PageComponentProps";
 import IconProp from "Common/Types/Icon/IconProp";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
+import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const PageNotFound: FunctionComponent<

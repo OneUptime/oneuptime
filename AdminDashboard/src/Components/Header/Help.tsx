@@ -1,9 +1,9 @@
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
-import HeaderIconDropdownButton from "CommonUI/src/Components/Header/HeaderIconDropdownButton";
-import IconDropdownItem from "CommonUI/src/Components/Header/IconDropdown/IconDropdownItem";
-import IconDropdownMenu from "CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu";
-import IconDropdownRow from "CommonUI/src/Components/Header/IconDropdown/IconDropdownRow";
+import HeaderIconDropdownButton from "Common/UI/src/Components/Header/HeaderIconDropdownButton";
+import IconDropdownItem from "Common/UI/src/Components/Header/IconDropdown/IconDropdownItem";
+import IconDropdownMenu from "Common/UI/src/Components/Header/IconDropdown/IconDropdownMenu";
+import IconDropdownRow from "Common/UI/src/Components/Header/IconDropdown/IconDropdownRow";
 import React, { ReactElement, useState } from "react";
 
 const Help: () => JSX.Element = (): ReactElement => {

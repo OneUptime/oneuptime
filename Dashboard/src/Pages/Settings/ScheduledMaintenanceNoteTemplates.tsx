@@ -1,9 +1,9 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

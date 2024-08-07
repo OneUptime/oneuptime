@@ -2,13 +2,13 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import Page from "CommonUI/src/Components/Page/Page";
-import { ACCOUNTS_URL } from "CommonUI/src/Config";
-import UiAnalytics from "CommonUI/src/Utils/Analytics";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import UserUtil from "CommonUI/src/Utils/User";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import Page from "Common/UI/src/Components/Page/Page";
+import { ACCOUNTS_URL } from "Common/UI/src/Config";
+import UiAnalytics from "Common/UI/src/Utils/Analytics";
+import Navigation from "Common/UI/src/Utils/Navigation";
+import UserUtil from "Common/UI/src/Utils/User";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Logout: FunctionComponent = (): ReactElement => {

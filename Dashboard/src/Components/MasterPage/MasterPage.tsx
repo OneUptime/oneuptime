@@ -6,13 +6,13 @@ import NavBar from "../NavBar/NavBar";
 import Route from "Common/Types/API/Route";
 import { SubscriptionStatusUtil } from "Common/Types/Billing/SubscriptionStatus";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
-import Link from "CommonUI/src/Components/Link/Link";
-import MasterPage from "CommonUI/src/Components/MasterPage/MasterPage";
+import Link from "Common/UI/src/Components/Link/Link";
+import MasterPage from "Common/UI/src/Components/MasterPage/MasterPage";
 import TopAlert, {
   TopAlertType,
-} from "CommonUI/src/Components/TopAlert/TopAlert";
-import { BILLING_ENABLED } from "CommonUI/src/Config";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/src/Components/TopAlert/TopAlert";
+import { BILLING_ENABLED } from "Common/UI/src/Config";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 

@@ -1,4 +1,4 @@
-import { BILLING_PUBLIC_KEY } from "CommonUI/src/Config";
+import { BILLING_PUBLIC_KEY } from "Common/UI/src/Config";
 import Stripe from "stripe";
 
 export class BillingProvider {

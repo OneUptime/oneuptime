@@ -3,7 +3,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, Ref } from "react";
 
 export interface ComponentProps {

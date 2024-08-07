@@ -4,8 +4,8 @@ import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelPage from "CommonUI/src/Components/Page/ModelPage";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ModelPage from "Common/UI/src/Components/Page/ModelPage";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 

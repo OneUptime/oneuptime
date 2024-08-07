@@ -1,11 +1,11 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Color from "Common/Types/Color";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/src/Components/Pill/Pill";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

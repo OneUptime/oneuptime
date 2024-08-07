@@ -4,23 +4,23 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Card from "CommonUI/src/Components/Card/Card";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Link from "CommonUI/src/Components/Link/Link";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Banner from "Common/UI/src/Components/Banner/Banner";
+import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import Card from "Common/UI/src/Components/Card/Card";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import Link from "Common/UI/src/Components/Link/Link";
+import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
 import {
   DASHBOARD_URL,
   HOST,
   HTTP_PROTOCOL,
   IDENTITY_URL,
-} from "CommonUI/src/Config";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
+} from "Common/UI/src/Config";
+import DropdownUtil from "Common/UI/src/Utils/Dropdown";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import Team from "Common/Models/DatabaseModels/Team";

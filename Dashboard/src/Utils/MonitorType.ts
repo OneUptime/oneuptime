@@ -2,7 +2,7 @@ import {
   MonitorTypeHelper,
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/src/Components/Dropdown/Dropdown";
 
 export default class MonitorTypeUtil {
   public static monitorTypesAsDropdownOptions(): Array<DropdownOption> {

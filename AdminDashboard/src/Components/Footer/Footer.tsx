@@ -5,9 +5,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import Footer from "CommonUI/src/Components/Footer/Footer";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import { HOST, HTTP_PROTOCOL } from "CommonUI/src/Config";
+import Footer from "Common/UI/src/Components/Footer/Footer";
+import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import { HOST, HTTP_PROTOCOL } from "Common/UI/src/Config";
 import React from "react";
 
 const DashboardFooter: () => JSX.Element = () => {

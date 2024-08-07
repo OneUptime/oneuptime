@@ -3,16 +3,16 @@ import PageComponentProps from "../PageComponentProps";
 import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import SmsStatus from "Common/Types/SmsStatus";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import Filter from "CommonUI/src/Components/ModelFilter/Filter";
-import Column from "CommonUI/src/Components/ModelTable/Column";
-import Columns from "CommonUI/src/Components/ModelTable/Columns";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { BILLING_ENABLED } from "CommonUI/src/Config";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import Filter from "Common/UI/src/Components/ModelFilter/Filter";
+import Column from "Common/UI/src/Components/ModelTable/Column";
+import Columns from "Common/UI/src/Components/ModelTable/Columns";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/src/Components/Pill/Pill";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import { BILLING_ENABLED } from "Common/UI/src/Config";
+import DropdownUtil from "Common/UI/src/Utils/Dropdown";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import React, {
   Fragment,

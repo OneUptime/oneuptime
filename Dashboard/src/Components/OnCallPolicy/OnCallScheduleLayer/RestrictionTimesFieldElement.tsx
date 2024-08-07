@@ -6,13 +6,13 @@ import RestrictionTimes, {
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import Typeof from "Common/Types/Typeof";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import FieldLabelElement from "CommonUI/src/Components/Detail/FieldLabel";
-import Dropdown from "CommonUI/src/Components/Dropdown/Dropdown";
-import Input, { InputType } from "CommonUI/src/Components/Input/Input";
-import BasicRadioButtons from "CommonUI/src/Components/RadioButtons/BasicRadioButtons";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import FieldLabelElement from "Common/UI/src/Components/Detail/FieldLabel";
+import Dropdown from "Common/UI/src/Components/Dropdown/Dropdown";
+import Input, { InputType } from "Common/UI/src/Components/Input/Input";
+import BasicRadioButtons from "Common/UI/src/Components/RadioButtons/BasicRadioButtons";
+import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
+import DropdownUtil from "Common/UI/src/Utils/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,

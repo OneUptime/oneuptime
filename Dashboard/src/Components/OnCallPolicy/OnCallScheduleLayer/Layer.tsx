@@ -6,9 +6,9 @@ import LayerStartsAt from "./LayerStartTime";
 import LayerUser from "./LayerUser";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Card from "CommonUI/src/Components/Card/Card";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
+import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import Card from "Common/UI/src/Components/Card/Card";
+import HorizontalRule from "Common/UI/src/Components/HorizontalRule/HorizontalRule";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, {

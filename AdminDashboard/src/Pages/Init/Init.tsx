@@ -1,8 +1,8 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import Page from "CommonUI/src/Components/Page/Page";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import Page from "Common/UI/src/Components/Page/Page";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Init: FunctionComponent = (): ReactElement => {

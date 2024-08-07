@@ -6,15 +6,15 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { NOTIFICATION_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import BasicFormModal from "Common/UI/src/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import { NOTIFICATION_URL } from "Common/UI/src/Config";
+import API from "Common/UI/src/Utils/API/API";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import React, {
   FunctionComponent,

@@ -1,9 +1,9 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import AnalyticsModelTable from "Common/UI/src/Components/ModelTable/AnalyticsModelTable";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -20,10 +20,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/Utils/API";
-import { APP_API_URL } from "CommonUI/src/Config";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import { APP_API_URL } from "Common/UI/src/Config";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;

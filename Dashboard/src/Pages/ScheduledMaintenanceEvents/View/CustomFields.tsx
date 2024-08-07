@@ -1,8 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CustomFieldsDetail from "CommonUI/src/Components/CustomFields/CustomFieldsDetail";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
+import CustomFieldsDetail from "Common/UI/src/Components/CustomFields/CustomFieldsDetail";
+import Navigation from "Common/UI/src/Utils/Navigation";
+import ProjectUtil from "Common/UI/src/Utils/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";

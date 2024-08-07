@@ -4,16 +4,16 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { ModelEventType } from "Common/Utils/Realtime";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import LogsViewer from "CommonUI/src/Components/LogsViewer/LogsViewer";
-import API from "CommonUI/src/Utils/API/API";
+import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import LogsViewer from "Common/UI/src/Components/LogsViewer/LogsViewer";
+import API from "Common/UI/src/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
-} from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import Select from "CommonUI/src/Utils/BaseDatabase/Select";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import Realtime from "CommonUI/src/Utils/Realtime";
+} from "Common/UI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Query from "Common/UI/src/Utils/BaseDatabase/Query";
+import Select from "Common/UI/src/Utils/BaseDatabase/Select";
+import ProjectUtil from "Common/UI/src/Utils/Project";
+import Realtime from "Common/UI/src/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 

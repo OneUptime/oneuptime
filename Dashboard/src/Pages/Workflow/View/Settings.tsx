@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import DuplicateModel from "CommonUI/src/Components/DuplicateModel/DuplicateModel";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import DuplicateModel from "Common/UI/src/Components/DuplicateModel/DuplicateModel";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

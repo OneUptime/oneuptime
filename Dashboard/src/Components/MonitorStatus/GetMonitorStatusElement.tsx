@@ -1,7 +1,7 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/src/Utils/API/API";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, {
@@ -11,7 +11,7 @@ import React, {
   useState,
 } from "react";
 import MonitorStatusElement from "./MonitorStatusElement";
-import Loader, { LoaderType } from "CommonUI/src/Components/Loader/Loader";
+import Loader, { LoaderType } from "Common/UI/src/Components/Loader/Loader";
 
 export interface ComponentProps {
   monitorId: ObjectID;

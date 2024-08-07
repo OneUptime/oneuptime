@@ -1,7 +1,7 @@
 import DashboardLogsViewer from "../../../../../Components/Logs/LogsViewer";
 import PageComponentProps from "../../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<

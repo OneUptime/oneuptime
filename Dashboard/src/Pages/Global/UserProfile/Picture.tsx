@@ -4,12 +4,12 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import Page from "CommonUI/src/Components/Page/Page";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
-import UserUtil from "CommonUI/src/Utils/User";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
+import Page from "Common/UI/src/Components/Page/Page";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import GlobalEvents from "Common/UI/src/Utils/GlobalEvents";
+import UserUtil from "Common/UI/src/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 

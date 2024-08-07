@@ -5,7 +5,7 @@ import NotFound from "./Pages/NotFound";
 import RegisterPage from "./Pages/Register";
 import ResetPasswordPage from "./Pages/ResetPassword";
 import VerifyEmail from "./Pages/VerifyEmail";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import React, { ReactElement } from "react";
 import {
   Route,

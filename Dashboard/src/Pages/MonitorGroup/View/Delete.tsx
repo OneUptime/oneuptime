@@ -3,8 +3,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import ModelDelete from "Common/UI/src/Components/ModelDelete/ModelDelete";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

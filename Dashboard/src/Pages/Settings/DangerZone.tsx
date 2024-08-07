@@ -5,11 +5,11 @@ import PageComponentProps from "../PageComponentProps";
 import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import Page from "CommonUI/src/Components/Page/Page";
-import PermissionUtil from "CommonUI/src/Utils/Permission";
-import ProjectUtil from "CommonUI/src/Utils/Project";
+import Alert, { AlertType } from "Common/UI/src/Components/Alerts/Alert";
+import ModelDelete from "Common/UI/src/Components/ModelDelete/ModelDelete";
+import Page from "Common/UI/src/Components/Page/Page";
+import PermissionUtil from "Common/UI/src/Utils/Permission";
+import ProjectUtil from "Common/UI/src/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 

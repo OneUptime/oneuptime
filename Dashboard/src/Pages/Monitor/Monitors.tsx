@@ -2,7 +2,7 @@ import MonitorTable from "../../Components/Monitor/MonitorTable";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
-import Banner from "CommonUI/src/Components/Banner/Banner";
+import Banner from "Common/UI/src/Components/Banner/Banner";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {

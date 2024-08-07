@@ -1,6 +1,6 @@
 import Page, {
   ComponentProps as PageComponentProps,
-} from "CommonUI/src/Components/Page/Page";
+} from "Common/UI/src/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const StatusPagePage: FunctionComponent<PageComponentProps> = (

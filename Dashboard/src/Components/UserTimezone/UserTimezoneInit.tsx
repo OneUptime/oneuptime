@@ -1,12 +1,12 @@
 import OneUptimeDate from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
-import User from "CommonUI/src/Utils/User";
+import User from "Common/UI/src/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
-import { ShowToastNotification } from "CommonUI/src/Components/Toast/ToastInit";
-import API from "CommonUI/src/Utils/API/API";
-import { ToastType } from "CommonUI/src/Components/Toast/Toast";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import { ShowToastNotification } from "Common/UI/src/Components/Toast/ToastInit";
+import API from "Common/UI/src/Utils/API/API";
+import { ToastType } from "Common/UI/src/Components/Toast/Toast";
+import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
 import UserModel from "Common/Models/DatabaseModels/User";
 import useAsyncEffect from "use-async-effect";
 

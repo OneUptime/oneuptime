@@ -8,12 +8,12 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import ModelDelete from "Common/UI/src/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
@@ -27,7 +27,7 @@ import React, {
 } from "react";
 import TeamElement from "../../Components/Team/Team";
 import Team from "Common/Models/DatabaseModels/Team";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
+import ResetObjectID from "Common/UI/src/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../Components/Probe/CustomProbeDocumentation";
 

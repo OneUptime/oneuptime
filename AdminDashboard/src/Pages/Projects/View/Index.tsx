@@ -2,13 +2,13 @@ import ObjectID from "Common/Types/ObjectID";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/src/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import ModelPage from "CommonUI/src/Components/Page/ModelPage";
+import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
+import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import FieldType from "Common/UI/src/Components/Types/FieldType";
+import ModelPage from "Common/UI/src/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
 
 const Projects: FunctionComponent = (): ReactElement => {

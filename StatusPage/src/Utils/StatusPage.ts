@@ -3,8 +3,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import LocalStorage from "Common/UI/src/Utils/LocalStorage";
+import Navigation from "Common/UI/src/Utils/Navigation";
 
 export default class StatusPageUtil {
   public static getStatusPageId(): ObjectID | null {
