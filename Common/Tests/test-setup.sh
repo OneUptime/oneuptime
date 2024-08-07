@@ -2,7 +2,7 @@
 
 # Run database in docker-compose
 
-cd ..
+cd ../../
 # Run Preinstall. 
 npm run prerun
 # Run Postgres
