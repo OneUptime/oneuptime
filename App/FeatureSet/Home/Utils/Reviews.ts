@@ -6,16 +6,6 @@ export interface Review {
 
 const reviews: Review[] = [
   {
-    name: "Alice",
-    text: "OneUptime has been a game-changer for our team. The alerts are timely and the status page keeps our customers informed.",
-    title: "Game-changer!",
-  },
-  {
-    name: "Bob",
-    text: "The incident management feature is top-notch. It has streamlined our response process significantly.",
-    title: "Top-notch incident management",
-  },
-  {
     name: "Charlie",
     text: "I love the on-call rotation setup. It has made scheduling so much easier.",
     title: "Great on-call rotation",
@@ -74,6 +64,16 @@ const reviews: Review[] = [
     name: "Nina",
     text: "The log analysis feature is very detailed and insightful.",
     title: "Detailed log analysis",
+  },
+  {
+    name: "Anderson, GK2 Cloud",
+    text: "Thanks for building OneUptime, it really is fantastic. We are getting more excited every day!",
+    title: "OneUptime is fantastic!",
+  },
+  {
+    name: "Reg, Skillable",
+    text: "We use OneUptime to reliably monitor endpoint availability globally, and it delivers.",
+    title: "OneUptime delivers!",
   },
   {
     name: "Oscar",

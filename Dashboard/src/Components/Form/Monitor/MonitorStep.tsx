@@ -506,13 +506,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       {props.monitorType === MonitorType.Logs && (
         <div className="mt-5">
-          <FieldLabelElement
-            title={"Log Query"}
-            description={
-              "Please select the subset of logs you want to monitor."
-            }
-            required={true}
-          />
           <LogMonitorStepForm
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
@@ -625,14 +618,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       <div className="mt-5">
         {props.monitorType !== MonitorType.IncomingRequest && (
-          <FieldLabelElement
-            title="Monitor Criteria"
-            isHeading={true}
-            description={
-              "Add Monitoring Criteria for this monitor. Monitor different properties."
-            }
-            required={true}
-          />
+          <>
+            <HorizontalRule />
+            <FieldLabelElement
+              title="Monitor Criteria"
+              isHeading={true}
+              description={
+                "Add Monitoring Criteria for this monitor. Monitor different properties."
+              }
+              required={true}
+            />
+          </>
         )}
         <MonitorCriteriaElement
           monitorType={props.monitorType}

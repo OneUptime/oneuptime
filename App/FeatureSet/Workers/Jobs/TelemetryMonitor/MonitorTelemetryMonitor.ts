@@ -186,8 +186,10 @@ const monitorLogs: MonitorLogsFunction = async (data: {
     query.body = new Search(logQuery.body);
   }
 
-  if (logQuery.severityText) {
-    query.severityText = logQuery.severityText;
+  if (logQuery.severityTexts && logQuery.severityTexts.length > 0) {
+    query.severityText = QueryHelper.any(
+      logQuery.severityTexts as Array<string>,
+    );
   }
 
   if (logQuery.telemetryServiceIds && logQuery.telemetryServiceIds.length > 0) {

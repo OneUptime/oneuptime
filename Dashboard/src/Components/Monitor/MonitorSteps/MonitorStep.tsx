@@ -16,6 +16,21 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import { JSONObject } from "Common/Types/JSON";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
+import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
+import DashboardNavigation from "../../../Utils/Navigation";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import API from "CommonUI/src/Utils/API/API";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import OneUptimeDate from "Common/Types/Date";
+import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -25,138 +40,297 @@ export interface ComponentProps {
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
+export interface LogMonitorStepView {
+  body: string | undefined;
+  severityTexts: Array<string> | undefined;
+  attributes: JSONObject | undefined;
+  telemetryServices: Array<TelemetryService> | undefined;
+  lastXSecondsOfLogs: number | undefined;
+}
+
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [requestDetailsFields, setRequestDetailsFields] = useState<
-    Array<Field<MonitorStepType>>
-  >([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [telemetryServices, setTelemetryServices] = useState<
+    Array<TelemetryService> | undefined
+  >(undefined);
+
+  // this field is used for most monitor types
+  let fields: Array<Field<MonitorStepType>> = [];
+  let logFields: Array<Field<LogMonitorStepView>> = [];
+
+  const logMonitorDetailView: LogMonitorStepView = {
+    body: undefined,
+    severityTexts: undefined,
+    attributes: undefined,
+    telemetryServices: undefined,
+    lastXSecondsOfLogs: undefined,
+  };
+
+  const fetchTelemetryServices: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const telemetryServicesResult: ListResult<TelemetryService> =
+        await ModelAPI.getList<TelemetryService>({
+          modelType: TelemetryService,
+          query: {
+            projectId: DashboardNavigation.getProjectId(),
+            _id: new Includes(
+              props.monitorStep.data?.logMonitor?.telemetryServiceIds || [],
+            ),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            serviceColor: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      if (telemetryServicesResult instanceof HTTPErrorResponse) {
+        throw telemetryServicesResult;
+      }
+
+      setTelemetryServices(telemetryServicesResult.data);
+    };
+
+  const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      if (props.monitorType === MonitorType.Logs) {
+        await fetchTelemetryServices();
+      }
+    } catch (err) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    let fields: Array<Field<MonitorStepType>> = [];
-
-    if (props.monitorType === MonitorType.API) {
-      fields = [
-        {
-          key: "monitorDestination",
-          title: "API URL",
-          description: "URL of the API you want to monitor.",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-        {
-          key: "requestType",
-          title: "Request Type",
-          description: "Whats the type of the API request?",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-        {
-          key: "requestBody",
-          title: "Request Body",
-          description: "Request Body to send, if any.",
-          fieldType: FieldType.JSON,
-          placeholder: "No data entered",
-        },
-        {
-          key: "requestHeaders",
-          title: "Request Headers",
-          description: "Request Headers to send, if any.",
-          fieldType: FieldType.DictionaryOfStrings,
-          placeholder: "No data entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.Website) {
-      fields = [
-        {
-          key: "monitorDestination",
-          title: "Website URL",
-          description: "URL of the website you want to monitor.",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.Ping) {
-      fields = [
-        {
-          key: "monitorDestination",
-          title: "Ping Hostname or IP Address",
-          description:
-            "Hostname or IP Address of the resource you would like us to ping.",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.Port) {
-      fields = [
-        {
-          key: "monitorDestination",
-          title: "Ping Hostname or IP Address",
-          description:
-            "Hostname or IP Address of the resource you would like us to ping.",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-        {
-          key: "monitorDestinationPort",
-          title: "Port",
-          description: "Port of the resource you would like us to ping.",
-          fieldType: FieldType.Port,
-          placeholder: "No port entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.IP) {
-      fields = [
-        {
-          key: "monitorDestination",
-          title: "IP Address",
-          description: "IP Address of the resource you would like us to ping.",
-          fieldType: FieldType.Text,
-          placeholder: "No data entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.CustomJavaScriptCode) {
-      fields = [
-        {
-          key: "customCode",
-          title: "JavaScript Code",
-          description: "JavaScript code to run.",
-          fieldType: FieldType.JavaScript,
-          placeholder: "No data entered",
-        },
-      ];
-    } else if (props.monitorType === MonitorType.SyntheticMonitor) {
-      fields = [
-        {
-          key: "customCode",
-          title: "JavaScript Code",
-          description: "JavaScript code to run.",
-          fieldType: FieldType.JavaScript,
-          placeholder: "No data entered",
-        },
-        {
-          key: "browserTypes",
-          title: "Browser Types",
-          description: "Browser types to run the synthetic monitor on.",
-          fieldType: FieldType.ArrayOfText,
-          placeholder: "No data entered",
-        },
-        {
-          key: "screenSizeTypes",
-          title: "Screen Size Types",
-          description: "Screen size types to run the synthetic monitor on.",
-          fieldType: FieldType.ArrayOfText,
-          placeholder: "No data entered",
-        },
-      ];
-    }
-    setRequestDetailsFields(fields);
+    loadComponent();
   }, [props.monitorType]);
+
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
+
+  if (props.monitorType === MonitorType.API) {
+    fields = [
+      {
+        key: "monitorDestination",
+        title: "API URL",
+        description: "URL of the API you want to monitor.",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+      {
+        key: "requestType",
+        title: "Request Type",
+        description: "Whats the type of the API request?",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+      {
+        key: "requestBody",
+        title: "Request Body",
+        description: "Request Body to send, if any.",
+        fieldType: FieldType.JSON,
+        placeholder: "No data entered",
+      },
+      {
+        key: "requestHeaders",
+        title: "Request Headers",
+        description: "Request Headers to send, if any.",
+        fieldType: FieldType.DictionaryOfStrings,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.Website) {
+    fields = [
+      {
+        key: "monitorDestination",
+        title: "Website URL",
+        description: "URL of the website you want to monitor.",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.Ping) {
+    fields = [
+      {
+        key: "monitorDestination",
+        title: "Ping Hostname or IP Address",
+        description:
+          "Hostname or IP Address of the resource you would like us to ping.",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.Port) {
+    fields = [
+      {
+        key: "monitorDestination",
+        title: "Ping Hostname or IP Address",
+        description:
+          "Hostname or IP Address of the resource you would like us to ping.",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+      {
+        key: "monitorDestinationPort",
+        title: "Port",
+        description: "Port of the resource you would like us to ping.",
+        fieldType: FieldType.Port,
+        placeholder: "No port entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.IP) {
+    fields = [
+      {
+        key: "monitorDestination",
+        title: "IP Address",
+        description: "IP Address of the resource you would like us to ping.",
+        fieldType: FieldType.Text,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+    fields = [
+      {
+        key: "customCode",
+        title: "JavaScript Code",
+        description: "JavaScript code to run.",
+        fieldType: FieldType.JavaScript,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.SyntheticMonitor) {
+    fields = [
+      {
+        key: "customCode",
+        title: "JavaScript Code",
+        description: "JavaScript code to run.",
+        fieldType: FieldType.JavaScript,
+        placeholder: "No data entered",
+      },
+      {
+        key: "browserTypes",
+        title: "Browser Types",
+        description: "Browser types to run the synthetic monitor on.",
+        fieldType: FieldType.ArrayOfText,
+        placeholder: "No data entered",
+      },
+      {
+        key: "screenSizeTypes",
+        title: "Screen Size Types",
+        description: "Screen size types to run the synthetic monitor on.",
+        fieldType: FieldType.ArrayOfText,
+        placeholder: "No data entered",
+      },
+    ];
+  } else if (props.monitorType === MonitorType.Logs) {
+    logFields = [];
+
+    if (props.monitorStep.data?.logMonitor?.body) {
+      logMonitorDetailView.body = props.monitorStep.data?.logMonitor?.body;
+
+      logFields.push({
+        key: "body",
+        title: "Filter Log Message",
+        description: "Filter by log message with this text:",
+        fieldType: FieldType.Text,
+        placeholder: "No log message entered",
+      });
+    }
+
+    if (props.monitorStep.data?.logMonitor?.lastXSecondsOfLogs) {
+      logMonitorDetailView.lastXSecondsOfLogs =
+        props.monitorStep.data?.logMonitor?.lastXSecondsOfLogs;
+
+      logFields.push({
+        key: "lastXSecondsOfLogs",
+        title: "Monitor logs for the last (time)",
+        description: "How many seconds of logs to monitor.",
+        fieldType: FieldType.Element,
+        placeholder: "1 minute",
+        getElement: (item: LogMonitorStepView): ReactElement => {
+          return (
+            <p>
+              {OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                item.lastXSecondsOfLogs || 0,
+              )}
+            </p>
+          );
+        },
+      });
+    }
+
+    if (props.monitorStep.data?.logMonitor?.severityTexts) {
+      logMonitorDetailView.severityTexts =
+        props.monitorStep.data?.logMonitor?.severityTexts;
+
+      logFields.push({
+        key: "severityTexts",
+        title: "Log Severity",
+        description: "Severity of the logs to monitor.",
+        fieldType: FieldType.ArrayOfText,
+        placeholder: "No severity entered",
+      });
+    }
+
+    if (
+      props.monitorStep.data?.logMonitor?.attributes &&
+      Object.keys(props.monitorStep.data?.logMonitor?.attributes).length > 0
+    ) {
+      logMonitorDetailView.attributes =
+        props.monitorStep.data?.logMonitor?.attributes;
+
+      logFields.push({
+        key: "attributes",
+        title: "Log Attributes",
+        description: "Attributes of the logs to monitor.",
+        fieldType: FieldType.JSON,
+        placeholder: "No attributes entered",
+      });
+    }
+
+    if (
+      props.monitorStep.data?.logMonitor?.telemetryServiceIds &&
+      props.monitorStep.data?.logMonitor?.telemetryServiceIds.length > 0 &&
+      telemetryServices &&
+      telemetryServices.length > 0
+    ) {
+      logMonitorDetailView.telemetryServices = telemetryServices; // set the telemetry services
+
+      logFields.push({
+        key: "telemetryServices",
+        title: "Telemetry Services",
+        description: "Telemetry services to monitor.",
+        fieldType: FieldType.Element,
+        placeholder: "No telemetry services entered",
+        getElement: (): ReactElement => {
+          return (
+            <TelemetryServicesElement telemetryServices={telemetryServices} />
+          );
+        },
+      });
+    }
+  }
 
   return (
     <div className="mt-5">
       <FieldLabelElement
-        title={"Request Details"}
+        title={"Monitor Details"}
         description={
           "Here are the details of the request we will send to monitor your resource status."
         }
@@ -164,11 +338,20 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         isHeading={true}
       />
       <div className="mt-5">
-        <Detail
-          id={"monitor-step"}
-          item={props.monitorStep.data as any}
-          fields={requestDetailsFields}
-        />
+        {fields && fields.length > 0 && (
+          <Detail<MonitorStepType>
+            id={"monitor-step"}
+            item={props.monitorStep.data!}
+            fields={fields}
+          />
+        )}
+        {logFields && logFields.length > 0 && (
+          <Detail<LogMonitorStepView>
+            id={"monitor-logs"}
+            item={logMonitorDetailView}
+            fields={logFields}
+          />
+        )}
       </div>
 
       <HorizontalRule />
