@@ -196,16 +196,6 @@ export default class MonitorStep extends DatabaseProperty {
       return "Monitor Destination is required.";
     }
 
-    if (monitorType === MonitorType.Logs) {
-      if (!value.data.logMonitor) {
-        return "Log Monitor is required";
-      }
-
-      if (!value.data.logMonitor.lastXSecondsOfLogs) {
-        return "Monitor Last Minutes of Logs is required.";
-      }
-    }
-
     if (
       !value.data.customCode &&
       (monitorType === MonitorType.CustomJavaScriptCode ||
@@ -265,7 +255,9 @@ export default class MonitorStep extends DatabaseProperty {
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
           logMonitor: this.data.logMonitor
-            ? MonitorStepLogMonitorUtil.toJSON(this.data.logMonitor)
+            ? MonitorStepLogMonitorUtil.toJSON(
+                this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
+              )
             : undefined,
         },
       });
@@ -359,6 +351,10 @@ export default class MonitorStep extends DatabaseProperty {
         ? (json["logMonitor"] as JSONObject)
         : undefined,
     }) as any;
+
+    if (monitorStep.data && !monitorStep.data?.logMonitor) {
+      monitorStep.data.logMonitor = MonitorStepLogMonitorUtil.getDefault();
+    }
 
     return monitorStep;
   }

@@ -1,18 +1,14 @@
-import MonitorStepLogMonitor, {
-  MonitorStepLogMonitorUtil,
-} from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "CommonUI/src/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
 import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import DashboardLogsViewer from "../../../Logs/LogsViewer";
-import Query from "Common/Types/BaseDatabase/Query";
-import Log from "Common/Models/AnalyticsModels/Log";
 import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
+import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
 
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
@@ -42,18 +38,6 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
     showAdvancedOptionsByDefault,
   );
-
-  type RefreshQueryFunction = () => Query<Log>;
-
-  const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
-    return MonitorStepLogMonitorUtil.toQuery(monitorStepLogMonitor);
-  };
-
-  const [logQuery, setLogQuery] = React.useState<Query<Log>>(refreshQuery());
-
-  useEffect(() => {
-    setLogQuery(refreshQuery());
-  }, [monitorStepLogMonitor]);
 
   return (
     <div>
@@ -207,11 +191,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           isHeading={true}
         />
         <div className="mt-5 mb-5">
-          <DashboardLogsViewer
-            id="logs-preview"
-            logQuery={logQuery}
-            limit={10}
-          />
+          <LogMonitorPreview monitorStepLogMonitor={monitorStepLogMonitor} />
         </div>
       </div>
     </div>

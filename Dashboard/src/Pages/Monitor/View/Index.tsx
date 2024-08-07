@@ -63,6 +63,7 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
+import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -186,6 +187,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isAllProbesDisconnectedFromThisMonitor: true,
           telemetryMonitorLastMonitorAt: true,
           telemetryMonitorNextMonitorAt: true,
+          monitorSteps: true,
         },
       });
 
@@ -613,6 +615,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
         }}
       />
+
+      {monitor?.monitorType === MonitorType.Logs &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
+          <div>
+            <Card
+              title={"Logs Preview"}
+              description={
+                "Preview of the logs that match the filter of this monitor."
+              }
+            >
+              <LogMonitorPreview
+                monitorStepLogMonitor={
+                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
+                    ?.logMonitor
+                }
+              />
+            </Card>
+          </div>
+        )}
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
     </Fragment>
