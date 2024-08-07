@@ -49,12 +49,6 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 
 
-WORKDIR /usr/src/CommonUI
-COPY ./CommonUI/package*.json /usr/src/CommonUI/
-# Set version in ./CommonServer/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonUI/package.json
-RUN npm install
-COPY ./CommonUI /usr/src/CommonUI
 
 ENV PRODUCTION=true
 
