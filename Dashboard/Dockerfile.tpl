@@ -48,18 +48,6 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 
 
-
-
-# Install CommonUI
-
-WORKDIR /usr/src/CommonUI
-COPY ./CommonUI/package*.json /usr/src/CommonUI/
-# Set version in ./CommonUI/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonUI/package.json
-RUN npm install --force
-COPY ./CommonUI /usr/src/CommonUI
-
-
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
