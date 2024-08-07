@@ -4,14 +4,14 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
-import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import Modal, { ModalWidth } from "Common/UI/src/Components/Modal/Modal";
-import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
-import SimpleLogViewer from "Common/UI/src/Components/SimpleLogViewer/SimpleLogViewer";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import WorkflowStatusElement from "Common/UI/src/Components/Workflow/WorkflowStatus";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowLogs from "Common/Models/DatabaseModels/WorkflowLog";
 import React, {
   Fragment,

@@ -1,4 +1,4 @@
-import Link from "Common/UI/src/Components/Link/Link";
+import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement } from "react";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import URL from "Common/Types/API/URL";

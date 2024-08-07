@@ -1,8 +1,8 @@
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
-import MasterPage from "Common/UI/src/Components/MasterPage/MasterPage";
-import TopAlert from "Common/UI/src/Components/TopAlert/TopAlert";
+import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
+import TopAlert from "Common/UI/Components/TopAlert/TopAlert";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

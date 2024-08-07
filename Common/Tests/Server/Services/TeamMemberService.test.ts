@@ -1,4 +1,4 @@
-import { Host, HttpProtocol } from "../../EnvironmentConfig";
+import { Host, HttpProtocol } from "../../../Server/EnvironmentConfig";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import BillingService from "../../../Server/Services/BillingService";
 import MailService from "../../../Server/Services/MailService";

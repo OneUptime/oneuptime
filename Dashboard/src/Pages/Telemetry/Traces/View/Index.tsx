@@ -1,5 +1,5 @@
 import PageComponentProps from "../../../PageComponentProps";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import TraceExplorer from "../../../../Components/Traces/TraceExplorer";
 

@@ -1,13 +1,13 @@
 import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
-import BasicForm from "Common/UI/src/Components/Forms/BasicForm";
+import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import FieldLabelElement from "Common/UI/src/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/src/Components/HorizontalRule/HorizontalRule";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
 
 export interface ComponentProps {

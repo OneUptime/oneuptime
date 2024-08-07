@@ -1,6 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import ServiceCatalogTelemetryService from "Common/Models/DatabaseModels/ServiceCatalogTelemetryService";
 import React, {
   Fragment,
@@ -11,21 +11,21 @@ import React, {
 } from "react";
 import TelemetryServicesTable from "../../../Components/TelemetryService/TelemetryServiceTable";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/UI/src/Utils/BaseDatabase/ListResult";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import API from "Common/UI/src/Utils/API/API";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import API from "Common/UI/Utils/API/API";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
-import ModelFormModal from "Common/UI/src/Components/ModelFormModal/ModelFormModal";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import DashboardNavigation from "../../../Utils/Navigation";
-import { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 
 const ServiceCatalogTelemetryServices: FunctionComponent<
   PageComponentProps

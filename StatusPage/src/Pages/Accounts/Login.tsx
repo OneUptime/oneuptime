@@ -9,11 +9,11 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ModelForm, { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import Link from "Common/UI/src/Components/Link/Link";
-import { FILE_URL } from "Common/UI/src/Config";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Link from "Common/UI/Components/Link/Link";
+import { FILE_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect } from "react";
 

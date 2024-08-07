@@ -6,15 +6,15 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import BasicFormModal from "Common/UI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
-import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import { NOTIFICATION_URL } from "Common/UI/src/Config";
-import API from "Common/UI/src/Utils/API/API";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { NOTIFICATION_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
   FunctionComponent,

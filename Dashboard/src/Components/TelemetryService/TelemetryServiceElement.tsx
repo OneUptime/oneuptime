@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
-import ColorSquareCube from "Common/UI/src/Components/ColorSquareCube/ColorSquareCube";
-import Link from "Common/UI/src/Components/Link/Link";
-import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
+import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCube";
+import Link from "Common/UI/Components/Link/Link";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement } from "react";
 

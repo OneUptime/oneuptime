@@ -19,13 +19,13 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import { ImageFunctions } from "Common/UI/src/Components/Image/Image";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import MasterPage from "Common/UI/src/Components/MasterPage/MasterPage";
-import JSONWebToken from "Common/UI/src/Utils/JsonWebToken";
-import LocalStorage from "Common/UI/src/Utils/LocalStorage";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ImageFunctions } from "Common/UI/Components/Image/Image";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
+import JSONWebToken from "Common/UI/Utils/JsonWebToken";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
 import File from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,

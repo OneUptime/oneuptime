@@ -1,11 +1,11 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
-import Page from "Common/UI/src/Components/Page/Page";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 

@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Alert, { AlertType } from "Common/UI/src/Components/Alerts/Alert";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 

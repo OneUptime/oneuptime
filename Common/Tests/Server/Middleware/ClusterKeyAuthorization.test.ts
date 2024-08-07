@@ -1,4 +1,4 @@
-import { ClusterKey as ONEUPTIME_SECRET } from "../../EnvironmentConfig";
+import { ClusterKey as ONEUPTIME_SECRET } from "../../../Server/EnvironmentConfig";
 import ClusterKeyAuthorization from "../../../Server/Middleware/ClusterKeyAuthorization";
 import {
   ExpressRequest,

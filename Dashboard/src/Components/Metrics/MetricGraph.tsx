@@ -1,7 +1,7 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ChartGroup, {
   Chart,
-} from "Common/UI/src/Components/Charts/ChartGroup/ChartGroup";
+} from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
 
 export interface ComponentProps {
   charts: Array<Chart>;

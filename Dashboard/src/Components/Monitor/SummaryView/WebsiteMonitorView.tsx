@@ -1,10 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import Detail from "Common/UI/src/Components/Detail/Detail";
-import Field from "Common/UI/src/Components/Detail/Field";
-import InfoCard from "Common/UI/src/Components/InfoCard/InfoCard";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Field from "Common/UI/Components/Detail/Field";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

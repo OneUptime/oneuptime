@@ -1,7 +1,7 @@
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/src/Components/Alerts/Alert";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";

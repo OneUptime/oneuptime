@@ -19,14 +19,14 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import { ComponentProps as EventHistoryDayListComponentProps } from "Common/UI/src/Components/EventHistoryList/EventHistoryDayList";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ComponentProps as EventHistoryDayListComponentProps } from "Common/UI/Components/EventHistoryList/EventHistoryDayList";
 import EventHistoryList, {
   ComponentProps as EventHistoryListComponentProps,
-} from "Common/UI/src/Components/EventHistoryList/EventHistoryList";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import LocalStorage from "Common/UI/src/Utils/LocalStorage";
+} from "Common/UI/Components/EventHistoryList/EventHistoryList";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";

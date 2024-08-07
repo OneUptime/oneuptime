@@ -7,21 +7,21 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/src/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CustomElementProps,
   FormFieldStyleType,
-} from "Common/UI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/src/Components/Forms/Types/FormValues";
-import { ModalWidth } from "Common/UI/src/Components/Modal/Modal";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
-import API from "Common/UI/src/Utils/API/API";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "Common/UI/src/Utils/Navigation";
+} from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,

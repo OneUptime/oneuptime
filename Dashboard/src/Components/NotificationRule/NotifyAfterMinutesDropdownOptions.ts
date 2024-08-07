@@ -1,4 +1,4 @@
-import { DropdownOption } from "Common/UI/src/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 const NotifyAfterMinutesDropdownOptions: Array<DropdownOption> = [
   {

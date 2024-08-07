@@ -3,7 +3,7 @@ import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const MonitorIncidents: FunctionComponent<

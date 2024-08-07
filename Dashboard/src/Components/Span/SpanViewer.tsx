@@ -6,23 +6,23 @@ import CodeType from "Common/Types/Code/CodeType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import Accordion from "Common/UI/src/Components/Accordion/Accordion";
-import AccordionGroup from "Common/UI/src/Components/Accordion/AccordionGroup";
-import CodeEditor from "Common/UI/src/Components/CodeEditor/CodeEditor";
-import Detail from "Common/UI/src/Components/Detail/Detail";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import LogsViewer from "Common/UI/src/Components/LogsViewer/LogsViewer";
-import { TabType } from "Common/UI/src/Components/Tabs/Tab";
-import Tabs from "Common/UI/src/Components/Tabs/Tabs";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
-import API from "Common/UI/src/Utils/API/API";
+import Accordion from "Common/UI/Components/Accordion/Accordion";
+import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
+import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
+import Detail from "Common/UI/Components/Detail/Detail";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LogsViewer from "Common/UI/Components/LogsViewer/LogsViewer";
+import { TabType } from "Common/UI/Components/Tabs/Tab";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
-} from "Common/UI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Select from "Common/UI/src/Utils/BaseDatabase/Select";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Select from "Common/UI/Utils/BaseDatabase/Select";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span, {
   SpanEvent,

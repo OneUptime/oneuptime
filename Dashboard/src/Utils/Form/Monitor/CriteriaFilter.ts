@@ -9,8 +9,8 @@ import {
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
-import { DropdownOption } from "Common/UI/src/Components/Dropdown/Dropdown";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {

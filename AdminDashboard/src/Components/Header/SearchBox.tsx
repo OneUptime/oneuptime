@@ -1,4 +1,4 @@
-import SearchBox from "Common/UI/src/Components/Header/SearchBox";
+import SearchBox from "Common/UI/Components/Header/SearchBox";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 

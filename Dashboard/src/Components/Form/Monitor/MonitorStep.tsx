@@ -15,23 +15,23 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
-import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckBoxList, {
   CategoryCheckboxValue,
   enumToCategoryCheckboxOption,
-} from "Common/UI/src/Components/CategoryCheckbox/CheckboxList";
-import CodeEditor from "Common/UI/src/Components/CodeEditor/CodeEditor";
-import DictionaryOfStrings from "Common/UI/src/Components/Dictionary/DictionaryOfStrings";
+} from "Common/UI/Components/CategoryCheckbox/CheckboxList";
+import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
+import DictionaryOfStrings from "Common/UI/Components/Dictionary/DictionaryOfStrings";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "Common/UI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "Common/UI/src/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/src/Components/HorizontalRule/HorizontalRule";
-import Input from "Common/UI/src/Components/Input/Input";
-import Link from "Common/UI/src/Components/Link/Link";
-import { APP_API_URL, DOCS_URL } from "Common/UI/src/Config";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Input from "Common/UI/Components/Input/Input";
+import Link from "Common/UI/Components/Link/Link";
+import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,16 +40,16 @@ import React, {
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import ModelAPI, { ListResult } from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DashboardNavigation from "../../../Utils/Navigation";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import API from "Common/UI/src/Utils/API/API";
+import API from "Common/UI/Utils/API/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import ComponentLoader from "Common/UI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {

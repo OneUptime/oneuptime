@@ -2,10 +2,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "Common/UI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/src/Components/SideMenu/SideMenuSection";
-import { BILLING_ENABLED } from "Common/UI/src/Config";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {

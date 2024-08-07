@@ -3,12 +3,12 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
-import { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import Card from "Common/UI/src/Components/Card/Card";
-import ModelForm, { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import Page from "Common/UI/src/Components/Page/Page";
-import UserUtil from "Common/UI/src/Utils/User";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Page from "Common/UI/Components/Page/Page";
+import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 

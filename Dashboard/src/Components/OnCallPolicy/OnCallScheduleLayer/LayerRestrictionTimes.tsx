@@ -1,9 +1,9 @@
 import RestrictionTimesFieldElement from "./RestrictionTimesFieldElement";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
-import ModelForm, { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import { CustomElementProps } from "Common/UI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/src/Components/Forms/Types/FormValues";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import React, { FunctionComponent, ReactElement } from "react";
 

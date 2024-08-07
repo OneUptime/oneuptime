@@ -3,8 +3,8 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/Utils/API";
-import { IDENTITY_URL } from "Common/UI/src/Config";
-import LocalStorage from "Common/UI/src/Utils/LocalStorage";
+import { IDENTITY_URL } from "Common/UI/Config";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 export default class User {
   public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {

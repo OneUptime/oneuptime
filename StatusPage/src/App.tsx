@@ -25,7 +25,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { useEffect, useState } from "react";
 import {
   Route as PageRoute,

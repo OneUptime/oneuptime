@@ -12,29 +12,29 @@ import MetricGraphConfig, {
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "Common/UI/src/Components/Button/Button";
+} from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
-import HorizontalRule from "Common/UI/src/Components/HorizontalRule/HorizontalRule";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import StartAndEndDate, {
   StartAndEndDateType,
-} from "Common/UI/src/Components/Date/StartAndEndDate";
+} from "Common/UI/Components/Date/StartAndEndDate";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import FieldLabelElement from "Common/UI/src/Components/Forms/Fields/FieldLabel";
-import Card from "Common/UI/src/Components/Card/Card";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import API from "Common/UI/src/Utils/API/API";
+import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "Common/UI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ComponentLoader from "Common/UI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ChartGroup, {
   Chart,
   ChartType,
-} from "Common/UI/src/Components/Charts/ChartGroup/ChartGroup";
+} from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
 import {
   AxisType,
   ChartCurve,
@@ -42,19 +42,19 @@ import {
   XScalePrecision,
   XScaleType,
   YScaleType,
-} from "Common/UI/src/Components/Charts/Line/LineChart";
+} from "Common/UI/Components/Charts/Line/LineChart";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardNavigation from "../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/UI/src/Utils/BaseDatabase/ListResult";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "Common/UI/src/Config";
-import ChartTooltip from "Common/UI/src/Components/Charts/Tooltip/Tooltip";
+import { APP_API_URL } from "Common/UI/Config";
+import ChartTooltip from "Common/UI/Components/Charts/Tooltip/Tooltip";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;

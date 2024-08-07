@@ -5,15 +5,15 @@ import Route from "Common/Types/API/Route";
 import { Green, Red } from "Common/Types/BrandColors";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import Page from "Common/UI/src/Components/Page/Page";
-import Pill from "Common/UI/src/Components/Pill/Pill";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Page from "Common/UI/Components/Page/Page";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";

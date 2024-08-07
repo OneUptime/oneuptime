@@ -1,9 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
-import Page from "Common/UI/src/Components/Page/Page";
-import { BILLING_ENABLED } from "Common/UI/src/Config";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Page from "Common/UI/Components/Page/Page";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps extends PageComponentProps {

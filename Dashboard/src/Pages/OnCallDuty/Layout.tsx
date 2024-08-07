@@ -4,8 +4,8 @@ import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import DashboardSideMenu from "./SideMenu";
 import Dictionary from "Common/Types/Dictionary";
-import Page from "Common/UI/src/Components/Page/Page";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Page from "Common/UI/Components/Page/Page";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 

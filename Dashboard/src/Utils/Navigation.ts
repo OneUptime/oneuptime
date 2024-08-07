@@ -1,5 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 
 export default class DashboardNavigation {
   public static getProjectId(): ObjectID | null {

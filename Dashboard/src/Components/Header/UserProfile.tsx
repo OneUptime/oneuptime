@@ -4,15 +4,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import HeaderIconDropdownButton from "Common/UI/src/Components/Header/HeaderIconDropdownButton";
-import IconDropdownItem from "Common/UI/src/Components/Header/IconDropdown/IconDropdownItem";
-import IconDropdownMenu from "Common/UI/src/Components/Header/IconDropdown/IconDropdownMenu";
-import { ADMIN_DASHBOARD_URL } from "Common/UI/src/Config";
-import BlankProfilePic from "Common/UI/src/Images/users/blank-profile.svg";
-import FileUtil from "Common/UI/src/Utils/File";
-import GlobalEvents from "Common/UI/src/Utils/GlobalEvents";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import User from "Common/UI/src/Utils/User";
+import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
+import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
+import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
+import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
+import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
+import FileUtil from "Common/UI/Utils/File";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import Navigation from "Common/UI/Utils/Navigation";
+import User from "Common/UI/Utils/User";
 import React, {
   FunctionComponent,
   ReactElement,

@@ -3,7 +3,7 @@ import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export const MonitorsRoutePath: Dictionary<string> = {

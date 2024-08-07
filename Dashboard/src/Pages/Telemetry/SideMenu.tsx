@@ -2,9 +2,9 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "Common/UI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {

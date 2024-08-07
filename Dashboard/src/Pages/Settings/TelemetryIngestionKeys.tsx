@@ -1,9 +1,9 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

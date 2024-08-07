@@ -5,7 +5,7 @@ import RouteParams from "../../../Utils/RouteParams";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {

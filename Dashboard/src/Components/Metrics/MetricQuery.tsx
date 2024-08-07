@@ -1,10 +1,10 @@
-import FiltersForm from "Common/UI/src/Components/Filters/FiltersForm";
-import FilterData from "Common/UI/src/Components/Filters/Types/FilterData";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
+import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import Query from "Common/UI/src/Utils/BaseDatabase/Query";
+import Query from "Common/UI/Utils/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 
 export interface MetricQueryData {

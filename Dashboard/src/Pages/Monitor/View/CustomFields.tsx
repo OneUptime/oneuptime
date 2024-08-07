@@ -1,9 +1,9 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CustomFieldsDetail from "Common/UI/src/Components/CustomFields/CustomFieldsDetail";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";

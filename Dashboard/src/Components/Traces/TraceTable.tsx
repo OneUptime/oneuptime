@@ -2,10 +2,10 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import DashboardNavigation from "../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/src/Components/Dropdown/Dropdown";
-import AnalyticsModelTable from "Common/UI/src/Components/ModelTable/AnalyticsModelTable";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import React, {
   Fragment,
@@ -21,11 +21,11 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/Utils/API";
-import { APP_API_URL } from "Common/UI/src/Config";
+import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;

@@ -6,9 +6,9 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "Common/UI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

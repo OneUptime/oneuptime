@@ -19,16 +19,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import EmptyState from "Common/UI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
   ComponentProps as EventItemComponentProps,
   TimelineItem,
   TimelineItemType,
-} from "Common/UI/src/Components/EventItem/EventItem";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import LocalStorage from "Common/UI/src/Utils/LocalStorage";
-import Navigation from "Common/UI/src/Utils/Navigation";
+} from "Common/UI/Components/EventItem/EventItem";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";

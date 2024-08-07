@@ -1,9 +1,9 @@
 import DashboardNavigation from "./Navigation";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { APP_API_URL } from "Common/UI/src/Config";
-import ListResult from "Common/UI/src/Utils/BaseDatabase/ListResult";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import { APP_API_URL } from "Common/UI/Config";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeUtil {

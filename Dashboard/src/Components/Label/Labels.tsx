@@ -1,5 +1,5 @@
 import LabelElement from "./Label";
-import TableColumnListComponent from "Common/UI/src/Components/TableColumnList/TableColumnListComponent";
+import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, { FunctionComponent, ReactElement } from "react";
 

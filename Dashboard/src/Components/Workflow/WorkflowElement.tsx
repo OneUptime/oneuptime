@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/src/Components/Link/Link";
+import Link from "Common/UI/Components/Link/Link";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { FunctionComponent, ReactElement } from "react";
 

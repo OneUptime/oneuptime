@@ -1,9 +1,9 @@
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
-import Button, { ButtonStyleType } from "Common/UI/src/Components/Button/Button";
-import { DropdownOption } from "Common/UI/src/Components/Dropdown/Dropdown";
-import BasicForm from "Common/UI/src/Components/Forms/BasicForm";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/src/Components/Forms/Types/FormValues";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 

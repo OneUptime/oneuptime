@@ -12,9 +12,9 @@ import Users from "./Pages/Users/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import URL from "Common/Types/API/URL";
-import { ACCOUNTS_URL, DASHBOARD_URL } from "Common/UI/src/Config";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import User from "Common/UI/src/Utils/User";
+import { ACCOUNTS_URL, DASHBOARD_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
+import User from "Common/UI/Utils/User";
 import React from "react";
 import {
   Route as PageRoute,

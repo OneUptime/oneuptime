@@ -2,11 +2,11 @@ import LabelsElement from "../../../../Components/Label/Labels";
 import PageComponentProps from "../../../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/src/Utils/Dropdown";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, {
@@ -17,12 +17,12 @@ import React, {
   useState,
 } from "react";
 import CopilotLastRunAt from "../../../../Components/Copilot/LastRunMessage";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageMap from "../../../../Utils/PageMap";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import API from "Common/UI/src/Utils/API/API";
-import Alert, { AlertType } from "Common/UI/src/Components/Alerts/Alert";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 
 const CopilotPageView: FunctionComponent<

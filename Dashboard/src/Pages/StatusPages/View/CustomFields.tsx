@@ -1,8 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CustomFieldsDetail from "Common/UI/src/Components/CustomFields/CustomFieldsDetail";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";

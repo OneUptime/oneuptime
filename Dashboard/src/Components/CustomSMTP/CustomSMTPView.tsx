@@ -1,7 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/src/Components/Link/Link";
+import Link from "Common/UI/Components/Link/Link";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 

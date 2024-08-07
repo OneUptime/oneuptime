@@ -23,27 +23,27 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/src/Components/Alerts/Alert";
-import Card from "Common/UI/src/Components/Card/Card";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Card from "Common/UI/Components/Card/Card";
 import ChartGroup, {
   Chart,
-} from "Common/UI/src/Components/Charts/ChartGroup/ChartGroup";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import MonitorUptimeGraph from "Common/UI/src/Components/MonitorGraphs/Uptime";
-import UptimeUtil from "Common/UI/src/Components/MonitorGraphs/UptimeUtil";
-import Statusbubble from "Common/UI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
-import API from "Common/UI/src/Utils/API/API";
+} from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
+import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
-} from "Common/UI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI, { ListResult } from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";

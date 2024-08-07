@@ -14,23 +14,23 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/src/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/src/Components/Card/CardButtons/Refresh";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import { GanttChartBar } from "Common/UI/src/Components/GanttChart/Bar/Index";
+import Card from "Common/UI/Components/Card/Card";
+import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { GanttChartBar } from "Common/UI/Components/GanttChart/Bar/Index";
 import GanttChart, {
   GanttChartProps,
-} from "Common/UI/src/Components/GanttChart/Index";
-import { GanttChartRow } from "Common/UI/src/Components/GanttChart/Row/Row";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
+} from "Common/UI/Components/GanttChart/Index";
+import { GanttChartRow } from "Common/UI/Components/GanttChart/Row/Row";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import SideOver, {
   SideOverSize,
-} from "Common/UI/src/Components/SideOver/SideOver";
-import API from "Common/UI/src/Utils/API/API";
-import AnalyticsModelAPI from "Common/UI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ListResult from "Common/UI/src/Utils/BaseDatabase/ListResult";
-import Select from "Common/UI/src/Utils/BaseDatabase/Select";
-import ModelAPI from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+} from "Common/UI/Components/SideOver/SideOver";
+import API from "Common/UI/Utils/API/API";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import Select from "Common/UI/Utils/BaseDatabase/Select";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";

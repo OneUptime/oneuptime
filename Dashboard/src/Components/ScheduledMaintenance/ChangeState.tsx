@@ -7,12 +7,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "Common/UI/src/Components/Button/Button";
-import { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelFormModal from "Common/UI/src/Components/ModelFormModal/ModelFormModal";
-import ModelAPI, { ListResult } from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+} from "Common/UI/Components/Button/Button";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, {

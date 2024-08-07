@@ -2,9 +2,9 @@ import Layers from "../../../Components/OnCallPolicy/OnCallScheduleLayer/Layers"
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import Banner from "Common/UI/src/Components/Banner/Banner";
-import Navigation from "Common/UI/src/Utils/Navigation";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+import Banner from "Common/UI/Components/Banner/Banner";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallScheduleDelete: FunctionComponent<

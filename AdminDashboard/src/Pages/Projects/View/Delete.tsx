@@ -2,12 +2,12 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelDelete from "Common/UI/src/Components/ModelDelete/ModelDelete";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import SideMenuComponent from "./SideMenu";
 import Project from "Common/Models/DatabaseModels/Project";
-import ModelPage from "Common/UI/src/Components/Page/ModelPage";
+import ModelPage from "Common/UI/Components/Page/ModelPage";
 
 const DeletePage: FunctionComponent = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);

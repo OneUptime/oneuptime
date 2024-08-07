@@ -1,6 +1,6 @@
 import URL from "Common/Types/API/URL";
 import Link from "Common/Types/Link";
-import Footer from "Common/UI/src/Components/Footer/Footer";
+import Footer from "Common/UI/Components/Footer/Footer";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

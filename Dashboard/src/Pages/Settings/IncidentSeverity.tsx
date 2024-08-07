@@ -1,12 +1,12 @@
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import { ShowAs } from "Common/UI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "Common/UI/src/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/src/Components/Pill/Pill";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

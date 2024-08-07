@@ -1,7 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import HeaderIconDropdownButton from "Common/UI/src/Components/Header/HeaderIconDropdownButton";
-import NotificationItem from "Common/UI/src/Components/Header/Notifications/NotificationItem";
-import Notifications from "Common/UI/src/Components/Header/Notifications/Notifications";
+import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
+import NotificationItem from "Common/UI/Components/Header/Notifications/NotificationItem";
+import Notifications from "Common/UI/Components/Header/Notifications/Notifications";
 import React, { ReactElement, useState } from "react";
 
 const DashboardHeader: () => JSX.Element = (): ReactElement => {

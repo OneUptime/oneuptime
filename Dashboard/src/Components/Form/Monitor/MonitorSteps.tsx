@@ -5,16 +5,16 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/src/Components/ComponentLoader/ComponentLoader";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "Common/UI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "Common/UI/src/Components/Forms/Fields/FieldLabel";
-import { CustomElementProps } from "Common/UI/src/Components/Forms/Types/Field";
-import HorizontalRule from "Common/UI/src/Components/HorizontalRule/HorizontalRule";
-import API from "Common/UI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/src/Utils/ModelAPI/ModelAPI";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";

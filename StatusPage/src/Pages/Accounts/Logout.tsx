@@ -4,9 +4,9 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import UserUtil from "../../Utils/User";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { useEffect } from "react";
 
 const Logout: () => JSX.Element = () => {

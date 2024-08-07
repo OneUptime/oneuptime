@@ -1,6 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import InfoCard from "Common/UI/src/Components/InfoCard/InfoCard";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -1,5 +1,5 @@
 import { Black } from "Common/Types/BrandColors";
-import Pill from "Common/UI/src/Components/Pill/Pill";
+import Pill from "Common/UI/Components/Pill/Pill";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, { FunctionComponent, ReactElement } from "react";
 

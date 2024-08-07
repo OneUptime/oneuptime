@@ -9,8 +9,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "Common/UI/src/Components/Button/Button";
-import ConfirmModal from "Common/UI/src/Components/Modal/ConfirmModal";
+} from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

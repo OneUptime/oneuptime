@@ -15,19 +15,19 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "Common/UI/src/Components/Checkbox/CheckboxViewer";
-import ErrorMessage from "Common/UI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import InfoCard from "Common/UI/src/Components/InfoCard/InfoCard";
-import PageLoader from "Common/UI/src/Components/Loader/PageLoader";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import Pill from "Common/UI/src/Components/Pill/Pill";
-import ProbeElement from "Common/UI/src/Components/Probe/Probe";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import BaseAPI from "Common/UI/src/Utils/API/API";
-import GlobalEvent from "Common/UI/src/Utils/GlobalEvents";
-import ModelAPI, { ListResult } from "Common/UI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Pill from "Common/UI/Components/Pill/Pill";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import BaseAPI from "Common/UI/Utils/API/API";
+import GlobalEvent from "Common/UI/Utils/GlobalEvents";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import Incident, {
   TelemetryIncidentQuery,
 } from "Common/Models/DatabaseModels/Incident";
@@ -43,7 +43,7 @@ import React, {
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
-import Card from "Common/UI/src/Components/Card/Card";
+import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";

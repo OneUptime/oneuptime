@@ -1,9 +1,9 @@
 import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
-import Navigation from "Common/UI/src/Utils/Navigation";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 

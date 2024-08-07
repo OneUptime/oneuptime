@@ -13,15 +13,15 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "Common/UI/src/Components/Button/Button";
-import CheckboxElement from "Common/UI/src/Components/Checkbox/Checkbox";
-import FieldLabelElement from "Common/UI/src/Components/Detail/FieldLabel";
+} from "Common/UI/Components/Button/Button";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "Common/UI/src/Components/Dropdown/Dropdown";
-import Input from "Common/UI/src/Components/Input/Input";
-import Link from "Common/UI/src/Components/Link/Link";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Input from "Common/UI/Components/Input/Input";
+import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

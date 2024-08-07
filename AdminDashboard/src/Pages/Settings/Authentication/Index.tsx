@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/src/Components/ModelDetail/CardModelDetail";
-import Page from "Common/UI/src/Components/Page/Page";
-import FieldType from "Common/UI/src/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Page from "Common/UI/Components/Page/Page";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 

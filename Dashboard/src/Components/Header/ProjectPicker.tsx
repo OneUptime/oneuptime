@@ -4,17 +4,17 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { FormType } from "Common/UI/src/Components/Forms/ModelForm";
-import Field from "Common/UI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/src/Components/Forms/Types/FormFieldSchemaType";
-import ProjectPicker from "Common/UI/src/Components/Header/ProjectPicker/ProjectPicker";
-import ModelFormModal from "Common/UI/src/Components/ModelFormModal/ModelFormModal";
-import { RadioButton } from "Common/UI/src/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "Common/UI/src/Components/Toggle/Toggle";
-import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/src/Config";
-import { GetReactElementFunction } from "Common/UI/src/Types/FunctionTypes";
-import LocalStorage from "Common/UI/src/Utils/LocalStorage";
-import ProjectUtil from "Common/UI/src/Utils/Project";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ProjectPicker from "Common/UI/Components/Header/ProjectPicker/ProjectPicker";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,

@@ -1,7 +1,7 @@
 import Logo from "../Logo/Logo";
 import Link from "Common/Types/Link";
-import Header from "Common/UI/src/Components/Header/Header";
-import UILink from "Common/UI/src/Components/Link/Link";
+import Header from "Common/UI/Components/Header/Header";
+import UILink from "Common/UI/Components/Link/Link";
 import File from "Common/Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
