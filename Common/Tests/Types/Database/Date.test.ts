@@ -20,8 +20,8 @@ describe("DatabaseDate", () => {
         .endOf("day")
         .format("YYYY-MM-DD HH:mm:ss");
       expect({
-        startValue: expectedStart.toString(),
-        endValue: expectedEnd.toString(),
+        startValue: result["startValue"]?.toString(),
+        endValue: result["endValue"]?.toString(),
         ...result,
       }).toEqual({
         startValue: expectedStart.toString(),
@@ -39,9 +39,13 @@ describe("DatabaseDate", () => {
       const expectedStart: Date = moment(inputDate).startOf("day").toDate();
       const expectedEnd: Date = moment(inputDate).endOf("day").toDate();
 
-      expect(result).toEqual({
-        startValue: expectedStart,
-        endValue: expectedEnd,
+      expect({
+        startValue: result["startValue"]?.toString(),
+        endValue: result["endValue"]?.toString(),
+        ...result,
+      }).toEqual({
+        startValue: expectedStart.toString(),
+        endValue: expectedEnd.toString(),
         _type: "InBetween",
       });
     });
