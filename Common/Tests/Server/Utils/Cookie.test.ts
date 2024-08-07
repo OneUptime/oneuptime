@@ -73,7 +73,7 @@ describe("CookieUtils", () => {
   });
 
   test("Should return empty object if there are no cookies", () => {
-    mockRequest.cookies = undefined;
+    mockRequest.cookies = {};
     const cookies: Dictionary<string> = CookieUtil.getAllCookies(mockRequest);
 
     expect(cookies).toEqual({});

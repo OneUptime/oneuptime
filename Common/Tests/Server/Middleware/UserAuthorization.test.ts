@@ -62,7 +62,7 @@ describe("UserMiddleware", () => {
       const req: ExpressRequest = {
         cookies: { "user-token": mockedAccessToken },
         query: {},
-      } as ExpressRequest;
+      } as any;
 
       const result: StringOrUndefined = UserMiddleware.getAccessToken(req);
 
