@@ -47,8 +47,10 @@ import ModelTableColumn from "./Column";
 import Columns from "./Columns";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
-} from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
@@ -96,7 +98,7 @@ export interface BaseTableCallbacks<
   getJSONFromModel: (item: TBaseModel) => JSONObject;
   addSlugToSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
   getList: (data: {
-    modelType: BaseModelType | AnalyticsBaseModelType;
+    modelType: DatabaseBaseModelType | AnalyticsBaseModelType;
     query: Query<TBaseModel>;
     groupBy?: GroupBy<TBaseModel> | undefined;
     limit: number;
@@ -623,7 +625,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     try {
       const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
-        modelType: props.modelType as BaseModelType | AnalyticsBaseModelType,
+        modelType: props.modelType as
+          | DatabaseBaseModelType
+          | AnalyticsBaseModelType,
         query: {
           ...query,
           ...props.query,
@@ -660,7 +664,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     try {
       const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
-        modelType: props.modelType as BaseModelType | AnalyticsBaseModelType,
+        modelType: props.modelType as
+          | DatabaseBaseModelType
+          | AnalyticsBaseModelType,
         query: {
           ...query,
           ...props.query,

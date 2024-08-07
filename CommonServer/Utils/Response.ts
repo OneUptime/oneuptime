@@ -8,9 +8,11 @@ import JsonToCsv from "./JsonToCsv";
 import logger from "./Logger";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
-} from "Common/AnalyticsModels/BaseModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
-import FileModel from "Common/Models/FileModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import EmptyResponse from "Common/Types/API/EmptyResponse";
 import StatusCode from "Common/Types/API/StatusCode";
 import URL from "Common/Types/API/URL";
@@ -112,7 +114,7 @@ export default class Response {
     if (model instanceof BaseModel) {
       jsonArray = BaseModel.toJSONArray(
         list as Array<BaseModel>,
-        modelType as BaseModelType,
+        modelType as DatabaseBaseModelType,
       );
     }
 
@@ -140,7 +142,7 @@ export default class Response {
     let response: JSONObject = {};
 
     if (item && item instanceof BaseModel) {
-      response = BaseModel.toJSON(item, modelType as BaseModelType);
+      response = BaseModel.toJSON(item, modelType as DatabaseBaseModelType);
     }
 
     if (item && item instanceof AnalyticsDataModel) {

@@ -14,10 +14,10 @@ import ScheduledMaintenanceService from "CommonServer/Services/ScheduledMaintena
 import ScheduledMaintenanceStateTimelineService from "CommonServer/Services/ScheduledMaintenanceStateTimelineService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import User from "Model/Models/User";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",

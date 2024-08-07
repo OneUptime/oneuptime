@@ -1,5 +1,5 @@
 import Select from "./Select";
-import BaseModel from "Common/AnalyticsModels/BaseModel";
+import BaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
 

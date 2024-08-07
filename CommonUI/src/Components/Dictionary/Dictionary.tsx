@@ -26,7 +26,7 @@ export interface ComponentProps {
   initialValue?: Dictionary<string | boolean | number>;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
-  addButtonSuffix?: string;
+  addButtonSuffix?: string | undefined;
   valueTypes?: Array<ValueType>; // by default it'll be Text
   autoConvertValueTypes?: boolean | undefined;
   keys?: Array<string> | undefined;

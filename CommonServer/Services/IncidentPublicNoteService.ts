@@ -3,7 +3,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "Common/Types/Date";
-import Model from "Model/Models/IncidentPublicNote";
+import Model from "Common/Models/DatabaseModels/IncidentPublicNote";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

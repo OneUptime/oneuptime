@@ -9,7 +9,7 @@ import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Text from "Common/Types/Text";
-import Model from "Model/Models/ShortLink";
+import Model from "Common/Models/DatabaseModels/ShortLink";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

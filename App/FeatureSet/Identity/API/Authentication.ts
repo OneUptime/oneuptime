@@ -1,5 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -35,9 +35,9 @@ import Express, {
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
 import TwoFactorAuth from "CommonServer/Utils/TwoFactorAuth";
-import EmailVerificationToken from "Model/Models/EmailVerificationToken";
-import User from "Model/Models/User";
-import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
+import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+import User from "Common/Models/DatabaseModels/User";
+import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 
 const router: ExpressRouter = Express.getRouter();
 

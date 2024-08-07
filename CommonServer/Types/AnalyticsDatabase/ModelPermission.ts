@@ -4,7 +4,7 @@ import Query from "./Query";
 import Select from "./Select";
 import BaseModel, {
   AnalyticsBaseModelType,
-} from "Common/AnalyticsModels/BaseModel";
+} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";

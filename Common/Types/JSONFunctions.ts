@@ -1,4 +1,4 @@
-import BaseModel from "../Models/BaseModel";
+import BaseModel from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import OneUptimeDate from "./Date";
 import DiskSize from "./DiskSize";
@@ -260,6 +260,8 @@ export default class JSONFunctions {
     } else if (typeof val === Typeof.Number) {
       return val;
     } else if (val instanceof DatabaseProperty) {
+      return val;
+    } else if (val instanceof SerializableObject) {
       return val;
     } else if (
       val &&

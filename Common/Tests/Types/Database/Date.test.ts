@@ -19,9 +19,13 @@ describe("DatabaseDate", () => {
       const expectedEnd: string = moment(inputDate)
         .endOf("day")
         .format("YYYY-MM-DD HH:mm:ss");
-      expect(result).toEqual({
-        startValue: expectedStart,
-        endValue: expectedEnd,
+      expect({
+        startValue: result["startValue"]?.toString(),
+        endValue: result["endValue"]?.toString(),
+        ...result,
+      }).toEqual({
+        startValue: expectedStart.toString(),
+        endValue: expectedEnd.toString(),
         _type: "InBetween",
       });
     });
@@ -32,15 +36,16 @@ describe("DatabaseDate", () => {
         DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
           inputDate,
         ).toJSON();
-      const expectedStart: string = moment(inputDate)
-        .startOf("day")
-        .format("YYYY-MM-DD HH:mm:ss");
-      const expectedEnd: string = moment(inputDate)
-        .endOf("day")
-        .format("YYYY-MM-DD HH:mm:ss");
-      expect(result).toEqual({
-        startValue: expectedStart,
-        endValue: expectedEnd,
+      const expectedStart: Date = moment(inputDate).startOf("day").toDate();
+      const expectedEnd: Date = moment(inputDate).endOf("day").toDate();
+
+      expect({
+        startValue: result["startValue"]?.toString(),
+        endValue: result["endValue"]?.toString(),
+        ...result,
+      }).toEqual({
+        startValue: expectedStart.toString(),
+        endValue: expectedEnd.toString(),
         _type: "InBetween",
       });
     });

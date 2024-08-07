@@ -9,10 +9,10 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalogOwnerTeam from "Model/Models/ServiceCatalogOwnerTeam";
-import ServiceCatalogOwnerUser from "Model/Models/ServiceCatalogOwnerUser";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import ServiceCatalogOwnerTeam from "Common/Models/DatabaseModels/ServiceCatalogOwnerTeam";
+import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalogOwnerUser";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceCatalogOwners: FunctionComponent<

@@ -2,8 +2,10 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import TablePermission from "./TablePermission";
-import AccessControlModel from "Common/Models/AccessControlModel";
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import AccessControlModel from "Common/Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "Common/Types/ArrayUtil";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -235,7 +237,7 @@ export default class AccessControlPermission {
   }
 
   public static getAccessControlIdsForModel(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): Array<ObjectID> {
@@ -259,7 +261,7 @@ export default class AccessControlPermission {
   }
 
   public static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
-    modelType: BaseModelType,
+    modelType: DatabaseBaseModelType,
     query: Query<TBaseModel>,
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,

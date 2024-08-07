@@ -13,8 +13,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 import Text from "Common/Types/Text";
-import AcmeCertificate from "Model/Models/AcmeCertificate";
-import AcmeChallenge from "Model/Models/AcmeChallenge";
+import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
+import AcmeChallenge from "Common/Models/DatabaseModels/AcmeChallenge";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
 

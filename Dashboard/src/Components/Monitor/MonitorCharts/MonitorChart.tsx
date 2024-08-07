@@ -23,8 +23,8 @@ import {
 } from "CommonUI/src/Components/Charts/Line/LineChart";
 import MonitorMetricsByMinute, {
   MonitorMetricsMiscData,
-} from "Model/AnalyticsModels/MonitorMetricsByMinute";
-import Probe from "Model/Models/Probe";
+} from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React from "react";
 
 export class MonitorCharts {

@@ -13,9 +13,9 @@ import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Label from "Model/Models/Label";
-import Workflow from "Model/Models/Workflow";
-import WorkflowLog from "Model/Models/WorkflowLog";
+import Label from "Common/Models/DatabaseModels/Label";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {

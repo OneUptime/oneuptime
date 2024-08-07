@@ -7,7 +7,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import { AdminDashboardClientURL } from "CommonServer/EnvironmentConfig";
 import GlobalConfigService from "CommonServer/Services/GlobalConfigService";
-import GlobalConfig, { EmailServerType } from "Model/Models/GlobalConfig";
+import GlobalConfig, {
+  EmailServerType,
+} from "Common/Models/DatabaseModels/GlobalConfig";
 
 export const InternalSmtpPassword: string =
   process.env["INTERNAL_SMTP_PASSWORD"] || "";

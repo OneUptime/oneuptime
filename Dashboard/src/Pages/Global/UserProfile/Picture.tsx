@@ -10,7 +10,7 @@ import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
 import UserUtil from "CommonUI/src/Utils/User";
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {

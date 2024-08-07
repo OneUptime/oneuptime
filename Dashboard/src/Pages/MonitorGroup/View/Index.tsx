@@ -21,11 +21,11 @@ import API from "CommonUI/src/Utils/API/API";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import ProjectUtil from "CommonUI/src/Utils/Project";
-import Label from "Model/Models/Label";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+import Label from "Common/Models/DatabaseModels/Label";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import { UptimePrecision } from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   Fragment,
   FunctionComponent,

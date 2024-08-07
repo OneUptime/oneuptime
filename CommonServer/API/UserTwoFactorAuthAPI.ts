@@ -10,11 +10,11 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
-import UserTwoFactorAuth from "Model/Models/UserTwoFactorAuth";
+import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import Response from "../Utils/Response";
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import UserService from "../Services/UserService";
 
 export default class UserTwoFactorAuthAPI extends BaseAPI<

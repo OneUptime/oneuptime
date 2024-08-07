@@ -6,8 +6,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "CommonServer/Services/MonitorService";
 import logger from "CommonServer/Utils/Logger";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
-import Monitor from "Model/Models/Monitor";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
@@ -67,7 +67,7 @@ RunCron(
           onlyCheckForIncomingRequestReceivedAt: true,
         };
 
-        await ProbeMonitorResponseService.processProbeResponse(incomingRequest);
+        await MonitorResourceUtil.monitorResource(incomingRequest);
       } catch (error) {
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,

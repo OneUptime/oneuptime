@@ -18,8 +18,8 @@ import LoginUtil from "CommonUI/src/Utils/Login";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import UserUtil from "CommonUI/src/Utils/User";
-import Reseller from "Model/Models/Reseller";
-import User from "Model/Models/User";
+import Reseller from "Common/Models/DatabaseModels/Reseller";
+import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 

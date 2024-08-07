@@ -13,8 +13,8 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import User from "Model/Models/User";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor(postgresDatabase?: PostgresDatabase) {

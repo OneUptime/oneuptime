@@ -1,6 +1,6 @@
 import Route from "Common/Types/API/Route";
 import Link from "CommonUI/src/Components/Link/Link";
-import Team from "Model/Models/Team";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

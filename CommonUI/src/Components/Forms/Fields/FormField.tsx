@@ -1,9 +1,11 @@
+import Dictionary from "Common/Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
 import CodeEditor from "../../CodeEditor/CodeEditor";
+import DictionaryForm from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
@@ -18,7 +20,7 @@ import FieldLabelElement from "../Fields/FieldLabel";
 import Field, { FormFieldStyleType } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
-import FileModel from "Common/Models/FileModel";
+import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CodeType from "Common/Types/Code/CodeType";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -238,6 +240,7 @@ const FormField: <T extends GenericObject>(
             description={getFieldDescription()}
             sideLink={props.field.sideLink}
             required={required}
+            hideOptionalLabel={props.field.hideOptionalLabel}
             isHeading={props.field.styleType === FormFieldStyleType.Heading}
           />
         )}
@@ -314,6 +317,26 @@ const FormField: <T extends GenericObject>(
                   ? (props.currentValues as any)[props.fieldName]
                   : props.field.defaultValue || null
               }
+            />
+          )}
+
+          {props.field.fieldType === FormFieldSchemaType.Dictionary && (
+            <DictionaryForm
+              keys={props.field.jsonKeysForDictionary}
+              addButtonSuffix={props.field.title}
+              keyPlaceholder={"Key"}
+              valuePlaceholder={"Value"}
+              autoConvertValueTypes={true}
+              initialValue={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : props.field.defaultValue || {}
+              }
+              onChange={(value: Dictionary<string | number | boolean>) => {
+                props.field.onChange && props.field.onChange(value);
+                props.setFieldValue(props.fieldName, value);
+              }}
             />
           )}
 

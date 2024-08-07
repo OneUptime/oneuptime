@@ -1,7 +1,7 @@
 import { INGESTOR_URL, PROBE_MONITOR_FETCH_LIMIT } from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -13,7 +13,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "CommonServer/Utils/Logger";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 export default class FetchListAndProbe {
   private workerName: string = "";

@@ -7,7 +7,7 @@ import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSc
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import GlobalConfig from "Model/Models/GlobalConfig";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {

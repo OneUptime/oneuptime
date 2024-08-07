@@ -2,7 +2,7 @@ import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import ServiceCatalogService from "CommonServer/Services/ServiceCatalogService";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 
 export default class MigrateServiceLanguageToTechStack extends DataMigrationBase {
   public constructor() {

@@ -28,7 +28,7 @@ import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
 import LocalCache from "CommonServer/Infrastructure/LocalCache";
 import logger from "CommonServer/Utils/Logger";
-import Monitor from "Model/Models/Monitor";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 export default class MonitorUtil {
   public static async probeMonitor(

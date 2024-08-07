@@ -11,8 +11,8 @@ import ProjectService from "CommonServer/Services/ProjectService";
 import StatusPageService from "CommonServer/Services/StatusPageService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import StatusPage from "Model/Models/StatusPage";
-import User from "Model/Models/User";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "StatusPageOwner:SendCreatedResourceEmail",

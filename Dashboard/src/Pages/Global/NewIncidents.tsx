@@ -10,7 +10,7 @@ import Page from "CommonUI/src/Components/Page/Page";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { RequestOptions } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Incident from "Model/Models/Incident";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {

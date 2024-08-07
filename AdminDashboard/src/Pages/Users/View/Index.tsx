@@ -3,7 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";

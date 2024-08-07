@@ -7,7 +7,7 @@ import { DropdownOption } from "../../Dropdown/Dropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
 import FormValues from "./FormValues";
-import { BaseModelType } from "Common/Models/BaseModel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import MimeType from "Common/Types/File/MimeType";
@@ -54,7 +54,7 @@ export default interface Field<TEntity> {
     | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
     | undefined;
   dropdownModal?: {
-    type: BaseModelType;
+    type: DatabaseBaseModelType;
     labelField: string;
     valueField: string;
   };
@@ -97,4 +97,9 @@ export default interface Field<TEntity> {
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;
   doNotShowWhenCreating?: boolean | undefined;
+
+  //
+  jsonKeysForDictionary?: Array<string> | undefined;
+
+  hideOptionalLabel?: boolean | undefined;
 }

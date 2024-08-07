@@ -1,4 +1,4 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,7 +6,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import Image from "CommonUI/src/Components/Image/Image";
 import { FILE_URL } from "CommonUI/src/Config";
 import BlankProfilePic from "CommonUI/src/Images/users/blank-profile.svg";
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -10,7 +10,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import UptimeEvent from "CommonProject/Utils/Uptime/Event";
+import UptimeEvent from "Common/Utils/Uptime/Event";
 
 export type Event = UptimeEvent;
 

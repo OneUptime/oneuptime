@@ -12,10 +12,10 @@ import ProbeOwnerTeamService from "CommonServer/Services/ProbeOwnerTeamService";
 import ProbeOwnerUserService from "CommonServer/Services/ProbeOwnerUserService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
-import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
-import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
-import User from "Model/Models/User";
-import Probe from "Model/Models/Probe";
+import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeService from "CommonServer/Services/ProbeService";
 
 RunCron(

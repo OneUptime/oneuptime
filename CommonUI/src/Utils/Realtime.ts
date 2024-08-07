@@ -1,8 +1,8 @@
 import { HOST, HTTP_PROTOCOL } from "../Config";
 import Query from "./BaseDatabase/Query";
 import Select from "./BaseDatabase/Select";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
-import BaseModel from "Common/Models/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { RealtimeRoute } from "Common/ServiceRoute";
 import URL from "Common/Types/API/URL";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";

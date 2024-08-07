@@ -8,6 +8,7 @@ export interface ComponentProps {
   sideLink?: FormFieldSideLink | undefined;
   description?: string | ReactElement | undefined;
   isHeading?: boolean | undefined;
+  hideOptionalLabel?: boolean | undefined;
 }
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
@@ -23,7 +24,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         <span>
           {props.title}{" "}
           <span className="text-gray-400 text-xs">
-            {props.required ? "" : "(Optional)"}
+            {props.required || props.hideOptionalLabel ? "" : "(Optional)"}
           </span>
         </span>
         {props.sideLink && props.sideLink?.text && props.sideLink?.url && (

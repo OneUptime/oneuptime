@@ -8,7 +8,7 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import Components, { Categories } from "Common/Types/Workflow/Components";
 import BaseModelComponentFactory from "Common/Types/Workflow/Components/BaseModel";
-import Entities from "Model/Models/Index";
+import Entities from "Common/Models/DatabaseModels/Index";
 
 type LoadComponentsAndCategoriesFunction = () => {
   components: Array<ComponentMetadata>;

@@ -14,8 +14,8 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Permission, { UserPermission } from "Common/Types/Permission";
-import BillingPaymentMethod from "Model/Models/BillingPaymentMethod";
-import Project from "Model/Models/Project";
+import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class UserAPI extends BaseAPI<
   BillingPaymentMethod,

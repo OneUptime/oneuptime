@@ -5,7 +5,7 @@ import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import CodeRepositoryCommonServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
 import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import LocalFile from "CommonServer/Utils/LocalFile";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ServiceLanguageUtil from "Common/Utils/TechStack";
 import CodeRepositoryUtil from "./CodeRepository";
 

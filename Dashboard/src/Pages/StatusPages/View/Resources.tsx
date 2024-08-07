@@ -20,12 +20,12 @@ import API from "CommonUI/src/Utils/API/API";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import StatusPageGroup from "Model/Models/StatusPageGroup";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource, {
   UptimePrecision,
-} from "Model/Models/StatusPageResource";
+} from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   Fragment,
   FunctionComponent,

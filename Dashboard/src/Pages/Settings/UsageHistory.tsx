@@ -9,8 +9,8 @@ import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import TelemetryService from "Model/Models/TelemetryService";
-import TelemetryUsageBilling from "Model/Models/TelemetryUsageBilling";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps extends PageComponentProps {}

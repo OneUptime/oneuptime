@@ -9,7 +9,6 @@
         "CommonUI": "file:../CommonUI",
         "dotenv": "^16.4.5",
         "file-loader": "^6.2.0",
-        "Model": "file:../Model",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-router-dom": "^6.23.1",

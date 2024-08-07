@@ -14,10 +14,10 @@ import StatusPageService from "CommonServer/Services/StatusPageService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import UserNotificationSettingService from "CommonServer/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "CommonServer/Types/Markdown";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageOwnerTeam from "Model/Models/StatusPageOwnerTeam";
-import StatusPageOwnerUser from "Model/Models/StatusPageOwnerUser";
-import User from "Model/Models/User";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
+import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",

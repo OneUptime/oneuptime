@@ -8,8 +8,8 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageFooterLink from "Model/Models/StatusPageFooterLink";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

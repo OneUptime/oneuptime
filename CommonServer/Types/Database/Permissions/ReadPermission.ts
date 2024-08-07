@@ -6,7 +6,7 @@ import Select from "../Select";
 import SelectUtil from "../SelectUtil";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import TablePermission from "./TablePermission";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,

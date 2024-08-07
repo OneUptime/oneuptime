@@ -1,6 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import CustomFieldsPageBase from "./Base/CustomFieldsPageBase";
-import ScheduledMaintenanceCustomField from "Model/Models/ScheduledMaintenanceCustomField";
+import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenanceCustomFields: FunctionComponent<

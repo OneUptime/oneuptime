@@ -23,8 +23,8 @@ import Express, {
 import JSONWebToken from "CommonServer/Utils/JsonWebToken";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
-import StatusPageSSO from "Model/Models/StatusPageSso";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import xml2js from "xml2js";
 
 const router: ExpressRouter = Express.getRouter();

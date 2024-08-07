@@ -13,7 +13,7 @@ import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import { BILLING_ENABLED } from "CommonUI/src/Config";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import SmsLog from "Model/Models/SmsLog";
+import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import React, {
   Fragment,
   FunctionComponent,

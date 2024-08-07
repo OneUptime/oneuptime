@@ -13,7 +13,8 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import Log, { LogSeverity } from "Model/AnalyticsModels/Log";
+import Log from "Common/Models/AnalyticsModels/Log";
+import LogSeverity from "Common/Types/Log/LogSeverity";
 import OTelIngestService from "../Service/OTelIngest";
 import ObjectID from "Common/Types/ObjectID";
 import JSONFunctions from "Common/Types/JSONFunctions";

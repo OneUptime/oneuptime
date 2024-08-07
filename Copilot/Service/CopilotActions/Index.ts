@@ -7,9 +7,9 @@ import CopilotActionBase, {
 } from "./CopilotActionsBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import PullRequest from "Common/Types/CodeRepository/PullRequest";
-import CopilotAction from "Model/Models/CopilotAction";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import ObjectID from "Common/Types/ObjectID";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import URL from "Common/Types/API/URL";
@@ -23,7 +23,7 @@ import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
 import RefactorCode from "./RefactorCode";
 import WriteUnitTests from "./WriteUnitTests";
 import ImproveReadme from "./ImroveReadme";
-import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import CopilotPullRequestService from "../CopilotPullRequest";
 
 const actionDictionary: Dictionary<typeof CopilotActionBase> = {

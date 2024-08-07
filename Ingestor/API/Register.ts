@@ -10,7 +10,9 @@ import Express, {
   NextFunction,
 } from "CommonServer/Utils/Express";
 import Response from "CommonServer/Utils/Response";
-import Probe, { ProbeConnectionStatus } from "Model/Models/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 
 const router: ExpressRouter = Express.getRouter();
 

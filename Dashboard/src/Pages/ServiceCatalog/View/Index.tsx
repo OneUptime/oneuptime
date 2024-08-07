@@ -7,8 +7,8 @@ import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
+import Label from "Common/Models/DatabaseModels/Label";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TechStackView from "../../../Components/TechStack/TechStackView";
 

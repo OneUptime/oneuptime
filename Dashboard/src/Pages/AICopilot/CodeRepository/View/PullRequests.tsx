@@ -4,7 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import React, {
   Fragment,
   FunctionComponent,
@@ -15,7 +15,7 @@ import React, {
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import PullRequestStatusElement from "../../../../Components/CodeRepository/PullRequestStatus";
-import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";

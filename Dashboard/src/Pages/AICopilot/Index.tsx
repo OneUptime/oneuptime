@@ -12,8 +12,8 @@ import Page from "CommonUI/src/Components/Page/Page";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CopilotCodeRepository";
-import Label from "Model/Models/Label";
+import CodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { FunctionComponent, ReactElement } from "react";
 import URL from "Common/Types/API/URL";
 

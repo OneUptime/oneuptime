@@ -6,8 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Detail from "CommonUI/src/Components/Detail/Detail";
 import Pill from "CommonUI/src/Components/Pill/Pill";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

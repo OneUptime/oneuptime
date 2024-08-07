@@ -13,13 +13,15 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { UserPermission } from "Common/Types/Permission";
-import BillingInvoice, { InvoiceStatus } from "Model/Models/BillingInvoice";
-import Project from "Model/Models/Project";
+import BillingInvoice, {
+  InvoiceStatus,
+} from "Common/Models/DatabaseModels/BillingInvoice";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class UserAPI extends BaseAPI<
   BillingInvoice,

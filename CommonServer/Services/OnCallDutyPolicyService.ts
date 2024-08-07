@@ -5,8 +5,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor(postgresDatabase?: PostgresDatabase) {

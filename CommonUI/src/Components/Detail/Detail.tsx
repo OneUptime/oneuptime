@@ -11,7 +11,7 @@ import FieldType from "../Types/FieldType";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
-import FileModel from "Common/Models/FileModel";
+import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CodeType from "Common/Types/Code/CodeType";
 import Color from "Common/Types/Color";
 import DatabaseProperty from "Common/Types/Database/DatabaseProperty";

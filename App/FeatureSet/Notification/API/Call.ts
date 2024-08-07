@@ -15,7 +15,7 @@ import Express, {
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
 import Response from "CommonServer/Utils/Response";
-import ProjectCallSMSConfig from "Model/Models/ProjectCallSMSConfig";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 const router: ExpressRouter = Express.getRouter();
 

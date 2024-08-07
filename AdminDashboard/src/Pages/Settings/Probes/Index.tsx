@@ -16,7 +16,7 @@ import Page from "CommonUI/src/Components/Page/Page";
 import ProbeElement from "CommonUI/src/Components/Probe/Probe";
 import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
 import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Probe from "Model/Models/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {

@@ -9,10 +9,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorGroupResource from "Model/Models/MonitorGroupResource";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 
 export class Service extends DatabaseService<MonitorGroup> {
   public constructor(postgresDatabase?: PostgresDatabase) {

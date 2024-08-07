@@ -2,7 +2,7 @@ import CreateBy from "./CreateBy";
 import DeleteBy from "./DeleteBy";
 import FindBy from "./FindBy";
 import UpdateBy from "./UpdateBy";
-import BaseModel from "Common/AnalyticsModels/BaseModel";
+import BaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 
 export type DatabaseTriggerType = "on-create" | "on-update" | "on-delete";
 

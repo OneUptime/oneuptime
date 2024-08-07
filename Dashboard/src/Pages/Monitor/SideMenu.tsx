@@ -7,8 +7,8 @@ import CountModelSideMenuItem from "CommonUI/src/Components/SideMenu/CountModelS
 import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
 import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Monitor from "Model/Models/Monitor";
-import Project from "Model/Models/Project";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -48,23 +48,23 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           }}
         />
-
-        {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
-          <SideMenuSection title="Monitor Groups">
-            <SideMenuItem
-              link={{
-                title: "All Groups",
-                to: RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.MONITOR_GROUPS] as Route,
-                ),
-              }}
-              icon={IconProp.Squares}
-            />
-          </SideMenuSection>
-        ) : (
-          <></>
-        )}
       </SideMenuSection>
+
+      {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
+        <SideMenuSection title="Monitor Groups">
+          <SideMenuItem
+            link={{
+              title: "All Groups",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_GROUPS] as Route,
+              ),
+            }}
+            icon={IconProp.Squares}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Not Being Monitored">
         <CountModelSideMenuItem<Monitor>

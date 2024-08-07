@@ -5,9 +5,9 @@ import MonitorService from "CommonServer/Services/MonitorService";
 import MonitorStatusTimelineService from "CommonServer/Services/MonitorStatusTimelineService";
 import ProjectService from "CommonServer/Services/ProjectService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import Project from "Model/Models/Project";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import Project from "Common/Models/DatabaseModels/Project";
 
 export default class AddEndDateToMonitorStatusTimeline extends DataMigrationBase {
   public constructor() {

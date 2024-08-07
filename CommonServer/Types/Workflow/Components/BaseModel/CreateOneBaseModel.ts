@@ -1,7 +1,7 @@
 import DatabaseService from "../../../../Services/DatabaseService";
 import logger from "../../../../Utils/Logger";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";

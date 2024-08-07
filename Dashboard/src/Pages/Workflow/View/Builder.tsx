@@ -26,7 +26,7 @@ import { WORKFLOW_URL } from "CommonUI/src/Config";
 import API from "CommonUI/src/Utils/API/API";
 import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import WorkflowModel from "Model/Models/Workflow";
+import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import React, {
   Fragment,
   FunctionComponent,

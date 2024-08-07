@@ -62,7 +62,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
       <HeaderIconDropdownButton
         iconImageUrl={
           profilePictureId
-            ? FileUtil.getFileURL(profilePictureId)
+            ? FileUtil.getFileRoute(profilePictureId)
             : BlankProfilePic
         }
         name="User Profile"

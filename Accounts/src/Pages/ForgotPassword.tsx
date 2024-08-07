@@ -5,7 +5,7 @@ import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
 import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
 import Link from "CommonUI/src/Components/Link/Link";
 import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg";
-import User from "Model/Models/User";
+import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 
 const ForgotPassword: () => JSX.Element = () => {

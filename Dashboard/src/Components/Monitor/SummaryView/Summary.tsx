@@ -7,9 +7,10 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Card from "CommonUI/src/Components/Card/Card";
-import { MonitorStepProbeResponse } from "Model/Models/MonitorProbe";
-import Probe from "Model/Models/Probe";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -17,6 +18,7 @@ export interface ComponentProps {
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
+  telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
 }
 
 const Summary: FunctionComponent<ComponentProps> = (
@@ -81,6 +83,7 @@ const Summary: FunctionComponent<ComponentProps> = (
           probeMonitorResponses={probeResponses}
           incomingMonitorRequest={props.incomingMonitorRequest}
           serverMonitorResponse={props.serverMonitorResponse}
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
         />
       </div>
     </Card>

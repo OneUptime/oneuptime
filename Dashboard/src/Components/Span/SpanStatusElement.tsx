@@ -1,7 +1,7 @@
 import { Green, Red } from "Common/Types/BrandColors";
 import ColorCircle from "CommonUI/src/Components/ColorCircle/ColorCircle";
 import Link from "CommonUI/src/Components/Link/Link";
-import { SpanStatus } from "Model/AnalyticsModels/Span";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";

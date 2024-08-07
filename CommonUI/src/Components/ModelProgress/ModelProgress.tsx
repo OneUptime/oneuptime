@@ -5,7 +5,7 @@ import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ProgressBar from "../ProgressBar/ProgressBar";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, { ReactElement, useEffect, useState } from "react";
 

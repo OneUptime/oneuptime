@@ -17,9 +17,9 @@ import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Model/Models/Project";
-import Reseller from "Model/Models/Reseller";
-import TeamMember from "Model/Models/TeamMember";
+import Project from "Common/Models/DatabaseModels/Project";
+import Reseller from "Common/Models/DatabaseModels/Reseller";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {

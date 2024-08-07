@@ -5,7 +5,7 @@ import { IsDevelopment } from "CommonServer/EnvironmentConfig";
 import ProjectService from "CommonServer/Services/ProjectService";
 import TeamMemberService from "CommonServer/Services/TeamMemberService";
 import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Project from "Model/Models/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(
   "PaymentProvider:UpdateTeamMembersIfNull",

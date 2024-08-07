@@ -1,6 +1,6 @@
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import CommonAggregateBy from "Common/Types/BaseDatabase/AggregateBy";
-import AnalyticsBaseModel from "Common/AnalyticsModels/BaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default interface AggregateBy<TBaseModel extends AnalyticsBaseModel>

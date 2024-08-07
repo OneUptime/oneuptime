@@ -25,15 +25,15 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Typeof from "Common/Types/Typeof";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
-import Model from "Model/Models/Incident";
-import IncidentOwnerTeam from "Model/Models/IncidentOwnerTeam";
-import IncidentOwnerUser from "Model/Models/IncidentOwnerUser";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import User from "Model/Models/User";
+import Model from "Common/Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {

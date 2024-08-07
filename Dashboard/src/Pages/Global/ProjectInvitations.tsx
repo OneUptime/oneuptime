@@ -14,7 +14,7 @@ import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
 import ModelAPI, { RequestOptions } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import User from "CommonUI/src/Utils/User";
-import TeamMember from "Model/Models/TeamMember";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {

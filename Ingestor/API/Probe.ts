@@ -20,11 +20,11 @@ import Express, {
   NextFunction,
 } from "CommonServer/Utils/Express";
 import logger from "CommonServer/Utils/Logger";
-import ProbeMonitorResponseService from "CommonServer/Utils/Probe/ProbeMonitorResponse";
+import MonitorResourceUtil from "CommonServer/Utils/Monitor/MonitorResource";
 import Response from "CommonServer/Utils/Response";
-import GlobalConfig from "Model/Models/GlobalConfig";
-import Probe from "Model/Models/Probe";
-import User from "Model/Models/User";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import User from "Common/Models/DatabaseModels/User";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -246,7 +246,7 @@ router.post(
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =
-        await ProbeMonitorResponseService.processProbeResponse(probeResponse);
+        await MonitorResourceUtil.monitorResource(probeResponse);
 
       return Response.sendJsonObjectResponse(req, res, {
         probeApiIngestResponse: probeApiIngestResponse,

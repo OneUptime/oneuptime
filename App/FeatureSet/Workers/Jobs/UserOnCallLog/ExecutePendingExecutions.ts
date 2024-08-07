@@ -10,9 +10,9 @@ import IncidentService from "CommonServer/Services/IncidentService";
 import UserNotificationRuleService from "CommonServer/Services/UserNotificationRuleService";
 import UserOnCallLogService from "CommonServer/Services/UserOnCallLogService";
 import logger from "CommonServer/Utils/Logger";
-import Incident from "Model/Models/Incident";
-import UserNotificationRule from "Model/Models/UserNotificationRule";
-import UserOnCallLog from "Model/Models/UserOnCallLog";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
+import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",

@@ -6,7 +6,7 @@ import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -28,11 +28,13 @@ import BaseAPI from "CommonUI/src/Utils/API/API";
 import GlobalEvent from "CommonUI/src/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Label from "Model/Models/Label";
+import Incident, {
+  TelemetryIncidentQuery,
+} from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
   FunctionComponent,
@@ -41,6 +43,10 @@ import React, {
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
+import Card from "CommonUI/src/Components/Card/Card";
+import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -54,6 +60,9 @@ const IncidentView: FunctionComponent<
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [telemetryQuery, setTelemetryQuery] =
+    useState<TelemetryIncidentQuery | null>(null);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -96,6 +105,23 @@ const IncidentView: FunctionComponent<
         sort: {},
       });
 
+      const incident: Incident | null = await ModelAPI.getItem({
+        id: modelId,
+        modelType: Incident,
+        select: {
+          telemetryQuery: true,
+        },
+      });
+
+      let telemetryQuery: TelemetryIncidentQuery | null = null;
+
+      if (incident?.telemetryQuery) {
+        telemetryQuery = JSONFunctions.deserialize(
+          incident?.telemetryQuery as any,
+        ) as any;
+      }
+
+      setTelemetryQuery(telemetryQuery);
       setIncidentStates(incidentStates.data as IncidentState[]);
       setIncidentStateTimeline(
         incidentTimelines.data as IncidentStateTimeline[],
@@ -660,6 +686,19 @@ const IncidentView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      {telemetryQuery && telemetryQuery.telemetryType === TelemetryType.Log && (
+        <div>
+          <Card title={"Logs"} description={"Logs for this incident."}>
+            <DashboardLogsViewer
+              id="logs-preview"
+              logQuery={telemetryQuery.telemetryQuery}
+              limit={10}
+              noLogsMessage="No logs found"
+            />
+          </Card>
+        </div>
+      )}
     </Fragment>
   );
 };

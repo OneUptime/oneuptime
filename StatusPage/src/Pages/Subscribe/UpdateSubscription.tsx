@@ -20,7 +20,7 @@ import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
 import LocalStorage from "CommonUI/src/Utils/LocalStorage";
 import Navigation from "CommonUI/src/Utils/Navigation";
 import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,
   ReactElement,

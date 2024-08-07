@@ -23,8 +23,8 @@ import {
 } from "CommonUI/src/Config";
 import DropdownUtil from "CommonUI/src/Utils/Dropdown";
 import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageSSO from "Model/Models/StatusPageSso";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, {
   Fragment,
   FunctionComponent,
