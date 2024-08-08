@@ -234,8 +234,10 @@ cronJobs:
 
 letsEncrypt:
   # Generate a private key via openssl, encode it to base64
+  # Example: "LS0tLS....1cbg=="
   accountKey:
   # Email address to register with letsencrypt for notifications
+  # Example: "hello@yourcompany.com"
   email:
 
 oneuptimeIngress:
