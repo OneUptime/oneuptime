@@ -8,16 +8,6 @@ import { createDatabase, dropDatabase } from "typeorm-extension";
 export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
 
-type DatabaseExtentionsType = {
-  createDatabase: typeof createDatabase;
-  dropDatabase: typeof dropDatabase;
-};
-
-export const DatabaseExtentions: DatabaseExtentionsType = {
-  createDatabase: createDatabase,
-  dropDatabase: dropDatabase,
-};
-
 export default class Database {
   private dataSource!: DataSource | null;
 
@@ -105,6 +95,19 @@ export default class Database {
       logger.error(err);
       return false;
     }
+  }
+
+  public async dropDatabase(): Promise<void> {
+    await dropDatabase({
+      options: dataSourceOptions,
+    });
+  }
+
+  public async createDatabase(): Promise<void> {
+    await createDatabase({
+      options: dataSourceOptions,
+      ifNotExist: true,
+    });
   }
 }
 

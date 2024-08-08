@@ -1,12 +1,10 @@
 import PostgresDatabase, {
   DatabaseSource,
   DatabaseSourceOptions,
-  DatabaseExtentions,
 } from "../../../Server/Infrastructure/PostgresDatabase";
 
 export default class DatabaseConnect {
   private database!: PostgresDatabase;
-  private dataSourceOptions!: DatabaseSourceOptions;
 
   public constructor() {
     this.database = new PostgresDatabase();
@@ -30,11 +28,7 @@ export default class DatabaseConnect {
   public async createDatabase(): Promise<DatabaseSourceOptions> {
     const dataSourceOptions: DatabaseSourceOptions =
       this.database.getTestDatasourceOptions();
-    this.dataSourceOptions = dataSourceOptions;
-    await DatabaseExtentions.createDatabase({
-      options: dataSourceOptions,
-      ifNotExist: true,
-    });
+    this.database.createDatabase();
 
     return dataSourceOptions;
   }
@@ -52,9 +46,6 @@ export default class DatabaseConnect {
   }
 
   public async dropDatabase(): Promise<void> {
-    await DatabaseExtentions.dropDatabase({
-      options: this.dataSourceOptions,
-      ifExist: true,
-    });
+    await this.database.dropDatabase();
   }
 }
