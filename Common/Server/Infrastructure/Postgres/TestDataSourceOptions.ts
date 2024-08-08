@@ -1,4 +1,4 @@
-import { DatabaseName } from "../../EnvironmentConfig";
+import { DatabaseName } from "../../../Server/EnvironmentConfig";
 import ProdDataSourceOptions from "./DataSourceOptions";
 import Faker from "Common/Utils/Faker";
 import { DataSourceOptions } from "typeorm";
@@ -14,7 +14,7 @@ const getTestDataSourceOptions: GetTestDataSourceOptions =
       port: parseInt(process.env["DATABASE_PORT"]?.toString() || "5432"),
       username: process.env["DATABASE_USERNAME"] || "postgres",
       password: process.env["DATABASE_PASSWORD"] || "password",
-      database: DatabaseName + Faker.randomNumbers(16),
+      database: DatabaseName + Faker.getRandomNumbers(16).toString(),
     } as DataSourceOptions;
   };
 

@@ -1,4 +1,4 @@
-import { WorkflowScriptTimeoutInMS } from "../../../EnvironmentConfig";
+import { WorkflowScriptTimeoutInMS } from "../../../../Server/EnvironmentConfig";
 import VMUtil from "../../../Utils/VM/VMAPI";
 import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
 import BadDataException from "Common/Types/Exception/BadDataException";

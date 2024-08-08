@@ -1,5 +1,4 @@
 import ComponentsModal from "../../../UI/Components/Workflow/ComponentsModal";
-import { faker } from "@faker-js/faker";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -10,6 +9,7 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import Faker from "../../../Utils/Faker";
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique
 
@@ -18,12 +18,12 @@ type GetComponentMetadataFunction = (category?: string) => ComponentMetadata;
 const getComponentMetadata: GetComponentMetadataFunction = (
   category?: string,
 ): ComponentMetadata => {
-  const id: string = faker.datatype.uuid();
+  const id: string = Faker.generateRandomObjectID().toString();
   return {
     id,
     title: id,
-    description: faker.datatype.uuid(),
-    category: category || faker.datatype.uuid(),
+    description: Faker.generateRandomObjectID().toString(),
+    category: category || Faker.generateRandomObjectID().toString(),
     iconProp: IconProp.Activity,
     componentType: ComponentType.Component,
     arguments: [],
@@ -39,7 +39,7 @@ const getComponentCategory: GetComponentCategoryFunction = (
   name?: string,
 ): ComponentCategory => {
   return {
-    name: name || faker.datatype.uuid(),
+    name: name || Faker.generateRandomObjectID().toString(),
     description: `Description for ${name}`,
     icon: IconProp.Activity,
   };

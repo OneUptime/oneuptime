@@ -9,7 +9,7 @@ import {
   DatabaseSslKey,
   DatabaseUsername,
   ShouldDatabaseSslEnable,
-} from "../../EnvironmentConfig";
+} from "../../../Server/EnvironmentConfig";
 import Migrations from "./SchemaMigrations/Index";
 import DatabaseType from "Common/Types/DatabaseType";
 import Entities from "Common/Models/DatabaseModels/Index";

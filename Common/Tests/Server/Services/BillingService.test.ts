@@ -118,6 +118,9 @@ describe("BillingService", () => {
   });
 
   describe("Subscription Management", () => {
+    Object.defineProperty(global, 'performance', {
+      writable: true,
+    });
     jest.useFakeTimers();
     let mockDate: Date = new Date(2023, 3, 1); // April 1, 2023
     jest.setSystemTime(mockDate);

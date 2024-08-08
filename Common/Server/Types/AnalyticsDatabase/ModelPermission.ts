@@ -1,4 +1,4 @@
-import { IsBillingEnabled, getAllEnvVars } from "../../EnvironmentConfig";
+import { IsBillingEnabled, getAllEnvVars } from "../../../Server/EnvironmentConfig";
 import DatabaseRequestType from "../BaseDatabase/DatabaseRequestType";
 import Query from "./Query";
 import Select from "./Select";

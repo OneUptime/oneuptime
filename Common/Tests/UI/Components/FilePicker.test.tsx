@@ -1,6 +1,5 @@
 import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { faker } from "@faker-js/faker";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import {
@@ -19,6 +18,7 @@ import FileModel from "Common/Models/DatabaseModels/File";
 import React from "react";
 import { act } from "react-test-renderer";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import Faker from "../../../Utils/Faker";
 
 const mockOnChange: MockFunction = getJestMockFunction();
 const mockOnBlur: MockFunction = getJestMockFunction();
@@ -89,8 +89,8 @@ const mockFile: MockFileFunction = (): File => {
   mockArrayBuffer.mockResolvedValue(new ArrayBuffer(10)); // Mocked array buffer of size 10
 
   const file: File = new File(
-    [faker.datatype.string()],
-    faker.system.commonFileName(MimeType.png),
+    [Faker.generateRandomString()],
+    Faker.generateRandomString()+".png",
     { type: MimeType.png },
   );
   file.arrayBuffer = mockArrayBuffer;

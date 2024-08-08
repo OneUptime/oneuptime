@@ -101,7 +101,7 @@ jest.mock("../../../Server/Services/ProjectService", () => {
   };
 });
 
-jest.mock("../../EnvironmentConfig", () => {
+jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
     IsBillingEnabled: true,
   };

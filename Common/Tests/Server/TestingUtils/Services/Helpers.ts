@@ -6,12 +6,12 @@ import {
   MeteredSubscription,
   Subscription,
 } from "../../TestingUtils/Services/Types";
-import { faker } from "@faker-js/faker";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import { Stripe } from "stripe";
+import Faker from "../../../../Utils/Faker";
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 
@@ -21,7 +21,7 @@ const mockIsBillingEnabled: MockIsBillingEnabledFunction = (
   value: boolean,
 ): BillingService => {
   jest.resetModules();
-  jest.doMock("../../../BillingConfig", () => {
+  jest.doMock("../../../../Server/BillingConfig", () => {
     return {
       IsBillingEnabled: value,
     };
@@ -37,11 +37,11 @@ type GetStripeCustomerFunction = (id?: string) => Stripe.Customer;
 const getStripeCustomer: GetStripeCustomerFunction = (
   id?: string,
 ): Stripe.Customer => {
-  id = id || faker.datatype.uuid();
+  id = id || Faker.generateRandomObjectID().toString();
   return {
     id,
     object: "customer",
-    balance: faker.datatype.number(),
+    balance: Faker.getRandomNumbers(3),
     created: 1,
     default_source: null,
     description: null,
@@ -63,11 +63,11 @@ type GetStripeSubscriptionFunction = () => Stripe.Subscription;
 const getStripeSubscription: GetStripeSubscriptionFunction =
   (): Stripe.Subscription => {
     return {
-      id: faker.datatype.uuid(),
+      id: Faker.generateRandomObjectID().toString(),
       items: {
         data: [
           {
-            id: faker.datatype.uuid(),
+            id: Faker.generateRandomObjectID().toString(),
             // @ts-ignore
             price: {
               id: new BillingService().getMeteredPlanPriceId(
@@ -87,13 +87,13 @@ type GetSubscriptionPlanDataFunction = () => SubscriptionPlan;
 const getSubscriptionPlanData: GetSubscriptionPlanDataFunction =
   (): SubscriptionPlan => {
     return new SubscriptionPlan(
-      faker.datatype.uuid(), // monthlyPlanId
-      faker.datatype.uuid(), // yearlyPlanId
-      faker.commerce.productName(), // name
-      faker.datatype.number(), // monthlySubscriptionAmountInUSD
-      faker.datatype.number({ min: 1, max: 100 }), // yearlySubscriptionAmountInUSD
-      faker.datatype.number({ min: 1, max: 100 }), // order
-      faker.datatype.number({ min: 1, max: 100 }), // trial period days
+      Faker.generateRandomObjectID().toString(), // monthlyPlanId
+      Faker.generateRandomObjectID().toString(), // yearlyPlanId
+      Faker.generateRandomString(), // name
+      Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }), // monthlySubscriptionAmountInUSD
+      Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }), // yearlySubscriptionAmountInUSD
+      Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }), // order
+      Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }), // trial period days
     );
   };
 
@@ -102,11 +102,11 @@ type GetStripeInvoiceFunction = () => Stripe.Invoice;
 const getStripeInvoice: GetStripeInvoiceFunction = (): Stripe.Invoice => {
   // @ts-ignore
   return {
-    id: faker.datatype.uuid(),
-    amount_due: faker.datatype.number(),
+    id: Faker.generateRandomObjectID().toString(),
+    amount_due: Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }),
     currency: "usd",
-    customer: faker.datatype.uuid(),
-    subscription: faker.datatype.uuid(),
+    customer: Faker.generateRandomObjectID().toString(),
+    subscription: Faker.generateRandomObjectID().toString(),
     status: "paid",
   };
 };

@@ -1,4 +1,4 @@
-import { IsolatedVMHostname } from "../../EnvironmentConfig";
+import { IsolatedVMHostname } from "../../../../Server/EnvironmentConfig";
 import ClusterKeyAuthorization from "../../Middleware/ClusterKeyAuthorization";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";

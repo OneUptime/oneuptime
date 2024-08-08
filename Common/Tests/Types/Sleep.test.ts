@@ -2,6 +2,9 @@ import Sleep from "../../Types/Sleep";
 
 describe("Sleep.sleep", () => {
   test("should delay by given duration", async () => {
+    Object.defineProperty(global, 'performance', {
+      writable: true,
+    });
     jest.useFakeTimers();
     jest.spyOn(global, "setTimeout");
 

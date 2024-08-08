@@ -15,7 +15,6 @@ import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper"
 import TeamMemberServiceHelper from "../TestingUtils/Services/TeamMemberServiceHelper";
 import TeamServiceHelper from "../TestingUtils/Services/TeamServiceHelper";
 import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
-import { faker } from "@faker-js/faker";
 import { describe, expect, it } from "@jest/globals";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
@@ -23,6 +22,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import Faker from "../../../Utils/Faker";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
@@ -162,7 +162,7 @@ describe("TeamMemberService", () => {
       it("should create user if the invited user does not exist in the system", async () => {
         jest.spyOn(MailService, "sendMail").mockResolvedValue(null!);
 
-        const nonExistingUserEmail: string = faker.internet.email();
+        const nonExistingUserEmail: string = Faker.generateEmail().toString();
         const tm: CreateBy<TeamMember> =
           TeamMemberServiceHelper.generateRandomTeamMember(
             new ObjectID(project._id!),
@@ -184,9 +184,7 @@ describe("TeamMemberService", () => {
           _id: project._id,
         });
 
-        const nonExistingUserEmail: string = faker.internet
-          .email()
-          .toLowerCase();
+        const nonExistingUserEmail: string =  Faker.generateEmail().toString();
         const tm: CreateBy<TeamMember> =
           TeamMemberServiceHelper.generateRandomTeamMember(
             new ObjectID(project._id!),
@@ -501,8 +499,8 @@ describe("TeamMemberService", () => {
     it("should refresh user global and tenant access permissions", async () => {
       jest.restoreAllMocks();
 
-      const userId: ObjectID = new ObjectID(faker.datatype.uuid());
-      const projectId: ObjectID = new ObjectID(faker.datatype.uuid());
+      const userId: ObjectID = new ObjectID(Faker.generateRandomObjectID().toString());
+      const projectId: ObjectID = new ObjectID(Faker.generateRandomObjectID().toString());
 
       await teamMemberService.refreshTokens(userId, projectId);
 
@@ -521,23 +519,23 @@ describe("TeamMemberService", () => {
       // total should be 2 unique team members
       teamMemberService.findBy = jest.fn().mockResolvedValue([
         {
-          _id: faker.datatype.uuid(),
-          userId: faker.datatype.uuid(),
-          memberId: faker.datatype.uuid(),
+          _id: Faker.generateRandomObjectID().toString(),
+          userId: Faker.generateRandomObjectID().toString(),
+          memberId: Faker.generateRandomObjectID().toString(),
         },
         {
-          _id: faker.datatype.uuid(),
+          _id: Faker.generateRandomObjectID().toString(),
           userId: "duplicated_id",
-          memberId: faker.datatype.uuid(),
+          memberId: Faker.generateRandomObjectID().toString(),
         },
         {
-          _id: faker.datatype.uuid(),
+          _id: Faker.generateRandomObjectID().toString(),
           userId: "duplicated_id",
-          memberId: faker.datatype.uuid(),
+          memberId: Faker.generateRandomObjectID().toString(),
         },
         {
-          _id: faker.datatype.uuid(),
-          memberId: faker.datatype.uuid(),
+          _id: Faker.generateRandomObjectID().toString(),
+          memberId: Faker.generateRandomObjectID().toString(),
         },
       ]);
 
