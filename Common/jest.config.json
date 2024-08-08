@@ -29,9 +29,6 @@
     "collectCoverageFrom": [
         "./**/*.(tsx||ts)"
     ],
-    "moduleNameMapper": {
-        "axios": "./node_modules/axios/dist/node/axios.cjs"
-    },
     "coverageThreshold": {
         "global": {
             "lines": 0,
