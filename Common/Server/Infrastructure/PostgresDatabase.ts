@@ -8,12 +8,12 @@ import { createDatabase, dropDatabase } from "typeorm-extension";
 export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
 
-type DatabaseExtentions = {
+type DatabaseExtentionsType = {
   createDatabase: typeof createDatabase;
   dropDatabase: typeof dropDatabase;
 };
 
-export const DatabaseExtentions: DatabaseExtentions = {
+export const DatabaseExtentions: DatabaseExtentionsType = {
   createDatabase: createDatabase,
   dropDatabase: dropDatabase,
 };
