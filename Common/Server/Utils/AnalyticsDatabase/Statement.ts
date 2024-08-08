@@ -135,7 +135,7 @@ export class Statement implements BaseQueryParams {
    */
   public append(statement: Statement | string): Statement {
     if (statement instanceof Statement) {
-      this.strings[this.strings.length - 1] += statement.strings[0];
+      this.strings[this.strings.length - 1]! += statement.strings[0];
       this.strings.push(...statement.strings.slice(1));
       this.values.push(...statement.values);
     } else {

@@ -3,6 +3,20 @@ import dataSourceOptions from "./Postgres/DataSourceOptions";
 import getTestDataSourceOptions from "./Postgres/TestDataSourceOptions";
 import Sleep from "Common/Types/Sleep";
 import { DataSource, DataSourceOptions } from "typeorm";
+import { createDatabase, dropDatabase } from "typeorm-extension";
+
+export type DatabaseSourceOptions = DataSourceOptions;
+export type DatabaseSource = DataSource;
+
+type DatabaseExtentions = {
+  createDatabase: typeof createDatabase;
+  dropDatabase: typeof dropDatabase;
+};
+
+export const DatabaseExtentions: DatabaseExtentions = {
+  createDatabase: createDatabase,
+  dropDatabase: dropDatabase,
+};
 
 export default class Database {
   private dataSource!: DataSource | null;

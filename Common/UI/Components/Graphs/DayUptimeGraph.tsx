@@ -118,7 +118,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         secondsOfEvent[event.eventStatusId.toString()] = 0;
       }
 
-      secondsOfEvent[event.eventStatusId.toString()] += seconds;
+      secondsOfEvent[event.eventStatusId.toString()]! += seconds;
 
       eventLabels[event.eventStatusId.toString()] = event.label;
 

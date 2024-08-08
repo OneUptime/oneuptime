@@ -1,10 +1,12 @@
-import PostgresDatabase from "../../../Server/Infrastructure/PostgresDatabase";
-import { DataSource, DataSourceOptions } from "typeorm";
-import { createDatabase, dropDatabase } from "typeorm-extension";
+import PostgresDatabase, {
+  DatabaseSource,
+  DatabaseSourceOptions,
+  DatabaseExtentions,
+} from "../../../Server/Infrastructure/PostgresDatabase";
 
 export default class DatabaseConnect {
   private database!: PostgresDatabase;
-  private dataSourceOptions!: DataSourceOptions;
+  private dataSourceOptions!: DatabaseSourceOptions;
 
   public constructor() {
     this.database = new PostgresDatabase();
@@ -14,8 +16,9 @@ export default class DatabaseConnect {
     return this.database;
   }
 
-  public async createAndConnect(): Promise<DataSource> {
-    const dataSourceOptions: DataSourceOptions = await this.createDatabase();
+  public async createAndConnect(): Promise<DatabaseSource> {
+    const dataSourceOptions: DatabaseSourceOptions =
+      await this.createDatabase();
     return await this.connectDatabase(dataSourceOptions);
   }
 
@@ -24,11 +27,11 @@ export default class DatabaseConnect {
     await this.dropDatabase();
   }
 
-  public async createDatabase(): Promise<DataSourceOptions> {
-    const dataSourceOptions: DataSourceOptions =
+  public async createDatabase(): Promise<DatabaseSourceOptions> {
+    const dataSourceOptions: DatabaseSourceOptions =
       this.database.getTestDatasourceOptions();
     this.dataSourceOptions = dataSourceOptions;
-    await createDatabase({
+    await DatabaseExtentions.createDatabase({
       options: dataSourceOptions,
       ifNotExist: true,
     });
@@ -36,9 +39,9 @@ export default class DatabaseConnect {
     return dataSourceOptions;
   }
   public async connectDatabase(
-    dataSourceOptions: DataSourceOptions,
-  ): Promise<DataSource> {
-    const connection: DataSource =
+    dataSourceOptions: DatabaseSourceOptions,
+  ): Promise<DatabaseSource> {
+    const connection: DatabaseSource =
       await this.database.connect(dataSourceOptions);
     await connection.synchronize();
     return connection;
@@ -49,7 +52,7 @@ export default class DatabaseConnect {
   }
 
   public async dropDatabase(): Promise<void> {
-    await dropDatabase({
+    await DatabaseExtentions.dropDatabase({
       options: this.dataSourceOptions,
       ifExist: true,
     });

@@ -229,13 +229,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
     if (field.fieldType === FieldType.ImageFile) {
       if (
         props.item[fieldKey] &&
-        (props.item[fieldKey] as FileModel).file &&
-        (props.item[fieldKey] as FileModel).type
+        (props.item[fieldKey] as unknown as FileModel).file &&
+        (props.item[fieldKey] as unknown as FileModel).type
       ) {
         const blob: Blob = new Blob(
-          [(props.item[fieldKey] as FileModel).file as Uint8Array],
+          [(props.item[fieldKey] as unknown as FileModel).file as Uint8Array],
           {
-            type: (props.item[fieldKey] as FileModel).type as string,
+            type: (props.item[fieldKey] as unknown as FileModel).type as string,
           },
         );
 
