@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 18.3.0 
+      - run: cd Common && npm install
       - run: cd Common && bash test-setup.sh
-      - run: cd Common && npm install && npm run test
+      - run: export $(grep -v '^#' config.env | xargs) && cd Common && rm -rf build && npm run test
   

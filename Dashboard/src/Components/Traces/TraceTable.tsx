@@ -122,7 +122,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <div className="rounded">
         <AnalyticsModelTable<Span>
-          disablePagination={true}
+          disablePagination={props.isMinimalTable}
           modelType={Span}
           id="traces-table"
           isDeleteable={false}
