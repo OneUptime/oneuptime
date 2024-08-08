@@ -107,7 +107,7 @@ export class Statement implements BaseQueryParams {
         v.type === TableColumnType.Text ||
         v.type === TableColumnType.ObjectID
       ) {
-        finalValue = v.value.values.map((val: string | ObjectID) => {
+        finalValue = v.value.values.map((val: string | ObjectID | number) => {
           return `${val.toString()}`;
         });
       } else {
