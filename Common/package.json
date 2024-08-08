@@ -87,7 +87,6 @@
         "slugify": "^1.6.5",
         "typeorm": "^0.3.20",
         "uuid": "^8.3.2",
-        "@babel/runtime": "^7.24.6",
         "@monaco-editor/react": "^4.4.6",
         "@nivo/core": "^0.87.0",
         "@nivo/line": "^0.87.0",
