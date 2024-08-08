@@ -32,4 +32,14 @@ sed -i 's/.*REDIS_PORT.*/REDIS_PORT=6379/' config.env
 sed -i 's/.*REDIS_DB.*/REDIS_DB=0/' config.env
 sed -i 's/.*REDIS_USERNAME.*/REDIS_USERNAME=default/' config.env
 
-export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up -d postgres
+# print config.env file
+echo "config.env file"
+cat config.env
+
+export $(grep -v '^#' config.env | xargs) 
+
+# print env vars
+echo "env vars"
+printenv
+
+docker compose -f docker-compose.dev.yml up -d postgres
