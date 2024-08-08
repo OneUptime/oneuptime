@@ -1,14 +1,13 @@
 import MonitorStepTraceMonitor from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import TraceMonitorPreview from "../../../Monitor/TraceMonitor/TraceMonitorPreview";
-import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import SpanUtil from "../../../../Utils/SpanUtil";
 
 export interface ComponentProps {
   monitorStepTraceMonitor: MonitorStepTraceMonitor;
@@ -23,14 +22,19 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [monitorStepTraceMonitor, setMonitorStepTraceMonitor] =
-    React.useState<MonitorStepTraceMonitor>(props.monitorStepTraceMonitor);
+    React.useState<MonitorStepTraceMonitor | null>(null);
 
   let showAdvancedOptionsByDefault: boolean = false;
 
+  useEffect(() => {
+    setMonitorStepTraceMonitor(props.monitorStepTraceMonitor);
+  }, [props.monitorStepTraceMonitor]);
+
   if (
-    monitorStepTraceMonitor.attributes ||
-    monitorStepTraceMonitor.spanStatuses ||
-    monitorStepTraceMonitor.telemetryServiceIds
+    monitorStepTraceMonitor &&
+    (monitorStepTraceMonitor.attributes ||
+      monitorStepTraceMonitor.spanStatuses ||
+      monitorStepTraceMonitor.telemetryServiceIds)
   ) {
     showAdvancedOptionsByDefault = true;
   }
@@ -121,8 +125,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             field: {
               spanStatuses: true,
             },
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(SpanStatus),
+            dropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             title: "Filter by Span Status",
             description: "Select the status of the spans you want to monitor.",
@@ -183,7 +186,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <HorizontalRule />
         <FieldLabelElement
-          title={"Traces Preview"}
+          title={"Spans Preview"}
           description={
             "Here is the preview of the Traces that will be monitored based on the filters you have set above."
           }
@@ -192,7 +195,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
         <div className="mt-5 mb-5">
           <TraceMonitorPreview
-            monitorStepTraceMonitor={monitorStepTraceMonitor}
+            monitorStepTraceMonitor={monitorStepTraceMonitor!}
           />
         </div>
       </div>

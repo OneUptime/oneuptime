@@ -25,7 +25,7 @@ export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
   id: string;
   columns: Columns<T>;
-
+  className?: string;
   disablePagination?: undefined | boolean;
   onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
   currentPageNumber: number;
@@ -200,7 +200,7 @@ const Table: TableFunction = <T extends GenericObject>(
   });
 
   return (
-    <div>
+    <div className={props.className}>
       <FilterViewer
         id={`${props.id}-filter`}
         showFilterModal={props.showFilterModal || false}

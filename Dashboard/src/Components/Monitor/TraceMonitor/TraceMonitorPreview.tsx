@@ -5,6 +5,7 @@ import MonitorStepTraceMonitor, {
 import TraceTable from "../../Traces/TraceTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   monitorStepTraceMonitor: MonitorStepTraceMonitor | undefined;
@@ -25,10 +26,14 @@ const TraceMonitorPreview: FunctionComponent<ComponentProps> = (
   const [spanQuery, setSpanQuery] = React.useState<Query<Span>>(refreshQuery());
 
   useEffect(() => {
-    setSpanQuery(refreshQuery());
+    const query: Query<Span> = refreshQuery();
+
+    if (JSONFunctions.isJSONObjectDifferent(spanQuery, query)) {
+      setSpanQuery(query);
+    }
   }, [props.monitorStepTraceMonitor]);
 
-  return <TraceTable spanQuery={spanQuery} />;
+  return <TraceTable isMinimalTable={true} spanQuery={spanQuery} />;
 };
 
 export default TraceMonitorPreview;

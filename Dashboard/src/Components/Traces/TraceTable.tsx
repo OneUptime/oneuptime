@@ -6,7 +6,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import React, {
   Fragment,
   FunctionComponent,
@@ -27,10 +27,13 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
+import SpanUtil from "../../Utils/SpanUtil";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
   spanQuery?: Query<Span> | undefined;
+  isMinimalTable?: boolean | undefined;
+  noItemsMessage?: string | undefined;
 }
 
 const TraceTable: FunctionComponent<ComponentProps> = (
@@ -42,6 +45,16 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
   const [pageError, setPageError] = React.useState<string>("");
+
+  const [spanQuery, setSpanQuery] = React.useState<Query<Span> | null>(
+    props.spanQuery || null,
+  );
+
+  useEffect(() => {
+    if (props.spanQuery) {
+      setSpanQuery(props.spanQuery);
+    }
+  }, [props.spanQuery]);
 
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -107,137 +120,139 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <AnalyticsModelTable<Span>
-        modelType={Span}
-        id="traces-table"
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        singularName="Trace"
-        pluralName="Traces"
-        name="Traces"
-        isViewable={true}
-        cardProps={{
-          title: "Traces",
-          description:
-            "Traces are the individual spans that make up a request. They are the building blocks of a trace and represent the work done by a single service.",
-        }}
-        query={{
-          projectId: DashboardNavigation.getProjectId(),
-          serviceId: modelId ? modelId : undefined,
-          ...props.spanQuery,
-        }}
-        showViewIdButton={true}
-        noItemsMessage={"No traces found for this service."}
-        showRefreshButton={true}
-        sortBy="startTime"
-        sortOrder={SortOrder.Descending}
-        onViewPage={(span: Span) => {
-          return Promise.resolve(
-            new Route(viewRoute.toString()).addRoute(span.traceId!.toString()),
-          );
-        }}
-        filters={[
-          {
-            field: {
-              traceId: true,
+      <div className="rounded">
+        <AnalyticsModelTable<Span>
+          disablePagination={true}
+          modelType={Span}
+          id="traces-table"
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={false}
+          singularName="Trace"
+          pluralName="Traces"
+          name="Traces"
+          isViewable={true}
+          cardProps={
+            props.isMinimalTable
+              ? undefined
+              : {
+                  title: "Traces",
+                  description:
+                    "Traces are the individual spans that make up a request. They are the building blocks of a trace and represent the work done by a single service.",
+                }
+          }
+          query={{
+            projectId: DashboardNavigation.getProjectId(),
+            serviceId: modelId ? modelId : undefined,
+            ...spanQuery,
+          }}
+          showViewIdButton={true}
+          noItemsMessage={
+            props.noItemsMessage ? props.noItemsMessage : "No traces found."
+          }
+          showRefreshButton={true}
+          sortBy="startTime"
+          sortOrder={SortOrder.Descending}
+          onViewPage={(span: Span) => {
+            return Promise.resolve(
+              new Route(viewRoute.toString()).addRoute(
+                span.traceId!.toString(),
+              ),
+            );
+          }}
+          filters={[
+            {
+              field: {
+                traceId: true,
+              },
+              type: FieldType.Text,
+              title: "Trace ID",
             },
-            type: FieldType.Text,
-            title: "Trace ID",
-          },
-          {
-            field: {
-              statusCode: true,
+            {
+              field: {
+                statusCode: true,
+              },
+              type: FieldType.Dropdown,
+              filterDropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
+              title: "Span Status",
             },
-            type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SpanStatus,
-              true,
-            ).filter((dropdownOption: DropdownOption) => {
-              return (
-                dropdownOption.label === "Unset" ||
-                dropdownOption.label === "Ok" ||
-                dropdownOption.label === "Error"
-              );
-            }),
-            title: "Span Status",
-          },
-          {
-            field: {
-              name: true,
+            {
+              field: {
+                name: true,
+              },
+              type: FieldType.Text,
+              title: "Span Name",
             },
-            type: FieldType.Text,
-            title: "Span Name",
-          },
-          {
-            field: {
-              kind: true,
+            {
+              field: {
+                kind: true,
+              },
+              type: FieldType.Text,
+              title: "Span Kind",
+              filterDropdownOptions: spanKindDropdownOptions,
             },
-            type: FieldType.Text,
-            title: "Span Kind",
-            filterDropdownOptions: spanKindDropdownOptions,
-          },
-          {
-            field: {
-              startTime: true,
+            {
+              field: {
+                startTime: true,
+              },
+              type: FieldType.DateTime,
+              title: "Seen At",
             },
-            type: FieldType.DateTime,
-            title: "Seen At",
-          },
-          {
-            field: {
-              attributes: true,
+            {
+              field: {
+                attributes: true,
+              },
+              type: FieldType.JSON,
+              title: "Attributes",
+              jsonKeys: attributes,
             },
-            type: FieldType.JSON,
-            title: "Attributes",
-            jsonKeys: attributes,
-          },
-        ]}
-        selectMoreFields={{
-          statusCode: true,
-        }}
-        columns={[
-          {
-            field: {
-              spanId: true,
+          ]}
+          selectMoreFields={{
+            statusCode: true,
+          }}
+          columns={[
+            {
+              field: {
+                spanId: true,
+              },
+              title: "Span ID",
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                return (
+                  <Fragment>
+                    <SpanStatusElement
+                      traceId={span.traceId?.toString()}
+                      spanStatusCode={span.statusCode!}
+                      title={span.spanId?.toString()}
+                    />
+                  </Fragment>
+                );
+              },
             },
-            title: "Span ID",
-            type: FieldType.Element,
-            getElement: (span: Span): ReactElement => {
-              return (
-                <Fragment>
-                  <SpanStatusElement
-                    traceId={span.traceId?.toString()}
-                    spanStatusCode={span.statusCode!}
-                    title={span.spanId?.toString()}
-                  />
-                </Fragment>
-              );
+            {
+              field: {
+                traceId: true,
+              },
+              title: "Trace ID",
+              type: FieldType.Text,
             },
-          },
-          {
-            field: {
-              traceId: true,
+            {
+              field: {
+                name: true,
+              },
+              title: "Span Name",
+              type: FieldType.Text,
             },
-            title: "Trace ID",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              name: true,
+            {
+              field: {
+                startTime: true,
+              },
+              title: "Seen At",
+              type: FieldType.DateTime,
             },
-            title: "Span Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              startTime: true,
-            },
-            title: "Seen At",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
+          ]}
+        />
+      </div>
     </Fragment>
   );
 };

@@ -15,6 +15,13 @@ export default class JSONFunctions {
     return sizeToGb;
   }
 
+  public static isJSONObjectDifferent(
+    obj1: JSONObject,
+    obj2: JSONObject,
+  ): boolean {
+    return JSON.stringify(obj1) !== JSON.stringify(obj2);
+  }
+
   public static nestJson(obj: JSONObject): JSONObject {
     // obj could be in this format:
 

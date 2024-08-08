@@ -619,6 +619,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsFilterFetchLoading(false);
     };
 
+  useEffect(() => {
+    fetchItems().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, [props.query]);
+
   const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -1260,6 +1266,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
         }}
+        className={
+          props.cardProps
+            ? ""
+            : "rounded-lg border-2 border-gray-200 p-6 pt-0 pb-0"
+        }
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();
         }}
