@@ -202,8 +202,8 @@ const monitorTrace: MonitorTraceFunction = async (data: {
   });
 
   return {
-    traceCount: countTraces.toNumber(),
-    traceQuery: query,
+    spanCount: countTraces.toNumber(),
+    spanQuery: query,
     monitorId: data.monitorId,
   };
 };

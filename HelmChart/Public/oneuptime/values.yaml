@@ -232,8 +232,10 @@ cronJobs:
     failedWebhookUrl:
 
 
+# Please add this information if you want to generate SSL certificates for your status page custom domains. 
+# This is only required if you're using custom domains for status pages.
 letsEncrypt:
-  # Generate a private key via openssl, encode it to base64
+  # Generate a random private key via openssl, encode it to base64
   # Example: "LS0tLS....1cbg=="
   accountKey:
   # Email address to register with letsencrypt for notifications
