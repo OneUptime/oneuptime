@@ -90,7 +90,7 @@ const mockFile: MockFileFunction = (): File => {
 
   const file: File = new File(
     [Faker.generateRandomString()],
-    Faker.generateRandomString()+".png",
+    Faker.generateRandomString() + ".png",
     { type: MimeType.png },
   );
   file.arrayBuffer = mockArrayBuffer;

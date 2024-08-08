@@ -118,7 +118,7 @@ describe("BillingService", () => {
   });
 
   describe("Subscription Management", () => {
-    Object.defineProperty(global, 'performance', {
+    Object.defineProperty(global, "performance", {
       writable: true,
     });
     jest.useFakeTimers();

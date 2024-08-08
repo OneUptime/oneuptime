@@ -184,7 +184,7 @@ describe("TeamMemberService", () => {
           _id: project._id,
         });
 
-        const nonExistingUserEmail: string =  Faker.generateEmail().toString();
+        const nonExistingUserEmail: string = Faker.generateEmail().toString();
         const tm: CreateBy<TeamMember> =
           TeamMemberServiceHelper.generateRandomTeamMember(
             new ObjectID(project._id!),
@@ -499,8 +499,12 @@ describe("TeamMemberService", () => {
     it("should refresh user global and tenant access permissions", async () => {
       jest.restoreAllMocks();
 
-      const userId: ObjectID = new ObjectID(Faker.generateRandomObjectID().toString());
-      const projectId: ObjectID = new ObjectID(Faker.generateRandomObjectID().toString());
+      const userId: ObjectID = new ObjectID(
+        Faker.generateRandomObjectID().toString(),
+      );
+      const projectId: ObjectID = new ObjectID(
+        Faker.generateRandomObjectID().toString(),
+      );
 
       await teamMemberService.refreshTokens(userId, projectId);
 

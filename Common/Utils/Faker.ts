@@ -5,12 +5,14 @@ import Phone from "../Types/Phone";
 import { faker } from "@faker-js/faker";
 
 export default class Faker {
-
   public static generateRandomString(length?: number | undefined): string {
     return faker.string.alphanumeric(length || 10);
   }
 
-  public static getNumberBetweenMinAndMax(data: {min: number, max: number}): number {
+  public static getNumberBetweenMinAndMax(data: {
+    min: number;
+    max: number;
+  }): number {
     // pick a random number between min and max
     return Math.floor(Math.random() * (data.max - data.min + 1) + data.min);
   }
@@ -23,7 +25,7 @@ export default class Faker {
     return faker.company.name();
   }
 
-  public static generateRandomObjectID(): ObjectID{
+  public static generateRandomObjectID(): ObjectID {
     return ObjectID.generate();
   }
 

@@ -1,4 +1,7 @@
-import { IsBillingEnabled, getAllEnvVars } from "../../../../Server/EnvironmentConfig";
+import {
+  IsBillingEnabled,
+  getAllEnvVars,
+} from "../../../../Server/EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";

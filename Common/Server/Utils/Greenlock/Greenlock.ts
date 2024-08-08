@@ -1,7 +1,7 @@
 import {
   LetsEncryptAccountKey,
   LetsEncryptNotificationEmail,
-} from "../../../../Server/EnvironmentConfig";
+} from "../../../Server/EnvironmentConfig";
 import AcmeCertificateService from "../../Services/AcmeCertificateService";
 import AcmeChallengeService from "../../Services/AcmeChallengeService";
 import QueryHelper from "../../Types/Database/QueryHelper";
