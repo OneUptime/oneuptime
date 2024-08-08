@@ -132,12 +132,16 @@ export default class QueryHelper {
     );
   }
 
-  public static any(values: Array<string | ObjectID>): FindOperator<any> {
+  public static any(
+    values: Array<string | ObjectID | number>,
+  ): FindOperator<any> {
     return this.in(values); // any and in are the same
   }
 
-  private static in(values: Array<string | ObjectID>): FindOperator<any> {
-    values = values.map((value: string | ObjectID) => {
+  private static in(
+    values: Array<string | ObjectID | number>,
+  ): FindOperator<any> {
+    values = values.map((value: string | ObjectID | number) => {
       return value.toString();
     });
     const rid: string = Text.generateRandomText(10);
