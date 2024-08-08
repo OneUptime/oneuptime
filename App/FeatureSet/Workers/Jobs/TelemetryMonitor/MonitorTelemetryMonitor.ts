@@ -21,6 +21,11 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DatabaseQueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ObjectID from "Common/Types/ObjectID";
+import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import SpanService from "Common/Server/Services/SpanService";
 
 RunCron(
   "LogMonitor:MonitorLogMonitor",
@@ -98,7 +103,9 @@ RunCron(
 
     logger.debug(telemetryMonitors);
 
-    const monitorResponses: Array<Promise<LogMonitorResponse>> = [];
+    const monitorResponses: Array<
+      Promise<LogMonitorResponse | TraceMonitorResponse>
+    > = [];
 
     for (const monitor of telemetryMonitors) {
       try {
@@ -127,7 +134,7 @@ RunCron(
       }
     }
 
-    const responses: Array<LogMonitorResponse> =
+    const responses: Array<LogMonitorResponse | TraceMonitorResponse> =
       await Promise.all(monitorResponses);
 
     for (const response of responses) {
@@ -140,13 +147,13 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
-}) => Promise<LogMonitorResponse>;
+}) => Promise<LogMonitorResponse | TraceMonitorResponse>;
 
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
-}): Promise<LogMonitorResponse> => {
+}): Promise<LogMonitorResponse | TraceMonitorResponse> => {
   const { monitorStep, monitorType, monitorId } = data;
 
   if (monitorType === MonitorType.Logs) {
@@ -156,7 +163,49 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
     });
   }
 
+  if (monitorType === MonitorType.Traces) {
+    return monitorTrace({
+      monitorStep,
+      monitorId,
+    });
+  }
+
   throw new BadDataException("Monitor type is not supported");
+};
+
+type MonitorTraceFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+}) => Promise<TraceMonitorResponse>;
+
+const monitorTrace: MonitorTraceFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+}): Promise<TraceMonitorResponse> => {
+  // Monitor traces
+  const traceQuery: MonitorStepTraceMonitor | undefined =
+    data.monitorStep.data?.traceMonitor;
+
+  if (!traceQuery) {
+    throw new BadDataException("Trace query is missing");
+  }
+
+  const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(traceQuery);
+
+  const countTraces: PositiveNumber = await SpanService.countBy({
+    query: query,
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  return {
+    traceCount: countTraces.toNumber(),
+    traceQuery: query,
+    monitorId: data.monitorId,
+  };
 };
 
 type MonitorLogsFunction = (data: {

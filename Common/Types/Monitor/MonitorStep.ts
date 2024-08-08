@@ -17,6 +17,9 @@ import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
 import { FindOperator } from "typeorm";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "./MonitorStepTraceMonitor";
 
 export interface MonitorStepType {
   id: string;
@@ -41,6 +44,9 @@ export interface MonitorStepType {
 
   // Log monitor type.
   logMonitor?: MonitorStepLogMonitor | undefined;
+
+  // trace monitor type.
+  traceMonitor?: MonitorStepTraceMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -61,6 +67,7 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes: undefined,
       browserTypes: undefined,
       logMonitor: undefined,
+      traceMonitor: undefined,
     };
   }
 
@@ -85,6 +92,7 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes: undefined,
       browserTypes: undefined,
       logMonitor: undefined,
+      traceMonitor: undefined,
     };
 
     return monitorStep;
@@ -143,6 +151,11 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setLogMonitor(logMonitor: MonitorStepLogMonitor): MonitorStep {
     this.data!.logMonitor = logMonitor;
+    return this;
+  }
+
+  public setTraceMonitor(traceMonitor: MonitorStepTraceMonitor): MonitorStep {
+    this.data!.traceMonitor = traceMonitor;
     return this;
   }
 
@@ -259,6 +272,12 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
               )
             : undefined,
+          traceMonitor: this.data.traceMonitor
+            ? MonitorStepTraceMonitorUtil.toJSON(
+                this.data.traceMonitor ||
+                  MonitorStepTraceMonitorUtil.getDefault(),
+              )
+            : undefined,
         },
       });
     }
@@ -350,10 +369,17 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
+      traceMonitor: json["traceMonitor"]
+        ? (json["traceMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     if (monitorStep.data && !monitorStep.data?.logMonitor) {
       monitorStep.data.logMonitor = MonitorStepLogMonitorUtil.getDefault();
+    }
+
+    if (monitorStep.data && !monitorStep.data?.traceMonitor) {
+      monitorStep.data.traceMonitor = MonitorStepTraceMonitorUtil.getDefault();
     }
 
     return monitorStep;

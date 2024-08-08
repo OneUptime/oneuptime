@@ -231,6 +231,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Traces) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.SpanCount;
+      });
+    }
+
     return options;
   }
 

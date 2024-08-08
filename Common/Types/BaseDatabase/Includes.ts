@@ -4,7 +4,7 @@ import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import SerializableObject from "../SerializableObject";
 
-export type IncludesType = Array<string> | Array<ObjectID>;
+export type IncludesType = Array<string> | Array<ObjectID> | Array<number>;
 
 export default class Includes extends SerializableObject {
   private _values: IncludesType = [];

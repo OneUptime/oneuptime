@@ -39,6 +39,7 @@ import React, {
   useState,
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
+import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DashboardNavigation from "../../../Utils/Navigation";
@@ -51,6 +52,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepTraceMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -109,6 +113,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchSpanAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/traces/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
+
+    if (attributeRepsonse instanceof HTTPErrorResponse) {
+      throw attributeRepsonse;
+    } else {
+      const attributes: Array<string> = attributeRepsonse.data[
+        "attributes"
+      ] as Array<string>;
+      setAttributeKeys(attributes);
+    }
+  };
+
   const fetchTelemetryServices: PromiseVoidFunction =
     async (): Promise<void> => {
       const telemetryServicesResult: ListResult<TelemetryService> =
@@ -144,6 +170,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
         if (props.monitorType === MonitorType.Logs) {
           await fetchLogAttributes();
+        }
+
+        if (props.monitorType === MonitorType.Traces) {
+          await fetchSpanAttributes();
         }
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
@@ -513,6 +543,25 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             }
             onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
               monitorStep.setLogMonitor(value);
+              setMonitorStep(MonitorStep.clone(monitorStep));
+            }}
+            attributeKeys={attributeKeys}
+            telemetryServices={telemetryServices}
+          />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Traces && (
+        <div className="mt-5">
+          <TraceMonitorStepForm
+            monitorStepTraceMonitor={
+              monitorStep.data?.traceMonitor ||
+              MonitorStepTraceMonitorUtil.getDefault()
+            }
+            onMonitorStepTraceMonitorChanged={(
+              value: MonitorStepTraceMonitor,
+            ) => {
+              monitorStep.setTraceMonitor(value);
               setMonitorStep(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}

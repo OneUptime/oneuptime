@@ -26,9 +26,11 @@ import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Query from "Common/Types/BaseDatabase/Query";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
+  spanQuery?: Query<Span> | undefined;
 }
 
 const TraceTable: FunctionComponent<ComponentProps> = (
@@ -123,6 +125,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         query={{
           projectId: DashboardNavigation.getProjectId(),
           serviceId: modelId ? modelId : undefined,
+          ...props.spanQuery,
         }}
         showViewIdButton={true}
         noItemsMessage={"No traces found for this service."}

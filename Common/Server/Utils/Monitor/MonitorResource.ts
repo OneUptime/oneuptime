@@ -54,6 +54,8 @@ import OneUptimeDate from "Common/Types/Date";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -343,6 +345,13 @@ export default class MonitorResourceUtil {
         telemetryQuery = {
           telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
           telemetryType: TelemetryType.Log,
+        };
+      }
+
+      if (dataToProcess && (dataToProcess as TraceMonitorResponse).spanQuery) {
+        telemetryQuery = {
+          telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
+          telemetryType: TelemetryType.Trace,
         };
       }
 
@@ -1236,6 +1245,19 @@ export default class MonitorResourceUtil {
 
       if (logMonitorResult) {
         return logMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Traces) {
+      // check server monitor
+      const traceMonitorResult: string | null =
+        await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (traceMonitorResult) {
+        return traceMonitorResult;
       }
     }
 

@@ -105,6 +105,31 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.Traces) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.SpanCount,
+            filterType: FilterType.GreaterThan,
+            value: 0, // if there are some logs then monitor is online.
+          },
+        ],
+        incidents: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if the ${arg.monitorName} is online`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.SSLCertificate) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -316,6 +341,35 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filters: [
           {
             checkOn: CheckOn.LogCount,
+            filterType: FilterType.EqualTo,
+            value: 0, // if there are no logs then the monitor is offline
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.Traces) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.SpanCount,
             filterType: FilterType.EqualTo,
             value: 0, // if there are no logs then the monitor is offline
           },

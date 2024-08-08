@@ -12,7 +12,7 @@ import MonitorType, {
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import LogMonitorSummaryView from "./LogMonitorView";
+import TelemetryMonitorSummaryView from "./TelemetryMonitorView";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 
 export interface ComponentProps {
@@ -144,11 +144,12 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {props.monitorType === MonitorType.Logs && (
-        <LogMonitorSummaryView
-          telemetryMonitorSummary={props.telemetryMonitorSummary}
-        />
-      )}
+      {props.monitorType === MonitorType.Logs ||
+        (props.monitorType === MonitorType.Traces && (
+          <TelemetryMonitorSummaryView
+            telemetryMonitorSummary={props.telemetryMonitorSummary}
+          />
+        ))}
     </div>
   );
 };

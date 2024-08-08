@@ -31,6 +31,7 @@ import API from "Common/UI/Utils/API/API";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -48,6 +49,14 @@ export interface LogMonitorStepView {
   lastXSecondsOfLogs: number | undefined;
 }
 
+export interface TraceMonitorStepView {
+  spanName: string | undefined;
+  spanStatuses: Array<SpanStatus> | undefined;
+  attributes: JSONObject | undefined;
+  telemetryServices: Array<TelemetryService> | undefined;
+  lastXSecondsOfSpans: number | undefined;
+}
+
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -60,6 +69,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   // this field is used for most monitor types
   let fields: Array<Field<MonitorStepType>> = [];
   let logFields: Array<Field<LogMonitorStepView>> = [];
+  let traceFields: Array<Field<TraceMonitorStepView>> = [];
+
+  const traceMonitorDetailView: TraceMonitorStepView = {
+    spanName: undefined,
+    spanStatuses: undefined,
+    attributes: undefined,
+    telemetryServices: undefined,
+    lastXSecondsOfSpans: undefined,
+  };
 
   const logMonitorDetailView: LogMonitorStepView = {
     body: undefined,
@@ -102,7 +120,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      if (props.monitorType === MonitorType.Logs) {
+      if (
+        props.monitorType === MonitorType.Logs ||
+        props.monitorType === MonitorType.Traces ||
+        props.monitorType === MonitorType.Metrics
+      ) {
         await fetchTelemetryServices();
       }
     } catch (err) {
@@ -313,6 +335,94 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       logMonitorDetailView.telemetryServices = telemetryServices; // set the telemetry services
 
       logFields.push({
+        key: "telemetryServices",
+        title: "Telemetry Services",
+        description: "Telemetry services to monitor.",
+        fieldType: FieldType.Element,
+        placeholder: "No telemetry services entered",
+        getElement: (): ReactElement => {
+          return (
+            <TelemetryServicesElement telemetryServices={telemetryServices} />
+          );
+        },
+      });
+    }
+  } else if (props.monitorType === MonitorType.Traces) {
+    traceFields = [];
+
+    if (props.monitorStep.data?.traceMonitor?.spanName) {
+      traceMonitorDetailView.spanName =
+        props.monitorStep.data?.traceMonitor?.spanName;
+
+      traceFields.push({
+        key: "spanName",
+        title: "Filter Span Name",
+        description: "Filter by span name with this text:",
+        fieldType: FieldType.Text,
+        placeholder: "No span name entered",
+      });
+    }
+
+    if (props.monitorStep.data?.traceMonitor?.lastXSecondsOfSpans) {
+      traceMonitorDetailView.lastXSecondsOfSpans =
+        props.monitorStep.data?.traceMonitor?.lastXSecondsOfSpans;
+
+      traceFields.push({
+        key: "lastXSecondsOfSpans",
+        title: "Monitor spans for the last (time)",
+        description: "How many seconds of spans to monitor.",
+        fieldType: FieldType.Element,
+        placeholder: "1 minute",
+        getElement: (item: TraceMonitorStepView): ReactElement => {
+          return (
+            <p>
+              {OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                item.lastXSecondsOfSpans || 0,
+              )}
+            </p>
+          );
+        },
+      });
+    }
+
+    if (props.monitorStep.data?.traceMonitor?.spanStatuses) {
+      traceMonitorDetailView.spanStatuses =
+        props.monitorStep.data?.traceMonitor?.spanStatuses;
+
+      traceFields.push({
+        key: "spanStatuses",
+        title: "Span Status",
+        description: "Status of the spans to monitor.",
+        fieldType: FieldType.ArrayOfText,
+        placeholder: "No span status entered. All statuses will be monitored.",
+      });
+    }
+
+    if (
+      props.monitorStep.data?.traceMonitor?.attributes &&
+      Object.keys(props.monitorStep.data?.traceMonitor?.attributes).length > 0
+    ) {
+      traceMonitorDetailView.attributes =
+        props.monitorStep.data?.traceMonitor?.attributes;
+
+      traceFields.push({
+        key: "attributes",
+        title: "Span Attributes",
+        description: "Attributes of the spans to monitor.",
+        fieldType: FieldType.JSON,
+        placeholder: "No attributes entered",
+      });
+    }
+
+    if (
+      props.monitorStep.data?.traceMonitor?.telemetryServiceIds &&
+      props.monitorStep.data?.traceMonitor?.telemetryServiceIds.length > 0 &&
+      telemetryServices &&
+      telemetryServices.length > 0
+    ) {
+      traceMonitorDetailView.telemetryServices = telemetryServices; // set the telemetry services
+
+      traceFields.push({
         key: "telemetryServices",
         title: "Telemetry Services",
         description: "Telemetry services to monitor.",

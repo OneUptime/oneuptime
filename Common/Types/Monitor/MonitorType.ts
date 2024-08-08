@@ -109,18 +109,18 @@ export class MonitorTypeHelper {
         title: "Logs",
         description: "This monitor type lets you monitor logs from any source.",
       },
+      {
+        monitorType: MonitorType.Traces,
+        title: "Traces",
+        description:
+          "This monitor type lets you monitor traces from any source.",
+      },
       // ,
       // {
       //   monitorType: MonitorType.Metrics,
       //   title: "Metrics",
       //   description:
       //     "This monitor type lets you monitor metrics from any source.",
-      // },
-      // {
-      //   monitorType: MonitorType.Traces,
-      //   title: "Traces",
-      //   description:
-      //     "This monitor type lets you monitor traces from any source.",
       // },
     ];
 

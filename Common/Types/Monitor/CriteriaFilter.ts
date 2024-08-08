@@ -37,6 +37,9 @@ export enum CheckOn {
 
   // Log monitors.
   LogCount = "Log Count",
+
+  // Trace monitors.
+  SpanCount = "Span Count",
 }
 
 export interface ServerMonitorOptions {
