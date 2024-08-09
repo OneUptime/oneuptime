@@ -2,22 +2,24 @@ import PostgresDatabase, {
   DatabaseSource,
   DatabaseSourceOptions,
 } from "../../../Server/Infrastructure/PostgresDatabase";
-import { newDb } from "pg-mem";
+import { IMemoryDb, newDb } from "pg-mem";
 import logger from "../../../Server/Utils/Logger";
 import getTestDataSourceOptions from "../../../Server/Infrastructure/Postgres/TestDataSourceOptions";
 
 export default class TestDatabase extends PostgresDatabase {
   public async createAndConnect(): Promise<void> {
-    const testDatasourceOptions = getTestDataSourceOptions();
+    const testDatasourceOptions: DatabaseSourceOptions = getTestDataSourceOptions();
     await this.connect(testDatasourceOptions);
   }
 
   public override async connect(
     dataSourceOptions: DatabaseSourceOptions,
   ): Promise<DatabaseSource> {
-    const db = newDb();
+    const db: IMemoryDb = newDb();
     const dataSource: DatabaseSource =
       db.adapters.createTypeormDataSource(dataSourceOptions);
+      await dataSource.initialize();
+      await dataSource.synchronize();
     logger.debug("Postgres Database Connected");
     this.dataSource = dataSource;
     return dataSource;
