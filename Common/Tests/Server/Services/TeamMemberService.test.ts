@@ -38,10 +38,10 @@ jest.mock("../../../Server/Infrastructure/PostgresDatabase", () => {
     default: actualModule.default,
     PostgresAppInstance: {
       getDataSource: () => {
-        return testDatabase.getDatabase().getDataSource();
+        return testDatabase;
       },
       isConnected: () => {
-        return testDatabase.getDatabase().isConnected();
+        return testDatabase.isConnected();
       },
     },
   };
@@ -64,7 +64,7 @@ describe("TeamMemberService", () => {
   beforeEach(async () => {
     await testDatabase.createAndConnect();
 
-    teamMemberService = new TeamMemberService(testDatabase.getDatabase());
+    teamMemberService = new TeamMemberService(testDatabase);
 
     user = UserServiceHelper.generateRandomUser().data;
     user = await user.save();

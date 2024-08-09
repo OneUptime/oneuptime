@@ -22,10 +22,10 @@ jest.mock("../../../Server/Infrastructure/PostgresDatabase", () => {
     default: actualModule.default,
     PostgresAppInstance: {
       getDataSource: () => {
-        return testDatabase.getDatabase().getDataSource();
+        return testDatabase.getDataSource();
       },
       isConnected: () => {
-        return testDatabase.getDatabase().isConnected();
+        return testDatabase.isConnected();
       },
     },
   };

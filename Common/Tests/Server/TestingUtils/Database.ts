@@ -2,50 +2,30 @@ import PostgresDatabase, {
   DatabaseSource,
   DatabaseSourceOptions,
 } from "../../../Server/Infrastructure/PostgresDatabase";
+import { newDb } from "pg-mem";
+import logger from "../../../Server/Utils/Logger";
+import getTestDataSourceOptions from "../../../Server/Infrastructure/Postgres/TestDataSourceOptions";
 
-export default class DatabaseConnect {
-  private database!: PostgresDatabase;
-
-  public constructor() {
-    this.database = new PostgresDatabase();
+export default class TestDatabase extends PostgresDatabase {
+  public async createAndConnect(): Promise<void> {
+    const testDatasourceOptions = getTestDataSourceOptions();
+    await this.connect(testDatasourceOptions);
   }
 
-  public getDatabase(): PostgresDatabase {
-    return this.database;
-  }
-
-  public async createAndConnect(): Promise<DatabaseSource> {
-    const dataSourceOptions: DatabaseSourceOptions =
-      await this.createDatabase();
-    return await this.connectDatabase(dataSourceOptions);
+  public override async connect(
+    dataSourceOptions: DatabaseSourceOptions,
+  ): Promise<DatabaseSource> {
+    const db = newDb();
+    const dataSource: DatabaseSource =
+      db.adapters.createTypeormDataSource(dataSourceOptions);
+    logger.debug("Postgres Database Connected");
+    this.dataSource = dataSource;
+    return dataSource;
   }
 
   public async disconnectAndDropDatabase(): Promise<void> {
-    await this.disconnectDatabase();
-    await this.dropDatabase();
-  }
-
-  public async createDatabase(): Promise<DatabaseSourceOptions> {
-    const dataSourceOptions: DatabaseSourceOptions =
-      this.database.getTestDatasourceOptions();
-    this.database.createDatabase();
-
-    return dataSourceOptions;
-  }
-  public async connectDatabase(
-    dataSourceOptions: DatabaseSourceOptions,
-  ): Promise<DatabaseSource> {
-    const connection: DatabaseSource =
-      await this.database.connect(dataSourceOptions);
-    await connection.synchronize();
-    return connection;
-  }
-
-  public async disconnectDatabase(): Promise<void> {
-    await this.database.disconnect();
-  }
-
-  public async dropDatabase(): Promise<void> {
-    await this.database.dropDatabase();
+    // Drop the database. Since this is the in-mem db, it will be destroyed.
   }
 }
+
+export const PostgresAppInstance: TestDatabase = new TestDatabase();
