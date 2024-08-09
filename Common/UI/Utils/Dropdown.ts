@@ -11,7 +11,7 @@ export default class DropdownUtil {
     return Object.keys(obj).map((key: string) => {
       return {
         label: useKeyAsLebel ? key : (obj as any)[key].toString(),
-        value: (obj as any)[key].toString(),
+        value: (obj as any)[key],
       };
     });
   }

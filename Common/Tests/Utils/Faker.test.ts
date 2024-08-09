@@ -14,7 +14,7 @@ describe("Faker Class", () => {
   });
 
   it("should generate a string of random numbers of specified length", () => {
-    expect(Faker.getRandomNumbers(8)).toMatch(/^\d{8}$/);
+    expect(Faker.getRandomNumbers(8).toString()).toMatch(/^\d{8}$/);
   });
 
   it("should generate a user full name", () => {
