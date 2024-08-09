@@ -2,7 +2,8 @@ import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 
-const resources: Array<ModelDocumentation> = ResourceUtil.getResources(); // Get resources from ResourceUtil
+// Get resources from ResourceUtil
+const resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
 export default class ServiceHandler {
   public static async executeResponse(
@@ -11,6 +12,7 @@ export default class ServiceHandler {
   ): Promise<void> {
     // Set HTTP status to 200
     res.status(200);
+
     return res.render(`${ViewsPath}/pages/index`, {
       // Render index page with necessary data
       page: "status",
