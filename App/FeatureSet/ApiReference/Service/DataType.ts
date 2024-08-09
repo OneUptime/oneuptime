@@ -13,6 +13,7 @@ export default class ServiceHandler {
   ): Promise<void> {
     const pageData: any = {};
 
+    // Fetch and cache the 'select' code example
     pageData.selectCode = await LocalCache.getOrSetString(
       "data-type",
       "select",
@@ -21,6 +22,7 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'sort' code example
     pageData.sortCode = await LocalCache.getOrSetString(
       "data-type",
       "sort",
@@ -29,6 +31,7 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'equal-to' code example
     pageData.equalToCode = await LocalCache.getOrSetString(
       "data-type",
       "equal-to",
@@ -37,6 +40,7 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'equal-to-or-null' code example
     pageData.equalToOrNullCode = await LocalCache.getOrSetString(
       "data-type",
       "equal-to-or-null",
@@ -47,6 +51,7 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'greater-than' code example
     pageData.greaterThanCode = await LocalCache.getOrSetString(
       "data-type",
       "greater-than",
@@ -57,6 +62,7 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'greater-than-or-equal' code example
     pageData.greaterThanOrEqualCode = await LocalCache.getOrSetString(
       "data-type",
       "greater-than-or-equal",
@@ -67,9 +73,11 @@ export default class ServiceHandler {
       },
     );
 
+    // Fetch and cache the 'less-than' code example
     pageData.lessThanCode = await LocalCache.getOrSetString(
       "data-type",
       "less-than",
+
       async () => {
         return await LocalFile.read(
           `${CodeExamplesPath}/DataTypes/LessThan.md`,
