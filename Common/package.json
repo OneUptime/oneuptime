@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "jest --detectOpenHandles",
+        "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",

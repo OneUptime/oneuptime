@@ -1,5 +1,5 @@
 import logger from "../Utils/Logger";
-import dataSourceOptions from "./Postgres/DataSourceOptions";
+import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
 import Sleep from "Common/Types/Sleep";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
@@ -8,10 +8,12 @@ export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
 
 export default class Database {
+  protected dataSourceOptions!: DataSourceOptions;
   protected dataSource!: DataSource | null;
 
   public getDatasourceOptions(): DataSourceOptions {
-    return dataSourceOptions;
+    this.dataSourceOptions = DatabaseDataSourceOptions;
+    return this.dataSourceOptions;
   }
 
   public getDataSource(): DataSource | null {
@@ -22,9 +24,7 @@ export default class Database {
     return Boolean(this.dataSource);
   }
 
-  public async connect(
-    dataSourceOptions: DataSourceOptions,
-  ): Promise<DataSource> {
+  public async connect(): Promise<DataSource> {
     let retry: number = 0;
 
     try {
@@ -34,7 +34,7 @@ export default class Database {
         async (): Promise<DataSource> => {
           try {
             const PostgresDataSource: DataSource = new DataSource(
-              dataSourceOptions,
+              this.getDatasourceOptions(),
             );
             const dataSource: DataSource =
               await PostgresDataSource.initialize();
@@ -94,15 +94,26 @@ export default class Database {
 
   public async dropDatabase(): Promise<void> {
     await dropDatabase({
-      options: dataSourceOptions,
+      options: this.getDatasourceOptions(),
     });
   }
 
   public async createDatabase(): Promise<void> {
     await createDatabase({
-      options: dataSourceOptions,
+      options: this.getDatasourceOptions(),
       ifNotExist: true,
     });
+  }
+
+  public async createAndConnect(): Promise<void> {
+    await this.createDatabase();
+    await this.connect();
+  }
+
+  public async disconnectAndDropDatabase(): Promise<void> {
+    // Drop the database. Since this is the in-mem db, it will be destroyed.
+    await this.disconnect();
+    await this.dropDatabase();
   }
 }
 

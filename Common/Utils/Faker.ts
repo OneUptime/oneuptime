@@ -32,7 +32,8 @@ export default class Faker {
   public static getRandomNumbers(count: number): number {
     const randomNumbers: Array<number> = [];
     for (let i: number = 0; i < count; i++) {
-      randomNumbers.push(Math.floor(Math.random() * 10)); // You can adjust the range as needed
+      // pick a random number between 1 and 9
+      randomNumbers.push(Math.floor(Math.random() * 9) + 1);
     }
     return parseInt(randomNumbers.join(""));
   }
