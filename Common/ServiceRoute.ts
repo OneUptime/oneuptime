@@ -1,3 +1,4 @@
+
 import Route from "./Types/API/Route";
 
 export const HomeRoute: Route = new Route("/");

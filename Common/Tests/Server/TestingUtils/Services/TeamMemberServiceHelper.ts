@@ -1,27 +1,22 @@
-import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 export default class TeamMemberTestService {
-  public static generateRandomTeamMember(
+  public static generateRandomTeamMember(data: {
     projectId: ObjectID,
     userId: ObjectID,
-    team: Team,
+    teamId: ObjectID,
     miscDataProps?: JSONObject,
-  ): CreateBy<TeamMember> {
+  }
+  ): TeamMember {
     const teamMember: TeamMember = new TeamMember();
 
     // required fields
-    teamMember.userId = userId;
-    teamMember.projectId = projectId;
-    teamMember.team = team;
+    teamMember.userId = data.userId;
+    teamMember.projectId = data.projectId;
+    teamMember.teamId = data.teamId;
 
-    return {
-      data: teamMember,
-      props: { isRoot: true, userId },
-      miscDataProps: miscDataProps as JSONObject,
-    };
+    return teamMember;
   }
 }

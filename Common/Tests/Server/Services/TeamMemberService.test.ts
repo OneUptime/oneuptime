@@ -1,15 +1,14 @@
+
 import { Host, HttpProtocol } from "../../../Server/EnvironmentConfig";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import BillingService from "../../../Server/Services/BillingService";
 import MailService from "../../../Server/Services/MailService";
-import ProjectService from "../../../Server/Services/ProjectService";
-import { TeamMemberService } from "../../../Server/Services/TeamMemberService";
-import TeamService from "../../../Server/Services/TeamService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import Errors from "../../../Server/Utils/Errors";
-import Database from "../TestingUtils/Database";
+import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import TeamMemberServiceHelper from "../TestingUtils/Services/TeamMemberServiceHelper";
@@ -23,29 +22,12 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Faker from "../../../Utils/Faker";
+import UserService from "../../../Server/Services/UserService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import TeamService from "../../../Server/Services/TeamService";
+import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
-
-const testDatabase: Database = new Database();
-
-// mock PostgresDatabase because we need it across all services
-jest.mock("../../../Server/Infrastructure/PostgresDatabase", () => {
-  const actualModule: any = jest.requireActual(
-    "../../../Server/Infrastructure/PostgresDatabase",
-  );
-  return {
-    __esModule: true,
-    default: actualModule.default,
-    PostgresAppInstance: {
-      getDataSource: () => {
-        return testDatabase;
-      },
-      isConnected: () => {
-        return testDatabase.isConnected();
-      },
-    },
-  };
-});
 
 // mock Redis
 jest.mock("../../../Server/Infrastructure/GlobalCache");
@@ -54,34 +36,55 @@ jest.mock("../../../Server/Services/BillingService");
 jest.mock("../../../Server/Services/ProjectService");
 
 describe("TeamMemberService", () => {
-  let teamMemberService!: TeamMemberService;
 
   let user!: User;
   let user2!: User;
   let project!: Project;
   let team!: Team;
 
+  let testDatabase: Database;
+
   beforeEach(async () => {
-    await testDatabase.createAndConnect();
 
-    teamMemberService = new TeamMemberService(testDatabase);
+    try {
 
-    user = UserServiceHelper.generateRandomUser().data;
-    user = await user.save();
+      testDatabase = await TestDatabaseMock.getDbMock();
 
-    user2 = UserServiceHelper.generateRandomUser().data;
-    user2 = await user2.save();
+      user = UserServiceHelper.generateRandomUser();
+      user = await UserService.create({
+        data: user,
+        props: { isRoot: true },
+      })
 
-    project = ProjectServiceHelper.generateRandomProject(
-      new ObjectID(user._id!),
-    ).data;
-    project = await project.save();
+      user2 = UserServiceHelper.generateRandomUser();
+      user2 = await UserService.create({
+        data: user2,
+        props: { isRoot: true },
+      })
 
-    team = TeamServiceHelper.generateRandomTeam(
-      new ObjectID(project._id!),
-      new ObjectID(user._id!),
-    ).data;
-    team = await team.save();
+      project = ProjectServiceHelper.generateRandomProject(
+
+      );
+
+      project = await ProjectService.create({
+        data: project,
+        props: { isRoot: true },
+      });
+
+      team = TeamServiceHelper.generateRandomTeam(
+        { projectId: new ObjectID(project._id!) }
+      );
+
+      team = await TeamService.create({
+        data: team,
+        props: { isRoot: true },
+      });
+
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+
   });
 
   afterEach(async () => {
@@ -100,14 +103,19 @@ describe("TeamMemberService", () => {
 
       TeamService.findOneById = jest.fn().mockResolvedValue(team);
 
-      const tm: CreateBy<TeamMember> =
+      const tm: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user._id!),
-          team,
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user._id!),
+            teamId: new ObjectID(team._id!),
+          }
         );
 
-      const teamMember: TeamMember = await teamMemberService.create(tm);
+      const teamMember: TeamMember = await TeamMemberService.create({
+        data: tm,
+        props: { isRoot: true },
+      });
 
       expect(teamMember.userId).toEqual(new ObjectID(user._id!));
       expect(teamMember.projectId).toEqual(new ObjectID(project._id!));
@@ -124,24 +132,31 @@ describe("TeamMemberService", () => {
           _id: project._id,
         });
 
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
 
-        await expect(teamMemberService.create(tm)).rejects.toThrow(
+        await expect(TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        })).rejects.toThrow(
           Errors.TeamMemberService.LIMIT_REACHED,
         );
       });
 
       it("should throw exception if the user has already been invited", async () => {
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
 
         jest
@@ -152,9 +167,15 @@ describe("TeamMemberService", () => {
           .spyOn(AccessTokenService, "refreshUserTenantAccessPermission")
           .mockResolvedValue(null);
 
-        await teamMemberService.create(tm);
+        await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
-        await expect(teamMemberService.create(tm)).rejects.toThrow(
+        await expect(TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        })).rejects.toThrow(
           Errors.TeamMemberService.ALREADY_INVITED,
         );
       });
@@ -163,14 +184,19 @@ describe("TeamMemberService", () => {
         jest.spyOn(MailService, "sendMail").mockResolvedValue(null!);
 
         const nonExistingUserEmail: string = Faker.generateEmail().toString();
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
-            { email: nonExistingUserEmail },
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+              miscDataProps: { email: nonExistingUserEmail },
+            }
           );
-        const teamMember: TeamMember = await teamMemberService.create(tm);
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
         expect(teamMember).toBeDefined();
         expect(teamMember.userId).toBeDefined();
@@ -185,12 +211,14 @@ describe("TeamMemberService", () => {
         });
 
         const nonExistingUserEmail: string = Faker.generateEmail().toString();
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
-            { email: nonExistingUserEmail },
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+              miscDataProps: { email: nonExistingUserEmail },
+            }
           );
 
         jest
@@ -201,7 +229,10 @@ describe("TeamMemberService", () => {
           .spyOn(AccessTokenService, "refreshUserTenantAccessPermission")
           .mockResolvedValue(null);
 
-        await teamMemberService.create(tm);
+        await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
         expect(MailService.sendMail).toHaveBeenCalledWith(
           {
@@ -227,16 +258,21 @@ describe("TeamMemberService", () => {
 
       it("should handle unexpected errors", async () => {
         jest
-          .spyOn(teamMemberService, "create")
+          .spyOn(TeamMemberService, "create")
           .mockRejectedValue(new Error("Unexpected error"));
 
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
-        await expect(teamMemberService.create(tm)).rejects.toThrow(
+        await expect(TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        })).rejects.toThrow(
           "Unexpected error",
         );
       });
@@ -245,25 +281,33 @@ describe("TeamMemberService", () => {
     describe("onCreateSuccess", () => {
       it("should call functions to refresh tokens and update subscription seats on success", async () => {
         const refreshTokensSpy: jest.SpyInstance = jest
-          .spyOn(TeamMemberService.prototype, "refreshTokens")
+          .spyOn(TeamMemberService, "refreshTokens")
           .mockResolvedValue();
         const updateSeatsSpy: jest.SpyInstance = jest
           .spyOn(
-            TeamMemberService.prototype,
+            TeamMemberService,
             "updateSubscriptionSeatsByUniqueTeamMembersInProject",
           )
           .mockResolvedValue();
 
         const user: User =
-          await UserServiceHelper.generateRandomUser().data.save();
+          await UserService.create({
+            data: UserServiceHelper.generateRandomUser(),
+            props: { isRoot: true },
+          });
 
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
-        const teamMember: TeamMember = await teamMemberService.create(tm);
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
         expect(refreshTokensSpy).toHaveBeenCalledWith(
           teamMember.userId,
@@ -278,16 +322,24 @@ describe("TeamMemberService", () => {
     it("should update team member", async () => {
       // (1) create new team member
       const user: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
 
-      const tm: CreateBy<TeamMember> =
+      const tm: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user._id!),
-          team,
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user._id!),
+            teamId: new ObjectID(team._id!),
+          }
         );
 
-      const teamMember: TeamMember = await teamMemberService.create(tm);
+      const teamMember: TeamMember = await TeamMemberService.create({
+        data: tm,
+        props: { isRoot: true },
+      });
 
       expect(teamMember?.hasAcceptedInvitation).toBe(false);
 
@@ -296,7 +348,7 @@ describe("TeamMemberService", () => {
         hasAcceptedInvitation: true,
       };
 
-      const updatedCount: number = await teamMemberService.updateOneBy({
+      const updatedCount: number = await TeamMemberService.updateOneBy({
         query: {
           _id: teamMember._id!,
         },
@@ -309,7 +361,7 @@ describe("TeamMemberService", () => {
 
       // (3) retrieve the updated team member and validate changes
       const updatedTeamMember: TeamMember | null =
-        await teamMemberService.findOneById({
+        await TeamMemberService.findOneById({
           id: new ObjectID(teamMember._id!),
           select: { hasAcceptedInvitation: true },
           props: { isRoot: true },
@@ -324,18 +376,26 @@ describe("TeamMemberService", () => {
     describe("onUpdateSuccess", () => {
       it("should refresh tokens and handle user notification settings on update", async () => {
         const user: User =
-          await UserServiceHelper.generateRandomUser().data.save();
+          await UserService.create({
+            data: UserServiceHelper.generateRandomUser(),
+            props: { isRoot: true },
+          });
 
-        const tm: CreateBy<TeamMember> =
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
-        const teamMember: TeamMember = await teamMemberService.create(tm);
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
         const refreshTokensSpy: jest.SpyInstance = jest
-          .spyOn(TeamMemberService.prototype, "refreshTokens")
+          .spyOn(TeamMemberService, "refreshTokens")
           .mockResolvedValue();
         const addDefaultNotificationSettingsSpy: jest.SpyInstance = jest
           .spyOn(
@@ -353,7 +413,7 @@ describe("TeamMemberService", () => {
         const updatedInfo: { hasAcceptedInvitation: boolean } = {
           hasAcceptedInvitation: true,
         };
-        await teamMemberService.updateOneBy({
+        await TeamMemberService.updateOneBy({
           query: { _id: teamMember._id! },
           data: updatedInfo,
           props: { isRoot: true },
@@ -380,19 +440,27 @@ describe("TeamMemberService", () => {
     it("should delete team member", async () => {
       // (1) create new team member
       const user: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
 
-      const tm: CreateBy<TeamMember> =
+      const tm: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user._id!),
-          team,
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user._id!),
+            teamId: new ObjectID(team._id!),
+          }
         );
 
-      const teamMember: TeamMember = await teamMemberService.create(tm);
+      const teamMember: TeamMember = await TeamMemberService.create({
+        data: tm,
+        props: { isRoot: true },
+      });
 
       // (2) delete team member
-      const deleteCount: number = await teamMemberService.deleteOneBy({
+      const deleteCount: number = await TeamMemberService.deleteOneBy({
         query: { _id: teamMember._id! },
         props: { isRoot: true },
       });
@@ -402,7 +470,7 @@ describe("TeamMemberService", () => {
 
       // (3) verify that the team member no longer exists
       const deletedTeamMember: TeamMember | null =
-        await teamMemberService.findOneBy({
+        await TeamMemberService.findOneBy({
           query: { _id: teamMember._id! },
           props: { isRoot: true },
         });
@@ -413,26 +481,37 @@ describe("TeamMemberService", () => {
     describe("onBeforeDelete", () => {
       it("should throw error when one member and team has at least one member requirement", async () => {
         const team: Team = TeamServiceHelper.generateRandomTeam(
-          new ObjectID(project._id!),
-          new ObjectID(user._id!),
-        ).data;
+          { projectId: new ObjectID(project._id!) }
+        );
         team.shouldHaveAtLeastOneMember = true;
-        await team.save();
 
-        const tm: CreateBy<TeamMember> =
+        await TeamService.create({
+          data: team,
+          props: { isRoot: true },
+        });
+
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
-        const teamMember: TeamMember = await teamMemberService.create(tm);
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
         // accept invitation
         teamMember.hasAcceptedInvitation = true;
-        await teamMember.save();
+        await TeamMemberService.create({
+          data: teamMember,
+          props: { isRoot: true },
+        });
 
         try {
-          await teamMemberService.deleteOneBy({
+          await TeamMemberService.deleteOneBy({
             query: {
               _id: teamMember._id!,
             },
@@ -453,27 +532,37 @@ describe("TeamMemberService", () => {
 
       it("should not delete when shouldHaveAtLeastOneMember is true and member has not accepted invitation", async () => {
         const team: Team = TeamServiceHelper.generateRandomTeam(
-          new ObjectID(project._id!),
-          new ObjectID(user._id!),
-        ).data;
+          {
+            projectId: new ObjectID(project._id!),
+          }
+        );
         team.shouldHaveAtLeastOneMember = true;
-        await team.save();
+        await TeamService.create({
+          data: team,
+          props: { isRoot: true },
+        });
 
-        const tm: CreateBy<TeamMember> =
+
+        const tm: TeamMember =
           TeamMemberServiceHelper.generateRandomTeamMember(
-            new ObjectID(project._id!),
-            new ObjectID(user._id!),
-            team,
+            {
+              projectId: new ObjectID(project._id!),
+              userId: new ObjectID(user._id!),
+              teamId: new ObjectID(team._id!),
+            }
           );
-        const teamMember: TeamMember = await teamMemberService.create(tm);
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: true },
+        });
 
-        await teamMemberService.deleteOneBy({
+        await TeamMemberService.deleteOneBy({
           query: { _id: teamMember._id! },
           props: { isRoot: true },
         });
 
         const remainingMember: TeamMember | null =
-          await teamMemberService.findOneBy({
+          await TeamMemberService.findOneBy({
             query: { _id: teamMember._id! },
             props: { isRoot: true },
           });
@@ -482,11 +571,11 @@ describe("TeamMemberService", () => {
 
       it("should handle unexpected errors", async () => {
         jest
-          .spyOn(teamMemberService, "deleteOneBy")
+          .spyOn(TeamMemberService, "deleteOneBy")
           .mockRejectedValue(new Error("Unexpected error"));
 
         await expect(
-          teamMemberService.deleteOneBy({
+          TeamMemberService.deleteOneBy({
             query: { id: new ObjectID("") },
             props: { isRoot: true },
           }),
@@ -506,7 +595,7 @@ describe("TeamMemberService", () => {
         Faker.generateRandomObjectID().toString(),
       );
 
-      await teamMemberService.refreshTokens(userId, projectId);
+      await TeamMemberService.refreshTokens(userId, projectId);
 
       expect(
         AccessTokenService.refreshUserGlobalAccessPermission,
@@ -521,7 +610,7 @@ describe("TeamMemberService", () => {
     it("should return the count of unique team members in a project", async () => {
       // make findBy to return 4 team members: 1 normal, 2 with the same id and 1 without a user ID
       // total should be 2 unique team members
-      teamMemberService.findBy = jest.fn().mockResolvedValue([
+      TeamMemberService.findBy = jest.fn().mockResolvedValue([
         {
           _id: Faker.generateRandomObjectID().toString(),
           userId: Faker.generateRandomObjectID().toString(),
@@ -544,7 +633,7 @@ describe("TeamMemberService", () => {
       ]);
 
       const count: number =
-        await teamMemberService.getUniqueTeamMemberCountInProject(
+        await TeamMemberService.getUniqueTeamMemberCountInProject(
           new ObjectID(project._id!),
         );
       expect(count).toBe(2);
@@ -558,72 +647,133 @@ describe("TeamMemberService", () => {
       // team C members: user 3
 
       const user1: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
       const user2: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
       const user3: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
 
-      const teamA: Team = await TeamServiceHelper.generateRandomTeam(
-        new ObjectID(project._id!),
-        new ObjectID(user._id!),
-      ).data.save();
+      const teamA: Team = await TeamService.create({
+        data: TeamServiceHelper.generateRandomTeam(
+          {
+            projectId: new ObjectID(project._id!)
+          }
+        ), props: {
+          isRoot: true
+        }
+      });
 
-      const teamMemberA1: CreateBy<TeamMember> =
+      let teamMemberA1: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user1._id!),
-          teamA,
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user1._id!),
+            teamId: new ObjectID(teamA._id!),
+          }
         );
-      await teamMemberService.create(teamMemberA1);
-      const teamMemberA2: CreateBy<TeamMember> =
-        TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user2._id!),
-          teamA,
-        );
-      await teamMemberService.create(teamMemberA2);
 
-      const teamB: Team = await TeamServiceHelper.generateRandomTeam(
-        new ObjectID(project._id!),
-        new ObjectID(user._id!),
-      ).data.save();
-      const teamMemberB2: CreateBy<TeamMember> =
-        TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user2._id!),
-          teamB,
-        );
-      await teamMemberService.create(teamMemberB2);
-      const teamMemberB3: CreateBy<TeamMember> =
-        TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user3._id!),
-          teamB,
-        );
-      await teamMemberService.create(teamMemberB3);
+      teamMemberA1 = await TeamMemberService.create({
+        data: teamMemberA1,
+        props: { isRoot: true },
+      });
 
-      const teamC: Team = await TeamServiceHelper.generateRandomTeam(
-        new ObjectID(project._id!),
-        new ObjectID(user._id!),
-      ).data.save();
-      const teamMemberC3: CreateBy<TeamMember> =
+      let teamMemberA2: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember(
-          new ObjectID(project._id!),
-          new ObjectID(user3._id!),
-          teamC,
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user2._id!),
+            teamId: new ObjectID(teamA._id!),
+          }
         );
-      await teamMemberService.create(teamMemberC3);
+
+      teamMemberA2 = await TeamMemberService.create({
+        data: teamMemberA2,
+        props: { isRoot: true },
+      });
+
+      let teamB: Team = TeamServiceHelper.generateRandomTeam(
+        { projectId: new ObjectID(project._id!), }
+
+      );
+
+
+      teamB = await TeamService.create({
+        data: teamB,
+        props: { isRoot: true },
+      });
+
+
+
+      let teamMemberB2: TeamMember =
+        TeamMemberServiceHelper.generateRandomTeamMember(
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user2._id!),
+            teamId: new ObjectID(teamB._id!),
+          }
+        );
+      teamMemberB2 = await TeamMemberService.create({
+        data: teamMemberB2,
+        props: { isRoot: true },
+      });
+
+      let teamMemberB3: TeamMember =
+        TeamMemberServiceHelper.generateRandomTeamMember(
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user3._id!),
+            teamId: new ObjectID(teamB._id!),
+          }
+        );
+
+      teamMemberB3 = await TeamMemberService.create({
+        data: teamMemberB3,
+        props: { isRoot: true },
+      });
+
+      let teamC: Team = TeamServiceHelper.generateRandomTeam(
+        { projectId: new ObjectID(project._id!), }
+
+      );
+
+
+      teamC = await TeamService.create({
+        data: teamC,
+        props: { isRoot: true },
+      });
+
+      let teamMemberC3: TeamMember =
+        TeamMemberServiceHelper.generateRandomTeamMember(
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(user3._id!),
+            teamId: new ObjectID(teamC._id!),
+          }
+        );
+        teamMemberC3 = await TeamMemberService.create({
+          data: teamMemberC3,
+          props: { isRoot: true },  
+        });
 
       expect(
-        await teamMemberService.getUsersInTeam(new ObjectID(teamA._id!)),
+        await TeamMemberService.getUsersInTeam(new ObjectID(teamA._id!)),
       ).toHaveLength(2);
       expect(
-        await teamMemberService.getUsersInTeam(new ObjectID(teamB._id!)),
+        await TeamMemberService.getUsersInTeam(new ObjectID(teamB._id!)),
       ).toHaveLength(2);
       expect(
-        await teamMemberService.getUsersInTeam(new ObjectID(teamC._id!)),
+        await TeamMemberService.getUsersInTeam(new ObjectID(teamC._id!)),
       ).toHaveLength(1);
+      
     });
 
     it("should return users in multiple teams", async () => {
@@ -632,11 +782,20 @@ describe("TeamMemberService", () => {
       // team C members: user 3
 
       const user1: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
       const user2: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
       const user3: User =
-        await UserServiceHelper.generateRandomUser().data.save();
+        await UserService.create({
+          data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
 
       const teamA: Team = await TeamServiceHelper.generateRandomTeam(
         new ObjectID(project._id!),
@@ -648,14 +807,14 @@ describe("TeamMemberService", () => {
           new ObjectID(user1._id!),
           teamA,
         );
-      await teamMemberService.create(teamMemberA1);
+      await TeamMemberService.create(teamMemberA1);
       const teamMemberA2: CreateBy<TeamMember> =
         TeamMemberServiceHelper.generateRandomTeamMember(
           new ObjectID(project._id!),
           new ObjectID(user2._id!),
           teamA,
         );
-      await teamMemberService.create(teamMemberA2);
+      await TeamMemberService.create(teamMemberA2);
 
       const teamB: Team = await TeamServiceHelper.generateRandomTeam(
         new ObjectID(project._id!),
@@ -667,14 +826,14 @@ describe("TeamMemberService", () => {
           new ObjectID(user2._id!),
           teamB,
         );
-      await teamMemberService.create(teamMemberB2);
+      await TeamMemberService.create(teamMemberB2);
       const teamMemberB3: CreateBy<TeamMember> =
         TeamMemberServiceHelper.generateRandomTeamMember(
           new ObjectID(project._id!),
           new ObjectID(user3._id!),
           teamB,
         );
-      await teamMemberService.create(teamMemberB3);
+      await TeamMemberService.create(teamMemberB3);
 
       const teamC: Team = await TeamServiceHelper.generateRandomTeam(
         new ObjectID(project._id!),
@@ -686,10 +845,10 @@ describe("TeamMemberService", () => {
           new ObjectID(user3._id!),
           teamC,
         );
-      await teamMemberService.create(teamMemberC3);
+      await TeamMemberService.create(teamMemberC3);
 
       expect(
-        await teamMemberService.getUsersInTeams([
+        await TeamMemberService.getUsersInTeams([
           new ObjectID(teamA._id!),
           new ObjectID(teamB._id!),
           new ObjectID(teamC._id!),
@@ -712,7 +871,7 @@ describe("TeamMemberService", () => {
 
       const NUM_MEMBERS: number = 5;
       jest
-        .spyOn(teamMemberService, "getUniqueTeamMemberCountInProject")
+        .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
         .mockResolvedValue(NUM_MEMBERS);
 
       ProjectService.findOneById = jest.fn().mockResolvedValue({
@@ -723,7 +882,7 @@ describe("TeamMemberService", () => {
 
       jest.spyOn(ProjectService, "updateOneById").mockResolvedValue();
 
-      await teamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
+      await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
         new ObjectID(PROJECT_ID),
       );
 
@@ -745,7 +904,7 @@ describe("TeamMemberService", () => {
 
       const NUM_MEMBERS: number = 5;
       jest
-        .spyOn(teamMemberService, "getUniqueTeamMemberCountInProject")
+        .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
         .mockResolvedValue(NUM_MEMBERS);
 
       ProjectService.findOneById = jest.fn().mockResolvedValue({
@@ -754,7 +913,7 @@ describe("TeamMemberService", () => {
         _id: PROJECT_ID,
       });
 
-      await teamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
+      await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
         new ObjectID(PROJECT_ID),
       );
 

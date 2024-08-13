@@ -8,7 +8,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
-import Database from "../TestingUtils/Database";
+import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";

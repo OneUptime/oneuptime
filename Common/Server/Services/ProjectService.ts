@@ -58,8 +58,8 @@ export interface CurrentPlan {
 }
 
 export class ProjectService extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeCreate(

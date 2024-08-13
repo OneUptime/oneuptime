@@ -6,8 +6,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Model from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeCreate(

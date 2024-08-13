@@ -16,8 +16,8 @@ import User from "Common/Models/DatabaseModels/User";
 import Model from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onUpdateSuccess(

@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -8,8 +7,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/Team";
 
 export class TeamService extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeUpdate(

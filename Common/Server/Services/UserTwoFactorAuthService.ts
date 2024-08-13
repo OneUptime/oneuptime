@@ -11,8 +11,8 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeCreate(

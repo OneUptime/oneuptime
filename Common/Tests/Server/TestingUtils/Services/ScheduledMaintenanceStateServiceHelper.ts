@@ -1,12 +1,11 @@
-import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import { Black, Yellow } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
 export default class ScheduledMaintenanceStateTestService {
-  public static generateScheduledState(
+  public static generateScheduledState(data: {
     projectId: ObjectID,
-  ): CreateBy<ScheduledMaintenanceState> {
+  }): ScheduledMaintenanceState {
     const scheduledState: ScheduledMaintenanceState =
       new ScheduledMaintenanceState();
 
@@ -16,19 +15,18 @@ export default class ScheduledMaintenanceStateTestService {
       "When an event is scheduled, it belongs to this state";
     scheduledState.color = Black;
     scheduledState.isScheduledState = true;
-    scheduledState.projectId = projectId;
+    scheduledState.projectId = data.projectId;
     scheduledState.order = 1;
     scheduledState.slug = scheduledState.name;
 
-    return {
-      data: scheduledState,
-      props: { isRoot: true },
-    };
+    return scheduledState;
   }
 
   public static generateOngoingState(
-    projectId: ObjectID,
-  ): CreateBy<ScheduledMaintenanceState> {
+    data: {
+      projectId: ObjectID,
+    }
+  ): ScheduledMaintenanceState {
     const ongoingState: ScheduledMaintenanceState =
       new ScheduledMaintenanceState();
 
@@ -38,13 +36,10 @@ export default class ScheduledMaintenanceStateTestService {
       "When an event is ongoing, it belongs to this state.";
     ongoingState.color = Yellow;
     ongoingState.isOngoingState = true;
-    ongoingState.projectId = projectId;
+    ongoingState.projectId = data.projectId;
     ongoingState.order = 2;
     ongoingState.slug = ongoingState.name;
 
-    return {
-      data: ongoingState,
-      props: { isRoot: true },
-    };
+    return ongoingState;
   }
 }

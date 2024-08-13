@@ -31,8 +31,8 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeCreate(

@@ -14,8 +14,8 @@ import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCa
 import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   public async getCurrentUserIdInSchedule(

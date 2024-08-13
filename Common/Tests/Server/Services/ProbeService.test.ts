@@ -1,5 +1,5 @@
 import { Service as ProbeService } from "../../../Server/Services/ProbeService";
-import Database from "../TestingUtils/Database";
+import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import UserTestService from "../TestingUtils/Services/UserServiceHelper";
 import ObjectID from "Common/Types/ObjectID";

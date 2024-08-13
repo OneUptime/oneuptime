@@ -18,7 +18,7 @@ import {
   getSubscriptionData,
   getSubscriptionPlanData,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/Helpers";
+} from "../TestingUtils/Services/BillingServiceHelper";
 import {
   ChangePlan,
   CouponData,

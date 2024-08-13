@@ -17,8 +17,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Model from "Common/Models/DatabaseModels/UserCall";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeDelete(

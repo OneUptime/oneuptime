@@ -35,8 +35,8 @@ import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 
 export class UserService extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onCreateSuccess(

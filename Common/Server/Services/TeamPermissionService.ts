@@ -15,8 +15,8 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Model from "Common/Models/DatabaseModels/TeamPermission";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   protected override async onBeforeCreate(

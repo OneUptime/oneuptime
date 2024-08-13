@@ -1,5 +1,5 @@
 import { AppApiHostname, EncryptionSecret } from "../EnvironmentConfig";
-import PostgresDatabase, {
+import {
   PostgresAppInstance,
 } from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
@@ -64,7 +64,7 @@ import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
-  private postgresDatabase!: PostgresDatabase;
+
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
   private modelName!: string;
@@ -89,16 +89,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   public constructor(
     modelType: { new (): TBaseModel },
-    postgresDatabase?: PostgresDatabase,
   ) {
     super();
     this.modelType = modelType;
     this.model = new modelType();
     this.modelName = modelType.name;
-
-    if (postgresDatabase) {
-      this.postgresDatabase = postgresDatabase;
-    }
   }
 
   public setDoNotAllowDelete(doNotAllowDelete: boolean): void {
@@ -122,17 +117,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   public getRepository(): Repository<TBaseModel> {
-    if (this.postgresDatabase && !this.postgresDatabase.isConnected()) {
+   
+    if (!PostgresAppInstance.isConnected()) {
       throw new DatabaseNotConnectedException();
     }
 
-    if (!this.postgresDatabase && !PostgresAppInstance.isConnected()) {
-      throw new DatabaseNotConnectedException();
-    }
-
-    const dataSource: DataSource | null = this.postgresDatabase
-      ? this.postgresDatabase.getDataSource()
-      : PostgresAppInstance.getDataSource();
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
 
     if (dataSource) {
       return dataSource.getRepository<TBaseModel>(this.modelType.name);

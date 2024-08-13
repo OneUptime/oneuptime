@@ -4,12 +4,14 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
+        "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
+        "test-file": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node node_modules/.bin/jest --runInBand $1 --detectOpenHandles",
         "coverage": "jest --detectOpenHandles --coverage",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-        "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
+        "debug:test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
+        "debug:test-file": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --inspect node_modules/.bin/jest --runInBand $1 --detectOpenHandles"
     },
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",

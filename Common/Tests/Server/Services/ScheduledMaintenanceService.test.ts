@@ -1,5 +1,5 @@
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
-import Database from "../TestingUtils/Database";
+import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import ScheduledMaintenanceServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceServiceHelper";
@@ -10,30 +10,16 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import User from "Common/Models/DatabaseModels/User";
+import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 
-// mock PostgresDatabase
-const testDatabase: Database = new Database();
-jest.mock("../../../Server/Infrastructure/PostgresDatabase", () => {
-  const actualModule: any = jest.requireActual(
-    "../../../Server/Infrastructure/PostgresDatabase",
-  );
-  return {
-    __esModule: true,
-    default: actualModule.default,
-    PostgresAppInstance: {
-      getDataSource: () => {
-        return testDatabase.getDataSource();
-      },
-      isConnected: () => {
-        return testDatabase.isConnected();
-      },
-    },
-  };
-});
 
 describe("ScheduledMaintenanceService", () => {
+
+  let testDatabase: Database;
+
   beforeEach(async () => {
-    await testDatabase.createAndConnect();
+    // mock PostgresDatabase
+    testDatabase = await TestDatabaseMock.getDbMock();
   });
 
   afterEach(async () => {
@@ -44,7 +30,7 @@ describe("ScheduledMaintenanceService", () => {
   describe("changeScheduledMaintenanceState", () => {
     it("should trigger workflows only once", async () => {
       // Prepare scheduled maintenance
-      const user: User = UserServiceHelper.generateRandomUser().data;
+      const user: User = UserServiceHelper.generateRandomUser();
       await user.save();
       const project: Project = ProjectServiceHelper.generateRandomProject(
         user.id!,

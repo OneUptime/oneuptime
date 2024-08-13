@@ -5,8 +5,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   public toTwilioConfig(

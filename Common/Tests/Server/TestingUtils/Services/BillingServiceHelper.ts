@@ -5,7 +5,7 @@ import {
   CustomerData,
   MeteredSubscription,
   Subscription,
-} from "../../TestingUtils/Services/Types";
+} from "./Types";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import ProductType from "Common/Types/MeteredPlan/ProductType";

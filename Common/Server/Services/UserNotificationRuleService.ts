@@ -42,8 +42,8 @@ import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
   }
 
   public async executeNotificationRuleItem(

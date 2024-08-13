@@ -1,11 +1,10 @@
-import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import CompanySize from "Common/Types/Company/CompanySize";
 import JobRole from "Common/Types/Company/JobRole";
 import Faker from "Common/Utils/Faker";
 import User from "Common/Models/DatabaseModels/User";
 
 export default class UserTestService {
-  public static generateRandomUser(): CreateBy<User> {
+  public static generateRandomUser(): User {
     const user: User = new User();
     user.name = Faker.generateUserFullName();
     user.slug = user.name.toString();
@@ -21,9 +20,6 @@ export default class UserTestService {
     user.isMasterAdmin = false;
     user.isEmailVerified = true;
 
-    return {
-      data: user,
-      props: { isRoot: true },
-    };
+    return user;
   }
 }

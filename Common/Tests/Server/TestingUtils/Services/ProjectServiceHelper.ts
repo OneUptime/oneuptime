@@ -1,10 +1,8 @@
-import CreateBy from "../../../../Server/Types/Database/CreateBy";
-import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export default class ProjectTestService {
-  public static generateRandomProject(userId?: ObjectID): CreateBy<Project> {
+  public static generateRandomProject(): Project {
     const project: Project = new Project();
 
     // required fields
@@ -22,9 +20,6 @@ export default class ProjectTestService {
     project.failedCallAndSMSBalanceChargeNotificationSentToOwners = true;
     project.notEnabledSmsOrCallNotificationSentToOwners = true;
 
-    return {
-      data: project,
-      props: { isRoot: true, userId },
-    };
+    return project;
   }
 }
