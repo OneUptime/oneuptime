@@ -31,9 +31,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     // connect to the database.
-    await PostgresAppInstance.connect(
-      PostgresAppInstance.getDatasourceOptions(),
-    );
+    await PostgresAppInstance.connect();
 
     AcmeWriteCertificatesJob.init();
 
