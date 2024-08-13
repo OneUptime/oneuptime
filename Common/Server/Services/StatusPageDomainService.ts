@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -20,8 +19,8 @@ import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 
 export class Service extends DatabaseService<StatusPageDomain> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(StatusPageDomain, postgresDatabase);
+  public constructor() {
+    super(StatusPageDomain);
   }
 
   protected override async onBeforeCreate(

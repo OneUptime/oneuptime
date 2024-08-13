@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
@@ -8,8 +7,8 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import File from "Common/Models/DatabaseModels/File";
 
 export class Service extends DatabaseService<File> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(File, postgresDatabase);
+  public constructor() {
+    super(File);
   }
 
   protected override async onBeforeUpdate(

@@ -4,16 +4,15 @@ import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import ScheduledMaintenanceServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceServiceHelper";
 import ScheduledMaintenanceStateServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceStateServiceHelper";
-import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
 import { describe, expect, it } from "@jest/globals";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import User from "Common/Models/DatabaseModels/User";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
-import UserService from "../../../Server/Services/UserService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
+import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
+import UserService from "../../../Server/Services/UserService";
 
 describe("ScheduledMaintenanceService", () => {
   let testDatabase: Database;
@@ -31,7 +30,8 @@ describe("ScheduledMaintenanceService", () => {
   describe("changeScheduledMaintenanceState", () => {
     it("should trigger workflows only once", async () => {
       // Prepare scheduled maintenance
-      let user: User = UserServiceHelper.generateRandomUser();
+
+      let user = UserServiceHelper.generateRandomUser();
 
       user = await UserService.create({
         data: user,
@@ -46,6 +46,7 @@ describe("ScheduledMaintenanceService", () => {
         data: project,
         props: {
           isRoot: true,
+          userId: user.id!,
         },
       });
 

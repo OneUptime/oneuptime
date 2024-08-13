@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -13,8 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 
 export class Service extends DatabaseService<IncidentState> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(IncidentState, postgresDatabase);
+  public constructor() {
+    super(IncidentState);
   }
 
   protected override async onBeforeCreate(

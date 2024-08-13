@@ -1,5 +1,4 @@
 import DatabaseConfig from "../DatabaseConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -36,8 +35,8 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
   }
 

@@ -1,5 +1,4 @@
 import DatabaseConfig from "../DatabaseConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -12,8 +11,8 @@ import Text from "Common/Types/Text";
 import Model from "Common/Models/DatabaseModels/ShortLink";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
     this.hardDeleteItemsOlderThanInDays("createdAt", 3); //expire links in 3 days.
   }
 

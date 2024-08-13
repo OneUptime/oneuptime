@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
 import BillingService, { Invoice } from "./BillingService";
@@ -13,8 +12,8 @@ import Model, {
 import Project from "Common/Models/DatabaseModels/Project";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
     this.setDoNotAllowDelete(true);
   }
 

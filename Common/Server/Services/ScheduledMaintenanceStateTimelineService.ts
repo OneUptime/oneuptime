@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -25,8 +24,8 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(ScheduledMaintenanceStateTimeline, postgresDatabase);
+  public constructor() {
+    super(ScheduledMaintenanceStateTimeline);
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
   }
 

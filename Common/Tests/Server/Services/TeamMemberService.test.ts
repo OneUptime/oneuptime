@@ -42,40 +42,35 @@ describe("TeamMemberService", () => {
   let testDatabase: Database;
 
   beforeEach(async () => {
-    try {
-      testDatabase = await TestDatabaseMock.getDbMock();
+    testDatabase = await TestDatabaseMock.getDbMock();
 
-      user = UserServiceHelper.generateRandomUser();
-      user = await UserService.create({
-        data: user,
-        props: { isRoot: true },
-      });
+    user = UserServiceHelper.generateRandomUser();
+    user = await UserService.create({
+      data: user,
+      props: { isRoot: true },
+    });
 
-      user2 = UserServiceHelper.generateRandomUser();
-      user2 = await UserService.create({
-        data: user2,
-        props: { isRoot: true },
-      });
+    user2 = UserServiceHelper.generateRandomUser();
+    user2 = await UserService.create({
+      data: user2,
+      props: { isRoot: true },
+    });
 
-      project = ProjectServiceHelper.generateRandomProject();
+    project = ProjectServiceHelper.generateRandomProject();
 
-      project = await ProjectService.create({
-        data: project,
-        props: { isRoot: true },
-      });
+    project = await ProjectService.create({
+      data: project,
+      props: { isRoot: true, userId: user.id! },
+    });
 
-      team = TeamServiceHelper.generateRandomTeam({
-        projectId: new ObjectID(project._id!),
-      });
+    team = TeamServiceHelper.generateRandomTeam({
+      projectId: new ObjectID(project._id!),
+    });
 
-      team = await TeamService.create({
-        data: team,
-        props: { isRoot: true },
-      });
-    } catch (err) {
-      console.log(err);
-      throw err;
-    }
+    team = await TeamService.create({
+      data: team,
+      props: { isRoot: true },
+    });
   });
 
   afterEach(async () => {
@@ -634,26 +629,26 @@ describe("TeamMemberService", () => {
         },
       });
 
-      let teamMemberA1: TeamMember =
+      const teamMemberA1: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user1._id!),
           teamId: new ObjectID(teamA._id!),
         });
 
-      teamMemberA1 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberA1,
         props: { isRoot: true },
       });
 
-      let teamMemberA2: TeamMember =
+      const teamMemberA2: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user2._id!),
           teamId: new ObjectID(teamA._id!),
         });
 
-      teamMemberA2 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberA2,
         props: { isRoot: true },
       });
@@ -667,25 +662,25 @@ describe("TeamMemberService", () => {
         props: { isRoot: true },
       });
 
-      let teamMemberB2: TeamMember =
+      const teamMemberB2: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user2._id!),
           teamId: new ObjectID(teamB._id!),
         });
-      teamMemberB2 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberB2,
         props: { isRoot: true },
       });
 
-      let teamMemberB3: TeamMember =
+      const teamMemberB3: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user3._id!),
           teamId: new ObjectID(teamB._id!),
         });
 
-      teamMemberB3 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberB3,
         props: { isRoot: true },
       });
@@ -699,13 +694,13 @@ describe("TeamMemberService", () => {
         props: { isRoot: true },
       });
 
-      let teamMemberC3: TeamMember =
+      const teamMemberC3: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user3._id!),
           teamId: new ObjectID(teamC._id!),
         });
-      teamMemberC3 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberC3,
         props: { isRoot: true },
       });
@@ -748,26 +743,26 @@ describe("TeamMemberService", () => {
         },
       });
 
-      let teamMemberA1: TeamMember =
+      const teamMemberA1: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user1._id!),
           teamId: new ObjectID(teamA._id!),
         });
 
-      teamMemberA1 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberA1,
         props: { isRoot: true },
       });
 
-      let teamMemberA2: TeamMember =
+      const teamMemberA2: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user2._id!),
           teamId: new ObjectID(teamA._id!),
         });
 
-      teamMemberA2 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberA2,
         props: { isRoot: true },
       });
@@ -781,25 +776,25 @@ describe("TeamMemberService", () => {
         },
       });
 
-      let teamMemberB2: TeamMember =
+      const teamMemberB2: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user2._id!),
           teamId: new ObjectID(teamB._id!),
         });
-      teamMemberB2 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberB2,
         props: { isRoot: true },
       });
 
-      let teamMemberB3: TeamMember =
+      const teamMemberB3: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user3._id!),
           teamId: new ObjectID(teamB._id!),
         });
 
-      teamMemberB3 = await TeamMemberService.create({
+      await TeamMemberService.create({
         data: teamMemberB3,
         props: { isRoot: true },
       });
@@ -813,13 +808,14 @@ describe("TeamMemberService", () => {
         },
       });
 
-      let teamMemberC3: TeamMember =
+      const teamMemberC3: TeamMember =
         TeamMemberServiceHelper.generateRandomTeamMember({
           projectId: new ObjectID(project._id!),
           userId: new ObjectID(user3._id!),
           teamId: new ObjectID(teamC._id!),
         });
-      teamMemberC3 = await TeamMemberService.create({
+
+      await TeamMemberService.create({
         data: teamMemberC3,
         props: { isRoot: true },
       });

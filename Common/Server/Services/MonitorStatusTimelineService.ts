@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -17,8 +16,8 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import User from "Common/Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(MonitorStatusTimeline, postgresDatabase);
+  public constructor() {
+    super(MonitorStatusTimeline);
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
   }
 

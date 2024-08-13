@@ -1,5 +1,4 @@
 import ObjectID from "Common/Types/ObjectID";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -11,8 +10,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
 
 export class Service extends DatabaseService<MonitorProbe> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(MonitorProbe, postgresDatabase);
+  public constructor() {
+    super(MonitorProbe);
   }
 
   protected override async onBeforeCreate(

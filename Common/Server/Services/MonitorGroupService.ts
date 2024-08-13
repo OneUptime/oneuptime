@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
@@ -15,8 +14,8 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 
 export class Service extends DatabaseService<MonitorGroup> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(MonitorGroup, postgresDatabase);
+  public constructor() {
+    super(MonitorGroup);
   }
 
   public async getStatusTimeline(

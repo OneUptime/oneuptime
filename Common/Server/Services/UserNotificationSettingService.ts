@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
@@ -24,8 +23,8 @@ import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificati
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(UserNotificationSetting, postgresDatabase);
+  public constructor() {
+    super(UserNotificationSetting);
   }
 
   public async sendUserNotification(data: {

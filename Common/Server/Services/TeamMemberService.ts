@@ -1,6 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -35,8 +34,8 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(TeamMember, postgresDatabase);
+  public constructor() {
+    super(TeamMember);
   }
 
   protected override async onBeforeCreate(

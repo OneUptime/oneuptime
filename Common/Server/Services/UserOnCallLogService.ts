@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -18,8 +17,8 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import Model from "Common/Models/DatabaseModels/UserOnCallLog";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
     this.hardDeleteItemsOlderThanInDays("createdAt", 30);
   }
 

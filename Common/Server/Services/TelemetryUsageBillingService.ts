@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import { MeteredPlanUtil } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import TelemetryMeteredPlan from "../Types/Billing/MeteredPlan/TelemetryMeteredPlan";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -13,8 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 
 export class Service extends DatabaseService<Model> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(Model, postgresDatabase);
+  public constructor() {
+    super(Model);
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
   }
 

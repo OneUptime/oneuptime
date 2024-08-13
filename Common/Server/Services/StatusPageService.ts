@@ -1,5 +1,4 @@
 import DatabaseConfig from "../DatabaseConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -76,8 +75,8 @@ export interface StatusPageReport {
 }
 
 export class Service extends DatabaseService<StatusPage> {
-  public constructor(postgresDatabase?: PostgresDatabase) {
-    super(StatusPage, postgresDatabase);
+  public constructor() {
+    super(StatusPage);
   }
 
   protected override async onBeforeCreate(
