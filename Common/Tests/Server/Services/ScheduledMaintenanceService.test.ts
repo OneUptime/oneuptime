@@ -14,7 +14,6 @@ import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
 
 describe("ScheduledMaintenanceService", () => {
- 
   beforeEach(async () => {
     // mock PostgresDatabase
     await TestDatabaseMock.connectDbMock();
@@ -48,9 +47,8 @@ describe("ScheduledMaintenanceService", () => {
         },
       });
 
-
-      // this state is automatically created when the project is created. 
-      let scheduledState: ScheduledMaintenanceState | null =
+      // this state is automatically created when the project is created.
+      const scheduledState: ScheduledMaintenanceState | null =
         await ScheduledMaintenanceStateService.findOneBy({
           query: {
             isScheduledState: true,
@@ -60,11 +58,11 @@ describe("ScheduledMaintenanceService", () => {
             isRoot: true,
           },
           select: {
-            _id: true
-          }
+            _id: true,
+          },
         });
 
-        expect(scheduledState).not.toBeNull();
+      expect(scheduledState).not.toBeNull();
 
       let maintenance: ScheduledMaintenance =
         ScheduledMaintenanceServiceHelper.generateRandomScheduledMaintenance({
@@ -79,20 +77,20 @@ describe("ScheduledMaintenanceService", () => {
         },
       });
 
-      // this state is automatically created when the project is created. 
-      let ongoingState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          isOngoingState: true,
-          projectId: project.id!,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true
-        }
-      });
+      // this state is automatically created when the project is created.
+      const ongoingState: ScheduledMaintenanceState | null =
+        await ScheduledMaintenanceStateService.findOneBy({
+          query: {
+            isOngoingState: true,
+            projectId: project.id!,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+          },
+        });
 
       expect(ongoingState).not.toBeNull();
 
@@ -109,7 +107,7 @@ describe("ScheduledMaintenanceService", () => {
         notifyOwners: true,
         props: {
           isRoot: true,
-          tenantId: project.id!
+          tenantId: project.id!,
         },
       });
 

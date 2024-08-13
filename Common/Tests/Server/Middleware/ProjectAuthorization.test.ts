@@ -146,7 +146,6 @@ describe("ProjectMiddleware", () => {
       id: mockedObjectId,
     } as ApiKey;
 
-
     beforeEach(
       async () => {
         jest.clearAllMocks();

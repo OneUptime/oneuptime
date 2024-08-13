@@ -9,18 +9,17 @@ export class TestDatabaseMock {
 
     PostgresAppInstance.getDatasourceOptions = () => {
       return testDataSourceOptions;
-    }
+    };
 
     Redis.getRedisOptions = () => {
       return getTestRedisConnectionOptions();
     };
-    
+
     await Redis.connect();
     await PostgresAppInstance.createAndConnect();
   }
 
   public static async disconnectDbMock(): Promise<void> {
-    
     await PostgresAppInstance.disconnectAndDropDatabase();
     await Redis.disconnect();
   }

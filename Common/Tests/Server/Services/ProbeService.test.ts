@@ -13,8 +13,6 @@ import UserService from "../../../Server/Services/UserService";
 import ProbeService from "../../../Server/Services/ProbeService";
 
 describe("ProbeService", () => {
-  
-
   beforeEach(async () => {
     // mock PostgresDatabase
     await TestDatabaseMock.connectDbMock();
@@ -741,7 +739,6 @@ describe("ProbeService", () => {
         isRoot: true,
       },
     });
-
 
     const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {

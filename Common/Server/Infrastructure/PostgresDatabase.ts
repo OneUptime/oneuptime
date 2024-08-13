@@ -122,5 +122,3 @@ export default class Database {
 }
 
 export const PostgresAppInstance: Database = new Database();
-
-

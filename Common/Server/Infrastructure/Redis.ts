@@ -33,7 +33,6 @@ export default abstract class Redis {
   }
 
   public static getRedisOptions(): RedisOptions {
-
     const redisOptions: RedisOptions = {
       host: RedisHostname,
       port: RedisPort.toNumber(),
@@ -59,7 +58,6 @@ export default abstract class Redis {
     let retry: number = 0;
 
     try {
-     
       this.client = new RedisClient(this.getRedisOptions());
 
       // Listen to 'error' events to the Redis connection

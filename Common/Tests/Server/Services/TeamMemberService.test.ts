@@ -24,7 +24,6 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamService from "../../../Server/Services/TeamService";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 
-
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
 describe("TeamMemberService", () => {
@@ -32,7 +31,6 @@ describe("TeamMemberService", () => {
   let user2!: User;
   let project!: Project;
   let team!: Team;
-
 
   beforeEach(async () => {
     await TestDatabaseMock.connectDbMock();
@@ -57,7 +55,7 @@ describe("TeamMemberService", () => {
     });
 
     team = TeamServiceHelper.generateRandomTeam({
-      projectId: project.id!
+      projectId: project.id!,
     });
 
     team = await TeamService.create({
@@ -828,7 +826,6 @@ describe("TeamMemberService", () => {
     const SUBSCRIPTION_ID: string = "subscriptionId";
 
     it("should update subscription seats based on unique team members", async () => {
-
       const user1 = await UserService.create({
         data: UserServiceHelper.generateRandomUser(),
         props: { isRoot: true },
@@ -861,7 +858,7 @@ describe("TeamMemberService", () => {
         props: { isRoot: true },
       });
 
-      // add team 
+      // add team
 
       const team = await TeamService.create({
         data: TeamServiceHelper.generateRandomTeam({
@@ -906,7 +903,6 @@ describe("TeamMemberService", () => {
         data: { paymentProviderSubscriptionSeats: 2 },
         props: { isRoot: true },
       });
-
     });
 
     it("should not update subscription seats if there are no plans", async () => {

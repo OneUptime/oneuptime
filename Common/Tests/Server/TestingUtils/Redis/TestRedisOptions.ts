@@ -1,4 +1,9 @@
-import { RedisDb, RedisPassword, RedisTlsSentinelMode, RedisUsername } from "../../../../Server/EnvironmentConfig";
+import {
+  RedisDb,
+  RedisPassword,
+  RedisTlsSentinelMode,
+  RedisUsername,
+} from "../../../../Server/EnvironmentConfig";
 import { RedisOptionsType } from "../../../../Server/Infrastructure/Redis";
 
 type GetTestDataSourceOptions = () => RedisOptionsType;
