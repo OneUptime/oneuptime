@@ -13,6 +13,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
 import UserService from "../../../Server/Services/UserService";
+import User from "../../../Models/DatabaseModels/User";
 
 describe("ScheduledMaintenanceService", () => {
   let testDatabase: Database;
@@ -31,7 +32,7 @@ describe("ScheduledMaintenanceService", () => {
     it("should trigger workflows only once", async () => {
       // Prepare scheduled maintenance
 
-      let user = UserServiceHelper.generateRandomUser();
+      let user: User = UserServiceHelper.generateRandomUser();
 
       user = await UserService.create({
         data: user,

@@ -8,8 +8,8 @@ export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
 
 export default class Database {
-  protected dataSourceOptions!: DataSourceOptions;
-  protected dataSource!: DataSource | null;
+  protected dataSourceOptions: DataSourceOptions | null = null;
+  protected dataSource: DataSource | null = null;
 
   public getDatasourceOptions(): DataSourceOptions {
     this.dataSourceOptions = DatabaseDataSourceOptions;
@@ -96,6 +96,8 @@ export default class Database {
     await dropDatabase({
       options: this.getDatasourceOptions(),
     });
+    this.dataSource = null;
+    this.dataSourceOptions = null;
   }
 
   public async createDatabase(): Promise<void> {
@@ -118,3 +120,5 @@ export default class Database {
 }
 
 export const PostgresAppInstance: Database = new Database();
+
+

@@ -14,3 +14,5 @@ export default class TestDatabase extends PostgresDatabase {
     return this.dataSourceOptions;
   }
 }
+
+export const TestPostgresAppInstance: TestDatabase = new TestDatabase();
