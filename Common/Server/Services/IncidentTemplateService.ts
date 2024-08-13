@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";

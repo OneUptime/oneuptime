@@ -5,16 +5,15 @@ import OneUptimeDate from "../../../../Types/Date";
 
 export default class ScheduledMaintenanceTestService {
   public static generateRandomScheduledMaintenance(data: {
-    projectId: ObjectID,
-    currentScheduledMaintenanceStateId: ObjectID,
-  }
-  ): ScheduledMaintenance {
+    projectId: ObjectID;
+    currentScheduledMaintenanceStateId: ObjectID;
+  }): ScheduledMaintenance {
     const maintenance: ScheduledMaintenance = new ScheduledMaintenance();
 
     // required fields
     maintenance.projectId = data.projectId;
     maintenance.currentScheduledMaintenanceStateId =
-    data.currentScheduledMaintenanceStateId;
+      data.currentScheduledMaintenanceStateId;
     maintenance.title = Faker.generateName();
     maintenance.description = Faker.generateName();
     maintenance.startsAt = OneUptimeDate.getCurrentDate();

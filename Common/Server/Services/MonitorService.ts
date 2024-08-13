@@ -3,7 +3,6 @@ import {
   AllowedActiveMonitorCountInFreePlan,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";

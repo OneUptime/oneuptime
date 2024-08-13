@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";

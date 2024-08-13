@@ -11,10 +11,11 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import User from "Common/Models/DatabaseModels/User";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
-
+import UserService from "../../../Server/Services/UserService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 
 describe("ScheduledMaintenanceService", () => {
-
   let testDatabase: Database;
 
   beforeEach(async () => {
@@ -30,30 +31,63 @@ describe("ScheduledMaintenanceService", () => {
   describe("changeScheduledMaintenanceState", () => {
     it("should trigger workflows only once", async () => {
       // Prepare scheduled maintenance
-      const user: User = UserServiceHelper.generateRandomUser();
-      await user.save();
-      const project: Project = ProjectServiceHelper.generateRandomProject(
-        user.id!,
-      ).data;
-      await project.save();
-      const scheduledState: ScheduledMaintenanceState =
-        ScheduledMaintenanceStateServiceHelper.generateScheduledState(
-          project.id!,
-        ).data;
-      await scheduledState.save();
-      const maintenance: ScheduledMaintenance =
-        ScheduledMaintenanceServiceHelper.generateRandomScheduledMaintenance(
-          project.id!,
-          scheduledState.id!,
-        ).data;
-      await maintenance.save();
+      let user: User = UserServiceHelper.generateRandomUser();
+
+      user = await UserService.create({
+        data: user,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      let project: Project = ProjectServiceHelper.generateRandomProject();
+
+      project = await ProjectService.create({
+        data: project,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      let scheduledState: ScheduledMaintenanceState =
+        ScheduledMaintenanceStateServiceHelper.generateScheduledState({
+          projectId: project.id!,
+        });
+
+      scheduledState = await ScheduledMaintenanceStateService.create({
+        data: scheduledState,
+        props: {
+          isRoot: true,
+        },
+      });
+      let maintenance: ScheduledMaintenance =
+        ScheduledMaintenanceServiceHelper.generateRandomScheduledMaintenance({
+          projectId: project.id!,
+          currentScheduledMaintenanceStateId: scheduledState.id!,
+        });
+
+      maintenance = await ScheduledMaintenanceService.create({
+        data: maintenance,
+        props: {
+          isRoot: true,
+        },
+      });
+
       // Change state
-      const ongoingState: ScheduledMaintenanceState =
-        ScheduledMaintenanceStateServiceHelper.generateOngoingState(
-          project.id!,
-        ).data;
-      await ongoingState.save();
+      let ongoingState: ScheduledMaintenanceState =
+        ScheduledMaintenanceStateServiceHelper.generateOngoingState({
+          projectId: project.id!,
+        });
+
+      ongoingState = await ScheduledMaintenanceStateService.create({
+        data: ongoingState,
+        props: {
+          isRoot: true,
+        },
+      });
+
       jest.spyOn(ScheduledMaintenanceService, "onTrigger");
+
       await ScheduledMaintenanceService.changeScheduledMaintenanceState({
         projectId: project.id!,
         scheduledMaintenanceId: maintenance.id!,
@@ -67,6 +101,7 @@ describe("ScheduledMaintenanceService", () => {
           isRoot: true,
         },
       });
+
       // Assert triggering workflows only once
       expect(ScheduledMaintenanceService.onTrigger).toHaveBeenCalledTimes(1);
     });

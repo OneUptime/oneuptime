@@ -1,7 +1,5 @@
 import { AppApiHostname, EncryptionSecret } from "../EnvironmentConfig";
-import {
-  PostgresAppInstance,
-} from "../Infrastructure/PostgresDatabase";
+import { PostgresAppInstance } from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -64,7 +62,6 @@ import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
-
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
   private modelName!: string;
@@ -87,9 +84,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   public doNotAllowDelete: boolean = false;
 
-  public constructor(
-    modelType: { new (): TBaseModel },
-  ) {
+  public constructor(modelType: { new (): TBaseModel }) {
     super();
     this.modelType = modelType;
     this.model = new modelType();
@@ -117,7 +112,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   public getRepository(): Repository<TBaseModel> {
-   
     if (!PostgresAppInstance.isConnected()) {
       throw new DatabaseNotConnectedException();
     }

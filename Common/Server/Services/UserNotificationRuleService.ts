@@ -1,5 +1,4 @@
 import DatabaseConfig from "../DatabaseConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";

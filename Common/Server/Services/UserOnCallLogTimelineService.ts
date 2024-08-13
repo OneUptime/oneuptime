@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import { OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";

@@ -1,4 +1,3 @@
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnDelete, OnFind } from "../Types/Database/Hooks";

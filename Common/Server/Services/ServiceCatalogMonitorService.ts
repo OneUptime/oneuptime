@@ -1,5 +1,4 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";

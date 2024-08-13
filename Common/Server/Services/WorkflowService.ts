@@ -1,5 +1,4 @@
 import { AppApiHostname } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";

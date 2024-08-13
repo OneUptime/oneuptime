@@ -3,11 +3,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import Faker from "../../../../Utils/Faker";
 
 export default class TeamTestService {
-  public static generateRandomTeam(
-    data: {
-      projectId: ObjectID,
-    }
-  ): Team {
+  public static generateRandomTeam(data: { projectId: ObjectID }): Team {
     const team: Team = new Team();
 
     // required fields

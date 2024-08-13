@@ -3,7 +3,6 @@ import {
   IsBillingEnabled,
   NotificationWebhookOnCreateUser,
 } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";

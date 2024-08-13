@@ -56,9 +56,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     // connect to the database.
-    await PostgresAppInstance.connect(
-      
-    );
+    await PostgresAppInstance.connect();
 
     // connect redis
     await Redis.connect();

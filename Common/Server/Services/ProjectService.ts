@@ -1,6 +1,5 @@
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";

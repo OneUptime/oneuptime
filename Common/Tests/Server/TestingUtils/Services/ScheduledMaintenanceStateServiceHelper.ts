@@ -4,7 +4,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 
 export default class ScheduledMaintenanceStateTestService {
   public static generateScheduledState(data: {
-    projectId: ObjectID,
+    projectId: ObjectID;
   }): ScheduledMaintenanceState {
     const scheduledState: ScheduledMaintenanceState =
       new ScheduledMaintenanceState();
@@ -22,11 +22,9 @@ export default class ScheduledMaintenanceStateTestService {
     return scheduledState;
   }
 
-  public static generateOngoingState(
-    data: {
-      projectId: ObjectID,
-    }
-  ): ScheduledMaintenanceState {
+  public static generateOngoingState(data: {
+    projectId: ObjectID;
+  }): ScheduledMaintenanceState {
     const ongoingState: ScheduledMaintenanceState =
       new ScheduledMaintenanceState();
 

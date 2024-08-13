@@ -4,12 +4,11 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 export default class TeamMemberTestService {
   public static generateRandomTeamMember(data: {
-    projectId: ObjectID,
-    userId: ObjectID,
-    teamId: ObjectID,
-    miscDataProps?: JSONObject,
-  }
-  ): TeamMember {
+    projectId: ObjectID;
+    userId: ObjectID;
+    teamId: ObjectID;
+    miscDataProps?: JSONObject;
+  }): TeamMember {
     const teamMember: TeamMember = new TeamMember();
 
     // required fields

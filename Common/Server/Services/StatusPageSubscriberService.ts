@@ -4,7 +4,6 @@ import {
   AllowedSubscribersCountInFreePlan,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
-import PostgresDatabase from "../Infrastructure/PostgresDatabase";
 import ProjectSMTPConfigService from "../Services/ProjectSmtpConfigService";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";

@@ -1,4 +1,3 @@
-import { Service as ProbeService } from "../../../Server/Services/ProbeService";
 import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import UserTestService from "../TestingUtils/Services/UserServiceHelper";
@@ -10,23 +9,24 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import { fail } from "assert";
 import { describe, expect, beforeEach, afterEach, test } from "@jest/globals";
+import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
+import UserService from "../../../Server/Services/UserService";
+import ProbeService from "../../../Server/Services/ProbeService";
 
-describe("probeService", () => {
-  let database!: Database;
-  beforeEach(
-    async () => {
-      database = new Database();
-      await database.createAndConnect();
-    },
-    10 * 1000, // 10 second timeout because setting up the DB is slow
-  );
+describe("ProbeService", () => {
+  let testDatabase: Database;
+
+  beforeEach(async () => {
+    // mock PostgresDatabase
+    testDatabase = await TestDatabaseMock.getDbMock();
+  });
 
   afterEach(async () => {
-    await database.disconnectAndDropDatabase();
+    await testDatabase.disconnectAndDropDatabase();
+    jest.resetAllMocks();
   });
 
   test("create a new probe", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.1");
     const key: ObjectID = ObjectID.generate();
@@ -37,7 +37,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -55,7 +55,6 @@ describe("probeService", () => {
   });
 
   test("findOneBy probe by name", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.1");
     const key: ObjectID = ObjectID.generate();
@@ -65,7 +64,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -76,7 +75,7 @@ describe("probeService", () => {
       fail("savedprobe name is null");
     }
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         name: savedProbe.name,
       },
@@ -108,7 +107,6 @@ describe("probeService", () => {
   });
 
   test("findOneBy by probeVersion", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -118,14 +116,14 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
       },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         probeVersion: new Version("1.0.2"),
       },
@@ -157,7 +155,6 @@ describe("probeService", () => {
   });
 
   test("findOneBy by invalid name", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -167,14 +164,14 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    await probeService.create({
+    await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
       },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         name: name + "-invalid",
       },
@@ -193,7 +190,6 @@ describe("probeService", () => {
   });
 
   test("select columns should work", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -203,14 +199,14 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    await probeService.create({
+    await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
       },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         name: name,
       },
@@ -232,7 +228,6 @@ describe("probeService", () => {
   });
 
   test("findOneBy by key", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -242,14 +237,14 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
       },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         key: key.toString(),
       },
@@ -281,7 +276,6 @@ describe("probeService", () => {
   });
 
   test("findBy all entities", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name1: string = Faker.generateName();
     const probeVersion1: Version = new Version("1.0.2");
     const key1: ObjectID = ObjectID.generate();
@@ -291,7 +285,7 @@ describe("probeService", () => {
     probe.key = key1.toString();
     probe.description = "test description";
 
-    const savedProbe1: Probe = await probeService.create({
+    const savedProbe1: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -307,14 +301,14 @@ describe("probeService", () => {
     probe2.key = key2.toString();
     probe2.description = "test description";
 
-    const savedProbe2: Probe = await probeService.create({
+    const savedProbe2: Probe = await ProbeService.create({
       data: probe2,
       props: {
         isRoot: true,
       },
     });
 
-    const fetchedProbes: Array<Probe> = await probeService.findBy({
+    const fetchedProbes: Array<Probe> = await ProbeService.findBy({
       query: {},
       select: {
         _id: true,
@@ -356,7 +350,6 @@ describe("probeService", () => {
   });
 
   test("findBy limit", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const savedProbes: Array<Probe> = [];
 
     for (let i: number = 0; i < 20; i++) {
@@ -370,7 +363,7 @@ describe("probeService", () => {
       probe.key = key.toString();
       probe.description = "test description";
 
-      const savedProbe: Probe = await probeService.create({
+      const savedProbe: Probe = await ProbeService.create({
         data: probe,
         props: {
           isRoot: true,
@@ -380,7 +373,7 @@ describe("probeService", () => {
       savedProbes.push(savedProbe);
     }
 
-    const fetchedProbes: Array<Probe> = await probeService.findBy({
+    const fetchedProbes: Array<Probe> = await ProbeService.findBy({
       query: {},
       select: {
         _id: true,
@@ -421,7 +414,6 @@ describe("probeService", () => {
   });
 
   test("findBy skip", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const savedProbes: Array<Probe> = [];
 
     for (let i: number = 0; i < 20; i++) {
@@ -435,7 +427,7 @@ describe("probeService", () => {
       probe.key = key.toString();
       probe.description = "test description";
 
-      const savedProbe: Probe = await probeService.create({
+      const savedProbe: Probe = await ProbeService.create({
         data: probe,
         props: {
           isRoot: true,
@@ -445,7 +437,7 @@ describe("probeService", () => {
       savedProbes.push(savedProbe);
     }
 
-    const fetchedProbes: Array<Probe> = await probeService.findBy({
+    const fetchedProbes: Array<Probe> = await ProbeService.findBy({
       query: {},
       select: {
         _id: true,
@@ -486,7 +478,6 @@ describe("probeService", () => {
   });
 
   test("delete probe by query", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -496,7 +487,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -505,7 +496,7 @@ describe("probeService", () => {
 
     expect(savedProbe).toBeTruthy();
 
-    await probeService.deleteBy({
+    await ProbeService.deleteBy({
       query: {
         key: key.toString(),
       },
@@ -514,7 +505,7 @@ describe("probeService", () => {
       props: { isRoot: true },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         key: key.toString(),
       },
@@ -533,7 +524,6 @@ describe("probeService", () => {
   });
 
   test("update probe by query", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -544,7 +534,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -554,7 +544,7 @@ describe("probeService", () => {
     expect(savedProbe).toBeTruthy();
 
     const updatedName: string = Faker.generateName();
-    await probeService.updateOneBy({
+    await ProbeService.updateOneBy({
       query: {
         key: key.toString(),
       },
@@ -564,7 +554,7 @@ describe("probeService", () => {
       props: { isRoot: true },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         key: key.toString(),
       },
@@ -584,7 +574,6 @@ describe("probeService", () => {
   });
 
   test("update probe by query", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -595,7 +584,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -605,7 +594,7 @@ describe("probeService", () => {
     expect(savedProbe).toBeTruthy();
 
     const updatedName: string = Faker.generateName();
-    await probeService.updateBy({
+    await ProbeService.updateBy({
       query: {
         key: key.toString(),
       },
@@ -617,7 +606,7 @@ describe("probeService", () => {
       props: { isRoot: true },
     });
 
-    const fetchedProbe: Probe | null = await probeService.findOneBy({
+    const fetchedProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         key: key.toString(),
       },
@@ -637,7 +626,6 @@ describe("probeService", () => {
   });
 
   test("slugify column", async () => {
-    const probeService: ProbeService = new ProbeService(database);
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
     const key: ObjectID = ObjectID.generate();
@@ -648,7 +636,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -660,8 +648,14 @@ describe("probeService", () => {
   });
 
   test("add user to createdBy column", async () => {
-    const probeService: ProbeService = new ProbeService(database);
-    const user: User = await UserTestService.generateRandomUser().data.save();
+    let user: User = UserTestService.generateRandomUser();
+
+    user = await UserService.create({
+      data: user,
+      props: {
+        isRoot: true,
+      },
+    });
 
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
@@ -673,7 +667,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -681,13 +675,18 @@ describe("probeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await savedProbe.save();
+    const updatedProbe: Probe = await ProbeService.create({
+      data: savedProbe,
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!updatedProbe._id) {
       fail("updatedProbe._id is null");
     }
 
-    const findProbe: Probe | null = await probeService.findOneBy({
+    const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         _id: updatedProbe._id,
       },
@@ -708,8 +707,14 @@ describe("probeService", () => {
   });
 
   test("include user in relation", async () => {
-    const probeService: ProbeService = new ProbeService(database);
-    const user: User = await UserTestService.generateRandomUser().data.save();
+    let user: User = UserTestService.generateRandomUser();
+
+    user = await UserService.create({
+      data: user,
+      props: {
+        isRoot: true,
+      },
+    });
 
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
@@ -721,7 +726,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -729,13 +734,18 @@ describe("probeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await savedProbe.save();
+    const updatedProbe: Probe = await ProbeService.create({
+      data: savedProbe,
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!updatedProbe._id) {
       fail("updatedProbe._id not found");
     }
 
-    const findProbe: Probe | null = await probeService.findOneBy({
+    const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         _id: updatedProbe._id,
       },
@@ -764,8 +774,14 @@ describe("probeService", () => {
   });
 
   test("find a probe by user relation", async () => {
-    const probeService: ProbeService = new ProbeService(database);
-    const user: User = await UserTestService.generateRandomUser().data.save();
+    let user: User = UserTestService.generateRandomUser();
+
+    user = await UserService.create({
+      data: user,
+      props: {
+        isRoot: true,
+      },
+    });
 
     const name: string = Faker.generateName();
     const probeVersion: Version = new Version("1.0.2");
@@ -777,7 +793,7 @@ describe("probeService", () => {
     probe.key = key.toString();
     probe.description = "test description";
 
-    const savedProbe: Probe = await probeService.create({
+    const savedProbe: Probe = await ProbeService.create({
       data: probe,
       props: {
         isRoot: true,
@@ -785,7 +801,12 @@ describe("probeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await savedProbe.save();
+    const updatedProbe: Probe = await ProbeService.create({
+      data: savedProbe,
+      props: {
+        isRoot: true,
+      },
+    });
 
     expect(updatedProbe).toBeTruthy();
 
@@ -793,7 +814,7 @@ describe("probeService", () => {
       fail("user.id not found");
     }
 
-    const findProbe: Probe | null = await probeService.findOneBy({
+    const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {
         createdByUserId: user.id,
       },
