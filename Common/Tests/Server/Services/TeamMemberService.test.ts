@@ -6,7 +6,6 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import Errors from "../../../Server/Utils/Errors";
-import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import TeamMemberServiceHelper from "../TestingUtils/Services/TeamMemberServiceHelper";
@@ -25,13 +24,8 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamService from "../../../Server/Services/TeamService";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 
-jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
-// mock Redis
-jest.mock("../../../Server/Infrastructure/GlobalCache");
-jest.mock("../../../Server/Services/AccessTokenService");
-jest.mock("../../../Server/Services/BillingService");
-jest.mock("../../../Server/Services/ProjectService");
+jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
 describe("TeamMemberService", () => {
   let user!: User;
@@ -39,10 +33,9 @@ describe("TeamMemberService", () => {
   let project!: Project;
   let team!: Team;
 
-  let testDatabase: Database;
 
   beforeEach(async () => {
-    testDatabase = await TestDatabaseMock.getDbMock();
+    await TestDatabaseMock.connectDbMock();
 
     user = UserServiceHelper.generateRandomUser();
     user = await UserService.create({
@@ -64,7 +57,7 @@ describe("TeamMemberService", () => {
     });
 
     team = TeamServiceHelper.generateRandomTeam({
-      projectId: new ObjectID(project._id!),
+      projectId: project.id!
     });
 
     team = await TeamService.create({
@@ -74,7 +67,7 @@ describe("TeamMemberService", () => {
   });
 
   afterEach(async () => {
-    await testDatabase.disconnectAndDropDatabase();
+    await TestDatabaseMock.disconnectDbMock();
     jest.resetAllMocks();
   });
 
@@ -835,56 +828,90 @@ describe("TeamMemberService", () => {
     const SUBSCRIPTION_ID: string = "subscriptionId";
 
     it("should update subscription seats based on unique team members", async () => {
-      jest.restoreAllMocks();
 
-      process.env["SUBSCRIPTION_PLAN_1"] =
-        "Free,monthly_plan_id,yearly_plan_id,0,0,1,7";
-      process.env["SUBSCRIPTION_PLAN_2"] =
-        "Growth,growth_monthly_plan_id,growth_yearly_plan_id,9,99,2,14";
-
-      const NUM_MEMBERS: number = 5;
-      jest
-        .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
-        .mockResolvedValue(NUM_MEMBERS);
-
-      ProjectService.findOneById = jest.fn().mockResolvedValue({
-        paymentProviderSubscriptionId: SUBSCRIPTION_ID,
-        paymentProviderPlanId: "monthly_plan_id",
-        _id: PROJECT_ID,
+      const user1 = await UserService.create({
+        data: UserServiceHelper.generateRandomUser(),
+        props: { isRoot: true },
       });
 
-      jest.spyOn(ProjectService, "updateOneById").mockResolvedValue();
+      const project = await ProjectService.create({
+        data: ProjectServiceHelper.generateRandomProject(),
+        props: { isRoot: true, userId: user1.id! },
+      });
 
       await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
-        new ObjectID(PROJECT_ID),
+        new ObjectID(project._id!),
       );
 
       expect(BillingService.changeQuantity).toHaveBeenCalledWith(
         SUBSCRIPTION_ID,
-        NUM_MEMBERS,
+        0,
       );
 
       expect(ProjectService.updateOneById).toHaveBeenCalledWith({
-        id: new ObjectID(PROJECT_ID),
-        data: { paymentProviderSubscriptionSeats: NUM_MEMBERS },
+        id: new ObjectID(project._id!),
+        data: { paymentProviderSubscriptionSeats: 0 },
         props: { isRoot: true },
       });
+
+      // now add users.
+
+      const user2 = await UserService.create({
+        data: UserServiceHelper.generateRandomUser(),
+        props: { isRoot: true },
+      });
+
+      // add team 
+
+      const team = await TeamService.create({
+        data: TeamServiceHelper.generateRandomTeam({
+          projectId: new ObjectID(project._id!),
+        }),
+        props: { isRoot: true },
+      });
+
+      // add team members
+
+      await TeamMemberService.create({
+        data: TeamMemberServiceHelper.generateRandomTeamMember({
+          projectId: new ObjectID(project._id!),
+          userId: new ObjectID(user1.id!),
+          teamId: new ObjectID(team._id!),
+        }),
+        props: { isRoot: true },
+      });
+
+      await TeamMemberService.create({
+        data: TeamMemberServiceHelper.generateRandomTeamMember({
+          projectId: new ObjectID(project._id!),
+          userId: new ObjectID(user2.id!),
+          teamId: new ObjectID(team._id!),
+        }),
+        props: { isRoot: true },
+      });
+
+      // update subscription seats
+
+      await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
+        new ObjectID(project._id!),
+      );
+
+      expect(BillingService.changeQuantity).toHaveBeenCalledWith(
+        SUBSCRIPTION_ID,
+        2,
+      );
+
+      expect(ProjectService.updateOneById).toHaveBeenCalledWith({
+        id: new ObjectID(project._id!),
+        data: { paymentProviderSubscriptionSeats: 2 },
+        props: { isRoot: true },
+      });
+
     });
 
     it("should not update subscription seats if there are no plans", async () => {
       process.env["SUBSCRIPTION_PLAN_1"] = undefined;
       process.env["SUBSCRIPTION_PLAN_2"] = undefined;
-
-      const NUM_MEMBERS: number = 5;
-      jest
-        .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
-        .mockResolvedValue(NUM_MEMBERS);
-
-      ProjectService.findOneById = jest.fn().mockResolvedValue({
-        paymentProviderSubscriptionId: SUBSCRIPTION_ID,
-        paymentProviderPlanId: "monthly_plan_id",
-        _id: PROJECT_ID,
-      });
 
       await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
         new ObjectID(PROJECT_ID),

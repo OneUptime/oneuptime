@@ -1,9 +1,7 @@
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
-import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import ScheduledMaintenanceServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceServiceHelper";
-import ScheduledMaintenanceStateServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceStateServiceHelper";
 import { describe, expect, it } from "@jest/globals";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -16,15 +14,14 @@ import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
 
 describe("ScheduledMaintenanceService", () => {
-  let testDatabase: Database;
-
+ 
   beforeEach(async () => {
     // mock PostgresDatabase
-    testDatabase = await TestDatabaseMock.getDbMock();
+    await TestDatabaseMock.connectDbMock();
   });
 
   afterEach(async () => {
-    await testDatabase.disconnectAndDropDatabase();
+    await TestDatabaseMock.disconnectDbMock();
     jest.resetAllMocks();
   });
 
@@ -51,21 +48,28 @@ describe("ScheduledMaintenanceService", () => {
         },
       });
 
-      let scheduledState: ScheduledMaintenanceState =
-        ScheduledMaintenanceStateServiceHelper.generateScheduledState({
-          projectId: project.id!,
+
+      // this state is automatically created when the project is created. 
+      let scheduledState: ScheduledMaintenanceState | null =
+        await ScheduledMaintenanceStateService.findOneBy({
+          query: {
+            isScheduledState: true,
+            projectId: project.id!,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true
+          }
         });
 
-      scheduledState = await ScheduledMaintenanceStateService.create({
-        data: scheduledState,
-        props: {
-          isRoot: true,
-        },
-      });
+        expect(scheduledState).not.toBeNull();
+
       let maintenance: ScheduledMaintenance =
         ScheduledMaintenanceServiceHelper.generateRandomScheduledMaintenance({
           projectId: project.id!,
-          currentScheduledMaintenanceStateId: scheduledState.id!,
+          currentScheduledMaintenanceStateId: scheduledState!.id!,
         });
 
       maintenance = await ScheduledMaintenanceService.create({
@@ -75,25 +79,29 @@ describe("ScheduledMaintenanceService", () => {
         },
       });
 
-      // Change state
-      let ongoingState: ScheduledMaintenanceState =
-        ScheduledMaintenanceStateServiceHelper.generateOngoingState({
+      // this state is automatically created when the project is created. 
+      let ongoingState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          isOngoingState: true,
           projectId: project.id!,
-        });
-
-      ongoingState = await ScheduledMaintenanceStateService.create({
-        data: ongoingState,
+        },
         props: {
           isRoot: true,
         },
+        select: {
+          _id: true
+        }
       });
+
+      expect(ongoingState).not.toBeNull();
 
       jest.spyOn(ScheduledMaintenanceService, "onTrigger");
 
       await ScheduledMaintenanceService.changeScheduledMaintenanceState({
         projectId: project.id!,
         scheduledMaintenanceId: maintenance.id!,
-        scheduledMaintenanceStateId: ongoingState.id!,
+        scheduledMaintenanceStateId: ongoingState!.id!,
         shouldNotifyStatusPageSubscribers: Boolean(
           maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded,
         ),
@@ -101,6 +109,7 @@ describe("ScheduledMaintenanceService", () => {
         notifyOwners: true,
         props: {
           isRoot: true,
+          tenantId: project.id!
         },
       });
 

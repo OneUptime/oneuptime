@@ -27,6 +27,8 @@ export default class Database {
   public async connect(): Promise<DataSource> {
     let retry: number = 0;
 
+    const dataSourceOptions = this.getDatasourceOptions();
+
     try {
       type ConnectToDatabaseFunction = () => Promise<DataSource>;
 
@@ -34,7 +36,7 @@ export default class Database {
         async (): Promise<DataSource> => {
           try {
             const PostgresDataSource: DataSource = new DataSource(
-              this.getDatasourceOptions(),
+              dataSourceOptions,
             );
             const dataSource: DataSource =
               await PostgresDataSource.initialize();

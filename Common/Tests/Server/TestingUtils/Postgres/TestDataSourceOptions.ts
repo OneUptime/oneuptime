@@ -1,5 +1,5 @@
-import { DatabaseName } from "../../../Server/EnvironmentConfig";
-import ProdDataSourceOptions from "./DataSourceOptions";
+import { DatabaseName } from "../../../../Server/EnvironmentConfig";
+import ProdDataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
 import Faker from "Common/Utils/Faker";
 import { DataSourceOptions } from "typeorm";
 

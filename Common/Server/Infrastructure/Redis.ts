@@ -15,6 +15,7 @@ import Sleep from "Common/Types/Sleep";
 import { Redis as RedisClient, RedisOptions } from "ioredis";
 
 export type ClientType = RedisClient;
+export type RedisOptionsType = RedisOptions;
 
 export default abstract class Redis {
   private static client: RedisClient | null = null;
@@ -31,29 +32,35 @@ export default abstract class Redis {
     return this.client;
   }
 
+  public static getRedisOptions(): RedisOptions {
+
+    const redisOptions: RedisOptions = {
+      host: RedisHostname,
+      port: RedisPort.toNumber(),
+      username: RedisUsername,
+      password: RedisPassword,
+      db: RedisDb,
+      enableTLSForSentinelMode: RedisTlsSentinelMode,
+      lazyConnect: true,
+    };
+
+    if (ShouldRedisTlsEnable) {
+      redisOptions.tls = {
+        ca: RedisTlsCa || undefined,
+        cert: RedisTlsCert || undefined,
+        key: RedisTlsKey || undefined,
+      };
+    }
+
+    return redisOptions;
+  }
+
   public static async connect(): Promise<RedisClient> {
     let retry: number = 0;
 
     try {
-      const redisOptions: RedisOptions = {
-        host: RedisHostname,
-        port: RedisPort.toNumber(),
-        username: RedisUsername,
-        password: RedisPassword,
-        db: RedisDb,
-        enableTLSForSentinelMode: RedisTlsSentinelMode,
-        lazyConnect: true,
-      };
-
-      if (ShouldRedisTlsEnable) {
-        redisOptions.tls = {
-          ca: RedisTlsCa || undefined,
-          cert: RedisTlsCert || undefined,
-          key: RedisTlsKey || undefined,
-        };
-      }
-
-      this.client = new RedisClient(redisOptions);
+     
+      this.client = new RedisClient(this.getRedisOptions());
 
       // Listen to 'error' events to the Redis connection
       this.client.on("error", (error: Error) => {
@@ -118,11 +125,13 @@ export default abstract class Redis {
     }
   }
 
-  public static disconnect(): void {
+  public static disconnect(): Promise<void> {
     if (this.isConnected()) {
       this.client?.disconnect();
       this.client = null;
     }
+
+    return Promise.resolve();
   }
 
   public static async checkConnnectionStatus(): Promise<boolean> {

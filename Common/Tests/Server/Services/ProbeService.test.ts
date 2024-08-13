@@ -1,4 +1,3 @@
-import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import UserTestService from "../TestingUtils/Services/UserServiceHelper";
 import ObjectID from "Common/Types/ObjectID";
@@ -14,15 +13,15 @@ import UserService from "../../../Server/Services/UserService";
 import ProbeService from "../../../Server/Services/ProbeService";
 
 describe("ProbeService", () => {
-  let testDatabase: Database;
+  
 
   beforeEach(async () => {
     // mock PostgresDatabase
-    testDatabase = await TestDatabaseMock.getDbMock();
+    await TestDatabaseMock.connectDbMock();
   });
 
   afterEach(async () => {
-    await testDatabase.disconnectAndDropDatabase();
+    await TestDatabaseMock.disconnectDbMock();
     jest.resetAllMocks();
   });
 
@@ -675,20 +674,19 @@ describe("ProbeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await ProbeService.create({
-      data: savedProbe,
+    await ProbeService.updateOneById({
+      id: savedProbe.id!,
+      data: {
+        createdByUserId: user.id!,
+      },
       props: {
         isRoot: true,
       },
     });
 
-    if (!updatedProbe._id) {
-      fail("updatedProbe._id is null");
-    }
-
     const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {
-        _id: updatedProbe._id,
+        _id: savedProbe._id!,
       },
       select: {
         _id: true,
@@ -734,20 +732,20 @@ describe("ProbeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await ProbeService.create({
-      data: savedProbe,
+    await ProbeService.updateOneById({
+      id: savedProbe.id!,
+      data: {
+        createdByUserId: user.id!,
+      },
       props: {
         isRoot: true,
       },
     });
 
-    if (!updatedProbe._id) {
-      fail("updatedProbe._id not found");
-    }
 
     const findProbe: Probe | null = await ProbeService.findOneBy({
       query: {
-        _id: updatedProbe._id,
+        _id: savedProbe._id!,
       },
       select: {
         _id: true,
@@ -801,14 +799,15 @@ describe("ProbeService", () => {
     });
 
     savedProbe.createdByUser = user;
-    const updatedProbe: Probe = await ProbeService.create({
-      data: savedProbe,
+    await ProbeService.updateOneById({
+      id: savedProbe.id!,
+      data: {
+        createdByUserId: user.id!,
+      },
       props: {
         isRoot: true,
       },
     });
-
-    expect(updatedProbe).toBeTruthy();
 
     if (!user.id) {
       fail("user.id not found");

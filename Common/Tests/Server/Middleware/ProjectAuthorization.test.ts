@@ -8,7 +8,6 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
-import Database from "../TestingUtils/TestDatabase";
 import "../TestingUtils/Init";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -18,6 +17,7 @@ import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import { describe, expect, afterEach, jest } from "@jest/globals";
 import getJestMockFunction from "Common/Tests/MockType";
 import { getJestSpyOn } from "Common/Tests/Spy";
+import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 
 jest.mock("../../../Server/Services/ApiKeyService");
 jest.mock("../../../Server/Services/AccessTokenService");
@@ -146,14 +146,12 @@ describe("ProjectMiddleware", () => {
       id: mockedObjectId,
     } as ApiKey;
 
-    let database!: Database;
 
     beforeEach(
       async () => {
         jest.clearAllMocks();
         next = getJestMockFunction();
-        database = new Database();
-        await database.createAndConnect();
+        await TestDatabaseMock.connectDbMock();
 
         if (req.headers === undefined) {
           req.headers = {};
@@ -166,7 +164,7 @@ describe("ProjectMiddleware", () => {
     );
 
     afterEach(async () => {
-      await database.disconnectAndDropDatabase();
+      await TestDatabaseMock.disconnectDbMock();
     });
 
     test("should throw BadDataException when getProjectId returns null", async () => {
