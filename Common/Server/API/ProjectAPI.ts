@@ -1,7 +1,7 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
-  Service as ProjectServiceType,
+  ProjectService as ProjectServiceType,
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";

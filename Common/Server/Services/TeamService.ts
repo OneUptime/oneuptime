@@ -7,7 +7,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/Team";
 
-export class Service extends DatabaseService<Model> {
+export class TeamService extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
     super(Model, postgresDatabase);
   }
@@ -70,4 +70,4 @@ export class Service extends DatabaseService<Model> {
     return { deleteBy, carryForward: null };
   }
 }
-export default new Service();
+export default new TeamService();

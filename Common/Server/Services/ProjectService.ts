@@ -57,7 +57,7 @@ export interface CurrentPlan {
   isSubscriptionUnpaid: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+export class ProjectService extends DatabaseService<Model> {
   public constructor(postgresDatabase?: PostgresDatabase) {
     super(Model, postgresDatabase);
   }
@@ -1138,4 +1138,4 @@ export class Service extends DatabaseService<Model> {
     return Boolean(project.enableSmsNotifications);
   }
 }
-export default new Service();
+export default new ProjectService();
