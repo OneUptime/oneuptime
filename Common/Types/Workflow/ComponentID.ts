@@ -13,6 +13,7 @@ enum ComponentID {
   ApiPut = "api-put",
   ApiPost = "api-post",
   ApiDelete = "api-delete",
+  ApiPatch = "api-patch",
   SendEmail = "send-email",
   IfElse = "if-else",
 }

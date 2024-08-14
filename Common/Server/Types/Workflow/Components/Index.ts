@@ -32,6 +32,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Dictionary from "Common/Types/Dictionary";
 import Text from "Common/Types/Text";
 import ComponentID from "Common/Types/Workflow/ComponentID";
+import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {
   [ComponentID.Webhook]: new WebhookTrigger(),
@@ -48,6 +49,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.ApiGet]: new ApiGet(),
   [ComponentID.ApiPost]: new ApiPost(),
   [ComponentID.ApiDelete]: new ApiDelete(),
+  [ComponentID.ApiPatch]: new ApiPatch(),
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.SendEmail]: new Email(),
   [ComponentID.IfElse]: new IfElse(),

@@ -4,6 +4,7 @@ enum HTTPMethod {
   DELETE = "DELETE",
   PUT = "PUT",
   HEAD = "HEAD",
+  PATCH = "PATCH",
 }
 
 export default HTTPMethod;

@@ -6,7 +6,8 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 
 export interface ProjectData {
   seatLimit?: number;
-  subscriptionId: string;
+  currentSeatCount?: number;
+  subscriptionId?: string;
 }
 
 export default class ProjectTestService {
@@ -36,6 +37,8 @@ export default class ProjectTestService {
     if (data && data.seatLimit) {
       project.seatLimit = data.seatLimit;
     }
+
+    project.paymentProviderSubscriptionSeats = data?.currentSeatCount || 0;
 
     project.smsOrCallCurrentBalanceInUSDCents = 0;
     project.autoRechargeSmsOrCallByBalanceInUSD = 0;

@@ -123,6 +123,23 @@ export default class API {
     );
   }
 
+
+  public async patch<
+  T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
+>(
+  path: Route,
+  data?: JSONObject | JSONArray,
+  headers?: Headers,
+  options?: RequestOptions,
+): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  return await API.patch<T>(
+    new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
+    data,
+    headers,
+    options,
+  );
+}
+
   public async post<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(
@@ -262,6 +279,32 @@ export default class API {
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.PUT,
+      url,
+      data,
+      headers,
+      undefined,
+      options,
+    );
+  }
+
+
+
+  public static async patch<
+    T extends
+      | JSONObject
+      | JSONArray
+      | BaseModel
+      | Array<BaseModel>
+      | AnalyticsBaseModel
+      | Array<AnalyticsBaseModel>,
+  >(
+    url: URL,
+    data?: JSONObject | JSONArray,
+    headers?: Headers,
+    options?: RequestOptions,
+  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    return await this.fetch(
+      HTTPMethod.PATCH,
       url,
       data,
       headers,

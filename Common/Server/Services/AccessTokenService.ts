@@ -167,7 +167,7 @@ export class AccessTokenService extends BaseService {
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission> {
     // query for all projects user belongs to.
-    const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+    let teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         userId: userId,
         hasAcceptedInvitation: true,
@@ -181,6 +181,10 @@ export class AccessTokenService extends BaseService {
         isRoot: true,
       },
     });
+
+    if (!teamMembers) {
+      teamMembers = [];
+    }
 
     const projectIds: Array<ObjectID> = teamMembers.map(
       (teamMember: TeamMember) => {
