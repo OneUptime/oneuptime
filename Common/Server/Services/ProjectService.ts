@@ -61,6 +61,14 @@ export class ProjectService extends DatabaseService<Model> {
     super(Model);
   }
 
+  public getPlanType(planId: string): PlanType {
+    if (!SubscriptionPlan.isValidPlanId(planId, getAllEnvVars())) {
+      throw new BadDataException("Plan is invalid.");
+    }
+
+    return SubscriptionPlan.getPlanType(planId);
+  }
+
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -104,18 +112,7 @@ export class ProjectService extends DatabaseService<Model> {
         throw new BadDataException("Plan required to create the project.");
       }
 
-      if (
-        !SubscriptionPlan.isValidPlanId(
-          data.data.paymentProviderPlanId,
-          getAllEnvVars(),
-        )
-      ) {
-        throw new BadDataException("Plan is invalid.");
-      }
-
-      data.data.planName = SubscriptionPlan.getPlanType(
-        data.data.paymentProviderPlanId,
-      );
+      data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
 
       if (data.data.paymentProviderPromoCode) {
         // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.

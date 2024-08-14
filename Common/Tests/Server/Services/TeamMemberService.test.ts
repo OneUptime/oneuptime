@@ -25,7 +25,6 @@ import TeamService from "../../../Server/Services/TeamService";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import EmptyResponseData from "../../../Types/API/EmptyResponse";
-import "../TestingUtils/__mocks__/BillingService.mock";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
@@ -41,9 +40,6 @@ describe("TeamMemberService", () => {
 
   describe("create tests", () => {
     it("should create a new team member", async () => {
-      process.env["SUBSCRIPTION_PLAN_1"] = undefined;
-      process.env["SUBSCRIPTION_PLAN_2"] = undefined;
-
       const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
         null,
         {
@@ -1093,7 +1089,6 @@ describe("TeamMemberService", () => {
 
   describe("updateSubscriptionSeatsByUniqueTeamMembersInProject", () => {
     it("should update subscription seats based on unique team members", async () => {
-
       // spy on change quantity
       jest.spyOn(BillingService, "changeQuantity").mockResolvedValue();
 
@@ -1150,15 +1145,17 @@ describe("TeamMemberService", () => {
       });
 
       expect(BillingService.changeQuantity).toHaveBeenCalledWith(
-        project?.paymentProviderSubscriptionId!,
+        project!.paymentProviderSubscriptionId!,
         2,
       );
 
-      expect(ProjectService.updateOneById).toHaveBeenCalledWith(expect.objectContaining({
-        id: new ObjectID(project!._id!),
-        data: { paymentProviderSubscriptionSeats: 2 },
-        props: { isRoot: true },
-      }));
+      expect(ProjectService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: new ObjectID(project!._id!),
+          data: { paymentProviderSubscriptionSeats: 2 },
+          props: { isRoot: true },
+        }),
+      );
 
       // now add users.
 
@@ -1203,7 +1200,7 @@ describe("TeamMemberService", () => {
       );
 
       expect(BillingService.changeQuantity).toHaveBeenCalledWith(
-        project?.paymentProviderSubscriptionId!,
+        project!.paymentProviderSubscriptionId!,
         2,
       );
 
@@ -1250,7 +1247,6 @@ describe("TeamMemberService", () => {
       );
 
       expect(BillingService.changeQuantity).not.toHaveBeenCalled();
-
     });
   });
 });

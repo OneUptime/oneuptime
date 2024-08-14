@@ -1,6 +1,8 @@
 import Faker from "Common/Utils/Faker";
 import Project from "Common/Models/DatabaseModels/Project";
-import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../../Types/Billing/SubscriptionPlan";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectService from "../../../../Server/Services/ProjectService";
 
@@ -42,7 +44,8 @@ export default class ProjectTestService {
     project.enableSmsNotifications = true;
     project.enableCallNotifications = true;
     project.planName = PlanType.Enterprise;
-    project.paymentProviderPlanId = "price_id";
+    project.paymentProviderPlanId =
+      SubscriptionPlan.getSubscriptionPlans()[0]?.getMonthlyPlanId() || "";
     project.enableAutoRechargeSmsOrCallBalance = true;
     project.lowCallAndSMSBalanceNotificationSentToOwners = true;
     project.failedCallAndSMSBalanceChargeNotificationSentToOwners = true;
