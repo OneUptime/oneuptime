@@ -27,52 +27,41 @@ import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
 describe("TeamMemberService", () => {
-  let user!: User;
-  let user2!: User;
-  let project!: Project;
-  let team!: Team;
-
   beforeEach(async () => {
+    jest.resetAllMocks();
     await TestDatabaseMock.connectDbMock();
-
-    user = UserServiceHelper.generateRandomUser();
-    user = await UserService.create({
-      data: user,
-      props: { isRoot: true },
-    });
-
-    user2 = UserServiceHelper.generateRandomUser();
-    user2 = await UserService.create({
-      data: user2,
-      props: { isRoot: true },
-    });
-
-    project = ProjectServiceHelper.generateRandomProject();
-
-    project = await ProjectService.create({
-      data: project,
-      props: { isRoot: true, userId: user.id! },
-    });
-
-    team = TeamServiceHelper.generateRandomTeam({
-      projectId: project.id!,
-    });
-
-    team = await TeamService.create({
-      data: team,
-      props: { isRoot: true },
-    });
   });
 
   afterEach(async () => {
     await TestDatabaseMock.disconnectDbMock();
-    jest.resetAllMocks();
   });
 
   describe("create tests", () => {
     it("should create a new team member", async () => {
       process.env["SUBSCRIPTION_PLAN_1"] = undefined;
       process.env["SUBSCRIPTION_PLAN_2"] = undefined;
+
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
+      const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+        {
+          projectId: new ObjectID(project.id!),
+        },
+        {
+          isRoot: true,
+        },
+      );
 
       const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember({
         projectId: new ObjectID(project._id!),
@@ -93,6 +82,28 @@ describe("TeamMemberService", () => {
     describe("onBeforeCreate", () => {
       it("should throw exception if the user limit for a project is reached", async () => {
         const SEATS_LIMIT: number = 5;
+
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
 
         ProjectService.findOneById = jest.fn().mockResolvedValue({
           seatLimit: SEATS_LIMIT,
@@ -117,6 +128,28 @@ describe("TeamMemberService", () => {
       });
 
       it("should throw exception if the user has already been invited", async () => {
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
+
         const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
           {
             projectId: new ObjectID(project._id!),
@@ -149,6 +182,28 @@ describe("TeamMemberService", () => {
       it("should create user if the invited user does not exist in the system", async () => {
         jest.spyOn(MailService, "sendMail").mockResolvedValue(null!);
 
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
+
         const nonExistingUserEmail: string = Faker.generateEmail().toString();
         const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
           {
@@ -168,14 +223,33 @@ describe("TeamMemberService", () => {
       });
 
       it("should send email when inviting non existing user", async () => {
-        jest.spyOn(MailService, "sendMail").mockResolvedValue(null!);
+        jest.spyOn(MailService, "sendMail");
 
-        ProjectService.findOneById = jest.fn().mockResolvedValue({
-          name: project.name,
-          _id: project._id,
-        });
+        // create project.
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
 
         const nonExistingUserEmail: string = Faker.generateEmail().toString();
+
         const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
           {
             projectId: new ObjectID(project._id!),
@@ -185,13 +259,9 @@ describe("TeamMemberService", () => {
           },
         );
 
-        jest
-          .spyOn(AccessTokenService, "refreshUserGlobalAccessPermission")
-          .mockResolvedValue(null!);
+        jest.spyOn(AccessTokenService, "refreshUserGlobalAccessPermission");
 
-        jest
-          .spyOn(AccessTokenService, "refreshUserTenantAccessPermission")
-          .mockResolvedValue(null);
+        jest.spyOn(AccessTokenService, "refreshUserTenantAccessPermission");
 
         await TeamMemberService.create({
           data: tm,
@@ -225,6 +295,28 @@ describe("TeamMemberService", () => {
           .spyOn(TeamMemberService, "create")
           .mockRejectedValue(new Error("Unexpected error"));
 
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
+
         const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
           {
             projectId: new ObjectID(project._id!),
@@ -243,18 +335,30 @@ describe("TeamMemberService", () => {
 
     describe("onCreateSuccess", () => {
       it("should call functions to refresh tokens and update subscription seats on success", async () => {
-        const refreshTokensSpy: jest.SpyInstance = jest
-          .spyOn(TeamMemberService, "refreshTokens")
-          .mockResolvedValue();
-        const updateSeatsSpy: jest.SpyInstance = jest
-          .spyOn(
-            TeamMemberService,
-            "updateSubscriptionSeatsByUniqueTeamMembersInProject",
-          )
-          .mockResolvedValue();
+        const refreshTokensSpy: jest.SpyInstance = jest.spyOn(
+          TeamMemberService,
+          "refreshTokens",
+        );
+
+        const updateSeatsSpy: jest.SpyInstance = jest.spyOn(
+          TeamMemberService,
+          "updateSubscriptionSeatsByUniqueTeamMembersInProject",
+        );
 
         const user: User = await UserService.create({
           data: UserServiceHelper.generateRandomUser(),
+          props: { isRoot: true },
+        });
+
+        const project: Project = await ProjectService.create({
+          data: ProjectServiceHelper.generateRandomProject(),
+          props: { isRoot: true, userId: user.id! },
+        });
+
+        const team: Team = await TeamService.create({
+          data: TeamServiceHelper.generateRandomTeam({
+            projectId: new ObjectID(project._id!),
+          }),
           props: { isRoot: true },
         });
 
@@ -265,15 +369,14 @@ describe("TeamMemberService", () => {
             teamId: new ObjectID(team._id!),
           },
         );
-        const teamMember: TeamMember = await TeamMemberService.create({
+
+        await TeamMemberService.create({
           data: tm,
           props: { isRoot: true },
         });
 
-        expect(refreshTokensSpy).toHaveBeenCalledWith(
-          teamMember.userId,
-          teamMember.projectId,
-        );
+        expect(refreshTokensSpy).toHaveBeenCalledWith(user.id, project.id);
+
         expect(updateSeatsSpy).toHaveBeenCalledWith(new ObjectID(project._id!));
       });
     });
@@ -281,11 +384,29 @@ describe("TeamMemberService", () => {
 
   describe("update tests", () => {
     it("should update team member", async () => {
-      // (1) create new team member
-      const user: User = await UserService.create({
-        data: UserServiceHelper.generateRandomUser(),
-        props: { isRoot: true },
-      });
+      // (1) create new team membe
+
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
+      const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+        {
+          projectId: new ObjectID(project.id!),
+        },
+        {
+          isRoot: true,
+        },
+      );
 
       const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember({
         projectId: new ObjectID(project._id!),
@@ -293,10 +414,23 @@ describe("TeamMemberService", () => {
         teamId: new ObjectID(team._id!),
       });
 
-      const teamMember: TeamMember = await TeamMemberService.create({
+      let teamMember: TeamMember | null = await TeamMemberService.create({
         data: tm,
         props: { isRoot: true },
       });
+
+      // find team member
+
+      teamMember = await TeamMemberService.findOneById({
+        id: new ObjectID(teamMember._id!),
+        select: {
+          _id: true,
+          hasAcceptedInvitation: true,
+        },
+        props: { isRoot: true },
+      });
+
+      expect(teamMember).toBeTruthy();
 
       expect(teamMember?.hasAcceptedInvitation).toBe(false);
 
@@ -307,7 +441,7 @@ describe("TeamMemberService", () => {
 
       const updatedCount: number = await TeamMemberService.updateOneBy({
         query: {
-          _id: teamMember._id!,
+          _id: teamMember!._id!,
         },
         data: updatedInfo,
         props: { isRoot: true },
@@ -319,7 +453,7 @@ describe("TeamMemberService", () => {
       // (3) retrieve the updated team member and validate changes
       const updatedTeamMember: TeamMember | null =
         await TeamMemberService.findOneById({
-          id: new ObjectID(teamMember._id!),
+          id: new ObjectID(teamMember!._id!),
           select: { hasAcceptedInvitation: true },
           props: { isRoot: true },
         });
@@ -337,6 +471,18 @@ describe("TeamMemberService", () => {
           props: { isRoot: true },
         });
 
+        const project: Project = await ProjectService.create({
+          data: ProjectServiceHelper.generateRandomProject(),
+          props: { isRoot: true, userId: user.id! },
+        });
+
+        const team: Team = await TeamService.create({
+          data: TeamServiceHelper.generateRandomTeam({
+            projectId: new ObjectID(project._id!),
+          }),
+          props: { isRoot: true },
+        });
+
         const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
           {
             projectId: new ObjectID(project._id!),
@@ -349,25 +495,26 @@ describe("TeamMemberService", () => {
           props: { isRoot: true },
         });
 
-        const refreshTokensSpy: jest.SpyInstance = jest
-          .spyOn(TeamMemberService, "refreshTokens")
-          .mockResolvedValue();
-        const addDefaultNotificationSettingsSpy: jest.SpyInstance = jest
-          .spyOn(
-            UserNotificationSettingService,
-            "addDefaultNotificationSettingsForUser",
-          )
-          .mockResolvedValue();
-        const addDefaultNotificationRuleForUserSpy: jest.SpyInstance = jest
-          .spyOn(
+        const refreshTokensSpy: jest.SpyInstance = jest.spyOn(
+          TeamMemberService,
+          "refreshTokens",
+        );
+
+        const addDefaultNotificationSettingsSpy: jest.SpyInstance = jest.spyOn(
+          UserNotificationSettingService,
+          "addDefaultNotificationSettingsForUser",
+        );
+
+        const addDefaultNotificationRuleForUserSpy: jest.SpyInstance =
+          jest.spyOn(
             UserNotificationRuleService,
             "addDefaultNotificationRuleForUser",
-          )
-          .mockResolvedValue();
+          );
 
         const updatedInfo: { hasAcceptedInvitation: boolean } = {
           hasAcceptedInvitation: true,
         };
+
         await TeamMemberService.updateOneBy({
           query: { _id: teamMember._id! },
           data: updatedInfo,
@@ -398,6 +545,21 @@ describe("TeamMemberService", () => {
         data: UserServiceHelper.generateRandomUser(),
         props: { isRoot: true },
       });
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
+      const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+        {
+          projectId: new ObjectID(project.id!),
+        },
+        {
+          isRoot: true,
+        },
+      );
 
       const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember({
         projectId: new ObjectID(project._id!),
@@ -431,6 +593,19 @@ describe("TeamMemberService", () => {
 
     describe("onBeforeDelete", () => {
       it("should throw error when one member and team has at least one member requirement", async () => {
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
         const team: Team = TeamServiceHelper.generateRandomTeam({
           projectId: new ObjectID(project._id!),
         });
@@ -481,6 +656,19 @@ describe("TeamMemberService", () => {
       });
 
       it("should not delete when shouldHaveAtLeastOneMember is true and member has not accepted invitation", async () => {
+        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: user.id!,
+          });
+
         const team: Team = TeamServiceHelper.generateRandomTeam({
           projectId: new ObjectID(project._id!),
         });
@@ -556,6 +744,20 @@ describe("TeamMemberService", () => {
     it("should return the count of unique team members in a project", async () => {
       // make findBy to return 4 team members: 1 normal, 2 with the same id and 1 without a user ID
       // total should be 2 unique team members
+
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
       TeamMemberService.findBy = jest.fn().mockResolvedValue([
         {
           _id: Faker.generateRandomObjectID().toString(),
@@ -591,6 +793,19 @@ describe("TeamMemberService", () => {
       // team A members: user1 & user2
       // team B members: user2 & user3
       // team C members: user 3
+
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
 
       const user1: User = await UserService.create({
         data: UserServiceHelper.generateRandomUser(),
@@ -706,6 +921,19 @@ describe("TeamMemberService", () => {
       // team B members: user2 & user3
       // team C members: user 3
 
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
       const user1: User = await UserService.create({
         data: UserServiceHelper.generateRandomUser(),
         props: { isRoot: true },
@@ -816,7 +1044,6 @@ describe("TeamMemberService", () => {
   });
 
   describe("updateSubscriptionSeatsByUniqueTeamMembersInProject", () => {
-    const PROJECT_ID: string = "projectId";
     const SUBSCRIPTION_ID: string = "subscriptionId";
 
     it("should update subscription seats based on unique team members", async () => {
@@ -903,8 +1130,21 @@ describe("TeamMemberService", () => {
       process.env["SUBSCRIPTION_PLAN_1"] = undefined;
       process.env["SUBSCRIPTION_PLAN_2"] = undefined;
 
+      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        null,
+        {
+          isRoot: true,
+        },
+      );
+
+      const project: Project =
+        await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+          isRoot: true,
+          userId: user.id!,
+        });
+
       await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
-        new ObjectID(PROJECT_ID),
+        new ObjectID(project._id!),
       );
 
       expect(BillingService.changeQuantity).not.toHaveBeenCalled();

@@ -101,7 +101,6 @@
         "nodemailer": "^6.9.10",
         "otpauth": "^9.3.1",
         "pg": "^8.7.3",
-        "pg-mem": "^3.0.2",
         "posthog-js": "^1.139.6",
         "prop-types": "^15.8.1",
         "qrcode": "^1.5.3",

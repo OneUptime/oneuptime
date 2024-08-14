@@ -31,7 +31,7 @@ export class AccessTokenService extends BaseService {
     await this.refreshUserGlobalAccessPermission(userId);
 
     // query for all projects user belongs to.
-    const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+    let teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         userId: userId,
         hasAcceptedInvitation: true,
@@ -45,6 +45,10 @@ export class AccessTokenService extends BaseService {
         isRoot: true,
       },
     });
+
+    if (!teamMembers) {
+      teamMembers = [];
+    }
 
     if (teamMembers.length === 0) {
       return;

@@ -74,6 +74,7 @@ describe("ScheduledMaintenanceService", () => {
         data: maintenance,
         props: {
           isRoot: true,
+          tenantId: project.id!,
         },
       });
 

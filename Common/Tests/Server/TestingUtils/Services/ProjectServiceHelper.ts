@@ -1,11 +1,30 @@
 import Faker from "Common/Utils/Faker";
 import Project from "Common/Models/DatabaseModels/Project";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ProjectService from "../../../../Server/Services/ProjectService";
+
+export interface ProjectData {
+  seatLimit?: number;
+  subscriptionId: string;
+}
 
 export default class ProjectTestService {
-  public static generateRandomProject(
-    data?: { seatLimit?: number } | undefined,
-  ): Project {
+  public static generateAndSaveRandomProject(
+    data: ProjectData | null,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Project> {
+    const project: Project = ProjectTestService.generateRandomProject(
+      data || undefined,
+    );
+
+    return ProjectService.create({
+      data: project,
+      props,
+    });
+  }
+
+  public static generateRandomProject(data?: ProjectData | undefined): Project {
     const project: Project = new Project();
 
     // required fields
