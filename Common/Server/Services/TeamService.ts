@@ -6,7 +6,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/Team";
 
-export class TeamService extends DatabaseService<Model> {
+export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
@@ -69,4 +69,4 @@ export class TeamService extends DatabaseService<Model> {
     return { deleteBy, carryForward: null };
   }
 }
-export default new TeamService();
+export default new Service();

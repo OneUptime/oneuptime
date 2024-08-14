@@ -3,7 +3,9 @@ import Project from "Common/Models/DatabaseModels/Project";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 
 export default class ProjectTestService {
-  public static generateRandomProject(data?: { seatLimit?: number } | undefined): Project {
+  public static generateRandomProject(
+    data?: { seatLimit?: number } | undefined,
+  ): Project {
     const project: Project = new Project();
 
     // required fields
@@ -12,7 +14,7 @@ export default class ProjectTestService {
     project.isBlocked = false;
     project.requireSsoForLogin = false;
 
-    if(data && data.seatLimit){
+    if (data && data.seatLimit) {
       project.seatLimit = data.seatLimit;
     }
 

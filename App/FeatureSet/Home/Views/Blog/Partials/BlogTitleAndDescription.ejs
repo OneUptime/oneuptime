@@ -3,6 +3,13 @@
     <h1 class="max-w-5xl text-center text-6xl font-bold text-gray-900 leading-tight">
         <%= title %>
     </h1>
+    </div>
+    <div class="mx-auto flex justify-center text-center ">
+    <%  if(smallTitle){ %> 
+    <h3 class="max-w-5xl mt-5 text-center text-2xl font-medium text-gray-900 leading-tight">
+      <%= smallTitle %>
+    </h3>
+    <% } %>
   </div>
   <p class="text-2xl text-center leading-8 text-gray-600 mt-8 leading-normal">
     <%= description %>

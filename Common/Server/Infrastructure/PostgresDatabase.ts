@@ -27,7 +27,7 @@ export default class Database {
   public async connect(): Promise<DataSource> {
     let retry: number = 0;
 
-    const dataSourceOptions = this.getDatasourceOptions();
+    const dataSourceOptions: DataSourceOptions = this.getDatasourceOptions();
 
     try {
       type ConnectToDatabaseFunction = () => Promise<DataSource>;

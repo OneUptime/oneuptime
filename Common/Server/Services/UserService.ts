@@ -33,7 +33,7 @@ import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 
-export class UserService extends DatabaseService<Model> {
+export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
@@ -318,4 +318,4 @@ export class UserService extends DatabaseService<Model> {
   }
 }
 
-export default new UserService();
+export default new Service();

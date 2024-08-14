@@ -820,12 +820,12 @@ describe("TeamMemberService", () => {
     const SUBSCRIPTION_ID: string = "subscriptionId";
 
     it("should update subscription seats based on unique team members", async () => {
-      const user1 = await UserService.create({
+      const user1: User = await UserService.create({
         data: UserServiceHelper.generateRandomUser(),
         props: { isRoot: true },
       });
 
-      const project = await ProjectService.create({
+      const project: Project = await ProjectService.create({
         data: ProjectServiceHelper.generateRandomProject(),
         props: { isRoot: true, userId: user1.id! },
       });
@@ -847,14 +847,14 @@ describe("TeamMemberService", () => {
 
       // now add users.
 
-      const user2 = await UserService.create({
+      const user2: User = await UserService.create({
         data: UserServiceHelper.generateRandomUser(),
         props: { isRoot: true },
       });
 
       // add team
 
-      const team = await TeamService.create({
+      const team: Team = await TeamService.create({
         data: TeamServiceHelper.generateRandomTeam({
           projectId: new ObjectID(project._id!),
         }),

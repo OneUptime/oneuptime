@@ -1,11 +1,15 @@
 import getTestDataSourceOptions from "../Postgres/TestDataSourceOptions";
-import { PostgresAppInstance } from "../../../../Server/Infrastructure/PostgresDatabase";
+import {
+  DatabaseSourceOptions,
+  PostgresAppInstance,
+} from "../../../../Server/Infrastructure/PostgresDatabase";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import getTestRedisConnectionOptions from "../Redis/TestRedisOptions";
 
 export class TestDatabaseMock {
   public static async connectDbMock(): Promise<void> {
-    const testDataSourceOptions = getTestDataSourceOptions();
+    const testDataSourceOptions: DatabaseSourceOptions =
+      getTestDataSourceOptions();
 
     PostgresAppInstance.getDatasourceOptions = () => {
       return testDataSourceOptions;
