@@ -3,7 +3,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 
 export default class ProjectTestService {
-  public static generateRandomProject(data: { seatLimit?: number }): Project {
+  public static generateRandomProject(data?: { seatLimit?: number } | undefined): Project {
     const project: Project = new Project();
 
     // required fields
@@ -11,6 +11,11 @@ export default class ProjectTestService {
     project.slug = project.name;
     project.isBlocked = false;
     project.requireSsoForLogin = false;
+
+    if(data && data.seatLimit){
+      project.seatLimit = data.seatLimit;
+    }
+
     project.smsOrCallCurrentBalanceInUSDCents = 0;
     project.autoRechargeSmsOrCallByBalanceInUSD = 0;
     project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD = 0;
