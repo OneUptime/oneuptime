@@ -3,11 +3,11 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 
 export class Service extends DatabaseService<Model> {

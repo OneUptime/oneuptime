@@ -3,17 +3,17 @@ import ServerMeteredPlan from "../Types/Billing/MeteredPlan/ServerMeteredPlan";
 import Errors from "../Utils/Errors";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
-} from "Common/Types/Billing/SubscriptionStatus";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import Email from "Common/Types/Email";
-import APIException from "Common/Types/Exception/ApiException";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
-import ObjectID from "Common/Types/ObjectID";
+} from "../../Types/Billing/SubscriptionStatus";
+import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import Email from "../../Types/Email";
+import APIException from "../../Types/Exception/ApiException";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ProductType from "../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../Types/ObjectID";
 import Stripe from "stripe";
 
 export type SubscriptionItem = Stripe.SubscriptionItem;

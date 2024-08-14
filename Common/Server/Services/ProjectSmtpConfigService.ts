@@ -1,6 +1,6 @@
 import DatabaseService from "./DatabaseService";
-import EmailServer from "Common/Types/Email/EmailServer";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import EmailServer from "../../Types/Email/EmailServer";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 
 export class Service extends DatabaseService<Model> {

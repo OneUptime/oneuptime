@@ -4,14 +4,14 @@ import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import BaseService from "./BaseService";
 import TeamMemberService from "./TeamMemberService";
 import TeamPermissionService from "./TeamPermissionService";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
   UserPermission,
   UserTenantAccessPermission,
-} from "Common/Types/Permission";
+} from "../../Types/Permission";
 import APIKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";

@@ -3,7 +3,7 @@ import FindBy from "../Types/Database/FindBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import File from "Common/Models/DatabaseModels/File";
 
 export class Service extends DatabaseService<File> {

@@ -123,22 +123,21 @@ export default class API {
     );
   }
 
-
   public async patch<
-  T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
->(
-  path: Route,
-  data?: JSONObject | JSONArray,
-  headers?: Headers,
-  options?: RequestOptions,
-): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-  return await API.patch<T>(
-    new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
-    data,
-    headers,
-    options,
-  );
-}
+    T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
+  >(
+    path: Route,
+    data?: JSONObject | JSONArray,
+    headers?: Headers,
+    options?: RequestOptions,
+  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    return await API.patch<T>(
+      new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
+      data,
+      headers,
+      options,
+    );
+  }
 
   public async post<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
@@ -286,8 +285,6 @@ export default class API {
       options,
     );
   }
-
-
 
   public static async patch<
     T extends

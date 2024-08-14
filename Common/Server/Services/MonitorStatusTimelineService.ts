@@ -7,11 +7,11 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import UserService from "./UserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
 

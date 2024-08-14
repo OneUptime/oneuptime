@@ -1,12 +1,12 @@
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import ObjectID from "Common/Types/ObjectID";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import CalendarEvent from "../../Types/Calendar/CalendarEvent";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
+import ObjectID from "../../Types/ObjectID";
+import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";

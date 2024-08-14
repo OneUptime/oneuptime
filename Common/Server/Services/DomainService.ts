@@ -3,8 +3,8 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Domain from "../Types/Domain";
 import DatabaseService from "./DatabaseService";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Text from "Common/Types/Text";
+import BadDataException from "../../Types/Exception/BadDataException";
+import Text from "../../Types/Text";
 import Model from "Common/Models/DatabaseModels/Domain";
 
 export class Service extends DatabaseService<Model> {

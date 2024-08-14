@@ -4,8 +4,8 @@ import { OnDelete, OnFind } from "../Types/Database/Hooks";
 import BillingService, { PaymentMethod } from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 

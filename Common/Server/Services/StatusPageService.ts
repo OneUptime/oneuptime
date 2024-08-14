@@ -13,17 +13,17 @@ import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { Green } from "Common/Types/BrandColors";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Typeof from "Common/Types/Typeof";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { Green } from "../../Types/BrandColors";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Typeof from "../../Types/Typeof";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
@@ -34,28 +34,28 @@ import {
   AllowedStatusPageCountInFreePlan,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import Recurring from "Common/Types/Events/Recurring";
-import Email from "Common/Types/Email";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import Recurring from "../../Types/Events/Recurring";
+import Email from "../../Types/Email";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { FileRoute } from "Common/ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource, {
   UptimePrecision,
 } from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
-import Dictionary from "Common/Types/Dictionary";
+import Dictionary from "../../Types/Dictionary";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 
 export interface StatusPageReportItem {

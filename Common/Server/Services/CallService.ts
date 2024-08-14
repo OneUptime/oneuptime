@@ -1,15 +1,15 @@
 import { AppApiHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import BaseService from "./BaseService";
-import EmptyResponseData from "Common/Types/API/EmptyResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import CallRequest from "Common/Types/Call/CallRequest";
-import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import Protocol from "../../Types/API/Protocol";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import CallRequest from "../../Types/Call/CallRequest";
+import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
 import API from "Common/Utils/API";
 
 export class CallService extends BaseService {

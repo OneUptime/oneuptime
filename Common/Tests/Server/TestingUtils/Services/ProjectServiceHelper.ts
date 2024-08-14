@@ -6,8 +6,6 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 
 export interface ProjectData {
   seatLimit?: number;
-  currentSeatCount?: number;
-  subscriptionId?: string;
 }
 
 export default class ProjectTestService {
@@ -38,15 +36,13 @@ export default class ProjectTestService {
       project.seatLimit = data.seatLimit;
     }
 
-    project.paymentProviderSubscriptionSeats = data?.currentSeatCount || 0;
-
     project.smsOrCallCurrentBalanceInUSDCents = 0;
     project.autoRechargeSmsOrCallByBalanceInUSD = 0;
     project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD = 0;
     project.enableSmsNotifications = true;
     project.enableCallNotifications = true;
     project.planName = PlanType.Enterprise;
-    project.paymentProviderPlanId = "price_1M4niQANuQdJ93r7AVjhnik5";
+    project.paymentProviderPlanId = "price_id";
     project.enableAutoRechargeSmsOrCallBalance = true;
     project.lowCallAndSMSBalanceNotificationSentToOwners = true;
     project.failedCallAndSMSBalanceChargeNotificationSentToOwners = true;

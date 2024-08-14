@@ -3,9 +3,9 @@ import { OnFind } from "../Types/Database/Hooks";
 import BillingService, { Invoice } from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
-import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import URL from "../../Types/API/URL";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model, {
   InvoiceStatus,
 } from "Common/Models/DatabaseModels/BillingInvoice";

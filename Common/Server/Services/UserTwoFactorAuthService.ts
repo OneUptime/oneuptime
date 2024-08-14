@@ -4,10 +4,10 @@ import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import UserService from "./UserService";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import User from "Common/Models/DatabaseModels/User";
 import DeleteBy from "../Types/Database/DeleteBy";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

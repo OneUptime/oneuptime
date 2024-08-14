@@ -2,13 +2,13 @@ import { MeteredPlanUtil } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import TelemetryMeteredPlan from "../Types/Billing/MeteredPlan/TelemetryMeteredPlan";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import Decimal from "Common/Types/Decimal";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
-import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
+import Decimal from "../../Types/Decimal";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ProductType from "../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 
 export class Service extends DatabaseService<Model> {

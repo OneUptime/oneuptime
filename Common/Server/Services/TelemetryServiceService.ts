@@ -1,10 +1,10 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import ArrayUtil from "Common/Types/ArrayUtil";
-import { BrightColors } from "Common/Types/BrandColors";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
+import ArrayUtil from "../../Types/ArrayUtil";
+import { BrightColors } from "../../Types/BrandColors";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryService";
 
 export class Service extends DatabaseService<Model> {

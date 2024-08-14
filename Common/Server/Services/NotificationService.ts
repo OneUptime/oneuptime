@@ -3,8 +3,8 @@ import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export class NotificationService extends BaseService {

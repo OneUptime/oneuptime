@@ -5,11 +5,11 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import Text from "Common/Types/Text";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import Text from "../../Types/Text";
 import Model from "Common/Models/DatabaseModels/UserEmail";
 
 export class Service extends DatabaseService<Model> {

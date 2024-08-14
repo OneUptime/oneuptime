@@ -17,19 +17,19 @@ import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import ProbeService from "./ProbeService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import TeamMemberService from "./TeamMemberService";
-import URL from "Common/Types/API/URL";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
+import URL from "../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
-} from "Common/Types/Monitor/MonitorType";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Typeof from "Common/Types/Typeof";
+} from "../../Types/Monitor/MonitorType";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Typeof from "../../Types/Typeof";
 import Model from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
@@ -41,14 +41,14 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import { EmailEnvelope } from "../../Types/Email/EmailMessage";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
-import Dictionary from "Common/Types/Dictionary";
-import { SMSMessage } from "Common/Types/SMS/SMS";
-import { CallRequestMessage } from "Common/Types/Call/CallRequest";
+import Dictionary from "../../Types/Dictionary";
+import { SMSMessage } from "../../Types/SMS/SMS";
+import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import UserNotificationSettingService from "./UserNotificationSettingService";
-import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

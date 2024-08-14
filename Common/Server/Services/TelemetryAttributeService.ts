@@ -1,9 +1,9 @@
-import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import ObjectID from "../../Types/ObjectID";
 
 export class TelemetryAttributeService extends AnalyticsDatabaseService<TelemetryAttribute> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

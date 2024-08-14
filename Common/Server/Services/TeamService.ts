@@ -2,8 +2,8 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/Team";
 
 export class Service extends DatabaseService<Model> {

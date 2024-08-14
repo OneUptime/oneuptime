@@ -7,11 +7,11 @@ import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
-import CallRequest from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import Text from "Common/Types/Text";
+import CallRequest from "../../Types/Call/CallRequest";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import Text from "../../Types/Text";
 import Project from "Common/Models/DatabaseModels/Project";
 import Model from "Common/Models/DatabaseModels/UserCall";
 

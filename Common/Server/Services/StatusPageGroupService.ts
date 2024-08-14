@@ -4,11 +4,11 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "Common/Models/DatabaseModels/StatusPageGroup";
 
 export class Service extends DatabaseService<Model> {

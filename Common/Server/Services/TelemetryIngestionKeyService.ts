@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 
 export class Service extends DatabaseService<Model> {

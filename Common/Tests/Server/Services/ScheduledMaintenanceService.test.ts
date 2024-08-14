@@ -12,6 +12,7 @@ import ScheduledMaintenanceStateService from "../../../Server/Services/Scheduled
 import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
 import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
+import "../TestingUtils/__mocks__/BillingService.mock";
 
 describe("ScheduledMaintenanceService", () => {
   beforeEach(async () => {

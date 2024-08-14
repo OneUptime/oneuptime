@@ -1,12 +1,12 @@
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
 
 export class Service extends DatabaseService<MonitorProbe> {

@@ -2,8 +2,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/ApiKeyPermission";
 
 export class Service extends DatabaseService<Model> {

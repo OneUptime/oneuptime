@@ -2,17 +2,17 @@ import { AppApiHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import EmptyResponseData from "Common/Types/API/EmptyResponse";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import Protocol from "../../Types/API/Protocol";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
 import {
   ComponentType,
   NodeDataProp,
   NodeType,
-} from "Common/Types/Workflow/Component";
+} from "../../Types/Workflow/Component";
 import API from "Common/Utils/API";
 import Model from "Common/Models/DatabaseModels/Workflow";
 

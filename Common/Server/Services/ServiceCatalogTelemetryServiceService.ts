@@ -1,9 +1,9 @@
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/ServiceCatalogTelemetryService";
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

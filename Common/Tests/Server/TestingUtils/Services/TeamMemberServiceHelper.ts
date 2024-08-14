@@ -10,10 +10,10 @@ export default class TeamMemberTestService {
     const teamMember: TeamMember = new TeamMember();
 
     // required fields
-    if(data.userId) {
+    if (data.userId) {
       teamMember.userId = data.userId;
     }
-    
+
     teamMember.projectId = data.projectId;
     teamMember.teamId = data.teamId;
 

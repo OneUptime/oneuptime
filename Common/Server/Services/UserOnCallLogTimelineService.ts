@@ -5,12 +5,12 @@ import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogS
 import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecutionLogTimelineService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserService from "./UserService";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
-import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import User from "Common/Models/DatabaseModels/User";
 import Model from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 

@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/Label";
 
 export class Service extends DatabaseService<Model> {

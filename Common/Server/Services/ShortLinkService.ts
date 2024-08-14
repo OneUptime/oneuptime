@@ -3,11 +3,11 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import { LinkShortenerRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import Text from "Common/Types/Text";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import Text from "../../Types/Text";
 import Model from "Common/Models/DatabaseModels/ShortLink";
 
 export class Service extends DatabaseService<Model> {

@@ -13,25 +13,25 @@ import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import { AccountsRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import Email from "Common/Types/Email";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import HashedString from "Common/Types/HashedString";
-import ObjectID from "Common/Types/ObjectID";
-import Text from "Common/Types/Text";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
+import Email from "../../Types/Email";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import HashedString from "../../Types/HashedString";
+import ObjectID from "../../Types/ObjectID";
+import Text from "../../Types/Text";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Model from "Common/Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Slack";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

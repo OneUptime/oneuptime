@@ -17,18 +17,18 @@ import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserService from "./UserService";
 import { AccountsRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
 import SubscriptionPlan, {
   PlanType,
-} from "Common/Types/Billing/SubscriptionPlan";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import Email from "Common/Types/Email";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
+} from "../../Types/Billing/SubscriptionPlan";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Email from "../../Types/Email";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";

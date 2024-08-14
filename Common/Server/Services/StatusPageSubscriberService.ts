@@ -1,4 +1,4 @@
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DatabaseConfig from "../DatabaseConfig";
 import {
   AllowedSubscribersCountInFreePlan,
@@ -16,18 +16,18 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { FileRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import Model from "Common/Models/DatabaseModels/StatusPageSubscriber";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

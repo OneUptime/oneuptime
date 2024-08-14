@@ -2,8 +2,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
-import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
+import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 

@@ -1,8 +1,8 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import ArrayUtil from "Common/Types/ArrayUtil";
-import { BrightColors } from "Common/Types/BrandColors";
+import ArrayUtil from "../../Types/ArrayUtil";
+import { BrightColors } from "../../Types/BrandColors";
 import Model from "Common/Models/DatabaseModels/ServiceCatalog";
 
 export class Service extends DatabaseService<Model> {

@@ -1,12 +1,12 @@
 import DatabaseConfig from "../DatabaseConfig";
 import { AppApiHostname } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
-import EmptyResponseData from "Common/Types/API/EmptyResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import Protocol from "../../Types/API/Protocol";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import { JSONObject } from "../../Types/JSON";
 import API from "Common/Utils/API";
 
 export class StatusPageCertificateService extends BaseService {
