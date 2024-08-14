@@ -74,12 +74,6 @@ describe("TeamMemberService", () => {
       process.env["SUBSCRIPTION_PLAN_1"] = undefined;
       process.env["SUBSCRIPTION_PLAN_2"] = undefined;
 
-      ProjectService.findOneById = jest.fn().mockResolvedValue({
-        _id: project._id,
-      });
-
-      TeamService.findOneById = jest.fn().mockResolvedValue(team);
-
       const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember({
         projectId: new ObjectID(project._id!),
         userId: new ObjectID(user._id!),
