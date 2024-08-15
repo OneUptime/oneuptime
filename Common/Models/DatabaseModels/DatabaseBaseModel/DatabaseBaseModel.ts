@@ -673,7 +673,10 @@ export default class DatabaseBaseModel extends BaseEntity {
             json[key] as JSONArray,
             tableColumnMetadata.modelType,
           );
-        } else {
+        } else if(json[key] &&
+          tableColumnMetadata.type === TableColumnType.JSON){
+          (baseModel as any)[key] = JSONFunctions.deserialize(json[key] as JSONObject) as JSONObject;
+        }else { 
           (baseModel as any)[key] = json[key];
         }
       }

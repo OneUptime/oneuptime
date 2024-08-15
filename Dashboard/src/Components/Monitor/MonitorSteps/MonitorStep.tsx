@@ -91,18 +91,24 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const fetchTelemetryServices: PromiseVoidFunction =
     async (): Promise<void> => {
-
-
       let telemetryServiceIds: Array<ObjectID> = [];
 
       // if the monitor is a log monitor
-      if (props.monitorStep.data?.logMonitor && props.monitorType === MonitorType.Logs) {
-        telemetryServiceIds = props.monitorStep.data?.logMonitor?.telemetryServiceIds || [];
+      if (
+        props.monitorStep.data?.logMonitor &&
+        props.monitorType === MonitorType.Logs
+      ) {
+        telemetryServiceIds =
+          props.monitorStep.data?.logMonitor?.telemetryServiceIds || [];
       }
 
       // if the monitor is a trace monitor
-      if (props.monitorStep.data?.traceMonitor && props.monitorType === MonitorType.Traces) {
-        telemetryServiceIds = props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
+      if (
+        props.monitorStep.data?.traceMonitor &&
+        props.monitorType === MonitorType.Traces
+      ) {
+        telemetryServiceIds =
+          props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
       }
 
       const telemetryServicesResult: ListResult<TelemetryService> =
@@ -110,9 +116,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           modelType: TelemetryService,
           query: {
             projectId: DashboardNavigation.getProjectId(),
-            _id: new Includes(
-              telemetryServiceIds
-            ),
+            _id: new Includes(telemetryServiceIds),
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -413,9 +417,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         getElement: (item: TraceMonitorStepView): ReactElement => {
           return (
             <p>
-              {item.spanStatuses?.map((status: SpanStatus) => {
-                return SpanUtil.getSpanStatusText(status);
-              }).join(", ")}
+              {item.spanStatuses
+                ?.map((status: SpanStatus) => {
+                  return SpanUtil.getSpanStatusText(status);
+                })
+                .join(", ")}
             </p>
           );
         },

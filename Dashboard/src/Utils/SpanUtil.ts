@@ -18,7 +18,6 @@ export interface DivisibilityFactor {
 }
 
 export default class SpanUtil {
-
   public static getSpanStatusText(status: SpanStatus): string {
     switch (status) {
       case SpanStatus.Ok:
