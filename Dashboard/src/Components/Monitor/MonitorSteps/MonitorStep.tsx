@@ -33,6 +33,7 @@ import OneUptimeDate from "Common/Types/Date";
 import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import ObjectID from "Common/Types/ObjectID";
+import SpanUtil from "../../../Utils/SpanUtil";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -408,7 +409,16 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         key: "spanStatuses",
         title: "Span Status",
         description: "Status of the spans to monitor.",
-        fieldType: FieldType.ArrayOfText,
+        fieldType: FieldType.Element,
+        getElement: (item: TraceMonitorStepView): ReactElement => {
+          return (
+            <p>
+              {item.spanStatuses?.map((status: SpanStatus) => {
+                return SpanUtil.getSpanStatusText(status);
+              }).join(", ")}
+            </p>
+          );
+        },
         placeholder: "No span status entered. All statuses will be monitored.",
       });
     }

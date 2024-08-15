@@ -18,6 +18,18 @@ export interface DivisibilityFactor {
 }
 
 export default class SpanUtil {
+
+  public static getSpanStatusText(status: SpanStatus): string {
+    switch (status) {
+      case SpanStatus.Ok:
+        return "Ok";
+      case SpanStatus.Error:
+        return "Error";
+      default:
+        return "Unset";
+    }
+  }
+
   public static getSpanStatusDropdownOptions(): Array<DropdownOption> {
     const options: Array<DropdownOption> =
       DropdownUtil.getDropdownOptionsFromEnum(SpanStatus, true);
