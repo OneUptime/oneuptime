@@ -32,6 +32,7 @@ import { describe, expect, beforeEach, jest } from "@jest/globals";
 import MeteredPlan from "Common/Types/Billing/MeteredPlan";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import OneUptimeDate from "../../../Types/Date";
 
 describe("BillingService", () => {
   let billingService: BillingService;
@@ -121,9 +122,8 @@ describe("BillingService", () => {
     Object.defineProperty(global, "performance", {
       writable: true,
     });
-    jest.useFakeTimers();
-    let mockDate: Date = new Date(2023, 3, 1); // April 1, 2023
-    jest.setSystemTime(mockDate);
+
+    let mockDate: Date = OneUptimeDate.getCurrentDate();
 
     let mockSubscription: Stripe.Subscription;
     const subscription: Subscription = getSubscriptionData();
@@ -133,7 +133,7 @@ describe("BillingService", () => {
 
     beforeEach(() => {
       mockSubscription = getStripeSubscription();
-      mockDate = new Date(2023, 3, 1);
+      mockDate = OneUptimeDate.getCurrentDate();
     });
 
     describe("subscribeToMeteredPlan", () => {
@@ -255,10 +255,16 @@ describe("BillingService", () => {
 
         expect(result.subscriptionId).toEqual(mockSubscription.id);
         expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
-        const datePlusTrialDays: number = mockDate.setDate(
-          mockDate.getDate() + subscriptionPlan.getTrialPeriod(),
+        const datePlusTrialDays: Date = OneUptimeDate.addRemoveDays(
+          mockDate,
+          subscriptionPlan.getTrialPeriod(),
         );
-        expect(result.trialEndsAt).toEqual(new Date(datePlusTrialDays));
+        const datePlusTrialDaysNumber: number = datePlusTrialDays.getTime();
+
+        expect(result.trialEndsAt?.toString()).toBeTruthy();
+        expect(result.trialEndsAt?.toString()).toEqual(
+          datePlusTrialDays.toString(),
+        );
 
         expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
         expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
@@ -273,14 +279,14 @@ describe("BillingService", () => {
                 quantity: meteredSubscription.quantity,
               }),
             ]),
-            trial_end: datePlusTrialDays / 1000,
+            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
           }),
         );
         expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
           2,
           expect.objectContaining({
             customer: meteredSubscription.customerId,
-            trial_end: datePlusTrialDays / 1000,
+            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
           }),
         );
       });
