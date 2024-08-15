@@ -22,8 +22,8 @@ export interface ComponentProps {
   placeholder?: undefined | string;
   className?: undefined | string;
   onChange?:
-    | undefined
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+  | undefined
+  | ((value: DropdownValue | Array<DropdownValue> | null) => void);
   value?: DropdownOption | Array<DropdownOption> | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
@@ -70,15 +70,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     if (
       Array.isArray(value) &&
       value.length > 0 &&
-      typeof value[0] === "string"
+      (typeof value[0] === "string" || typeof value[0] === "number")
     ) {
       const options: Array<DropdownOption> = [];
 
       for (const item of value as Array<DropdownValue>) {
         if (
-          (!Array.isArray(item) && typeof item === "string") ||
-          typeof item === "number"
-        ) {
+          (!Array.isArray(item) && (typeof item === "string" ||
+            typeof item === "number"))
+          ) {
           const option: DropdownOption | undefined | Array<DropdownOption> =
             props.options.find((option: DropdownOption) => {
               return option.value === item;
@@ -94,8 +94,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      (!Array.isArray(value) && typeof value === "string") ||
-      typeof value === "number"
+      (!Array.isArray(value) && (typeof value === "string" ||
+      typeof value === "number"))
     ) {
       return props.options.find((option: DropdownOption) => {
         return option.value === value;
@@ -128,10 +128,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   return (
     <div
       id={props.id}
-      className={`${
-        props.className ||
+      className={`${props.className ||
         "relative mt-2 mb-1 rounded-md w-full overflow-visible"
-      }`}
+        }`}
       onClick={() => {
         props.onClick && props.onClick();
         props.onFocus && props.onFocus();
