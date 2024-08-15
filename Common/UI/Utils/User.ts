@@ -47,16 +47,6 @@ export default class User {
   }
 
   public static getSavedUserTimezone(): Timezone {
-    // check cookie first.
-
-    const userTimezoneCookie: JSONValue | string = Cookie.getItem(
-      CookieName.Timezone,
-    );
-
-    if (userTimezoneCookie) {
-      return userTimezoneCookie as Timezone;
-    }
-
     return LocalStorage.getItem("user_timezone") as Timezone;
   }
 

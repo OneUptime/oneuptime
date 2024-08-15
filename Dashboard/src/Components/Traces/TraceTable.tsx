@@ -5,8 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
-import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import Span from "Common/Models/AnalyticsModels/Span";
 import React, {
   Fragment,
   FunctionComponent,
@@ -95,7 +94,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   const spanKindDropdownOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
+    SpanUtil.getSpanKindDropdownOptions();
 
   let viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.TELEMETRY_TRACE_ROOT]!,
@@ -163,6 +162,13 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           filters={[
             {
               field: {
+                name: true,
+              },
+              type: FieldType.Text,
+              title: "Span Name",
+            },
+            {
+              field: {
                 traceId: true,
               },
               type: FieldType.Text,
@@ -172,22 +178,15 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               field: {
                 statusCode: true,
               },
-              type: FieldType.Dropdown,
+              type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
               title: "Span Status",
             },
             {
               field: {
-                name: true,
-              },
-              type: FieldType.Text,
-              title: "Span Name",
-            },
-            {
-              field: {
                 kind: true,
               },
-              type: FieldType.Text,
+              type: FieldType.MultiSelectDropdown,
               title: "Span Kind",
               filterDropdownOptions: spanKindDropdownOptions,
             },

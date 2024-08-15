@@ -46,12 +46,10 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
       // check user timezone
 
       const guessTimezone: Timezone = OneUptimeDate.getCurrentTimezone();
+      const userTimezone: Timezone | null = User.getSavedUserTimezone();
 
-      if (
-        User.getSavedUserTimezone() === null ||
-        User.getSavedUserTimezone() !== guessTimezone
-      ) {
-        if (User.getSavedUserTimezone() !== null) {
+      if (userTimezone === null || userTimezone !== guessTimezone) {
+        if (userTimezone !== null) {
           // show confirm dialog to the usert to update the timezone
           setShowConfirmModal(true);
           setTimezoneToSave(guessTimezone);

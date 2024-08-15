@@ -248,7 +248,13 @@ const Table: TableFunction = <T extends GenericObject>(
       >
         <div className="-my-2 overflow-x-auto -mx-6">
           <div className="inline-block min-w-full py-2 align-middle">
-            <div className={props.tableContainerClassName ? props.tableContainerClassName : "overflow-hidden border-t border-gray-200"}>
+            <div
+              className={
+                props.tableContainerClassName
+                  ? props.tableContainerClassName
+                  : "overflow-hidden border-t border-gray-200"
+              }
+            >
               <table className="min-w-full divide-y divide-gray-200">
                 <TableHeader
                   id={`${props.id}-header`}

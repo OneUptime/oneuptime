@@ -1,4 +1,6 @@
-import MonitorStepTraceMonitor from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -10,7 +12,7 @@ import TraceMonitorPreview from "../../../Monitor/TraceMonitor/TraceMonitorPrevi
 import SpanUtil from "../../../../Utils/SpanUtil";
 
 export interface ComponentProps {
-  monitorStepTraceMonitor: MonitorStepTraceMonitor;
+  monitorStepTraceMonitor?: MonitorStepTraceMonitor | undefined;
   onMonitorStepTraceMonitorChanged: (
     monitorStepTraceMonitor: MonitorStepTraceMonitor,
   ) => void;
@@ -27,7 +29,9 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
   let showAdvancedOptionsByDefault: boolean = false;
 
   useEffect(() => {
-    setMonitorStepTraceMonitor(props.monitorStepTraceMonitor);
+    setMonitorStepTraceMonitor(
+      props.monitorStepTraceMonitor || MonitorStepTraceMonitorUtil.getDefault(),
+    );
   }, [props.monitorStepTraceMonitor]);
 
   if (

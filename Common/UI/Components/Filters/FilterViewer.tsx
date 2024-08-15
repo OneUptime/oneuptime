@@ -278,6 +278,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
     if (
       data.filter.type === FieldType.Dropdown ||
+      data.filter.type === FieldType.MultiSelectDropdown ||
       data.filter.type === FieldType.Entity ||
       data.filter.type === FieldType.EntityArray
     ) {

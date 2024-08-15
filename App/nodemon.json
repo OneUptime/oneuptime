@@ -1,5 +1,5 @@
 {
-    "watch": ["./","../Common"],
+    "watch": ["./","../Common/Server", "../Common/Types", "../Common/Utils", "../Common/Models"],
     "ext": "ts,json,tsx,env,js,jsx,hbs",
     "ignore": [
         "greenlock.d/*"

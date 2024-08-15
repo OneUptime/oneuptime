@@ -78,6 +78,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props.initialValue || new MonitorStep(),
   );
 
+  const [monitorStepTraceMonitor, setMonitorStepTraceMonitor] =
+    useState<MonitorStepTraceMonitor>(MonitorStepTraceMonitorUtil.getDefault());
+
   const [telemetryServices, setTelemetryServices] = useState<
     Array<TelemetryService>
   >([]);
@@ -554,14 +557,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       {props.monitorType === MonitorType.Traces && (
         <div className="mt-5">
           <TraceMonitorStepForm
-            monitorStepTraceMonitor={
-              monitorStep.data?.traceMonitor ||
-              MonitorStepTraceMonitorUtil.getDefault()
-            }
+            monitorStepTraceMonitor={monitorStepTraceMonitor}
             onMonitorStepTraceMonitorChanged={(
               value: MonitorStepTraceMonitor,
             ) => {
               monitorStep.setTraceMonitor(value);
+              setMonitorStepTraceMonitor(value);
               setMonitorStep(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}

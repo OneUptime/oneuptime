@@ -273,7 +273,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     TBaseModel | undefined
   >(undefined);
   const [data, setData] = useState<Array<TBaseModel>>([]);
-  const [query, setQuery] = useState<Query<TBaseModel>>({});
+  const [query, setQuery] = useState<Query<TBaseModel>>(props.query || {});
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -619,12 +619,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsFilterFetchLoading(false);
     };
 
-  useEffect(() => {
-    fetchItems().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [props.query]);
-
   const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -832,7 +826,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ? "p-1 px-1 pr-0 pl-0 py-0 mt-1"
           : "py-0 pr-0 pl-1 mt-1",
         onClick: () => {
-          setQuery({});
+          setQuery(props.query || {});
           setShowFilterModal(true);
         },
         disabled: isFilterFetchLoading,
@@ -1156,12 +1150,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setActionButtonSchema(actionsSchema);
   };
 
+  useEffect(() => {
+    const currentQuery: Query<TBaseModel> = query;
+    const newQuery: Query<TBaseModel> = props.query || {};
+
+    // only update if the query has changed.
+    if (JSON.stringify(currentQuery) !== JSON.stringify(newQuery)) {
+      setQuery(newQuery);
+    }
+  }, [props.query]);
+
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
   const onFilterChanged: OnFilterChangedFunction = (
     filterData: FilterData<TBaseModel>,
   ): void => {
-    const newQuery: Query<TBaseModel> = {};
+    const newQuery: Query<TBaseModel> = props.query || {};
 
     for (const key in filterData) {
       if (filterData[key] && typeof filterData[key] === Typeof.String) {
@@ -1199,6 +1203,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     setQuery(newQuery);
+    fetchItems().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
   };
 
   type GetDeleteBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
