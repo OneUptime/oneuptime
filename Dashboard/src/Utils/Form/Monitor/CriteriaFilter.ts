@@ -261,7 +261,7 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.LogCount) {
+    if (checkOn === CheckOn.LogCount || checkOn === CheckOn.SpanCount) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||

@@ -70,7 +70,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              lastXSecondsOfTraces: true,
+              lastXSecondsOfSpans: true,
             },
             defaultValue: 60,
             fieldType: FormFieldSchemaType.Dropdown,
