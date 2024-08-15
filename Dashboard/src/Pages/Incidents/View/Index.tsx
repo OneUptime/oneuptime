@@ -47,6 +47,7 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import TraceTable from "../../../Components/Traces/TraceTable";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -699,6 +700,13 @@ const IncidentView: FunctionComponent<
           </Card>
         </div>
       )}
+
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Trace && (
+          <div>
+            <TraceTable spanQuery={telemetryQuery.telemetryQuery} />
+          </div>
+        )}
     </Fragment>
   );
 };

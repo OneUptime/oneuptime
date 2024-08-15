@@ -64,7 +64,8 @@ import useAsyncEffect from "use-async-effect";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
-import TraceMonitorPreview from "../../../Components/Monitor/TraceMonitor/TraceMonitorPreview";
+import TraceTable from "../../../Components/Traces/TraceTable";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -641,22 +642,17 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {monitor?.monitorType === MonitorType.Traces &&
         monitor.monitorSteps &&
         monitor.monitorSteps.data?.monitorStepsInstanceArray &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
-          <div>
-            <Card
-              title={"Spans Preview"}
-              description={
-                "Preview of the spans that match the filter of this monitor."
-              }
-            >
-              <TraceMonitorPreview
-                monitorStepTraceMonitor={
-                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
-                    ?.traceMonitor
-                }
-              />
-            </Card>
-          </div>
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0] &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data!
+          .traceMonitor && (
+          <TraceTable
+            spanQuery={MonitorStepTraceMonitorUtil.toQuery(
+              monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data!
+                .traceMonitor!,
+            )}
+          />
         )}
 
       {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}

@@ -32,6 +32,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -89,13 +90,27 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const fetchTelemetryServices: PromiseVoidFunction =
     async (): Promise<void> => {
+
+
+      let telemetryServiceIds: Array<ObjectID> = [];
+
+      // if the monitor is a log monitor
+      if (props.monitorStep.data?.logMonitor && props.monitorType === MonitorType.Logs) {
+        telemetryServiceIds = props.monitorStep.data?.logMonitor?.telemetryServiceIds || [];
+      }
+
+      // if the monitor is a trace monitor
+      if (props.monitorStep.data?.traceMonitor && props.monitorType === MonitorType.Traces) {
+        telemetryServiceIds = props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
+      }
+
       const telemetryServicesResult: ListResult<TelemetryService> =
         await ModelAPI.getList<TelemetryService>({
           modelType: TelemetryService,
           query: {
             projectId: DashboardNavigation.getProjectId(),
             _id: new Includes(
-              props.monitorStep.data?.logMonitor?.telemetryServiceIds || [],
+              telemetryServiceIds
             ),
           },
           limit: LIMIT_PER_PROJECT,
@@ -460,6 +475,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             id={"monitor-logs"}
             item={logMonitorDetailView}
             fields={logFields}
+          />
+        )}
+        {traceFields && traceFields.length > 0 && (
+          <Detail<TraceMonitorStepView>
+            id={"monitor-traces"}
+            item={traceMonitorDetailView}
+            fields={traceFields}
           />
         )}
       </div>
