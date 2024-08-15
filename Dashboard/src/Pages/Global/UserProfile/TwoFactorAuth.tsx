@@ -137,7 +137,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {showVerificationModal && selectedTwoFactorAuth ? (
           <BasicFormModal
             title={`Verify ${selectedTwoFactorAuth.name}`}
-            description={`Please scan this QR code with your authenticator app and enter the code below.`}
+            description={`Please scan this QR code with your authenticator app and enter the code below. This code works with Google Authenticator.`}
             formProps={{
               error: verificationError || undefined,
               fields: [
