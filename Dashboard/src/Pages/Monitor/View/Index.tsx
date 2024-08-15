@@ -649,7 +649,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           .traceMonitor && (
           <TraceTable
             spanQuery={MonitorStepTraceMonitorUtil.toQuery(
-              monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data!
+              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!.data!
                 .traceMonitor!,
             )}
           />

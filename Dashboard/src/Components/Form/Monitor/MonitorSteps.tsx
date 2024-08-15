@@ -166,7 +166,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [monitorSteps, setMonitorSteps] = React.useState<
     MonitorSteps | undefined
-  >(props.initialValue);
+  >(MonitorSteps.fromJSON(props.initialValue));
 
   useEffect(() => {
     if (monitorSteps && props.onChange) {
@@ -184,7 +184,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {monitorSteps?.data?.monitorStepsInstanceArray.map(
+      {monitorSteps?.data?.monitorStepsInstanceArray?.map(
         (i: MonitorStep, index: number) => {
           return (
             <MonitorStepElement

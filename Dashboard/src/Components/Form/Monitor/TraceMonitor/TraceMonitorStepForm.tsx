@@ -2,7 +2,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -23,16 +23,9 @@ export interface ComponentProps {
 const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [monitorStepTraceMonitor, setMonitorStepTraceMonitor] =
-    React.useState<MonitorStepTraceMonitor | null>(null);
-
   let showAdvancedOptionsByDefault: boolean = false;
-
-  useEffect(() => {
-    setMonitorStepTraceMonitor(
-      props.monitorStepTraceMonitor || MonitorStepTraceMonitorUtil.getDefault(),
-    );
-  }, [props.monitorStepTraceMonitor]);
+  const monitorStepTraceMonitor: MonitorStepTraceMonitor =
+    props.monitorStepTraceMonitor || MonitorStepTraceMonitorUtil.getDefault();
 
   if (
     monitorStepTraceMonitor &&
@@ -54,7 +47,6 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
         hideSubmitButton={true}
         initialValues={monitorStepTraceMonitor}
         onChange={(values: MonitorStepTraceMonitor) => {
-          setMonitorStepTraceMonitor(values);
           props.onMonitorStepTraceMonitorChanged(values);
         }}
         fields={[

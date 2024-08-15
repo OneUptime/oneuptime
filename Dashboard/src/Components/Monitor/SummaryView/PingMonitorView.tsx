@@ -17,7 +17,6 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
     responseTimeInMs = Math.round(responseTimeInMs);
   }
 
-
   return (
     <div className="space-y-5">
       <div className="flex space-x-3">
