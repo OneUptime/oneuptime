@@ -1269,7 +1269,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         className={
           props.cardProps
             ? ""
-            : "rounded-lg border-2 border-gray-200 p-6 pt-0 pb-0"
+            : "rounded-lg border-2 border-gray-200 p-6 pt-0 pb-5"
+        }
+        tableContainerClassName={
+          props.cardProps ? "" : "overflow-hidden rounded"
         }
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();

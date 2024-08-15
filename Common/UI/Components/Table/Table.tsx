@@ -26,6 +26,7 @@ export interface ComponentProps<T extends GenericObject> {
   id: string;
   columns: Columns<T>;
   className?: string;
+  tableContainerClassName?: string | undefined;
   disablePagination?: undefined | boolean;
   onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
   currentPageNumber: number;
@@ -247,7 +248,7 @@ const Table: TableFunction = <T extends GenericObject>(
       >
         <div className="-my-2 overflow-x-auto -mx-6">
           <div className="inline-block min-w-full py-2 align-middle">
-            <div className="overflow-hidden border-t border-gray-200">
+            <div className={props.tableContainerClassName ? props.tableContainerClassName : "overflow-hidden border-t border-gray-200"}>
               <table className="min-w-full divide-y divide-gray-200">
                 <TableHeader
                   id={`${props.id}-header`}
