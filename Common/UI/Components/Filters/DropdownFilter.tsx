@@ -22,10 +22,18 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
   const filter: Filter<T> = props.filter;
   const filterData: FilterData<T> = { ...props.filterData };
 
-  const dropdownValue: DropdownOption | undefined =
-    props.filter.filterDropdownOptions?.find((option: DropdownOption) => {
+  const dropdownValues: Array<DropdownOption> =
+    props.filter.filterDropdownOptions?.filter((option: DropdownOption) => {
+      if (filterData[filter.key] instanceof Array) {
+        return (filterData[filter.key] as Array<string>)
+          .map((value: string) => {
+            return value.toString();
+          })
+          .includes(option.value.toString());
+      }
+
       return option.value.toString() === filterData[filter.key]?.toString();
-    });
+    }) || [];
 
   if (
     filter.type !== FieldType.Entity &&
@@ -50,7 +58,7 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
             props.onFilterChanged(filterData);
           }
         }}
-        value={dropdownValue}
+        value={dropdownValues}
         isMultiSelect={props.isMultiSelect || false}
         placeholder={`Filter by ${filter.title}`}
       />

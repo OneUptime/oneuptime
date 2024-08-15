@@ -18,7 +18,9 @@ export default class DropdownUtil {
 
         return {
           label: useKeyAsLabel ? key : (obj as any)[key].toString(),
-          value: NumberUtil.canBeConvertedToNumber((obj as any)[key]) ? NumberUtil.convertToNumber((obj as any)[key]) : (obj as any)[key],
+          value: NumberUtil.canBeConvertedToNumber((obj as any)[key])
+            ? NumberUtil.convertToNumber((obj as any)[key])
+            : (obj as any)[key],
         };
       })
       .filter((option: DropdownOption | null) => {

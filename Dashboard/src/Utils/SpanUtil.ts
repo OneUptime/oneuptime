@@ -19,15 +19,14 @@ export interface DivisibilityFactor {
 
 export default class SpanUtil {
   public static getSpanStatusDropdownOptions(): Array<DropdownOption> {
-    const options: Array<DropdownOption> = DropdownUtil.getDropdownOptionsFromEnum(SpanStatus, true);
+    const options: Array<DropdownOption> =
+      DropdownUtil.getDropdownOptionsFromEnum(SpanStatus, true);
     return options;
   }
 
   public static getSpanKindDropdownOptions(): Array<DropdownOption> {
-    const spanKindDropdownOptions: Array<DropdownOption> = DropdownUtil.getDropdownOptionsFromEnum(
-      SpanKind,
-      true,
-    );
+    const spanKindDropdownOptions: Array<DropdownOption> =
+      DropdownUtil.getDropdownOptionsFromEnum(SpanKind, true);
     return spanKindDropdownOptions;
   }
 

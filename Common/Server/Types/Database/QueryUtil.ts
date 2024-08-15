@@ -133,7 +133,12 @@ export default class QueryUtil {
         query[key] instanceof Includes &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.any((query[key] as Includes).values) as any;
+
+        if(tableColumnMetadata.type === TableColumnType.EntityArray || tableColumnMetadata.type === TableColumnType.Entity){ 
+          query[key] = (query[key] as Includes).values as any;
+        }else{
+          query[key] = QueryHelper.any((query[key] as Includes).values) as any;
+        }
       } else if (
         query[key] &&
         query[key] instanceof GreaterThanOrEqual &&

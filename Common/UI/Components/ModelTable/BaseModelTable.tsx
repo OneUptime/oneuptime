@@ -1,3 +1,4 @@
+import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
@@ -204,6 +205,8 @@ export interface BaseTableProps<
   bulkActions?: BulkActionProps<TBaseModel> | undefined;
 
   onShowFormType?: (formType: ModalType) => void;
+
+  initialFilterData?: FilterData<TBaseModel> | undefined;
 }
 
 export interface ComponentProps<
@@ -236,6 +239,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   if (!showAs) {
     showAs = ShowAs.Table;
   }
+
+  const propsQueryRef: React.MutableRefObject<Query<TBaseModel>> = React.useRef(
+    props.query || {},
+  );
 
   const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
   const [viewId, setViewId] = useState<string | null>(null);
@@ -273,7 +280,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     TBaseModel | undefined
   >(undefined);
   const [data, setData] = useState<Array<TBaseModel>>([]);
-  const [query, setQuery] = useState<Query<TBaseModel>>(props.query || {});
+  const [query, setQuery] = useState<Query<TBaseModel>>({});
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -306,6 +313,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [isFilterFetchLoading, setIsFilterFetchLoading] = useState(false);
 
   const [errorModalText, setErrorModalText] = useState<string>("");
+
+  useEffect(() => {
+    const currentQuery: Query<TBaseModel> = propsQueryRef.current;
+    const newQuery: Query<TBaseModel> = props.query || {};
+
+    // only update if the query has changed.
+    if (JSON.stringify(currentQuery) !== JSON.stringify(newQuery)) {
+      propsQueryRef.current = newQuery;
+      fetchItems().catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+    }
+  }, [props.query]);
 
   useEffect(() => {
     if (!showModel) {
@@ -826,7 +846,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ? "p-1 px-1 pr-0 pl-0 py-0 mt-1"
           : "py-0 pr-0 pl-1 mt-1",
         onClick: () => {
-          setQuery(props.query || {});
+          setQuery({});
           setShowFilterModal(true);
         },
         disabled: isFilterFetchLoading,
@@ -1150,22 +1170,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setActionButtonSchema(actionsSchema);
   };
 
-  useEffect(() => {
-    const currentQuery: Query<TBaseModel> = query;
-    const newQuery: Query<TBaseModel> = props.query || {};
-
-    // only update if the query has changed.
-    if (JSON.stringify(currentQuery) !== JSON.stringify(newQuery)) {
-      setQuery(newQuery);
-    }
-  }, [props.query]);
-
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
   const onFilterChanged: OnFilterChangedFunction = (
     filterData: FilterData<TBaseModel>,
   ): void => {
-    const newQuery: Query<TBaseModel> = props.query || {};
+    const newQuery: Query<TBaseModel> = {};
 
     for (const key in filterData) {
       if (filterData[key] && typeof filterData[key] === Typeof.String) {
@@ -1198,14 +1208,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
 
       if (Array.isArray(filterData[key])) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
+        newQuery[key as keyof TBaseModel] = new Includes(
+          filterData[key] as Array<string>,
+        );
       }
     }
 
-    setQuery(newQuery);
-    fetchItems().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
+    setQuery({ ...newQuery });
   };
 
   type GetDeleteBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
@@ -1273,6 +1282,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
         }}
+        initialFilterData={props.initialFilterData}
         className={
           props.cardProps
             ? ""
