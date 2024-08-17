@@ -310,7 +310,7 @@ export default class UptimeUtil {
   }): number | null {
     const showUptimePercentage: boolean = Boolean(
       data.statusPageResources.find((item: StatusPageResource) => {
-        return item.showUptimePercent;
+        return item.showUptimePercent || item.showStatusHistoryChart;
       }),
     );
 
@@ -321,6 +321,10 @@ export default class UptimeUtil {
     const uptimePercentPerResource: Array<number> = [];
 
     for (const resource of data.statusPageResources) {
+      if (!resource.showUptimePercent && !resource.showStatusHistoryChart) {
+        continue;
+      }
+
       let timelinesForThisResource: Array<MonitorStatusTimeline> = [];
 
       if (resource.monitorGroupId) {

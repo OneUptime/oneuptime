@@ -204,6 +204,14 @@ const StatusPageDelete: FunctionComponent<
               fieldType: FieldType.Boolean,
               title: "Show Overall Uptime Percent",
             },
+
+            {
+              field: {
+                overallUptimePercentPrecision: true,
+              },
+              title: "Overall Uptime Precision",
+              fieldType: FieldType.Text,
+            },
           ],
           modelId: modelId,
         }}

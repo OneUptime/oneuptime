@@ -46,9 +46,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
-import StatusPageResource, {
-  UptimePrecision,
-} from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -56,6 +54,7 @@ import React, {
   useState,
 } from "react";
 import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -722,10 +721,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           statusPage.overallUptimePercentPrecision ||
                           UptimePrecision.TWO_DECIMAL,
                         monitorsInGroup: monitorsInGroup,
-                      })?.toString() || "100%"
+                      })?.toString() + "% uptime" || "100%"
                     : undefined
                 }
-                textClassName="text-white text-lg"
+                textClassName="text-white text-lg flex justify-between w-full"
                 id="overview-alert"
               />
             )}

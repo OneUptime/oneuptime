@@ -94,7 +94,7 @@ const Alert: FunctionComponent<ComponentProps> = (
           </div>
         )}
         <div
-          className={`ml-3 flex-1 md:flex md:justify-between ${props.className}`}
+          className={`ml-3 mr-3 flex-1 md:flex md:justify-between ${props.className}`}
         >
           <div
             className={
