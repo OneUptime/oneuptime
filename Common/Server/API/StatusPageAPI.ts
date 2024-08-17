@@ -494,6 +494,8 @@ export default class StatusPageAPI extends BaseAPI<
                   _id: true,
                 },
                 defaultBarColor: true,
+                showOverallUptimePercentOnStatusPage: true,
+                overallUptimePercentPrecision: true,
               },
               props: {
                 isRoot: true,

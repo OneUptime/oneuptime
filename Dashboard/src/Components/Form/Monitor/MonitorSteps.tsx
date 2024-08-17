@@ -166,7 +166,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [monitorSteps, setMonitorSteps] = React.useState<
     MonitorSteps | undefined
-  >(MonitorSteps.fromJSON(props.initialValue));
+  >(props.initialValue ? MonitorSteps.fromJSON(props.initialValue) : undefined);
 
   useEffect(() => {
     if (monitorSteps && props.onChange) {

@@ -23,13 +23,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-
-export enum UptimePrecision {
-  NO_DECIMAL = "99% (No Decimal)",
-  ONE_DECIMAL = "99.9% (One Decimal)",
-  TWO_DECIMAL = "99.99% (Two Decimal)",
-  THREE_DECIMAL = "99.999% (Three Decimal)",
-}
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("statusPage")

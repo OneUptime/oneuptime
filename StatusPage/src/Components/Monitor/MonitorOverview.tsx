@@ -10,7 +10,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
-import { UptimePrecision } from "Common/Models/DatabaseModels/StatusPageResource";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

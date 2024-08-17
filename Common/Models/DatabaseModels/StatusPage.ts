@@ -39,6 +39,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1864,4 +1865,74 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public reportDataInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show Overall Uptime Percent on Status Page",
+    description: "Show Overall Uptime Percent on Status Page?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Free,
+  })
+  public showOverallUptimePercentOnStatusPage?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Overall Uptime Percent Precision",
+    required: false,
+    description: "Overall Precision of uptime percent for this status page.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    default: UptimePrecision.TWO_DECIMAL,
+  })
+  public overallUptimePercentPrecision?: UptimePrecision = undefined;
 }

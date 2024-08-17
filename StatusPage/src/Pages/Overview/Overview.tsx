@@ -55,6 +55,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -320,7 +321,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         ) {
           dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
         } else {
-          dict[resource.monitor?.currentMonitorStatusId?.toString()]++;
+          dict[resource.monitor!.currentMonitorStatusId!.toString()]!++;
         }
       }
     }
@@ -335,7 +336,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         if (!Object.keys(dict).includes(statusId.toString() || "")) {
           dict[statusId.toString()] = 1;
         } else {
-          dict[statusId.toString()]++;
+          dict[statusId.toString()]!++;
         }
       }
     }
@@ -709,6 +710,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 } ${currentStatus.name}`}
                 color={currentStatus.color}
                 doNotShowIcon={true}
+                textOnRight={
+                  currentStatus.isOperationalState &&
+                  statusPage?.showOverallUptimePercentOnStatusPage
+                    ? UptimeUtil.calculateAvgUptimePercentageOfAllResources({
+                        monitorStatusTimelines: monitorStatusTimelines,
+                        statusPageResources: statusPageResources,
+                        downtimeMonitorStatuses:
+                          statusPage.downtimeMonitorStatuses || [],
+                        precision:
+                          statusPage.overallUptimePercentPrecision ||
+                          UptimePrecision.TWO_DECIMAL,
+                        monitorsInGroup: monitorsInGroup,
+                      })?.toString() || "100%"
+                    : undefined
+                }
                 textClassName="text-white text-lg"
                 id="overview-alert"
               />

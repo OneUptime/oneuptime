@@ -27,6 +27,7 @@ export interface ComponentProps {
   className?: string | undefined;
   color?: Color | undefined;
   id?: string | undefined;
+  textOnRight?: string | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -95,12 +96,22 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div
           className={`ml-3 flex-1 md:flex md:justify-between ${props.className}`}
         >
-          <p className={props.textClassName || `text-sm ${className}-200`}>
-            <span className="font-medium">
-              {props.strongTitle} {props.title && props.strongTitle ? "-" : ""}{" "}
-            </span>
-            {props.title}
-          </p>
+          <div
+            className={
+              props.textClassName ||
+              `text-sm flex justify-between ${className}-200`
+            }
+          >
+            <div>
+              <span className="font-medium">
+                {props.strongTitle}{" "}
+                {props.title && props.strongTitle ? "-" : ""}{" "}
+              </span>
+              {props.title}
+            </div>
+            {props.textOnRight && <div>{props.textOnRight}</div>}
+          </div>
+
           {props.onClose && (
             <p className="mt-3 text-sm md:mt-0 md:ml-6">
               <button

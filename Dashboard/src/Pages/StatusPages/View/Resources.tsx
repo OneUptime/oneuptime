@@ -23,9 +23,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
-import StatusPageResource, {
-  UptimePrecision,
-} from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,6 +31,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

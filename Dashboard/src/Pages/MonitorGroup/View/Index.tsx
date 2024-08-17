@@ -25,7 +25,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import { UptimePrecision } from "Common/Models/DatabaseModels/StatusPageResource";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, {
   Fragment,
   FunctionComponent,

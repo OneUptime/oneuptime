@@ -43,9 +43,7 @@ import MailService from "./MailService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { FileRoute } from "Common/ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
-import StatusPageResource, {
-  UptimePrecision,
-} from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Dictionary from "../../Types/Dictionary";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
@@ -57,6 +55,7 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 export interface StatusPageReportItem {
   resourceName: string;
@@ -67,6 +66,7 @@ export interface StatusPageReportItem {
 }
 
 export interface StatusPageReport {
+  reportDates: string; // start date and end date in string. e.g. "01 July 2021 - 14 July 2021"
   totalResources: number;
   totalIncidents: number;
   averageUptimePercent: string;
@@ -755,8 +755,15 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageId: data.statusPageId,
       });
 
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.getSomeDaysAgo(
+      data.historyDays || 14,
+    );
+    const startAndEndDate: string = `${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(currentDate, true)}`;
+
     if (statusPageResources.length === 0) {
       return {
+        reportDates: startAndEndDate,
         totalResources: 0,
         totalIncidents: 0,
         averageUptimePercent: "0%",
@@ -854,6 +861,7 @@ export class Service extends DatabaseService<StatusPage> {
     );
 
     return {
+      reportDates: startAndEndDate,
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
       averageUptimePercent: avgUptimePercentString,

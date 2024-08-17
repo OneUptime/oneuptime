@@ -53,7 +53,7 @@ import MonitorProbe, {
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import { UptimePrecision } from "Common/Models/DatabaseModels/StatusPageResource";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, {
   Fragment,
   FunctionComponent,

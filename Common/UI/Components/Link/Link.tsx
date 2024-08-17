@@ -48,6 +48,20 @@ const Link: FunctionComponent<ComponentProps> = (
       onMouseOut={props.onMouseOut}
       onMouseLeave={props.onMouseLeave}
       style={props.style}
+      onAuxClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+        // middle click
+        if (event.button === 1) {
+          if (props.to) {
+            Navigation.navigate(props.to, {
+              openInNewTab: true,
+            });
+
+            if (props.onNavigateComplete) {
+              props.onNavigateComplete();
+            }
+          }
+        }
+      }}
       onClick={() => {
         if (props.onClick) {
           props.onClick();

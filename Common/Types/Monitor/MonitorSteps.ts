@@ -93,7 +93,7 @@ export default class MonitorSteps extends DatabaseProperty {
   public static override fromJSON(
     json: JSONObject | MonitorSteps | undefined,
   ): MonitorSteps {
-    if (json === undefined) {
+    if (!json) {
       return new MonitorSteps();
     }
 
