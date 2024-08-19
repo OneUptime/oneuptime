@@ -5,7 +5,9 @@ import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
-import Components from "Common/Types/Workflow/Components/Condition";
+import Components, {
+  ConditionOperator,
+} from "Common/Types/Workflow/Components/Condition";
 
 export default class IfElse extends ComponentCode {
   public constructor() {
@@ -87,7 +89,7 @@ export default class IfElse extends ComponentCode {
         return arg;
       };
 
-      const code: string = `
+      let code: string = `
                     const input1 = ${
                       serialize(args["input-1"] as string) || ""
                     };
@@ -96,9 +98,19 @@ export default class IfElse extends ComponentCode {
                       serialize(args["input-2"] as string) || ""
                     };
                     
-                    return input1 ${
-                      (args["operator"] as string) || "=="
-                    } input2`;
+                    `;
+
+      if (args["operator"] === ConditionOperator.Contains) {
+        code += `return input1.includes(input2);`;
+      } else if (args["operator"] === ConditionOperator.DoesNotContain) {
+        code += `return !input1.includes(input2);`;
+      } else if (args["operator"] === ConditionOperator.StartsWith) {
+        code += `return input1.startsWith(input2);`;
+      } else if (args["operator"] === ConditionOperator.EndsWith) {
+        code += `return input1.endsWith(input2);`;
+      } else {
+        code += `return input1 ${(args["operator"] as string) || "=="} input2;`;
+      }
 
       const returnResult: ReturnResult = await VMUtil.runCodeInSandbox({
         code,

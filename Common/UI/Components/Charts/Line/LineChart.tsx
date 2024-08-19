@@ -1,7 +1,7 @@
 import { Box, CartesianMarkerProps } from "@nivo/core";
 import { LegendProps } from "@nivo/legends";
 import { Point, ResponsiveLine } from "@nivo/line";
-import { BrightColors } from "Common/Types/BrandColors";
+import { ChartColors } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -228,7 +228,7 @@ const LineChart: FunctionComponent<ComponentProps> = (
             }),
           });
         }}
-        colors={BrightColors.map((item: Color) => {
+        colors={ChartColors.map((item: Color) => {
           return item.toString();
         })}
         legends={legends}

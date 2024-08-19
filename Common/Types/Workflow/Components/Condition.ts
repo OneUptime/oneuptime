@@ -5,6 +5,19 @@ import ComponentMetadata, {
   ComponentType,
 } from "./../Component";
 
+export enum ConditionOperator {
+  EqualTo = "==",
+  NotEqualTo = "!=",
+  GreaterThan = ">",
+  GreaterThanOrEqualTo = ">=",
+  LessThan = "<",
+  LessThanOrEqualTo = "<=",
+  Contains = "contains",
+  DoesNotContain = "does not contain",
+  StartsWith = "starts with",
+  EndsWith = "ends with",
+}
+
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.IfElse,
@@ -33,7 +46,8 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Text,
         name: "Input 2",
-        description: "Input 2",
+        description:
+          "This fields takes number, text, boolean, null, undefined as values.",
         placeholder: "x",
         required: true,
         id: "input-2",

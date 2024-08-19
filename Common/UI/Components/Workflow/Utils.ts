@@ -9,6 +9,7 @@ import ComponentMetadata, {
 import Components, { Categories } from "Common/Types/Workflow/Components";
 import BaseModelComponentFactory from "Common/Types/Workflow/Components/BaseModel";
 import Entities from "Common/Models/DatabaseModels/Index";
+import { ConditionOperator } from "../../../Types/Workflow/Components/Condition";
 
 type LoadComponentsAndCategoriesFunction = () => {
   components: Array<ComponentMetadata>;
@@ -192,27 +193,43 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
         dropdownOptions: [
           {
             label: "Equal To",
-            value: "==",
+            value: ConditionOperator.EqualTo,
           },
           {
             label: "Not Equal To",
-            value: "!=",
+            value: ConditionOperator.NotEqualTo,
           },
           {
             label: "Greater Than",
-            value: ">",
+            value: ConditionOperator.GreaterThan,
           },
           {
             label: "Less Than",
-            value: "<",
+            value: ConditionOperator.LessThan,
           },
           {
             label: "Greater Than or Equal",
-            value: ">=",
+            value: ConditionOperator.GreaterThanOrEqualTo,
           },
           {
             label: "Less Than or Equal",
-            value: "<=",
+            value: ConditionOperator.LessThanOrEqualTo,
+          },
+          {
+            label: "Contains",
+            value: ConditionOperator.Contains,
+          },
+          {
+            label: "Does Not Contain",
+            value: ConditionOperator.DoesNotContain,
+          },
+          {
+            label: "Starts With",
+            value: ConditionOperator.StartsWith,
+          },
+          {
+            label: "Ends With",
+            value: ConditionOperator.EndsWith,
           },
         ],
       };
