@@ -212,7 +212,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               precision: xAxisPrecision,
               max: chartEndDate,
               min: chartStartDate,
-            }
+            },
           },
           yAxis: {
             legend: "",
@@ -220,11 +220,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
               type: YAxisType.Number,
               max: "auto",
               min: "auto",
-            }
+            },
           },
           curve: ChartCurve.LINEAR,
-          sync: true
-        }
+          sync: true,
+        },
       };
 
       charts.push(chart);
@@ -273,14 +273,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
       const metricAttributesResponse:
         | HTTPResponse<JSONObject>
         | HTTPErrorResponse = await API.post(
-          URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/metrics/get-attributes",
-          ),
-          {},
-          {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        );
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/metrics/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
 
       if (metricAttributesResponse instanceof HTTPErrorResponse) {
         throw metricAttributesResponse;

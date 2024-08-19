@@ -175,8 +175,8 @@ export class MonitorCharts {
         }),
         curve: MonitorCharts.getCurveFor({ checkOn: checkOn }),
         sync: true,
-      }
-    }
+      },
+    };
   }
 
   public static getMonitorCharts(data: {
@@ -271,7 +271,7 @@ export class MonitorCharts {
         min: startTime || "auto",
         max: endTime || "auto",
         precision: XAxisPrecision.MINUTE,
-      }
+      },
     };
   }
 
@@ -283,8 +283,8 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: "auto",
-        }
-      }
+        },
+      };
     } else if (data.checkOn === CheckOn.ResponseStatusCode) {
       return {
         legend: "Response Code",
@@ -292,7 +292,7 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 600,
-        }
+        },
       };
     } else if (
       data.checkOn === CheckOn.DiskUsagePercent ||
@@ -305,7 +305,7 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 100,
-        }
+        },
       };
     }
 
@@ -315,7 +315,7 @@ export class MonitorCharts {
         type: YAxisType.Number,
         min: "auto",
         max: "auto",
-      }
-    }
+      },
+    };
   }
 }

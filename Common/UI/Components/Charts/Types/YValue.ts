@@ -1,3 +1,3 @@
- type YValue = number;
+type YValue = number;
 
 export default YValue;

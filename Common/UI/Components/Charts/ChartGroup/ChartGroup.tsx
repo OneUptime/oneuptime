@@ -22,7 +22,6 @@ export interface ComponentProps {
 const ChartGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   return (
     <div className="lg:grid grid-cols-1 gap-5">
       {props.charts.map((chart: Chart, index: number) => {
@@ -45,10 +44,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {chart.description}
                   </p>
                 )}
-                <LineChart
-                  key={index}
-                  {...chart.props}
-                />
+                <LineChart key={index} {...chart.props} />
               </div>
             );
           default:

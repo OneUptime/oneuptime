@@ -1,7 +1,6 @@
- enum XAxisType {
-    Time = "time",
-    Date = "date",
-  }
+enum XAxisType {
+  Time = "time",
+  Date = "date",
+}
 
-  export default XAxisType;
-
+export default XAxisType;

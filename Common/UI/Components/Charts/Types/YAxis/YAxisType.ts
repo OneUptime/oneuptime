@@ -1,6 +1,5 @@
- enum YAxisType {
-    Number = "number",
-  }
+enum YAxisType {
+  Number = "number",
+}
 
-    export default YAxisType;   
-  
+export default YAxisType;
