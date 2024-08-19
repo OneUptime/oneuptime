@@ -11,7 +11,7 @@ export default class ProbeUtil {
     const projectProbeList: ListResult<Probe> = await ModelAPI.getList({
       modelType: Probe,
       query: {
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

@@ -60,7 +60,7 @@ const Home: FunctionComponent<ComponentProps> = (
       return;
     }
     UiAnalytics.capture("dashboard/home", {
-      projectId: DashboardNavigation.getProjectId()?.toString(),
+      projectId: DashboardNavigation.getProjectId()!,
     });
 
     fetchIncidentStates().catch((err: Error) => {
@@ -92,7 +92,7 @@ const Home: FunctionComponent<ComponentProps> = (
         {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
           <IncidentsTable
             query={{
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
               currentIncidentStateId: new Includes(
                 unresolvedIncidentStates.map((state: IncidentState) => {
                   return state.id!;

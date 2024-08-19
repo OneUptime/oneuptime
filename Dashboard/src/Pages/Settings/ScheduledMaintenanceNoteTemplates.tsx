@@ -28,7 +28,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         }}
         noItemsMessage={"No note templates found."}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showViewIdButton={true}
         formSteps={[

@@ -34,7 +34,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserOnCallLogTimeline>
         modelType={UserOnCallLogTimeline}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userNotificationLogId: modelId.toString(),
           userId: User.getUserId()?.toString(),
         }}

@@ -109,7 +109,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<Probe>
           modelType={Probe}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           id="probes-table"
           name="Settings > Probes"
@@ -251,7 +251,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
+                projectId: DashboardNavigation.getProjectId()!,
               },
               filterDropdownField: {
                 label: "name",

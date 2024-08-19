@@ -160,7 +160,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
+                projectId: DashboardNavigation.getProjectId()!,
               },
               filterDropdownField: {
                 label: "name",

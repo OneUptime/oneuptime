@@ -24,7 +24,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         query={{
           workflowId: null,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         noItemsMessage={"No global variables found."}
         showViewIdButton={true}

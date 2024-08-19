@@ -34,7 +34,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ScheduledMaintenanceOwnerTeam,
@@ -78,7 +78,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -133,7 +133,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ScheduledMaintenanceOwnerUser,

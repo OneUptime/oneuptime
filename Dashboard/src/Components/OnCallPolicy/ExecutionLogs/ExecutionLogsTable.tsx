@@ -33,7 +33,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
-    projectId: DashboardNavigation.getProjectId()?.toString(),
+    projectId: DashboardNavigation.getProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
@@ -76,7 +76,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         filterEntityType: OnCallDutyPolicy,
         filterQuery: {
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         },
         filterDropdownField: {
           label: "name",

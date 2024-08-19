@@ -317,7 +317,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ),
                   {
                     amount: item["amount"],
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                   },
                 );
 

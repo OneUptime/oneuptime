@@ -15,7 +15,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<Label>
         modelType={Label}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="labels-table"
         name="Settings > Labels"

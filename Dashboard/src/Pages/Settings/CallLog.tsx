@@ -146,7 +146,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={false}
           name="Call Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           selectMoreFields={{
             callData: true,

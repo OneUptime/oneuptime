@@ -84,7 +84,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         createEditFromRef={formRef}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           isBlockPermission: permissionType === PermissionType.BlockPermissions,
         }}
         onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
@@ -170,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Restrict to Labels",
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -305,7 +305,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
           if (!props.currentProject || !props.currentProject._id) {

@@ -354,7 +354,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: MonitorStatus,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",
@@ -372,7 +372,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: Label,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",

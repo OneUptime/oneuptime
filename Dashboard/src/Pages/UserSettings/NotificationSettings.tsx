@@ -27,7 +27,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationSetting>
         modelType={UserNotificationSetting}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
           eventType: options.eventOptions,
         }}

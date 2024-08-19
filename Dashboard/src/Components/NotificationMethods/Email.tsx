@@ -41,7 +41,7 @@ const Email: () => JSX.Element = (): ReactElement => {
       <ModelTable<UserEmail>
         modelType={UserEmail}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
         }}
         refreshToggle={refreshToggle}
@@ -171,7 +171,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                   ),
                   {
                     code: item["code"],
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );
@@ -233,7 +233,7 @@ const Email: () => JSX.Element = (): ReactElement => {
                     "/user-email/resend-verification-code",
                   ),
                   {
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );

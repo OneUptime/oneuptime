@@ -196,7 +196,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             }}
             query={{
               statusPageId: modelId,
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
               subscriberPhone: new NotNull(),
             }}
             onBeforeCreate={(

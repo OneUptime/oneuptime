@@ -47,7 +47,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         selectMoreFields={{
           stateChangeLog: true,
@@ -146,7 +146,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: IncidentState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

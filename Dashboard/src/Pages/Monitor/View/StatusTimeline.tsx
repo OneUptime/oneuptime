@@ -91,7 +91,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         ]}
         query={{
           monitorId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: MonitorStatusTimeline,
@@ -137,7 +137,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: MonitorStatus,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

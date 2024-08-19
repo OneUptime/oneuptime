@@ -123,7 +123,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentInternalNote,

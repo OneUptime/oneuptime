@@ -115,7 +115,7 @@ const ServiceCatalogPage: FunctionComponent<
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

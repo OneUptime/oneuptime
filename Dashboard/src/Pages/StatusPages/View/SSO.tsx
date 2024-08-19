@@ -52,7 +52,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         <ModelTable<StatusPageSSO>
           modelType={StatusPageSSO}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
             statusPageId: modelId.toString(),
           }}
           onBeforeCreate={(item: StatusPageSSO): Promise<StatusPageSSO> => {

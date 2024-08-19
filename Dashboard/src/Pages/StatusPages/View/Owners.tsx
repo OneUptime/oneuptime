@@ -34,7 +34,7 @@ const StatusPageOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: StatusPageOwnerTeam,
@@ -76,7 +76,7 @@ const StatusPageOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -131,7 +131,7 @@ const StatusPageOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: StatusPageOwnerUser,

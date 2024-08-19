@@ -425,7 +425,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
             noItemsMessage={"No payment methods found."}
             query={{
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             }}
             showRefreshButton={true}
             filters={[

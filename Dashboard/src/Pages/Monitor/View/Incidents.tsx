@@ -16,7 +16,7 @@ const MonitorIncidents: FunctionComponent<
       <DisabledWarning monitorId={modelId} />
       <IncidentsTable
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           monitors: [modelId.toString()],
         }}
         createInitialValues={{

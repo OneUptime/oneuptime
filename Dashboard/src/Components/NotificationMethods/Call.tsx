@@ -41,7 +41,7 @@ const Call: () => JSX.Element = (): ReactElement => {
       <ModelTable<UserCall>
         modelType={UserCall}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
         }}
         filters={[]}
@@ -171,7 +171,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                   ),
                   {
                     code: item["code"],
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );
@@ -235,7 +235,7 @@ const Call: () => JSX.Element = (): ReactElement => {
                     "/user-call/resend-verification-code",
                   ),
                   {
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );

@@ -13,7 +13,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
     <ScheduledMaintenanceTable
       viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
       query={{
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
         currentScheduledMaintenanceState: {
           isOngoingState: true,
         },

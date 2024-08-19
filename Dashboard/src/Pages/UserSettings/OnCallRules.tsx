@@ -60,7 +60,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationRule>
         modelType={UserNotificationRule}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
           ruleType: options.ruleType,
           incidentSeverityId:

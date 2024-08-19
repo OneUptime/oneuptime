@@ -114,7 +114,7 @@ const MonitorProbes: FunctionComponent<
       <ModelTable<MonitorProbe>
         modelType={MonitorProbe}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           monitorId: modelId.toString(),
         }}
         onBeforeCreate={(item: MonitorProbe): Promise<MonitorProbe> => {

@@ -38,7 +38,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name="Workflow Logs"
           query={{
             workflowId: modelId,
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           selectMoreFields={{
             logs: true,

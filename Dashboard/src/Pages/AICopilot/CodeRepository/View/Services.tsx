@@ -30,7 +30,7 @@ const ServiceCopilotCodeRepositoryPage: FunctionComponent<
         showViewIdButton={true}
         query={{
           codeRepositoryId: codeRepositoryId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCopilotCodeRepository,
@@ -111,7 +111,7 @@ const ServiceCopilotCodeRepositoryPage: FunctionComponent<
             title: "Service",
             filterEntityType: ServiceCatalog,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

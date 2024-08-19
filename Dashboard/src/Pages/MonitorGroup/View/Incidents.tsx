@@ -76,7 +76,7 @@ const MonitorIncidents: FunctionComponent<
     <Fragment>
       <IncidentsTable
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           monitors: monitorIds,
         }}
       />

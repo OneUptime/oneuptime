@@ -142,7 +142,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showViewIdButton={true}
           name="Email Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           selectMoreFields={{
             subject: true,
