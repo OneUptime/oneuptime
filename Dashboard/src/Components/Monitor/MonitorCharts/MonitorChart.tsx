@@ -1,4 +1,3 @@
-import ChartTooltip from "Common/UI/Components/Charts/Tooltip/Tooltip";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
@@ -7,32 +6,26 @@ import {
   Chart,
   ChartType,
 } from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
-import {
-  AxisBottom,
-  AxisLeft,
-  AxisType,
-  ChartCurve,
-  LineChartData,
-  LineChartDataItem,
-  LineChartPoint,
-  XScale,
-  XScalePrecision,
-  XScaleType,
-  YScale,
-  YScaleType,
-} from "Common/UI/Components/Charts/Line/LineChart";
+
 import MonitorMetricsByMinute, {
   MonitorMetricsMiscData,
 } from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import React from "react";
+import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
+import SeriesPoints from "Common/UI/Components/Charts/Types/SeriesPoints";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import YAxis from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
+import { XAxis } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 
 export class MonitorCharts {
   public static getDataForCharts(data: {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
     checkOn: CheckOn;
     miscData: MonitorMetricsMiscData | undefined;
-  }): Array<LineChartDataItem> {
+  }): Array<DataPoint> {
     return data.monitorMetricsByMinute
       .filter((item: MonitorMetricsByMinute) => {
         return (
@@ -115,7 +108,7 @@ export class MonitorCharts {
     checkOn: CheckOn;
     miscData: MonitorMetricsMiscData | undefined;
     probes?: Array<Probe>;
-  }): LineChartData {
+  }): SeriesPoints {
     const { monitorMetricsByMinute, checkOn } = data;
 
     return {
@@ -140,11 +133,7 @@ export class MonitorCharts {
   }): Chart {
     const { monitorMetricsByMinute, checkOn } = data;
 
-    const axisBottom: AxisBottom = MonitorCharts.getAxisBottomFor();
-
-    const axisLeft: AxisLeft = MonitorCharts.getAxisLeftFor();
-
-    const chartData: Array<LineChartData> = [];
+    const chartData: Array<SeriesPoints> = [];
 
     if (!data.miscData) {
       chartData.push(
@@ -178,35 +167,16 @@ export class MonitorCharts {
       }),
       props: {
         data: chartData,
-        xScale: MonitorCharts.getXScaleFor({
+        xAxis: MonitorCharts.getXAxisFor({
           monitorMetricsByMinute,
         }),
-        yScale: MonitorCharts.getYScaleFor({
+        yAxis: MonitorCharts.getYAxisFor({
           checkOn: checkOn,
         }),
-        axisBottom: axisBottom,
         curve: MonitorCharts.getCurveFor({ checkOn: checkOn }),
-        axisLeft: axisLeft,
-        getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
-          return (
-            <ChartTooltip
-              axisBottom={{
-                ...axisBottom,
-                legend: MonitorCharts.getAxisBottomLegend(),
-              }}
-              axisLeft={{
-                ...axisLeft,
-                legend: MonitorCharts.getAxisLeftLegend({
-                  checkOn,
-                }),
-              }}
-              points={data.points}
-            />
-          );
-        },
-      },
-      sync: true,
-    };
+        sync: true,
+      }
+    }
   }
 
   public static getMonitorCharts(data: {
@@ -251,28 +221,6 @@ export class MonitorCharts {
     return charts;
   }
 
-  private static getAxisBottomLegend(): string {
-    return "Time";
-  }
-
-  public static getAxisLeftLegend(data: { checkOn: CheckOn }): string {
-    return data.checkOn;
-  }
-
-  private static getAxisBottomFor(): AxisBottom {
-    return {
-      legend: "",
-      type: AxisType.Time,
-    };
-  }
-
-  private static getAxisLeftFor(): AxisLeft {
-    return {
-      legend: "",
-      type: AxisType.Number,
-    };
-  }
-
   private static getCurveFor(data: { checkOn: CheckOn }): ChartCurve {
     if (data.checkOn === CheckOn.ResponseStatusCode) {
       return ChartCurve.STEP_AFTER;
@@ -307,9 +255,9 @@ export class MonitorCharts {
     return "";
   }
 
-  public static getXScaleFor(data: {
+  public static getXAxisFor(data: {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
-  }): XScale {
+  }): XAxis {
     const startTime: Date | undefined =
       data.monitorMetricsByMinute[0]?.createdAt || undefined;
     const endTime: Date | undefined =
@@ -317,25 +265,34 @@ export class MonitorCharts {
         ?.createdAt || undefined;
 
     return {
-      type: XScaleType.TIME,
-      min: startTime || "auto",
-      max: endTime || "auto",
-      precision: XScalePrecision.MINUTE,
+      legend: "Time",
+      options: {
+        type: XAxisType.Time,
+        min: startTime || "auto",
+        max: endTime || "auto",
+        precision: XAxisPrecision.MINUTE,
+      }
     };
   }
 
-  public static getYScaleFor(data: { checkOn: CheckOn }): YScale {
+  public static getYAxisFor(data: { checkOn: CheckOn }): YAxis {
     if (data.checkOn === CheckOn.ResponseTime) {
       return {
-        type: YScaleType.LINEAR,
-        min: 0,
-        max: "auto",
-      };
+        legend: "Response Time (in ms)",
+        options: {
+          type: YAxisType.Number,
+          min: 0,
+          max: "auto",
+        }
+      }
     } else if (data.checkOn === CheckOn.ResponseStatusCode) {
       return {
-        type: YScaleType.LINEAR,
-        min: 0,
-        max: 600,
+        legend: "Response Code",
+        options: {
+          type: YAxisType.Number,
+          min: 0,
+          max: 600,
+        }
       };
     } else if (
       data.checkOn === CheckOn.DiskUsagePercent ||
@@ -343,16 +300,22 @@ export class MonitorCharts {
       data.checkOn === CheckOn.CPUUsagePercent
     ) {
       return {
-        type: YScaleType.LINEAR,
-        min: 0,
-        max: 100,
+        legend: data.checkOn,
+        options: {
+          type: YAxisType.Number,
+          min: 0,
+          max: 100,
+        }
       };
     }
 
     return {
-      type: YScaleType.LINEAR,
-      min: "auto",
-      max: "auto",
-    };
+      legend: data.checkOn,
+      options: {
+        type: YAxisType.Number,
+        min: "auto",
+        max: "auto",
+      }
+    }
   }
 }

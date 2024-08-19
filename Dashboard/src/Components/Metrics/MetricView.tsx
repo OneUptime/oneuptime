@@ -35,14 +35,6 @@ import ChartGroup, {
   Chart,
   ChartType,
 } from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
-import {
-  AxisType,
-  ChartCurve,
-  LineChartPoint,
-  XScalePrecision,
-  XScaleType,
-  YScaleType,
-} from "Common/UI/Components/Charts/Line/LineChart";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardNavigation from "../../Utils/Navigation";
@@ -54,8 +46,11 @@ import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-import ChartTooltip from "Common/UI/Components/Charts/Tooltip/Tooltip";
 import Dictionary from "Common/Types/Dictionary";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -70,11 +65,11 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [xScalePrecision, setXScalePrecision] = useState<XScalePrecision>(
-    XScalePrecision.DAY,
+  const [xAxisPrecision, setXAxisPrecision] = useState<XAxisPrecision>(
+    XAxisPrecision.DAY,
   );
 
-  const [xAxisType, setXAxisType] = useState<AxisType>(AxisType.Date);
+  const [xAxisType, setXAxisType] = useState<XAxisType>(XAxisType.Time);
 
   const [chartStartDate, setChartStartDate] = useState<Date>(
     OneUptimeDate.getCurrentDate(),
@@ -121,9 +116,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  type GetChartXAxisTypeFunction = () => AxisType;
+  type GetChartXAxisTypeFunction = () => XAxisType;
 
-  const getChartXAxisType: GetChartXAxisTypeFunction = (): AxisType => {
+  const getChartXAxisType: GetChartXAxisTypeFunction = (): XAxisType => {
     if (
       metricViewData.startAndEndDate?.startValue &&
       metricViewData.startAndEndDate?.endValue
@@ -135,16 +130,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
       );
 
       if (hourDifference <= 24) {
-        return AxisType.Time;
+        return XAxisType.Time;
       }
     }
 
-    return AxisType.Date;
+    return XAxisType.Date;
   };
 
-  type GetXPrecisionFunction = () => XScalePrecision;
+  type GetXPrecisionFunction = () => XAxisPrecision;
 
-  const getXPrecision: GetXPrecisionFunction = (): XScalePrecision => {
+  const getXPrecision: GetXPrecisionFunction = (): XAxisPrecision => {
     if (
       metricViewData.startAndEndDate?.startValue &&
       metricViewData.startAndEndDate?.endValue
@@ -156,11 +151,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
       );
 
       if (hourDifference <= 24) {
-        return XScalePrecision.MINUTE;
+        return XAxisPrecision.MINUTE;
       }
     }
 
-    return XScalePrecision.DAY;
+    return XAxisPrecision.DAY;
   };
 
   useEffect(() => {
@@ -210,46 +205,26 @@ const MetricView: FunctionComponent<ComponentProps> = (
               ),
             },
           ],
-          xScale: {
-            type: XScaleType.TIME,
-            precision: xScalePrecision,
-            max: chartEndDate,
-            min: chartStartDate,
-          },
-          yScale: {
-            type: YScaleType.LINEAR,
-            max: "auto",
-            min: "auto",
-          },
-          axisBottom: {
-            legend: "Time",
-            type: xAxisType,
-          },
-          axisLeft: {
+          xAxis: {
             legend: "",
-            type: AxisType.Number,
+            options: {
+              type: xAxisType,
+              precision: xAxisPrecision,
+              max: chartEndDate,
+              min: chartStartDate,
+            }
           },
-          getHoverTooltip: (data: { points: Array<LineChartPoint> }) => {
-            return (
-              <ChartTooltip
-                axisBottom={{
-                  type: xAxisType,
-                  legend: "Date and Time",
-                }}
-                axisLeft={{
-                  type: AxisType.Number,
-                  legend:
-                    queryConfig.metricQueryData.filterData.metricName?.toString() ||
-                    "",
-                }}
-                points={data.points}
-              />
-            );
+          yAxis: {
+            legend: "",
+            options: {
+              type: YAxisType.Number,
+              max: "auto",
+              min: "auto",
+            }
           },
           curve: ChartCurve.LINEAR,
-        },
-
-        sync: true,
+          sync: true
+        }
       };
 
       charts.push(chart);
@@ -298,14 +273,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
       const metricAttributesResponse:
         | HTTPResponse<JSONObject>
         | HTTPErrorResponse = await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
-          "/telemetry/metrics/get-attributes",
-        ),
-        {},
-        {
-          ...ModelAPI.getCommonHeaders(),
-        },
-      );
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/metrics/get-attributes",
+          ),
+          {},
+          {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        );
 
       if (metricAttributesResponse instanceof HTTPErrorResponse) {
         throw metricAttributesResponse;
@@ -372,7 +347,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         setMetricResults(results);
         setXAxisType(getChartXAxisType());
-        setXScalePrecision(getXPrecision());
+        setXAxisPrecision(getXPrecision());
         setChartStartDate(metricViewData.startAndEndDate?.startValue as Date);
         setChartEndDate(metricViewData.startAndEndDate?.endValue as Date);
 

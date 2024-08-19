@@ -1,5 +1,5 @@
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export enum ChartType {
   LINE = "line",
@@ -13,7 +13,6 @@ export interface Chart {
   description?: string | undefined;
   type: ChartType;
   props: LineChartProps;
-  sync: boolean;
 }
 
 export interface ComponentProps {
@@ -23,9 +22,6 @@ export interface ComponentProps {
 const ChartGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [syncValue, setSyncValue] = useState<
-    number | string | Date | undefined
-  >(undefined);
 
   return (
     <div className="lg:grid grid-cols-1 gap-5">
@@ -52,14 +48,6 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 <LineChart
                   key={index}
                   {...chart.props}
-                  xAxisMarker={{
-                    value: chart.sync ? syncValue : undefined,
-                  }}
-                  onHoverXAxis={(value: string | number | Date) => {
-                    if (chart.sync) {
-                      setSyncValue(value);
-                    }
-                  }}
                 />
               </div>
             );
