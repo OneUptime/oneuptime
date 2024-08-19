@@ -1,5 +1,5 @@
 import API from "../../Utils/API/API";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import HeaderAlert from "./HeaderAlert";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";

@@ -1,35 +1,28 @@
+import CompareBase, { CompareType } from "../Database/CompareBase";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
-import SerializableObject from "../SerializableObject";
 
-export default class NotEqual extends SerializableObject {
-  private _value!: string;
-  public get value(): string {
-    return this._value;
-  }
-  public set value(v: string) {
-    this._value = v;
-  }
+export default class NotEqual<T extends CompareType> extends CompareBase<T> {
 
-  public constructor(value: string) {
-    super();
-    this.value = value;
+
+  public constructor(value: T) {
+    super(value);
   }
 
   public override toString(): string {
-    return this.value;
+    return this.value.toString();
   }
 
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.NotEqual,
-      value: (this as NotEqual).toString(),
+      value: (this as NotEqual<T>).toString(),
     };
   }
 
-  public static override fromJSON(json: JSONObject): NotEqual {
+  public static override fromJSON<T extends CompareType>(json: JSONObject): NotEqual<T> {
     if (json["_type"] === ObjectType.NotEqual) {
-      return new NotEqual(json["value"] as string);
+      return new NotEqual(json["value"] as T);
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));

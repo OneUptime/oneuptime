@@ -3,9 +3,10 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import ObjectID from "Common/Types/ObjectID";
+import { CompareType } from "../../../Types/Database/CompareBase";
 
 export default class QueryHelper {
-  public static lessThan(value: Date | number): LessThan {
+  public static lessThan<T extends CompareType>(value: T): LessThan<T> {
     return new LessThan(value);
   }
 
@@ -13,14 +14,14 @@ export default class QueryHelper {
     return new Includes(values);
   }
 
-  public static greaterThan(value: Date | number): GreaterThan {
-    return new GreaterThan(value);
+  public static greaterThan<T extends CompareType>(value: T): GreaterThan<T> {
+    return new GreaterThan<T>(value);
   }
 
-  public static inBetween(
-    startValue: Date | number,
-    endValue: Date | number,
-  ): InBetween {
+  public static inBetween<T extends CompareType>(
+    startValue: T,
+    endValue: T,
+  ): InBetween<T> {
     return new InBetween(startValue, endValue);
   }
 }

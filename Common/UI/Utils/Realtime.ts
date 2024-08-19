@@ -1,5 +1,4 @@
 import { HOST, HTTP_PROTOCOL } from "../Config";
-import Query from "./BaseDatabase/Query";
 import Select from "./BaseDatabase/Select";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -15,6 +14,7 @@ import RealtimeUtil, {
   ModelEventType,
 } from "Common/Utils/Realtime";
 import SocketIO, { Socket } from "socket.io-client";
+import Query from "../../Types/BaseDatabase/Query";
 
 export interface ListenToModelEvent<
   Model extends AnalyticsBaseModel | BaseModel,

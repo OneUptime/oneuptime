@@ -204,7 +204,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     ) {
       const key: keyof T = data.filter.key;
 
-      const startAndEndDates: InBetween = data.filterData[key] as InBetween;
+      const startAndEndDates: InBetween<Date> = data.filterData[key] as InBetween<Date>;
 
       const shouldOnlyShowDate: boolean = data.filter.type === FieldType.Date;
 

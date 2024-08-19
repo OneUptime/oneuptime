@@ -1,6 +1,6 @@
 import ModelAPI from "../../Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import RequestOptions from "../../Utils/BaseDatabase/RequestOptions";
 import Select from "../../Utils/BaseDatabase/Select";
 import Sort from "../../Utils/BaseDatabase/Sort";

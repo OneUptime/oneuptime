@@ -192,7 +192,7 @@ export class Service extends DatabaseService<Model> {
     // get status page resource with this order.
     const resources: Array<Model> = await this.findBy({
       query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
+        order: QueryHelper.greaterThanEqualTo<number>(currentOrder),
         statusPageId: statusPageId,
       },
       limit: LIMIT_MAX,

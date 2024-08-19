@@ -9,6 +9,7 @@ import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
+import { CompareType } from "../../../Types/Database/CompareBase";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
@@ -21,15 +22,15 @@ export type RecordValue =
   | number
   | boolean
   | Date
-  | Search
-  | NotEqual
-  | GreaterThan
-  | InBetween
+  | Search<string>
+  | NotEqual<CompareType>
+  | GreaterThan<CompareType>
+  | InBetween<CompareType>
   | Includes
   | Date
-  | LessThan
-  | LessThanOrEqual
-  | GreaterThanOrEqual
+  | LessThan<CompareType>
+  | LessThanOrEqual<CompareType>
+  | GreaterThanOrEqual<CompareType>
   | Array<number>
   | Array<string>
   | Array<ObjectID>

@@ -18,6 +18,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
 import { FindOperator } from "typeorm/find-options/FindOperator";
+import { CompareType } from "../../../Types/Database/CompareBase";
 
 export default class QueryUtil {
   public static serializeQuery<TBaseModel extends BaseModel>(
@@ -95,7 +96,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.search(
-          (query[key] as Search).toString() as any,
+          (query[key] as Search<string>).toString() as any,
         ) as any;
       } else if (
         query[key] &&
@@ -103,7 +104,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThan(
-          (query[key] as LessThan).toString() as any,
+          (query[key] as LessThan<CompareType>).toString() as any,
         ) as any;
       } else if (
         query[key] &&
@@ -117,8 +118,8 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.inBetween(
-          (query[key] as InBetween).startValue as any,
-          (query[key] as InBetween).endValue as any,
+          (query[key] as InBetween<CompareType>).startValue as any,
+          (query[key] as InBetween<CompareType>).endValue as any,
         ) as any;
       } else if (
         query[key] &&
@@ -126,7 +127,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThan(
-          (query[key] as GreaterThan).toString() as any,
+          (query[key] as GreaterThan<CompareType>).toString() as any,
         ) as any;
       } else if (
         query[key] &&
@@ -147,7 +148,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThanEqualTo(
-          (query[key] as GreaterThanOrEqual).toString() as any,
+          (query[key] as GreaterThanOrEqual<CompareType>).toString() as any,
         ) as any;
       } else if (
         query[key] &&
@@ -155,7 +156,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThanEqualTo(
-          (query[key] as LessThanOrEqual).toString() as any,
+          (query[key] as LessThanOrEqual<CompareType>).toString() as any,
         ) as any;
       } else if (
         query[key] &&

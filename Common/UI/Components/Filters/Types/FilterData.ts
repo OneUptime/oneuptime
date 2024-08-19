@@ -1,5 +1,5 @@
-import Query from "../../../Utils/BaseDatabase/Query";
 import GenericObject from "Common/Types/GenericObject";
+import Query from "../../../../Types/BaseDatabase/Query";
 
 type FillterData<T extends GenericObject> = Query<T>; // this is bascially a Query object
 

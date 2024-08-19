@@ -10,8 +10,8 @@ export enum StartAndEndDateType {
 }
 
 export interface ComponentProps {
-  initialValue?: InBetween | undefined;
-  onValueChanged: (value: InBetween | null) => void;
+  initialValue?: InBetween<Date> | undefined;
+  onValueChanged: (value: InBetween<Date> | null) => void;
   type: StartAndEndDateType;
 }
 
@@ -41,16 +41,16 @@ const StartAndEndDate: DateFilterFunction = (
     // prefill the date filter if it is already set
 
     if (!didSetInitialValue && props.initialValue instanceof InBetween) {
-      const inBetween: InBetween = props.initialValue as InBetween;
+      const inBetween: InBetween<Date> = props.initialValue as InBetween<Date>;
 
       if (inBetween.startValue) {
         setStartDateTime(
-          OneUptimeDate.fromString(inBetween.startValue as string),
+          OneUptimeDate.fromString(inBetween.startValue),
         );
       }
 
       if (inBetween.endValue) {
-        setEndDateTime(OneUptimeDate.fromString(inBetween.endValue as string));
+        setEndDateTime(OneUptimeDate.fromString(inBetween.endValue));
       }
 
       setDidSetInitialValue(true);
@@ -70,7 +70,7 @@ const StartAndEndDate: DateFilterFunction = (
         return;
       }
 
-      const value: InBetween = new InBetween(startDateTime, endDateTime);
+      const value: InBetween<Date> = new InBetween(startDateTime, endDateTime);
       props.onValueChanged && props.onValueChanged(value);
 
       return;

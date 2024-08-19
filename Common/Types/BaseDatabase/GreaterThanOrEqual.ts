@@ -1,22 +1,22 @@
-import CompareBase from "../Database/CompareBase";
+import CompareBase, { CompareType } from "../Database/CompareBase";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 
-export default class GreaterThanOrEqual extends CompareBase {
-  public constructor(value: number | Date) {
+export default class GreaterThanOrEqual<T extends CompareType> extends CompareBase<T> {
+  public constructor(value: T) {
     super(value);
   }
 
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.GreaterThanOrEqual,
-      value: (this as GreaterThanOrEqual).toString(),
+      value: (this as GreaterThanOrEqual<T>).toString(),
     };
   }
 
-  public static override fromJSON(json: JSONObject): GreaterThanOrEqual {
+  public static override fromJSON<T extends CompareType>(json: JSONObject): GreaterThanOrEqual<T> {
     if (json["_type"] === ObjectType.GreaterThanOrEqual) {
-      return new GreaterThanOrEqual(json["value"] as number | Date);
+      return new GreaterThanOrEqual<T>(json["value"] as T);
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));

@@ -1,12 +1,19 @@
 import GenericObject from "../GenericObject";
-import { JSONObject, JSONValue } from "../JSON";
+import QueryOperator from "./QueryOperator";
 
-export type QueryPropertyOptions = JSONValue | JSONObject;
-
-export declare type QueryOptions<Entity> = {
-  [P in keyof Entity]?: QueryPropertyOptions;
+export declare type FindWhereProperty<Property extends GenericObject> = Property | FindWhere<Property> | QueryOperator<Property>;
+/**
+ * :
+ * Used for find operations.
+ */
+export declare type FindWhere<Entity> = {
+  [P in keyof Entity]?: FindWhereProperty<NonNullable<Entity[P]>>
 };
 
-type Query<TBaseModel extends GenericObject> = QueryOptions<TBaseModel>;
+declare type Query<TBaseModel extends GenericObject> = FindWhere<TBaseModel>;
+
+export declare type OrQuery<TBaseModel extends GenericObject> = Array<
+  Query<TBaseModel>
+>;
 
 export default Query;

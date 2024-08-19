@@ -13,6 +13,7 @@ import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
 import CallRequest from "./Call/CallRequest";
 import Color from "./Color";
+import { CompareType } from "./Database/CompareBase";
 import Domain from "./Domain";
 import Email from "./Email";
 import HashedString from "./HashedString";
@@ -102,28 +103,28 @@ export type JSONValue =
   | Array<CheckOn>
   | FilterType
   | Array<FilterType>
-  | Search
+  | Search<string>
   | Domain
   | Array<Domain>
-  | Array<Search>
-  | EqualToOrNull
-  | Array<EqualToOrNull>
-  | NotEqual
-  | Array<NotEqual>
-  | GreaterThan
-  | Array<GreaterThan>
-  | GreaterThanOrEqual
-  | Array<GreaterThanOrEqual>
+  | Array<Search<string>>
+  | EqualToOrNull<CompareType>
+  | Array<EqualToOrNull<CompareType>>
+  | NotEqual<CompareType>
+  | Array<NotEqual<CompareType>>
+  | GreaterThan<CompareType>
+  | Array<GreaterThan<CompareType>>
+  | GreaterThanOrEqual<CompareType>
+  | Array<GreaterThanOrEqual<CompareType>>
   | PositiveNumber
   | Array<PositiveNumber>
-  | LessThan
-  | Array<LessThan>
-  | InBetween
-  | Array<InBetween>
+  | LessThan<CompareType>
+  | Array<LessThan<CompareType>>
+  | InBetween<CompareType>
+  | Array<InBetween<CompareType>>
   | NotNull
   | Array<NotNull>
-  | LessThanOrEqual
-  | Array<LessThanOrEqual>
+  | LessThanOrEqual<CompareType>
+  | Array<LessThanOrEqual<CompareType>>
   | Port
   | Array<Port>
   | HashedString

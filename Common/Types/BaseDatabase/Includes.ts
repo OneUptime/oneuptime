@@ -2,11 +2,11 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
-import SerializableObject from "../SerializableObject";
+import QueryOperator from "./QueryOperator";
 
 export type IncludesType = Array<string> | Array<ObjectID> | Array<number>;
 
-export default class Includes extends SerializableObject {
+export default class Includes extends QueryOperator<IncludesType> {
   private _values: IncludesType = [];
 
   public get values(): IncludesType {

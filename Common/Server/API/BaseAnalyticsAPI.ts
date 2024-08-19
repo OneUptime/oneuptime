@@ -236,7 +236,7 @@ export default class BaseAnalyticsAPI<
     if (req.body) {
       query = JSONFunctions.deserialize(
         req.body["query"],
-      ) as Query<AnalyticsDataModel>;
+      ) as Query<any>;
 
       select = JSONFunctions.deserialize(
         req.body["select"],
@@ -318,7 +318,7 @@ export default class BaseAnalyticsAPI<
     if (req.body) {
       query = JSONFunctions.deserialize(
         req.body["query"],
-      ) as Query<AnalyticsDataModel>;
+      ) as Query<any>;
     }
 
     const databaseProps: DatabaseCommonInteractionProps =

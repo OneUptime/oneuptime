@@ -5,9 +5,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
 import Typeof from "Common/Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
+import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
-  public static findWithSameText(text: string | number): FindOperator<any> {
+  public static findWithSameText(text: string | number): FindWhereProperty<any> {
     let isString: boolean = false;
 
     if (typeof text === Typeof.String) {
@@ -41,7 +42,7 @@ export default class QueryHelper {
 
   public static equalToOrNull(
     value: string | ObjectID | Array<string | ObjectID>,
-  ): FindOperator<any> {
+  ): FindWhereProperty<any> {
     const rid: Array<string> = [];
     const valuesObj: Dictionary<string> = {};
 
@@ -85,7 +86,7 @@ export default class QueryHelper {
     );
   }
 
-  public static notEquals(value: string | ObjectID): FindOperator<any> {
+  public static notEquals(value: string | ObjectID): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -97,7 +98,7 @@ export default class QueryHelper {
     );
   }
 
-  public static search(name: string): FindOperator<any> {
+  public static search(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -110,7 +111,7 @@ export default class QueryHelper {
     );
   }
 
-  public static all(values: Array<string | ObjectID>): FindOperator<any> {
+  public static all(values: Array<string | ObjectID>): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
     });
@@ -134,13 +135,13 @@ export default class QueryHelper {
 
   public static any(
     values: Array<string | ObjectID | number>,
-  ): FindOperator<any> {
+  ): FindWhereProperty<any> {
     return this.in(values); // any and in are the same
   }
 
   private static in(
     values: Array<string | ObjectID | number>,
-  ): FindOperator<any> {
+  ): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID | number) => {
       return value.toString();
     });
@@ -162,7 +163,7 @@ export default class QueryHelper {
     );
   }
 
-  public static notIn(values: Array<string | ObjectID>): FindOperator<any> {
+  public static notIn(values: Array<string | ObjectID>): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
     });
@@ -186,7 +187,7 @@ export default class QueryHelper {
 
   public static notInOrNull(
     values: Array<string | ObjectID>,
-  ): FindOperator<any> {
+  ): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
     });
@@ -220,7 +221,7 @@ export default class QueryHelper {
     });
   }
 
-  public static equalTo(value: string): FindOperator<any> {
+  public static equalTo(value: string): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -232,7 +233,7 @@ export default class QueryHelper {
     );
   }
 
-  public static greaterThanEqualTo(value: number | Date): FindOperator<any> {
+  public static greaterThanEqualTo<T extends number | Date>(value: T): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -241,12 +242,12 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static greaterThanEqualToOrNull(
-    value: number | Date,
-  ): FindOperator<any> {
+  public static greaterThanEqualToOrNull<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -255,10 +256,10 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static lessThanEqualTo(value: number | Date): FindOperator<any> {
+  public static lessThanEqualTo<T extends number | Date>(value: T): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -267,10 +268,10 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static lessThanEqualToOrNull(value: number | Date): FindOperator<any> {
+  public static lessThanEqualToOrNull<T extends number | Date>(value: T): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -279,10 +280,10 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static greaterThan(value: number | Date): FindOperator<any> {
+  public static greaterThan<T extends number | Date>(value: T): FindWhereProperty< number | Date> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -291,10 +292,10 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static greaterThanOrNull(value: number | Date): FindOperator<any> {
+  public static greaterThanOrNull<T extends number | Date>(value: T): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -303,13 +304,13 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static inBetween(
-    startValue: number | Date,
-    endValue: number | Date,
-  ): FindOperator<any> {
+  public static inBetween<T extends number | Date>(
+    startValue: T,
+    endValue: T,
+  ): FindWhereProperty<T> {
     const rid1: string = Text.generateRandomText(10);
     const rid2: string = Text.generateRandomText(10);
     return Raw(
@@ -320,13 +321,13 @@ export default class QueryHelper {
         [rid1]: startValue,
         [rid2]: endValue,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static inBetweenOrNull(
-    startValue: number | Date,
-    endValue: number | Date,
-  ): FindOperator<any> {
+  public static inBetweenOrNull<T extends number | Date>(
+    startValue: T,
+    endValue: T,
+  ): FindWhereProperty<T> {
     const rid1: string = Text.generateRandomText(10);
     const rid2: string = Text.generateRandomText(10);
     return Raw(
@@ -337,13 +338,13 @@ export default class QueryHelper {
         [rid1]: startValue,
         [rid2]: endValue,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static notInBetween(
-    startValue: number | Date,
-    endValue: number | Date,
-  ): FindOperator<any> {
+  public static notInBetween<T extends number | Date>(
+    startValue: T,
+    endValue: T,
+  ): FindWhereProperty<T> {
     const rid1: string = Text.generateRandomText(10);
     const rid2: string = Text.generateRandomText(10);
     return Raw(
@@ -354,10 +355,10 @@ export default class QueryHelper {
         [rid1]: startValue,
         [rid2]: endValue,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 
-  public static queryJson(value: JSONObject): FindOperator<any> {
+  public static queryJson(value: JSONObject): FindWhereProperty<any> {
     // seed random text
     const values: JSONObject = {};
 
@@ -407,7 +408,7 @@ export default class QueryHelper {
     }, values);
   }
 
-  public static lessThan(value: number | Date): FindOperator<any> {
+  public static lessThan<T extends number | Date>(value: T): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -416,6 +417,6 @@ export default class QueryHelper {
       {
         [rid]: value,
       },
-    );
+    ) as FindWhereProperty<T>;
   }
 }
