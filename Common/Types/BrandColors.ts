@@ -67,9 +67,9 @@ export const BrightColors: Color[] = [
 ];
 
 export const ChartColors: Color[] = [
-  Indigo500, 
+  Indigo500,
   Rose500,
   Green500,
   Cyan500,
   Gray500,
-]
+];

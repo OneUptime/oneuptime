@@ -329,7 +329,7 @@ export class MonitorCharts {
       return {
         type: YScaleType.LINEAR,
         min: 0,
-        max: 'auto',
+        max: "auto",
       };
     } else if (data.checkOn === CheckOn.ResponseStatusCode) {
       return {
