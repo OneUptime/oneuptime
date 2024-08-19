@@ -46,7 +46,8 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Text,
         name: "Input 2",
-        description: "Input 2",
+        description:
+          "This fields takes number, text, boolean, null, undefined as values.",
         placeholder: "x",
         required: true,
         id: "input-2",
