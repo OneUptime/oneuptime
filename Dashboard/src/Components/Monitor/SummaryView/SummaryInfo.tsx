@@ -17,6 +17,7 @@ import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 
 export interface ComponentProps {
   monitorType: MonitorType;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
@@ -129,6 +130,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       {props.incomingMonitorRequest &&
       props.monitorType === MonitorType.IncomingRequest ? (
         <IncomingRequestMonitorView
+          incomingRequestMonitorHeartbeatCheckedAt={
+            props.incomingRequestMonitorHeartbeatCheckedAt
+          }
           incomingMonitorRequest={props.incomingMonitorRequest}
         />
       ) : (
