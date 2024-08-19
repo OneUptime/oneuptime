@@ -180,6 +180,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             color: true,
           },
           incomingRequestSecretKey: true,
+          incomingRequestMonitorHeartbeatCheckedAt: true,
           serverMonitorSecretKey: true,
           serverMonitorRequestReceivedAt: true,
           incomingRequestReceivedAt: true,
@@ -610,6 +611,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         monitorType={monitorType!}
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
+        incomingRequestMonitorHeartbeatCheckedAt={
+          monitor?.incomingRequestMonitorHeartbeatCheckedAt
+        }
         probeMonitorResponses={probeResponses}
         serverMonitorResponse={serverMonitorResponse}
         telemetryMonitorSummary={{

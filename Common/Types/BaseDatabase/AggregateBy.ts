@@ -5,7 +5,7 @@ import Sort from "./Sort";
 
 export default interface AggregateBy<TBaseModel extends GenericObject> {
   aggregateColumnName: keyof TBaseModel;
-  aggregateBy: AggregationType;
+  aggregationType: AggregationType;
   // aggregationInterval?: AggregationInterval;
   aggregationTimestampColumnName: keyof TBaseModel;
   startTimestamp: Date;

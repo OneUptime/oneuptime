@@ -3,27 +3,36 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
+import OneUptimeDate from "Common/Types/Date";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
+  { schedule: EVERY_THIRTY_SECONDS, runOnStartup: false },
   async () => {
     logger.debug("Checking IncomingRequestMonitor:CheckHeartbeat");
 
     const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy(
       {
         query: {
-          monitorType: MonitorType.IncomingRequest,
           ...MonitorService.getEnabledMonitorQuery(),
+          monitorType: MonitorType.IncomingRequest,
           project: {
             ...ProjectService.getActiveProjectStatusQuery(),
           },
+          incomingRequestMonitorHeartbeatCheckedAt:
+            QueryHelper.lessThanEqualToOrNull(
+              OneUptimeDate.addRemoveMinutes(
+                OneUptimeDate.getCurrentDate(),
+                -1,
+              ),
+            ),
         },
         props: {
           isRoot: true,
@@ -51,6 +60,17 @@ RunCron(
           logger.debug("Monitor has no steps. Skipping...");
           continue;
         }
+
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            incomingRequestMonitorHeartbeatCheckedAt:
+              OneUptimeDate.getCurrentDate(),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
         const processRequest: boolean = shouldProcessRequest(monitor);
 

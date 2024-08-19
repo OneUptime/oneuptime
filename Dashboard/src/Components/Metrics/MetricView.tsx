@@ -340,7 +340,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 attributes: queryConfig.metricQueryData.filterData
                   .attributes as Dictionary<string | number | boolean>,
               },
-              aggregateBy:
+              aggregationType:
                 (queryConfig.metricQueryData.filterData
                   .aggegationType as MetricsAggregationType) ||
                 MetricsAggregationType.Avg,

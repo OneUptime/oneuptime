@@ -208,8 +208,8 @@ export default class AnalyticsDatabaseService<
         aggregateBy.limit = 10;
       }
 
-      if (!aggregateBy.aggregateBy) {
-        throw new BadDataException("aggregateBy is required");
+      if (!aggregateBy.aggregationType) {
+        throw new BadDataException("aggregationType is required");
       }
 
       if (!aggregateBy.aggregationTimestampColumnName) {

@@ -734,6 +734,42 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     isDefaultValueColumn: false,
+    title:
+      "When was the last time we checked the heartbeat for incoming request?",
+    description:
+      "This field is for Incoming Request monitor only. When was the last time we checked the heartbeat?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public incomingRequestMonitorHeartbeatCheckedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
     title: "Telemetry Monitor Next Monitor At",
     description:
       "This field is for Telemetry Monitor only. When is the next time we should monitor?",

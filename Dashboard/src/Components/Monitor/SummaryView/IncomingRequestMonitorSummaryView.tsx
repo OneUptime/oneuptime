@@ -9,6 +9,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   incomingMonitorRequest: IncomingMonitorRequest;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
 }
 
 const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
@@ -52,6 +53,17 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           className="w-1/2 shadow-none border-2 border-gray-100"
           title="Request Method"
           value={props.incomingMonitorRequest.requestMethod || "-"}
+        />
+        <InfoCard
+          className="w-1/2 shadow-none border-2 border-gray-100"
+          title="Monitor Status Check At"
+          value={
+            props.incomingRequestMonitorHeartbeatCheckedAt
+              ? OneUptimeDate.getDateAsLocalFormattedString(
+                  props.incomingRequestMonitorHeartbeatCheckedAt,
+                )
+              : "-"
+          }
         />
       </div>
 
