@@ -65,3 +65,11 @@ export const BrightColors: Color[] = [
   Lime500,
   Amber500,
 ];
+
+export const ChartColors: Color[] = [
+  Indigo500, 
+  Rose500,
+  Green500,
+  Cyan500,
+  Gray500,
+]
