@@ -5,6 +5,19 @@ import ComponentMetadata, {
   ComponentType,
 } from "./../Component";
 
+export enum ConditionOperator {
+  EqualTo = "==",
+  NotEqualTo = "!=",
+  GreaterThan = ">",
+  GreaterThanOrEqualTo = ">=",
+  LessThan = "<",
+  LessThanOrEqualTo = "<=",
+  Contains = "contains",
+  DoesNotContain = "does not contain",
+  StartsWith = "starts with",
+  EndsWith = "ends with",
+}
+
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.IfElse,
