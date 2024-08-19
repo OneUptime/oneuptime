@@ -49,9 +49,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               jsonKeys: props.telemetryAttributes,
             },
             {
-              key: "aggregateBy",
+              key: "aggegationType",
               type: FieldType.Dropdown,
-              title: "Aggregate By",
+              title: "Aggregation Type",
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
                 MetricsAggregationType,
               ),

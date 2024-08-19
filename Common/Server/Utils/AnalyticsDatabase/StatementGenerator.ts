@@ -538,7 +538,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const selectStatement: Statement = new Statement();
 
     const aggregationMethod: string =
-      aggregateBy.aggregateBy.toLocaleLowerCase();
+      aggregateBy.aggregationType.toLocaleLowerCase();
     const aggregationInterval: string = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
       endDate: aggregateBy.endTimestamp!,
