@@ -69,6 +69,7 @@
         "@opentelemetry/sdk-trace-web": "^1.23.0",
         "@opentelemetry/semantic-conventions": "^1.25.0",
         "@tippyjs/react": "^4.2.6",
+        "@tremor/react": "^3.17.4",
         "@types/crypto-js": "^4.2.2",
         "@types/qrcode": "^1.5.5",
         "@types/react-highlight": "^0.12.8",
