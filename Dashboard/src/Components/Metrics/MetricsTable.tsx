@@ -139,7 +139,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           );
         }}
         query={{
-          projectId: DashboardNavigation.getProjectId(),
+          projectId: DashboardNavigation.getProjectId()!,
           serviceId: props.telemetryServiceId
             ? props.telemetryServiceId
             : undefined,

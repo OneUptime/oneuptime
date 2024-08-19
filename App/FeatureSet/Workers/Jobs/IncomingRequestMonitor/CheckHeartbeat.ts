@@ -20,9 +20,7 @@ RunCron(
       {
         query: {
           monitorType: MonitorType.IncomingRequest,
-          disableActiveMonitoring: false, // do not fetch if disabled is true.
-          disableActiveMonitoringBecauseOfManualIncident: false,
-          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+          ...MonitorService.getEnabledMonitorQuery(),
           project: {
             ...ProjectService.getActiveProjectStatusQuery(),
           },

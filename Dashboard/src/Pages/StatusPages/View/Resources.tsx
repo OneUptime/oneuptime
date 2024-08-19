@@ -54,7 +54,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPageGroup,
           query: {
             statusPageId: modelId,
-            projectId: props.currentProject?.id,
+            projectId: props.currentProject?.id!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -268,7 +268,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         query={{
           statusPageId: modelId,
           projectId: DashboardNavigation.getProjectId()!,
-          statusPageGroupId: statusPageGroupId,
+          statusPageGroupId: statusPageGroupId!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"

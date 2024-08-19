@@ -4,7 +4,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 
 export interface MetricQueryData {

@@ -3,7 +3,6 @@ import { ProbeExpressRequest } from "../Types/Request";
 import MonitorUtil from "../Utils/Monitor";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -29,6 +28,8 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorService from "Common/Server/Services/MonitorService";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -44,21 +45,10 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
       OneUptimeDate.getCurrentDate(),
     ),
     monitor: {
-      disableActiveMonitoring: false, // do not fetch if disabled is true.
-      disableActiveMonitoringBecauseOfManualIncident: false,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+      ...MonitorService.getEnabledMonitorQuery(),
     },
-
     project: {
-      // get only active projects
-      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
-      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
+      ...ProjectService.getActiveProjectStatusQuery()
     },
   };
 

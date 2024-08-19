@@ -1,7 +1,7 @@
 import GenericObject from "../GenericObject";
 import QueryOperator from "./QueryOperator";
 
-export declare type FindWhereProperty<Property extends GenericObject> = Property | FindWhere<Property> | QueryOperator<Property>;
+export declare type FindWhereProperty<Property extends GenericObject> = Property | FindWhere<Property> | QueryOperator<Property> | undefined;
 /**
  * :
  * Used for find operations.

@@ -17,6 +17,9 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ServiceCatalogMonitor from "Common/Models/DatabaseModels/ServiceCatalogMonitor";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Query from "Common/Types/BaseDatabase/Query";
+import Incident from "Common/Models/DatabaseModels/Incident";
 
 const ServiceCatalogIncidents: FunctionComponent<
   PageComponentProps
@@ -74,12 +77,16 @@ const ServiceCatalogIncidents: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  let query: Query<Incident> = {};
+
+  if(monitorIds) {
+    query.monitors = new Includes(monitorIds);
+  }
+
   return (
     <Fragment>
       <IncidentsTable
-        query={{
-          monitors: monitorIds,
-        }}
+        query={query}
         disableCreate={true}
         title={"Service Incidents"}
         description="List of incidents that belong to monitors in this service."

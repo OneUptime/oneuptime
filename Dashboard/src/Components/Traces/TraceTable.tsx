@@ -141,7 +141,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 }
           }
           query={{
-            projectId: DashboardNavigation.getProjectId(),
+            projectId: DashboardNavigation.getProjectId()!,
             serviceId: modelId ? modelId : undefined,
             ...spanQuery,
           }}

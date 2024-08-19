@@ -5,6 +5,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -23,7 +24,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Here is a list of global secrets and variables for this project.",
         }}
         query={{
-          workflowId: null,
+          workflowId: new IsNull(),
           projectId: DashboardNavigation.getProjectId()!,
         }}
         noItemsMessage={"No global variables found."}
