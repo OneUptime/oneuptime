@@ -3,8 +3,6 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 
 export default class NotEqual<T extends CompareType> extends CompareBase<T> {
-
-
   public constructor(value: T) {
     super(value);
   }
@@ -20,7 +18,9 @@ export default class NotEqual<T extends CompareType> extends CompareBase<T> {
     };
   }
 
-  public static override fromJSON<T extends CompareType>(json: JSONObject): NotEqual<T> {
+  public static override fromJSON<T extends CompareType>(
+    json: JSONObject,
+  ): NotEqual<T> {
     if (json["_type"] === ObjectType.NotEqual) {
       return new NotEqual(json["value"] as T);
     }

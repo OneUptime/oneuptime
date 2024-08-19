@@ -14,11 +14,11 @@ const MonitorIncidents: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  let query: Query<Incident> = {
-    projectId: DashboardNavigation.getProjectId()!
+  const query: Query<Incident> = {
+    projectId: DashboardNavigation.getProjectId()!,
   };
 
-  if(modelId) {
+  if (modelId) {
     query.monitors = new Includes([modelId]);
   }
 

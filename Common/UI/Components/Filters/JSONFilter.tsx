@@ -37,7 +37,9 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
           // if no keys in the dictionary, remove the filter
 
           if (Object.keys(value).length > 0) {
-            filterData[filter.key] = value as FindWhereProperty<NonNullable<T[keyof T]>>;
+            filterData[filter.key] = value as FindWhereProperty<
+              NonNullable<T[keyof T]>
+            >;
           } else {
             delete filterData[filter.key];
           }

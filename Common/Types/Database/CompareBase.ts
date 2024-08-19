@@ -4,7 +4,9 @@ import Typeof from "../Typeof";
 
 export type CompareType = number | Date | string;
 
-export default class CompareBase<T extends CompareType> extends QueryOperator<T> {
+export default class CompareBase<
+  T extends CompareType,
+> extends QueryOperator<T> {
   private _value!: T;
   public get value(): T {
     return this._value;

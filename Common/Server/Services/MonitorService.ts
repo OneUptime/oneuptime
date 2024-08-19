@@ -131,8 +131,8 @@ export class Service extends DatabaseService<Model> {
     return {
       disableActiveMonitoring: false, // do not fetch if disabled is true.
       disableActiveMonitoringBecauseOfManualIncident: false,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false
-    }
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    };
   }
 
   protected override async onBeforeCreate(
@@ -144,7 +144,8 @@ export class Service extends DatabaseService<Model> {
 
     if (!Object.values(MonitorType).includes(createBy.data.monitorType)) {
       throw new BadDataException(
-        `Invalid monitor type "${createBy.data.monitorType
+        `Invalid monitor type "${
+          createBy.data.monitorType
         }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`,
       );
     }
@@ -274,9 +275,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -575,7 +576,7 @@ export class Service extends DatabaseService<Model> {
       (monitorProbe: MonitorProbe) => {
         return (
           monitorProbe.probe?.connectionStatus ===
-          ProbeConnectionStatus.Disconnected && monitorProbe.isEnabled
+            ProbeConnectionStatus.Disconnected && monitorProbe.isEnabled
         );
       },
     );
@@ -886,7 +887,7 @@ export class Service extends DatabaseService<Model> {
         lastMonitorStatusTimeline &&
         lastMonitorStatusTimeline.monitorStatusId &&
         lastMonitorStatusTimeline.monitorStatusId.toString() ===
-        monitorStatusId.toString()
+          monitorStatusId.toString()
       ) {
         continue;
       }

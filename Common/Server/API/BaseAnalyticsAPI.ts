@@ -234,9 +234,7 @@ export default class BaseAnalyticsAPI<
     let groupBy: GroupBy<AnalyticsDataModel> = {};
 
     if (req.body) {
-      query = JSONFunctions.deserialize(
-        req.body["query"],
-      ) as Query<any>;
+      query = JSONFunctions.deserialize(req.body["query"]) as Query<any>;
 
       select = JSONFunctions.deserialize(
         req.body["select"],
@@ -316,9 +314,7 @@ export default class BaseAnalyticsAPI<
     await this.onBeforeCount(req, res);
 
     if (req.body) {
-      query = JSONFunctions.deserialize(
-        req.body["query"],
-      ) as Query<any>;
+      query = JSONFunctions.deserialize(req.body["query"]) as Query<any>;
     }
 
     const databaseProps: DatabaseCommonInteractionProps =

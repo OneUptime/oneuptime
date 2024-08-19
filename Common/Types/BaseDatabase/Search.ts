@@ -29,9 +29,11 @@ export default class Search<T extends string> extends QueryOperator<T> {
     };
   }
 
-  public static override fromJSON<T extends string>(json: JSONObject): Search<T> {
+  public static override fromJSON<T extends string>(
+    json: JSONObject,
+  ): Search<T> {
     if (json["_type"] === ObjectType.Search) {
-      return new Search<T>((json["value"] as T) || "" as T);
+      return new Search<T>((json["value"] as T) || ("" as T));
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));

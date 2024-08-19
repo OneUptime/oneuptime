@@ -54,7 +54,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPageGroup,
           query: {
             statusPageId: modelId,
-            projectId: props.currentProject?.id!,
+            projectId: props.currentProject!.id!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

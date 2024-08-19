@@ -3,7 +3,9 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import QueryOperator from "./QueryOperator";
 
-export default class InBetween<T extends number | Date | string> extends QueryOperator<T> {
+export default class InBetween<
+  T extends number | Date | string,
+> extends QueryOperator<T> {
   private _startValue!: T;
   public get startValue(): T {
     return this._startValue;
@@ -20,10 +22,7 @@ export default class InBetween<T extends number | Date | string> extends QueryOp
     this._endValue = v;
   }
 
-  public constructor(
-    startValue: T,
-    endValue: T,
-  ) {
+  public constructor(startValue: T, endValue: T) {
     super();
     this.startValue = startValue;
     this.endValue = endValue;
@@ -37,12 +36,11 @@ export default class InBetween<T extends number | Date | string> extends QueryOp
     };
   }
 
-  public static override fromJSON<T extends number | Date | string>(json: JSONObject): InBetween<T> {
+  public static override fromJSON<T extends number | Date | string>(
+    json: JSONObject,
+  ): InBetween<T> {
     if (json["_type"] === ObjectType.InBetween) {
-      return new InBetween(
-        json["startValue"] as T,
-        json["endValue"] as T,
-      );
+      return new InBetween(json["startValue"] as T, json["endValue"] as T);
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));

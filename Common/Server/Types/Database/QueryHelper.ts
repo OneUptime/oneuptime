@@ -8,7 +8,9 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
-  public static findWithSameText(text: string | number): FindWhereProperty<any> {
+  public static findWithSameText(
+    text: string | number,
+  ): FindWhereProperty<any> {
     let isString: boolean = false;
 
     if (typeof text === Typeof.String) {
@@ -163,7 +165,9 @@ export default class QueryHelper {
     );
   }
 
-  public static notIn(values: Array<string | ObjectID>): FindWhereProperty<any> {
+  public static notIn(
+    values: Array<string | ObjectID>,
+  ): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
     });
@@ -233,7 +237,9 @@ export default class QueryHelper {
     );
   }
 
-  public static greaterThanEqualTo<T extends number | Date>(value: T): FindWhereProperty<T> {
+  public static greaterThanEqualTo<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -259,7 +265,9 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
-  public static lessThanEqualTo<T extends number | Date>(value: T): FindWhereProperty<T> {
+  public static lessThanEqualTo<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -271,7 +279,9 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
-  public static lessThanEqualToOrNull<T extends number | Date>(value: T): FindWhereProperty<T> {
+  public static lessThanEqualToOrNull<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -283,7 +293,9 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
-  public static greaterThan<T extends number | Date>(value: T): FindWhereProperty< number | Date> {
+  public static greaterThan<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<number | Date> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -295,7 +307,9 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
-  public static greaterThanOrNull<T extends number | Date>(value: T): FindWhereProperty<T> {
+  public static greaterThanOrNull<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -408,7 +422,9 @@ export default class QueryHelper {
     }, values);
   }
 
-  public static lessThan<T extends number | Date>(value: T): FindWhereProperty<T> {
+  public static lessThan<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {

@@ -44,9 +44,7 @@ const StartAndEndDate: DateFilterFunction = (
       const inBetween: InBetween<Date> = props.initialValue as InBetween<Date>;
 
       if (inBetween.startValue) {
-        setStartDateTime(
-          OneUptimeDate.fromString(inBetween.startValue),
-        );
+        setStartDateTime(OneUptimeDate.fromString(inBetween.startValue));
       }
 
       if (inBetween.endValue) {

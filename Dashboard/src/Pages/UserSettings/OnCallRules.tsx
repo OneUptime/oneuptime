@@ -63,8 +63,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId()!,
           ruleType: options.ruleType,
-          incidentSeverityId:
-            options.incidentSeverity?.id || undefined,
+          incidentSeverityId: options.incidentSeverity?.id || undefined,
         }}
         onBeforeCreate={(
           model: UserNotificationRule,

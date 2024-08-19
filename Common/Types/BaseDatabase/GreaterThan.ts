@@ -14,7 +14,9 @@ export default class GreaterThan<T extends CompareType> extends CompareBase<T> {
     };
   }
 
-  public static override fromJSON<T extends CompareType>(json: JSONObject): GreaterThan<T> {
+  public static override fromJSON<T extends CompareType>(
+    json: JSONObject,
+  ): GreaterThan<T> {
     if (json["_type"] === ObjectType.GreaterThan) {
       return new GreaterThan(json["value"] as T);
     }

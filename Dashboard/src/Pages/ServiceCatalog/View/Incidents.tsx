@@ -77,9 +77,9 @@ const ServiceCatalogIncidents: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  let query: Query<Incident> = {};
+  const query: Query<Incident> = {};
 
-  if(monitorIds) {
+  if (monitorIds) {
     query.monitors = new Includes(monitorIds);
   }
 

@@ -14,7 +14,9 @@ export default class LessThan<T extends CompareType> extends CompareBase<T> {
     };
   }
 
-  public static override fromJSON<T extends CompareType>(json: JSONObject): LessThan<T> {
+  public static override fromJSON<T extends CompareType>(
+    json: JSONObject,
+  ): LessThan<T> {
     if (json["_type"] === ObjectType.LessThan) {
       return new LessThan(json["value"] as T);
     }

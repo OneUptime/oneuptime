@@ -17,18 +17,24 @@ describe("EqualToOrNull", () => {
   });
 
   it("should set the value property of an EqualToOrNull object", () => {
-    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>("oldValue");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oldValue",
+    );
     equalObj.value = "newValue";
     expect(equalObj.value).toBe("newValue");
   });
 
   it("should return the correct string representation using toString method", () => {
-    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>("oneuptime");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oneuptime",
+    );
     expect(equalObj.toString()).toBe("oneuptime");
   });
 
   it("should generate the correct JSON representation using toJSON method", () => {
-    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>("oneuptime");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oneuptime",
+    );
     const expectedJSON: JSONObject = {
       _type: "EqualToOrNull",
       value: "oneuptime",

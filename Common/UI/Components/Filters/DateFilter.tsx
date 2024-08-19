@@ -31,7 +31,9 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
     <StartAndEndDate
       initialValue={filterData[filter.key] as InBetween<Date>}
       onValueChanged={(inBetween: InBetween<Date> | null) => {
-        filterData[filter.key] = inBetween as FindWhereProperty<NonNullable<T[keyof T]>>;
+        filterData[filter.key] = inBetween as FindWhereProperty<
+          NonNullable<T[keyof T]>
+        >;
 
         if (!filterData[filter.key]) {
           delete filterData[filter.key];

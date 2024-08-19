@@ -48,7 +48,7 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
       ...MonitorService.getEnabledMonitorQuery(),
     },
     project: {
-      ...ProjectService.getActiveProjectStatusQuery()
+      ...ProjectService.getActiveProjectStatusQuery(),
     },
   };
 

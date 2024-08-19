@@ -337,7 +337,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
               query: {
                 time: metricViewData.startAndEndDate!,
                 name: queryConfig.metricQueryData.filterData.metricName!,
-                attributes: queryConfig.metricQueryData.filterData.attributes as Dictionary<string | number | boolean>,
+                attributes: queryConfig.metricQueryData.filterData
+                  .attributes as Dictionary<string | number | boolean>,
               },
               aggregateBy:
                 (queryConfig.metricQueryData.filterData

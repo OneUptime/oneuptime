@@ -886,7 +886,7 @@ export class ProjectService extends DatabaseService<Model> {
       findBy.props.userGlobalAccessPermission?.projectIds.length === 0
     ) {
       findBy.props.isRoot = true;
-      findBy.query._id = ObjectID.getZeroObjectID().toString() // should not get any projects.
+      findBy.query._id = ObjectID.getZeroObjectID().toString(); // should not get any projects.
     }
 
     return { findBy, carryForward: null };
@@ -1114,7 +1114,7 @@ export class ProjectService extends DatabaseService<Model> {
     });
   }
 
-  public  getActiveProjectStatusQuery(): Query<Model>{
+  public getActiveProjectStatusQuery(): Query<Model> {
     return {
       // get only active projects
       paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([
@@ -1125,7 +1125,7 @@ export class ProjectService extends DatabaseService<Model> {
         SubscriptionStatus.Active,
         SubscriptionStatus.Trialing,
       ]),
-    }
+    };
   }
 
   public async isSMSNotificationsEnabled(
