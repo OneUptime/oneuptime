@@ -229,7 +229,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         query={{
           probeId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: ProbeOwnerTeam): Promise<ProbeOwnerTeam> => {
           item.probeId = modelId;
@@ -269,7 +269,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -323,7 +323,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         createVerb={"Add"}
         query={{
           probeId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: ProbeOwnerUser): Promise<ProbeOwnerUser> => {
           item.probeId = modelId;

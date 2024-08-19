@@ -1,5 +1,5 @@
 import API from "../../Utils/API/API";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI, {
   ListResult,

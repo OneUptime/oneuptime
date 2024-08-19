@@ -6,29 +6,35 @@ import { describe, expect, it } from "@jest/globals";
 describe("EqualToOrNull", () => {
   it("should create an EqualToOrNull object with a valid value", () => {
     const value: string = "oneuptime";
-    const equalObj: EqualToOrNull = new EqualToOrNull(value);
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(value);
     expect(equalObj.value).toBe(value);
   });
 
   it("should get the value property of an EqualToOrNull object", () => {
     const value: string = "oneuptime";
-    const equalObj: EqualToOrNull = new EqualToOrNull(value);
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(value);
     expect(equalObj.value).toBe(value);
   });
 
   it("should set the value property of an EqualToOrNull object", () => {
-    const equalObj: EqualToOrNull = new EqualToOrNull("oldValue");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oldValue",
+    );
     equalObj.value = "newValue";
     expect(equalObj.value).toBe("newValue");
   });
 
   it("should return the correct string representation using toString method", () => {
-    const equalObj: EqualToOrNull = new EqualToOrNull("oneuptime");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oneuptime",
+    );
     expect(equalObj.toString()).toBe("oneuptime");
   });
 
   it("should generate the correct JSON representation using toJSON method", () => {
-    const equalObj: EqualToOrNull = new EqualToOrNull("oneuptime");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull<string>(
+      "oneuptime",
+    );
     const expectedJSON: JSONObject = {
       _type: "EqualToOrNull",
       value: "oneuptime",
@@ -41,7 +47,7 @@ describe("EqualToOrNull", () => {
       _type: "EqualToOrNull",
       value: "oneuptime",
     };
-    const equalObj: EqualToOrNull = EqualToOrNull.fromJSON(jsonInput);
+    const equalObj: EqualToOrNull<string> = EqualToOrNull.fromJSON(jsonInput);
     expect(equalObj.value).toBe("oneuptime");
   });
 
@@ -56,7 +62,7 @@ describe("EqualToOrNull", () => {
   });
 
   it("should be a type of EqualToOrNull", () => {
-    const equalObj: EqualToOrNull = new EqualToOrNull("oneuptime");
+    const equalObj: EqualToOrNull<string> = new EqualToOrNull("oneuptime");
     expect(equalObj).toBeInstanceOf(EqualToOrNull);
   });
 
@@ -65,7 +71,7 @@ describe("EqualToOrNull", () => {
       _type: "EqualToOrNull",
       value: null,
     };
-    const equalObj: EqualToOrNull = EqualToOrNull.fromJSON(jsonInput);
+    const equalObj: EqualToOrNull<string> = EqualToOrNull.fromJSON(jsonInput);
     expect(equalObj.value).toBeNull();
   });
 });

@@ -44,7 +44,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
         }}
         query={{
           onCallDutyPolicyId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: OnCallDutyEscalationRule,

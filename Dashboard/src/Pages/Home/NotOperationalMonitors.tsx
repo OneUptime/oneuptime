@@ -34,7 +34,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     >
       <MonitorTable
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           currentMonitorStatus: {
             isOperationalState: false,
           },

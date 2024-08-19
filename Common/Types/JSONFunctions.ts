@@ -2,6 +2,7 @@ import BaseModel from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseMo
 import DatabaseProperty from "./Database/DatabaseProperty";
 import OneUptimeDate from "./Date";
 import DiskSize from "./DiskSize";
+import GenericObject from "./GenericObject";
 import { JSONArray, JSONObject, JSONValue, ObjectType } from "./JSON";
 import SerializableObject from "./SerializableObject";
 import SerializableObjectDictionary from "./SerializableObjectDictionary";
@@ -16,8 +17,8 @@ export default class JSONFunctions {
   }
 
   public static isJSONObjectDifferent(
-    obj1: JSONObject,
-    obj2: JSONObject,
+    obj1: GenericObject,
+    obj2: GenericObject,
   ): boolean {
     return JSON.stringify(obj1) !== JSON.stringify(obj2);
   }

@@ -1,5 +1,5 @@
 import API from "../../Utils/API/API";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";

@@ -129,7 +129,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showCreateForm={
           Object.keys(initialValuesForScheduledMaintenance).length > 0

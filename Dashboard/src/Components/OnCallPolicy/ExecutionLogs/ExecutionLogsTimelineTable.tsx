@@ -34,7 +34,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
       <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
         modelType={OnCallDutyPolicyExecutionLogTimeline}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           onCallDutyPolicyExecutionLogId:
             props.onCallPolicyExecutionLogId.toString(),
         }}
@@ -84,7 +84,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             title: "Escalation Rule",
             filterEntityType: OnCallDutyPolicyEscalationRule,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

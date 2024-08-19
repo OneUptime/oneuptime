@@ -6,7 +6,7 @@ const DisabledMonitors: FunctionComponent = (): ReactElement => {
   return (
     <MonitorTable
       query={{
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
         isNoProbeEnabledOnThisMonitor: true,
       }}
       disableCreate={true}

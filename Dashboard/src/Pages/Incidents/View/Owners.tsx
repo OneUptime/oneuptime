@@ -34,7 +34,7 @@ const IncidentOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentOwnerTeam,
@@ -76,7 +76,7 @@ const IncidentOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -131,7 +131,7 @@ const IncidentOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentOwnerUser,

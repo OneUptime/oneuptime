@@ -49,7 +49,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           id="sso-table"
           name="Settings > Project SSO"

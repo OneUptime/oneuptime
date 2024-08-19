@@ -26,7 +26,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No teams found."}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showViewIdButton={true}
         formFields={[

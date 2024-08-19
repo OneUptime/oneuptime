@@ -26,7 +26,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -354,7 +354,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: MonitorStatus,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",
@@ -372,7 +372,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: Label,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",

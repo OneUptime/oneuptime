@@ -3,7 +3,6 @@ import { APP_API_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import GroupBy from "../BaseDatabase/GroupBy";
 import BaseListResult from "../BaseDatabase/ListResult";
-import Query from "../BaseDatabase/Query";
 import BaseRequestOptions from "../BaseDatabase/RequestOptions";
 import Select from "../BaseDatabase/Select";
 import Sort from "../BaseDatabase/Sort";
@@ -21,6 +20,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
+import Query from "../../../Types/BaseDatabase/Query";
 
 export class ModelAPIHttpResponse<
   TBaseModel extends BaseModel,

@@ -41,7 +41,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
       <ModelTable<UserSMS>
         modelType={UserSMS}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
         }}
         refreshToggle={refreshToggle}
@@ -171,7 +171,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                   ),
                   {
                     code: item["code"],
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );
@@ -233,7 +233,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                     "/user-sms/resend-verification-code",
                   ),
                   {
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );

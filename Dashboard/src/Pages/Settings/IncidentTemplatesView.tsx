@@ -323,7 +323,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         query={{
           incidentTemplateId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentTemplateOwnerTeam,
@@ -409,7 +409,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         createVerb={"Add"}
         query={{
           incidentTemplateId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentTemplateOwnerUser,

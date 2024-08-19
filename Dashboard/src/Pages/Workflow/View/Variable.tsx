@@ -29,7 +29,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         query={{
           workflowId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: WorkflowVariable): Promise<WorkflowVariable> => {
           item.workflowId = modelId;

@@ -60,11 +60,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationRule>
         modelType={UserNotificationRule}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
-          userId: User.getUserId().toString(),
+          projectId: DashboardNavigation.getProjectId()!,
+          userId: User.getUserId()!,
           ruleType: options.ruleType,
-          incidentSeverityId:
-            options.incidentSeverity?.id?.toString() || undefined,
+          incidentSeverityId: options.incidentSeverity?.id || undefined,
         }}
         onBeforeCreate={(
           model: UserNotificationRule,
@@ -222,7 +221,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         await ModelAPI.getList({
           modelType: IncidentSeverity,
           query: {
-            projectId: DashboardNavigation.getProjectId(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -235,7 +234,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
         modelType: UserEmail,
         query: {
-          projectId: DashboardNavigation.getProjectId(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },
@@ -252,7 +251,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
         modelType: UserSMS,
         query: {
-          projectId: DashboardNavigation.getProjectId(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },
@@ -269,7 +268,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userCalls: ListResult<UserCall> = await ModelAPI.getList({
         modelType: UserCall,
         query: {
-          projectId: DashboardNavigation.getProjectId(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },

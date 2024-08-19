@@ -20,7 +20,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -442,7 +442,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentSeverity,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -461,7 +461,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -481,7 +481,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -506,7 +506,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

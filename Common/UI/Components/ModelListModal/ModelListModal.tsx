@@ -1,4 +1,4 @@
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../Utils/BaseDatabase/Select";
 import Modal from "../Modal/Modal";
 import ModelList from "../ModelList/ModelList";

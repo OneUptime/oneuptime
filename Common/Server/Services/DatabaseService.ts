@@ -18,7 +18,7 @@ import {
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
-import Query, { FindWhere } from "../Types/Database/Query";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationSelect from "../Types/Database/RelationSelect";
 import SearchBy from "../Types/Database/SearchBy";
@@ -60,6 +60,7 @@ import API from "Common/Utils/API";
 import Slug from "Common/Utils/Slug";
 import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { FindWhere } from "../../Types/BaseDatabase/Query";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -691,7 +692,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           [totalItemsColumnName]:
             createdBy.data.getColumnValue(totalItemsColumnName),
         } as FindWhere<TBaseModel>,
-
         skip: 0,
         limit: LIMIT_MAX,
         props: {

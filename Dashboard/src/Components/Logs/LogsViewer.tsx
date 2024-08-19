@@ -10,7 +10,7 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/UI/Utils/BaseDatabase/Select";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";

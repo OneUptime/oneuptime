@@ -21,7 +21,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
       <ModelTable<MonitorStatus>
         modelType={MonitorStatus}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="monitor-status-table"
         name="Settings > Monitor Status"

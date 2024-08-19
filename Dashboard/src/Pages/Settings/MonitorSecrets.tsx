@@ -41,7 +41,7 @@ const MonitorSecrets: FunctionComponent<
       <ModelTable<MonitorSecret>
         modelType={MonitorSecret}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="monitor-secret-table"
         name="Settings > Monitor Secret"
@@ -147,7 +147,7 @@ const MonitorSecrets: FunctionComponent<
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

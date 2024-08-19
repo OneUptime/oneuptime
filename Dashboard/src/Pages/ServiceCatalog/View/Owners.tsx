@@ -34,7 +34,7 @@ const ServiceCatalogOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogOwnerTeam,
@@ -76,7 +76,7 @@ const ServiceCatalogOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -131,7 +131,7 @@ const ServiceCatalogOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogOwnerUser,

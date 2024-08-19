@@ -34,7 +34,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No incident templates found."}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showViewIdButton={true}
         formSteps={[

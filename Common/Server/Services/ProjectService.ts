@@ -48,8 +48,8 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import User from "Common/Models/DatabaseModels/User";
-import { In } from "typeorm";
 import Select from "../Types/Database/Select";
+import Query from "../Types/Database/Query";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -886,7 +886,7 @@ export class ProjectService extends DatabaseService<Model> {
       findBy.props.userGlobalAccessPermission?.projectIds.length === 0
     ) {
       findBy.props.isRoot = true;
-      findBy.query._id = In([]); // should not get any projects.
+      findBy.query._id = ObjectID.getZeroObjectID().toString(); // should not get any projects.
     }
 
     return { findBy, carryForward: null };
@@ -1112,6 +1112,20 @@ export class ProjectService extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  public getActiveProjectStatusQuery(): Query<Model> {
+    return {
+      // get only active projects
+      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([
+        SubscriptionStatus.Active,
+        SubscriptionStatus.Trialing,
+      ]),
+      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull([
+        SubscriptionStatus.Active,
+        SubscriptionStatus.Trialing,
+      ]),
+    };
   }
 
   public async isSMSNotificationsEnabled(

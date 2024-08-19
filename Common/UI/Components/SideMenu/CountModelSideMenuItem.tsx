@@ -1,5 +1,5 @@
 import API from "../../Utils/API/API";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import { BadgeType } from "../Badge/Badge";
 import SideMenuItem from "./SideMenuItem";

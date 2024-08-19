@@ -33,7 +33,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserOnCallLog>
         modelType={UserOnCallLog}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId()?.toString(),
         }}
         id="notification-logs-table"
@@ -85,7 +85,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             filterEntityType: OnCallDutyPolicy,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -102,7 +102,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             filterEntityType: OnCallDutyPolicyEscalationRule,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

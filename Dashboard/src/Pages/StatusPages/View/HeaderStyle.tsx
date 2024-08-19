@@ -91,7 +91,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"

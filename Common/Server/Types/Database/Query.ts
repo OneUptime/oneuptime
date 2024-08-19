@@ -1,25 +1,11 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseProperty from "Common/Types/Database/DatabaseProperty";
-import { FindOperator, FindOptionsWhereProperty } from "typeorm";
+import BaseQuery, {
+  OrQuery as BaseQueryOrQuery,
+} from "../../../Types/BaseDatabase/Query";
 
-export declare type FindWhereProperty<Property> =
-  Property extends DatabaseProperty
-    ? Property | FindOperator<Property> | Array<Property>
-    : FindOptionsWhereProperty<Property>;
-/**
- * :
- * Used for find operations.
- */
-export declare type FindWhere<Entity> = {
-  [P in keyof Entity]?:
-    | FindWhereProperty<NonNullable<Entity[P]>>
-    | FindOperator<NonNullable<Entity[P]>>;
-};
+export declare type OrQuery<TBaseModel extends BaseModel> =
+  BaseQueryOrQuery<TBaseModel>;
 
-declare type Query<TBaseModel extends BaseModel> = FindWhere<TBaseModel>;
-
-export declare type OrQuery<TBaseModel extends BaseModel> = Array<
-  Query<TBaseModel>
->;
+declare type Query<TBaseModel extends BaseModel> = BaseQuery<TBaseModel>;
 
 export default Query;

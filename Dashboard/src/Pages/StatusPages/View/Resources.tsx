@@ -54,7 +54,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPageGroup,
           query: {
             statusPageId: modelId,
-            projectId: props.currentProject?.id,
+            projectId: props.currentProject!.id!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -267,8 +267,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
-          statusPageGroupId: statusPageGroupId,
+          projectId: DashboardNavigation.getProjectId()!,
+          statusPageGroupId: statusPageGroupId!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"
@@ -331,7 +331,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

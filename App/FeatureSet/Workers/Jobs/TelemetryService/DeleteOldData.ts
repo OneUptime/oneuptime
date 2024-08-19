@@ -41,6 +41,10 @@ RunCron(
         dataRententionDays = 15; // default to 15 days.
       }
 
+      if (!service.id) {
+        continue;
+      }
+
       // delete logs
 
       await LogService.deleteBy({
@@ -48,7 +52,7 @@ RunCron(
           createdAt: QueryHelper.lessThan(
             OneUptimeDate.getSomeDaysAgo(dataRententionDays),
           ),
-          serviceId: service.id,
+          serviceId: service.id!,
           projectId: service.projectId,
         },
         props: {
@@ -63,7 +67,7 @@ RunCron(
           createdAt: QueryHelper.lessThan(
             OneUptimeDate.getSomeDaysAgo(dataRententionDays),
           ),
-          serviceId: service.id,
+          serviceId: service.id!,
           projectId: service.projectId,
         },
         props: {

@@ -1,5 +1,5 @@
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../Utils/BaseDatabase/Select";
 import Sort from "../../Utils/BaseDatabase/Sort";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";

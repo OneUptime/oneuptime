@@ -16,7 +16,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       <MonitorTable
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
       />
     </Fragment>

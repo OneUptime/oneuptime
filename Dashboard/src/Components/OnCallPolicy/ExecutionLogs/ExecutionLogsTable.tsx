@@ -13,7 +13,7 @@ import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -33,7 +33,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
-    projectId: DashboardNavigation.getProjectId()?.toString(),
+    projectId: DashboardNavigation.getProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
@@ -76,7 +76,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         filterEntityType: OnCallDutyPolicy,
         filterQuery: {
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         },
         filterDropdownField: {
           label: "name",

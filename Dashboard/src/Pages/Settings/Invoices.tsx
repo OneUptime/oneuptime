@@ -91,7 +91,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           }}
           noItemsMessage={"No invoices so far."}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           showRefreshButton={true}
           selectMoreFields={{

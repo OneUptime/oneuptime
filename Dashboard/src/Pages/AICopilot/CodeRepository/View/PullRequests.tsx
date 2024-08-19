@@ -101,7 +101,7 @@ const CopilotPullRequestPage: FunctionComponent<
         showViewIdButton={false}
         query={{
           codeRepositoryId: codeRepositoryId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         cardProps={{
           title: "Pull Requests",

@@ -142,7 +142,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={false}
           name="SMS Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           selectMoreFields={{
             smsText: true,

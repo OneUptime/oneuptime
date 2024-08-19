@@ -3,7 +3,7 @@ import DashboardNavigation from "../../Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Query from "Common/UI/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -100,7 +100,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
 
           filterEntityType: Label,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",

@@ -8,6 +8,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import User from "Common/UI/Utils/User";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Includes from "Common/Types/BaseDatabase/Includes";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetModelTableFunctionProps = {
@@ -27,9 +28,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationSetting>
         modelType={UserNotificationSetting}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
-          eventType: options.eventOptions,
+          eventType: new Includes(options.eventOptions),
         }}
         onBeforeCreate={(
           model: UserNotificationSetting,

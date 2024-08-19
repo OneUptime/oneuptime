@@ -8,6 +8,7 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
@@ -19,6 +20,10 @@ RunCron(
       {
         query: {
           monitorType: MonitorType.IncomingRequest,
+          ...MonitorService.getEnabledMonitorQuery(),
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
         },
         props: {
           isRoot: true,

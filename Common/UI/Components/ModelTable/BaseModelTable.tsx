@@ -5,7 +5,7 @@ import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";
 import ListResult from "../../Utils/BaseDatabase/ListResult";
-import Query from "../../Utils/BaseDatabase/Query";
+import Query from "../../../Types/BaseDatabase/Query";
 import RequestOptions from "../../Utils/BaseDatabase/RequestOptions";
 import Select from "../../Utils/BaseDatabase/Select";
 import Sort from "../../Utils/BaseDatabase/Sort";

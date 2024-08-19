@@ -1,3 +1,4 @@
+import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import DictionaryForm from "../Dictionary/Dictionary";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
@@ -36,7 +37,9 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
           // if no keys in the dictionary, remove the filter
 
           if (Object.keys(value).length > 0) {
-            filterData[filter.key] = value;
+            filterData[filter.key] = value as FindWhereProperty<
+              NonNullable<T[keyof T]>
+            >;
           } else {
             delete filterData[filter.key];
           }

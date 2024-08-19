@@ -49,6 +49,7 @@ import { SMSMessage } from "../../Types/SMS/SMS";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
+import Query from "../Types/Database/Query";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -124,6 +125,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  public getEnabledMonitorQuery(): Query<Model> {
+    return {
+      disableActiveMonitoring: false, // do not fetch if disabled is true.
+      disableActiveMonitoringBecauseOfManualIncident: false,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    };
   }
 
   protected override async onBeforeCreate(

@@ -1,3 +1,4 @@
+import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import StartAndEndDate, { StartAndEndDateType } from "../Date/StartAndEndDate";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
@@ -28,9 +29,11 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
 
   return (
     <StartAndEndDate
-      initialValue={filterData[filter.key] as InBetween}
-      onValueChanged={(inBetween: InBetween | null) => {
-        filterData[filter.key] = inBetween;
+      initialValue={filterData[filter.key] as InBetween<Date>}
+      onValueChanged={(inBetween: InBetween<Date> | null) => {
+        filterData[filter.key] = inBetween as FindWhereProperty<
+          NonNullable<T[keyof T]>
+        >;
 
         if (!filterData[filter.key]) {
           delete filterData[filter.key];

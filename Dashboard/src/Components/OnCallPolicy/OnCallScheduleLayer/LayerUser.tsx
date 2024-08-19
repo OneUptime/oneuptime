@@ -45,7 +45,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         query={{
           onCallDutyPolicyScheduleId: props.layer.onCallDutyPolicyScheduleId,
           projectId: props.layer.projectId,
-          onCallDutyPolicyScheduleLayerId: props.layer.id,
+          onCallDutyPolicyScheduleLayerId: props.layer.id!,
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}

@@ -141,7 +141,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         await ModelAPI.getList<TelemetryService>({
           modelType: TelemetryService,
           query: {
-            projectId: DashboardNavigation.getProjectId(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

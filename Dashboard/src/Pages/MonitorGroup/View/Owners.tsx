@@ -34,7 +34,7 @@ const MonitorGroupOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           monitorGroupId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: MonitorGroupOwnerTeam,
@@ -75,7 +75,7 @@ const MonitorGroupOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -130,7 +130,7 @@ const MonitorGroupOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           monitorGroupId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: MonitorGroupOwnerUser,

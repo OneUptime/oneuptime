@@ -16,7 +16,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
 
-  const startAndEndDate: InBetween = new InBetween(startDate, endDate);
+  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   return (
     <MetricView
@@ -37,7 +37,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                       "resource.oneuptime.telemetry.service.name": serviceName,
                     }
                   : {},
-                aggregateBy: MetricsAggregationType.Avg,
+                aggegationType: MetricsAggregationType.Avg,
               },
             },
           },

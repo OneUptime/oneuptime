@@ -30,7 +30,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ScheduledMaintenanceStateTimeline,

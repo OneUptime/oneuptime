@@ -27,7 +27,7 @@ const StatusPageDelete: FunctionComponent<
         isViewable={false}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: StatusPagePrivateUser,

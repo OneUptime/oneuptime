@@ -37,7 +37,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           "No usage history found. Maybe you have not used Telemetry features yet?"
         }
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showRefreshButton={true}
         filters={[
@@ -68,7 +68,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: TelemetryService,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

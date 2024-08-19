@@ -118,7 +118,7 @@ const MonitorGroupView: FunctionComponent<
         {
           modelType: MonitorStatus,
           query: {
-            projectId: ProjectUtil.getCurrentProjectId(),
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

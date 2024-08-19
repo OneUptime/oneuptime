@@ -55,11 +55,12 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import ChartTooltip from "Common/UI/Components/Charts/Tooltip/Tooltip";
+import Dictionary from "Common/Types/Dictionary";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
-  startAndEndDate: InBetween | null;
+  startAndEndDate: InBetween<Date> | null;
 }
 
 export interface ComponentProps {
@@ -276,7 +277,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           name: true,
         },
         query: {
-          projectId: DashboardNavigation.getProjectId(),
+          projectId: DashboardNavigation.getProjectId()!,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -334,13 +335,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
             modelType: Metric,
             aggregateBy: {
               query: {
-                time: metricViewData.startAndEndDate,
-                name: queryConfig.metricQueryData.filterData.metricName,
-                attributes: queryConfig.metricQueryData.filterData.attributes,
+                time: metricViewData.startAndEndDate!,
+                name: queryConfig.metricQueryData.filterData.metricName!,
+                attributes: queryConfig.metricQueryData.filterData
+                  .attributes as Dictionary<string | number | boolean>,
               },
               aggregateBy:
                 (queryConfig.metricQueryData.filterData
-                  .aggregateBy as MetricsAggregationType) ||
+                  .aggegationType as MetricsAggregationType) ||
                 MetricsAggregationType.Avg,
               aggregateColumnName: "value",
               aggregationTimestampColumnName: "time",
@@ -411,7 +413,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
             <StartAndEndDate
               type={StartAndEndDateType.DateTime}
               initialValue={props.data.startAndEndDate || undefined}
-              onValueChanged={(startAndEndDate: InBetween | null) => {
+              onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
                 setMetricViewData({
                   ...metricViewData,
                   startAndEndDate: startAndEndDate,

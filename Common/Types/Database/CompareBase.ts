@@ -1,17 +1,21 @@
+import QueryOperator from "../BaseDatabase/QueryOperator";
 import BadDataException from "../Exception/BadDataException";
-import SerializableObject from "../SerializableObject";
 import Typeof from "../Typeof";
 
-export default class CompareBase extends SerializableObject {
-  private _value!: number | Date;
-  public get value(): number | Date {
+export type CompareType = number | Date | string;
+
+export default class CompareBase<
+  T extends CompareType,
+> extends QueryOperator<T> {
+  private _value!: T;
+  public get value(): T {
     return this._value;
   }
-  public set value(v: number | Date) {
+  public set value(v: T) {
     this._value = v;
   }
 
-  public constructor(value: number | Date) {
+  public constructor(value: T) {
     super();
     this.value = value;
   }

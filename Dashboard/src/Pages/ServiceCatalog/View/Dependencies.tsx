@@ -30,7 +30,7 @@ const ServiceCatalogDelete: FunctionComponent<
         showViewIdButton={true}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogDependency,
@@ -71,7 +71,7 @@ const ServiceCatalogDelete: FunctionComponent<
             title: "Dependency Service",
             filterEntityType: ServiceCatalog,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

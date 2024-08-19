@@ -3,7 +3,6 @@ import { APP_API_URL } from "../../Config";
 import API from "../API/API";
 import GroupBy from "../BaseDatabase/GroupBy";
 import BaseListResult from "../BaseDatabase/ListResult";
-import Query from "../BaseDatabase/Query";
 import RequestOptions from "../BaseDatabase/RequestOptions";
 import Select from "../BaseDatabase/Select";
 import Sort from "../BaseDatabase/Sort";
@@ -23,6 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import Query from "../../../Types/BaseDatabase/Query";
 
 export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
   extends BaseListResult<TAnalyticsBaseModel> {}

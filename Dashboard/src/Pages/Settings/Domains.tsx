@@ -41,7 +41,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         name="Settings > Domain"
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="domains-table"
         isDeleteable={true}

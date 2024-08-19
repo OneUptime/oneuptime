@@ -13,7 +13,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<TelemetryIngestionKey>
         modelType={TelemetryIngestionKey}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="api-keys-table"
         name="Settings > Telemetry Ingestion Keys"

@@ -81,7 +81,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         name="Settings > API Key > Permissions"
         query={{
           apiKeyId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           isBlockPermission: permissionType === PermissionType.BlockPermissions,
         }}
         onBeforeCreate={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
@@ -172,7 +172,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
