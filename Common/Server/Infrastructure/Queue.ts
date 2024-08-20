@@ -1,7 +1,16 @@
-import { RedisHostname, RedisPassword, RedisPort } from "../EnvironmentConfig";
+import {
+  ClusterKey,
+  RedisHostname,
+  RedisPassword,
+  RedisPort,
+} from "../EnvironmentConfig";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import { Queue as BullQueue, Job, JobsOptions } from "bullmq";
+import { ExpressAdapter } from "@bull-board/express";
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { ExpressRouter } from "../Utils/Express";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -49,6 +58,32 @@ export default class Queue {
 
     // remove existing repeatable job
     await this.getQueue(queueName).removeRepeatableByKey(jobId);
+  }
+
+  public static getInspectorRoute(): string {
+    return "/api/inspect/queue/:clusterKey";
+  }
+
+  public static getQueueInspectorRouter(): ExpressRouter {
+    const serverAdapter = new ExpressAdapter();
+
+    createBullBoard({
+      queues: [
+        ...Object.values(QueueName).map((queueName) => {
+          return new BullMQAdapter(this.getQueue(queueName));
+        }),
+      ],
+      serverAdapter: serverAdapter,
+    });
+
+    serverAdapter.setBasePath(
+      this.getInspectorRoute().replace(
+        "/:clusterKey",
+        "/" + ClusterKey.toString(),
+      ),
+    );
+
+    return serverAdapter.getRouter();
   }
 
   public static async addJob(

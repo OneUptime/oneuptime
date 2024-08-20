@@ -58,7 +58,7 @@ import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement"
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import JobDictionary from "./Utils/JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
+import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
@@ -69,6 +69,10 @@ import "./Jobs/Probe/UpdateConnectionStatus";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+
+const app: ExpressApplication = Express.getExpressApp();
 
 const WorkersFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -97,7 +101,14 @@ const WorkersFeatureSet: FeatureSet = {
             await funcToRun();
           }
         },
-        { concurrency: 10 },
+        { concurrency: 100 },
+      );
+
+      // attach bull board to the app
+      app.use(
+        Queue.getInspectorRoute(),
+        ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+        Queue.getQueueInspectorRouter(),
       );
     } catch (err) {
       logger.error("App Init Failed:");

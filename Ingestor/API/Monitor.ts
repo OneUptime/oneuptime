@@ -30,6 +30,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -56,7 +57,7 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
 };
 
 router.get(
-  "/monitor/pending-list/:probeId",
+  "/monitor/pending-list/by-probe/:probeId",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
@@ -119,9 +120,88 @@ router.get(
   },
 );
 
+router.get(
+  "/monitor/pending-count/incoming-request",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // get count of incoming request monitors which are not checked for heartbeat in last 2 minutes
+      const incomingMonitorPendingCount: PositiveNumber =
+        await MonitorService.countBy({
+          query: {
+            ...MonitorService.getEnabledMonitorQuery(),
+            monitorType: MonitorType.IncomingRequest,
+            project: {
+              ...ProjectService.getActiveProjectStatusQuery(),
+            },
+            incomingRequestMonitorHeartbeatCheckedAt:
+              QueryHelper.lessThanEqualToOrNull(
+                OneUptimeDate.addRemoveMinutes(
+                  OneUptimeDate.getCurrentDate(),
+                  -2,
+                ),
+              ),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const firstMonitorToBeFetched: Monitor | null =
+        await MonitorService.findOneBy({
+          query: {
+            ...MonitorService.getEnabledMonitorQuery(),
+            monitorType: MonitorType.IncomingRequest,
+            project: {
+              ...ProjectService.getActiveProjectStatusQuery(),
+            },
+            incomingRequestMonitorHeartbeatCheckedAt:
+              QueryHelper.lessThanEqualToOrNull(
+                OneUptimeDate.addRemoveMinutes(
+                  OneUptimeDate.getCurrentDate(),
+                  -2,
+                ),
+              ),
+          },
+          select: {
+            incomingRequestMonitorHeartbeatCheckedAt: true,
+            monitorSteps: true,
+            monitorType: true,
+            monitoringInterval: true,
+          },
+          sort: {
+            incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        incomingMonitorPendingCount: incomingMonitorPendingCount.toNumber(),
+        firstMonitorToBeFetched: firstMonitorToBeFetched,
+        incomingRequestMonitorHeartbeatCheckedAt:
+          firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt,
+        friendlyIncomingRequestMonitorHeartbeatCheckedAt:
+          firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt
+            ? OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+                date: firstMonitorToBeFetched?.incomingRequestMonitorHeartbeatCheckedAt,
+              })
+            : "",
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // This API returns the count of the monitor waiting to be monitored.
 router.get(
-  "/monitor/pending-count/:probeId",
+  "/monitor/pending-count/by-probe/:probeId",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,

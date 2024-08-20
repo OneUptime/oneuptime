@@ -5,7 +5,6 @@ import {
   Histogram,
   MetricOptions,
 } from "@opentelemetry/api/build/src/metrics/Metric";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
@@ -152,7 +151,11 @@ export default class Telemetry {
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {
           idGenerator: new AWSXRayIdGenerator(),
-          instrumentations: hasHeaders ? [getNodeAutoInstrumentations()] : [],
+          instrumentations: hasHeaders
+            ? [
+                // Add instrumentations here
+              ]
+            : [],
           resource: this.getResource({
             serviceName: data.serviceName,
           }),

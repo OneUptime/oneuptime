@@ -1,7 +1,6 @@
 import getTestDataSourceOptions from "../Postgres/TestDataSourceOptions";
-import {
+import PostgresAppInstance, {
   DatabaseSourceOptions,
-  PostgresAppInstance,
 } from "../../../../Server/Infrastructure/PostgresDatabase";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import getTestRedisConnectionOptions from "../Redis/TestRedisOptions";
