@@ -1,4 +1,4 @@
-import { LineChart } from "@tremor/react";
+import { LineChart } from "../ChartLibrary/LineChart/LineChart";
 import React, { FunctionComponent, ReactElement } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
@@ -91,6 +91,7 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
       categories={["SolarPanels", "Inverters"]}
       colors={["indigo", "rose"]}
       valueFormatter={dataFormatter}
+      showTooltip={true}
       yAxisWidth={60}
       onValueChange={(v) => {
         return console.log(v);

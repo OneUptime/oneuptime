@@ -56,10 +56,6 @@ RunCron(
 
     for (const monitor of incomingRequestMonitors) {
       try {
-        if (!monitor.monitorSteps) {
-          logger.debug("Monitor has no steps. Skipping...");
-          continue;
-        }
 
         await MonitorService.updateOneById({
           id: monitor.id!,
@@ -71,6 +67,11 @@ RunCron(
             isRoot: true,
           },
         });
+
+        if (!monitor.monitorSteps) {
+          logger.debug("Monitor has no steps. Skipping...");
+          continue;
+        }
 
         const processRequest: boolean = shouldProcessRequest(monitor);
 
