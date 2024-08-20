@@ -57,7 +57,7 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
 };
 
 router.get(
-  "/monitor/pending-list/:probeId",
+  "/monitor/pending-list/by-probe/:probeId",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
@@ -201,7 +201,7 @@ router.get(
 
 // This API returns the count of the monitor waiting to be monitored.
 router.get(
-  "/monitor/pending-count/:probeId",
+  "/monitor/pending-count/by-probe/:probeId",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,

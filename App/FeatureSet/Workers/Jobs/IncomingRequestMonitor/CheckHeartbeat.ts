@@ -17,7 +17,12 @@ RunCron(
   "IncomingRequestMonitor:CheckHeartbeat",
   { schedule: EVERY_THIRTY_SECONDS, runOnStartup: false },
   async () => {
-    logger.debug("Checking IncomingRequestMonitor:CheckHeartbeat");
+    logger.debug(
+      "Checking IncomingRequestMonitor:CheckHeartbeat at " +
+        OneUptimeDate.getDateAsLocalFormattedString(
+          OneUptimeDate.getCurrentDate(),
+        ),
+    );
 
     const newIncomingRequestMonitors: Array<Monitor> =
       await MonitorService.findBy({
@@ -87,6 +92,10 @@ RunCron(
 
     for (const monitor of totalIncomingRequestMonitors) {
       try {
+        logger.debug(
+          `Processing incoming request monitor: ${monitor.id?.toString()}`,
+        );
+
         if (!monitor.monitorSteps) {
           logger.debug("Monitor has no steps. Skipping...");
           continue;
@@ -102,6 +111,10 @@ RunCron(
             isRoot: true,
           },
         });
+
+        logger.debug(
+          `Updated incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
+        );
 
         const processRequest: boolean = shouldProcessRequest(monitor);
 
@@ -123,7 +136,15 @@ RunCron(
           onlyCheckForIncomingRequestReceivedAt: true,
         };
 
+        logger.debug(
+          `Processing incoming request monitor: ${monitor.id?.toString()}`,
+        );
+
         await MonitorResourceUtil.monitorResource(incomingRequest);
+
+        logger.debug(
+          `Processed incoming request monitor: ${monitor.id?.toString()}`,
+        );
       } catch (error) {
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
