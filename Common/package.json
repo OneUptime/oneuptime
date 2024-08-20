@@ -44,6 +44,7 @@
         "ts-jest": "^28.0.5"
     },
     "dependencies": {
+        "@bull-board/express": "^5.21.4",
         "@clickhouse/client": "^0.2.10",
         "@elastic/elasticsearch": "^8.12.1",
         "@monaco-editor/react": "^4.4.6",
