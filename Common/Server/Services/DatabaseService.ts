@@ -1,5 +1,5 @@
 import { AppApiHostname, EncryptionSecret } from "../EnvironmentConfig";
-import { PostgresAppInstance } from "../Infrastructure/PostgresDatabase";
+import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";

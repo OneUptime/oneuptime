@@ -8,23 +8,23 @@ export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
 
 export default class Database {
-  protected dataSourceOptions: DataSourceOptions | null = null;
-  protected dataSource: DataSource | null = null;
+  protected static dataSourceOptions: DataSourceOptions | null = null;
+  protected static dataSource: DataSource | null = null;
 
-  public getDatasourceOptions(): DataSourceOptions {
+  public static getDatasourceOptions(): DataSourceOptions {
     this.dataSourceOptions = DatabaseDataSourceOptions;
     return this.dataSourceOptions;
   }
 
-  public getDataSource(): DataSource | null {
+  public static getDataSource(): DataSource | null {
     return this.dataSource;
   }
 
-  public isConnected(): boolean {
+  public static isConnected(): boolean {
     return Boolean(this.dataSource);
   }
 
-  public async connect(): Promise<DataSource> {
+  public static async connect(): Promise<DataSource> {
     let retry: number = 0;
 
     const dataSourceOptions: DataSourceOptions = this.getDatasourceOptions();
@@ -67,14 +67,14 @@ export default class Database {
     }
   }
 
-  public async disconnect(): Promise<void> {
+  public static async disconnect(): Promise<void> {
     if (this.dataSource) {
       await this.dataSource.destroy();
       this.dataSource = null;
     }
   }
 
-  public async checkConnnectionStatus(): Promise<boolean> {
+  public static async checkConnnectionStatus(): Promise<boolean> {
     // check popstgres connection to see if it is still alive
 
     try {
@@ -94,7 +94,7 @@ export default class Database {
     }
   }
 
-  public async dropDatabase(): Promise<void> {
+  public static async dropDatabase(): Promise<void> {
     await dropDatabase({
       options: this.getDatasourceOptions(),
     });
@@ -102,23 +102,21 @@ export default class Database {
     this.dataSourceOptions = null;
   }
 
-  public async createDatabase(): Promise<void> {
+  public static async createDatabase(): Promise<void> {
     await createDatabase({
       options: this.getDatasourceOptions(),
       ifNotExist: true,
     });
   }
 
-  public async createAndConnect(): Promise<void> {
+  public static async createAndConnect(): Promise<void> {
     await this.createDatabase();
     await this.connect();
   }
 
-  public async disconnectAndDropDatabase(): Promise<void> {
+  public static async disconnectAndDropDatabase(): Promise<void> {
     // Drop the database. Since this is the in-mem db, it will be destroyed.
     await this.disconnect();
     await this.dropDatabase();
   }
 }
-
-export const PostgresAppInstance: Database = new Database();

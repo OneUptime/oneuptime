@@ -1,6 +1,6 @@
 // This class checks the status of all the datasources.
 import { ClickhouseAppInstance } from "./ClickhouseDatabase";
-import { PostgresAppInstance } from "./PostgresDatabase";
+import PostgresAppInstance from "./PostgresDatabase";
 import Redis from "./Redis";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 

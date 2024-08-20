@@ -8,7 +8,7 @@ import RegisterAPI from "./API/Register";
 import ServerMonitorAPI from "./API/ServerMonitor";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
-import { PostgresAppInstance } from "Common/Server/Infrastructure/PostgresDatabase";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";

@@ -1,6 +1,6 @@
 import AcmeWriteCertificatesJob from "./Jobs/AcmeWriteCertificates";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { PostgresAppInstance } from "Common/Server/Infrastructure/PostgresDatabase";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";

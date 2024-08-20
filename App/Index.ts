@@ -9,7 +9,7 @@ import Workers from "./FeatureSet/Workers/Index";
 import Workflow from "./FeatureSet/Workflow/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
-import { PostgresAppInstance } from "Common/Server/Infrastructure/PostgresDatabase";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
