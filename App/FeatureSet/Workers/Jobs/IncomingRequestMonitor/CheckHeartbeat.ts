@@ -10,6 +10,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
@@ -17,6 +18,33 @@ RunCron(
   { schedule: EVERY_THIRTY_SECONDS, runOnStartup: false },
   async () => {
     logger.debug("Checking IncomingRequestMonitor:CheckHeartbeat");
+
+    const newIncomingRequestMonitors: Array<Monitor> =
+      await MonitorService.findBy({
+        query: {
+          ...MonitorService.getEnabledMonitorQuery(),
+          monitorType: MonitorType.IncomingRequest,
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
+          incomingRequestMonitorHeartbeatCheckedAt: QueryHelper.isNull(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          monitorSteps: true,
+          incomingRequestReceivedAt: true,
+          incomingRequestMonitorHeartbeatCheckedAt: true,
+          createdAt: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
 
     const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy(
       {
@@ -26,13 +54,7 @@ RunCron(
           project: {
             ...ProjectService.getActiveProjectStatusQuery(),
           },
-          incomingRequestMonitorHeartbeatCheckedAt:
-            QueryHelper.lessThanEqualToOrNull(
-              OneUptimeDate.addRemoveMinutes(
-                OneUptimeDate.getCurrentDate(),
-                -1,
-              ),
-            ),
+          incomingRequestMonitorHeartbeatCheckedAt: QueryHelper.notNull(),
         },
         props: {
           isRoot: true,
@@ -41,20 +63,29 @@ RunCron(
           _id: true,
           monitorSteps: true,
           incomingRequestReceivedAt: true,
+          incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
+        },
+        sort: {
+          incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
         },
         limit: LIMIT_MAX,
         skip: 0,
       },
     );
 
+    const totalIncomingRequestMonitors: Array<Monitor> = [
+      ...newIncomingRequestMonitors,
+      ...incomingRequestMonitors,
+    ];
+
     logger.debug(
-      `Found ${incomingRequestMonitors.length} incoming request monitors`,
+      `Found ${totalIncomingRequestMonitors.length} incoming request monitors`,
     );
 
-    logger.debug(incomingRequestMonitors);
+    logger.debug(totalIncomingRequestMonitors);
 
-    for (const monitor of incomingRequestMonitors) {
+    for (const monitor of totalIncomingRequestMonitors) {
       try {
 
         await MonitorService.updateOneById({
