@@ -1,9 +1,10 @@
 import { LineChart } from "../ChartLibrary/LineChart/LineChart";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
+import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
 
 const chartdata = [
   {
@@ -81,16 +82,47 @@ export interface ComponentProps {
 }
 
 const LineChartElement: FunctionComponent<ComponentProps> = (
-  _props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
+
+  const [records, setRecords] = React.useState<Record<string, any>[]>([]);
+
+  const categories: Array<string> = props.data.map((item: SeriesPoint) => {
+    return item.seriesName;
+  });
+
+  useEffect(() => {
+
+    if (!props.data || props.data.length === 0) {
+      setRecords([]);
+    }
+
+    const maxXValue: number | Date = props.xAxis.options.max; 
+    const minXValue: number | Date = props.xAxis.options.min;
+    const precision: XAxisPrecision = props.xAxis.options.precision;
+
+    for (const seriesData of props.data) {
+      const yAxisLegend: string = seriesData.seriesName;
+      for (const data of seriesData.data) {
+
+        const xAxisValue: string = props.xAxis.options.formatter(data.x);
+        const yValue: number = data.y;
+      }
+    }
+
+  }, [props.data]);
+
+
+
   return (
     <LineChart
       className="h-80"
-      data={chartdata}
-      index="date"
-      categories={["SolarPanels", "Inverters"]}
-      colors={["indigo", "rose"]}
+      data={records}
+      index={props.xAxis.legend}
+      categories={categories}
+      colors={["indigo", "rose", "amber"]}
       valueFormatter={dataFormatter}
+      
       showTooltip={true}
       yAxisWidth={60}
       onValueChange={(v) => {

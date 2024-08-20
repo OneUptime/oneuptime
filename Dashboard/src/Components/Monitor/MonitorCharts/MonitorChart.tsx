@@ -258,18 +258,18 @@ export class MonitorCharts {
   public static getXAxisFor(data: {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
   }): XAxis {
-    const startTime: Date | undefined =
-      data.monitorMetricsByMinute[0]?.createdAt || undefined;
-    const endTime: Date | undefined =
+    const startTime: Date  =
+      data.monitorMetricsByMinute[0]?.createdAt! || undefined;
+    const endTime: Date =
       data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]
-        ?.createdAt || undefined;
+        ?.createdAt! || undefined;
 
     return {
       legend: "Time",
       options: {
         type: XAxisType.Time,
-        min: startTime || "auto",
-        max: endTime || "auto",
+        min: startTime,
+        max: endTime,
         precision: XAxisPrecision.MINUTE,
       },
     };

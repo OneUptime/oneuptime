@@ -1,3 +1,3 @@
-type XAxisMaxMin = "auto" | number | Date;
+type XAxisMaxMin = number | Date;
 
 export default XAxisMaxMin;
