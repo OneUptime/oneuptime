@@ -81,22 +81,27 @@ export const AvailableChartColors: AvailableChartColorsKeys[] = Object.keys(
   chartColors,
 ) as Array<AvailableChartColorsKeys>;
 
-export const constructCategoryColors = (
+export const constructCategoryColors: (categories: string[], colors: AvailableChartColorsKeys[]) => Map<string, AvailableChartColorsKeys> = (
   categories: string[],
   colors: AvailableChartColorsKeys[],
 ): Map<string, AvailableChartColorsKeys> => {
-  const categoryColors = new Map<string, AvailableChartColorsKeys>();
-  categories.forEach((category, index) => {
+  const categoryColors: Map<string, AvailableChartColorsKeys> = new Map<string, AvailableChartColorsKeys>();
+  categories.forEach((category: string, index: number) => {
     categoryColors.set(category, colors[index % colors.length]!);
   });
   return categoryColors;
 };
 
-export const getColorClassName = (
+export const getColorClassName: (color: AvailableChartColorsKeys, type: ColorUtility) => string = (
   color: AvailableChartColorsKeys,
   type: ColorUtility,
 ): string => {
-  const fallbackColor = {
+  const fallbackColor: {
+    bg: string;
+    stroke: string;
+    fill: string;
+    text: string;
+} = {
     bg: "bg-gray-500",
     stroke: "stroke-gray-500",
     fill: "fill-gray-500",
