@@ -7,6 +7,7 @@ import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
 
+
 export interface ComponentProps {
   data: Array<SeriesPoint>;
   xAxis: XAxis;
@@ -47,11 +48,12 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
       className="h-80"
       data={records}
       tickGap={1}
-      index={props.xAxis.legend}
+      index={"Time"}
       categories={categories}
-      colors={["indigo", "rose", "amber"]}
+      colors={["indigo", "rose", "emerald", "amber", "cyan", "gray", "pink", "lime", "fuchsia"]}
       valueFormatter={props.yAxis.options.formatter || undefined}
       showTooltip={true}
+      connectNulls={true}
       yAxisWidth={60}
       onValueChange={(v) => {
         return console.log(v);

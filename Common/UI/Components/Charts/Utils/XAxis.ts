@@ -25,27 +25,27 @@ export default class XAxisUtil {
         const totalMonths = totalDays / 30;
 
 
-        if (totalSeconds <= 200) return XAxisPrecision.EVERY_SECOND;
-        if (totalSeconds <= 1000) return XAxisPrecision.EVERY_FIVE_SECONDS;
-        if (totalSeconds <= 2000) return XAxisPrecision.EVERY_TEN_SECONDS;
-        if (totalSeconds <= 6000) return XAxisPrecision.EVERY_THIRTY_SECONDS;
-        if (totalMinutes <= 200) return XAxisPrecision.EVERY_MINUTE;
-        if (totalMinutes <= 1000) return XAxisPrecision.EVERY_FIVE_MINUTES;
-        if (totalMinutes <= 2000) return XAxisPrecision.EVERY_TEN_MINUTES;
-        if (totalMinutes <= 6000) return XAxisPrecision.EVERY_THIRTY_MINUTES;
-        if (totalHours <= 200) return XAxisPrecision.EVERY_HOUR;
-        if (totalHours <= 400) return XAxisPrecision.EVERY_TWO_HOURS;
-        if (totalHours <= 600) return XAxisPrecision.EVERY_THREE_HOURS;
-        if (totalHours <= 1200) return XAxisPrecision.EVERY_SIX_HOURS;
-        if (totalHours <= 2400) return XAxisPrecision.EVERY_TWELVE_HOURS;
-        if (totalDays <= 200) return XAxisPrecision.EVERY_DAY;
-        if (totalDays <= 400) return XAxisPrecision.EVERY_TWO_DAYS;
-        if (totalWeeks <= 200) return XAxisPrecision.EVERY_WEEK;
-        if (totalWeeks <= 400) return XAxisPrecision.EVERY_TWO_WEEKS;
-        if (totalMonths <= 200) return XAxisPrecision.EVERY_MONTH;
-        if (totalMonths <= 400) return XAxisPrecision.EVERY_TWO_MONTHS;
-        if (totalMonths <= 600) return XAxisPrecision.EVERY_THREE_MONTHS;
-        if (totalMonths <= 1200) return XAxisPrecision.EVERY_SIX_MONTHS;
+        if (totalSeconds <= 50) return XAxisPrecision.EVERY_SECOND;
+        if (totalSeconds <= 250) return XAxisPrecision.EVERY_FIVE_SECONDS;
+        if (totalSeconds <= 500) return XAxisPrecision.EVERY_TEN_SECONDS;
+        if (totalSeconds <= 1500) return XAxisPrecision.EVERY_THIRTY_SECONDS;
+        if (totalMinutes <= 50) return XAxisPrecision.EVERY_MINUTE;
+        if (totalMinutes <= 250) return XAxisPrecision.EVERY_FIVE_MINUTES;
+        if (totalMinutes <= 500) return XAxisPrecision.EVERY_TEN_MINUTES;
+        if (totalMinutes <= 1500) return XAxisPrecision.EVERY_THIRTY_MINUTES;
+        if (totalHours <= 50) return XAxisPrecision.EVERY_HOUR;
+        if (totalHours <= 100) return XAxisPrecision.EVERY_TWO_HOURS;
+        if (totalHours <= 150) return XAxisPrecision.EVERY_THREE_HOURS;
+        if (totalHours <= 300) return XAxisPrecision.EVERY_SIX_HOURS;
+        if (totalHours <= 600) return XAxisPrecision.EVERY_TWELVE_HOURS;
+        if (totalDays <= 50) return XAxisPrecision.EVERY_DAY;
+        if (totalDays <= 100) return XAxisPrecision.EVERY_TWO_DAYS;
+        if (totalWeeks <= 50) return XAxisPrecision.EVERY_WEEK;
+        if (totalWeeks <= 100) return XAxisPrecision.EVERY_TWO_WEEKS;
+        if (totalMonths <= 50) return XAxisPrecision.EVERY_MONTH;
+        if (totalMonths <= 100) return XAxisPrecision.EVERY_TWO_MONTHS;
+        if (totalMonths <= 150) return XAxisPrecision.EVERY_THREE_MONTHS;
+        if (totalMonths <= 300) return XAxisPrecision.EVERY_SIX_MONTHS;
         return XAxisPrecision.EVERY_YEAR;
 
     }
@@ -55,21 +55,21 @@ export default class XAxisUtil {
         xAxisMax: XAxisMaxMin,
     }): Array<Date> {
         const precision: XAxisPrecision = XAxisUtil.getPrecision(data);
-    
+
         if (typeof data.xAxisMax === "number" || typeof data.xAxisMin === "number") {
             // number not yet supported. 
             throw new NotImplementedException();
         }
-    
+
         const startDate: Date = new Date(data.xAxisMin);
         const endDate: Date = new Date(data.xAxisMax);
         const intervals: Array<Date> = [];
-    
+
         let currentDate = startDate;
-    
+
         while (currentDate <= endDate) {
             intervals.push(new Date(currentDate));
-    
+
             switch (precision) {
                 case XAxisPrecision.EVERY_SECOND:
                     currentDate.setSeconds(currentDate.getSeconds() + 1);
@@ -139,7 +139,7 @@ export default class XAxisUtil {
                     break;
             }
         }
-    
+
         return intervals;
     }
 
@@ -166,22 +166,40 @@ export default class XAxisUtil {
             case XAxisPrecision.EVERY_THREE_HOURS:
             case XAxisPrecision.EVERY_SIX_HOURS:
             case XAxisPrecision.EVERY_TWELVE_HOURS:
-                return (value: Date) => value.toISOString().substring(11, 13) + ":00"; // HH:00
+                return (value: Date) => {
+                    const dateString = value.toISOString();
+                    const day = dateString.substring(8, 10);
+                    const month = value.toLocaleString('default', { month: 'short' });
+                    const hour = dateString.substring(11, 13);
+                    return `${day} ${month}, ${hour}:00`;
+                }; // DD MMM, HH:00
             case XAxisPrecision.EVERY_DAY:
             case XAxisPrecision.EVERY_TWO_DAYS:
-                return (value: Date) => value.toISOString().substring(0, 10); // YYYY-MM-DD
+                return (value: Date) => {
+                    const dateString = value.toISOString();
+                    const day = dateString.substring(8, 10);
+                    const month = value.toLocaleString('default', { month: 'short' });
+                    return `${day} ${month}`;
+                }; // DD MMM
             case XAxisPrecision.EVERY_WEEK:
             case XAxisPrecision.EVERY_TWO_WEEKS:
                 return (value: Date) => {
-                    const startOfWeek = new Date(value);
-                    startOfWeek.setDate(value.getDate() - value.getDay());
-                    return startOfWeek.toISOString().substring(0, 10); // YYYY-MM-DD
-                };
+                    const dateString = value.toISOString();
+                    const day = dateString.substring(8, 10);
+                    const month = value.toLocaleString('default', { month: 'short' });
+                    return `${day} ${month}`;
+                }; // DD MMM
             case XAxisPrecision.EVERY_MONTH:
             case XAxisPrecision.EVERY_TWO_MONTHS:
             case XAxisPrecision.EVERY_THREE_MONTHS:
             case XAxisPrecision.EVERY_SIX_MONTHS:
-                return (value: Date) => value.toISOString().substring(0, 7); // YYYY-MM
+                return (value: Date) => {
+                    const dateString = value.toISOString();
+                    const day = dateString.substring(8, 10);
+                    const year = dateString.substring(0, 4);
+                    const month = value.toLocaleString('default', { month: 'short' });
+                    return `${day} ${month} ${year}`;
+                }; // DD MMM
             case XAxisPrecision.EVERY_YEAR:
                 return (value: Date) => value.toISOString().substring(0, 4); // YYYY
             default:

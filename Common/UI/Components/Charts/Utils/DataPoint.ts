@@ -7,21 +7,22 @@
 //     Inverters: 2103,
 // }
 
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import SeriesPoints from "../Types/SeriesPoints";
-import { XAxis } from "../Types/XAxis/XAxis";
+import { XAxis, XAxisAggregateType } from "../Types/XAxis/XAxis";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisUtil from "./XAxis";
 
 
 
-export default class DataPointUtil { 
+export default class DataPointUtil {
     public static getChartDataPoints(data: {
         seriesPoints: Array<SeriesPoints>;
         xAxis: XAxis
     }): Array<ChartDataPoint> {
 
-        const xAxisMax:XAxisMaxMin = data.xAxis.options.max;
+        const xAxisMax: XAxisMaxMin = data.xAxis.options.max;
         const xAxisMin: XAxisMaxMin = data.xAxis.options.min;
 
         const xAxisLegend: string = data.xAxis.legend;
@@ -45,27 +46,53 @@ export default class DataPointUtil {
             arrayOfData.push(dataPoint);
         }
 
+        interface SeriesData {
+            sum: number;
+            count: number;
+            max: number;
+            min: number;
+        }
+        
+        // Initialize a new data structure to store sum, count, max, and min for each series
+        const seriesDataMap: { [key: string]: SeriesData } = {};
+        
         // now we need to add the data points.
-        for(const series of data.seriesPoints) {
-            for(const dataPoint of series.data) {
+        for (const series of data.seriesPoints) {
+            for (const dataPoint of series.data) {
                 const date: Date = dataPoint.x;
                 const value: number = dataPoint.y;
                 const formattedDate: string = formatter(date);
-
-                for(const chartDataPoint of arrayOfData) {
-                    if(chartDataPoint[xAxisLegend] === formattedDate) {
-                        // if the series exists, sum the value.
-
-                        if(chartDataPoint[series.seriesName]) {
-                            (chartDataPoint[series.seriesName] as number) += value;
+        
+                for (const chartDataPoint of arrayOfData) {
+                    if (chartDataPoint[xAxisLegend] === formattedDate) {
+                        // Initialize series data if it doesn't exist
+                        if (!seriesDataMap[series.seriesName]) {
+                            seriesDataMap[series.seriesName] = { sum: 0, count: 0, max: Number.NEGATIVE_INFINITY, min: Number.POSITIVE_INFINITY };
                         }
-
-                        chartDataPoint[series.seriesName] = value;
+        
+                        // Update sum, count, max, and min
+                        seriesDataMap[series.seriesName]!.sum += value;
+                        seriesDataMap[series.seriesName]!.count += 1;
+                        seriesDataMap[series.seriesName]!.max = Math.max(seriesDataMap[series.seriesName]!.max, value);
+                        seriesDataMap[series.seriesName]!.min = Math.min(seriesDataMap[series.seriesName]!.min, value);
+        
+                        // Calculate the average, sum, max, or min based on the aggregate type
+                        if (data.xAxis.options.aggregateType === XAxisAggregateType.Average) {
+                            chartDataPoint[series.seriesName] = seriesDataMap[series.seriesName]!.sum / seriesDataMap[series.seriesName]!.count;
+                        } else if (data.xAxis.options.aggregateType === XAxisAggregateType.Sum) {
+                            chartDataPoint[series.seriesName] = seriesDataMap[series.seriesName]!.sum;
+                        } else if (data.xAxis.options.aggregateType === XAxisAggregateType.Max) {
+                            chartDataPoint[series.seriesName] = seriesDataMap[series.seriesName]!.max;
+                        } else if (data.xAxis.options.aggregateType === XAxisAggregateType.Min) {
+                            chartDataPoint[series.seriesName] = seriesDataMap[series.seriesName]!.min;
+                        } else {
+                            throw new BadDataException("Aggregate type not supported.");
+                        }
                     }
                 }
             }
         }
-
+        
         return arrayOfData;
 
     }

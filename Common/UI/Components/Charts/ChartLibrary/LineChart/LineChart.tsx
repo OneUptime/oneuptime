@@ -483,6 +483,7 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   showGridLines?: boolean
   yAxisWidth?: number
   intervalType?: "preserveStartEnd" | "equidistantPreserveStart"
+  curve?: "linear" | "monotone"
   showTooltip?: boolean
   showLegend?: boolean
   autoMinValue?: boolean
@@ -696,7 +697,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               cursor={{ stroke: "#d1d5db", strokeWidth: 1 }}
               offset={20}
               position={{ y: 0 }}
-              content={({ active, payload, label }) => {
+              content={({ active, payload, label }: any) => {
                 const cleanPayload: TooltipProps["payload"] = payload
                   ? payload.map((item: any) => ({
                       category: item.dataKey,
@@ -743,7 +744,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               <RechartsLegend
                 verticalAlign="top"
                 height={legendHeight}
-                content={({ payload }) =>
+                content={({ payload }: any) =>
                   ChartLegend(
                     { payload },
                     categoryColors,
@@ -803,7 +804,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       strokeLinecap={strokeLinecap}
                       strokeLinejoin={strokeLinejoin}
                       strokeWidth={strokeWidth}
-                      onClick={(_, event) => onDotClick(props, event)}
+                      onClick={(_: any, event: any) => onDotClick(props, event)}
                     />
                   )
                 }}
@@ -882,7 +883,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     tooltipType="none"
                     strokeWidth={12}
                     connectNulls={connectNulls}
-                    onClick={(props: any, event) => {
+                    onClick={(props: any, event: any) => {
                       event.stopPropagation()
                       const { name } = props
                       onCategoryClick(name)

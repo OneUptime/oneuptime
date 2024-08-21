@@ -16,7 +16,7 @@ import SeriesPoints from "Common/UI/Components/Charts/Types/SeriesPoints";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import YAxis from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import { XAxis } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import { XAxis, XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 
 export class MonitorCharts {
@@ -168,6 +168,7 @@ export class MonitorCharts {
         data: chartData,
         xAxis: MonitorCharts.getXAxisFor({
           monitorMetricsByMinute,
+          checkOn: checkOn,
         }),
         yAxis: MonitorCharts.getYAxisFor({
           checkOn: checkOn,
@@ -256,6 +257,7 @@ export class MonitorCharts {
 
   public static getXAxisFor(data: {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
+    checkOn: CheckOn;
   }): XAxis {
     const startTime: Date  =
       data.monitorMetricsByMinute[0]?.createdAt! || undefined;
@@ -263,10 +265,33 @@ export class MonitorCharts {
       data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]
         ?.createdAt! || undefined;
 
+    let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
+
+    if(data.checkOn === CheckOn.ResponseStatusCode) {
+      xAxisAggregationType = XAxisAggregateType.Max;
+    }
+
+    if(data.checkOn === CheckOn.IsOnline) {
+      xAxisAggregationType = XAxisAggregateType.Min;
+    }
+
+    if(data.checkOn === CheckOn.ResponseTime) {
+      xAxisAggregationType = XAxisAggregateType.Average;
+    }
+
+    if(
+      data.checkOn === CheckOn.DiskUsagePercent ||
+      data.checkOn === CheckOn.MemoryUsagePercent ||
+      data.checkOn === CheckOn.CPUUsagePercent
+    ){
+      xAxisAggregationType = XAxisAggregateType.Average;
+    }
+
     return {
       legend: "Time",
       options: {
         type: XAxisType.Time,
+        aggregateType: xAxisAggregationType,
         min: startTime,
         max: endTime,
       },
