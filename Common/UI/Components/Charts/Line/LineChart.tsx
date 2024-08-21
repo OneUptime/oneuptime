@@ -63,6 +63,7 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
       valueFormatter={props.yAxis.options.formatter || undefined}
       showTooltip={true}
       connectNulls={true}
+      curve={props.curve}
       yAxisWidth={60}
     />
   );

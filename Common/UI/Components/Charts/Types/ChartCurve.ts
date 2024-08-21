@@ -1,9 +1,7 @@
 enum ChartCurve {
   LINEAR = "linear",
-  MONOTONE_X = "monotoneX",
+  MONOTONE = "monotone",
   STEP = "step",
-  STEP_BEFORE = "stepBefore",
-  STEP_AFTER = "stepAfter",
 }
 
 export default ChartCurve;

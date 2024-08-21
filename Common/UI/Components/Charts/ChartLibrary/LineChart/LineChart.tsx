@@ -29,6 +29,7 @@ import {
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
+import ChartCurve from "../../Types/ChartCurve";
 
 //#region Legend
 
@@ -194,46 +195,49 @@ const Legend: React.ForwardRefExoticComponent<
       null,
     );
     const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null);
-    const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+    const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+      React.useRef<NodeJS.Timeout | null>(null);
 
-    const checkScroll = React.useCallback(() => {
-      const scrollable = scrollableRef?.current;
+    const checkScroll: () => void = React.useCallback(() => {
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
       if (!scrollable) {
         return;
       }
 
-      const hasLeftScroll = scrollable.scrollLeft > 0;
-      const hasRightScroll =
+      const hasLeftScroll: boolean = scrollable.scrollLeft > 0;
+      const hasRightScroll: boolean =
         scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft;
 
       setHasScroll({ left: hasLeftScroll, right: hasRightScroll });
     }, [setHasScroll]);
 
-    const scrollToTest = React.useCallback(
-      (direction: "left" | "right") => {
-        const element = scrollableRef?.current;
-        const scrollButtons = scrollButtonsRef?.current;
-        const scrollButtonsWith = scrollButtons?.clientWidth ?? 0;
-        const width = element?.clientWidth ?? 0;
+    const scrollToTest: (direction: "left" | "right") => void =
+      React.useCallback(
+        (direction: "left" | "right") => {
+          const element: HTMLInputElement | null = scrollableRef?.current;
+          const scrollButtons: HTMLDivElement | null =
+            scrollButtonsRef?.current;
+          const scrollButtonsWith: number = scrollButtons?.clientWidth ?? 0;
+          const width: number = element?.clientWidth ?? 0;
 
-        if (element && enableLegendSlider) {
-          element.scrollTo({
-            left:
-              direction === "left"
-                ? element.scrollLeft - width + scrollButtonsWith
-                : element.scrollLeft + width - scrollButtonsWith,
-            behavior: "smooth",
-          });
-          setTimeout(() => {
-            checkScroll();
-          }, 400);
-        }
-      },
-      [enableLegendSlider, checkScroll],
-    );
+          if (element && enableLegendSlider) {
+            element.scrollTo({
+              left:
+                direction === "left"
+                  ? element.scrollLeft - width + scrollButtonsWith
+                  : element.scrollLeft + width - scrollButtonsWith,
+              behavior: "smooth",
+            });
+            setTimeout(() => {
+              checkScroll();
+            }, 400);
+          }
+        },
+        [enableLegendSlider, checkScroll],
+      );
 
     React.useEffect(() => {
-      const keyDownHandler = (key: string) => {
+      const keyDownHandler: (key: string) => void = (key: string) => {
         if (key === "ArrowLeft") {
           scrollToTest("left");
         } else if (key === "ArrowRight") {
@@ -253,20 +257,20 @@ const Legend: React.ForwardRefExoticComponent<
       };
     }, [isKeyDowned, scrollToTest]);
 
-    const keyDown = (e: KeyboardEvent) => {
+    const keyDown: (e: KeyboardEvent) => void = (e: KeyboardEvent) => {
       e.stopPropagation();
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
         setIsKeyDowned(e.key);
       }
     };
-    const keyUp = (e: KeyboardEvent) => {
+    const keyUp: (e: KeyboardEvent) => void = (e: KeyboardEvent) => {
       e.stopPropagation();
       setIsKeyDowned(null);
     };
 
     React.useEffect(() => {
-      const scrollable = scrollableRef?.current;
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
       if (enableLegendSlider) {
         checkScroll();
         scrollable?.addEventListener("keydown", keyDown);
@@ -297,13 +301,13 @@ const Legend: React.ForwardRefExoticComponent<
               : "flex-wrap",
           )}
         >
-          {categories.map((category, index) => {
+          {categories.map((category: string, index: number) => {
             return (
               <LegendItem
                 key={`item-${index}`}
                 name={category}
                 color={colors[index] as AvailableChartColorsKeys}
-                onClick={onClickLegendItem!}
+                onClick={onClickLegendItem as any}
                 activeLegend={activeLegend!}
               />
             );
@@ -346,7 +350,7 @@ const Legend: React.ForwardRefExoticComponent<
 
 Legend.displayName = "Legend";
 
-const ChartLegend = (
+const ChartLegend: (
   { payload }: any,
   categoryColors: Map<string, AvailableChartColorsKeys>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
@@ -355,21 +359,35 @@ const ChartLegend = (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
-) => {
-  const legendRef = React.useRef<HTMLDivElement>(null);
+) => React.JSX.Element = (
+  { payload }: any,
+  categoryColors: Map<string, AvailableChartColorsKeys>,
+  setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
+  activeLegend: string | undefined,
+  onClick?: (category: string, color: string) => void,
+  enableLegendSlider?: boolean,
+  legendPosition?: "left" | "center" | "right",
+  yAxisWidth?: number,
+): React.JSX.Element => {
+  const legendRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
 
   useOnWindowResize(() => {
-    const calculateHeight = (height: number | undefined) => {
+    const calculateHeight: (height: number | undefined) => number = (
+      height: number | undefined,
+    ) => {
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
   });
 
-  const legendPayload = payload.filter((item: any) => {
-    return item.type !== "none";
-  });
+  const legendPayload: Array<PayloadItem> = payload.filter(
+    (item: PayloadItem) => {
+      return item.type !== "none";
+    },
+  );
 
-  const paddingLeft =
+  const paddingLeft: number =
     legendPosition === "left" && yAxisWidth ? yAxisWidth - 8 : 0;
 
   return (
@@ -384,11 +402,11 @@ const ChartLegend = (
       )}
     >
       <Legend
-        categories={legendPayload.map((entry: any) => {
-          return entry.value;
+        categories={legendPayload.map((entry: PayloadItem) => {
+          return entry.value as any; 
         })}
-        colors={legendPayload.map((entry: any) => {
-          return categoryColors.get(entry.value);
+        colors={legendPayload.map((entry: PayloadItem) => {
+          return categoryColors.get(entry.value! as any)!;
         })}
         onClickLegendItem={onClick!}
         activeLegend={activeLegend!}
@@ -402,7 +420,7 @@ const ChartLegend = (
 
 type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
 
-type PayloadItem = {
+export type PayloadItem = {
   category: string;
   value: number;
   index: string;
@@ -418,14 +436,19 @@ interface ChartTooltipProps {
   valueFormatter: (value: number) => string;
 }
 
-const ChartTooltip = ({
+const ChartTooltip: ({
   active,
   payload,
   label,
   valueFormatter,
-}: ChartTooltipProps) => {
+}: ChartTooltipProps) => React.JSX.Element | null = ({
+  active,
+  payload,
+  label,
+  valueFormatter,
+}: ChartTooltipProps): React.JSX.Element | null => {
   if (active && payload && payload.length) {
-    const legendPayload = payload.filter((item: any) => {
+    const legendPayload: PayloadItem[] = payload.filter((item: PayloadItem) => {
       return item.type !== "none";
     });
     return (
@@ -452,44 +475,46 @@ const ChartTooltip = ({
           </p>
         </div>
         <div className={cx("space-y-1 px-4 py-2")}>
-          {legendPayload.map(({ value, category, color }, index) => {
-            return (
-              <div
-                key={`id-${index}`}
-                className="flex items-center justify-between space-x-8"
-              >
-                <div className="flex items-center space-x-2">
-                  <span
-                    aria-hidden="true"
-                    className={cx(
-                      "h-[3px] w-3.5 shrink-0 rounded-full",
-                      getColorClassName(color, "bg"),
-                    )}
-                  />
+          {legendPayload.map(
+            ({ value, category, color }: PayloadItem, index: number) => {
+              return (
+                <div
+                  key={`id-${index}`}
+                  className="flex items-center justify-between space-x-8"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span
+                      aria-hidden="true"
+                      className={cx(
+                        "h-[3px] w-3.5 shrink-0 rounded-full",
+                        getColorClassName(color, "bg"),
+                      )}
+                    />
+                    <p
+                      className={cx(
+                        // base
+                        "whitespace-nowrap text-right",
+                        // text color
+                        "text-gray-700 dark:text-gray-300",
+                      )}
+                    >
+                      {category}
+                    </p>
+                  </div>
                   <p
                     className={cx(
                       // base
-                      "whitespace-nowrap text-right",
+                      "whitespace-nowrap text-right font-medium tabular-nums",
                       // text color
-                      "text-gray-700 dark:text-gray-300",
+                      "text-gray-900 dark:text-gray-50",
                     )}
                   >
-                    {category}
+                    {valueFormatter(value)}
                   </p>
                 </div>
-                <p
-                  className={cx(
-                    // base
-                    "whitespace-nowrap text-right font-medium tabular-nums",
-                    // text color
-                    "text-gray-900 dark:text-gray-50",
-                  )}
-                >
-                  {valueFormatter(value)}
-                </p>
-              </div>
-            );
-          })}
+              );
+            },
+          )}
         </div>
       </div>
     );
@@ -536,13 +561,16 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   connectNulls?: boolean;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  curve?: ChartCurve;
   legendPosition?: "left" | "center" | "right";
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
   customTooltip?: React.ComponentType<TooltipProps>;
 }
 
-const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
-  (props, ref) => {
+const LineChart: React.ForwardRefExoticComponent<
+  LineChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, LineChartProps>(
+  (props: LineChartProps, ref: React.ForwardedRef<HTMLDivElement>) => {
     const {
       data = [],
       categories = [],
@@ -575,8 +603,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       customTooltip,
       ...other
     } = props;
-    const CustomTooltip = customTooltip;
-    const paddingValue =
+    const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
+      customTooltip;
+    const paddingValue: 0 | 20 =
       (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
     const [legendHeight, setLegendHeight] = React.useState(60);
     const [activeDot, setActiveDot] = React.useState<ActiveDot | undefined>(
@@ -585,14 +614,21 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const categoryColors = constructCategoryColors(categories, colors);
+    const categoryColors: Map<string, string | number> =
+      constructCategoryColors(categories, colors);
 
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
-    const hasOnValueChange = Boolean(onValueChange);
-    const prevActiveRef = React.useRef<boolean | undefined>(undefined);
-    const prevLabelRef = React.useRef<string | undefined>(undefined);
+    const yAxisDomain: (number | "auto")[] = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
+    const hasOnValueChange: boolean = Boolean(onValueChange);
+    const prevActiveRef: React.MutableRefObject<boolean | undefined> =
+      React.useRef<boolean | undefined>(undefined);
+    const prevLabelRef: React.MutableRefObject<string | undefined> =
+      React.useRef<string | undefined>(undefined);
 
-    function onDotClick(itemData: any, event: React.MouseEvent) {
+    function onDotClick(itemData: any, event: React.MouseEvent): void {
       event.stopPropagation();
 
       if (!hasOnValueChange) {
@@ -622,7 +658,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       }
     }
 
-    function onCategoryClick(dataKey: string) {
+    function onCategoryClick(dataKey: string): void {
       if (!hasOnValueChange) {
         return;
       }
@@ -649,6 +685,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         <ResponsiveContainer>
           <RechartsLineChart
             data={data}
+            
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
@@ -813,7 +850,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 }}
               />
             ) : null}
-            {categories.map((category) => {
+            {categories.map((category: string) => {
               return (
                 <Line
                   className={cx(
@@ -827,6 +864,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       ? 0.3
                       : 1
                   }
+                  
                   activeDot={(props: any) => {
                     const {
                       cx: cxCoord,
@@ -925,14 +963,14 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             })}
             {/* hidden lines to increase clickable target area */}
             {onValueChange
-              ? categories.map((category) => {
+              ? categories.map((category: string) => {
                   return (
                     <Line
                       className={cx("cursor-pointer")}
                       strokeOpacity={0}
                       key={category}
                       name={category}
-                      type="linear"
+                      type={props.curve || ChartCurve.LINEAR}
                       dataKey={category}
                       stroke="transparent"
                       fill="transparent"
