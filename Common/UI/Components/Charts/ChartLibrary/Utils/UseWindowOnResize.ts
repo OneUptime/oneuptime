@@ -1,15 +1,15 @@
-// Tremor Raw useOnWindowResize [v0.0.0]
+import * as React from "react";
 
-import * as React from "react"
-
-export const useOnWindowResize = (handler: { (): void }) => {
+export const useOnWindowResize: (handler: () => void) => void = (handler: () => void): void => {
   React.useEffect(() => {
-    const handleResize = () => {
-      handler()
-    }
-    handleResize()
-    window.addEventListener("resize", handleResize)
+    const handleResize: () => void = () => {
+      handler();
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
-    return () => window.removeEventListener("resize", handleResize)
-  }, [handler])
-}
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [handler]);
+};

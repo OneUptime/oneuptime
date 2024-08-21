@@ -1,8 +1,12 @@
 // Tremor Raw chartColors [v0.1.0]
 
-export type ColorUtility = "bg" | "stroke" | "fill" | "text"
+export type ColorUtility = "bg" | "stroke" | "fill" | "text";
 
-export const chartColors = {
+export const chartColors: {
+  [color: string]: {
+    [key in ColorUtility]: string;
+  };
+} = {
   blue: {
     bg: "bg-blue-500",
     stroke: "stroke-blue-500",
@@ -69,28 +73,24 @@ export const chartColors = {
     fill: "fill-rose-500",
     text: "text-rose-500",
   },
-} as const satisfies {
-  [color: string]: {
-    [key in ColorUtility]: string
-  }
-}
+};
 
-export type AvailableChartColorsKeys = keyof typeof chartColors
+export type AvailableChartColorsKeys = keyof typeof chartColors;
 
 export const AvailableChartColors: AvailableChartColorsKeys[] = Object.keys(
   chartColors,
-) as Array<AvailableChartColorsKeys>
+) as Array<AvailableChartColorsKeys>;
 
 export const constructCategoryColors = (
   categories: string[],
   colors: AvailableChartColorsKeys[],
 ): Map<string, AvailableChartColorsKeys> => {
-  const categoryColors = new Map<string, AvailableChartColorsKeys>()
+  const categoryColors = new Map<string, AvailableChartColorsKeys>();
   categories.forEach((category, index) => {
-    categoryColors.set(category, colors[index % colors.length]!)
-  })
-  return categoryColors
-}
+    categoryColors.set(category, colors[index % colors.length]!);
+  });
+  return categoryColors;
+};
 
 export const getColorClassName = (
   color: AvailableChartColorsKeys,
@@ -101,6 +101,6 @@ export const getColorClassName = (
     stroke: "stroke-gray-500",
     fill: "fill-gray-500",
     text: "text-gray-500",
-  }
-  return chartColors[color]?.[type] ?? fallbackColor[type]
-}
+  };
+  return chartColors[color]?.[type] ?? fallbackColor[type];
+};

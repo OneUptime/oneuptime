@@ -1,10 +1,10 @@
 // Tremor Raw LineChart [v0.3.1]
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-"use client"
+"use client";
 
-import React from "react"
-import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react"
+import React from "react";
+import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
   CartesianGrid,
   Dot,
@@ -16,36 +16,41 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
-import { AxisDomain } from "recharts/types/util/types"
+} from "recharts";
+import { AxisDomain } from "recharts/types/util/types";
 
-import { useOnWindowResize } from "../Utils/UseWindowOnResize"
+import { useOnWindowResize } from "../Utils/UseWindowOnResize";
 import {
   AvailableChartColors,
   AvailableChartColorsKeys,
   constructCategoryColors,
   getColorClassName,
-} from "../Utils/ChartColors"
-import { cx } from "../Utils/Cx"
-import { getYAxisDomain } from "../Utils/GetYAxisDomain"
-import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey"
+} from "../Utils/ChartColors";
+import { cx } from "../Utils/Cx";
+import { getYAxisDomain } from "../Utils/GetYAxisDomain";
+import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 
 //#region Legend
 
 interface LegendItemProps {
-  name: string
-  color: AvailableChartColorsKeys
-  onClick?: (name: string, color: AvailableChartColorsKeys) => void
-  activeLegend?: string
+  name: string;
+  color: AvailableChartColorsKeys;
+  onClick?: (name: string, color: AvailableChartColorsKeys) => void;
+  activeLegend?: string;
 }
 
-const LegendItem = ({
+const LegendItem: ({
+  name,
+  color,
+  onClick,
+  activeLegend,
+}: LegendItemProps) => React.JSX.Element = ({
   name,
   color,
   onClick,
   activeLegend,
 }: LegendItemProps) => {
-  const hasOnValueChange = !!onClick
+  const hasOnValueChange: boolean = Boolean(onClick);
   return (
     <li
       className={cx(
@@ -55,9 +60,9 @@ const LegendItem = ({
           ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           : "cursor-default",
       )}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.(name, color)
+      onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+        e.stopPropagation();
+        onClick?.(name, color);
       }}
     >
       <span
@@ -82,37 +87,48 @@ const LegendItem = ({
         {name}
       </p>
     </li>
-  )
-}
+  );
+};
 
 interface ScrollButtonProps {
-  icon: React.ElementType
-  onClick?: () => void
-  disabled?: boolean
+  icon: React.ElementType;
+  onClick?: () => void;
+  disabled?: boolean;
 }
 
-const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
-  const Icon = icon
-  const [isPressed, setIsPressed] = React.useState(false)
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null)
+const ScrollButton: ({
+  icon,
+  onClick,
+  disabled,
+}: ScrollButtonProps) => React.JSX.Element = ({
+  icon,
+  onClick,
+  disabled,
+}: ScrollButtonProps) => {
+  const Icon: React.ElementType<any, keyof React.JSX.IntrinsicElements> = icon;
+  const [isPressed, setIsPressed] = React.useState(false);
+  const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+    React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     if (isPressed) {
       intervalRef.current = setInterval(() => {
-        onClick?.()
-      }, 300)
+        onClick?.();
+      }, 300);
     } else {
-      clearInterval(intervalRef.current as NodeJS.Timeout)
+      clearInterval(intervalRef.current as NodeJS.Timeout);
     }
-    return () => clearInterval(intervalRef.current as NodeJS.Timeout)
-  }, [isPressed, onClick])
+    return () => {
+      return clearInterval(intervalRef.current as NodeJS.Timeout);
+    };
+  }, [isPressed, onClick]);
 
   React.useEffect(() => {
     if (disabled) {
-      clearInterval(intervalRef.current as NodeJS.Timeout)
-      setIsPressed(false)
+      clearInterval(intervalRef.current as NodeJS.Timeout);
+      setIsPressed(false);
     }
-  }, [disabled])
+  }, [disabled]);
 
   return (
     <button
@@ -125,194 +141,210 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
           : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50",
       )}
       disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.()
+      onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        onClick?.();
       }}
-      onMouseDown={(e) => {
-        e.stopPropagation()
-        setIsPressed(true)
+      onMouseDown={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        setIsPressed(true);
       }}
-      onMouseUp={(e) => {
-        e.stopPropagation()
-        setIsPressed(false)
+      onMouseUp={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        e.stopPropagation();
+        setIsPressed(false);
       }}
     >
       <Icon className="size-full" aria-hidden="true" />
     </button>
-  )
-}
+  );
+};
 
 interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
-  categories: string[]
-  colors?: AvailableChartColorsKeys[]
-  onClickLegendItem?: (category: string, color: string) => void
-  activeLegend?: string
-  enableLegendSlider?: boolean
+  categories: string[];
+  colors?: AvailableChartColorsKeys[];
+  onClickLegendItem?: (category: string, color: string) => void;
+  activeLegend?: string;
+  enableLegendSlider?: boolean;
 }
 
 type HasScrollProps = {
-  left: boolean
-  right: boolean
-}
+  left: boolean;
+  right: boolean;
+};
 
-const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
-  const {
-    categories,
-    colors = AvailableChartColors,
-    className,
-    onClickLegendItem,
-    activeLegend,
-    enableLegendSlider = false,
-    ...other
-  } = props
-  const scrollableRef = React.useRef<HTMLInputElement>(null)
-  const scrollButtonsRef = React.useRef<HTMLDivElement>(null)
-  const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(null)
-  const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null)
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null)
+const Legend: React.ForwardRefExoticComponent<
+  LegendProps & React.RefAttributes<HTMLOListElement>
+> = React.forwardRef<HTMLOListElement, LegendProps>(
+  (props: LegendProps, ref: React.ForwardedRef<HTMLOListElement>) => {
+    const {
+      categories,
+      colors = AvailableChartColors,
+      className,
+      onClickLegendItem,
+      activeLegend,
+      enableLegendSlider = false,
+      ...other
+    } = props;
 
-  const checkScroll = React.useCallback(() => {
-    const scrollable = scrollableRef?.current
-    if (!scrollable) return
+    const scrollableRef: React.RefObject<HTMLInputElement> =
+      React.useRef<HTMLInputElement>(null);
+    const scrollButtonsRef: React.RefObject<HTMLDivElement> =
+      React.useRef<HTMLDivElement>(null);
+    const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(
+      null,
+    );
+    const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null);
+    const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
-    const hasLeftScroll = scrollable.scrollLeft > 0
-    const hasRightScroll =
-      scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft
-
-    setHasScroll({ left: hasLeftScroll, right: hasRightScroll })
-  }, [setHasScroll])
-
-  const scrollToTest = React.useCallback(
-    (direction: "left" | "right") => {
-      const element = scrollableRef?.current
-      const scrollButtons = scrollButtonsRef?.current
-      const scrollButtonsWith = scrollButtons?.clientWidth ?? 0
-      const width = element?.clientWidth ?? 0
-
-      if (element && enableLegendSlider) {
-        element.scrollTo({
-          left:
-            direction === "left"
-              ? element.scrollLeft - width + scrollButtonsWith
-              : element.scrollLeft + width - scrollButtonsWith,
-          behavior: "smooth",
-        })
-        setTimeout(() => {
-          checkScroll()
-        }, 400)
+    const checkScroll = React.useCallback(() => {
+      const scrollable = scrollableRef?.current;
+      if (!scrollable) {
+        return;
       }
-    },
-    [enableLegendSlider, checkScroll],
-  )
 
-  React.useEffect(() => {
-    const keyDownHandler = (key: string) => {
-      if (key === "ArrowLeft") {
-        scrollToTest("left")
-      } else if (key === "ArrowRight") {
-        scrollToTest("right")
+      const hasLeftScroll = scrollable.scrollLeft > 0;
+      const hasRightScroll =
+        scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft;
+
+      setHasScroll({ left: hasLeftScroll, right: hasRightScroll });
+    }, [setHasScroll]);
+
+    const scrollToTest = React.useCallback(
+      (direction: "left" | "right") => {
+        const element = scrollableRef?.current;
+        const scrollButtons = scrollButtonsRef?.current;
+        const scrollButtonsWith = scrollButtons?.clientWidth ?? 0;
+        const width = element?.clientWidth ?? 0;
+
+        if (element && enableLegendSlider) {
+          element.scrollTo({
+            left:
+              direction === "left"
+                ? element.scrollLeft - width + scrollButtonsWith
+                : element.scrollLeft + width - scrollButtonsWith,
+            behavior: "smooth",
+          });
+          setTimeout(() => {
+            checkScroll();
+          }, 400);
+        }
+      },
+      [enableLegendSlider, checkScroll],
+    );
+
+    React.useEffect(() => {
+      const keyDownHandler = (key: string) => {
+        if (key === "ArrowLeft") {
+          scrollToTest("left");
+        } else if (key === "ArrowRight") {
+          scrollToTest("right");
+        }
+      };
+      if (isKeyDowned) {
+        keyDownHandler(isKeyDowned);
+        intervalRef.current = setInterval(() => {
+          keyDownHandler(isKeyDowned);
+        }, 300);
+      } else {
+        clearInterval(intervalRef.current!);
       }
-    }
-    if (isKeyDowned) {
-      keyDownHandler(isKeyDowned)
-      intervalRef.current = setInterval(() => {
-        keyDownHandler(isKeyDowned)
-      }, 300)
-    } else {
-      clearInterval(intervalRef.current as NodeJS.Timeout)
-    }
-    return () => clearInterval(intervalRef.current as NodeJS.Timeout)
-  }, [isKeyDowned, scrollToTest])
+      return () => {
+        return clearInterval(intervalRef.current as NodeJS.Timeout);
+      };
+    }, [isKeyDowned, scrollToTest]);
 
-  const keyDown = (e: KeyboardEvent) => {
-    e.stopPropagation()
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      e.preventDefault()
-      setIsKeyDowned(e.key)
-    }
-  }
-  const keyUp = (e: KeyboardEvent) => {
-    e.stopPropagation()
-    setIsKeyDowned(null)
-  }
+    const keyDown = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setIsKeyDowned(e.key);
+      }
+    };
+    const keyUp = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      setIsKeyDowned(null);
+    };
 
-  React.useEffect(() => {
-    const scrollable = scrollableRef?.current
-    if (enableLegendSlider) {
-      checkScroll()
-      scrollable?.addEventListener("keydown", keyDown)
-      scrollable?.addEventListener("keyup", keyUp)
-    }
+    React.useEffect(() => {
+      const scrollable = scrollableRef?.current;
+      if (enableLegendSlider) {
+        checkScroll();
+        scrollable?.addEventListener("keydown", keyDown);
+        scrollable?.addEventListener("keyup", keyUp);
+      }
 
-    return () => {
-      scrollable?.removeEventListener("keydown", keyDown)
-      scrollable?.removeEventListener("keyup", keyUp)
-    }
-  }, [checkScroll, enableLegendSlider])
+      return () => {
+        scrollable?.removeEventListener("keydown", keyDown);
+        scrollable?.removeEventListener("keyup", keyUp);
+      };
+    }, [checkScroll, enableLegendSlider]);
 
-  return (
-    <ol
-      ref={ref}
-      className={cx("relative overflow-hidden", className)}
-      {...other}
-    >
-      <div
-        ref={scrollableRef}
-        tabIndex={0}
-        className={cx(
-          "flex h-full",
-          enableLegendSlider
-            ? hasScroll?.right || hasScroll?.left
-              ? "snap-mandatory items-center overflow-auto pl-4 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              : ""
-            : "flex-wrap",
-        )}
+    return (
+      <ol
+        ref={ref}
+        className={cx("relative overflow-hidden", className)}
+        {...other}
       >
-        {categories.map((category, index) => (
-          <LegendItem
-            key={`item-${index}`}
-            name={category}
-            color={colors[index] as AvailableChartColorsKeys}
-            onClick={onClickLegendItem!}
-            activeLegend={activeLegend!}
-          />
-        ))}
-      </div>
-      {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
-        <>
-          <div
-            className={cx(
-              // base
-              "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
-              // background color
-              "bg-white dark:bg-gray-950",
-            )}
-          >
-            <ScrollButton
-              icon={RiArrowLeftSLine}
-              onClick={() => {
-                setIsKeyDowned(null)
-                scrollToTest("left")
-              }}
-              disabled={!hasScroll?.left}
-            />
-            <ScrollButton
-              icon={RiArrowRightSLine}
-              onClick={() => {
-                setIsKeyDowned(null)
-                scrollToTest("right")
-              }}
-              disabled={!hasScroll?.right}
-            />
-          </div>
-        </>
-      ) : null}
-    </ol>
-  )
-})
+        <div
+          ref={scrollableRef}
+          tabIndex={0}
+          className={cx(
+            "flex h-full",
+            enableLegendSlider
+              ? hasScroll?.right || hasScroll?.left
+                ? "snap-mandatory items-center overflow-auto pl-4 pr-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : ""
+              : "flex-wrap",
+          )}
+        >
+          {categories.map((category, index) => {
+            return (
+              <LegendItem
+                key={`item-${index}`}
+                name={category}
+                color={colors[index] as AvailableChartColorsKeys}
+                onClick={onClickLegendItem!}
+                activeLegend={activeLegend!}
+              />
+            );
+          })}
+        </div>
+        {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
+          <>
+            <div
+              ref={scrollButtonsRef}
+              className={cx(
+                // base
+                "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
+                // background color
+                "bg-white dark:bg-gray-950",
+              )}
+            >
+              <ScrollButton
+                icon={RiArrowLeftSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("left");
+                }}
+                disabled={!hasScroll?.left}
+              />
+              <ScrollButton
+                icon={RiArrowRightSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("right");
+                }}
+                disabled={!hasScroll?.right}
+              />
+            </div>
+          </>
+        ) : null}
+      </ol>
+    );
+  },
+);
 
-Legend.displayName = "Legend"
+Legend.displayName = "Legend";
 
 const ChartLegend = (
   { payload }: any,
@@ -324,18 +356,21 @@ const ChartLegend = (
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
 ) => {
-  const legendRef = React.useRef<HTMLDivElement>(null)
+  const legendRef = React.useRef<HTMLDivElement>(null);
 
   useOnWindowResize(() => {
-    const calculateHeight = (height: number | undefined) =>
-      height ? Number(height) + 15 : 60
-    setLegendHeight(calculateHeight(legendRef.current?.clientHeight))
-  })
+    const calculateHeight = (height: number | undefined) => {
+      return height ? Number(height) + 15 : 60;
+    };
+    setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+  });
 
-  const legendPayload = payload.filter((item: any) => item.type !== "none")
+  const legendPayload = payload.filter((item: any) => {
+    return item.type !== "none";
+  });
 
   const paddingLeft =
-    legendPosition === "left" && yAxisWidth ? yAxisWidth - 8 : 0
+    legendPosition === "left" && yAxisWidth ? yAxisWidth - 8 : 0;
 
   return (
     <div
@@ -349,36 +384,38 @@ const ChartLegend = (
       )}
     >
       <Legend
-        categories={legendPayload.map((entry: any) => entry.value)}
-        colors={legendPayload.map((entry: any) =>
-          categoryColors.get(entry.value),
-        )}
+        categories={legendPayload.map((entry: any) => {
+          return entry.value;
+        })}
+        colors={legendPayload.map((entry: any) => {
+          return categoryColors.get(entry.value);
+        })}
         onClickLegendItem={onClick!}
         activeLegend={activeLegend!}
         enableLegendSlider={enableLegendSlider!}
       />
     </div>
-  )
-}
+  );
+};
 
 //#region Tooltip
 
-type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">
+type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
 
 type PayloadItem = {
-  category: string
-  value: number
-  index: string
-  color: AvailableChartColorsKeys
-  type?: string
-  payload: any
-}
+  category: string;
+  value: number;
+  index: string;
+  color: AvailableChartColorsKeys;
+  type?: string;
+  payload: any;
+};
 
 interface ChartTooltipProps {
-  active: boolean | undefined
-  payload: PayloadItem[]
-  label: string
-  valueFormatter: (value: number) => string
+  active: boolean | undefined;
+  payload: PayloadItem[];
+  label: string;
+  valueFormatter: (value: number) => string;
 }
 
 const ChartTooltip = ({
@@ -388,7 +425,9 @@ const ChartTooltip = ({
   valueFormatter,
 }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
-    const legendPayload = payload.filter((item: any) => item.type !== "none")
+    const legendPayload = payload.filter((item: any) => {
+      return item.type !== "none";
+    });
     return (
       <div
         className={cx(
@@ -413,92 +452,93 @@ const ChartTooltip = ({
           </p>
         </div>
         <div className={cx("space-y-1 px-4 py-2")}>
-          {legendPayload.map(({ value, category, color }, index) => (
-            <div
-              key={`id-${index}`}
-              className="flex items-center justify-between space-x-8"
-            >
-              <div className="flex items-center space-x-2">
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    "h-[3px] w-3.5 shrink-0 rounded-full",
-                    getColorClassName(color, "bg"),
-                  )}
-                />
+          {legendPayload.map(({ value, category, color }, index) => {
+            return (
+              <div
+                key={`id-${index}`}
+                className="flex items-center justify-between space-x-8"
+              >
+                <div className="flex items-center space-x-2">
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      "h-[3px] w-3.5 shrink-0 rounded-full",
+                      getColorClassName(color, "bg"),
+                    )}
+                  />
+                  <p
+                    className={cx(
+                      // base
+                      "whitespace-nowrap text-right",
+                      // text color
+                      "text-gray-700 dark:text-gray-300",
+                    )}
+                  >
+                    {category}
+                  </p>
+                </div>
                 <p
                   className={cx(
                     // base
-                    "whitespace-nowrap text-right",
+                    "whitespace-nowrap text-right font-medium tabular-nums",
                     // text color
-                    "text-gray-700 dark:text-gray-300",
+                    "text-gray-900 dark:text-gray-50",
                   )}
                 >
-                  {category}
+                  {valueFormatter(value)}
                 </p>
               </div>
-              <p
-                className={cx(
-                  // base
-                  "whitespace-nowrap text-right font-medium tabular-nums",
-                  // text color
-                  "text-gray-900 dark:text-gray-50",
-                )}
-              >
-                {valueFormatter(value)}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
-    )
+    );
   }
-  return null
-}
+  return null;
+};
 
 //#region LineChart
 
 interface ActiveDot {
-  index?: number
-  dataKey?: string
+  index?: number;
+  dataKey?: string;
 }
 
 type BaseEventProps = {
-  eventType: "dot" | "category"
-  categoryClicked: string
-  [key: string]: number | string
-}
+  eventType: "dot" | "category";
+  categoryClicked: string;
+  [key: string]: number | string;
+};
 
-type LineChartEventProps = BaseEventProps | null | undefined
+type LineChartEventProps = BaseEventProps | null | undefined;
 
 interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
-  data: Record<string, any>[]
-  index: string
-  categories: string[]
-  colors?: AvailableChartColorsKeys[]
-  valueFormatter?: (value: number) => string
-  startEndOnly?: boolean
-  showXAxis?: boolean
-  showYAxis?: boolean
-  showGridLines?: boolean
-  yAxisWidth?: number
-  intervalType?: "preserveStartEnd" | "equidistantPreserveStart"
-  curve?: "linear" | "monotone"
-  showTooltip?: boolean
-  showLegend?: boolean
-  autoMinValue?: boolean
-  minValue?: number
-  maxValue?: number
-  allowDecimals?: boolean
-  onValueChange?: (value: LineChartEventProps) => void
-  enableLegendSlider?: boolean
-  tickGap?: number
-  connectNulls?: boolean
-  xAxisLabel?: string
-  yAxisLabel?: string
-  legendPosition?: "left" | "center" | "right"
-  tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void
-  customTooltip?: React.ComponentType<TooltipProps>
+  data: Record<string, any>[];
+  index: string;
+  categories: string[];
+  colors?: AvailableChartColorsKeys[];
+  valueFormatter?: (value: number) => string;
+  startEndOnly?: boolean;
+  showXAxis?: boolean;
+  showYAxis?: boolean;
+  showGridLines?: boolean;
+  yAxisWidth?: number;
+  intervalType?: "preserveStartEnd" | "equidistantPreserveStart";
+  showTooltip?: boolean;
+  showLegend?: boolean;
+  autoMinValue?: boolean;
+  minValue?: number;
+  maxValue?: number;
+  allowDecimals?: boolean;
+  onValueChange?: (value: LineChartEventProps) => void;
+  enableLegendSlider?: boolean;
+  tickGap?: number;
+  connectNulls?: boolean;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  legendPosition?: "left" | "center" | "right";
+  tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
+  customTooltip?: React.ComponentType<TooltipProps>;
 }
 
 const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
@@ -508,7 +548,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       categories = [],
       index,
       colors = AvailableChartColors,
-      valueFormatter = (value: number) => value.toString(),
+      valueFormatter = (value: number) => {
+        return value.toString();
+      },
       startEndOnly = false,
       showXAxis = true,
       showYAxis = true,
@@ -532,28 +574,30 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       tooltipCallback,
       customTooltip,
       ...other
-    } = props
-    const CustomTooltip = customTooltip
+    } = props;
+    const CustomTooltip = customTooltip;
     const paddingValue =
-      (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20
-    const [legendHeight, setLegendHeight] = React.useState(60)
+      (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
+    const [legendHeight, setLegendHeight] = React.useState(60);
     const [activeDot, setActiveDot] = React.useState<ActiveDot | undefined>(
       undefined,
-    )
+    );
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
-    )
-    const categoryColors = constructCategoryColors(categories, colors)
+    );
+    const categoryColors = constructCategoryColors(categories, colors);
 
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue)
-    const hasOnValueChange = !!onValueChange
-    const prevActiveRef = React.useRef<boolean | undefined>(undefined)
-    const prevLabelRef = React.useRef<string | undefined>(undefined)
+    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
+    const hasOnValueChange = Boolean(onValueChange);
+    const prevActiveRef = React.useRef<boolean | undefined>(undefined);
+    const prevLabelRef = React.useRef<string | undefined>(undefined);
 
     function onDotClick(itemData: any, event: React.MouseEvent) {
-      event.stopPropagation()
+      event.stopPropagation();
 
-      if (!hasOnValueChange) return
+      if (!hasOnValueChange) {
+        return;
+      }
       if (
         (itemData.index === activeDot?.index &&
           itemData.dataKey === activeDot?.dataKey) ||
@@ -561,41 +605,43 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
           activeLegend &&
           activeLegend === itemData.dataKey)
       ) {
-        setActiveLegend(undefined)
-        setActiveDot(undefined)
-        onValueChange?.(null)
+        setActiveLegend(undefined);
+        setActiveDot(undefined);
+        onValueChange?.(null);
       } else {
-        setActiveLegend(itemData.dataKey)
+        setActiveLegend(itemData.dataKey);
         setActiveDot({
           index: itemData.index,
           dataKey: itemData.dataKey,
-        })
+        });
         onValueChange?.({
           eventType: "dot",
           categoryClicked: itemData.dataKey,
           ...itemData.payload,
-        })
+        });
       }
     }
 
     function onCategoryClick(dataKey: string) {
-      if (!hasOnValueChange) return
+      if (!hasOnValueChange) {
+        return;
+      }
       if (
         (dataKey === activeLegend && !activeDot) ||
         (hasOnlyOneValueForKey(data, dataKey) &&
           activeDot &&
           activeDot.dataKey === dataKey)
       ) {
-        setActiveLegend(undefined)
-        onValueChange?.(null)
+        setActiveLegend(undefined);
+        onValueChange?.(null);
       } else {
-        setActiveLegend(dataKey)
+        setActiveLegend(dataKey);
         onValueChange?.({
           eventType: "category",
           categoryClicked: dataKey,
-        })
+        });
       }
-      setActiveDot(undefined)
+      setActiveDot(undefined);
     }
 
     return (
@@ -606,9 +652,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
-                    setActiveDot(undefined)
-                    setActiveLegend(undefined)
-                    onValueChange?.(null)
+                    setActiveDot(undefined);
+                    setActiveLegend(undefined);
+                    onValueChange?.(null);
                   }
                 : undefined
             }
@@ -634,7 +680,10 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               tick={{ transform: "translate(0, 6)" }}
               ticks={
                 startEndOnly
-                  ? ([(data[0] as any)[index], (data[data.length - 1] as any)[index]] as any)
+                  ? ([
+                      (data[0] as any)[index],
+                      (data[data.length - 1] as any)[index],
+                    ] as any)
                   : undefined
               }
               fill=""
@@ -699,26 +748,28 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               position={{ y: 0 }}
               content={({ active, payload, label }: any) => {
                 const cleanPayload: TooltipProps["payload"] = payload
-                  ? payload.map((item: any) => ({
-                      category: item.dataKey,
-                      value: item.value,
-                      index: item.payload[index],
-                      color: categoryColors.get(
-                        item.dataKey,
-                      ) as AvailableChartColorsKeys,
-                      type: item.type,
-                      payload: item.payload,
-                    }))
-                  : []
+                  ? payload.map((item: any) => {
+                      return {
+                        category: item.dataKey,
+                        value: item.value,
+                        index: item.payload[index],
+                        color: categoryColors.get(
+                          item.dataKey,
+                        ) as AvailableChartColorsKeys,
+                        type: item.type,
+                        payload: item.payload,
+                      };
+                    })
+                  : [];
 
                 if (
                   tooltipCallback &&
                   (active !== prevActiveRef.current ||
                     label !== prevLabelRef.current)
                 ) {
-                  tooltipCallback({ active, payload: cleanPayload, label })
-                  prevActiveRef.current = active
-                  prevLabelRef.current = label
+                  tooltipCallback({ active, payload: cleanPayload, label });
+                  prevActiveRef.current = active;
+                  prevLabelRef.current = label;
                 }
 
                 return showTooltip && active ? (
@@ -736,7 +787,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       valueFormatter={valueFormatter}
                     />
                   )
-                ) : null
+                ) : null;
               }}
             />
 
@@ -744,102 +795,50 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               <RechartsLegend
                 verticalAlign="top"
                 height={legendHeight}
-                content={({ payload }: any) =>
-                  ChartLegend(
+                content={({ payload }: any) => {
+                  return ChartLegend(
                     { payload },
                     categoryColors,
                     setLegendHeight,
                     activeLegend,
                     hasOnValueChange
-                      ? (clickedLegendItem: string) =>
-                          onCategoryClick(clickedLegendItem)
+                      ? (clickedLegendItem: string) => {
+                          return onCategoryClick(clickedLegendItem);
+                        }
                       : undefined,
                     enableLegendSlider,
                     legendPosition,
                     yAxisWidth,
-                  )
-                }
+                  );
+                }}
               />
             ) : null}
-            {categories.map((category) => (
-              <Line
-                className={cx(
-                  getColorClassName(
-                    categoryColors.get(category) as AvailableChartColorsKeys,
-                    "stroke",
-                  ),
-                )}
-                strokeOpacity={
-                  activeDot || (activeLegend && activeLegend !== category)
-                    ? 0.3
-                    : 1
-                }
-                activeDot={(props: any) => {
-                  const {
-                    cx: cxCoord,
-                    cy: cyCoord,
-                    stroke,
-                    strokeLinecap,
-                    strokeLinejoin,
-                    strokeWidth,
-                    dataKey,
-                  } = props
-                  return (
-                    <Dot
-                      className={cx(
-                        "stroke-white dark:stroke-gray-950",
-                        onValueChange ? "cursor-pointer" : "",
-                        getColorClassName(
-                          categoryColors.get(
-                            dataKey,
-                          ) as AvailableChartColorsKeys,
-                          "fill",
-                        ),
-                      )}
-                      cx={cxCoord}
-                      cy={cyCoord}
-                      r={5}
-                      fill=""
-                      stroke={stroke}
-                      strokeLinecap={strokeLinecap}
-                      strokeLinejoin={strokeLinejoin}
-                      strokeWidth={strokeWidth}
-                      onClick={(_: any, event: any) => onDotClick(props, event)}
-                    />
-                  )
-                }}
-                dot={(props: any) => {
-                  const {
-                    stroke,
-                    strokeLinecap,
-                    strokeLinejoin,
-                    strokeWidth,
-                    cx: cxCoord,
-                    cy: cyCoord,
-                    dataKey,
-                    index,
-                  } = props
-
-                  if (
-                    (hasOnlyOneValueForKey(data, category) &&
-                      !(
-                        activeDot ||
-                        (activeLegend && activeLegend !== category)
-                      )) ||
-                    (activeDot?.index === index &&
-                      activeDot?.dataKey === category)
-                  ) {
+            {categories.map((category) => {
+              return (
+                <Line
+                  className={cx(
+                    getColorClassName(
+                      categoryColors.get(category) as AvailableChartColorsKeys,
+                      "stroke",
+                    ),
+                  )}
+                  strokeOpacity={
+                    activeDot || (activeLegend && activeLegend !== category)
+                      ? 0.3
+                      : 1
+                  }
+                  activeDot={(props: any) => {
+                    const {
+                      cx: cxCoord,
+                      cy: cyCoord,
+                      stroke,
+                      strokeLinecap,
+                      strokeLinejoin,
+                      strokeWidth,
+                      dataKey,
+                    } = props;
                     return (
                       <Dot
-                        key={index}
-                        cx={cxCoord}
-                        cy={cyCoord}
-                        r={5}
-                        stroke={stroke}
-                        fill=""
-                        strokeLinecap={strokeLinecap}
-                        strokeLinejoin={strokeLinejoin}
-                        strokeWidth={strokeWidth}
                         className={cx(
                           "stroke-white dark:stroke-gray-950",
                           onValueChange ? "cursor-pointer" : "",
@@ -850,54 +849,113 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                             "fill",
                           ),
                         )}
+                        cx={cxCoord}
+                        cy={cyCoord}
+                        r={5}
+                        fill=""
+                        stroke={stroke}
+                        strokeLinecap={strokeLinecap}
+                        strokeLinejoin={strokeLinejoin}
+                        strokeWidth={strokeWidth}
+                        onClick={(_: any, event: any) => {
+                          return onDotClick(props, event);
+                        }}
                       />
-                    )
-                  }
-                  return <React.Fragment key={index}></React.Fragment>
-                }}
-                key={category}
-                name={category}
-                type="linear"
-                dataKey={category}
-                stroke=""
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                isAnimationActive={false}
-                connectNulls={connectNulls}
-              />
-            ))}
+                    );
+                  }}
+                  dot={(props: any) => {
+                    const {
+                      stroke,
+                      strokeLinecap,
+                      strokeLinejoin,
+                      strokeWidth,
+                      cx: cxCoord,
+                      cy: cyCoord,
+                      dataKey,
+                      index,
+                    } = props;
+
+                    if (
+                      (hasOnlyOneValueForKey(data, category) &&
+                        !(
+                          activeDot ||
+                          (activeLegend && activeLegend !== category)
+                        )) ||
+                      (activeDot?.index === index &&
+                        activeDot?.dataKey === category)
+                    ) {
+                      return (
+                        <Dot
+                          key={index}
+                          cx={cxCoord}
+                          cy={cyCoord}
+                          r={5}
+                          stroke={stroke}
+                          fill=""
+                          strokeLinecap={strokeLinecap}
+                          strokeLinejoin={strokeLinejoin}
+                          strokeWidth={strokeWidth}
+                          className={cx(
+                            "stroke-white dark:stroke-gray-950",
+                            onValueChange ? "cursor-pointer" : "",
+                            getColorClassName(
+                              categoryColors.get(
+                                dataKey,
+                              ) as AvailableChartColorsKeys,
+                              "fill",
+                            ),
+                          )}
+                        />
+                      );
+                    }
+                    return <React.Fragment key={index}></React.Fragment>;
+                  }}
+                  key={category}
+                  name={category}
+                  type="linear"
+                  dataKey={category}
+                  stroke=""
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  isAnimationActive={false}
+                  connectNulls={connectNulls}
+                />
+              );
+            })}
             {/* hidden lines to increase clickable target area */}
             {onValueChange
-              ? categories.map((category) => (
-                  <Line
-                    className={cx("cursor-pointer")}
-                    strokeOpacity={0}
-                    key={category}
-                    name={category}
-                    type="linear"
-                    dataKey={category}
-                    stroke="transparent"
-                    fill="transparent"
-                    legendType="none"
-                    tooltipType="none"
-                    strokeWidth={12}
-                    connectNulls={connectNulls}
-                    onClick={(props: any, event: any) => {
-                      event.stopPropagation()
-                      const { name } = props
-                      onCategoryClick(name)
-                    }}
-                  />
-                ))
+              ? categories.map((category) => {
+                  return (
+                    <Line
+                      className={cx("cursor-pointer")}
+                      strokeOpacity={0}
+                      key={category}
+                      name={category}
+                      type="linear"
+                      dataKey={category}
+                      stroke="transparent"
+                      fill="transparent"
+                      legendType="none"
+                      tooltipType="none"
+                      strokeWidth={12}
+                      connectNulls={connectNulls}
+                      onClick={(props: any, event: any) => {
+                        event.stopPropagation();
+                        const { name } = props;
+                        onCategoryClick(name);
+                      }}
+                    />
+                  );
+                })
               : null}
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
-    )
+    );
   },
-)
+);
 
-LineChart.displayName = "LineChart"
+LineChart.displayName = "LineChart";
 
-export { LineChart, type LineChartEventProps, type TooltipProps }
+export { LineChart, type LineChartEventProps, type TooltipProps };

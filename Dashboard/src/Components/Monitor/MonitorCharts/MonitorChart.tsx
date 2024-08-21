@@ -14,9 +14,14 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import SeriesPoints from "Common/UI/Components/Charts/Types/SeriesPoints";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import YAxis, { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import YAxis, {
+  YAxisPrecision,
+} from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import { XAxis, XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import {
+  XAxis,
+  XAxisAggregateType,
+} from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 
 export class MonitorCharts {
@@ -259,31 +264,31 @@ export class MonitorCharts {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
     checkOn: CheckOn;
   }): XAxis {
-    const startTime: Date  =
-      data.monitorMetricsByMinute[0]?.createdAt! || undefined;
+    const startTime: Date =
+      data.monitorMetricsByMinute[0]!.createdAt! || undefined;
     const endTime: Date =
-      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]
-        ?.createdAt! || undefined;
+      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]!
+        .createdAt! || undefined;
 
     let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 
-    if(data.checkOn === CheckOn.ResponseStatusCode) {
+    if (data.checkOn === CheckOn.ResponseStatusCode) {
       xAxisAggregationType = XAxisAggregateType.Max;
     }
 
-    if(data.checkOn === CheckOn.IsOnline) {
+    if (data.checkOn === CheckOn.IsOnline) {
       xAxisAggregationType = XAxisAggregateType.Min;
     }
 
-    if(data.checkOn === CheckOn.ResponseTime) {
+    if (data.checkOn === CheckOn.ResponseTime) {
       xAxisAggregationType = XAxisAggregateType.Average;
     }
 
-    if(
+    if (
       data.checkOn === CheckOn.DiskUsagePercent ||
       data.checkOn === CheckOn.MemoryUsagePercent ||
       data.checkOn === CheckOn.CPUUsagePercent
-    ){
+    ) {
       xAxisAggregationType = XAxisAggregateType.Average;
     }
 
@@ -309,7 +314,7 @@ export class MonitorCharts {
           precision: YAxisPrecision.NoDecimals,
           formatter: (value: number) => {
             return `${value} ms`;
-          }
+          },
         },
       };
     } else if (data.checkOn === CheckOn.ResponseStatusCode) {
@@ -322,7 +327,7 @@ export class MonitorCharts {
           precision: YAxisPrecision.NoDecimals,
           formatter: (value: number) => {
             return `${value}`;
-          }
+          },
         },
       };
     } else if (
@@ -339,7 +344,7 @@ export class MonitorCharts {
           precision: YAxisPrecision.TwoDecimals,
           formatter: (value: number) => {
             return `${value}%`;
-          }
+          },
         },
       };
     }
@@ -353,7 +358,7 @@ export class MonitorCharts {
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number) => {
           return `${value}`;
-        }
+        },
       },
     };
   }

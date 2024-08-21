@@ -29,7 +29,7 @@ import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ComponentLoader from "Common/UI/Components/Compon\entLoader/ComponentLoader";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ChartGroup, {
   Chart,
@@ -66,7 +66,6 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const [xAxisType, setXAxisType] = useState<XAxisType>(XAxisType.Time);
 
   const [chartStartDate, setChartStartDate] = useState<Date>(
@@ -135,7 +134,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
     return XAxisType.Date;
   };
 
-
   useEffect(() => {
     fetchAggregatedResults().catch((err: Error) => {
       setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
@@ -158,28 +156,42 @@ const MetricView: FunctionComponent<ComponentProps> = (
         continue;
       }
 
-      let xAxisAggregationType = XAxisAggregateType.Average;
+      let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 
-      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Sum) {
+      if (
+        queryConfig.metricQueryData.filterData.aggegationType ===
+        MetricsAggregationType.Sum
+      ) {
         xAxisAggregationType = XAxisAggregateType.Sum;
       }
 
-      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Count) {
+      if (
+        queryConfig.metricQueryData.filterData.aggegationType ===
+        MetricsAggregationType.Count
+      ) {
         xAxisAggregationType = XAxisAggregateType.Sum;
       }
 
-      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Max) {
+      if (
+        queryConfig.metricQueryData.filterData.aggegationType ===
+        MetricsAggregationType.Max
+      ) {
         xAxisAggregationType = XAxisAggregateType.Max;
       }
 
-      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Min) {
+      if (
+        queryConfig.metricQueryData.filterData.aggegationType ===
+        MetricsAggregationType.Min
+      ) {
         xAxisAggregationType = XAxisAggregateType.Min;
       }
 
-      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Avg) {
+      if (
+        queryConfig.metricQueryData.filterData.aggegationType ===
+        MetricsAggregationType.Avg
+      ) {
         xAxisAggregationType = XAxisAggregateType.Average;
       }
-
 
       const chart: Chart = {
         id: index.toString(),

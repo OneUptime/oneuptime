@@ -13,7 +13,7 @@ export interface YAxisOptions {
   min: YAxisMaxMin;
   max: YAxisMaxMin;
   formatter: (value: number) => string;
-  precision: 
+  precision: YAxisPrecision;
 }
 
 export default interface YAxis {

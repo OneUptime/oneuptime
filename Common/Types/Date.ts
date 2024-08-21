@@ -1138,8 +1138,6 @@ export default class OneUptimeDate {
     );
   }
 
-  
-
   public static getDateWithCustomTime(data: {
     hours: number;
     minutes: number;

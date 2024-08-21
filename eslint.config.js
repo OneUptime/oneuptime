@@ -204,6 +204,7 @@ export default tseslint.config(
         module: true,
         __dirname: true,
         exports: true,
+        "NodeJS": true
       },
       parserOptions: {
         project: ["./tsconfig.json"], // Specify it only for TypeScript files

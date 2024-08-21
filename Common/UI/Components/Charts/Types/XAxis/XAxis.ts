@@ -2,7 +2,7 @@ import XAxisMaxMin from "./XAxisMaxMin";
 import XAxisType from "./XAxisType";
 
 export enum XAxisAggregateType {
-  Average = "Average", 
+  Average = "Average",
   Sum = "Sum",
   Max = "Max",
   Min = "Min",

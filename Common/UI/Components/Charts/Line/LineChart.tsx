@@ -7,7 +7,6 @@ import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import DataPointUtil from "../Utils/DataPoint";
 
-
 export interface ComponentProps {
   data: Array<SeriesPoint>;
   xAxis: XAxis;
@@ -19,6 +18,9 @@ export interface ComponentProps {
 const LineChartElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  if (!props.sync) {
+    return <></>;
+  }
 
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
 
@@ -27,7 +29,6 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
   });
 
   useEffect(() => {
-
     if (!props.data || props.data.length === 0) {
       setRecords([]);
     }
@@ -35,13 +36,11 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
     const records: Array<ChartDataPoint> = DataPointUtil.getChartDataPoints({
       seriesPoints: props.data,
       xAxis: props.xAxis,
+      yAxis: props.yAxis,
     });
 
     setRecords(records);
-
   }, [props.data]);
-
-
 
   return (
     <LineChart
@@ -50,14 +49,21 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
       tickGap={1}
       index={"Time"}
       categories={categories}
-      colors={["indigo", "rose", "emerald", "amber", "cyan", "gray", "pink", "lime", "fuchsia"]}
+      colors={[
+        "indigo",
+        "rose",
+        "emerald",
+        "amber",
+        "cyan",
+        "gray",
+        "pink",
+        "lime",
+        "fuchsia",
+      ]}
       valueFormatter={props.yAxis.options.formatter || undefined}
       showTooltip={true}
       connectNulls={true}
       yAxisWidth={60}
-      onValueChange={(v) => {
-        return console.log(v);
-      }}
     />
   );
 };

@@ -65,11 +65,11 @@ export default class Queue {
   }
 
   public static getQueueInspectorRouter(): ExpressRouter {
-    const serverAdapter = new ExpressAdapter();
+    const serverAdapter: ExpressAdapter = new ExpressAdapter();
 
     createBullBoard({
       queues: [
-        ...Object.values(QueueName).map((queueName) => {
+        ...Object.values(QueueName).map((queueName: QueueName) => {
           return new BullMQAdapter(this.getQueue(queueName));
         }),
       ],

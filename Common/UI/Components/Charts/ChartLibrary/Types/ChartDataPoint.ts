@@ -1,3 +1,3 @@
-export default interface ChartDataPoint { 
-    [x: string]: number | string; 
+export default interface ChartDataPoint {
+  [x: string]: number | string;
 }
