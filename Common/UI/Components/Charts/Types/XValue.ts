@@ -1,3 +1,3 @@
-type XValue = string | number | Date;
+type XValue = Date;
 
 export default XValue;

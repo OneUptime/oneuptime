@@ -5,6 +5,7 @@ export interface YAxisOptions {
   type: YAxisType;
   min: YAxisMaxMin;
   max: YAxisMaxMin;
+  formatter: (value: number) => string;
 }
 
 export default interface YAxis {

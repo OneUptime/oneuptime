@@ -29,7 +29,7 @@ import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ComponentLoader from "Common/UI/Components/Compon\entLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ChartGroup, {
   Chart,
@@ -50,7 +50,6 @@ import Dictionary from "Common/Types/Dictionary";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
-import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -65,9 +64,6 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [xAxisPrecision, setXAxisPrecision] = useState<XAxisPrecision>(
-    XAxisPrecision.DAY,
-  );
 
   const [xAxisType, setXAxisType] = useState<XAxisType>(XAxisType.Time);
 
@@ -137,26 +133,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
     return XAxisType.Date;
   };
 
-  type GetXPrecisionFunction = () => XAxisPrecision;
-
-  const getXPrecision: GetXPrecisionFunction = (): XAxisPrecision => {
-    if (
-      metricViewData.startAndEndDate?.startValue &&
-      metricViewData.startAndEndDate?.endValue
-    ) {
-      // if these are less than a day then we can use time
-      const hourDifference: number = OneUptimeDate.getHoursBetweenTwoDates(
-        metricViewData.startAndEndDate.startValue as Date,
-        metricViewData.startAndEndDate.endValue as Date,
-      );
-
-      if (hourDifference <= 24) {
-        return XAxisPrecision.MINUTE;
-      }
-    }
-
-    return XAxisPrecision.DAY;
-  };
 
   useEffect(() => {
     fetchAggregatedResults().catch((err: Error) => {
@@ -206,10 +182,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
             },
           ],
           xAxis: {
-            legend: "",
+            legend: "Time",
             options: {
               type: xAxisType,
-              precision: xAxisPrecision,
               max: chartEndDate,
               min: chartStartDate,
             },
@@ -218,6 +193,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
             legend: "",
             options: {
               type: YAxisType.Number,
+              formatter: (value: number) => {
+                return `${value}`;
+              },
               max: "auto",
               min: "auto",
             },
@@ -347,7 +325,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         setMetricResults(results);
         setXAxisType(getChartXAxisType());
-        setXAxisPrecision(getXPrecision());
         setChartStartDate(metricViewData.startAndEndDate?.startValue as Date);
         setChartEndDate(metricViewData.startAndEndDate?.endValue as Date);
 

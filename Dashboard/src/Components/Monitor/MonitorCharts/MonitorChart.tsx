@@ -16,7 +16,6 @@ import SeriesPoints from "Common/UI/Components/Charts/Types/SeriesPoints";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import YAxis from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import { XAxis } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 
@@ -270,7 +269,6 @@ export class MonitorCharts {
         type: XAxisType.Time,
         min: startTime,
         max: endTime,
-        precision: XAxisPrecision.MINUTE,
       },
     };
   }
@@ -283,6 +281,9 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: "auto",
+          formatter: (value: number) => {
+            return `${value} ms`;
+          }
         },
       };
     } else if (data.checkOn === CheckOn.ResponseStatusCode) {
@@ -292,6 +293,9 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 600,
+          formatter: (value: number) => {
+            return `${value}`;
+          }
         },
       };
     } else if (
@@ -305,6 +309,9 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 100,
+          formatter: (value: number) => {
+            return `${value}%`;
+          }
         },
       };
     }
@@ -315,6 +322,9 @@ export class MonitorCharts {
         type: YAxisType.Number,
         min: "auto",
         max: "auto",
+        formatter: (value: number) => {
+          return `${value}`;
+        }
       },
     };
   }
