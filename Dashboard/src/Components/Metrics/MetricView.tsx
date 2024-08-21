@@ -50,6 +50,8 @@ import Dictionary from "Common/Types/Dictionary";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 
 export interface MetricViewData {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -156,6 +158,29 @@ const MetricView: FunctionComponent<ComponentProps> = (
         continue;
       }
 
+      let xAxisAggregationType = XAxisAggregateType.Average;
+
+      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Sum) {
+        xAxisAggregationType = XAxisAggregateType.Sum;
+      }
+
+      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Count) {
+        xAxisAggregationType = XAxisAggregateType.Sum;
+      }
+
+      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Max) {
+        xAxisAggregationType = XAxisAggregateType.Max;
+      }
+
+      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Min) {
+        xAxisAggregationType = XAxisAggregateType.Min;
+      }
+
+      if(queryConfig.metricQueryData.filterData.aggegationType === MetricsAggregationType.Avg) {
+        xAxisAggregationType = XAxisAggregateType.Average;
+      }
+
+
       const chart: Chart = {
         id: index.toString(),
         type: ChartType.LINE,
@@ -187,6 +212,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               type: xAxisType,
               max: chartEndDate,
               min: chartStartDate,
+              aggregateType: xAxisAggregationType,
             },
           },
           yAxis: {
@@ -196,6 +222,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               formatter: (value: number) => {
                 return `${value}`;
               },
+              precision: YAxisPrecision.NoDecimals,
               max: "auto",
               min: "auto",
             },

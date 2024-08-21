@@ -14,7 +14,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import SeriesPoints from "Common/UI/Components/Charts/Types/SeriesPoints";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import YAxis from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import YAxis, { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import { XAxis, XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
@@ -306,6 +306,7 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: "auto",
+          precision: YAxisPrecision.NoDecimals,
           formatter: (value: number) => {
             return `${value} ms`;
           }
@@ -318,6 +319,7 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 600,
+          precision: YAxisPrecision.NoDecimals,
           formatter: (value: number) => {
             return `${value}`;
           }
@@ -334,6 +336,7 @@ export class MonitorCharts {
           type: YAxisType.Number,
           min: 0,
           max: 100,
+          precision: YAxisPrecision.TwoDecimals,
           formatter: (value: number) => {
             return `${value}%`;
           }
@@ -347,6 +350,7 @@ export class MonitorCharts {
         type: YAxisType.Number,
         min: "auto",
         max: "auto",
+        precision: YAxisPrecision.NoDecimals,
         formatter: (value: number) => {
           return `${value}`;
         }
