@@ -403,7 +403,7 @@ const ChartLegend: (
     >
       <Legend
         categories={legendPayload.map((entry: PayloadItem) => {
-          return entry.value as any; 
+          return entry.value as any;
         })}
         colors={legendPayload.map((entry: PayloadItem) => {
           return categoryColors.get(entry.value! as any)!;
@@ -421,11 +421,17 @@ const ChartLegend: (
 type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
 
 export type PayloadItem = {
+  // eslint-disable-next-line react/no-unused-prop-types
   category: string;
+  // eslint-disable-next-line react/no-unused-prop-types
   value: number;
+  // eslint-disable-next-line react/no-unused-prop-types
   index: string;
+  // eslint-disable-next-line react/no-unused-prop-types
   color: AvailableChartColorsKeys;
+  // eslint-disable-next-line react/no-unused-prop-types
   type?: string;
+  // eslint-disable-next-line react/no-unused-prop-types
   payload: any;
 };
 
@@ -685,7 +691,6 @@ const LineChart: React.ForwardRefExoticComponent<
         <ResponsiveContainer>
           <RechartsLineChart
             data={data}
-            
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
@@ -864,7 +869,6 @@ const LineChart: React.ForwardRefExoticComponent<
                       ? 0.3
                       : 1
                   }
-                  
                   activeDot={(props: any) => {
                     const {
                       cx: cxCoord,

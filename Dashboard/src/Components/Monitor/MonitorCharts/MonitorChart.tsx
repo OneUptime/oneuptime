@@ -23,6 +23,7 @@ import {
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import OneUptimeDate from "Common/Types/Date";
 
 export class MonitorCharts {
   public static getDataForCharts(data: {
@@ -228,7 +229,7 @@ export class MonitorCharts {
 
   private static getCurveFor(data: { checkOn: CheckOn }): ChartCurve {
     if (data.checkOn === CheckOn.ResponseStatusCode) {
-      return ChartCurve.STEP_AFTER;
+      return ChartCurve.STEP;
     }
 
     return ChartCurve.LINEAR;
@@ -264,11 +265,10 @@ export class MonitorCharts {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
     checkOn: CheckOn;
   }): XAxis {
-    const startTime: Date =
-      data.monitorMetricsByMinute[0]!.createdAt! || undefined;
-    const endTime: Date =
-      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]!
-        .createdAt! || undefined;
+    let startTime: Date | undefined =
+      data.monitorMetricsByMinute[0]?.createdAt || undefined;
+    let endTime : Date | undefined =
+      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]?.createdAt || undefined;
 
     let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 
@@ -290,6 +290,12 @@ export class MonitorCharts {
       data.checkOn === CheckOn.CPUUsagePercent
     ) {
       xAxisAggregationType = XAxisAggregateType.Average;
+    }
+
+
+    if(!startTime || !endTime) {
+      startTime = OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);  
+      endTime = OneUptimeDate.getCurrentDate();
     }
 
     return {
