@@ -267,8 +267,9 @@ export class MonitorCharts {
   }): XAxis {
     let startTime: Date | undefined =
       data.monitorMetricsByMinute[0]?.createdAt || undefined;
-    let endTime : Date | undefined =
-      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]?.createdAt || undefined;
+    let endTime: Date | undefined =
+      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]
+        ?.createdAt || undefined;
 
     let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 
@@ -292,9 +293,11 @@ export class MonitorCharts {
       xAxisAggregationType = XAxisAggregateType.Average;
     }
 
-
-    if(!startTime || !endTime) {
-      startTime = OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);  
+    if (!startTime || !endTime) {
+      startTime = OneUptimeDate.addRemoveHours(
+        OneUptimeDate.getCurrentDate(),
+        -1,
+      );
       endTime = OneUptimeDate.getCurrentDate();
     }
 

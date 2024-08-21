@@ -1,3 +1,4 @@
+import Text from "../../../../Types/Text";
 import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -22,6 +23,8 @@ export interface ComponentProps {
 const ChartGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const syncId: string = Text.generateRandomText(10);
+
   return (
     <div className="lg:grid grid-cols-1 gap-5">
       {props.charts.map((chart: Chart, index: number) => {
@@ -44,7 +47,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {chart.description}
                   </p>
                 )}
-                <LineChart key={index} {...chart.props} />
+                <LineChart key={index} {...chart.props} syncId={syncId} />
               </div>
             );
           default:

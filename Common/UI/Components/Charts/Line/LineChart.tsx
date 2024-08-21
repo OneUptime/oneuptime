@@ -15,13 +15,13 @@ export interface ComponentProps {
   sync: boolean;
 }
 
-const LineChartElement: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  if (!props.sync) {
-    return <></>;
-  }
+export interface LineInternalProps extends ComponentProps {
+  syncId: string;
+}
 
+const LineChartElement: FunctionComponent<LineInternalProps> = (
+  props: LineInternalProps,
+): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
 
   const categories: Array<string> = props.data.map((item: SeriesPoint) => {
@@ -64,6 +64,7 @@ const LineChartElement: FunctionComponent<ComponentProps> = (
       showTooltip={true}
       connectNulls={true}
       curve={props.curve}
+      syncId={props.sync ? props.syncId : undefined}
       yAxisWidth={60}
     />
   );
