@@ -4,6 +4,7 @@ import Metric from "./Metric";
 import MonitorMetricsByMinute from "./MonitorMetricsByMinute";
 import Span from "./Span";
 import TelemetryAttribute from "./TelemetryAttribute";
+import Exception from "./Exception";
 
 const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [
   Log,
@@ -11,6 +12,7 @@ const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [
   Metric,
   MonitorMetricsByMinute,
   TelemetryAttribute,
+  Exception
 ];
 
 export default AnalyticsModels;
