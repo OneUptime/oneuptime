@@ -12,7 +12,7 @@ const AnalyticsModels: Array<typeof AnalyticsBaseModel> = [
   Metric,
   MonitorMetricsByMinute,
   TelemetryAttribute,
-  Exception
+  Exception,
 ];
 
 export default AnalyticsModels;

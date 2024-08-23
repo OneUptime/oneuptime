@@ -2451,7 +2451,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
       {
         permission: Permission.CreateTelemetryServiceException,
         title: "Create Telemetry Service Exception",

@@ -16,6 +16,7 @@ import Text from "Common/Types/Text";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
+import ExceptionService from "Common/Server/Services/ExceptionService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -26,11 +27,17 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric, { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
-import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span, {
+  SpanEventType,
+  SpanKind,
+  SpanStatus,
+} from "Common/Models/AnalyticsModels/Span";
 import protobuf from "protobufjs";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import Exception from "Common/Models/AnalyticsModels/Exception";
+import ExceptionUtil from "../Utils/Exception";
 
 // Load proto file for OTel
 
@@ -120,6 +127,7 @@ router.post(
       const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
 
       const dbSpans: Array<Span> = [];
+      const dbExceptions: Array<Exception> = [];
 
       let attributes: string[] = [];
 
@@ -276,17 +284,41 @@ router.post(
                 const eventTime: Date =
                   OneUptimeDate.fromUnixNano(eventTimeUnixNano);
 
-                dbSpan.events.push({
-                  time: eventTime,
-                  timeUnixNano: eventTimeUnixNano,
-                  name: event["name"] as string,
-                  attributes: OTelIngestService.getAttributes({
+                const eventAttributes: JSONObject =
+                  OTelIngestService.getAttributes({
                     items: event["attributes"] as JSONArray,
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
                       serviceDictionary[serviceName]!.serviceId!,
-                  }),
+                  });
+
+                dbSpan.events.push({
+                  time: eventTime,
+                  timeUnixNano: eventTimeUnixNano,
+                  name: event["name"] as string,
+                  attributes: eventAttributes,
                 });
+
+                if (event["name"] === SpanEventType.Exception) {
+                  // add exception object.
+                  const exception: Exception = new Exception();
+                  exception.projectId = dbSpan.projectId;
+                  exception.serviceId = dbSpan.serviceId;
+                  exception.spanId = dbSpan.spanId;
+                  exception.traceId = dbSpan.traceId;
+                  exception.time = eventTime;
+                  exception.timeUnixNano = eventTimeUnixNano;
+                  exception.message = eventAttributes["message"] as string;
+                  exception.stackTrace = eventAttributes[
+                    "stacktrace"
+                  ] as string;
+                  exception.exceptionType = eventAttributes["type"] as string;
+                  exception.escapted = eventAttributes["escaped"] as boolean;
+                  exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+
+                  // add exception to dbExceptions
+                  dbExceptions.push(exception);
+                }
               }
             }
 
@@ -327,6 +359,8 @@ router.post(
           isRoot: true,
         },
       });
+
+      await ExceptionService;
 
       OTelIngestService.indexAttributes({
         attributes: ArrayUtil.removeDuplicates(attributes),
