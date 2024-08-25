@@ -898,6 +898,59 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Exceptions
+
+  [PageMap.TELEMETRY_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_VIEW]
+    }`,
+  ),
+
+  // Exceptions - Unresolved, Resolved, Archived.
+  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]
+    }`,
+  ),
+
+  // Service Exceptions - Unresolved, Resolved, Archived.
+
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]
+    }`,
+  ),
+
   [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_ROOT]

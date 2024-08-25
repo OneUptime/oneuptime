@@ -46,7 +46,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           ...props.query,
         }}
         showViewIdButton={false}
-        noItemsMessage={"No TelemetryException found for this service."}
+        noItemsMessage={"No exceptions found."}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
