@@ -20,6 +20,41 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       "Telemetry",
       "Metrics",
     ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS, [
+      "Project",
+      "Telemetry",
+      "Exceptions",
+    ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED, [
+      "Project",
+      "Telemetry",
+      "Exceptions",
+      "Archived",
+    ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS_RESOLVED, [
+      "Project",
+      "Telemetry",
+      "Exceptions",
+      "Resolved",
+    ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED, [
+      "Project",
+      "Telemetry",
+      "Exceptions",
+      "Unresolved",
+    ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS_VIEW, [
+      "Project",
+      "Telemetry",
+      "Exceptions",
+      "View Exception",
+    ]),
+
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_METRIC_VIEW, [
       "Project",
       "Telemetry",
@@ -67,6 +102,45 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Metrics",
     ]),
+
+    // service exceptions.
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS,
+      ["Project", "Telemetry", "Services", "View Service", "Exceptions"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED,
+      [
+        "Project",
+        "Telemetry",
+        "Services",
+        "View Service",
+        "Exceptions",
+        "Unresolved",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED,
+      [
+        "Project",
+        "Telemetry",
+        "Services",
+        "View Service",
+        "Exceptions",
+        "Resolved",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED,
+      [
+        "Project",
+        "Telemetry",
+        "Services",
+        "View Service",
+        "Exceptions",
+        "Archived",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_SERVICES_VIEW_TRACES, [
       "Project",
       "Telemetry",
