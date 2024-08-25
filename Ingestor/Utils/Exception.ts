@@ -1,6 +1,6 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
-import TelemetryExceptionStatusService from "Common/Server/Services/TelemetryExceptionStatusService";
+import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Crypto from "Common/Utils/Crypto";
@@ -48,7 +48,7 @@ export default class ExceptionUtil {
     // check if the exception with the same fingerprint already exists in the database
 
     const existingExceptionStatus: TelemetryException | null =
-      await TelemetryExceptionStatusService.findOneBy({
+      await TelemetryExceptionService.findOneBy({
         query: {
           fingerprint: fingerprint,
           projectId: exception.projectId,
@@ -64,7 +64,7 @@ export default class ExceptionUtil {
 
     if (existingExceptionStatus) {
       // then update last seen as and unmark as resolved/muted
-      await TelemetryExceptionStatusService.updateOneBy({
+      await TelemetryExceptionService.updateOneBy({
         query: {
           _id: existingExceptionStatus._id,
         },
@@ -101,7 +101,7 @@ export default class ExceptionUtil {
       }
 
       // Save the new exception status to the database
-      await TelemetryExceptionStatusService.create({
+      await TelemetryExceptionService.create({
         data: newExceptionStatus,
         props: {
           isRoot: true,

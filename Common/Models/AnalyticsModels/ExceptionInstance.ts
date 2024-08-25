@@ -42,7 +42,6 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           Permission.DeleteTelemetryException,
         ],
       },
-      pluralName: "Exceptions",
       crudApiPath: new Route("/exceptions"),
       tableColumns: [
         new AnalyticsTableColumn({
@@ -304,7 +303,6 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         "serviceId",
         "fingerprint",
         "time",
-        "exceptionType",
       ],
       primaryKeys: ["projectId", "serviceId", "fingerprint"],
     });
