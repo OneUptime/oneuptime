@@ -285,7 +285,7 @@ export const AnalyticsServices: Array<
   MetricService,
   MonitorMetricsByMinuteService,
   TelemetryAttributeService,
-  ExceptionInstanceService
+  ExceptionInstanceService,
 ];
 
 export default services;

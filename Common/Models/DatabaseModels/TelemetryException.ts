@@ -524,7 +524,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     nullable: true,
     unique: false,
   })
-  public markedAsMutedAt?: Date = undefined;
+  public markedAsArchivedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -802,7 +802,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   public markedAsResolvedByUserId?: ObjectID = undefined;
 
-  // Mark as muted by.
+  // Mark as archived by.
 
   @ColumnAccessControl({
     create: [
@@ -823,10 +823,10 @@ export default class TelemetryException extends DatabaseBaseModel {
     ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "markedAsMutedByUserId",
+    manyToOneRelationColumn: "markedAsArchivedByUserId",
     type: TableColumnType.Entity,
-    title: "Mark as Muted By User",
-    description: "Mark as muted by User",
+    title: "Mark as Archived By User",
+    description: "Mark as archived by User",
   })
   @ManyToOne(
     () => {
@@ -840,8 +840,8 @@ export default class TelemetryException extends DatabaseBaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "markedAsMutedByUserId" })
-  public markedAsMutedByUser?: User = undefined;
+  @JoinColumn({ name: "markedAsArchivedByUserId" })
+  public markedAsArchivedByUser?: User = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -863,13 +863,79 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "Mark as Muted By User ID",
-    description: "User ID who marked this exception as muted.",
+    title: "Mark as Archived By User ID",
+    description: "User ID who marked this exception as archived.",
   })
   @Column({
     type: ColumnType.ObjectID,
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public markedAsMutedByUserId?: ObjectID = undefined;
+  public markedAsArchivedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
+  })
+  @TableColumn({
+    title: "Is Resolved",
+    description: "Is this exception resolved?",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isResolved?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
+  })
+  @TableColumn({
+    title: "Is Archived",
+    description: "Is this exception archived?",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
 }

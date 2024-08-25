@@ -1,5 +1,6 @@
 enum IconProp {
   Equals = "Equals",
+  Archive = "Archive",
   File = "File",
   Automation = "Automation",
   Workflow = "Workflow",

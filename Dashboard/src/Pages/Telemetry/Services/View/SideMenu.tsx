@@ -71,6 +71,44 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.ChartBar}
         />
       </SideMenuSection>
+      <SideMenuSection title="Exceptions">
+        <SideMenuItem
+          link={{
+            title: "Unresolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+        <SideMenuItem
+          link={{
+            title: "Resolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Check}
+        />
+        <SideMenuItem
+          link={{
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Archive}
+        />
+      </SideMenuSection>
       <SideMenuSection title="Views">
         <SideMenuItem
           link={{

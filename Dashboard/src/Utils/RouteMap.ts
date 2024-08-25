@@ -62,6 +62,10 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_TRACES]: "traces",
   [PageMap.TELEMETRY_METRICS]: "metrics",
   [PageMap.TELEMETRY_DASHBOARDS]: "dashboards",
+  [PageMap.TELEMETRY_EXCEPTIONS]: "exceptions/unresolved",
+  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: "exceptions/resolved",
+  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: "exceptions/unresolved",
+  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: "exceptions/archived",
   [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: "services",
 
   [PageMap.TELEMETRY_METRIC_ROOT]: `metric`,
@@ -69,6 +73,9 @@ export const TelemetryRoutePath: Dictionary<string> = {
 
   [PageMap.TELEMETRY_TRACE_ROOT]: `traces/view`,
   [PageMap.TELEMETRY_TRACE_VIEW]: `traces/view/${RouteParams.ModelID}`, // modelID is spanId
+
+  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exception`,
+  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exception/view/${RouteParams.ModelID}`,
 
   [PageMap.TELEMETRY_LOG_ROOT]: `logs`,
 
@@ -82,6 +89,11 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `services/${RouteParams.ModelID}/dashboards`,
   [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `services/${RouteParams.ModelID}/settings`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: `services/${RouteParams.ModelID}/documentation`,
+
+  // service exceptions.
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: `services/${RouteParams.ModelID}/exceptions/archived`,
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: `services/${RouteParams.ModelID}/exceptions/unresolved`,
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: `services/${RouteParams.ModelID}/exceptions/resolved`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
