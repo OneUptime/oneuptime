@@ -54,10 +54,10 @@ enum Permission {
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
 
   // Exceptions
-  CreateTelemetryServiceException = "CreateTelemetryServiceException",
-  DeleteTelemetryServiceException = "DeleteTelemetryServiceException",
-  EditTelemetryServiceException = "EditTelemetryServiceException",
-  ReadTelemetryServiceException = "ReadTelemetryServiceException",
+  CreateTelemetryException = "CreateTelemetryException",
+  DeleteTelemetryException = "DeleteTelemetryException",
+  EditTelemetryException = "EditTelemetryException",
+  ReadTelemetryException = "ReadTelemetryException",
 
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
@@ -2452,7 +2452,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateTelemetryServiceException,
+        permission: Permission.CreateTelemetryException,
         title: "Create Telemetry Service Exception",
         description:
           "This permission can create Telemetry Service Exception this project.",
@@ -2460,7 +2460,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteTelemetryServiceException,
+        permission: Permission.DeleteTelemetryException,
         title: "Delete Telemetry Service Exception",
         description:
           "This permission can delete Telemetry Service Exception of this project.",
@@ -2468,7 +2468,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditTelemetryServiceException,
+        permission: Permission.EditTelemetryException,
         title: "Edit Telemetry Service Exception",
         description:
           "This permission can edit Telemetry Service Exception of this project.",
@@ -2476,7 +2476,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadTelemetryServiceException,
+        permission: Permission.ReadTelemetryException,
         title: "Read Telemetry Service Exception",
         description:
           "This permission can read Telemetry Service Exception of this project.",

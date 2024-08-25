@@ -20,25 +20,25 @@ export default class Exception extends AnalyticsBaseModel {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
-          Permission.ReadTelemetryServiceException,
+          Permission.ReadTelemetryException,
         ],
         create: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
-          Permission.CreateTelemetryServiceException,
+          Permission.CreateTelemetryException,
         ],
         update: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
-          Permission.EditTelemetryServiceException,
+          Permission.EditTelemetryException,
         ],
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.ProjectMember,
-          Permission.DeleteTelemetryServiceException,
+          Permission.DeleteTelemetryException,
         ],
       },
       pluralName: "Exceptions",
@@ -56,13 +56,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -79,13 +79,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -102,13 +102,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -125,13 +125,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -148,13 +148,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -171,13 +171,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -194,20 +194,20 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
         }),
 
         new AnalyticsTableColumn({
-          key: "escapted",
+          key: "escaped",
           title: "Exception Escaped",
           description: "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
           required: false,
@@ -217,13 +217,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -240,13 +240,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -263,13 +263,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -286,13 +286,13 @@ export default class Exception extends AnalyticsBaseModel {
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.ReadTelemetryServiceException,
+              Permission.ReadTelemetryException,
             ],
             create: [
               Permission.ProjectOwner,
               Permission.ProjectAdmin,
               Permission.ProjectMember,
-              Permission.CreateTelemetryServiceException,
+              Permission.CreateTelemetryException,
             ],
             update: [],
           },
@@ -381,12 +381,12 @@ export default class Exception extends AnalyticsBaseModel {
     this.setColumnValue("message", v);
   }
 
-  public get escapted(): boolean | undefined {
-    return this.getColumnValue("escapted") as boolean | undefined;
+  public get escaped(): boolean | undefined {
+    return this.getColumnValue("escaped") as boolean | undefined;
   }
 
-  public set escapted(v: boolean | undefined) {
-    this.setColumnValue("escapted", v);
+  public set escaped(v: boolean | undefined) {
+    this.setColumnValue("escaped", v);
   }
 
   public get fingerprint(): string | undefined {

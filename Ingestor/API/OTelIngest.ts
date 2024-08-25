@@ -313,7 +313,7 @@ router.post(
                     "stacktrace"
                   ] as string;
                   exception.exceptionType = eventAttributes["type"] as string;
-                  exception.escapted = eventAttributes["escaped"] as boolean;
+                  exception.escaped = eventAttributes["escaped"] as boolean;
                   exception.fingerprint = ExceptionUtil.getFingerprint(exception);
 
                   // add exception to dbExceptions
