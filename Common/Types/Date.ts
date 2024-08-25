@@ -13,6 +13,10 @@ export default class OneUptimeDate {
     return seconds * 1000 * 1000 * 1000;
   }
 
+  public static now(): Date {
+    return this.getCurrentDate();
+  }
+
   public static getDateFromYYYYMMDD(
     year: string,
     month: string,

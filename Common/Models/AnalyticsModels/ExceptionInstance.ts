@@ -6,12 +6,13 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 
-export default class Exception extends AnalyticsBaseModel {
+export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "ExceptionTelemetry",
+      tableName: "ExceptionInstanceTelemetry",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Exception",
+      pluralName: "Exceptions",
       enableRealtimeEventsOn: {
         create: true,
       },

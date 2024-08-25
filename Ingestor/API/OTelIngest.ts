@@ -7,7 +7,7 @@ import OTelIngestService, {
   TelemetryServiceDataIngested,
 } from "../Service/OTelIngest";
 import OneUptimeDate from "Common/Types/Date";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
+import BadRequestException from "Common/Types/ExceptionInstance/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -36,7 +36,7 @@ import protobuf from "protobufjs";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
-import Exception from "Common/Models/AnalyticsModels/Exception";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import ExceptionUtil from "../Utils/Exception";
 
 // Load proto file for OTel
@@ -127,7 +127,7 @@ router.post(
       const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
 
       const dbSpans: Array<Span> = [];
-      const dbExceptions: Array<Exception> = [];
+      const dbExceptions: Array<ExceptionInstance> = [];
 
       let attributes: string[] = [];
 
@@ -301,7 +301,7 @@ router.post(
 
                 if (event["name"] === SpanEventType.Exception) {
                   // add exception object.
-                  const exception: Exception = new Exception();
+                  const exception: ExceptionInstance = new ExceptionInstance();
                   exception.projectId = dbSpan.projectId;
                   exception.serviceId = dbSpan.serviceId;
                   exception.spanId = dbSpan.spanId;
@@ -314,10 +314,15 @@ router.post(
                   ] as string;
                   exception.exceptionType = eventAttributes["type"] as string;
                   exception.escaped = eventAttributes["escaped"] as boolean;
-                  exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+                  exception.fingerprint =
+                    ExceptionUtil.getFingerprint(exception);
 
                   // add exception to dbExceptions
                   dbExceptions.push(exception);
+
+                  // save exception status
+                  // maybe this can be improved instead of doing a lot of db calls.
+                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
                 }
               }
             }
@@ -360,7 +365,12 @@ router.post(
         },
       });
 
-      await ExceptionService;
+      await ExceptionService.createMany({
+        items: dbExceptions,
+        props: {
+          isRoot: true,
+        },
+      });
 
       OTelIngestService.indexAttributes({
         attributes: ArrayUtil.removeDuplicates(attributes),

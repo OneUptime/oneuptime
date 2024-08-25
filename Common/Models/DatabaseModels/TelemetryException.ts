@@ -53,17 +53,17 @@ import TelemetryService from "./TelemetryService";
 })
 @CrudApiEndpoint(new Route("/telemetry-exception-status"))
 @TableMetadata({
-  tableName: "TelemetryExceptionStatus",
-  singularName: "TelemetryExceptionStatus",
+  tableName: "TelemetryException",
+  singularName: "TelemetryException",
   pluralName: "TelemetryExceptionsStatus",
   icon: IconProp.Error,
   tableDescription:
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",
 })
 @Entity({
-  name: "TelemetryExceptionStatus",
+  name: "TelemetryException",
 })
-export default class TelemetryExceptionStatus extends DatabaseBaseModel {
+export default class TelemetryException extends DatabaseBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -127,7 +127,6 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -233,7 +232,6 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public message?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -257,14 +255,14 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: false,
     title: "Stack Trace",
-    description: "Stack trace of the exception that was thrown by the telemetry service",
+    description:
+      "Stack trace of the exception that was thrown by the telemetry service",
   })
   @Column({
     nullable: true,
     type: ColumnType.LongText,
   })
   public stackTrace?: string = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -289,7 +287,8 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: false,
     title: "Exception Type",
-    description: "Type of the exception that was thrown by the telemetry service",
+    description:
+      "Type of the exception that was thrown by the telemetry service",
   })
   @Column({
     nullable: true,
@@ -297,6 +296,7 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public exceptionType?: string = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -320,14 +320,15 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: false,
     title: "Finger Print",
-    description: "Finger print of the exception that was thrown by the telemetry service",
+    description:
+      "Finger print of the exception that was thrown by the telemetry service",
   })
   @Column({
     nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public fingerPrint?: string = undefined;
+  public fingerprint?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -393,14 +394,22 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "deletedByUserId",
@@ -425,14 +434,22 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public deletedByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -447,19 +464,23 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-   @ColumnAccessControl({
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-      Permission.InviteProjectTeamMembers,
+      Permission.CreateTelemetryException,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ReadProjectTeam,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
     ],
-    update: [Permission.CurrentUser],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     required: false,
@@ -474,21 +495,23 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public markedAsResolvedAt?: Date = undefined;
 
-
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-      Permission.InviteProjectTeamMembers,
+      Permission.CreateTelemetryException,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ReadProjectTeam,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
     ],
-    update: [Permission.CurrentUser],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     required: false,
@@ -503,20 +526,23 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public markedAsMutedAt?: Date = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-      Permission.InviteProjectTeamMembers,
+      Permission.CreateTelemetryException,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ReadProjectTeam,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
     ],
-    update: [Permission.CurrentUser],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     required: false,
@@ -535,15 +561,19 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectTeam,
-      Permission.InviteProjectTeamMembers,
+      Permission.CreateTelemetryException,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ReadProjectTeam,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
     ],
-    update: [Permission.CurrentUser],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     required: false,
@@ -558,24 +588,30 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public lastSeenAt?: Date = undefined;
 
-
-  // assign to. 
+  // assign to.
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "assignToUserId",
     type: TableColumnType.Entity,
     title: "Assign to User",
-    description:
-      "Relation to User who this exception is assigned to.",
+    description: "Relation to User who this exception is assigned to.",
   })
   @ManyToOne(
     () => {
@@ -593,20 +629,27 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public assignToUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Assign to User ID",
-    description:
-      "User ID who this exception is assigned to.",
+    description: "User ID who this exception is assigned to.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -615,27 +658,32 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public assignToUserId?: ObjectID = undefined;
 
+  // assign to team.
 
-
-  // assign to team. 
-
-  // assign to. 
+  // assign to.
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "assignToTeamId",
     type: TableColumnType.Entity,
     title: "Assign to Team",
-    description:
-      "Relation to Team who this exception is assigned to.",
+    description: "Relation to Team who this exception is assigned to.",
   })
   @ManyToOne(
     () => {
@@ -653,20 +701,27 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public assignToTeam?: Team = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Assign to Team ID",
-    description:
-      "Team ID who this exception is assigned to.",
+    description: "Team ID who this exception is assigned to.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -675,18 +730,25 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public assignToTeamId?: ObjectID = undefined;
 
-
-  // mark as resolved by. 
+  // mark as resolved by.
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "markedAsResolvedByUserId",
@@ -711,20 +773,27 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public markedAsResolvedByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Marked as Resolved By User ID",
-    description:
-      "User ID who marked this exception as resolved.",
+    description: "User ID who marked this exception as resolved.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -733,26 +802,31 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   })
   public markedAsResolvedByUserId?: ObjectID = undefined;
 
-
-
   // Mark as muted by.
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "markedAsMutedByUserId",
     type: TableColumnType.Entity,
     title: "Mark as Muted By User",
-    description:
-      "Mark as muted by User",
+    description: "Mark as muted by User",
   })
   @ManyToOne(
     () => {
@@ -770,20 +844,27 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
   public markedAsMutedByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryException,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Mark as Muted By User ID",
-    description:
-      "User ID who marked this exception as muted.",
+    description: "User ID who marked this exception as muted.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -791,8 +872,4 @@ export default class TelemetryExceptionStatus extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public markedAsMutedByUserId?: ObjectID = undefined;
-
-
-
-
 }

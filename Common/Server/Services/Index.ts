@@ -130,6 +130,7 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import CopilotPullRequestService from "./CopilotPullRequestService";
 import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
 import TelemetryAttributeService from "./TelemetryAttributeService";
+import TelemetryExceptionStatusService from "./TelemetryExceptionStatusService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -271,6 +272,8 @@ const services: Array<BaseService> = [
   CopilotActionService,
   ServiceCopilotCodeRepositoryService,
   CopilotPullRequestService,
+
+  TelemetryExceptionStatusService,
 ];
 
 export const AnalyticsServices: Array<

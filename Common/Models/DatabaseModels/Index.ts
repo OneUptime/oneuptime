@@ -135,7 +135,7 @@ import UserTwoFactorAuth from "./UserTwoFactorAuth";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
-import TelemetryExceptionStatus from "./TelemetryExceptionStatus";
+import TelemetryException from "./TelemetryException";
 
 export default [
   User,
@@ -292,5 +292,5 @@ export default [
 
   TelemetryIngestionKey,
 
-  TelemetryExceptionStatus
+  TelemetryException,
 ];
