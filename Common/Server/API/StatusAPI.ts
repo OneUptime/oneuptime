@@ -1,3 +1,4 @@
+import { SpanStatusCode } from "@opentelemetry/api";
 import LocalCache from "../Infrastructure/LocalCache";
 import Express, {
   ExpressRequest,
@@ -6,9 +7,10 @@ import Express, {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
-import Telemetry from "../Utils/Telemetry";
+import Telemetry, { Span } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
+
 
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
@@ -92,7 +94,16 @@ export default class StatusAPI {
     router.get(
       "/status/live",
       async (req: ExpressRequest, res: ExpressResponse) => {
+
+        const span: Span = Telemetry.startSpan({
+          name: "status.live",
+          attributes: {
+            "status": "live"
+          }
+        });
+
         try {
+
           logger.debug("Live check");
           await options.readyCheck();
           logger.info("Live check: ok");
@@ -100,7 +111,18 @@ export default class StatusAPI {
           Response.sendJsonObjectResponse(req, res, {
             status: "ok",
           });
+
         } catch (e) {
+
+          // record exception
+          span.recordException(e as Exception);
+
+          // set span status
+          span.setStatus({
+            code: SpanStatusCode.OK,
+            message: "Live check failed"
+          });
+
           this.stausLiveFailed.add(1);
           Response.sendErrorResponse(
             req,
@@ -109,6 +131,8 @@ export default class StatusAPI {
               ? e
               : new ServerException("Server is not ready"),
           );
+        } finally {
+          span.end();
         }
       },
     );

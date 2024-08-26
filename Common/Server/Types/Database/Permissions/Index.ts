@@ -1,3 +1,4 @@
+import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
 import Query from "../Query";
 import Select from "../Select";
 import CreatePermission from "./CreatePermission";
@@ -6,7 +7,7 @@ import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import UpdatePermission from "./UpdatePermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+
 
 export default class ModelPermission {
   public static async checkDeletePermissionByModel<

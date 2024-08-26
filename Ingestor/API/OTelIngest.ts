@@ -7,7 +7,7 @@ import OTelIngestService, {
   TelemetryServiceDataIngested,
 } from "../Service/OTelIngest";
 import OneUptimeDate from "Common/Types/Date";
-import BadRequestException from "Common/Types/ExceptionInstance/BadRequestException";
+import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -16,7 +16,7 @@ import Text from "Common/Types/Text";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
-import ExceptionService from "Common/Server/Services/ExceptionService";
+import ExceptionInstanceService from "Common/Server/Services//ExceptionInstanceService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -365,7 +365,7 @@ router.post(
         },
       });
 
-      await ExceptionService.createMany({
+      await ExceptionInstanceService.createMany({
         items: dbExceptions,
         props: {
           isRoot: true,

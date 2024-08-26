@@ -59,8 +59,8 @@ import Typeof from "../../Types/Typeof";
 import API from "Common/Utils/API";
 import Slug from "Common/Utils/Slug";
 import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };

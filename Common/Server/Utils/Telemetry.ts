@@ -28,6 +28,9 @@ import Dictionary from "Common/Types/Dictionary";
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
+export type Span = opentelemetry.api.Span
+export type SpanStatus = opentelemetry.api.SpanStatus
+
 export default class Telemetry {
   public static sdk: opentelemetry.NodeSDK | null = null;
   public static logger: Logger | null = null;
@@ -279,4 +282,20 @@ export default class Telemetry {
 
     return histogram;
   }
+
+  public static getTracer(): opentelemetry.api.Tracer {
+    const tracer: opentelemetry.api.Tracer = OpenTelemetryAPI.trace.getTracer("default");
+    return tracer;
+  }
+
+  public static startSpan(data: {
+    name: string;
+    attributes?: opentelemetry.api.Attributes;
+  }): Span {
+    const { name, attributes } = data;
+
+    const span: Span = this.getTracer().startSpan(name, attributes);
+    return span;
+  }
+
 }
