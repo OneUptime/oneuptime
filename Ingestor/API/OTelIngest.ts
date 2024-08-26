@@ -308,12 +308,22 @@ router.post(
                   exception.traceId = dbSpan.traceId;
                   exception.time = eventTime;
                   exception.timeUnixNano = eventTimeUnixNano;
-                  exception.message = eventAttributes["message"] as string;
-                  exception.stackTrace = eventAttributes[
-                    "stacktrace"
-                  ] as string;
-                  exception.exceptionType = eventAttributes["type"] as string;
-                  exception.escaped = eventAttributes["escaped"] as boolean;
+                  exception.message = (eventAttributes["exception.message"] as string) || "";
+                  exception.stackTrace = (eventAttributes["exception.stacktrace"] as string) || "";
+                  exception.exceptionType = (eventAttributes["exception.type"] as string) || "";
+                  exception.escaped = (eventAttributes["exception.escaped"] as boolean) || false;
+                  const exceptionAttributes: JSONObject = {
+                    ...eventAttributes,
+                  };
+
+                  for(const keys of Object.keys(exceptionAttributes)) {
+                    // delete all keys that start with exception to avoid duplicate keys because we already saved it. 
+                    if(keys.startsWith("exception.")) {
+                      delete exceptionAttributes[keys];
+                    }
+                  }
+
+                  exception.attributes = exceptionAttributes;
                   exception.fingerprint =
                     ExceptionUtil.getFingerprint(exception);
 
@@ -322,7 +332,7 @@ router.post(
 
                   // save exception status
                   // maybe this can be improved instead of doing a lot of db calls.
-                  // await ExceptionUtil.saveOrUpdateTelemetryException(exception);
+                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
                 }
               }
             }

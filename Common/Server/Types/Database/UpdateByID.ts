@@ -3,7 +3,6 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import ObjectID from "Common/Types/ObjectID";
 import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 
-
 export default interface UpdateBy<TBaseModel extends BaseModel> {
   id: ObjectID;
   data: QueryDeepPartialEntity<TBaseModel>;

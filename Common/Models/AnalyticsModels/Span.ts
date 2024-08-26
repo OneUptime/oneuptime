@@ -16,8 +16,8 @@ export enum SpanKind {
 }
 
 export enum SpanEventType {
-  Exception = "Exception",
-  Event = "Event",
+  Exception = "exception",
+  Event = "event",
 }
 
 export enum SpanStatus {

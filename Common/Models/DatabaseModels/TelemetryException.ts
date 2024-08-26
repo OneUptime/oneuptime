@@ -938,4 +938,38 @@ export default class TelemetryException extends DatabaseBaseModel {
     default: false,
   })
   public isArchived?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTelemetryException,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadTelemetryException,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTelemetryException,
+    ],
+  })
+  @TableColumn({
+    title: "Occurances",
+    description: "Number of times this exception has occured",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 1,
+  })
+  public occuranceCount?: number = undefined;
+
 }

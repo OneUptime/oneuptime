@@ -25,12 +25,7 @@ export class MigrationName1724613666632 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" ADD "isArchived" boolean NOT NULL DEFAULT false`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
-    );
+    
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" ADD CONSTRAINT "FK_3def22373f0cb84e16cb355b5e5" FOREIGN KEY ("markedAsArchivedByUserId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
@@ -39,12 +34,6 @@ export class MigrationName1724613666632 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" DROP CONSTRAINT "FK_3def22373f0cb84e16cb355b5e5"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
     );
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" DROP COLUMN "isArchived"`,

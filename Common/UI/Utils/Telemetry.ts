@@ -19,9 +19,7 @@ import URL from "Common/Types/API/URL";
 
 export default class Telemetry {
   public static init(data: { serviceName: string }): void {
-
-
-    if(DisableTelemetry){
+    if (DisableTelemetry) {
       return;
     }
 

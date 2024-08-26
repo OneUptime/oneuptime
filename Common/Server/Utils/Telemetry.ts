@@ -29,8 +29,14 @@ import { DisableTelemetry } from "../EnvironmentConfig";
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
-export type Span = opentelemetry.api.Span
-export type SpanStatus = opentelemetry.api.SpanStatus
+export type Span = opentelemetry.api.Span;
+export type SpanStatus = opentelemetry.api.SpanStatus;
+
+export enum SpanStatusCode {
+    UNSET = 0,
+    OK = 1,
+    ERROR = 2
+}
 
 export default class Telemetry {
   public static sdk: opentelemetry.NodeSDK | null = null;
@@ -104,9 +110,10 @@ export default class Telemetry {
     });
   }
 
-  public static init(data: { serviceName: string }): opentelemetry.NodeSDK | null {
-
-    if(DisableTelemetry){
+  public static init(data: {
+    serviceName: string;
+  }): opentelemetry.NodeSDK | null {
+    if (DisableTelemetry) {
       return null;
     }
 
@@ -290,7 +297,8 @@ export default class Telemetry {
   }
 
   public static getTracer(): opentelemetry.api.Tracer {
-    const tracer: opentelemetry.api.Tracer = OpenTelemetryAPI.trace.getTracer("default");
+    const tracer: opentelemetry.api.Tracer =
+      OpenTelemetryAPI.trace.getTracer("default");
     return tracer;
   }
 
@@ -303,5 +311,4 @@ export default class Telemetry {
     const span: Span = this.getTracer().startSpan(name, attributes);
     return span;
   }
-
 }

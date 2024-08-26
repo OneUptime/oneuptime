@@ -297,6 +297,31 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
             update: [],
           },
         }),
+
+
+        new AnalyticsTableColumn({
+          key: "attributes",
+          title: "Attributes",
+          description: "Attributes",
+          required: true,
+          defaultValue: {},
+          type: TableColumnType.JSON,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryException,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryException,
+            ],
+            update: [],
+          },
+        }),
       ],
       sortKeys: ["projectId", "serviceId", "fingerprint", "time"],
       primaryKeys: ["projectId", "serviceId", "fingerprint"],
@@ -389,5 +414,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set fingerprint(v: string | undefined) {
     this.setColumnValue("fingerprint", v);
+  }
+
+  public get attributes(): Record<string, any> {
+    return this.getColumnValue("attributes") as Record<string, any>;
+  }
+
+  public set attributes(v: Record<string, any>) {
+    this.setColumnValue("attributes", v);
   }
 }

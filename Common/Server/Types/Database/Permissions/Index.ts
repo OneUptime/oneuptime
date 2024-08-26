@@ -8,7 +8,6 @@ import UpdatePermission from "./UpdatePermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
-
 export default class ModelPermission {
   public static async checkDeletePermissionByModel<
     TBaseModel extends BaseModel,
