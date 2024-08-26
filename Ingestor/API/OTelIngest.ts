@@ -308,17 +308,21 @@ router.post(
                   exception.traceId = dbSpan.traceId;
                   exception.time = eventTime;
                   exception.timeUnixNano = eventTimeUnixNano;
-                  exception.message = (eventAttributes["exception.message"] as string) || "";
-                  exception.stackTrace = (eventAttributes["exception.stacktrace"] as string) || "";
-                  exception.exceptionType = (eventAttributes["exception.type"] as string) || "";
-                  exception.escaped = (eventAttributes["exception.escaped"] as boolean) || false;
+                  exception.message =
+                    (eventAttributes["exception.message"] as string) || "";
+                  exception.stackTrace =
+                    (eventAttributes["exception.stacktrace"] as string) || "";
+                  exception.exceptionType =
+                    (eventAttributes["exception.type"] as string) || "";
+                  exception.escaped =
+                    (eventAttributes["exception.escaped"] as boolean) || false;
                   const exceptionAttributes: JSONObject = {
                     ...eventAttributes,
                   };
 
-                  for(const keys of Object.keys(exceptionAttributes)) {
-                    // delete all keys that start with exception to avoid duplicate keys because we already saved it. 
-                    if(keys.startsWith("exception.")) {
+                  for (const keys of Object.keys(exceptionAttributes)) {
+                    // delete all keys that start with exception to avoid duplicate keys because we already saved it.
+                    if (keys.startsWith("exception.")) {
                       delete exceptionAttributes[keys];
                     }
                   }

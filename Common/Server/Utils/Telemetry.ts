@@ -33,9 +33,9 @@ export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;
 
 export enum SpanStatusCode {
-    UNSET = 0,
-    OK = 1,
-    ERROR = 2
+  UNSET = 0,
+  OK = 1,
+  ERROR = 2,
 }
 
 export default class Telemetry {

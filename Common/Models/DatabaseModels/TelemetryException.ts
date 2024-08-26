@@ -971,5 +971,4 @@ export default class TelemetryException extends DatabaseBaseModel {
     default: 1,
   })
   public occuranceCount?: number = undefined;
-
 }

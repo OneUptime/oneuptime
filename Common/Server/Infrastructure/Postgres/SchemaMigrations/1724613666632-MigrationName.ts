@@ -25,7 +25,7 @@ export class MigrationName1724613666632 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" ADD "isArchived" boolean NOT NULL DEFAULT false`,
     );
-    
+
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" ADD CONSTRAINT "FK_3def22373f0cb84e16cb355b5e5" FOREIGN KEY ("markedAsArchivedByUserId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );

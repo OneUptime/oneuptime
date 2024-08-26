@@ -298,7 +298,6 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           },
         }),
 
-
         new AnalyticsTableColumn({
           key: "attributes",
           title: "Attributes",
