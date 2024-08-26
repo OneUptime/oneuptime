@@ -24,6 +24,7 @@ import { SpanExporter } from "@opentelemetry/sdk-trace-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
+import { DisableTelemetry } from "../EnvironmentConfig";
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -103,7 +104,12 @@ export default class Telemetry {
     });
   }
 
-  public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
+  public static init(data: { serviceName: string }): opentelemetry.NodeSDK | null {
+
+    if(DisableTelemetry){
+      return null;
+    }
+
     if (!this.sdk) {
       const headers: Dictionary<string> = this.getHeaders();
 

@@ -255,3 +255,6 @@ export const AccountsClientUrl: URL = new URL(
   Host,
   AccountsRoute,
 );
+
+
+export const DisableTelemetry: boolean = process.env["DISABLE_TELEMETRY"] === "true";

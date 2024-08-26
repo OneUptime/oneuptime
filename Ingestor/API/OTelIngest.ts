@@ -322,7 +322,7 @@ router.post(
 
                   // save exception status
                   // maybe this can be improved instead of doing a lot of db calls.
-                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
+                  // await ExceptionUtil.saveOrUpdateTelemetryException(exception);
                 }
               }
             }

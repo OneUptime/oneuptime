@@ -10,6 +10,7 @@ import Response from "../Utils/Response";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 
 export interface StatusAPIOptions {
@@ -108,6 +109,9 @@ export default class StatusAPI {
           await options.readyCheck();
           logger.info("Live check: ok");
           this.stausLiveSuccess.add(1);
+
+          throw new BadDataException("Bad data");
+
           Response.sendJsonObjectResponse(req, res, {
             status: "ok",
           });

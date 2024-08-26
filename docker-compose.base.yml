@@ -25,7 +25,6 @@ x-common-variables: &common-variables
     ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
     SERVER_ACCOUNTS_HOSTNAME: accounts
-    SERVER_REALTIME_HOSTNAME: realtime
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
@@ -175,7 +174,7 @@ services:
         environment: 
             <<: *common-ui-variables
             PORT: ${ACCOUNTS_PORT}
-
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ACCOUNTS}
         logging:
             driver: "local"
             options:
@@ -205,7 +204,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${ADMIN_DASHBOARD_PORT}
-
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ADMIN_DASHBOARD}
         logging:
             driver: "local"
             options:
@@ -218,7 +217,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${DASHBOARD_PORT}
-
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_DASHBOARD}
         logging:
             driver: "local"
             options:
@@ -233,6 +232,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${STATUS_PAGE_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_STATUS_PAGE}
         logging:
             driver: "local"
             options:
@@ -247,6 +247,7 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${TEST_SERVER_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
         logging:
             driver: "local"
             options:
@@ -267,6 +268,7 @@ services:
             INTERNAL_SMTP_EMAIL: ${INTERNAL_SMTP_EMAIL}
             INTERNAL_SMTP_FROM_NAME: ${INTERNAL_SMTP_FROM_NAME}
             INTERNAL_SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
         logging:
             driver: "local"
             options:
@@ -287,6 +289,7 @@ services:
             PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
         logging:
             driver: "local"
             options:
@@ -307,6 +310,7 @@ services:
             PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
         logging:
             driver: "local"
             options:
@@ -340,6 +344,7 @@ services:
         environment:
             PORT: ${ISOLATED_VM_PORT}
             ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ISOLATED_VM}
         logging:
             driver: "local"
             options:
@@ -352,6 +357,7 @@ services:
         environment:
             <<: *common-server-variables
             PORT: ${INGESTOR_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGESTOR}
         logging:
             driver: "local"
             options:
@@ -397,6 +403,7 @@ services:
         environment:
             <<: *common-server-variables
             ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
         ports:
             - '${ONEUPTIME_HTTP_PORT}:7849'
             - '${STATUS_PAGE_HTTPS_PORT}:7850'
