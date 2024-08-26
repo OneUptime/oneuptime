@@ -283,7 +283,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
       (field.fieldType === FieldType.HTML ||
         field.fieldType === FieldType.CSS ||
         field.fieldType === FieldType.JSON ||
-        field.fieldType === FieldType.JavaScript)
+        field.fieldType === FieldType.JavaScript ||
+        field.fieldType === FieldType.Code)
     ) {
       let codeType: CodeType = CodeType.HTML;
 
@@ -313,6 +314,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
       if (field.fieldType === FieldType.JavaScript) {
         codeType = CodeType.JavaScript;
+      }
+
+      if (field.fieldType === FieldType.Code) {
+        codeType = CodeType.Text;
       }
 
       data = (

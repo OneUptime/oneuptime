@@ -54,8 +54,8 @@ import TelemetryService from "./TelemetryService";
 @CrudApiEndpoint(new Route("/telemetry-exception-status"))
 @TableMetadata({
   tableName: "TelemetryException",
-  singularName: "TelemetryException",
-  pluralName: "TelemetryExceptionsStatus",
+  singularName: "Exception",
+  pluralName: "Exceptions",
   icon: IconProp.Error,
   tableDescription:
     "List of all Telemetry Exceptions created for the telemetry service for this OneUptime project and it's status.",

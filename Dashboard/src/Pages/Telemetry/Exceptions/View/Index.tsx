@@ -1,15 +1,17 @@
-import MetricExplorer from "../../../../Components/Metrics/MetricExplorer";
+import Navigation from "Common/UI/Utils/Navigation";
+import ExceptionExplorer from "../../../../Components/Exceptions/ExceptionExplorer";
 import PageComponentProps from "../../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ObjectID from "Common/Types/ObjectID";
 
 const TelemetryMetricViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const exceptionId: string = Navigation.getLastParamAsString(0);
+
   return (
     <Fragment>
-      <div className="mb-10">
-        <MetricExplorer />
-      </div>
+      <ExceptionExplorer telemetryExceptionId={new ObjectID(exceptionId)} />
     </Fragment>
   );
 };

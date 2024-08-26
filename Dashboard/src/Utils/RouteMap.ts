@@ -75,7 +75,7 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_TRACE_VIEW]: `traces/view/${RouteParams.ModelID}`, // modelID is spanId
 
   [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exception`,
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exception/view/${RouteParams.ModelID}`,
+  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exception/${RouteParams.ModelID}`,
 
   [PageMap.TELEMETRY_LOG_ROOT]: `logs`,
 
@@ -946,7 +946,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]
@@ -1008,7 +1007,7 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // view exceptions. 
+  // view exceptions.
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]

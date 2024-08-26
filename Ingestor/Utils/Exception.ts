@@ -56,6 +56,7 @@ export default class ExceptionUtil {
         },
         select: {
           _id: true,
+          occuranceCount: true,
         },
         props: {
           isRoot: true,
@@ -72,6 +73,7 @@ export default class ExceptionUtil {
           lastSeenAt: OneUptimeDate.now(),
           markedAsResolvedByUserId: null,
           markedAsResolvedAt: null, // unmark as resolved if it was marked as resolved
+          occuranceCount: (existingExceptionStatus.occuranceCount || 0) + 1,
         },
         props: {
           isRoot: true,
@@ -87,6 +89,7 @@ export default class ExceptionUtil {
       newExceptionStatus.telemetryServiceId = exception.serviceId;
       newExceptionStatus.lastSeenAt = OneUptimeDate.now();
       newExceptionStatus.firstSeenAt = OneUptimeDate.now();
+      newExceptionStatus.occuranceCount = 1;
 
       if (exception.exceptionType) {
         newExceptionStatus.exceptionType = exception.exceptionType;

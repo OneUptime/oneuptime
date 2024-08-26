@@ -165,12 +165,6 @@ const TelemetryServicesViewDocumentation: LazyExoticComponent<
   return import("../Pages/Telemetry/Services/View/Documentation");
 });
 
-const TelemetryExceptionView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Exceptions/View/Index");
-});
-
 const TelemetryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -200,7 +194,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-
 
         <PageRoute
           path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
@@ -299,25 +292,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
         />
       </PageRoute>
 
-      {/** Exception View */}
-
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT] || ""}
-        element={<TelemetryExceptionViewLayout {...props} />}
-      >
-        <PageRoute
-          path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_VIEW] || ""}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryExceptionView
-                {...props}
-                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_VIEW] as Route}
-              />
-            </Suspense>
-          }
-        />
-      </PageRoute>
-
       {/* Metric View */}
 
       <PageRoute
@@ -349,12 +323,11 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
         />
       </PageRoute>
 
-
       {/** Exception View */}
 
       <PageRoute
         path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT] || ""}
-        element={<TelemetryTraceLayout {...props} />}
+        element={<TelemetryExceptionViewLayout {...props} />}
       >
         <PageRoute
           index
@@ -473,7 +446,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
+                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
                   ] as Route
                 }
               />
@@ -492,7 +465,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
+                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
                   ] as Route
                 }
               />
@@ -510,9 +483,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
               <TelemetryServiceViewException
                 {...props}
                 pageRoute={
-                  RouteMap[
-                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION
-                  ] as Route
+                  RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION] as Route
                 }
               />
             </Suspense>
@@ -530,7 +501,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
+                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
                   ] as Route
                 }
               />
@@ -646,7 +617,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                    PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
                   ] as Route
                 }
               />
