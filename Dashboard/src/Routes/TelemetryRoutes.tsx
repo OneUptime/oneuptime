@@ -419,7 +419,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED,
+            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED, 2
           )}
           element={
             <Suspense fallback={Loader}>
@@ -437,7 +437,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED,
+            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED,2
           )}
           element={
             <Suspense fallback={Loader}>
@@ -455,7 +455,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED,
+            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED,2
           )}
           element={
             <Suspense fallback={Loader}>

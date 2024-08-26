@@ -18,7 +18,7 @@ import ExceptionsTable from "../../../../../Components/Exceptions/ExceptionsTabl
 const MetricsTablePage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
   const [telemetryService, setTelemetryService] =
     useState<TelemetryService | null>(null);
