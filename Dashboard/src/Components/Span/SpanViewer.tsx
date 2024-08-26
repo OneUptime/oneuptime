@@ -30,6 +30,8 @@ import Span, {
 } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { JSONObject } from "Common/Types/JSON";
+import Text from "Common/Types/Text";
 
 export interface ComponentProps {
   id: string;
@@ -302,6 +304,26 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     return (
       <AccordionGroup>
         {eventsToShow.map((event: SpanEvent, index: number) => {
+          let eventName: string | undefined = event.name;
+
+          if (eventName === SpanEventType.Exception) {
+            // then show message as name.
+
+            eventName = (event.attributes as JSONObject)?.[
+              "exception.message"
+            ]?.toString();
+
+            if (!eventName) {
+              eventName = (event.attributes as JSONObject)?.[
+                "exception.type"
+              ]?.toString();
+
+              if (!eventName) {
+                eventName = "Exception";
+              }
+            }
+          }
+
           return (
             <Accordion
               titleClassName="text-sm"
@@ -311,10 +333,10 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     <div
                       className={`rounded-md text-white p-1 text-xs font-semibold ${bgColorClassName}`}
                     >
-                      {eventType}: {index + 1}
+                      {Text.uppercaseFirstLetter(eventType)}: {index + 1}
                     </div>
                     <div className="flex space-x-1">
-                      <div className="mt-0.5 font-medium">{event.name}</div>
+                      <div className="mt-0.5 font-medium">{eventName}</div>
                       <div className="text-gray-500 mt-0.5">
                         {" "}
                         at{" "}

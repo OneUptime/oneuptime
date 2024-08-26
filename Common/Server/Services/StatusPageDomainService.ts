@@ -251,10 +251,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
 
         return true;
-      } else{
-        logger.debug("CNAME verification fails for http endpoint");
-        logger.debug(result.data);
       }
+      logger.debug("CNAME verification fails for http endpoint");
+      logger.debug(result.data);
+
       logger.debug("CNAME verification failed for http endpoint");
       logger.debug(result);
 
@@ -277,10 +277,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
 
         return true;
-      } else{
-        logger.debug("CNAME verification fails for https endpoint");
-        logger.debug(result.data);
       }
+      logger.debug("CNAME verification fails for https endpoint");
+      logger.debug(result.data);
+
       logger.debug("CNAME verification fails for https endpoint");
       logger.debug(result.data);
 
