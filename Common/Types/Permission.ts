@@ -53,6 +53,12 @@ enum Permission {
   EditTelemetryServiceLog = "EditTelemetryServiceLog",
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
 
+  // Exceptions
+  CreateTelemetryException = "CreateTelemetryException",
+  DeleteTelemetryException = "DeleteTelemetryException",
+  EditTelemetryException = "EditTelemetryException",
+  ReadTelemetryException = "ReadTelemetryException",
+
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
   DeleteTelemetryServiceTraces = "DeleteTelemetryServiceTraces",
@@ -2441,6 +2447,39 @@ export class PermissionHelper {
         title: "Read Telemetry Service Log",
         description:
           "This permission can read Telemetry Service Log of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateTelemetryException,
+        title: "Create Telemetry Service Exception",
+        description:
+          "This permission can create Telemetry Service Exception this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTelemetryException,
+        title: "Delete Telemetry Service Exception",
+        description:
+          "This permission can delete Telemetry Service Exception of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTelemetryException,
+        title: "Edit Telemetry Service Exception",
+        description:
+          "This permission can edit Telemetry Service Exception of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTelemetryException,
+        title: "Read Telemetry Service Exception",
+        description:
+          "This permission can read Telemetry Service Exception of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

@@ -16,6 +16,7 @@ import Text from "Common/Types/Text";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
+import ExceptionInstanceService from "Common/Server/Services//ExceptionInstanceService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -26,11 +27,17 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric, { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
-import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Span, {
+  SpanEventType,
+  SpanKind,
+  SpanStatus,
+} from "Common/Models/AnalyticsModels/Span";
 import protobuf from "protobufjs";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import ExceptionUtil from "../Utils/Exception";
 
 // Load proto file for OTel
 
@@ -120,6 +127,7 @@ router.post(
       const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
 
       const dbSpans: Array<Span> = [];
+      const dbExceptions: Array<ExceptionInstance> = [];
 
       let attributes: string[] = [];
 
@@ -276,17 +284,60 @@ router.post(
                 const eventTime: Date =
                   OneUptimeDate.fromUnixNano(eventTimeUnixNano);
 
-                dbSpan.events.push({
-                  time: eventTime,
-                  timeUnixNano: eventTimeUnixNano,
-                  name: event["name"] as string,
-                  attributes: OTelIngestService.getAttributes({
+                const eventAttributes: JSONObject =
+                  OTelIngestService.getAttributes({
                     items: event["attributes"] as JSONArray,
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
                       serviceDictionary[serviceName]!.serviceId!,
-                  }),
+                  });
+
+                dbSpan.events.push({
+                  time: eventTime,
+                  timeUnixNano: eventTimeUnixNano,
+                  name: event["name"] as string,
+                  attributes: eventAttributes,
                 });
+
+                if (event["name"] === SpanEventType.Exception) {
+                  // add exception object.
+                  const exception: ExceptionInstance = new ExceptionInstance();
+                  exception.projectId = dbSpan.projectId;
+                  exception.serviceId = dbSpan.serviceId;
+                  exception.spanId = dbSpan.spanId;
+                  exception.traceId = dbSpan.traceId;
+                  exception.time = eventTime;
+                  exception.timeUnixNano = eventTimeUnixNano;
+                  exception.message =
+                    (eventAttributes["exception.message"] as string) || "";
+                  exception.stackTrace =
+                    (eventAttributes["exception.stacktrace"] as string) || "";
+                  exception.exceptionType =
+                    (eventAttributes["exception.type"] as string) || "";
+                  exception.escaped =
+                    (eventAttributes["exception.escaped"] as boolean) || false;
+                  const exceptionAttributes: JSONObject = {
+                    ...eventAttributes,
+                  };
+
+                  for (const keys of Object.keys(exceptionAttributes)) {
+                    // delete all keys that start with exception to avoid duplicate keys because we already saved it.
+                    if (keys.startsWith("exception.")) {
+                      delete exceptionAttributes[keys];
+                    }
+                  }
+
+                  exception.attributes = exceptionAttributes;
+                  exception.fingerprint =
+                    ExceptionUtil.getFingerprint(exception);
+
+                  // add exception to dbExceptions
+                  dbExceptions.push(exception);
+
+                  // save exception status
+                  // maybe this can be improved instead of doing a lot of db calls.
+                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
+                }
               }
             }
 
@@ -323,6 +374,13 @@ router.post(
 
       await SpanService.createMany({
         items: dbSpans,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await ExceptionInstanceService.createMany({
+        items: dbExceptions,
         props: {
           isRoot: true,
         },

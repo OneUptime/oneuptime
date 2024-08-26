@@ -76,7 +76,15 @@ router.get(
       //get list of monitors to be monitored
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
-          query: getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
+          query: {
+            ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
+            nextPingAt: QueryHelper.lessThanEqualToOrNull(
+              OneUptimeDate.addRemoveMinutes(
+                OneUptimeDate.getCurrentDate(),
+                -3,
+              ),
+            ),
+          },
           sort: {
             nextPingAt: SortOrder.Ascending,
           },
@@ -229,7 +237,15 @@ router.get(
       //get list of monitors to be monitored
       const firstMonitorToBeFetched: MonitorProbe | null =
         await MonitorProbeService.findOneBy({
-          query: getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
+          query: {
+            ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
+            nextPingAt: QueryHelper.lessThanEqualToOrNull(
+              OneUptimeDate.addRemoveMinutes(
+                OneUptimeDate.getCurrentDate(),
+                -3,
+              ),
+            ),
+          },
           select: {
             nextPingAt: true,
             monitorId: true,

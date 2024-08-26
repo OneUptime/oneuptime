@@ -50,6 +50,35 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           icon={IconProp.ChartBar}
         />
       </SideMenuSection>
+      <SideMenuSection title="Exceptions">
+        <SideMenuItem
+          link={{
+            title: "Unresolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED] as Route,
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+        <SideMenuItem
+          link={{
+            title: "Resolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED] as Route,
+            ),
+          }}
+          icon={IconProp.Check}
+        />
+        <SideMenuItem
+          link={{
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED] as Route,
+            ),
+          }}
+          icon={IconProp.Archive}
+        />
+      </SideMenuSection>
       <SideMenuSection title="Views">
         <SideMenuItem
           link={{

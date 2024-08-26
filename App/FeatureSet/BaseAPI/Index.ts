@@ -319,6 +319,14 @@ import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
 } from "Common/Server/Services/ProbeOwnerUserService";
 
+import TelemetryExceptionService, {
+  Service as TelemetryExceptionServiceType,
+} from "Common/Server/Services/TelemetryExceptionService";
+
+import ExceptionInstanceService, {
+  ExceptionInstanceService as ExceptionInstanceServiceType,
+} from "Common/Server/Services/ExceptionInstanceService";
+
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -415,6 +423,8 @@ import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -427,6 +437,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
         TelemetryAttribute,
         TelemetryAttributeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<ExceptionInstance, ExceptionInstanceServiceType>(
+        ExceptionInstance,
+        ExceptionInstanceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetyException, TelemetryExceptionServiceType>(
+        TelemetyException,
+        TelemetryExceptionService,
       ).getRouter(),
     );
 

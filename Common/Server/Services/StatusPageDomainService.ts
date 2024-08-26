@@ -255,6 +255,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug("CNAME verification fails for http endpoint");
         logger.debug(result.data);
       }
+      logger.debug("CNAME verification failed for http endpoint");
+      logger.debug(result);
 
       // try with https
 
@@ -279,6 +281,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug("CNAME verification fails for https endpoint");
         logger.debug(result.data);
       }
+      logger.debug("CNAME verification fails for https endpoint");
+      logger.debug(result.data);
 
       await this.updateCnameStatusForStatusPageDomain({
         domain: fullDomain,

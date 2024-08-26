@@ -1,4 +1,5 @@
 import {
+  DisableTelemetry,
   OpenTelemetryExporterOtlpEndpoint,
   OpenTelemetryExporterOtlpHeaders,
 } from "../Config";
@@ -18,6 +19,10 @@ import URL from "Common/Types/API/URL";
 
 export default class Telemetry {
   public static init(data: { serviceName: string }): void {
+    if (DisableTelemetry) {
+      return;
+    }
+
     const hasHeaders: boolean =
       Object.keys(OpenTelemetryExporterOtlpHeaders).length > 0;
 

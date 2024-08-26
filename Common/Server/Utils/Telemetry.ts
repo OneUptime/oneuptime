@@ -24,9 +24,19 @@ import { SpanExporter } from "@opentelemetry/sdk-trace-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
+import { DisableTelemetry } from "../EnvironmentConfig";
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+
+export type Span = opentelemetry.api.Span;
+export type SpanStatus = opentelemetry.api.SpanStatus;
+
+export enum SpanStatusCode {
+  UNSET = 0,
+  OK = 1,
+  ERROR = 2,
+}
 
 export default class Telemetry {
   public static sdk: opentelemetry.NodeSDK | null = null;
@@ -100,7 +110,13 @@ export default class Telemetry {
     });
   }
 
-  public static init(data: { serviceName: string }): opentelemetry.NodeSDK {
+  public static init(data: {
+    serviceName: string;
+  }): opentelemetry.NodeSDK | null {
+    if (DisableTelemetry) {
+      return null;
+    }
+
     if (!this.sdk) {
       const headers: Dictionary<string> = this.getHeaders();
 
@@ -278,5 +294,21 @@ export default class Telemetry {
       this.getMeter().createHistogram(name, metricOptions);
 
     return histogram;
+  }
+
+  public static getTracer(): opentelemetry.api.Tracer {
+    const tracer: opentelemetry.api.Tracer =
+      OpenTelemetryAPI.trace.getTracer("default");
+    return tracer;
+  }
+
+  public static startSpan(data: {
+    name: string;
+    attributes?: opentelemetry.api.Attributes;
+  }): Span {
+    const { name, attributes } = data;
+
+    const span: Span = this.getTracer().startSpan(name, attributes);
+    return span;
   }
 }

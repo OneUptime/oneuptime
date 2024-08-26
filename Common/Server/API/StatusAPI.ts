@@ -6,7 +6,7 @@ import Express, {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
-import Telemetry from "../Utils/Telemetry";
+import Telemetry, { Span, SpanStatusCode } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 
@@ -92,15 +92,32 @@ export default class StatusAPI {
     router.get(
       "/status/live",
       async (req: ExpressRequest, res: ExpressResponse) => {
+        const span: Span = Telemetry.startSpan({
+          name: "status.live",
+          attributes: {
+            status: "live",
+          },
+        });
+
         try {
           logger.debug("Live check");
           await options.readyCheck();
           logger.info("Live check: ok");
           this.stausLiveSuccess.add(1);
+
           Response.sendJsonObjectResponse(req, res, {
             status: "ok",
           });
         } catch (e) {
+          // record exception
+          span.recordException(e as Exception);
+
+          // set span status
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: "Live check failed",
+          });
+
           this.stausLiveFailed.add(1);
           Response.sendErrorResponse(
             req,
@@ -109,6 +126,8 @@ export default class StatusAPI {
               ? e
               : new ServerException("Server is not ready"),
           );
+        } finally {
+          span.end();
         }
       },
     );

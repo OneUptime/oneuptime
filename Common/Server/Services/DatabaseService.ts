@@ -59,7 +59,6 @@ import Typeof from "../../Types/Typeof";
 import API from "Common/Utils/API";
 import Slug from "Common/Utils/Slug";
 import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -427,10 +426,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   private async sanitizeCreateOrUpdate(
-    data: TBaseModel | QueryDeepPartialEntity<TBaseModel>,
+    data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     isUpdate: boolean = false,
-  ): Promise<TBaseModel | QueryDeepPartialEntity<TBaseModel>> {
+  ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
     data = this.checkMaxLengthOfFields(data as TBaseModel);
 
     const columns: Columns = this.model.getTableColumns();
@@ -1274,12 +1273,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.props,
       );
 
-      const data: QueryDeepPartialEntity<TBaseModel> =
+      const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(
           beforeUpdateBy.data,
           updateBy.props,
           true,
-        )) as QueryDeepPartialEntity<TBaseModel>;
+        )) as PartialEntity<TBaseModel>;
 
       if (!(updateBy.skip instanceof PositiveNumber)) {
         updateBy.skip = new PositiveNumber(updateBy.skip);

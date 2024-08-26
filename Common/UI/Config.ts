@@ -209,3 +209,5 @@ const getOpenTelemetryExporterOtlpHeaders: GetOpenTelemetryExporterOtlpHeadersFu
 
 export const OpenTelemetryExporterOtlpHeaders: Dictionary<string> =
   getOpenTelemetryExporterOtlpHeaders();
+
+export const DisableTelemetry: boolean = env("DISABLE_TELEMETRY") === "true";
