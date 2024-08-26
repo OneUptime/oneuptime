@@ -1,23 +1,17 @@
-import { getTelemetryBreadcrumbs } from "../../../../Utils/Breadcrumbs";
-import { RouteUtil } from "../../../../Utils/RouteMap";
+import MetricExplorer from "../../../../Components/Metrics/MetricExplorer";
 import PageComponentProps from "../../../PageComponentProps";
-import Page from "Common/UI/Components/Page/Page";
-import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
-import { Outlet } from "react-router-dom";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const MetricsLayout: FunctionComponent<
+const TelemetryMetricViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
-    <Page
-      title="Exception Explorer"
-      breadcrumbLinks={getTelemetryBreadcrumbs(path)}
-    >
-      <Outlet />
-    </Page>
+    <Fragment>
+      <div className="mb-10">
+        <MetricExplorer />
+      </div>
+    </Fragment>
   );
 };
 
-export default MetricsLayout;
+export default TelemetryMetricViewPage;

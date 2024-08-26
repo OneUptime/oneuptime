@@ -52,10 +52,22 @@ const TelemetryExceptionsResolved: LazyExoticComponent<
   return import("../Pages/Telemetry/Exceptions/Resolved");
 });
 
+const TelemetryServiceViewException: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Services/View/Exceptions/View/Index");
+});
+
 const TelemetryExceptionsArchived: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Telemetry/Exceptions/Archived");
+});
+
+const TelemetryViewException: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Exceptions/View/Index");
 });
 
 const TelemetryMetrics: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -188,6 +200,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
 
         <PageRoute
           path={TelemetryRoutePath[PageMap.TELEMETRY_TRACES] || ""}
@@ -336,6 +349,38 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
         />
       </PageRoute>
 
+
+      {/** Exception View */}
+
+      <PageRoute
+        path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT] || ""}
+        element={<TelemetryTraceLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewException
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TELEMETRY_EXCEPTIONS_VIEW)}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryViewException
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
       {/* Trace View */}
 
       <PageRoute
@@ -428,7 +473,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
+                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
                   ] as Route
                 }
               />
@@ -447,7 +492,26 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
+                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryServiceViewException
+                {...props}
+                pageRoute={
+                  RouteMap[
+                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION
                   ] as Route
                 }
               />
@@ -466,7 +530,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
+                  PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
                   ] as Route
                 }
               />
@@ -582,7 +646,7 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
+                  PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION
                   ] as Route
                 }
               />

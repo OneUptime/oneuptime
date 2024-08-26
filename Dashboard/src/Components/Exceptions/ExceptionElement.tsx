@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -18,7 +19,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="rounded bg-emerald-200">
+      <div className="rounded bg-red-200 h-6 w-6 p-1">
         <Icon icon={IconProp.Check} className="text-emerald-600" />
       </div>
     );
@@ -26,14 +27,16 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
 
   const getUnresolvedIcon: GetReactElementFunction = (): ReactElement => {
     if (!props.isResolved && !props.isArchived) {
-      return <></>;
+      return (
+        <Tooltip text="Unresolved Exception">
+          <div className="rounded bg-red-200 h-6 w-6 p-1">
+            <Icon icon={IconProp.Alert} className="text-red-600" />
+          </div>
+        </Tooltip>
+      );
     }
 
-    return (
-      <div className="rounded bg-red-200">
-        <Icon icon={IconProp.Alert} className="text-red-600" />
-      </div>
-    );
+    return <></>;
   };
 
   const getArchivedIcon: GetReactElementFunction = (): ReactElement => {
@@ -42,18 +45,18 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="rounded bg-gray-200">
+      <div className="rounded bg-red-200 h-6 w-6 p-1">
         <Icon icon={IconProp.Archive} className="text-gray-600" />
       </div>
     );
   };
 
   return (
-    <div className={`font-mono flex truncate`}>
+    <div className={` flex truncate`}>
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}
-      {props.message}
+      <div className="mt-0.5 ml-2 font-mono">{props.message}</div>
     </div>
   );
 };

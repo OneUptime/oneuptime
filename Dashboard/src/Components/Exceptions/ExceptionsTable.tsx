@@ -2,13 +2,15 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import DashboardNavigation from "../../Utils/Navigation";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 import TelemetryExceptionElement from "./ExceptionElement";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;
@@ -20,6 +22,19 @@ export interface ComponentProps {
 const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  let viewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT]!,
+  );
+
+  if (props.telemetryServiceId) {
+    viewRoute = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]!,
+      {
+        modelId: props.telemetryServiceId,
+      },
+    );
+  }
+
   return (
     <Fragment>
       <ModelTable<TelemetryException>
@@ -48,7 +63,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         showViewIdButton={false}
         noItemsMessage={"No exceptions found."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        viewPageRoute={viewRoute}
         filters={[
           {
             field: {
