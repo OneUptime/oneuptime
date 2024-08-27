@@ -11,7 +11,6 @@ import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
-import OneUptimeDate from "../../Types/Date";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -95,7 +94,6 @@ export default class Queue {
     options?: {
       scheduleAt?: string | undefined;
       repeatableKey?: string | undefined;
-      
     },
   ): Promise<Job> {
     const optionsObject: JobsOptions = {

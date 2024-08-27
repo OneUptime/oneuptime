@@ -31,20 +31,17 @@ const RunCron: RunCronFunction = (
     {},
     {
       scheduleAt: options.schedule,
-      
     },
   ).catch((err: Error) => {
     return logger.error(err);
   });
 
   if (options.runOnStartup) {
-   Queue.addJob(QueueName.Worker, jobName, jobName, {
-    
-    }, {
-      
-    }).catch((err: Error) => {
-      return logger.error(err);
-    });
+    Queue.addJob(QueueName.Worker, jobName, jobName, {}, {}).catch(
+      (err: Error) => {
+        return logger.error(err);
+      },
+    );
   }
 };
 

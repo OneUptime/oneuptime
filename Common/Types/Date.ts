@@ -6,11 +6,9 @@ import PositiveNumber from "./PositiveNumber";
 import moment from "moment-timezone";
 import Timezone from "./Timezone";
 
-
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-
   public static convertMinutesToMilliseconds(minutes: number): number {
     return minutes * 60 * 1000;
   }
