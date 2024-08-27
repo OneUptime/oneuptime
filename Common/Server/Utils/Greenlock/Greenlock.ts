@@ -85,208 +85,217 @@ export default class GreenlockUtil {
   }
 
   public static async removeDomain(domain: string): Promise<void> {
-    const span: Span = Telemetry.startSpan({
-      name: "GreenlockUtil.removeDomain",
-      attributes: {
-        domain: domain,
-      },
-    });
-
-    try {
-      // remove certificate for this domain.
-      await AcmeCertificateService.deleteBy({
-        query: {
+    return await Telemetry.startActiveSpan<Promise<void>>({
+      name: "GreenlockUtil.orderCert",
+      options: {
+        attributes: {
           domain: domain,
         },
-        limit: 1,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      },
+      fn: async (span: Span): Promise<void> => {
+        try {
+          // remove certificate for this domain.
+          await AcmeCertificateService.deleteBy({
+            query: {
+              domain: domain,
+            },
+            limit: 1,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
 
-      Telemetry.endSpan(span);
-    } catch (err) {
-      logger.error(`Error removing domain: ${domain}`);
+          Telemetry.endSpan(span);
+        } catch (err) {
+          logger.error(`Error removing domain: ${domain}`);
 
-      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
-        span,
-        exception: err,
-      });
+          Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+            span,
+            exception: err,
+          });
 
-      throw err;
-    }
+          throw err;
+        }
+      },
+    });
   }
 
   public static async orderCert(data: {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;
   }): Promise<void> {
-    const span: Span = Telemetry.startSpan({
+    return await Telemetry.startActiveSpan<Promise<void>>({
       name: "GreenlockUtil.orderCert",
-      attributes: {
-        domain: data.domain,
+      options: {
+        attributes: {
+          domain: data.domain,
+        },
       },
-    });
+      fn: async (span: Span): Promise<void> => {
+        try {
+          let { domain } = data;
 
-    try {
-      let { domain } = data;
+          domain = domain.trim().toLowerCase();
 
-      domain = domain.trim().toLowerCase();
+          const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 
-      const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
+          if (!acmeAccountKeyInBase64) {
+            throw new ServerException(
+              "No lets encrypt account key found in environment variables. Please add one.",
+            );
+          }
 
-      if (!acmeAccountKeyInBase64) {
-        throw new ServerException(
-          "No lets encrypt account key found in environment variables. Please add one.",
-        );
-      }
+          let acmeAccountKey: string = Buffer.from(
+            acmeAccountKeyInBase64,
+            "base64",
+          ).toString();
 
-      let acmeAccountKey: string = Buffer.from(
-        acmeAccountKeyInBase64,
-        "base64",
-      ).toString();
+          acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
 
-      acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
+          //validate cname
 
-      //validate cname
+          const isValidCname: boolean = await data.validateCname(domain);
 
-      const isValidCname: boolean = await data.validateCname(domain);
+          if (!isValidCname) {
+            await GreenlockUtil.removeDomain(domain);
+            logger.error(`Cname is not valid for domain: ${domain}`);
+            throw new BadDataException(
+              "Cname is not valid for domain " + domain,
+            );
+          }
 
-      if (!isValidCname) {
-        await GreenlockUtil.removeDomain(domain);
-        logger.error(`Cname is not valid for domain: ${domain}`);
-        throw new BadDataException("Cname is not valid for domain " + domain);
-      }
+          const client: acme.Client = new acme.Client({
+            directoryUrl: acme.directory.letsencrypt.production,
+            accountKey: acmeAccountKey,
+          });
 
-      const client: acme.Client = new acme.Client({
-        directoryUrl: acme.directory.letsencrypt.production,
-        accountKey: acmeAccountKey,
-      });
+          const [certificateKey, certificateRequest] =
+            await acme.crypto.createCsr({
+              commonName: domain,
+            });
 
-      const [certificateKey, certificateRequest] = await acme.crypto.createCsr({
-        commonName: domain,
-      });
+          const certificate: string = await client.auto({
+            csr: certificateRequest,
+            email: LetsEncryptNotificationEmail.toString(),
+            termsOfServiceAgreed: true,
+            challengePriority: ["http-01"], // only http-01 challenge is supported by oneuptime
+            challengeCreateFn: async (
+              authz: acme.Authorization,
+              challenge: Challenge,
+              keyAuthorization: string,
+            ) => {
+              // Satisfy challenge here
+              /* http-01 */
+              if (challenge.type === "http-01") {
+                const acmeChallenge: AcmeChallenge = new AcmeChallenge();
+                acmeChallenge.challenge = keyAuthorization;
+                acmeChallenge.token = challenge.token;
+                acmeChallenge.domain = authz.identifier.value;
 
-      const certificate: string = await client.auto({
-        csr: certificateRequest,
-        email: LetsEncryptNotificationEmail.toString(),
-        termsOfServiceAgreed: true,
-        challengePriority: ["http-01"], // only http-01 challenge is supported by oneuptime
-        challengeCreateFn: async (
-          authz: acme.Authorization,
-          challenge: Challenge,
-          keyAuthorization: string,
-        ) => {
-          // Satisfy challenge here
-          /* http-01 */
-          if (challenge.type === "http-01") {
-            const acmeChallenge: AcmeChallenge = new AcmeChallenge();
-            acmeChallenge.challenge = keyAuthorization;
-            acmeChallenge.token = challenge.token;
-            acmeChallenge.domain = authz.identifier.value;
+                await AcmeChallengeService.create({
+                  data: acmeChallenge,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              }
+            },
+            challengeRemoveFn: async (
+              authz: acme.Authorization,
+              challenge: Challenge,
+            ) => {
+              // Clean up challenge here
 
-            await AcmeChallengeService.create({
-              data: acmeChallenge,
+              if (challenge.type === "http-01") {
+                await AcmeChallengeService.deleteBy({
+                  query: {
+                    domain: authz.identifier.value,
+                  },
+                  limit: 1,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              }
+            },
+          });
+
+          // get expires at date from certificate
+          const cert: acme.CertificateInfo =
+            acme.crypto.readCertificateInfo(certificate);
+          const issuedAt: Date = cert.notBefore;
+          const expiresAt: Date = cert.notAfter;
+
+          // check if the certificate is already in the database.
+          const existingCertificate: AcmeCertificate | null =
+            await AcmeCertificateService.findOneBy({
+              query: {
+                domain: domain,
+              },
+              select: {
+                _id: true,
+              },
               props: {
                 isRoot: true,
               },
             });
-          }
-        },
-        challengeRemoveFn: async (
-          authz: acme.Authorization,
-          challenge: Challenge,
-        ) => {
-          // Clean up challenge here
 
-          if (challenge.type === "http-01") {
-            await AcmeChallengeService.deleteBy({
+          if (existingCertificate) {
+            // update the certificate
+            await AcmeCertificateService.updateBy({
               query: {
-                domain: authz.identifier.value,
+                domain: domain,
               },
               limit: 1,
               skip: 0,
+              data: {
+                certificate: certificate.toString(),
+                certificateKey: certificateKey.toString(),
+                issuedAt: issuedAt,
+                expiresAt: expiresAt,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          } else {
+            // create the certificate
+            const acmeCertificate: AcmeCertificate = new AcmeCertificate();
+
+            acmeCertificate.domain = domain;
+            acmeCertificate.certificate = certificate.toString();
+            acmeCertificate.certificateKey = certificateKey.toString();
+            acmeCertificate.issuedAt = issuedAt;
+            acmeCertificate.expiresAt = expiresAt;
+
+            await AcmeCertificateService.create({
+              data: acmeCertificate,
               props: {
                 isRoot: true,
               },
             });
           }
-        },
-      });
 
-      // get expires at date from certificate
-      const cert: acme.CertificateInfo =
-        acme.crypto.readCertificateInfo(certificate);
-      const issuedAt: Date = cert.notBefore;
-      const expiresAt: Date = cert.notAfter;
+          Telemetry.endSpan(span);
+        } catch (e) {
+          logger.error(`Error ordering certificate for domain: ${data.domain}`);
 
-      // check if the certificate is already in the database.
-      const existingCertificate: AcmeCertificate | null =
-        await AcmeCertificateService.findOneBy({
-          query: {
-            domain: domain,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+          Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+            span,
+            exception: e,
+          });
 
-      if (existingCertificate) {
-        // update the certificate
-        await AcmeCertificateService.updateBy({
-          query: {
-            domain: domain,
-          },
-          limit: 1,
-          skip: 0,
-          data: {
-            certificate: certificate.toString(),
-            certificateKey: certificateKey.toString(),
-            issuedAt: issuedAt,
-            expiresAt: expiresAt,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      } else {
-        // create the certificate
-        const acmeCertificate: AcmeCertificate = new AcmeCertificate();
+          if (e instanceof Exception) {
+            throw e;
+          }
 
-        acmeCertificate.domain = domain;
-        acmeCertificate.certificate = certificate.toString();
-        acmeCertificate.certificateKey = certificateKey.toString();
-        acmeCertificate.issuedAt = issuedAt;
-        acmeCertificate.expiresAt = expiresAt;
-
-        await AcmeCertificateService.create({
-          data: acmeCertificate,
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
-      Telemetry.endSpan(span);
-    } catch (e) {
-      logger.error(`Error ordering certificate for domain: ${data.domain}`);
-
-      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
-        span,
-        exception: e,
-      });
-
-      if (e instanceof Exception) {
-        throw e;
-      }
-
-      throw new ServerException(
-        `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
-      );
-    }
+          throw new ServerException(
+            `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
+          );
+        }
+      },
+    });
   }
 }

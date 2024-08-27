@@ -39,27 +39,28 @@ RunCron(
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
   },
   async () => {
-    const span: Span = Telemetry.startSpan({
+    return await Telemetry.startActiveSpan<Promise<void>>({
       name: "StatusPageCerts:OrderSSL",
-      attributes: {
-        jobName: "StatusPageCerts:OrderSSL",
+      options: {
+        attributes: {
+          schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
+          runOnStartup: true,
+          timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
+        },
+      },
+      fn: async (span: Span): Promise<void> => {
+        try {
+          await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+          Telemetry.endSpan(span);
+        } catch (err) {
+          Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+            span,
+            exception: err,
+          });
+          throw err;
+        }
       },
     });
-
-    try {
-      await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
-
-      Telemetry.endSpan(span);
-    } catch (err) {
-      logger.error(err);
-
-      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
-        span,
-        exception: err,
-      });
-
-      throw err;
-    }
   },
 );
 

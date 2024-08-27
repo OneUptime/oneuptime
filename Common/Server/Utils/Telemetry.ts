@@ -33,6 +33,7 @@ import logger from "./Logger";
 export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;
 export type SpanException = opentelemetry.api.Exception;
+export type SpanOptions = opentelemetry.api.SpanOptions;
 
 export enum SpanStatusCode {
   UNSET = 0,
@@ -304,14 +305,14 @@ export default class Telemetry {
     return tracer;
   }
 
-  public static startSpan(data: {
+  public static startActiveSpan<T>(data: {
     name: string;
-    attributes?: opentelemetry.api.Attributes;
-  }): Span {
-    const { name, attributes } = data;
+    options?: SpanOptions | undefined;
+    fn: (span: Span) => T;
+  }): T {
+    const { name } = data;
 
-    const span: Span = this.getTracer().startSpan(name, attributes);
-    return span;
+    return this.getTracer().startActiveSpan(name, data.options || {}, data.fn);
   }
 
   public static recordExceptionMarkSpanAsErrorAndEndSpan(data: {

@@ -27,57 +27,60 @@ const RunCron: RunCronFunction = (
   },
   runFunction: PromiseVoidFunction,
 ): void => {
-  const span: Span = Telemetry.startSpan({
+  return Telemetry.startActiveSpan<void>({
     name: "RunCron",
-    attributes: {
-      jobName: jobName,
-      "options.schedule": options.schedule,
-      "options.runOnStartup": options.runOnStartup,
+    options: {
+      attributes: {
+        jobName: jobName,
+        "options.schedule": options.schedule,
+        "options.runOnStartup": options.runOnStartup,
+      },
+    },
+    fn: (span: Span): void => {
+      try {
+        JobDictionary.setJobFunction(jobName, runFunction);
+
+        if (options.timeoutInMS) {
+          JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
+        }
+
+        logger.debug("Adding job to the queue: " + jobName);
+
+        Queue.addJob(
+          QueueName.Worker,
+          jobName,
+          jobName,
+          {},
+          {
+            scheduleAt: options.schedule,
+          },
+        ).catch((err: Error) => {
+          return logger.error(err);
+        });
+
+        if (options.runOnStartup) {
+          Queue.addJob(QueueName.Worker, jobName, jobName, {}, {}).catch(
+            (err: Error) => {
+              return logger.error(err);
+            },
+          );
+        }
+      } catch (err) {
+        // log this error
+        logger.error(err);
+
+        // record exception
+        span.recordException(err as SpanException);
+
+        // set span status
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+        });
+      } finally {
+        span.end();
+      }
     },
   });
-
-  try {
-    JobDictionary.setJobFunction(jobName, runFunction);
-
-    if (options.timeoutInMS) {
-      JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
-    }
-
-    logger.debug("Adding job to the queue: " + jobName);
-
-    Queue.addJob(
-      QueueName.Worker,
-      jobName,
-      jobName,
-      {},
-      {
-        scheduleAt: options.schedule,
-      },
-    ).catch((err: Error) => {
-      return logger.error(err);
-    });
-
-    if (options.runOnStartup) {
-      Queue.addJob(QueueName.Worker, jobName, jobName, {}, {}).catch(
-        (err: Error) => {
-          return logger.error(err);
-        },
-      );
-    }
-  } catch (err) {
-    // log this error
-    logger.error(err);
-
-    // record exception
-    span.recordException(err as SpanException);
-
-    // set span status
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-    });
-  } finally {
-    span.end();
-  }
 };
 
 export default RunCron;
