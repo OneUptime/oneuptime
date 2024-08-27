@@ -31,7 +31,7 @@ export default class QueueWorker {
   }
 
   public static async runJobWithTimeout(
-    timeout: number,
+    timeoutInMS: number,
     jobCallback: PromiseVoidFunction,
   ): Promise<void> {
     type TimeoutPromise = (ms: number) => Promise<void>;
@@ -46,6 +46,6 @@ export default class QueueWorker {
       );
     };
 
-    return await Promise.race([timeoutPromise(timeout), jobCallback()]);
+    return await Promise.race([timeoutPromise(timeoutInMS), jobCallback()]);
   }
 }

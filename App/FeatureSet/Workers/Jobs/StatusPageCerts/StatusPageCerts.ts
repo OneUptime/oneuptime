@@ -4,12 +4,14 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import logger from "Common/Server/Utils/Logger";
 import Telemetry, { Span } from "Common/Server/Utils/Telemetry";
+import OneUptimeDate from "Common/Types/Date";
 
 RunCron(
   "StatusPageCerts:RenewCerts",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_DAY,
     runOnStartup: true,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
   },
   async () => {
     logger.debug("Renewing Certs...");
@@ -34,6 +36,7 @@ RunCron(
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
     runOnStartup: true,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
   },
   async () => {
     const span: Span = Telemetry.startSpan({

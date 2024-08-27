@@ -13,6 +13,7 @@ type RunCronFunction = (
   options: {
     schedule: string;
     runOnStartup: boolean;
+    timeoutInMS?: number | undefined;
   },
   runFunction: PromiseVoidFunction,
 ) => void;
@@ -22,6 +23,7 @@ const RunCron: RunCronFunction = (
   options: {
     schedule: string;
     runOnStartup: boolean;
+    timeoutInMS?: number | undefined;
   },
   runFunction: PromiseVoidFunction,
 ): void => {
@@ -36,6 +38,10 @@ const RunCron: RunCronFunction = (
 
   try {
     JobDictionary.setJobFunction(jobName, runFunction);
+
+    if (options.timeoutInMS) {
+      JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
+    }
 
     logger.debug("Adding job to the queue: " + jobName);
 
