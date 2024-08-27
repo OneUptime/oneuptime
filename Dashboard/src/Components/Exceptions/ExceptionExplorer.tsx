@@ -61,7 +61,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchItems().catch((err) => {
+    fetchItems().catch((err: Error) => {
       return setError(API.getFriendlyMessage(err));
     });
   }, []);

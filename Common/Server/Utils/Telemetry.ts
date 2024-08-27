@@ -25,12 +25,14 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
+import logger from "./Logger";
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;
+export type SpanException = opentelemetry.api.Exception;
 
 export enum SpanStatusCode {
   UNSET = 0,
@@ -310,5 +312,26 @@ export default class Telemetry {
 
     const span: Span = this.getTracer().startSpan(name, attributes);
     return span;
+  }
+
+  public static recordExceptionMarkSpanAsErrorAndEndSpan(data: {
+    span: Span;
+    exception: unknown;
+  }): void {
+    const { span, exception } = data;
+
+    // log the exception as well
+    logger.error(exception);
+
+    span.recordException(exception as SpanException);
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+    });
+
+    this.endSpan(span);
+  }
+
+  public static endSpan(span: Span): void {
+    span.end();
   }
 }

@@ -17,6 +17,7 @@ import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 import AcmeChallenge from "Common/Models/DatabaseModels/AcmeChallenge";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
+import Telemetry, { Span } from "../Telemetry";
 
 export default class GreenlockUtil {
   public static async renewAllCertsWhichAreExpiringSoon(data: {
@@ -84,23 +85,50 @@ export default class GreenlockUtil {
   }
 
   public static async removeDomain(domain: string): Promise<void> {
-    // remove certificate for this domain.
-    await AcmeCertificateService.deleteBy({
-      query: {
+    const span: Span = Telemetry.startSpan({
+      name: "GreenlockUtil.removeDomain",
+      attributes: {
         domain: domain,
       },
-      limit: 1,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
     });
+
+    try {
+      // remove certificate for this domain.
+      await AcmeCertificateService.deleteBy({
+        query: {
+          domain: domain,
+        },
+        limit: 1,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      Telemetry.endSpan(span);
+    } catch (err) {
+      logger.error(`Error removing domain: ${domain}`);
+
+      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+        span,
+        exception: err,
+      });
+
+      throw err;
+    }
   }
 
   public static async orderCert(data: {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;
   }): Promise<void> {
+    const span: Span = Telemetry.startSpan({
+      name: "GreenlockUtil.orderCert",
+      attributes: {
+        domain: data.domain,
+      },
+    });
+
     try {
       let { domain } = data;
 
@@ -242,9 +270,15 @@ export default class GreenlockUtil {
           },
         });
       }
+
+      Telemetry.endSpan(span);
     } catch (e) {
       logger.error(`Error ordering certificate for domain: ${data.domain}`);
-      logger.error(e);
+
+      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+        span,
+        exception: e,
+      });
 
       if (e instanceof Exception) {
         throw e;

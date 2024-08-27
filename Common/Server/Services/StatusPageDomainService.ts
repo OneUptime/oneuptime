@@ -17,6 +17,7 @@ import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
+import Telemetry, { Span } from "../Utils/Telemetry";
 
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor() {
@@ -86,51 +87,70 @@ export class Service extends DatabaseService<StatusPageDomain> {
   }
 
   public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
-    if (!statusPageDomain.fullDomain) {
-      const fetchedStatusPageDomain: StatusPageDomain | null =
-        await this.findOneBy({
-          query: {
-            _id: statusPageDomain.id!.toString(),
-          },
-          select: {
-            _id: true,
-            fullDomain: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+    const span: Span = Telemetry.startSpan({
+      name: "StatusPageDomainService.orderCert",
+      attributes: {
+        fullDomain: statusPageDomain.fullDomain,
+        _id: statusPageDomain.id?.toString(),
+      },
+    });
 
-      if (!fetchedStatusPageDomain) {
-        throw new BadDataException("Domain not found");
+    try {
+      if (!statusPageDomain.fullDomain) {
+        const fetchedStatusPageDomain: StatusPageDomain | null =
+          await this.findOneBy({
+            query: {
+              _id: statusPageDomain.id!.toString(),
+            },
+            select: {
+              _id: true,
+              fullDomain: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!fetchedStatusPageDomain) {
+          throw new BadDataException("Domain not found");
+        }
+
+        statusPageDomain = fetchedStatusPageDomain;
       }
 
-      statusPageDomain = fetchedStatusPageDomain;
+      if (!statusPageDomain.fullDomain) {
+        throw new BadDataException(
+          "Unable to order certificate because domain is null",
+        );
+      }
+
+      await GreenlockUtil.orderCert({
+        domain: statusPageDomain.fullDomain as string,
+        validateCname: async (fullDomain: string) => {
+          return await this.isCnameValid(fullDomain);
+        },
+      });
+
+      // update the order.
+      await this.updateOneById({
+        id: statusPageDomain.id!,
+        data: {
+          isSslOrdered: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      Telemetry.endSpan(span);
+    } catch (err) {
+      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+        span,
+        exception: err,
+      });
+
+      throw err;
     }
-
-    if (!statusPageDomain.fullDomain) {
-      throw new BadDataException(
-        "Unable to order certificate because domain is null",
-      );
-    }
-
-    await GreenlockUtil.orderCert({
-      domain: statusPageDomain.fullDomain as string,
-      validateCname: async (fullDomain: string) => {
-        return await this.isCnameValid(fullDomain);
-      },
-    });
-
-    // update the order.
-    await this.updateOneById({
-      id: statusPageDomain.id!,
-      data: {
-        isSslOrdered: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
   }
 
   public async updateSslProvisioningStatusForAllDomains(): Promise<void> {
@@ -374,27 +394,43 @@ export class Service extends DatabaseService<StatusPageDomain> {
   }
 
   public async orderSSLForDomainsWhichAreNotOrderedYet(): Promise<void> {
-    const domains: Array<StatusPageDomain> = await this.findBy({
-      query: {
-        isSslOrdered: false,
-      },
-      select: {
-        _id: true,
-        fullDomain: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+    const span: Span = Telemetry.startSpan({
+      name: "StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet",
+      attributes: {},
     });
 
-    for (const domain of domains) {
-      try {
-        await this.orderCert(domain);
-      } catch (e) {
-        logger.error(e);
+    try {
+      const domains: Array<StatusPageDomain> = await this.findBy({
+        query: {
+          isSslOrdered: false,
+        },
+        select: {
+          _id: true,
+          fullDomain: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const domain of domains) {
+        try {
+          await this.orderCert(domain);
+        } catch (e) {
+          logger.error(e);
+        }
       }
+
+      Telemetry.endSpan(span);
+    } catch (err) {
+      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+        span,
+        exception: err,
+      });
+
+      throw err;
     }
   }
 

@@ -3,6 +3,7 @@ import { EVERY_DAY, EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import logger from "Common/Server/Utils/Logger";
+import Telemetry, { Span } from "Common/Server/Utils/Telemetry";
 
 RunCron(
   "StatusPageCerts:RenewCerts",
@@ -35,7 +36,27 @@ RunCron(
     runOnStartup: true,
   },
   async () => {
-    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+    const span: Span = Telemetry.startSpan({
+      name: "StatusPageCerts:OrderSSL",
+      attributes: {
+        jobName: "StatusPageCerts:OrderSSL",
+      },
+    });
+
+    try {
+      await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+      Telemetry.endSpan(span);
+    } catch (err) {
+      logger.error(err);
+
+      Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+        span,
+        exception: err,
+      });
+
+      throw err;
+    }
   },
 );
 
