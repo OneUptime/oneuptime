@@ -56,7 +56,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}
-      <div className="mt-0.5 ml-2 font-mono">{props.message}</div>
+      <div className="mt-0.5 ml-2 font-mono">{props.message || "-"}</div>
     </div>
   );
 };

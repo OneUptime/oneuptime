@@ -12,8 +12,8 @@ const RowLabel: FunctionComponent<ComponentProps> = (
     // rectangle div with curved corners and text inside in tailwindcss
 
     <div>
-      <div className="text-sm text-gray-600">{props.title}</div>
-      <div className="text-xs text-gray-500">{props.description}</div>
+      <div className="text-sm text-gray-600 truncate">{props.title}</div>
+      <div className="text-xs text-gray-500 truncate">{props.description}</div>
     </div>
   );
 };

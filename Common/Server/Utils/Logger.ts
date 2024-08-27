@@ -93,9 +93,11 @@ export default class logger {
     body: LogBody;
     severityNumber: SeverityNumber;
   }): void {
+
     OneUptimeTelemetry.getLogger().emit({
       body: this.serializeLogBody(data.body),
       severityNumber: data.severityNumber,
     });
+    
   }
 }

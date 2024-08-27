@@ -239,7 +239,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
           {props.logs.length === 0 && (
             <div className={`text-slate-200 courier-prime`}>
-              {props.noLogsMessage || "No logs found for this service."}
+              {props.noLogsMessage || "No logs found."}
             </div>
           )}
         </div>
