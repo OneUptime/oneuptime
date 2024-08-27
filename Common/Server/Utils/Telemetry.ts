@@ -21,7 +21,7 @@ import {
 } from "@opentelemetry/sdk-metrics";
 import * as opentelemetry from "@opentelemetry/sdk-node";
 import { SpanExporter } from "@opentelemetry/sdk-trace-node";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
@@ -109,7 +109,7 @@ export default class Telemetry {
 
   public static getResource(data: { serviceName: string }): Resource {
     return new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,
+      [SEMRESATTRS_SERVICE_NAME]: data.serviceName,
     });
   }
 
