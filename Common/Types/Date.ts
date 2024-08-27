@@ -6,10 +6,16 @@ import PositiveNumber from "./PositiveNumber";
 import moment from "moment-timezone";
 import Timezone from "./Timezone";
 
+
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-  public getNanoSecondsFromSeconds(seconds: number): number {
+
+  public static convertMinutesToMilliseconds(minutes: number): number {
+    return minutes * 60 * 1000;
+  }
+
+  public static getNanoSecondsFromSeconds(seconds: number): number {
     return seconds * 1000 * 1000 * 1000;
   }
 

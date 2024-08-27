@@ -162,9 +162,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
         await API.get(
           URL.fromString(
             "https://" +
-              fulldomain +
-              "/status-page-api/cname-verification/" +
-              token,
+            fulldomain +
+            "/status-page-api/cname-verification/" +
+            token,
           ),
         );
 
@@ -238,9 +238,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
         await API.get(
           URL.fromString(
             "http://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
+            fullDomain +
+            "/status-page-api/cname-verification/" +
+            token,
           ),
         );
 
@@ -251,12 +251,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
 
         return true;
+      } else {
+        logger.debug("CNAME verification failed for http endpoint");
+        logger.debug(result);
       }
-      logger.debug("CNAME verification fails for http endpoint");
-      logger.debug(result.data);
-
-      logger.debug("CNAME verification failed for http endpoint");
-      logger.debug(result);
 
       // try with https
 
@@ -264,9 +262,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
         await API.get(
           URL.fromString(
             "https://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
+            fullDomain +
+            "/status-page-api/cname-verification/" +
+            token,
           ),
         );
 
@@ -277,12 +275,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
         });
 
         return true;
+      } else {
+        logger.debug("CNAME verification fails for https endpoint");
+        logger.debug(resultHttps);
       }
-      logger.debug("CNAME verification fails for https endpoint");
-      logger.debug(result.data);
-
-      logger.debug("CNAME verification fails for https endpoint");
-      logger.debug(result.data);
 
       await this.updateCnameStatusForStatusPageDomain({
         domain: fullDomain,

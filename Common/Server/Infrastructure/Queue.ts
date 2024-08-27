@@ -11,6 +11,7 @@ import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
+import OneUptimeDate from "../../Types/Date";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -94,6 +95,7 @@ export default class Queue {
     options?: {
       scheduleAt?: string | undefined;
       repeatableKey?: string | undefined;
+      timoutInMs?: number | undefined;
     },
   ): Promise<Job> {
     const optionsObject: JobsOptions = {
@@ -105,6 +107,9 @@ export default class Queue {
         pattern: options.scheduleAt,
       };
     }
+
+    const timeoutInMs: number = options?.timoutInMs || OneUptimeDate.convertMinutesToMilliseconds(5); // by default jobs runs for 5 mins maximum and then gets killed if not completed 
+    optionsObject.timeout = timeoutInMs;
 
     const job: Job | undefined = await this.getQueue(queueName).getJob(jobId);
 

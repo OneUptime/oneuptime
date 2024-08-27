@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
+import { EVERY_DAY, EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import logger from "Common/Server/Utils/Logger";
@@ -7,7 +7,7 @@ import logger from "Common/Server/Utils/Logger";
 RunCron(
   "StatusPageCerts:RenewCerts",
   {
-    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
+    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_DAY,
     runOnStartup: true,
   },
   async () => {
