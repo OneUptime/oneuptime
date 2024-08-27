@@ -17,7 +17,6 @@ const RunCron: RunCronFunction = (
   options: {
     schedule: string;
     runOnStartup: boolean;
-    timoutInMs?: number; // how long to keep the job running and then kill it.
   },
   runFunction: PromiseVoidFunction,
 ): void => {
@@ -32,7 +31,7 @@ const RunCron: RunCronFunction = (
     {},
     {
       scheduleAt: options.schedule,
-      timoutInMs: options.timoutInMs,
+      
     },
   ).catch((err: Error) => {
     return logger.error(err);
@@ -42,7 +41,7 @@ const RunCron: RunCronFunction = (
    Queue.addJob(QueueName.Worker, jobName, jobName, {
     
     }, {
-      timoutInMs: options.timoutInMs || FIVE_MINUTES,
+      
     }).catch((err: Error) => {
       return logger.error(err);
     });

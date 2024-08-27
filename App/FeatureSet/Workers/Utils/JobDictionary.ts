@@ -5,8 +5,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 export default class JobDictionary {
   private static dictionary: Dictionary<PromiseVoidFunction> = {};
 
-  private static timeoutDictionary: Dictionary<number> = {};
-
   public static getJobFunction(name: string): PromiseVoidFunction {
     if (this.dictionary[name]) {
       return this.dictionary[name] as PromiseVoidFunction;
