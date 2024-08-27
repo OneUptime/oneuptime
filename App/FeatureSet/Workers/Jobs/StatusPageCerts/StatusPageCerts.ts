@@ -50,7 +50,6 @@ RunCron(
       },
       fn: async (span: Span): Promise<void> => {
         try {
-
           logger.info("Ordering SSL for domains which are not ordered yet");
 
           await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();

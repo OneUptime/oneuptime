@@ -1,4 +1,9 @@
-import OpenTelemetryAPI, { Meter } from "@opentelemetry/api";
+import OpenTelemetryAPI, {
+  diag,
+  DiagConsoleLogger,
+  DiagLogLevel,
+  Meter,
+} from "@opentelemetry/api";
 import { Logger, logs } from "@opentelemetry/api-logs";
 import {
   Counter,
@@ -11,9 +16,13 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { AWSXRayIdGenerator } from "@opentelemetry/id-generator-aws-xray";
 import { CompressionAlgorithm } from "@opentelemetry/otlp-exporter-base";
 import { Resource } from "@opentelemetry/resources";
+import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import {
   BatchLogRecordProcessor,
+  ConsoleLogRecordExporter,
   LoggerProvider,
+  LogRecordProcessor,
+  SimpleLogRecordProcessor,
 } from "@opentelemetry/sdk-logs";
 import {
   MeterProvider,
@@ -21,19 +30,20 @@ import {
 } from "@opentelemetry/sdk-metrics";
 import * as opentelemetry from "@opentelemetry/sdk-node";
 import { SpanExporter } from "@opentelemetry/sdk-trace-node";
-import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 
 // Enable this line to see debug logs
-// diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;
 export type SpanException = opentelemetry.api.Exception;
 export type SpanOptions = opentelemetry.api.SpanOptions;
+export type TelemetryLogger = Logger;
 
 export enum SpanStatusCode {
   UNSET = 0,
@@ -46,6 +56,7 @@ export default class Telemetry {
   public static logger: Logger | null = null;
   public static meter: Meter | null = null;
   public static meterProvider: MeterProvider | null = null;
+  public static loggerProvider: LoggerProvider | null = null;
 
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
@@ -109,7 +120,7 @@ export default class Telemetry {
 
   public static getResource(data: { serviceName: string }): Resource {
     return new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: data.serviceName,
+      [ATTR_SERVICE_NAME]: data.serviceName,
     });
   }
 
@@ -147,11 +158,15 @@ export default class Telemetry {
         });
       }
 
-      const loggerProvider: LoggerProvider = new LoggerProvider({
+      this.loggerProvider = new LoggerProvider({
         resource: this.getResource({
           serviceName: data.serviceName,
         }),
       });
+
+      let logRecordProcessor: LogRecordProcessor = new SimpleLogRecordProcessor(
+        new ConsoleLogRecordExporter(),
+      );
 
       if (this.getOltpLogsEndpoint() && hasHeaders) {
         const logExporter: OTLPLogExporter = new OTLPLogExporter({
@@ -160,28 +175,21 @@ export default class Telemetry {
           compression: CompressionAlgorithm.GZIP,
         });
 
-        loggerProvider.addLogRecordProcessor(
-          new BatchLogRecordProcessor(logExporter),
-        );
-
-        
+        logRecordProcessor = new BatchLogRecordProcessor(logExporter);
       }
 
+      this.loggerProvider.addLogRecordProcessor(logRecordProcessor);
 
-      logs.setGlobalLoggerProvider(loggerProvider);
+      logs.setGlobalLoggerProvider(this.loggerProvider);
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {
           idGenerator: new AWSXRayIdGenerator(),
-          instrumentations: hasHeaders
-            ? [
-                // Add instrumentations here
-              ]
-            : [],
+          instrumentations: hasHeaders ? [getNodeAutoInstrumentations()] : [],
           resource: this.getResource({
             serviceName: data.serviceName,
           }),
-          logRecordProcessor: loggerProvider as any,
+          autoDetectResources: true,
         };
 
       if (traceExporter) {
@@ -190,6 +198,10 @@ export default class Telemetry {
 
       if (metricReader) {
         nodeSdkConfiguration.metricReader = metricReader as any;
+      }
+
+      if (logRecordProcessor) {
+        nodeSdkConfiguration.logRecordProcessor = logRecordProcessor;
       }
 
       const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(
@@ -210,12 +222,12 @@ export default class Telemetry {
     return this.sdk;
   }
 
-  public static getLogger(): Logger {
-    if (!this.logger) {
-      this.logger = logs.getLogger("default");
+  public static getLogger(): Logger | null {
+    if (!this.loggerProvider) {
+      return null;
     }
 
-    return this.logger;
+    return this.loggerProvider.getLogger("default");
   }
 
   public static getMeterProvider(): MeterProvider {

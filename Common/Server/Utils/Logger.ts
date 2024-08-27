@@ -1,5 +1,5 @@
 import { ConfigLogLevel, LogLevel } from "../EnvironmentConfig";
-import OneUptimeTelemetry from "./Telemetry";
+import OneUptimeTelemetry, { TelemetryLogger } from "./Telemetry";
 import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
@@ -93,11 +93,15 @@ export default class logger {
     body: LogBody;
     severityNumber: SeverityNumber;
   }): void {
+    const logger: TelemetryLogger | null = OneUptimeTelemetry.getLogger();
 
-    OneUptimeTelemetry.getLogger().emit({
+    if (logger === null) {
+      return;
+    }
+
+    logger.emit({
       body: this.serializeLogBody(data.body),
       severityNumber: data.severityNumber,
     });
-    
   }
 }
