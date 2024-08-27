@@ -163,7 +163,10 @@ export default class Telemetry {
         loggerProvider.addLogRecordProcessor(
           new BatchLogRecordProcessor(logExporter),
         );
+
+        
       }
+
 
       logs.setGlobalLoggerProvider(loggerProvider);
 
