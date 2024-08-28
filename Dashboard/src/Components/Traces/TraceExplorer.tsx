@@ -319,7 +319,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
     const rootRow: GanttChartRow = {
       rowInfo: {
-        title: <div>{rootSpan.name!}</div>,
+        title: <div className="truncate">{rootSpan.name!}</div>,
         description: telemetryService ? (
           getRowDescription({
             telemetryService,

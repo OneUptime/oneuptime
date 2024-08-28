@@ -125,12 +125,20 @@ export class Service extends DatabaseService<StatusPageDomain> {
             );
           }
 
+          logger.debug(
+            "Ordering SSL for domain: " + statusPageDomain.fullDomain,
+          );
+
           await GreenlockUtil.orderCert({
             domain: statusPageDomain.fullDomain as string,
             validateCname: async (fullDomain: string) => {
               return await this.isCnameValid(fullDomain);
             },
           });
+
+          logger.debug(
+            "SSL ordered for domain: " + statusPageDomain.fullDomain,
+          );
 
           // update the order.
           await this.updateOneById({
@@ -238,6 +246,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
     try {
       // get the token from the domain.
 
+      logger.debug("Checking for CNAME " + fullDomain);
+
       const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
         query: {
           fullDomain: fullDomain,
@@ -257,6 +267,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       const token: string = statusPageDomain.cnameVerificationToken!;
 
+      logger.debug("Checking for CNAME " + fullDomain + " with token " + token);
+
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get(
           URL.fromString(
@@ -267,6 +279,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
           ),
         );
 
+      logger.debug("CNAME verification result");
+      logger.debug(result);
+
       if (result.isSuccess()) {
         await this.updateCnameStatusForStatusPageDomain({
           domain: fullDomain,
@@ -275,8 +290,6 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
         return true;
       }
-      logger.debug("CNAME verification failed for http endpoint");
-      logger.debug(result);
 
       // try with https
 
@@ -290,6 +303,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
           ),
         );
 
+      logger.debug("CNAME verification result for https");
+      logger.debug(resultHttps);
+
       if (resultHttps.isSuccess()) {
         await this.updateCnameStatusForStatusPageDomain({
           domain: fullDomain,
@@ -298,8 +314,6 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
         return true;
       }
-      logger.debug("CNAME verification fails for https endpoint");
-      logger.debug(resultHttps);
 
       await this.updateCnameStatusForStatusPageDomain({
         domain: fullDomain,
@@ -419,6 +433,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
           for (const domain of domains) {
             try {
+              logger.debug("Ordering SSL for domain: " + domain.fullDomain);
               await this.orderCert(domain);
             } catch (e) {
               logger.error(e);

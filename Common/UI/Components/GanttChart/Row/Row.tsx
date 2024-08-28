@@ -50,8 +50,10 @@ const Row: FunctionComponent<ComponentProps> = (
       <div
         className={`flex w-full border-b-2 border-gray-200  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400`}
       >
-        <div className="flex w-1/4 border-r-2 border-gray-300">
-          <div className={`pl-${paddingCount} pt-2 pb-2 pr-2 flex`}>
+        <div className="flex w-1/4 border-r-2 border-gray-300 overflow-hidden">
+          <div
+            className={`pl-${paddingCount} pt-2 pb-2 pr-2 flex overflow-hidden`}
+          >
             <div className="w-5 h-5 ml-3 mt-1">
               {hasChildRows && (
                 <Icon
