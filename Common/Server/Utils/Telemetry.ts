@@ -57,6 +57,7 @@ export default class Telemetry {
   public static meterProvider: MeterProvider | null = null;
   public static loggerProvider: LoggerProvider | null = null;
   public static metricReader: PeriodicExportingMetricReader | undefined;
+  public static serviceName: string | null = null;
 
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
@@ -127,6 +128,9 @@ export default class Telemetry {
   public static init(data: {
     serviceName: string;
   }): opentelemetry.NodeSDK | null {
+
+    this.serviceName = data.serviceName;
+
     if (DisableTelemetry) {
       return null;
     }
@@ -194,10 +198,6 @@ export default class Telemetry {
         nodeSdkConfiguration.traceExporter = traceExporter;
       }
 
-      if (this.metricReader) {
-        nodeSdkConfiguration.metricReader = this.metricReader;
-      }
-
       if (logRecordProcessor) {
         nodeSdkConfiguration.logRecordProcessor = logRecordProcessor;
       }
@@ -205,6 +205,9 @@ export default class Telemetry {
       const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(
         nodeSdkConfiguration,
       );
+
+      this.getMeterProvider(); 
+      this.getMeter();
 
       process.on("SIGTERM", () => {
         sdk.shutdown().finally(() => {
@@ -215,6 +218,7 @@ export default class Telemetry {
       sdk.start();
 
       this.sdk = sdk;
+
     }
 
     return this.sdk;
@@ -229,8 +233,19 @@ export default class Telemetry {
   }
 
   public static getMeterProvider(): MeterProvider {
+
+    if(!this.metricReader){
+      throw new Error("Metric reader is not initialized");
+    }
+
     if (!this.meterProvider) {
-      this.meterProvider = new MeterProvider();
+
+      this.meterProvider = new MeterProvider({
+        resource: this.getResource({
+          serviceName: this.serviceName || "default",
+        }),
+        readers: [this.metricReader],
+      });
       OpenTelemetryAPI.metrics.setGlobalMeterProvider(this.meterProvider);
     }
 
