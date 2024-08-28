@@ -238,17 +238,14 @@ export default class Telemetry {
   }
 
   public static getMeterProvider(): MeterProvider {
-    if (!this.metricReader) {
-      throw new Error("Metric reader is not initialized");
-    }
-
     if (!this.meterProvider) {
       this.meterProvider = new MeterProvider({
         resource: this.getResource({
           serviceName: this.serviceName || "default",
         }),
-        readers: [this.metricReader],
+        readers: this.metricReader ? [this.metricReader] : [],
       });
+
       OpenTelemetryAPI.metrics.setGlobalMeterProvider(this.meterProvider);
     }
 
