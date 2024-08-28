@@ -16,7 +16,6 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { AWSXRayIdGenerator } from "@opentelemetry/id-generator-aws-xray";
 import { CompressionAlgorithm } from "@opentelemetry/otlp-exporter-base";
 import { Resource } from "@opentelemetry/resources";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import {
   BatchLogRecordProcessor,
   ConsoleLogRecordExporter,
@@ -57,6 +56,7 @@ export default class Telemetry {
   public static meter: Meter | null = null;
   public static meterProvider: MeterProvider | null = null;
   public static loggerProvider: LoggerProvider | null = null;
+  public static metricReader: PeriodicExportingMetricReader | undefined;
 
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
@@ -138,8 +138,6 @@ export default class Telemetry {
 
       let traceExporter: SpanExporter | undefined = undefined;
 
-      let metricReader: PeriodicExportingMetricReader | undefined = undefined;
-
       if (this.getOltpTracesEndpoint() && hasHeaders) {
         traceExporter = new OTLPTraceExporter({
           url: this.getOltpTracesEndpoint()!.toString(),
@@ -149,7 +147,7 @@ export default class Telemetry {
       }
 
       if (this.getOltpMetricsEndpoint() && hasHeaders) {
-        metricReader = new PeriodicExportingMetricReader({
+        this.metricReader = new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter({
             url: this.getOltpMetricsEndpoint()!.toString(),
             headers: headers,
@@ -185,7 +183,7 @@ export default class Telemetry {
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {
           idGenerator: new AWSXRayIdGenerator(),
-          instrumentations: hasHeaders ? [getNodeAutoInstrumentations()] : [],
+          instrumentations: [],
           resource: this.getResource({
             serviceName: data.serviceName,
           }),
@@ -196,8 +194,8 @@ export default class Telemetry {
         nodeSdkConfiguration.traceExporter = traceExporter;
       }
 
-      if (metricReader) {
-        nodeSdkConfiguration.metricReader = metricReader as any;
+      if (this.metricReader) {
+        nodeSdkConfiguration.metricReader = this.metricReader;
       }
 
       if (logRecordProcessor) {
@@ -240,6 +238,7 @@ export default class Telemetry {
   }
 
   public static getMeter(): Meter {
+
     if (!this.meter) {
       this.meter = OpenTelemetryAPI.metrics.getMeter("default");
     }
