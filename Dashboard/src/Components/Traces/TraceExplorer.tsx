@@ -418,7 +418,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       id: "chart",
       selectedBarIds: selectedSpans,
       rows: getRows({
-        rootSpan: spans[0]!,
+        rootSpan:
+          spans.find((span: Span) => {
+            return (
+              span.parentSpanId === null || span.parentSpanId === undefined
+            );
+          }) || spans[0]!,
         allSpans: spans,
         timelineStartTimeUnixNano,
         divisibilityFactor,
