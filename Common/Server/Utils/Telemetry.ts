@@ -43,6 +43,8 @@ export type SpanStatus = opentelemetry.api.SpanStatus;
 export type SpanException = opentelemetry.api.Exception;
 export type SpanOptions = opentelemetry.api.SpanOptions;
 export type TelemetryLogger = Logger;
+export type TelemetryAttributes = opentelemetry.api.Attributes;
+export type TelemetryCounter = Counter<opentelemetry.api.Attributes>;
 
 export enum SpanStatusCode {
   UNSET = 0,
@@ -128,7 +130,6 @@ export default class Telemetry {
   public static init(data: {
     serviceName: string;
   }): opentelemetry.NodeSDK | null {
-
     this.serviceName = data.serviceName;
 
     if (DisableTelemetry) {
@@ -198,6 +199,11 @@ export default class Telemetry {
         nodeSdkConfiguration.traceExporter = traceExporter;
       }
 
+      // We will skip this becasue we're attachng this metric reader to the meter provider later.
+      // if (this.metricReader) {
+      //   nodeSdkConfiguration.metricReader = this.metricReader;
+      // }
+
       if (logRecordProcessor) {
         nodeSdkConfiguration.logRecordProcessor = logRecordProcessor;
       }
@@ -206,7 +212,7 @@ export default class Telemetry {
         nodeSdkConfiguration,
       );
 
-      this.getMeterProvider(); 
+      this.getMeterProvider();
       this.getMeter();
 
       process.on("SIGTERM", () => {
@@ -218,7 +224,6 @@ export default class Telemetry {
       sdk.start();
 
       this.sdk = sdk;
-
     }
 
     return this.sdk;
@@ -233,13 +238,11 @@ export default class Telemetry {
   }
 
   public static getMeterProvider(): MeterProvider {
-
-    if(!this.metricReader){
+    if (!this.metricReader) {
       throw new Error("Metric reader is not initialized");
     }
 
     if (!this.meterProvider) {
-
       this.meterProvider = new MeterProvider({
         resource: this.getResource({
           serviceName: this.serviceName || "default",
@@ -253,7 +256,6 @@ export default class Telemetry {
   }
 
   public static getMeter(): Meter {
-
     if (!this.meter) {
       this.meter = OpenTelemetryAPI.metrics.getMeter("default");
     }

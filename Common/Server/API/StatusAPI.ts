@@ -6,7 +6,7 @@ import Express, {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
-import Telemetry from "../Utils/Telemetry";
+import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 
@@ -16,39 +16,36 @@ export interface StatusAPIOptions {
 }
 
 export default class StatusAPI {
-  
-
   public static init(options: StatusAPIOptions): ExpressRouter {
-
-    const statusCheckSuccessCounter = Telemetry.getCounter({
+    const statusCheckSuccessCounter: TelemetryCounter = Telemetry.getCounter({
       name: "status.check.success",
       description: "Status check counter",
     });
-  
+
     // ready counter
-    const stausReadySuccess = Telemetry.getCounter({
+    const stausReadySuccess: TelemetryCounter = Telemetry.getCounter({
       name: "status.ready.success",
       description: "Ready check counter",
     });
     // live counter
-  
-    const stausLiveSuccess = Telemetry.getCounter({
+
+    const stausLiveSuccess: TelemetryCounter = Telemetry.getCounter({
       name: "status.live.success",
       description: "Live check counter",
     });
-  
+
     // ready failed counter
-    const stausReadyFailed = Telemetry.getCounter({
+    const stausReadyFailed: TelemetryCounter = Telemetry.getCounter({
       name: "status.ready.failed",
       description: "Ready check counter",
     });
-  
+
     // live failed counter
-    const stausLiveFailed = Telemetry.getCounter({
+    const stausLiveFailed: TelemetryCounter = Telemetry.getCounter({
       name: "status.live.failed",
       description: "Live check counter",
     });
-    
+
     const router: ExpressRouter = Express.getRouter();
 
     router.get("/app-name", (_req: ExpressRequest, res: ExpressResponse) => {
