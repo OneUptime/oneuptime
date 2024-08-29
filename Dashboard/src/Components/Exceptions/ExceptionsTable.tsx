@@ -11,6 +11,7 @@ import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../Utils/PageMap";
+import User from "Common/Models/DatabaseModels/User";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;
@@ -102,10 +103,54 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              markedAsResolvedAt: true,
+            },
+            title: "Marked As Resolved At",
+            type: FieldType.Date,
+          },
+          {
+            field: {
+              markedAsResolvedByUser: true,
+            },
+            title: "Marked As Resolved At",
+            type: FieldType.EntityArray,
+            filterEntityType: User,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
               isArchived: true,
             },
             title: "Archived",
             type: FieldType.Boolean,
+          },
+          {
+            field: {
+              markedAsArchivedAt: true,
+            },
+            title: "Marked As Archived At",
+            type: FieldType.Date,
+          },
+          {
+            field: {
+              markedAsArchivedByUser: true,
+            },
+            title: "Marked As Archived At",
+            type: FieldType.EntityArray,
+            filterEntityType: User,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
         ]}
         selectMoreFields={{

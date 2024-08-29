@@ -308,6 +308,8 @@ router.post(
                   exception.traceId = dbSpan.traceId;
                   exception.time = eventTime;
                   exception.timeUnixNano = eventTimeUnixNano;
+                  exception.spanStatusCode = dbSpan.statusCode;
+                  exception.spanName = dbSpan.name;
                   exception.message =
                     (eventAttributes["exception.message"] as string) || "";
                   exception.stackTrace =

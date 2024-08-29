@@ -5,6 +5,7 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { SpanStatus } from "./Span";
 
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
@@ -207,6 +208,29 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         }),
 
         new AnalyticsTableColumn({
+          key: "spanStatusCode",
+          title: "Span Status Code",
+          description: "Span Status Code",
+          required: false,
+          type: TableColumnType.Number,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryException,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryException,
+            ],
+            update: [],
+          },
+        }),
+
+        new AnalyticsTableColumn({
           key: "escaped",
           title: "Exception Escaped",
           description: "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
@@ -293,6 +317,29 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
               Permission.ProjectAdmin,
               Permission.ProjectMember,
               Permission.CreateTelemetryException,
+            ],
+            update: [],
+          },
+        }),
+
+        new AnalyticsTableColumn({
+          key: "spanName",
+          title: "Span Name",
+          description: "Name of the span",
+          required: false,
+          type: TableColumnType.Text,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceTraces,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceTraces,
             ],
             update: [],
           },
@@ -422,4 +469,22 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
   public set attributes(v: Record<string, any>) {
     this.setColumnValue("attributes", v);
   }
+
+  public get spanStatusCode(): SpanStatus | undefined {
+    return this.getColumnValue("spanStatusCode") as SpanStatus | undefined;
+  }
+
+  public set spanStatusCode(v: SpanStatus | undefined) {
+    this.setColumnValue("spanStatusCode", v);
+  }
+
+  
+  public get spanName(): string | undefined {
+    return this.getColumnValue("spanName") as string | undefined;
+  }
+
+  public set spanName(v: string | undefined) {
+    this.setColumnValue("spanName", v);
+  }
+  
 }

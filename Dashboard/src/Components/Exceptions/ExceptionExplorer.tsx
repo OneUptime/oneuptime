@@ -17,6 +17,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import User from "Common/UI/Utils/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import OccouranceTable from "./OccuranceTable";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -187,6 +188,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {/** Assign / Unassign Button */}
 
       {/** Occurance Table */}
+
+      {telemetryException.fingerprint && <OccouranceTable exceptionFingerprint={telemetryException.fingerprint} />}
 
       {/** Archive / Unarchive Button Button */}
 
