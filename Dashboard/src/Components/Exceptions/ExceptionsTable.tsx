@@ -12,6 +12,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../Utils/PageMap";
 import User from "Common/Models/DatabaseModels/User";
+import { BulkActionFailed, BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import IconProp from "Common/Types/Icon/IconProp";
+import OneUptimeDate from "Common/Types/Date";
+import UserUtil from "Common/UI/Utils/User";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;
@@ -61,10 +70,266 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             : undefined,
           ...props.query,
         }}
+        bulkActions={{
+          buttons: [
+
+            {
+              title: "Resolve",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
+                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+                const totalItems: Array<TelemetryException> = [...props.items]; // total items
+                const successItems: Array<TelemetryException> = []; // items that are disabled
+                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+
+                props.onBulkActionStart();
+
+                for (const exception of totalItems) {
+                  // remove this item from inProgressItems
+
+                  inProgressItems.splice(inProgressItems.indexOf(exception), 1);
+
+                  try {
+                    if (!exception.id) {
+                      throw new BadDataException("Telemetry Exception ID not found");
+                    }
+
+                    if (!exception.isResolved) {
+
+                      await ModelAPI.updateById<TelemetryException>({
+                        id: exception.id,
+                        modelType: TelemetryException,
+                        data: {
+                          isResolved: true,
+                          markedAsResolvedAt: OneUptimeDate.getCurrentDate(),
+                          markedAsResolvedByUserId: UserUtil.getUserId() || null
+                        },
+                      });
+                    }
+
+                    successItems.push(exception);
+                  } catch (err) {
+                    failedItems.push({
+                      item: exception,
+                      failedMessage: API.getFriendlyMessage(err),
+                    });
+                  }
+
+                  props.onProgressInfo({
+                    totalItems: totalItems,
+                    failed: failedItems,
+                    successItems: successItems,
+                    inProgressItems: inProgressItems,
+                  });
+                }
+
+                props.onBulkActionEnd();
+              },
+
+              icon: IconProp.Check,
+              confirmTitle: (items: Array<TelemetryException>) => {
+                return `Resolve ${items.length} Monitor(s)`;
+              },
+              confirmMessage: (items: Array<TelemetryException>) => {
+                return `Are you sure you want to resolve ${items.length} exception(s)?`;
+              },
+            },
+            {
+              title: "Unresolve",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
+                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+                const totalItems: Array<TelemetryException> = [...props.items]; // total items
+                const successItems: Array<TelemetryException> = []; // items that are disabled
+                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+
+                props.onBulkActionStart();
+
+                for (const exception of totalItems) {
+                  // remove this item from inProgressItems
+
+                  inProgressItems.splice(inProgressItems.indexOf(exception), 1);
+
+                  try {
+                    if (!exception.id) {
+                      throw new BadDataException("Telemetry Exception ID not found");
+                    }
+
+                    if (exception.isResolved) {
+
+                      await ModelAPI.updateById<TelemetryException>({
+                        id: exception.id,
+                        modelType: TelemetryException,
+                        data: {
+                          isResolved: false,
+                          markedAsResolvedAt: null,
+                          markedAsResolvedByUserId: null
+                        },
+                      });
+                    }
+
+                    successItems.push(exception);
+                  } catch (err) {
+                    failedItems.push({
+                      item: exception,
+                      failedMessage: API.getFriendlyMessage(err),
+                    });
+                  }
+
+                  props.onProgressInfo({
+                    totalItems: totalItems,
+                    failed: failedItems,
+                    successItems: successItems,
+                    inProgressItems: inProgressItems,
+                  });
+                }
+
+                props.onBulkActionEnd();
+              },
+
+              icon: IconProp.Close,
+              confirmTitle: (items: Array<TelemetryException>) => {
+                return `Unresolve ${items.length} Monitor(s)`;
+              },
+              confirmMessage: (items: Array<TelemetryException>) => {
+                return `Are you sure you want to unresolve ${items.length} exception(s)?`;
+              },
+            },
+
+            // Archive action
+            {
+              title: "Archive",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
+                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+                const totalItems: Array<TelemetryException> = [...props.items]; // total items
+                const successItems: Array<TelemetryException> = []; // items that are disabled
+                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+
+                props.onBulkActionStart();
+
+                for (const exception of totalItems) {
+                  // remove this item from inProgressItems
+
+                  inProgressItems.splice(inProgressItems.indexOf(exception), 1);
+
+                  try {
+                    if (!exception.id) {
+                      throw new BadDataException("Telemetry Exception ID not found");
+                    }
+
+                    if (!exception.isArchived) {
+
+                      await ModelAPI.updateById<TelemetryException>({
+                        id: exception.id,
+                        modelType: TelemetryException,
+                        data: {
+                          isArchived: true,
+                          markedAsArchivedAt: OneUptimeDate.getCurrentDate(),
+                          markedAsArchivedByUserId: UserUtil.getUserId() || null
+                        },
+                      });
+                    }
+
+                    successItems.push(exception);
+                  } catch (err) {
+                    failedItems.push({
+                      item: exception,
+                      failedMessage: API.getFriendlyMessage(err),
+                    });
+                  }
+
+                  props.onProgressInfo({
+                    totalItems: totalItems,
+                    failed: failedItems,
+                    successItems: successItems,
+                    inProgressItems: inProgressItems,
+                  });
+                }
+
+                props.onBulkActionEnd();
+              },
+
+              icon: IconProp.Archive,
+              confirmTitle: (items: Array<TelemetryException>) => {
+                return `Archive ${items.length} Monitor(s)`;
+              },
+              confirmMessage: (items: Array<TelemetryException>) => {
+                return `Are you sure you want to archive ${items.length} exception(s)?`;
+              },
+            },
+            {
+              title: "Unarchive",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
+                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+                const totalItems: Array<TelemetryException> = [...props.items]; // total items
+                const successItems: Array<TelemetryException> = []; // items that are disabled
+                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+
+                props.onBulkActionStart();
+
+                for (const exception of totalItems) {
+                  // remove this item from inProgressItems
+
+                  inProgressItems.splice(inProgressItems.indexOf(exception), 1);
+
+                  try {
+                    if (!exception.id) {
+                      throw new BadDataException("Telemetry Exception ID not found");
+                    }
+
+                    if (exception.isArchived) {
+
+                      await ModelAPI.updateById<TelemetryException>({
+                        id: exception.id,
+                        modelType: TelemetryException,
+                        data: {
+                          isArchived: false,
+                          markedAsArchivedAt: null,
+                          markedAsArchivedByUserId: null
+                        },
+                      });
+                    }
+
+                    successItems.push(exception);
+                  } catch (err) {
+                    failedItems.push({
+                      item: exception,
+                      failedMessage: API.getFriendlyMessage(err),
+                    });
+                  }
+
+                  props.onProgressInfo({
+                    totalItems: totalItems,
+                    failed: failedItems,
+                    successItems: successItems,
+                    inProgressItems: inProgressItems,
+                  });
+                }
+
+                props.onBulkActionEnd();
+
+              },
+
+              icon: IconProp.Unarchive,
+              confirmTitle: (items: Array<TelemetryException>) => {
+                return `Unarchive ${items.length} Monitor(s)`;
+              },
+              confirmMessage: (items: Array<TelemetryException>) => {
+                return `Are you sure you want to unarchive ${items.length} exception(s)?`;
+              },
+            },
+
+
+            ModalTableBulkDefaultActions.Delete,
+          ],
+        }}
         showViewIdButton={false}
         noItemsMessage={"No exceptions found."}
         showRefreshButton={true}
         viewPageRoute={viewRoute}
+
         filters={[
           {
             field: {
