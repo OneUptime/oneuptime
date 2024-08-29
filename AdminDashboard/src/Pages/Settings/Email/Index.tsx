@@ -249,7 +249,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Email,
               required: true,
               description:
-                "This is the display email your team and customers see, when they receive emails from OneUptime.",
+                "Email used to log in to this SMTP Server. This is also the email your customers will see. ",
               placeholder: "email@company.com",
             },
             {

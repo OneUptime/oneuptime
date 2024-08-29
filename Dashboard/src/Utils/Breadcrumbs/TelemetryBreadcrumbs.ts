@@ -108,6 +108,16 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       ["Project", "Telemetry", "Services", "View Service", "Exceptions"],
     ),
 
+    // service exceptions.
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION, [
+      "Project",
+      "Telemetry",
+      "Services",
+      "View Service",
+      "Exceptions",
+      "View Exception",
+    ]),
+
     ...BuildBreadcrumbLinksByTitles(
       PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED,
       [

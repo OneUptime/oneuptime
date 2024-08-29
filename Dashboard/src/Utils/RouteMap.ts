@@ -83,7 +83,7 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW]: `services/${RouteParams.ModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `services/${RouteParams.ModelID}/delete`,
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `services/${RouteParams.ModelID}/logs`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: `services/${RouteParams.ModelID}/exception/${RouteParams.SubModelID}`,
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: `services/${RouteParams.ModelID}/exceptions/${RouteParams.SubModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `services/${RouteParams.ModelID}/traces`,
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACE]: `services/${RouteParams.ModelID}/traces/${RouteParams.SubModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `services/${RouteParams.ModelID}/metrics`,
@@ -91,6 +91,7 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS]: `services/${RouteParams.ModelID}/dashboards`,
   [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `services/${RouteParams.ModelID}/settings`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: `services/${RouteParams.ModelID}/documentation`,
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: `services/${RouteParams.ModelID}/exceptions`,
 
   // service exceptions.
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: `services/${RouteParams.ModelID}/exceptions/archived`,
@@ -1018,6 +1019,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]
     }`,
   ),
 
