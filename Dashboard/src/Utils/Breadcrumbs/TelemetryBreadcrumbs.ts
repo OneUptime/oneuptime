@@ -10,6 +10,11 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       "Telemetry",
       "Services",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_DOCUMENTATION, [
+      "Project",
+      "Telemetry",
+      "Documentation",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_LOGS, [
       "Project",
       "Telemetry",
@@ -19,12 +24,6 @@ export function getTelemetryBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Telemetry",
       "Metrics",
-    ]),
-
-    ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS, [
-      "Project",
-      "Telemetry",
-      "Exceptions",
     ]),
 
     ...BuildBreadcrumbLinksByTitles(PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED, [

@@ -24,6 +24,12 @@ const TelemetryServices: LazyExoticComponent<
   return import("../Pages/Telemetry/Services");
 });
 
+const TelemetryDocumentation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Telemetry/Documentation");
+});
+
 const TelemetryLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Telemetry/Logs");
@@ -290,6 +296,18 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={TelemetryRoutePath[PageMap.TELEMETRY_DOCUMENTATION] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <TelemetryDocumentation
+                {...props}
+                pageRoute={RouteMap[PageMap.TELEMETRY_DOCUMENTATION] as Route}
+              />
+            </Suspense>
+          }
+        />
       </PageRoute>
 
       {/* Metric View */}
@@ -333,9 +351,9 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <Suspense fallback={Loader}>
-              <TelemetryViewException
+              <TelemetryExceptionsUnresolved
                 {...props}
-                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_VIEW] as Route}
+                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT] as Route}
               />
             </Suspense>
           }

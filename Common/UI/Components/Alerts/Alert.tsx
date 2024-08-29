@@ -21,13 +21,13 @@ export interface ComponentProps {
   onClose?: () => void;
   type?: AlertType;
   onClick?: () => void;
-  doNotShowIcon?: boolean;
-  dataTestId?: string;
-  textClassName?: string;
-  className?: string;
-  color?: Color;
-  id?: string;
-  textOnRight?: string;
+  doNotShowIcon?: boolean | undefined;
+  dataTestId?: string | undefined;
+  textClassName?: string | undefined;
+  className?: string | undefined;
+  color?: Color | undefined;
+  id?: string | undefined;
+  textOnRight?: string | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (

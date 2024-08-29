@@ -20,6 +20,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.SquareStack}
         />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_DOCUMENTATION] as Route,
+            ),
+          }}
+          icon={IconProp.Info}
+        />
       </SideMenuSection>
       <SideMenuSection title="Telemetry">
         <SideMenuItem

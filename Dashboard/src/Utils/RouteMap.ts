@@ -58,6 +58,7 @@ export const WorkflowRoutePath: Dictionary<string> = {
 
 export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES]: "services",
+  [PageMap.TELEMETRY_DOCUMENTATION]: "documentation",
   [PageMap.TELEMETRY_LOGS]: "logs",
   [PageMap.TELEMETRY_TRACES]: "traces",
   [PageMap.TELEMETRY_METRICS]: "metrics",
@@ -74,8 +75,8 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_TRACE_ROOT]: `traces/view`,
   [PageMap.TELEMETRY_TRACE_VIEW]: `traces/view/${RouteParams.ModelID}`, // modelID is spanId
 
-  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exception`,
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exception/${RouteParams.ModelID}`,
+  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exceptions`,
+  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exceptions/${RouteParams.ModelID}`,
 
   [PageMap.TELEMETRY_LOG_ROOT]: `logs`,
 
@@ -854,6 +855,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TELEMETRY_SERVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES]
+    }`,
+  ),
+
+  [PageMap.TELEMETRY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/telemetry/${
+      TelemetryRoutePath[PageMap.TELEMETRY_DOCUMENTATION]
     }`,
   ),
 
