@@ -38,7 +38,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [isArchived, setIsArchived] = React.useState<boolean>(false);
   const [isResolved, setIsResolved] = React.useState<boolean>(false);
 
-  const refreshExceptionItem = async () => {
+  type RefeshExceptionItemFunction = () => Promise<void>;
+
+  const refreshExceptionItem: RefeshExceptionItemFunction = async () => {
     const updatedTelemetryException: TelemetryException | null =
       await ModelAPI.getItem<TelemetryException>({
         id: props.telemetryExceptionId,
@@ -109,7 +111,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage error="Exception not found" />;
   }
 
-  const markAsResolvedUnresolved = async (isResolved: boolean) => {
+  type MarkAsResolvedUnresolvedFunction = (
+    isResolved: boolean,
+  ) => Promise<void>;
+
+  const markAsResolvedUnresolved: MarkAsResolvedUnresolvedFunction = async (
+    isResolved: boolean,
+  ): Promise<void> => {
     try {
       setIsResolveUnresolveLoading(true);
 
@@ -136,7 +144,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     setIsResolveUnresolveLoading(false);
   };
 
-  const archiveUnarchiveException = async (isArchive: boolean) => {
+  type ArchiveUnarchiveExceptionFunction = (
+    isArchive: boolean,
+  ) => Promise<void>;
+
+  const archiveUnarchiveException: ArchiveUnarchiveExceptionFunction = async (
+    isArchive: boolean,
+  ): Promise<void> => {
     try {
       setIsArchiveLoading(true);
 
@@ -189,7 +203,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       {/** Occurance Table */}
 
-      {telemetryException.fingerprint && <OccouranceTable exceptionFingerprint={telemetryException.fingerprint} />}
+      {telemetryException.fingerprint && (
+        <OccouranceTable
+          exceptionFingerprint={telemetryException.fingerprint}
+        />
+      )}
 
       {/** Archive / Unarchive Button Button */}
 

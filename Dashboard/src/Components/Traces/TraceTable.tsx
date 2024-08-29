@@ -27,6 +27,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
 import SpanUtil from "../../Utils/SpanUtil";
+import TraceElement from "./TraceElement";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -233,7 +234,14 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 traceId: true,
               },
               title: "Trace ID",
-              type: FieldType.Text,
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                return (
+                  <Fragment>
+                    <TraceElement traceId={span.traceId?.toString()} />
+                  </Fragment>
+                );
+              },
             },
             {
               field: {

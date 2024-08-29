@@ -478,7 +478,6 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     this.setColumnValue("spanStatusCode", v);
   }
 
-  
   public get spanName(): string | undefined {
     return this.getColumnValue("spanName") as string | undefined;
   }
@@ -486,5 +485,4 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
   public set spanName(v: string | undefined) {
     this.setColumnValue("spanName", v);
   }
-  
 }
