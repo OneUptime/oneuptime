@@ -16,110 +16,119 @@ export enum AlertSize {
 }
 
 export interface ComponentProps {
-  strongTitle?: undefined | string;
-  title?: undefined | string;
-  onClose?: undefined | (() => void);
-  type?: undefined | AlertType;
-  onClick?: (() => void) | undefined;
-  doNotShowIcon?: boolean | undefined;
+  strongTitle?: string;
+  title?: string;
+  onClose?: () => void;
+  type?: AlertType;
+  onClick?: () => void;
+  doNotShowIcon?: boolean;
   dataTestId?: string;
-  textClassName?: string | undefined;
-  className?: string | undefined;
-  color?: Color | undefined;
-  id?: string | undefined;
-  textOnRight?: string | undefined;
+  textClassName?: string;
+  className?: string;
+  color?: Color;
+  id?: string;
+  textOnRight?: string;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let type: AlertType = AlertType.INFO;
+  const type: AlertType = props.type || AlertType.INFO;
 
-  if (props.type) {
-    type = props.type;
-  }
+  const typeClassNames: {
+    [key in AlertType]: {
+      text: string;
+      bg: string;
+      hover: string;
+    };
+  } = {
+    [AlertType.DANGER]: {
+      text: "text-red-200",
+      bg: "bg-red-700",
+      hover: "hover:bg-red-600",
+    },
+    [AlertType.INFO]: {
+      text: "text-gray-200",
+      bg: "bg-gray-700",
+      hover: "hover:bg-gray-600",
+    },
+    [AlertType.WARNING]: {
+      text: "text-yellow-200",
+      bg: "bg-gray-700",
+      hover: "hover:bg-yellow-600",
+    },
+    [AlertType.SUCCESS]: {
+      text: "text-green-200",
+      bg: "bg-gray-700",
+      hover: "hover:bg-green-600",
+    },
+  };
 
-  let className: string = "text-gray";
-  let bgClassName: string = "bg-gray";
-
-  if (AlertType.DANGER === type) {
-    className = "text-red";
-    bgClassName = "bg-red";
-  } else if (AlertType.INFO === type) {
-    className = "text-gray";
-    bgClassName = "bg-gray";
-  } else if (AlertType.WARNING === type) {
-    className = "text-yellow";
-    bgClassName = "bg-gray";
-  } else if (AlertType.SUCCESS === type) {
-    className = "text-green";
-    bgClassName = "bg-gray";
-  }
+  const {
+    text: textClassName,
+    bg: bgClassName,
+    hover: hoverClassName,
+  } = typeClassNames[type];
 
   return (
     <div
       id={props.id}
-      className={`rounded-md ${bgClassName}-700 p-4`}
+      className={`alert rounded-md ${bgClassName} p-4 ${props.className}`}
       data-testid={props.dataTestId}
-      onClick={() => {
-        props.onClick && props.onClick();
-      }}
+      onClick={props.onClick}
       role="alert"
-      style={
-        props.color
-          ? {
-              backgroundColor: props.color?.toString(),
-            }
-          : {}
-      }
+      style={props.color ? { backgroundColor: props.color.toString() } : {}}
     >
-      <div className="flex ">
+      <div className="alert-content flex">
         {!props.doNotShowIcon && (
-          <div className="flex-shrink-0">
-            {AlertType.DANGER === type && (
-              <Icon icon={IconProp.Alert} className="h-5 w-5 text-red-200" />
-            )}
-            {AlertType.WARNING === type && (
-              <Icon icon={IconProp.Alert} className="h-5 w-5 text-yellow-200" />
-            )}
-            {AlertType.SUCCESS === type && (
+          <div className="alert-icon flex-shrink-0">
+            {type === AlertType.DANGER && (
               <Icon
-                icon={IconProp.CheckCircle}
-                className="h-5 w-5 text-green-400"
+                icon={IconProp.Alert}
+                className={`h-5 w-5 ${textClassName}`}
               />
             )}
-            {AlertType.INFO === type && (
-              <Icon icon={IconProp.Info} className="h-5 w-5 text-gray-200" />
+            {type === AlertType.WARNING && (
+              <Icon
+                icon={IconProp.Alert}
+                className={`h-5 w-5 ${textClassName}`}
+              />
+            )}
+            {type === AlertType.SUCCESS && (
+              <Icon
+                icon={IconProp.CheckCircle}
+                className={`h-5 w-5 ${textClassName}`}
+              />
+            )}
+            {type === AlertType.INFO && (
+              <Icon
+                icon={IconProp.Info}
+                className={`h-5 w-5 ${textClassName}`}
+              />
             )}
           </div>
         )}
         <div
-          className={`ml-3 mr-3 flex-1 md:flex md:justify-between ${props.className}`}
+          className={`alert-text ml-3 mr-3 flex-1 md:flex md:justify-between ${props.textClassName}`}
         >
           <div
-            className={
-              props.textClassName ||
-              `text-sm flex justify-between ${className}-200`
-            }
+            className={`alert-message text-sm flex justify-between ${textClassName}`}
           >
             <div>
               <span className="font-medium">
                 {props.strongTitle}{" "}
-                {props.title && props.strongTitle ? "-" : ""}{" "}
+                {props.title && props.strongTitle ? "-" : ""}
               </span>
               {props.title}
             </div>
             {props.textOnRight && <div>{props.textOnRight}</div>}
           </div>
-
           {props.onClose && (
-            <p className="mt-3 text-sm md:mt-0 md:ml-6">
+            <p className="alert-close mt-3 text-sm md:mt-0 md:ml-6">
               <button
-                onClick={() => {
-                  props.onClose && props.onClose();
-                }}
-                role={"alert-close-button"}
-                className={`whitespace-nowrap font-medium ${className}-200 hover:${className}-50`}
+                onClick={props.onClose}
+                role="alert-close-button"
+                className={`whitespace-nowrap font-medium ${textClassName} hover:${hoverClassName}`}
               >
                 Close
                 <span aria-hidden="true"> &rarr;</span>

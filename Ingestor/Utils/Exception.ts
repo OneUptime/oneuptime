@@ -72,6 +72,7 @@ export default class ExceptionUtil {
         data: {
           lastSeenAt: OneUptimeDate.now(),
           markedAsResolvedByUserId: null,
+          isResolved: false,
           markedAsResolvedAt: null, // unmark as resolved if it was marked as resolved
           occuranceCount: (existingExceptionStatus.occuranceCount || 0) + 1,
         },

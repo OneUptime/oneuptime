@@ -18,6 +18,7 @@ import OneUptimeDate from "Common/Types/Date";
 import User from "Common/UI/Utils/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import OccouranceTable from "./OccuranceTable";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -195,6 +196,26 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         />
       )}
 
+      {isArchived ? (
+        <Alert
+          type={AlertType.WARNING}
+          strongTitle="Archived"
+          title="This exception has been archived."
+        />
+      ) : (
+        <></>
+      )}
+
+      {isResolved ? (
+        <Alert
+          type={AlertType.SUCCESS}
+          strongTitle="RESOLVED"
+          title="This exception has been resolved."
+        />
+      ) : (
+        <></>
+      )}
+
       {/** Exception Details */}
 
       <ExceptionDetail {...telemetryException} />
@@ -219,7 +240,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             {
               actionName: "Unresolve",
               actionIcon: IconProp.Close,
-              actionButtonStyle: ButtonStyleType.DANGER,
+              actionButtonStyle: ButtonStyleType.NORMAL,
               isLoading: isResolveUnresolveLoading,
               onConfirmAction: async () => {
                 // Mark the exception as unresolved
@@ -238,7 +259,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             {
               actionName: "Archive",
               actionIcon: IconProp.Archive,
-              actionButtonStyle: ButtonStyleType.DANGER,
+              actionButtonStyle: ButtonStyleType.NORMAL,
               isLoading: isArchiveLoading,
               onConfirmAction: async () => {
                 // Mark the exception as unresolved

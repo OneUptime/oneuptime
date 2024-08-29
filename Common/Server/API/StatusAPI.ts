@@ -76,6 +76,8 @@ export default class StatusAPI {
               logger.info("Ready check: ok");
               stausReadySuccess.add(1);
 
+              span.recordException(new ServerException("Server is ready"));
+
               Response.sendJsonObjectResponse(req, res, {
                 status: "ok",
               });

@@ -204,6 +204,13 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             title: "Last Seen At",
             type: FieldType.DateTime,
           },
+          {
+            field: {
+              occuranceCount: true,
+            },
+            title: "Occurances",
+            type: FieldType.Number,
+          },
         ]}
       />
     </Fragment>
