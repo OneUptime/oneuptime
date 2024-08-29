@@ -46,7 +46,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
   };
 
   const getArchivedIcon: GetReactElementFunction = (): ReactElement => {
-    if (!props.isResolved || !props.isArchived) {
+    if (!props.isArchived) {
       return <></>;
     }
 

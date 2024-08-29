@@ -12,7 +12,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../Utils/PageMap";
 import User from "Common/Models/DatabaseModels/User";
-import { BulkActionFailed, BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkActionFailed,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -72,15 +75,19 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         }}
         bulkActions={{
           buttons: [
-
             {
               title: "Resolve",
               buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
-                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+              onClick: async (
+                props: BulkActionOnClickProps<TelemetryException>,
+              ) => {
+                const inProgressItems: Array<TelemetryException> = [
+                  ...props.items,
+                ]; // items to be disabled
                 const totalItems: Array<TelemetryException> = [...props.items]; // total items
                 const successItems: Array<TelemetryException> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+                const failedItems: Array<BulkActionFailed<TelemetryException>> =
+                  []; // items that failed to disable
 
                 props.onBulkActionStart();
 
@@ -91,18 +98,20 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
 
                   try {
                     if (!exception.id) {
-                      throw new BadDataException("Telemetry Exception ID not found");
+                      throw new BadDataException(
+                        "Telemetry Exception ID not found",
+                      );
                     }
 
                     if (!exception.isResolved) {
-
                       await ModelAPI.updateById<TelemetryException>({
                         id: exception.id,
                         modelType: TelemetryException,
                         data: {
                           isResolved: true,
                           markedAsResolvedAt: OneUptimeDate.getCurrentDate(),
-                          markedAsResolvedByUserId: UserUtil.getUserId() || null
+                          markedAsResolvedByUserId:
+                            UserUtil.getUserId() || null,
                         },
                       });
                     }
@@ -137,11 +146,16 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             {
               title: "Unresolve",
               buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
-                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+              onClick: async (
+                props: BulkActionOnClickProps<TelemetryException>,
+              ) => {
+                const inProgressItems: Array<TelemetryException> = [
+                  ...props.items,
+                ]; // items to be disabled
                 const totalItems: Array<TelemetryException> = [...props.items]; // total items
                 const successItems: Array<TelemetryException> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+                const failedItems: Array<BulkActionFailed<TelemetryException>> =
+                  []; // items that failed to disable
 
                 props.onBulkActionStart();
 
@@ -152,18 +166,19 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
 
                   try {
                     if (!exception.id) {
-                      throw new BadDataException("Telemetry Exception ID not found");
+                      throw new BadDataException(
+                        "Telemetry Exception ID not found",
+                      );
                     }
 
                     if (exception.isResolved) {
-
                       await ModelAPI.updateById<TelemetryException>({
                         id: exception.id,
                         modelType: TelemetryException,
                         data: {
                           isResolved: false,
                           markedAsResolvedAt: null,
-                          markedAsResolvedByUserId: null
+                          markedAsResolvedByUserId: null,
                         },
                       });
                     }
@@ -200,11 +215,16 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             {
               title: "Archive",
               buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
-                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+              onClick: async (
+                props: BulkActionOnClickProps<TelemetryException>,
+              ) => {
+                const inProgressItems: Array<TelemetryException> = [
+                  ...props.items,
+                ]; // items to be disabled
                 const totalItems: Array<TelemetryException> = [...props.items]; // total items
                 const successItems: Array<TelemetryException> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+                const failedItems: Array<BulkActionFailed<TelemetryException>> =
+                  []; // items that failed to disable
 
                 props.onBulkActionStart();
 
@@ -215,18 +235,20 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
 
                   try {
                     if (!exception.id) {
-                      throw new BadDataException("Telemetry Exception ID not found");
+                      throw new BadDataException(
+                        "Telemetry Exception ID not found",
+                      );
                     }
 
                     if (!exception.isArchived) {
-
                       await ModelAPI.updateById<TelemetryException>({
                         id: exception.id,
                         modelType: TelemetryException,
                         data: {
                           isArchived: true,
                           markedAsArchivedAt: OneUptimeDate.getCurrentDate(),
-                          markedAsArchivedByUserId: UserUtil.getUserId() || null
+                          markedAsArchivedByUserId:
+                            UserUtil.getUserId() || null,
                         },
                       });
                     }
@@ -261,11 +283,16 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             {
               title: "Unarchive",
               buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (props: BulkActionOnClickProps<TelemetryException>) => {
-                const inProgressItems: Array<TelemetryException> = [...props.items]; // items to be disabled
+              onClick: async (
+                props: BulkActionOnClickProps<TelemetryException>,
+              ) => {
+                const inProgressItems: Array<TelemetryException> = [
+                  ...props.items,
+                ]; // items to be disabled
                 const totalItems: Array<TelemetryException> = [...props.items]; // total items
                 const successItems: Array<TelemetryException> = []; // items that are disabled
-                const failedItems: Array<BulkActionFailed<TelemetryException>> = []; // items that failed to disable
+                const failedItems: Array<BulkActionFailed<TelemetryException>> =
+                  []; // items that failed to disable
 
                 props.onBulkActionStart();
 
@@ -276,18 +303,19 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
 
                   try {
                     if (!exception.id) {
-                      throw new BadDataException("Telemetry Exception ID not found");
+                      throw new BadDataException(
+                        "Telemetry Exception ID not found",
+                      );
                     }
 
                     if (exception.isArchived) {
-
                       await ModelAPI.updateById<TelemetryException>({
                         id: exception.id,
                         modelType: TelemetryException,
                         data: {
                           isArchived: false,
                           markedAsArchivedAt: null,
-                          markedAsArchivedByUserId: null
+                          markedAsArchivedByUserId: null,
                         },
                       });
                     }
@@ -309,7 +337,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
                 }
 
                 props.onBulkActionEnd();
-
               },
 
               icon: IconProp.Unarchive,
@@ -321,7 +348,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
               },
             },
 
-
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -329,7 +355,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={"No exceptions found."}
         showRefreshButton={true}
         viewPageRoute={viewRoute}
-
         filters={[
           {
             field: {
