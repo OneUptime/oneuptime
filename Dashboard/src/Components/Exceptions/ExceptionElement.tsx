@@ -18,10 +18,16 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    if (props.isArchived) {
+      return <></>;
+    }
+
     return (
-      <div className="rounded bg-red-200 h-6 w-6 p-1">
-        <Icon icon={IconProp.Check} className="text-emerald-600" />
-      </div>
+      <Tooltip text="Resolved Exception">
+        <div className="rounded bg-emerald-200 h-6 w-6 p-1">
+          <Icon icon={IconProp.Check} className="text-emerald-600" />
+        </div>
+      </Tooltip>
     );
   };
 
@@ -45,9 +51,11 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="rounded bg-red-200 h-6 w-6 p-1">
-        <Icon icon={IconProp.Archive} className="text-gray-600" />
-      </div>
+      <Tooltip text="Archived Exception">
+        <div className="rounded bg-gray-200 h-6 w-6 p-1">
+          <Icon icon={IconProp.Archive} className="text-gray-600" />
+        </div>
+      </Tooltip>
     );
   };
 

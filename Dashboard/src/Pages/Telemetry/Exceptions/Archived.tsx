@@ -21,7 +21,7 @@ const Services: FunctionComponent<PageComponentProps> = (
         isArchived: true,
       }}
       title="Archived Exceptions"
-      description="All the exceptions that have been archived."
+      description="All the exceptions that have been archived. You will not be notified about these exceptions."
     />
   );
 };

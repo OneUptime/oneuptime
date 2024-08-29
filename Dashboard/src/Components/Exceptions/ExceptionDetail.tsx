@@ -111,8 +111,11 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Card>
-      <div className="-mt-4">
+    <Card
+      title={"Exception Details"}
+      description={"Here are more details of this exception."}
+    >
+      <div>
         <Detail<ComponentProps> item={props} fields={fields} />
       </div>
     </Card>

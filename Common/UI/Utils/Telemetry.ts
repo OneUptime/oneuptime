@@ -14,7 +14,7 @@ import {
   TracerConfig,
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import URL from "Common/Types/API/URL";
 
 export default class Telemetry {
@@ -29,7 +29,7 @@ export default class Telemetry {
     if (OpenTelemetryExporterOtlpEndpoint && hasHeaders) {
       const providerConfig: TracerConfig = {
         resource: new Resource({
-          [SemanticResourceAttributes.SERVICE_NAME]: data.serviceName,
+          [ATTR_SERVICE_NAME]: data.serviceName,
         }),
       };
 

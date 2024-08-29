@@ -1,7 +1,7 @@
 import OpenTelemetryAPI, {
-  diag,
-  DiagConsoleLogger,
-  DiagLogLevel,
+  // diag,
+  // DiagConsoleLogger,
+  // DiagLogLevel,
   Meter,
 } from "@opentelemetry/api";
 import { Logger, logs } from "@opentelemetry/api-logs";
@@ -36,7 +36,7 @@ import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 
 // Enable this line to see debug logs
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+// diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;

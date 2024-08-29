@@ -83,6 +83,7 @@ const Card: FunctionComponent<ComponentProps> = (
                         icon={button.icon}
                         shortcutKey={button.shortcutKey}
                         dataTestId="card-button"
+                        isLoading={button.isLoading}
                       />
                     </div>
                   );

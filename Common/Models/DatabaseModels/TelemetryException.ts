@@ -610,6 +610,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     manyToOneRelationColumn: "assignToUserId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "Assign to User",
     description: "Relation to User who this exception is assigned to.",
   })
@@ -682,6 +683,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     manyToOneRelationColumn: "assignToTeamId",
     type: TableColumnType.Entity,
+    modelType: Team,
     title: "Assign to Team",
     description: "Relation to Team who this exception is assigned to.",
   })
@@ -753,6 +755,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     manyToOneRelationColumn: "markedAsResolvedByUserId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "Marked as Resolved By User",
     description:
       "Mark as resolved by User who marked this exception as resolved.",
@@ -825,6 +828,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     manyToOneRelationColumn: "markedAsArchivedByUserId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "Mark as Archived By User",
     description: "Mark as archived by User",
   })

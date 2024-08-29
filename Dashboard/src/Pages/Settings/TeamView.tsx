@@ -369,6 +369,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               user: {
                 name: true,
                 email: true,
+                profilePictureId: true,
               },
             },
             title: "User",

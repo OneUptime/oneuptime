@@ -378,6 +378,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
       />,
     );
+  } else if (icon === IconProp.Unarchive) {
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+      />,
+    );
   } else if (icon === IconProp.JSON) {
     return getSvgWrapper(
       <path
