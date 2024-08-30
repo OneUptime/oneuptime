@@ -15,7 +15,9 @@ Once you created a token, click on "View" to view the token.
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
 
-### Step 2 - Configure the telemetry service in your application.
+### Step 2 
+
+#### Configure the telemetry service in your application.
 
 #### Application Logs
 
@@ -56,3 +58,17 @@ export OTEL_SERVICE_NAME=my-service
 If you're self-hosting oneuptime, this can be changed to your self hosted OpenTelemetry collector endpoint (eg: `http(s)://<your-oneuptime-host>/otlp`)
 
 Once you run your application, you should see the logs in the OneUptime telemetry service page. Please contact support@oneuptime.com if you need any help.
+
+
+#### Using OpenTelemetry Collector
+
+You can also use the OpenTelemetry collector instead of sending telemetry data directly from your application. 
+If you are using OpenTelemetry Collector, you can configure the OneUptime exporter in the collector configuration file.
+
+```yaml
+exporters:
+  otlphttp:
+    endpoint: "https://otlp.oneuptime.com"
+    headers: {"Content-Type": "application/json", "x-oneuptime-token": "YOUR_TOKEN"}
+    encoding: "json"
+```
