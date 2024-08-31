@@ -63,7 +63,7 @@ OneUptime Cloud is the easiest and fastest way to monitor your website uptime an
 
 By using OneUptime Cloud, you also support the development of OneUptime open source project, which is a powerful and flexible tool for website monitoring. You can find more information about OneUptime open source project on [GitHub](##Philosophy). The code of OneUptime is completely open source, which means you can access, modify, and distribute it freely. You can also contribute to the project by reporting issues, suggesting features, or submitting pull requests.
 
-If you need advanced features, such as API Access, Advances Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
+If you need advanced features, such as API Access, Advanced Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
 
 
 ## Installation
@@ -74,7 +74,7 @@ If you need advanced features, such as API Access, Advances Workflows, or Advanc
 
 ## Philosophy
 
-Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
+Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand the causes of downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
 
 ## Contributing
 
