@@ -42,7 +42,7 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS]: `code-repository/${RouteParams.ModelID}/pull-requests`,
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION]: `code-repository/${RouteParams.ModelID}/documentation`,
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS]: `code-repository/${RouteParams.ModelID}/settings`,
-  [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES]:   `code-repository/${RouteParams.ModelID}/priorities`,
+  [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES]: `code-repository/${RouteParams.ModelID}/priorities`,
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES]: `code-repository/${RouteParams.ModelID}/services`,
 };
 
@@ -530,7 +530,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/copilot/${
-      CodeRepositoryRoutePath[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES]
+      CodeRepositoryRoutePath[
+        PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES
+      ]
     }`,
   ),
 

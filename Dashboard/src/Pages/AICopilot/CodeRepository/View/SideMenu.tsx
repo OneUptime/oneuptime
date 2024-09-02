@@ -55,7 +55,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-
       <SideMenuSection title="Code Changes">
         <SideMenuItem
           link={{
@@ -72,7 +71,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
-      <SideMenuItem
+        <SideMenuItem
           link={{
             title: "Priorities",
             to: RouteUtil.populateRouteParams(

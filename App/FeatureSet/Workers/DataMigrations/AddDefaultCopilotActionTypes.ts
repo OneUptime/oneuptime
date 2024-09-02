@@ -2,7 +2,10 @@ import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import CopilotCodeRepositoryService from "Common/Server/Services/CopilotCodeRepositoryService";
-import { CopilotActionTypeUtil } from "Common/Types/Copilot/CopilotActionType";
+import {
+  CopilotActionTypeData,
+  CopilotActionTypeUtil,
+} from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
 import CopilotActionTypePriorityService from "Common/Server/Services/CopilotActionTypePriorityService";
 
@@ -29,11 +32,12 @@ export default class AddEndedState extends DataMigrationBase {
       });
 
     for (const repo of repositories) {
-      const defaultCopilotActionTypes =
+      const defaultCopilotActionTypes: Array<CopilotActionTypeData> =
         CopilotActionTypeUtil.getAllCopilotActionTypes();
 
       for (const defaultAction of defaultCopilotActionTypes) {
-        const copilotActionTypePriority = new CopilotActionTypePriority();
+        const copilotActionTypePriority: CopilotActionTypePriority =
+          new CopilotActionTypePriority();
         copilotActionTypePriority.projectId = repo.projectId!;
         copilotActionTypePriority.actionType = defaultAction.type;
         copilotActionTypePriority.priority = defaultAction.defaultPriority;
