@@ -74,7 +74,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MigrateServiceLanguageToTechStack(),
   new DeleteOldTelemetryTable(),
   new MoveTelemetryServiceTokenToTelemetryIngestionKey(),
-  new AddDefaultCopilotActionTypes()
+  new AddDefaultCopilotActionTypes(),
 ];
 
 export default DataMigrations;

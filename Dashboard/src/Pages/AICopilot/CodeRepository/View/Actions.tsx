@@ -10,6 +10,7 @@ import DashboardNavigation from "../../../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
+import CopilotActionTypeElement from "../../../../Components/Copilot/CopilotActionTypeElement";
 
 const CopilotPriorities: FunctionComponent<
   PageComponentProps
@@ -69,7 +70,12 @@ const CopilotPriorities: FunctionComponent<
               actionType: true,
             },
             title: "Action",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (copilotActionTypePriority: CopilotActionTypePriority) => {
+              return (
+                <CopilotActionTypeElement copilotAction={copilotActionTypePriority.actionType!} />
+              )
+            }
           },
           {
             field: {

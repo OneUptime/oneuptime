@@ -44,7 +44,7 @@ export function getCodeRepositoryBreadcrumbs(
       ["Project", "Reliability Copilot", "View Git Repository", "Settings"],
     ),
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES,
+      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES,
       ["Project", "Reliability Copilot", "View Git Repository", "Priorities"],
     ),
     ...BuildBreadcrumbLinksByTitles(

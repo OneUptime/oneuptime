@@ -56,7 +56,7 @@ const CodeRepositoryViewSettings: LazyExoticComponent<
 const CodeRepositoryViewPriorities: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/AICopilot/CodeRepository/View/Priorities");
+  return import("../Pages/AICopilot/CodeRepository/View/Actions");
 });
 
 const CodeRepositoryViewServices: LazyExoticComponent<
@@ -176,7 +176,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES,
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES,
           )}
           element={
             <Suspense fallback={Loader}>
@@ -184,7 +184,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES
+                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
                   ] as Route
                 }
               />
