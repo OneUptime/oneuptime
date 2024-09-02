@@ -53,7 +53,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-      </SideMenuSection>  
+      </SideMenuSection>
+
 
       <SideMenuSection title="Code Changes">
         <SideMenuItem
@@ -71,6 +72,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+      <SideMenuItem
+          link={{
+            title: "Priorities",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Code}
+        />
         <SideMenuItem
           link={{
             title: "Settings",

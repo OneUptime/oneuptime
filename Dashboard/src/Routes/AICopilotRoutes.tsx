@@ -53,6 +53,12 @@ const CodeRepositoryViewSettings: LazyExoticComponent<
   return import("../Pages/AICopilot/CodeRepository/View/Settings");
 });
 
+const CodeRepositoryViewPriorities: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AICopilot/CodeRepository/View/Priorities");
+});
+
 const CodeRepositoryViewServices: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -106,7 +112,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
                   ] as Route
                 }
               />
@@ -124,7 +130,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
                   ] as Route
                 }
               />
@@ -142,7 +148,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
                   ] as Route
                 }
               />
@@ -160,7 +166,25 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewPriorities
+                {...props}
+                pageRoute={
+                  RouteMap[
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PRIORITIES
                   ] as Route
                 }
               />
@@ -178,7 +202,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
                   ] as Route
                 }
               />

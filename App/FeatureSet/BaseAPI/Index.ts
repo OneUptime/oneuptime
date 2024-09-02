@@ -95,6 +95,9 @@ import LogService, {
 import TelemetryAttributeService, {
   TelemetryAttributeService as TelemetryAttributeServiceType,
 } from "Common/Server/Services/TelemetryAttributeService";
+import CopilotActionTypePriorityService, {
+  Service as CopilotActionTypePriorityServiceType,
+} from "Common/Server/Services/CopilotActionTypePriorityService";
 
 import MetricService, {
   MetricService as MetricServiceType,
@@ -425,6 +428,7 @@ import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalo
 import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
+import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -459,6 +463,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<Log, LogServiceType>(Log, LogService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        CopilotActionTypePriority,
+        CopilotActionTypePriorityServiceType
+      >(
+        CopilotActionTypePriority,
+        CopilotActionTypePriorityService,
+      ).getRouter(),
     );
 
     app.use(

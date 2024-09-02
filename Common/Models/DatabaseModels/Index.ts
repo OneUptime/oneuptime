@@ -136,6 +136,7 @@ import UserTwoFactorAuth from "./UserTwoFactorAuth";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import CopilotActionTypePriority from "./CopilotActionTypePriority";
 
 export default [
   User,
@@ -284,6 +285,7 @@ export default [
   CopilotAction,
   ServiceCopilotCodeRepository,
   CopilotPullRequest,
+  CopilotActionTypePriority,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
