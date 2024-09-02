@@ -43,19 +43,19 @@ export class CopilotActionTypeUtil {
       {
         type: CopilotActionType.IMPROVE_LOGS,
         description:
-          "Add and Improve OpenTelemetry logs to your codebase where required to make debugging easier.",
+          "Add and Improve OpenTelemetry logs in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
       {
         type: CopilotActionType.IMPROVE_SPANS,
         description:
-          "Add and Improve OpenTelemetry spans to your codebase where required to make debugging easier.",
+          "Add and Improve OpenTelemetry spans in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
       {
         type: CopilotActionType.IMPROVE_METRICS,
         description:
-          "Add and Improve OpenTelemetry metrics to your codebase where required to make debugging easier.",
+          "Add and Improve OpenTelemetry metrics in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
 
