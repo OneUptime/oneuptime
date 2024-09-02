@@ -9,9 +9,9 @@ import {
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
 import CopilotActionTypePriorityService from "Common/Server/Services/CopilotActionTypePriorityService";
 
-export default class AddEndedState extends DataMigrationBase {
+export default class AddDefaultCopilotActionTypes extends DataMigrationBase {
   public constructor() {
-    super("AddEndedState");
+    super("AddDefaultCopilotActionTypes");
   }
 
   public override async migrate(): Promise<void> {
