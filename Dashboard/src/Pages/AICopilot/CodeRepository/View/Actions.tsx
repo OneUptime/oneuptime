@@ -61,7 +61,16 @@ const CopilotPriorities: FunctionComponent<
               "Please enter priority for this action. Please enter a number from 1 to 5.",
           },
         ]}
+        createVerb="Add"
+        singularName="Action"
+        pluralName="Actions"
         showRefreshButton={true}
+        onBeforeCreate={(
+          copilotActionTypePriority: CopilotActionTypePriority,
+        ) => {
+          copilotActionTypePriority.codeRepositoryId = modelId;
+          return Promise.resolve(copilotActionTypePriority);
+        }}
         showViewIdButton={true}
         filters={[]}
         columns={[
@@ -71,11 +80,15 @@ const CopilotPriorities: FunctionComponent<
             },
             title: "Action",
             type: FieldType.Element,
-            getElement: (copilotActionTypePriority: CopilotActionTypePriority) => {
+            getElement: (
+              copilotActionTypePriority: CopilotActionTypePriority,
+            ) => {
               return (
-                <CopilotActionTypeElement copilotAction={copilotActionTypePriority.actionType!} />
-              )
-            }
+                <CopilotActionTypeElement
+                  copilotAction={copilotActionTypePriority.actionType!}
+                />
+              );
+            },
           },
           {
             field: {

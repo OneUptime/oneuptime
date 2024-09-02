@@ -16,7 +16,9 @@ const CopilotActionTypeElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <p className="font-semibold text-gray-900">{copilotActionTypeData.type}</p>
+      <p className="font-semibold text-gray-900">
+        {copilotActionTypeData.type}
+      </p>
       <p>{copilotActionTypeData.description}</p>
     </div>
   );

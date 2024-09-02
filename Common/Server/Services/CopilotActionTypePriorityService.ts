@@ -1,4 +1,5 @@
 import CopilotActionType from "../../Types/Copilot/CopilotActionType";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
@@ -20,11 +21,11 @@ export class Service extends DatabaseService<Model> {
       createBy.data.codeRepositoryId;
 
     if (!actionType) {
-      throw new Error("ActionType is required");
+      throw new BadDataException("ActionType is required");
     }
 
     if (!codeRepositoryId) {
-      throw new Error("CodeRepositoryId is required");
+      throw new BadDataException("CodeRepositoryId is required");
     }
 
     const existingItem: Model | null = await this.findOneBy({
@@ -44,7 +45,9 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    throw new Error("Action Type already exists for this repository.");
+    throw new BadDataException(
+      "Action Type already exists for this repository.",
+    );
   }
 }
 
