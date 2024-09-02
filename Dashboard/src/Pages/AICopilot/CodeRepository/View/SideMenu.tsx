@@ -53,9 +53,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-      </SideMenuSection>
+      </SideMenuSection>  
 
-      <SideMenuSection title="Code">
+      <SideMenuSection title="Code Changes">
         <SideMenuItem
           link={{
             title: "Pull Requests",
