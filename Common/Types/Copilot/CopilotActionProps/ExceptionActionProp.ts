@@ -1,3 +1,4 @@
 export default interface ExceptionActionProp {
-  exceptionFingerprint: string;
+  fingerprint: string;
+  message: string;
 }

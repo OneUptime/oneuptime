@@ -18,6 +18,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import ServiceCatalogElement from "../../ServiceCatalog/ServiceElement";
 
 export interface ComponentProps {
   query: Query<CopilotAction>;
@@ -51,6 +52,25 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
       },
       title: "Action Type",
       type: FieldType.Text,
+    },
+    {
+      field: {
+        serviceCatalog: {
+          name: true,
+          serviceColor: true
+        },
+      },
+      title: "Service",
+      type: FieldType.Element,
+      getElement: (item: CopilotAction): ReactElement => {
+        if (!item.serviceCatalog) {
+          return <p>-</p>;
+        }
+
+        return (
+         <ServiceCatalogElement serviceCatalog={item.serviceCatalog} />
+        );
+      }
     },
     {
       field: {

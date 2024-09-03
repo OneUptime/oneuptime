@@ -1,13 +1,27 @@
 enum CopilotActionType {
+
   IMPROVE_COMMENTS = "Improve Comments",
+  ADD_COMMENTS = "Add Comments", 
+
   IMRPOVE_README = "Improve Readme",
+  ADD_README = "Add Readme",
+
   FIX_GRAMMAR_AND_SPELLING = "Fix Grammar and Spelling",
   IMPROVE_VARIABLE_NAMES = "Improve Variable Names",
   REFACTOR_CODE = "Refactor Code",
+
   WRITE_UNIT_TESTS = "Write Unit Tests",
+  IMPROVE_UNIT_TESTS = "Improve Unit Tests",
+
   IMPROVE_LOGS = "Improve Logs",
+  ADD_LOGS = "Add Logs",
+
   IMPROVE_SPANS = "Improve Spans",
+  ADD_SPANS =   "Add Spans",
+
   IMPROVE_METRICS = "Improve Metrics",
+  ADD_METRICS = "Add Metrics",
+
   FIX_EXCEPTIONS = "Fix Exceptions",
   FIX_PERFORMANCE_ISSUES = "Fix Performance Issues",
   FIX_BUGS = "Fix Bugs",
@@ -40,22 +54,40 @@ export class CopilotActionTypeUtil {
       },
 
       // Improve debugging.
+
+      // add logs, metircs and spans.
+
+      {
+        type: CopilotActionType.ADD_LOGS,
+        description: "Add OpenTelemetry logs in your codebase",
+        defaultPriority: 2,
+      },
+      {
+        type: CopilotActionType.ADD_SPANS,
+        description: "Add OpenTelemetry spans in your codebase",
+        defaultPriority: 2,
+      },
+      {
+        type: CopilotActionType.ADD_METRICS,
+        description: "Add OpenTelemetry metrics in your codebase",
+        defaultPriority: 2,
+      },
       {
         type: CopilotActionType.IMPROVE_LOGS,
         description:
-          "Add and Improve OpenTelemetry logs in your codebase where required to make debugging easier.",
+          "Improve OpenTelemetry logs in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
       {
         type: CopilotActionType.IMPROVE_SPANS,
         description:
-          "Add and Improve OpenTelemetry spans in your codebase where required to make debugging easier.",
+          "Improve OpenTelemetry spans in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
       {
         type: CopilotActionType.IMPROVE_METRICS,
         description:
-          "Add and Improve OpenTelemetry metrics in your codebase where required to make debugging easier.",
+          "Improve OpenTelemetry metrics in your codebase where required to make debugging easier.",
         defaultPriority: 2,
       },
 
@@ -67,14 +99,31 @@ export class CopilotActionTypeUtil {
       },
       {
         type: CopilotActionType.WRITE_UNIT_TESTS,
-        description: "Write unit tests",
+        description: "Add unit tests",
+        defaultPriority: 3,
+      },
+      {
+        type: CopilotActionType.IMPROVE_UNIT_TESTS,
+        description: "Improve unit tests",
         defaultPriority: 3,
       },
 
       // add comments.
       {
         type: CopilotActionType.IMPROVE_COMMENTS,
-        description: "Add or improve comments in your codebase",
+        description: "Improve comments in your codebase",
+        defaultPriority: 4,
+      },
+      {
+        type: CopilotActionType.ADD_COMMENTS,
+        description: "Add comments in your codebase",
+        defaultPriority: 4,
+      },
+
+      // Add or improve README file.
+      {
+        type: CopilotActionType.ADD_README,
+        description: "Add a README file",
         defaultPriority: 4,
       },
       {
