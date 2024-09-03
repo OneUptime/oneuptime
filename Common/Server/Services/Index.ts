@@ -132,6 +132,7 @@ import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
 import TelemetryAttributeService from "./TelemetryAttributeService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import CopilotActionTypePriorityService from "./CopilotActionTypePriorityService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -273,6 +274,7 @@ const services: Array<BaseService> = [
   CopilotActionService,
   ServiceCopilotCodeRepositoryService,
   CopilotPullRequestService,
+  CopilotActionTypePriorityService,
 
   TelemetryExceptionService,
 ];

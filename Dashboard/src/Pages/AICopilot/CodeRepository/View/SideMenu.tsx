@@ -55,22 +55,47 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Code">
+      <SideMenuSection title="Code Changes">
         <SideMenuItem
           link={{
-            title: "Pull Requests",
+            title: "In Queue",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
               ] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Code}
+          icon={IconProp.Logs}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Processed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CheckCircle}
         />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Actions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CPUChip}
+        />
         <SideMenuItem
           link={{
             title: "Settings",

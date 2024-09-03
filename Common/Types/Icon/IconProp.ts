@@ -17,6 +17,7 @@ enum IconProp {
   ArrowUpDown = "ArrowUpDown",
   Cube = "Cube",
   Unarchive = "Unarchive",
+  CPUChip = "CPUChip",
   Swatch = "Swatch",
   Squares = "Squares",
   RectangleStack = "RectangleStack",
