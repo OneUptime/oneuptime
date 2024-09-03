@@ -29,10 +29,17 @@ const CodeRepositoryView: LazyExoticComponent<
   return import("../Pages/AICopilot/CodeRepository/View/Index");
 });
 
-const CodeRepositoryViewPullRequests: LazyExoticComponent<
+const CodeRepositoryViewActionsInQueue: LazyExoticComponent<
+
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/AICopilot/CodeRepository/View/PullRequests");
+  return import("../Pages/AICopilot/CodeRepository/View/InQueue");
+});
+
+const CodeRepositoryViewProcessed: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AICopilot/CodeRepository/View/Processed");
 });
 
 const CodeRepositoryViewDocumentation: LazyExoticComponent<
@@ -104,15 +111,33 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS,
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE,
           )}
           element={
             <Suspense fallback={Loader}>
-              <CodeRepositoryViewPullRequests
+              <CodeRepositoryViewActionsInQueue
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewProcessed
+                {...props}
+                pageRoute={
+                  RouteMap[
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
                   ] as Route
                 }
               />
@@ -130,7 +155,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
                   ] as Route
                 }
               />
@@ -148,7 +173,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE
                   ] as Route
                 }
               />
@@ -166,7 +191,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
                   ] as Route
                 }
               />
@@ -184,7 +209,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
                   ] as Route
                 }
               />
@@ -202,7 +227,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
+                  PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
                   ] as Route
                 }
               />

@@ -24,9 +24,11 @@ export interface ComponentProps {
   repoOrganizationName: string;
   repoName: string;
   repoType: CodeRepositoryType;
+  title: string;
+  description: string;
 }
 
-const LabelElement: FunctionComponent<ComponentProps> = (
+const CopilotActionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
@@ -168,12 +170,11 @@ const LabelElement: FunctionComponent<ComponentProps> = (
           },
         }}
         cardProps={{
-          title: "Pull Requests",
-          description:
-            "List of pull requests created by OneUptime Copilot for this code repository.",
+          title: props.title,
+          description: props.description,
         }}
         noItemsMessage={
-          "No pull requests found. OneUptime Copilot has not created any pull requests for this code repository."
+          "No items found."
         }
         showRefreshButton={true}
         filters={[
@@ -236,4 +237,4 @@ const LabelElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default LabelElement;
+export default CopilotActionTable;
