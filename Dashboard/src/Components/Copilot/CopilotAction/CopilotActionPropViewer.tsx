@@ -17,17 +17,27 @@ export interface ComponentProps {
   actionProps: CopilotActionProp;
 }
 
-const LabelElement: FunctionComponent<ComponentProps> = (
+const CopilotActionPropViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+
+  if (!props.actionProps) {
+    return <>-</>;
+  }
+
+  if (!props.actionType) {
+    return <>-</>;
+  }
   const actionPropType: CopilotActionPropType =
     CopilotActionPropUtil.getCopilotActionPropByActionType(props.actionType);
+
+
 
   if (actionPropType === CopilotActionPropType.Directory) {
     return (
       <div>
         <p className="text-gray-900">Directory Path</p>
-        <p>{(props.actionProps as DirectoryActionProp).directoryPath}</p>
+        <p>{(props.actionProps as DirectoryActionProp).directoryPath || "-"}</p>
       </div>
     );
   }
@@ -36,7 +46,7 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     return (
       <div>
         <p className="text-gray-900">File Path</p>
-        <p>{(props.actionProps as FileActionProp).filePath}</p>
+        <p>{(props.actionProps as FileActionProp).filePath || "-"}</p>
       </div>
     );
   }
@@ -48,10 +58,13 @@ const LabelElement: FunctionComponent<ComponentProps> = (
       <div>
         <p className="text-gray-900">Exception</p>
         <p>
-          <TelemetryExceptionElement
+
+          {(props.actionProps as ExceptionActionProp).fingerprint && <TelemetryExceptionElement
             message={(props.actionProps as ExceptionActionProp).message}
             fingerprint={(props.actionProps as ExceptionActionProp).fingerprint}
-          />
+          />}
+
+          {!(props.actionProps as ExceptionActionProp).fingerprint && <p>-</p>}
         </p>
       </div>
     );
@@ -62,15 +75,21 @@ const LabelElement: FunctionComponent<ComponentProps> = (
       <div>
         <p className="text-gray-900">Trace ID</p>
         <p>
-          <TraceElement
+          {!(props.actionProps as SpanActionProp).traceId && <p>-</p>}
+          {(props.actionProps as SpanActionProp).traceId && <TraceElement
             traceId={(props.actionProps as SpanActionProp).traceId}
-          />
+          />}
         </p>
       </div>
     );
   }
 
   if (actionPropType === CopilotActionPropType.Function) {
+
+    if(!(props.actionProps as FunctionActionProp).functionName) {
+      return <>-</>;
+    }
+
     return (
       <div>
         <p className="text-gray-900">Details</p>
@@ -94,4 +113,4 @@ const LabelElement: FunctionComponent<ComponentProps> = (
   return <>-</>;
 };
 
-export default LabelElement;
+export default CopilotActionPropViewer;
