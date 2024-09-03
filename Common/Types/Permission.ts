@@ -499,6 +499,8 @@ enum Permission {
   ReadCopilotCodeRepository = "ReadCopilotCodeRepository",
 
   ReadCopilotAction = "ReadCopilotAction",
+  CreateCopilotAction = "CreateCopilotAction",
+  DeleteCopilotAction = "DeleteCopilotAction",
 
   ReadCopilotPullRequest = "ReadCopilotPullRequest",
 
