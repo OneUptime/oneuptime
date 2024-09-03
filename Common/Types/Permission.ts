@@ -2569,14 +2569,16 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteCopilotAction,
         title: "Delete Copilot Event",
-        description: "This permission can delete Copilot Event of this project.",
+        description:
+          "This permission can delete Copilot Event of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.CreateCopilotAction,
         title: "Create Copilot Event",
-        description: "This permission can create Copilot Event of this project.",
+        description:
+          "This permission can create Copilot Event of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
