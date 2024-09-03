@@ -1,4 +1,3 @@
-
 import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -78,9 +77,11 @@ const CopilotPullRequestPage: FunctionComponent<
 
   return (
     <Fragment>
-
       <CopilotActionTable
-        query={{ codeRepositoryId, copilotActionStatus: CopilotActionStatus.IN_QUEUE }}
+        query={{
+          codeRepositoryId,
+          copilotActionStatus: CopilotActionStatus.IN_QUEUE,
+        }}
         title="In Queue"
         description="Copilot jobs in queue for this repository."
         repoName={codeRepository.repositoryName!}
@@ -88,16 +89,17 @@ const CopilotPullRequestPage: FunctionComponent<
         repoType={codeRepository.repositoryHostedAt!}
       />
 
-
-<CopilotActionTable
-        query={{ codeRepositoryId, copilotActionStatus: CopilotActionStatus.PROCESSING }}
+      <CopilotActionTable
+        query={{
+          codeRepositoryId,
+          copilotActionStatus: CopilotActionStatus.PROCESSING,
+        }}
         title="Processing"
         description="Copilot jobs in processing for this repository."
         repoName={codeRepository.repositoryName!}
         repoOrganizationName={codeRepository.organizationName!}
         repoType={codeRepository.repositoryHostedAt!}
       />
-
     </Fragment>
   );
 };

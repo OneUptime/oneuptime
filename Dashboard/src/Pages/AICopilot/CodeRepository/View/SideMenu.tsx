@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Services",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -46,7 +46,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -61,7 +61,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "In Queue",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -74,14 +74,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Processed",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
               ] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.CheckCircle}
         />
-
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
@@ -90,7 +89,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Actions",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -102,7 +101,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
               ] as Route,
               { modelId: props.modelId },
             ),

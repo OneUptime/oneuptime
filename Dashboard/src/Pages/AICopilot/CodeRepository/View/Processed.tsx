@@ -1,13 +1,12 @@
-
 import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
-    Fragment,
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
 } from "react";
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -19,96 +18,102 @@ import CopilotActionTable from "../../../../Components/Copilot/CopilotAction/Cop
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
 const CopilotPullRequestPage: FunctionComponent<
-    PageComponentProps
+  PageComponentProps
 > = (): ReactElement => {
-    const codeRepositoryId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const codeRepositoryId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-    const [codeRepository, setCodeRepository] =
-        useState<CopilotCodeRepository | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+  const [codeRepository, setCodeRepository] =
+    useState<CopilotCodeRepository | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const fetchCodeRepository: PromiseVoidFunction = async (): Promise<void> => {
-        // get item.
-        setIsLoading(true);
+  const fetchCodeRepository: PromiseVoidFunction = async (): Promise<void> => {
+    // get item.
+    setIsLoading(true);
 
-        setError("");
-        try {
-            const item: CopilotCodeRepository | null = await ModelAPI.getItem({
-                modelType: CopilotCodeRepository,
-                id: codeRepositoryId,
-                select: {
-                    repositoryHostedAt: true,
-                    repositoryName: true,
-                    organizationName: true,
-                    lastCopilotRunDateTime: true,
-                },
-            });
+    setError("");
+    try {
+      const item: CopilotCodeRepository | null = await ModelAPI.getItem({
+        modelType: CopilotCodeRepository,
+        id: codeRepositoryId,
+        select: {
+          repositoryHostedAt: true,
+          repositoryName: true,
+          organizationName: true,
+          lastCopilotRunDateTime: true,
+        },
+      });
 
-            if (!item) {
-                setError(`Code Repository not found`);
+      if (!item) {
+        setError(`Code Repository not found`);
 
-                return;
-            }
+        return;
+      }
 
-            setCodeRepository(item);
-        } catch (err) {
-            setError(API.getFriendlyMessage(err));
-        }
-        setIsLoading(false);
-    };
-
-    useEffect(() => {
-        fetchCodeRepository().catch((err: Error) => {
-            setError(API.getFriendlyMessage(err));
-        });
-    }, []);
-
-    if (isLoading) {
-        return <PageLoader isVisible={true} />;
+      setCodeRepository(item);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
     }
+    setIsLoading(false);
+  };
 
-    if (error) {
-        return <ErrorMessage error={error} />;
-    }
+  useEffect(() => {
+    fetchCodeRepository().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
 
-    if (!codeRepository) {
-        return <ErrorMessage error={"Code Repository not found"} />;
-    }
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
 
-    return (
-        <Fragment>
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
 
-            <CopilotActionTable
-                query={{ codeRepositoryId, copilotActionStatus: CopilotActionStatus.PR_CREATED }}
-                title="Pull Requests"
-                description="List of Pull Requests created by copilot for this repository."
-                repoName={codeRepository.repositoryName!}
-                repoOrganizationName={codeRepository.organizationName!}
-                repoType={codeRepository.repositoryHostedAt!}
-            />
+  if (!codeRepository) {
+    return <ErrorMessage error={"Code Repository not found"} />;
+  }
 
-            <CopilotActionTable
-                query={{ codeRepositoryId, copilotActionStatus: CopilotActionStatus.CANNOT_FIX }}
-                title="Cannot Fix"
-                description="List of jobs that Copilot cannot fix for this repository."
-                repoName={codeRepository.repositoryName!}
-                repoOrganizationName={codeRepository.organizationName!}
-                repoType={codeRepository.repositoryHostedAt!}
-            />
+  return (
+    <Fragment>
+      <CopilotActionTable
+        query={{
+          codeRepositoryId,
+          copilotActionStatus: CopilotActionStatus.PR_CREATED,
+        }}
+        title="Pull Requests"
+        description="List of Pull Requests created by copilot for this repository."
+        repoName={codeRepository.repositoryName!}
+        repoOrganizationName={codeRepository.organizationName!}
+        repoType={codeRepository.repositoryHostedAt!}
+      />
 
-            <CopilotActionTable
-                query={{ codeRepositoryId, copilotActionStatus: CopilotActionStatus.NO_ACTION_REQUIRED }}
-                title="No Action Required"
-                description="List of jobs that Copilot has determined do not require any action for this repository."
-                repoName={codeRepository.repositoryName!}
-                repoOrganizationName={codeRepository.organizationName!}
-                repoType={codeRepository.repositoryHostedAt!}
-            />
+      <CopilotActionTable
+        query={{
+          codeRepositoryId,
+          copilotActionStatus: CopilotActionStatus.CANNOT_FIX,
+        }}
+        title="Cannot Fix"
+        description="List of jobs that Copilot cannot fix for this repository."
+        repoName={codeRepository.repositoryName!}
+        repoOrganizationName={codeRepository.organizationName!}
+        repoType={codeRepository.repositoryHostedAt!}
+      />
 
-
-        </Fragment>
-    );
+      <CopilotActionTable
+        query={{
+          codeRepositoryId,
+          copilotActionStatus: CopilotActionStatus.NO_ACTION_REQUIRED,
+        }}
+        title="No Action Required"
+        description="List of jobs that Copilot has determined do not require any action for this repository."
+        repoName={codeRepository.repositoryName!}
+        repoOrganizationName={codeRepository.organizationName!}
+        repoType={codeRepository.repositoryHostedAt!}
+      />
+    </Fragment>
+  );
 };
 
 export default CopilotPullRequestPage;

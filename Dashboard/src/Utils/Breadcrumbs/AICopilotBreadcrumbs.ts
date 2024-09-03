@@ -23,21 +23,11 @@ export function getCodeRepositoryBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE,
-      [
-        "Project",
-        "Reliability Copilot",
-        "View Git Repository",
-        "In Queue",
-      ],
+      ["Project", "Reliability Copilot", "View Git Repository", "In Queue"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED,
-      [
-        "Project",
-        "Reliability Copilot",
-        "View Git Repository",
-        "Processed",
-      ],
+      ["Project", "Reliability Copilot", "View Git Repository", "Processed"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION,

@@ -173,9 +173,7 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
           title: props.title,
           description: props.description,
         }}
-        noItemsMessage={
-          "No items found."
-        }
+        noItemsMessage={"No items found."}
         showRefreshButton={true}
         filters={[
           {

@@ -501,7 +501,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/copilot/${
       CodeRepositoryRoutePath[
