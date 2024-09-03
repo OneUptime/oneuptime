@@ -1,3 +1,3 @@
 export default interface FileActionProp {
-    filePath: string;
+  filePath: string;
 }

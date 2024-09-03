@@ -10,14 +10,13 @@ export interface ComponentProps {
   repoType: CodeRepositoryType;
   organizationName: string;
   repositoryName: string;
-  pullRequestStatus: PullRequestState
+  pullRequestStatus: PullRequestState;
 }
 
 const PullRequestViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (props.repoType === CodeRepositoryType.GitHub) {
-    
     const to: URL = URL.fromString(
       `https://github.com/${props.organizationName}/${props.repositoryName}/pull/${props.pullRequestId}`,
     );
@@ -25,14 +24,16 @@ const PullRequestViewElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="space-x-3 flex">
         <div>
-          <PullRequestStatusElement pullRequestStatus={props.pullRequestStatus} />
+          <PullRequestStatusElement
+            pullRequestStatus={props.pullRequestStatus}
+          />
         </div>
-      <Link to={to} className="hover:underline" openInNewTab={true}>
-        <>
-          <span>#</span>
-          {props.pullRequestId}
-        </>
-      </Link>
+        <Link to={to} className="hover:underline" openInNewTab={true}>
+          <>
+            <span>#</span>
+            {props.pullRequestId}
+          </>
+        </Link>
       </div>
     );
   }

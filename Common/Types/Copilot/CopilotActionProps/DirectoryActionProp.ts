@@ -1,3 +1,3 @@
 export default interface DirectoryActionProp {
-    directoryPath: string;
+  directoryPath: string;
 }

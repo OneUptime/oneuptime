@@ -1,4 +1,4 @@
 export default interface SpanActionProp {
-    traceId: string; 
-    spanId?: string;
+  traceId: string;
+  spanId?: string;
 }

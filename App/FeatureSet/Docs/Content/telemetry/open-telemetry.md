@@ -65,10 +65,37 @@ Once you run your application, you should see the logs in the OneUptime telemetr
 You can also use the OpenTelemetry collector instead of sending telemetry data directly from your application. 
 If you are using OpenTelemetry Collector, you can configure the OneUptime exporter in the collector configuration file.
 
+Here is the example configuration for OpenTelemetry Collector.
+
 ```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
 exporters:
+
+  # Export over HTTP
   otlphttp:
-    endpoint: "https://otlp.oneuptime.com"
-    headers: {"Content-Type": "application/json", "x-oneuptime-token": "YOUR_TOKEN"}
-    encoding: "json"
+    endpoint: "https://oneuptime.com/otlp"
+    # Requires use JSON encoder insted of default Proto(buf)
+    encoding: json
+    headers:
+      "Content-Type": "application/json"
+      "x-oneuptime-token": "ONEUPTIME_TOKEN" # Your OneUptime token
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp]
 ```

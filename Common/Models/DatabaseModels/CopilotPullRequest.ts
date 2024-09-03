@@ -464,7 +464,5 @@ export default class CopilotPullRequest extends BaseModel {
     type: ColumnType.Boolean,
     nullable: true,
   })
-  public isSetupPullRequest?: boolean = undefined; 
-
-
+  public isSetupPullRequest?: boolean = undefined;
 }

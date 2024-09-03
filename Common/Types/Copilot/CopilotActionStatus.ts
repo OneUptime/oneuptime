@@ -1,20 +1,19 @@
 enum CopilotActionStatus {
-
-  // Processed States. 
+  // Processed States.
   PR_CREATED = "Pull Request Created", // PR created and waiting for review
   NO_ACTION_REQUIRED = "No Action Required", // Code is all good. No action required. No PR created.
-  CANNOT_FIX = "Cannot Fix", // OneUptime Copilot tried to fix the issue but failed. 
+  CANNOT_FIX = "Cannot Fix", // OneUptime Copilot tried to fix the issue but failed.
 
   // Processing States
-  PROCESSING = "Processing", // Action is being processed. 
+  PROCESSING = "Processing", // Action is being processed.
 
-  // In Queue 
+  // In Queue
   IN_QUEUE = "In Queue", // Action is in queue.
 }
 
-export interface CopilotActionStatusData { 
-  status: CopilotActionStatus; 
-  description: string; 
+export interface CopilotActionStatusData {
+  status: CopilotActionStatus;
+  description: string;
 }
 
 export class CopilotActionStatusUtil {
@@ -52,7 +51,9 @@ export class CopilotActionStatusUtil {
   }
 
   public static isCopilotActionStatusArray(statuses: Array<string>): boolean {
-    return statuses.every((status) => CopilotActionStatusUtil.isCopilotActionStatus(status));
+    return statuses.every((status: string) => {
+      return CopilotActionStatusUtil.isCopilotActionStatus(status);
+    });
   }
 
   // get processing status

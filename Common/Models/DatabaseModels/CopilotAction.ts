@@ -671,7 +671,6 @@ export default class CopilotAction extends BaseModel {
   })
   public copilotActionProp?: CopilotActionProp = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -699,4 +698,30 @@ export default class CopilotAction extends BaseModel {
   })
   public statusMessage?: string = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotAction,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCopilotAction,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Logs",
+    description: "Logs",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public logs?: string = undefined;
 }
