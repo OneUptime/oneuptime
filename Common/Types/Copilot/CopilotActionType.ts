@@ -127,7 +127,7 @@ export class CopilotActionTypeUtil {
       },
       {
         type: CopilotActionType.IMRPOVE_README,
-        description: "Add or improve the README file",
+        description: "Improve the README file",
         defaultPriority: 4,
       },
 
