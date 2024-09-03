@@ -640,9 +640,7 @@ export default class CopilotAction extends BaseModel {
   })
   @Column({
     type: ColumnType.ShortText,
-    length: ColumnType.ShortText,
     nullable: false,
-    default: CopilotActionStatus.NO_ACTION_REQUIRED
   })
   public copilotActionStatus?: CopilotActionStatus = undefined;
 
