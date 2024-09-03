@@ -1,7 +1,6 @@
 enum CopilotActionType {
-
   IMPROVE_COMMENTS = "Improve Comments",
-  ADD_COMMENTS = "Add Comments", 
+  ADD_COMMENTS = "Add Comments",
 
   IMRPOVE_README = "Improve Readme",
   ADD_README = "Add Readme",
@@ -17,7 +16,7 @@ enum CopilotActionType {
   ADD_LOGS = "Add Logs",
 
   IMPROVE_SPANS = "Improve Spans",
-  ADD_SPANS =   "Add Spans",
+  ADD_SPANS = "Add Spans",
 
   IMPROVE_METRICS = "Improve Metrics",
   ADD_METRICS = "Add Metrics",

@@ -21,75 +21,75 @@ export enum CopilotActionPropType {
   Function = "Function",
 }
 
-export class CopilotActionPropUtil { 
-  public static getCopilotActionPropByActionType(actionType: CopilotActionType): CopilotActionPropType {
-
-    if(actionType === CopilotActionType.FIX_EXCEPTIONS){
+export class CopilotActionPropUtil {
+  public static getCopilotActionPropByActionType(
+    actionType: CopilotActionType,
+  ): CopilotActionPropType {
+    if (actionType === CopilotActionType.FIX_EXCEPTIONS) {
       return CopilotActionPropType.Exception;
     }
 
-    if(actionType === CopilotActionType.FIX_PERFORMANCE_ISSUES){
+    if (actionType === CopilotActionType.FIX_PERFORMANCE_ISSUES) {
       return CopilotActionPropType.Span;
     }
 
-    if(actionType === CopilotActionType.FIX_BUGS){
+    if (actionType === CopilotActionType.FIX_BUGS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.IMPROVE_LOGS){
+    if (actionType === CopilotActionType.IMPROVE_LOGS) {
       return CopilotActionPropType.File;
     }
 
-    if(actionType === CopilotActionType.IMPROVE_SPANS){
+    if (actionType === CopilotActionType.IMPROVE_SPANS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.IMPROVE_METRICS){
+    if (actionType === CopilotActionType.IMPROVE_METRICS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.ADD_LOGS){
+    if (actionType === CopilotActionType.ADD_LOGS) {
       return CopilotActionPropType.File;
     }
 
-    if(actionType === CopilotActionType.ADD_SPANS){
+    if (actionType === CopilotActionType.ADD_SPANS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.ADD_METRICS){
+    if (actionType === CopilotActionType.ADD_METRICS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.REFACTOR_CODE){
+    if (actionType === CopilotActionType.REFACTOR_CODE) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.WRITE_UNIT_TESTS){
+    if (actionType === CopilotActionType.WRITE_UNIT_TESTS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.IMPROVE_UNIT_TESTS){
+    if (actionType === CopilotActionType.IMPROVE_UNIT_TESTS) {
       return CopilotActionPropType.Function;
     }
 
-    if(actionType === CopilotActionType.IMPROVE_COMMENTS){
+    if (actionType === CopilotActionType.IMPROVE_COMMENTS) {
       return CopilotActionPropType.File;
     }
 
-    if(actionType === CopilotActionType.ADD_COMMENTS){
+    if (actionType === CopilotActionType.ADD_COMMENTS) {
       return CopilotActionPropType.File;
     }
 
-    if(actionType === CopilotActionType.ADD_README){
+    if (actionType === CopilotActionType.ADD_README) {
       return CopilotActionPropType.Directory;
     }
 
-    if(actionType === CopilotActionType.IMRPOVE_README){
+    if (actionType === CopilotActionType.IMRPOVE_README) {
       return CopilotActionPropType.File;
     }
 
-    return CopilotActionPropType.File; 
-
+    return CopilotActionPropType.File;
   }
 }
 

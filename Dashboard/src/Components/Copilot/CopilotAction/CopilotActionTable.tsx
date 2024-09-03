@@ -57,7 +57,7 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
       field: {
         serviceCatalog: {
           name: true,
-          serviceColor: true
+          serviceColor: true,
         },
       },
       title: "Service",
@@ -67,10 +67,8 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
           return <p>-</p>;
         }
 
-        return (
-         <ServiceCatalogElement serviceCatalog={item.serviceCatalog} />
-        );
-      }
+        return <ServiceCatalogElement serviceCatalog={item.serviceCatalog} />;
+      },
     },
     {
       field: {
