@@ -20,7 +20,6 @@ export interface ComponentProps {
 const CopilotActionPropViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   if (!props.actionProps) {
     return <>-</>;
   }
@@ -30,8 +29,6 @@ const CopilotActionPropViewer: FunctionComponent<ComponentProps> = (
   }
   const actionPropType: CopilotActionPropType =
     CopilotActionPropUtil.getCopilotActionPropByActionType(props.actionType);
-
-
 
   if (actionPropType === CopilotActionPropType.Directory) {
     return (
@@ -58,11 +55,14 @@ const CopilotActionPropViewer: FunctionComponent<ComponentProps> = (
       <div>
         <p className="text-gray-900">Exception</p>
         <p>
-
-          {(props.actionProps as ExceptionActionProp).fingerprint && <TelemetryExceptionElement
-            message={(props.actionProps as ExceptionActionProp).message}
-            fingerprint={(props.actionProps as ExceptionActionProp).fingerprint}
-          />}
+          {(props.actionProps as ExceptionActionProp).fingerprint && (
+            <TelemetryExceptionElement
+              message={(props.actionProps as ExceptionActionProp).message}
+              fingerprint={
+                (props.actionProps as ExceptionActionProp).fingerprint
+              }
+            />
+          )}
 
           {!(props.actionProps as ExceptionActionProp).fingerprint && <p>-</p>}
         </p>
@@ -76,17 +76,18 @@ const CopilotActionPropViewer: FunctionComponent<ComponentProps> = (
         <p className="text-gray-900">Trace ID</p>
         <p>
           {!(props.actionProps as SpanActionProp).traceId && <p>-</p>}
-          {(props.actionProps as SpanActionProp).traceId && <TraceElement
-            traceId={(props.actionProps as SpanActionProp).traceId}
-          />}
+          {(props.actionProps as SpanActionProp).traceId && (
+            <TraceElement
+              traceId={(props.actionProps as SpanActionProp).traceId}
+            />
+          )}
         </p>
       </div>
     );
   }
 
   if (actionPropType === CopilotActionPropType.Function) {
-
-    if(!(props.actionProps as FunctionActionProp).functionName) {
+    if (!(props.actionProps as FunctionActionProp).functionName) {
       return <>-</>;
     }
 

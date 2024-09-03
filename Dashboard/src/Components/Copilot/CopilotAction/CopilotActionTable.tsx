@@ -19,6 +19,7 @@ import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewe
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ServiceCatalogElement from "../../ServiceCatalog/ServiceElement";
+import CopilotActionPropViewer from "./CopilotActionPropViewer";
 
 export interface ComponentProps {
   query: Query<CopilotAction>;
@@ -52,6 +53,21 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
       },
       title: "Action Type",
       type: FieldType.Text,
+    },
+    {
+      field: {
+        copilotActionProp: true,
+      },
+      title: "More Details",
+      type: FieldType.Element,
+      getElement: (item: CopilotAction): ReactElement => {
+        return (
+          <CopilotActionPropViewer
+            actionProps={item.copilotActionProp!}
+            actionType={item.copilotActionType!}
+          />
+        );
+      },
     },
     {
       field: {
