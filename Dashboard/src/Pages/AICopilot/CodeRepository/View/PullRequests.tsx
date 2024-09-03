@@ -23,6 +23,7 @@ import API from "Common/UI/Utils/API/API";
 import PullRequestViewElement from "../../../../Components/CodeRepository/PullRequestView";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CopilotLastRunAt from "../../../../Components/Copilot/LastRunMessage";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 
 const CopilotPullRequestPage: FunctionComponent<
   PageComponentProps
@@ -89,12 +90,11 @@ const CopilotPullRequestPage: FunctionComponent<
         lastRunAt={codeRepository?.lastCopilotRunDateTime}
       />
 
-      <ModelTable<CopilotPullRequest>
-        modelType={CopilotPullRequest}
+      <ModelTable<CopilotAction>
+        modelType={CopilotAction}
         id="table-copiolt-pull-requests"
         name="Code Repository > Pull Requests"
         isDeleteable={false}
-        createVerb={"Add"}
         isCreateable={false}
         isEditable={false}
         isViewable={false}

@@ -10,7 +10,7 @@ import DashboardNavigation from "../../../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotActionTypeElement from "../../../../Components/Copilot/CopilotActionTypeElement";
+import CopilotActionTypeElement from "../../../../Components/Copilot/CopilotAction/CopilotActionTypeElement";
 
 const CopilotPriorities: FunctionComponent<
   PageComponentProps
