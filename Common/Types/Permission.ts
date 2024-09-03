@@ -501,6 +501,7 @@ enum Permission {
   ReadCopilotAction = "ReadCopilotAction",
   CreateCopilotAction = "CreateCopilotAction",
   DeleteCopilotAction = "DeleteCopilotAction",
+  EditCopilotAction = "EditCopilotAction",
 
   ReadCopilotPullRequest = "ReadCopilotPullRequest",
 
@@ -2555,6 +2556,27 @@ export class PermissionHelper {
         permission: Permission.ReadCopilotAction,
         title: "Read Copilot Event",
         description: "This permission can read Copilot Event of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditCopilotAction,
+        title: "Edit Copilot Event",
+        description: "This permission can edit Copilot Event of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteCopilotAction,
+        title: "Delete Copilot Event",
+        description: "This permission can delete Copilot Event of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.CreateCopilotAction,
+        title: "Create Copilot Event",
+        description: "This permission can create Copilot Event of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

@@ -47,7 +47,12 @@ import CopilotActionProp from "../../Types/Copilot/CopilotActionProps/Index";
     Permission.ProjectMember,
     Permission.DeleteCopilotAction,
   ],
-  update: [],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.EditCopilotAction,
+  ],
 })
 @EnableWorkflow({
   create: true,
@@ -724,4 +729,38 @@ export default class CopilotAction extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public logs?: string = undefined;
+
+  // When this is true. Copilot tries to run this action as soon as possible.
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotAction,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCopilotAction,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotAction,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Is Priority",
+    description: "Is Priority",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isPriority?: string = undefined;
 }
