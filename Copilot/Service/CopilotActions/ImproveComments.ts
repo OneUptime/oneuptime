@@ -77,7 +77,7 @@ export default class ImproveComments extends CopilotActionBase {
     return data;
   }
 
-  public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
+  private async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
     const validationResponse: string = data.output as string;
     if (validationResponse === "--no--") {
       return true;
@@ -86,7 +86,7 @@ export default class ImproveComments extends CopilotActionBase {
     return false;
   }
 
-  public async isFileAlreadyWellCommented(content: string): Promise<boolean> {
+  private async isFileAlreadyWellCommented(content: string): Promise<boolean> {
     if (content.includes("--all-good--")) {
       return true;
     }
@@ -162,7 +162,7 @@ export default class ImproveComments extends CopilotActionBase {
     };
   }
 
-  public async getValidationPrompt(data: {
+  private async getValidationPrompt(data: {
     oldCode: string;
     newCode: string;
   }): Promise<CopilotActionPrompt> {
@@ -277,6 +277,7 @@ export default class ImproveComments extends CopilotActionBase {
     );
 
     const lastWordOfInputCode: string = Text.getLastWord(data.inputCode);
+    
     extractedCode = Text.trimEndUntilThisWord(
       extractedCode,
       lastWordOfInputCode,
