@@ -353,33 +353,6 @@ export default class CopilotAction extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.LongText,
-    title: "File Path in Code Repository",
-    required: true,
-    description: "File Path in Code Repository where this event was triggered",
-  })
-  @Column({
-    type: ColumnType.LongText,
-    nullable: false,
-  })
-  public filePath?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateCopilotAction,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.LongText,
     title: "Commit Hash",
     description:
       "Commit Hash of the commit for this file in Code Repository where this event was triggered",

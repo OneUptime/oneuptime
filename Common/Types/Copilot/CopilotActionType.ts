@@ -2,7 +2,7 @@ enum CopilotActionType {
   IMPROVE_COMMENTS = "Improve Comments",
   ADD_COMMENTS = "Add Comments",
 
-  IMRPOVE_README = "Improve Readme",
+  IMPROVE_README = "Improve Readme",
   ADD_README = "Add Readme",
 
   FIX_GRAMMAR_AND_SPELLING = "Fix Grammar and Spelling",
@@ -148,7 +148,7 @@ export class CopilotActionTypeUtil {
         dependsOn: [],
       },
       {
-        type: CopilotActionType.IMRPOVE_README,
+        type: CopilotActionType.IMPROVE_README,
         description: "Improve the README file",
         defaultPriority: 4,
         dependsOn: [],

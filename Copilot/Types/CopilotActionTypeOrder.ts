@@ -5,7 +5,7 @@ const CopiotActionTypeOrder: Array<CopilotActionType> = [
   // CopilotActionType.REFACTOR_CODE,
   // CopilotActionType.FIX_GRAMMAR_AND_SPELLING,
   // CopilotActionType.IMPROVE_VARIABLE_NAMES,
-  // CopilotActionType.IMRPOVE_README,
+  // CopilotActionType.IMPROVE_README,
   // CopilotActionType.WRITE_UNIT_TESTS,
 ];
 

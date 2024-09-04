@@ -31,7 +31,7 @@ const actionDictionary: Dictionary<typeof CopilotActionBase> = {
   [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: FixGrammarAndSpelling,
   [CopilotActionType.REFACTOR_CODE]: RefactorCode,
   [CopilotActionType.WRITE_UNIT_TESTS]: WriteUnitTests,
-  [CopilotActionType.IMRPOVE_README]: ImproveReadme,
+  [CopilotActionType.IMPROVE_README]: ImproveReadme,
 };
 
 export interface CopilotExecutionResult {

@@ -9,7 +9,7 @@ import CodeRepositoryUtil from "../../Utils/CodeRepository";
 export default class ImproveReadme extends CopilotActionBase {
   public constructor() {
     super();
-    this.copilotActionType = CopilotActionType.IMRPOVE_README;
+    this.copilotActionType = CopilotActionType.IMPROVE_README;
     this.acceptFileExtentions = CodeRepositoryUtil.getReadmeFileExtentions();
   }
 

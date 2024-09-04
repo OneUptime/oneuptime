@@ -85,7 +85,7 @@ export class CopilotActionPropUtil {
       return CopilotActionPropType.Directory;
     }
 
-    if (actionType === CopilotActionType.IMRPOVE_README) {
+    if (actionType === CopilotActionType.IMPROVE_README) {
       return CopilotActionPropType.File;
     }
 

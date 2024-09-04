@@ -59,6 +59,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   await setUpRepository();
 
   for (const serviceRepository of servicesToImprove) {
+    
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
 
     const filesInService: Dictionary<CodeRepositoryFile> =
@@ -71,10 +72,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         Object.keys(filesInService).length
       }`,
     );
-
-    // const files: Array<CodeRepositoryFile> = ArrayUtil.shuffle(
-    //   Object.values(filesInService),
-    // ); // shuffle the files to avoid fixing the same file in each run.
 
     const files: Array<CodeRepositoryFile> = Object.values(filesInService);
 
