@@ -7,6 +7,8 @@ import Text from "Common/Types/Text";
 import { CopilotActionPrompt, CopilotProcess } from "./Types";
 import { PromptRole } from "../LLM/Prompt";
 import logger from "Common/Server/Utils/Logger";
+import FileActionProp from "Common/Types/Copilot/CopilotActionProps/FileActionProp";
+import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -21,7 +23,78 @@ export default class ImproveComments extends CopilotActionBase {
     return Promise.resolve(this.isRequirementsMet);
   }
 
-  public async commentCodePart(options: {
+  public override async onExecutionStep(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
+    // Action Prompt
+
+    const codeParts: string[] = await this.splitInputCode({
+      code: "",
+      itemSize: 500,
+    });
+
+    let newContent: string = "";
+
+    let isWellCommented: boolean = true;
+
+    for (const codePart of codeParts) {
+      const codePartResult: {
+        newCode: string;
+        isWellCommented: boolean;
+      } = await this.commentCodePart({
+        data: data,
+        codePart: codePart,
+        currentRetryCount: 0,
+        maxRetryCount: 3,
+      });
+
+      if (!codePartResult.isWellCommented) {
+        isWellCommented = false;
+        newContent += codePartResult.newCode + "\n";
+      } else {
+        newContent += codePart + "\n";
+      }
+    }
+
+    if (isWellCommented) {
+      this.isRequirementsMet = true;
+      return data;
+    }
+
+    newContent = newContent.trim();
+
+    logger.debug("New Content:");
+    logger.debug(newContent);
+
+    const fileActionProps: FileActionProp = data.input as FileActionProp;
+
+    // add to result.
+    data.result.files[fileActionProps.filePath] = {
+      fileContent: newContent,
+    } as CodeRepositoryFile;
+
+    this.isRequirementsMet = true;
+    return data;
+  }
+
+  public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
+    const validationResponse: string = data.output as string;
+    if (validationResponse === "--no--") {
+      return true;
+    }
+
+    return false;
+  }
+
+  public async isFileAlreadyWellCommented(content: string): Promise<boolean> {
+    if (content.includes("--all-good--")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async commentCodePart(options: {
     data: CopilotProcess;
     codePart: string;
     currentRetryCount: number;
@@ -87,76 +160,6 @@ export default class ImproveComments extends CopilotActionBase {
       newCode: newCodePart,
       isWellCommented: isWellCommented,
     };
-  }
-
-  public override async onExecutionStep(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    // Action Prompt
-
-    const codeParts: string[] = await this.splitInputCode({
-      code: "",
-      itemSize: 500,
-    });
-
-    let newContent: string = "";
-
-    let isWellCommented: boolean = true;
-
-    for (const codePart of codeParts) {
-      const codePartResult: {
-        newCode: string;
-        isWellCommented: boolean;
-      } = await this.commentCodePart({
-        data: data,
-        codePart: codePart,
-        currentRetryCount: 0,
-        maxRetryCount: 3,
-      });
-
-      if (!codePartResult.isWellCommented) {
-        isWellCommented = false;
-        newContent += codePartResult.newCode + "\n";
-      } else {
-        newContent += codePart + "\n";
-      }
-    }
-
-    if (isWellCommented) {
-      this.isRequirementsMet = true;
-      return data;
-    }
-
-    newContent = newContent.trim();
-
-    logger.debug("New Content:");
-    logger.debug(newContent);
-
-    // // add to result.
-    // data.result.files[data.input.currentFilePath] = {
-    //   ...data.input.files[data.input.currentFilePath],
-    //   fileContent: newContent,
-    // } as CodeRepositoryFile;
-
-    this.isRequirementsMet = true;
-    return data;
-  }
-
-  public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
-    const validationResponse: string = data.output as string;
-    if (validationResponse === "--no--") {
-      return true;
-    }
-
-    return false;
-  }
-
-  public async isFileAlreadyWellCommented(content: string): Promise<boolean> {
-    if (content.includes("--all-good--")) {
-      return true;
-    }
-
-    return false;
   }
 
   public async getValidationPrompt(data: {

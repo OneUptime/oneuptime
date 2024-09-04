@@ -3,7 +3,6 @@ import LocalFile from "../LocalFile";
 import logger from "../Logger";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
-import ServiceLanguageUtil from "Common/Utils/TechStack";
 
 export default class CodeRepositoryUtil {
   public static getCurrentCommitHash(data: {
@@ -377,23 +376,10 @@ export default class CodeRepositoryUtil {
         }
       }
 
-      const gitCommitHash: string = await this.getGitCommitHashForFile({
-        filePath,
-        repoPath,
-      });
-
-      const fileExtension: string = fileName.split(".").pop() || "";
       files[filePath] = {
-        filePath: LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`),
-        gitCommitHash,
-        fileExtension,
-        fileName,
         fileContent: await this.getFileContent({
           filePath: LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`),
           repoPath,
-        }),
-        fileLanguage: ServiceLanguageUtil.getLanguageByFileExtension({
-          fileExtension,
         }),
       };
     }

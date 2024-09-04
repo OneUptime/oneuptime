@@ -237,10 +237,8 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     const processResult: CopilotProcess = data.data;
 
     for (const filePath in processResult.result.files) {
-      const fileCommitHash: string =
-        processResult.result.files[filePath]!.gitCommitHash;
 
-      logger.info(`Writing file: ${filePath} ${fileCommitHash}`);
+      logger.info(`Writing file: ${filePath}`);
       logger.info(`File content: `);
       logger.info(`${processResult.result.files[filePath]!.fileContent}`);
 
