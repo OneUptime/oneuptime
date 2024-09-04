@@ -5,6 +5,7 @@ import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components from "Common/Types/Workflow/Components/Email";
 import nodemailer, { Transporter } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 
 export default class Email extends ComponentCode {
   public constructor() {
@@ -48,53 +49,49 @@ export default class Email extends ComponentCode {
     }
 
     if (!args["to"]) {
-      throw options.onError(new BadDataException("to not found"));
+      throw options.onError(new BadDataException("To Email not found"));
     }
 
     if (args["to"] && typeof args["to"] !== "string") {
-      throw options.onError(new BadDataException("to is not type of string"));
+      throw options.onError(
+        new BadDataException("To Email is not type of string"),
+      );
     }
 
     if (!args["from"]) {
-      throw options.onError(new BadDataException("from not found"));
+      throw options.onError(new BadDataException("From Email not found"));
     }
 
     if (args["from"] && typeof args["from"] !== "string") {
-      throw options.onError(new BadDataException("from is not type of string"));
-    }
-
-    if (!args["smtp-username"]) {
-      throw options.onError(new BadDataException("email not found"));
+      throw options.onError(
+        new BadDataException("From Email is not type of string"),
+      );
     }
 
     if (args["smtp-username"] && typeof args["smtp-username"] !== "string") {
       throw options.onError(
-        new BadDataException("smtp-username is not type of string"),
+        new BadDataException("SMTP Username is not type of string"),
       );
-    }
-
-    if (!args["smtp-password"]) {
-      throw options.onError(new BadDataException("email not found"));
     }
 
     if (args["smtp-password"] && typeof args["smtp-password"] !== "string") {
       throw options.onError(
-        new BadDataException("smtp-username is not type of string"),
+        new BadDataException("SMTP Password is not type of string"),
       );
     }
 
     if (!args["smtp-host"]) {
-      throw options.onError(new BadDataException("email not found"));
+      throw options.onError(new BadDataException("SMTP Host not found"));
     }
 
     if (args["smtp-host"] && typeof args["smtp-host"] !== "string") {
       throw options.onError(
-        new BadDataException("smtp-host is not type of string"),
+        new BadDataException("SMTP Host is not type of string"),
       );
     }
 
     if (!args["smtp-port"]) {
-      throw options.onError(new BadDataException("email not found"));
+      throw options.onError(new BadDataException("SMTP Port not found"));
     }
 
     if (args["smtp-port"] && typeof args["smtp-port"] === "string") {
@@ -103,20 +100,30 @@ export default class Email extends ComponentCode {
 
     if (args["smtp-port"] && typeof args["smtp-port"] !== "number") {
       throw options.onError(
-        new BadDataException("smtp-host is not type of number"),
+        new BadDataException("SMTP Port is not type of number"),
       );
     }
 
     try {
-      const mailer: Transporter = nodemailer.createTransport({
+      const username: string | undefined =
+        args["smtp-username"]?.toString() || undefined;
+      const password: string | undefined =
+        args["smtp-password"]?.toString() || undefined;
+
+      const smtpTransport: SMTPTransport.Options = {
         host: args["smtp-host"]?.toString(),
         port: args["smtp-port"] as number,
         secure: Boolean(args["secure"]),
-        auth: {
-          user: args["smtp-username"] as string,
-          pass: args["smtp-password"] as string,
-        },
-      });
+      };
+
+      if (username && password) {
+        smtpTransport.auth = {
+          user: username,
+          pass: password,
+        };
+      }
+
+      const mailer: Transporter = nodemailer.createTransport(smtpTransport);
 
       await mailer.sendMail({
         from: args["from"].toString(),
@@ -135,7 +142,7 @@ export default class Email extends ComponentCode {
       options.log(err as Error);
       return Promise.resolve({
         returnValues: {},
-        executePort: successPort,
+        executePort: errorPort,
       });
     }
   }

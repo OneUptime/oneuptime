@@ -1,6 +1,6 @@
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
-import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
 import { JSONValue } from "Common/Types/JSON";
+import { CopilotActionPrompt } from "../CopilotActions/Types";
 
 export interface CopilotPromptResult {
   output: JSONValue;

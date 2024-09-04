@@ -38,16 +38,28 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if (!existingItem) {
-      return {
-        createBy: createBy,
-        carryForward: null,
-      };
+    if (existingItem) {
+      throw new BadDataException(
+        "Action Type already exists for this repository.",
+      );
     }
 
-    throw new BadDataException(
-      "Action Type already exists for this repository.",
-    );
+    // check if the priority is in between 1 and 5.
+
+    const priority: number | undefined = createBy.data.priority;
+
+    if (!priority) {
+      throw new BadDataException("Priority is required");
+    }
+
+    if (priority < 1 || priority > 5) {
+      throw new BadDataException("Priority must be between 1 and 5");
+    }
+
+    return {
+      createBy: createBy,
+      carryForward: null,
+    };
   }
 }
 

@@ -7,9 +7,45 @@ import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositor
 import LocalFile from "Common/Server/Utils/LocalFile";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ServiceLanguageUtil from "Common/Utils/TechStack";
-import CodeRepositoryUtil from "./CodeRepository";
+import CodeRepositoryUtil, {
+  CodeRepositoryResult,
+  ServiceToImproveResult,
+} from "./CodeRepository";
+import PullRequestUtil from "./PullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
+import logger from "Common/Server/Utils/Logger";
+import ProcessUtil from "./Process";
 
 export default class ServiceCopilotCodeRepositoryUtil {
+  public static async getServicesToImprove(
+    codeRepositoryResult: CodeRepositoryResult,
+  ): Promise<Array<ServiceCopilotCodeRepository>> {
+    // before cloning the repo, check if there are any services to improve.
+    const openPullRequests: Array<CopilotPullRequest> =
+      await PullRequestUtil.getOpenPRs();
+
+    const servicesToImproveResult: Array<ServiceToImproveResult> =
+      await CodeRepositoryUtil.getServicesToImproveCode({
+        codeRepository: codeRepositoryResult.codeRepository,
+        serviceRepositories: codeRepositoryResult.serviceRepositories,
+        openPullRequests: openPullRequests,
+      });
+
+    const servicesToImprove: Array<ServiceCopilotCodeRepository> =
+      servicesToImproveResult.map(
+        (serviceToImproveResult: ServiceToImproveResult) => {
+          return serviceToImproveResult.serviceRepository;
+        },
+      );
+
+    if (servicesToImprove.length === 0) {
+      logger.info("No services to improve. Exiting.");
+      ProcessUtil.haltProcessWithSuccess();
+    }
+
+    return servicesToImprove;
+  }
+
   public static async getFileLanguage(data: {
     filePath: string;
   }): Promise<TechStack> {
