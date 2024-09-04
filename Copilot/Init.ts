@@ -4,19 +4,15 @@ import CodeRepositoryUtil, {
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
 import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceRepository";
-import Dictionary from "Common/Types/Dictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
 import logger from "Common/Server/Utils/Logger";
 import CopilotActionUtil from "./Utils/CopilotAction";
-import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import {
   FixNumberOfCodeEventsInEachRun,
   GetIsCopilotDisabled,
   GetLlmType,
 } from "./Config";
-import CopiotActionTypeOrder from "./Types/CopilotActionTypeOrder";
 import CopilotActionService, {
   CopilotExecutionResult,
 } from "./Service/CopilotActions/Index";
@@ -25,7 +21,6 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
 import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
-import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import ProcessUtil from "./Utils/Process";
 
 let currentFixCount: number = 1;
@@ -47,7 +42,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
   // before cloning the repo, check if there are any services to improve.
-  const servicesToImprove =
+  const servicesToImprove: ServiceCopilotCodeRepository[] =
     await ServiceCopilotCodeRepositoryUtil.getServicesToImprove(
       codeRepositoryResult,
     );
@@ -59,91 +54,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   await setUpRepository();
 
   for (const serviceRepository of servicesToImprove) {
-    
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
 
-    const filesInService: Dictionary<CodeRepositoryFile> =
-      await ServiceCopilotCodeRepositoryUtil.getFilesInServiceDirectory({
-        serviceRepository,
+    const actionsToWorkOn: Array<CopilotAction> =
+      await CopilotActionUtil.getActionsToWorkOn({
+        serviceCatalogId: serviceRepository.serviceCatalog!.id!,
       });
 
-    logger.info(
-      `Files found in ${serviceRepository.serviceCatalog?.name}: ${
-        Object.keys(filesInService).length
-      }`,
-    );
-
-    const files: Array<CodeRepositoryFile> = Object.values(filesInService);
-
-    for (const file of files) {
+    for (const actionToWorkOn of actionsToWorkOn) {
       checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
       // check copilot events for this file.
-
-      const copilotActions: Array<CopilotAction> =
-        await CopilotActionUtil.getCopilotActions({
-          serviceCatalogId: serviceRepository.serviceCatalog!.id!,
-          filePath: file.filePath,
-        });
-
-      // check if there's an open PR for this file.
-
-      const openPullRequests: Array<CopilotPullRequest> = copilotActions
-        .filter((copilotAction: CopilotAction) => {
-          return (
-            copilotAction.copilotPullRequest &&
-            copilotAction.copilotPullRequest.pullRequestId &&
-            copilotAction.copilotPullRequest.copilotPullRequestStatus ===
-              PullRequestState.Open
-          );
-        })
-        .map((copilotAction: CopilotAction) => {
-          return copilotAction.copilotPullRequest!;
-        });
-
-      if (openPullRequests.length > 0) {
-        const prNumbers: string = openPullRequests
-          .map((pr: CopilotPullRequest) => {
-            return `#${pr.pullRequestId?.toString()}`;
-          })
-          .join(", ");
-
-        // this file already has an open PR. Ignore this file and move to the next file.
-        logger.info(
-          `File ${file.filePath} already has an open PR ${prNumbers}. Moving to next file.`,
-        );
-
-        continue;
-      }
-
-      const eventsCompletedOnThisFile: Array<CopilotActionType> = [];
-
-      for (const copilotAction of copilotActions) {
-        if (
-          copilotAction.copilotActionType &&
-          eventsCompletedOnThisFile.includes(copilotAction.copilotActionType)
-        ) {
-          continue;
-        }
-
-        // add to eventsCompletedOnThisFile
-        eventsCompletedOnThisFile.push(copilotAction.copilotActionType!);
-      }
-
-      let nextEventToFix: CopilotActionType | undefined = undefined;
-
-      for (const copilotActionType of CopiotActionTypeOrder) {
-        if (!eventsCompletedOnThisFile.includes(copilotActionType)) {
-          nextEventToFix = copilotActionType;
-          break;
-        }
-      }
-
-      if (!nextEventToFix) {
-        logger.info(
-          `All fixes completed on ${file.filePath}. Moving to next file.`,
-        );
-        continue;
-      }
 
       let executionResult: CopilotExecutionResult | null = null;
 
@@ -154,9 +74,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         try {
           executionResult = await executeAction({
             serviceRepository,
-            file,
-            filesInService,
-            nextEventToFix,
+            copilotAction: actionToWorkOn,
           });
           break;
         } catch (e) {
@@ -178,9 +96,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
 interface ExecuteActionData {
   serviceRepository: ServiceCopilotCodeRepository;
-  file: CodeRepositoryFile;
-  filesInService: Dictionary<CodeRepositoryFile>;
-  nextEventToFix: CopilotActionType;
+  copilotAction: CopilotAction;
 }
 
 type ExecutionActionFunction = (
@@ -190,20 +106,16 @@ type ExecutionActionFunction = (
 const executeAction: ExecutionActionFunction = async (
   data: ExecuteActionData,
 ): Promise<CopilotExecutionResult | null> => {
-  const { serviceRepository, file, filesInService, nextEventToFix } = data;
+  const { serviceRepository, copilotAction } = data;
 
   try {
     return await CopilotActionService.execute({
       serviceRepository: serviceRepository,
-      copilotActionType: nextEventToFix,
-      input: {
-        currentFilePath: file.filePath, // this is the file path where optimization is needed or should start from.
-        files: filesInService,
-      },
+      copilotAction: copilotAction,
     });
   } catch (e) {
     if (e instanceof CopilotActionProcessingException) {
-      // This is not a serious exception, so we just  move on to the next file.
+      // This is not a serious exception, so we just  move on to the next action.
       logger.info(e.message);
       return null;
     }

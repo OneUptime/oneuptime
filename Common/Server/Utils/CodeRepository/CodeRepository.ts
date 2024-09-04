@@ -6,6 +6,16 @@ import Dictionary from "Common/Types/Dictionary";
 import ServiceLanguageUtil from "Common/Utils/TechStack";
 
 export default class CodeRepositoryUtil {
+  public static getCurrentCommitHash(data: {
+    repoPath: string;
+  }): Promise<string> {
+    const command: string = `cd ${data.repoPath} && git rev-parse HEAD`;
+
+    logger.debug("Executing command: " + command);
+
+    return Execute.executeCommand(command);
+  }
+
   public static async addAllChangedFilesToGit(data: {
     repoPath: string;
   }): Promise<void> {

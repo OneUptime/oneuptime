@@ -1,10 +1,7 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import ImproveComments from "./ImproveComments";
 import Dictionary from "Common/Types/Dictionary";
-import CopilotActionBase, {
-  CopilotActionVars,
-  CopilotProcess,
-} from "./CopilotActionsBase";
+import CopilotActionBase from "./CopilotActionsBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
@@ -12,26 +9,14 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import ObjectID from "Common/Types/ObjectID";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
-import URL from "Common/Types/API/URL";
-import { GetOneUptimeURL, GetRepositorySecretKey } from "../../Config";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
-import FixGrammarAndSpelling from "./FixGrammarAndSpelling";
-import RefactorCode from "./RefactorCode";
-import WriteUnitTests from "./WriteUnitTests";
-import ImproveReadme from "./ImroveReadme";
 import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import CopilotPullRequestService from "../CopilotPullRequest";
+import CopilotActionUtil from "../../Utils/CopilotAction";
+import { CopilotProcess } from "./Types";
 
-const actionDictionary: Dictionary<typeof CopilotActionBase> = {
+export const ActionDictionary: Dictionary<typeof CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: ImproveComments,
-  [CopilotActionType.FIX_GRAMMAR_AND_SPELLING]: FixGrammarAndSpelling,
-  [CopilotActionType.REFACTOR_CODE]: RefactorCode,
-  [CopilotActionType.WRITE_UNIT_TESTS]: WriteUnitTests,
-  [CopilotActionType.IMPROVE_README]: ImproveReadme,
 };
 
 export interface CopilotExecutionResult {
@@ -42,8 +27,7 @@ export interface CopilotExecutionResult {
 export default class CopilotActionService {
   public static async execute(data: {
     serviceRepository: ServiceCopilotCodeRepository;
-    copilotActionType: CopilotActionType;
-    input: CopilotActionVars;
+    copilotAction: CopilotAction;
   }): Promise<CopilotExecutionResult> {
     await CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
 
@@ -51,20 +35,17 @@ export default class CopilotActionService {
 
     await CodeRepositoryUtil.pullChanges();
 
-    const actionType: typeof CopilotActionBase | undefined =
-      actionDictionary[data.copilotActionType];
+    const ActionType: typeof CopilotActionBase | undefined =
+      ActionDictionary[data.copilotAction.copilotActionType!];
 
-    if (!actionType) {
+    if (!ActionType) {
       throw new BadDataException("Invalid CopilotActionType");
     }
 
-    const action: CopilotActionBase = new actionType() as CopilotActionBase;
+    const action: CopilotActionBase = new ActionType() as CopilotActionBase;
 
     const processResult: CopilotProcess | null = await action.execute({
-      input: data.input,
-      result: {
-        files: {},
-      },
+      input: data.copilotAction.copilotActionProp!,
     });
 
     let executionResult: CopilotExecutionResult = {
@@ -186,33 +167,31 @@ export default class CopilotActionService {
       logger.info("No result obtained from Copilot Action");
     }
 
-    const fileCommitHash: string | undefined =
-      data.input.files[data.input.currentFilePath]?.gitCommitHash;
+    const getCurrentCommitHash: string =
+      await CodeRepositoryUtil.getCurrentCommitHash();
 
-    if (!fileCommitHash) {
-      throw new BadDataException("File commit hash not found");
-    }
-
-    await CopilotActionService.addCopilotActionToDatabase({
+    await CopilotActionService.updateCopilotAction({
       serviceCatalogId: data.serviceRepository.serviceCatalog!.id!,
       serviceRepositoryId: data.serviceRepository.id!,
-      filePath: data.input.currentFilePath,
-      commitHash: fileCommitHash,
-      copilotActionType: data.copilotActionType,
+      commitHash: getCurrentCommitHash,
       pullRequest: pullRequest,
       copilotActionStatus: executionResult.status,
+      copilotActonId: data.copilotAction.id!,
+      statusMessage: processResult?.result.statusMessage || "",
+      logs: processResult?.result.logs || [],
     });
 
     return executionResult;
   }
 
-  private static async addCopilotActionToDatabase(data: {
+  private static async updateCopilotAction(data: {
+    copilotActonId: ObjectID;
     serviceCatalogId: ObjectID;
     serviceRepositoryId: ObjectID;
-    filePath: string;
     commitHash: string;
-    copilotActionType: CopilotActionType;
     pullRequest: PullRequest | null;
+    statusMessage: string;
+    logs: Array<string>;
     copilotActionStatus: CopilotActionStatus;
   }): Promise<void> {
     // add copilot action to the database.
@@ -228,38 +207,12 @@ export default class CopilotActionService {
         });
     }
 
-    const copilotAction: CopilotAction = new CopilotAction();
-
-    copilotAction.serviceCatalogId = data.serviceCatalogId;
-    copilotAction.serviceRepositoryId = data.serviceRepositoryId;
-    copilotAction.filePath = data.filePath;
-    copilotAction.commitHash = data.commitHash;
-    copilotAction.copilotActionType = data.copilotActionType;
-    copilotAction.copilotActionStatus = data.copilotActionStatus;
-
-    if (copilotPullRequest) {
-      copilotAction.copilotPullRequestId = copilotPullRequest.id!;
-    }
-
-    // send this to the API.
-    const url: URL = URL.fromString(
-      GetOneUptimeURL().toString() + "/api",
-    ).addRoute(
-      `${new CopilotAction()
-        .getCrudApiPath()
-        ?.toString()}/add-copilot-action/${GetRepositorySecretKey()}`,
-    );
-
-    const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(url, {
-        copilotAction: CopilotAction.toJSON(copilotAction, CopilotAction),
-        copilotPullRequest: copilotPullRequest
-          ? CopilotPullRequest.toJSON(copilotPullRequest, CopilotPullRequest)
-          : null,
-      });
-
-    if (codeRepositoryResult instanceof HTTPErrorResponse) {
-      throw codeRepositoryResult;
-    }
+    await CopilotActionUtil.updateCopilotAction({
+      actionStatus: data.copilotActionStatus,
+      pullRequestId: copilotPullRequest ? copilotPullRequest.id! : undefined,
+      commitHash: data.commitHash,
+      statusMessage: data.statusMessage,
+      logs: data.logs,
+    });
   }
 }

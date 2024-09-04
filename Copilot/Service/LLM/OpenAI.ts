@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { GetOpenAIAPIKey, GetOpenAIModel } from "../../Config";
 import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
+import { CopilotActionPrompt } from "../CopilotActions/Types";
 
 export default class Llama extends LlmBase {
   public static openai: OpenAI | null = null;

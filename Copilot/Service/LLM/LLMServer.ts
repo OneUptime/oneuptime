@@ -8,14 +8,12 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
-import {
-  CopilotActionPrompt,
-  Prompt,
-} from "../CopilotActions/CopilotActionsBase";
 import ErrorGettingResponseFromLLM from "../../Exceptions/ErrorGettingResponseFromLLM";
 import BadOperationException from "Common/Types/Exception/BadOperationException";
 import OneUptimeDate from "Common/Types/Date";
 import LLMTimeoutException from "../../Exceptions/LLMTimeoutException";
+import { CopilotActionPrompt } from "../CopilotActions/Types";
+import { Prompt } from "./Prompt";
 
 enum LlamaPromptStatus {
   Processed = "processed",

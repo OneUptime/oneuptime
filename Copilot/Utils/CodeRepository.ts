@@ -49,6 +49,12 @@ export default class CodeRepositoryUtil {
   public static gitHubUtil: GitHubUtil | null = null;
   public static folderNameOfClonedRepository: string | null = null;
 
+  public static async getCurrentCommitHash(): Promise<string> {
+    return await CodeRepositoryServerUtil.getCurrentCommitHash({
+      repoPath: this.getLocalRepositoryPath(),
+    });
+  }
+
   public static isRepoCloned(): boolean {
     return Boolean(this.folderNameOfClonedRepository);
   }

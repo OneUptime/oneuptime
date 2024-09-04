@@ -1,14 +1,12 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotActionBase, {
-  CopilotActionPrompt,
-  CopilotProcess,
-  PromptRole,
-} from "./CopilotActionsBase";
+import CopilotActionBase from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import { CopilotPromptResult } from "../LLM/LLMBase";
-import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
 import Text from "Common/Types/Text";
+import { CopilotActionPrompt, CopilotProcess } from "./Types";
+import { PromptRole } from "../LLM/Prompt";
+import logger from "Common/Server/Utils/Logger";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -97,7 +95,7 @@ export default class ImproveComments extends CopilotActionBase {
     // Action Prompt
 
     const codeParts: string[] = await this.splitInputCode({
-      copilotProcess: data,
+      code: "",
       itemSize: 500,
     });
 
@@ -131,11 +129,14 @@ export default class ImproveComments extends CopilotActionBase {
 
     newContent = newContent.trim();
 
-    // add to result.
-    data.result.files[data.input.currentFilePath] = {
-      ...data.input.files[data.input.currentFilePath],
-      fileContent: newContent,
-    } as CodeRepositoryFile;
+    logger.debug("New Content:");
+    logger.debug(newContent);
+
+    // // add to result.
+    // data.result.files[data.input.currentFilePath] = {
+    //   ...data.input.files[data.input.currentFilePath],
+    //   fileContent: newContent,
+    // } as CodeRepositoryFile;
 
     this.isRequirementsMet = true;
     return data;
@@ -201,11 +202,13 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   public override async getPrompt(
-    data: CopilotProcess,
+    _data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt> {
-    const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
-      ?.fileLanguage as TechStack;
+    // const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
+    //   ?.fileLanguage as TechStack;
+
+    const fileLanguage: TechStack = TechStack.TypeScript;
 
     const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
 

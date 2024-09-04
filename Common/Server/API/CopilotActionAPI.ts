@@ -62,7 +62,7 @@ export default class CopilotActionAPI extends BaseAPI<
           const copilotActionTypes: Array<CopilotActionTypePriority> =
             await CopilotActionTypePriorityService.findBy({
               query: {
-                codeRepositoryId: codeRepository.id!
+                codeRepositoryId: codeRepository.id!,
               },
               select: {
                 _id: true,
@@ -134,7 +134,7 @@ export default class CopilotActionAPI extends BaseAPI<
               query: {
                 codeRepositoryId: codeRepository.id!,
                 serviceCatalogId: new ObjectID(serviceCatalogId),
-                copilotActionStatus: CopilotActionStatus.IN_QUEUE
+                copilotActionStatus: CopilotActionStatus.IN_QUEUE,
               },
               select: {
                 _id: true,
