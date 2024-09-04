@@ -237,7 +237,6 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     const processResult: CopilotProcess = data.data;
 
     for (const filePath in processResult.result.files) {
-
       logger.info(`Writing file: ${filePath}`);
       logger.info(`File content: `);
       logger.info(`${processResult.result.files[filePath]!.fileContent}`);

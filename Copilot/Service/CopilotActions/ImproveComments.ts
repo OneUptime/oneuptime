@@ -277,7 +277,7 @@ export default class ImproveComments extends CopilotActionBase {
     );
 
     const lastWordOfInputCode: string = Text.getLastWord(data.inputCode);
-    
+
     extractedCode = Text.trimEndUntilThisWord(
       extractedCode,
       lastWordOfInputCode,
