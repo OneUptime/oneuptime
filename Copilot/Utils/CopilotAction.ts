@@ -130,7 +130,7 @@ export default class CopilotActionUtil {
     for (const action of actions) {
       try {
         const savedAction: CopilotAction =
-          await CopilotActionUtil.addCopilotAction({
+          await CopilotActionUtil.createCopilotAction({
             copilotAction: action,
           });
 
@@ -144,6 +144,7 @@ export default class CopilotActionUtil {
   }
 
   public static async updateCopilotAction(data: {
+    actionId: ObjectID;
     actionStatus: CopilotActionStatus;
     pullRequestId?: ObjectID | undefined;
     commitHash?: string | undefined;
@@ -169,7 +170,7 @@ export default class CopilotActionUtil {
     }
   }
 
-  public static async addCopilotAction(data: {
+  public static async createCopilotAction(data: {
     copilotAction: CopilotAction;
   }): Promise<CopilotAction> {
     // send this to the API.
@@ -178,7 +179,7 @@ export default class CopilotActionUtil {
     ).addRoute(
       `${new CopilotAction()
         .getCrudApiPath()
-        ?.toString()}/add-copilot-action/${GetRepositorySecretKey()}`,
+        ?.toString()}/create-copilot-action/${GetRepositorySecretKey()}`,
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =

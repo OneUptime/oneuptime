@@ -19,6 +19,7 @@ import CopilotActionStatus from "../../Types/Copilot/CopilotActionStatus";
 import CopilotActionTypePriority from "../../Models/DatabaseModels/CopilotActionTypePriority";
 import CopilotActionTypePriorityService from "../Services/CopilotActionTypePriorityService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import JSONFunctions from "../../Types/JSONFunctions";
 
 export default class CopilotActionAPI extends BaseAPI<
   CopilotAction,
@@ -171,7 +172,7 @@ export default class CopilotActionAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/queue-copilot-action/:secretkey`,
+        ?.toString()}/create-copilot-action/:secretkey`,
       CodeRepositoryAuthorization.isAuthorizedRepository,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -224,6 +225,100 @@ export default class CopilotActionAPI extends BaseAPI<
             createdAction,
             CopilotAction,
           );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/update-copilot-action/:secretkey`,
+      CodeRepositoryAuthorization.isAuthorizedRepository,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+
+        try {
+
+          const secretkey: string = req.params["secretkey"]!;
+
+          if (!secretkey) {
+            throw new BadDataException("Secret key is required");
+          }
+
+          const codeRepository: CopilotCodeRepository | null =
+            await CopilotCodeRepositoryService.findOneBy({
+              query: {
+                secretToken: new ObjectID(secretkey),
+              },
+              select: {
+                _id: true,
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!codeRepository) {
+            throw new BadDataException(
+              "Code repository not found. Secret key is invalid.",
+            );
+          }
+
+          req.body = JSONFunctions.deserialize(req.body);
+
+          const {
+            actionStatus,
+            pullRequestId,
+            commitHash,
+            statusMessage,
+            logs,
+            actionId
+          }: {
+            actionStatus: CopilotActionStatus;
+            pullRequestId?: ObjectID | undefined;
+            commitHash?: string | undefined;
+            statusMessage?: string | undefined;
+            logs?: Array<string> | undefined;
+            actionId: ObjectID;
+          } = req.body;
+
+          const exisingAction = await CopilotActionService.findOneBy({
+            query: {
+              _id: actionId,
+              codeRepositoryId: codeRepository.id!,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!exisingAction) {
+            throw new BadDataException("Action not found");
+          }
+
+          await CopilotActionService.updateOneBy({
+            query: {
+              _id: actionId,
+              codeRepositoryId: codeRepository.id!,
+            },
+            data: {
+              copilotActionStatus: actionStatus!,
+              copilotPullRequestId: pullRequestId!,
+              commitHash: commitHash!,
+              statusMessage: statusMessage!,
+              logs: logs?.join("\n") || "",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
           next(err);
         }

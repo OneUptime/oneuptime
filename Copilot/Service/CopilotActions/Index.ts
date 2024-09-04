@@ -213,6 +213,7 @@ export default class CopilotActionService {
       commitHash: data.commitHash,
       statusMessage: data.statusMessage,
       logs: data.logs,
+      actionId: data.copilotActonId
     });
   }
 }
