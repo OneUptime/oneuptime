@@ -80,7 +80,7 @@ Our mission is to reduce downtime and increase the number of successful products
 
 We <3 contributions big and small. In priority order (although everything is appreciated) with the most helpful first:
 
-- Give us feedback in our [Customer Slack community](https://oneuptimesupport.slack.com/join/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ#/shared-invite/email)
+- Give us feedback in our [Customer Slack community](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)
 - Talk to developers in our [Developer Slack community](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)
 - Write tests for some of our codebase. [See issues here](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)
 - Work on any issue you like. [See issues here](https://github.com/OneUptime/oneuptime/issues)
