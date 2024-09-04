@@ -1,7 +1,6 @@
 import CodeRepositoryUtil, {
   CodeRepositoryResult,
   RepoScriptType,
-  ServiceToImproveResult,
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
 import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceRepository";
@@ -26,9 +25,8 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import CopilotActionProcessingException from "./Exceptions/CopilotActionProcessingException";
 import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
-import CopilotPullRequestService from "./Service/CopilotPullRequest";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
-// import ArrayUtil from "Common/Types/ArrayUtil";
+import ProcessUtil from "./Utils/Process";
 
 let currentFixCount: number = 1;
 
@@ -36,7 +34,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   // check if copilot is disabled.
   if (GetIsCopilotDisabled()) {
     logger.info("Copilot is disabled. Exiting.");
-    haltProcessWithSuccess();
+    ProcessUtil.haltProcessWithSuccess();
   }
 
   logger.info(`Using ${GetLlmType()} as the AI model.`);
@@ -48,32 +46,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
+  // before cloning the repo, check if there are any services to improve.
+  const servicesToImprove =
+    await ServiceCopilotCodeRepositoryUtil.getServicesToImprove(
+      codeRepositoryResult,
+    );
+
   await cloneRepository({
     codeRepositoryResult,
   });
 
-  const openPullRequests: Array<CopilotPullRequest> = await getOpenPRs();
-
   await setUpRepository();
-
-  const servicesToImproveResult: Array<ServiceToImproveResult> =
-    await CodeRepositoryUtil.getServicesToImproveCode({
-      codeRepository: codeRepositoryResult.codeRepository,
-      serviceRepositories: codeRepositoryResult.serviceRepositories,
-      openPullRequests: openPullRequests,
-    });
-
-  const servicesToImprove: Array<ServiceCopilotCodeRepository> =
-    servicesToImproveResult.map(
-      (serviceToImproveResult: ServiceToImproveResult) => {
-        return serviceToImproveResult.serviceRepository;
-      },
-    );
-
-  if (servicesToImprove.length === 0) {
-    logger.info("No services to improve. Exiting.");
-    haltProcessWithSuccess();
-  }
 
   for (const serviceRepository of servicesToImprove) {
     checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun();
@@ -281,43 +264,9 @@ const checkIfCurrentFixCountIsLessThanFixNumberOfCodeEventsInEachRun: VoidFuncti
     logger.info(
       `Copilot has fixed ${FixNumberOfCodeEventsInEachRun} code events. Thank you for using Copilot. If you wish to fix more code events, please run Copilot again.`,
     );
-    haltProcessWithSuccess();
+
+    ProcessUtil.haltProcessWithSuccess();
   };
-
-const haltProcessWithSuccess: VoidFunction = (): void => {
-  process.exit(0);
-};
-
-type GetOpenPRFunction = () => Promise<Array<CopilotPullRequest>>;
-
-const getOpenPRs: GetOpenPRFunction = async (): Promise<
-  Array<CopilotPullRequest>
-> => {
-  const openPRs: Array<CopilotPullRequest> = [];
-
-  // get all open pull requests.
-  const openPullRequests: Array<CopilotPullRequest> =
-    await CopilotPullRequestService.getOpenPullRequestsFromDatabase();
-
-  for (const openPullRequest of openPullRequests) {
-    // refresh status of this PR.
-
-    if (!openPullRequest.pullRequestId) {
-      continue;
-    }
-
-    const pullRequestState: PullRequestState =
-      await CopilotPullRequestService.refreshPullRequestStatus({
-        copilotPullRequest: openPullRequest,
-      });
-
-    if (pullRequestState === PullRequestState.Open) {
-      openPRs.push(openPullRequest);
-    }
-  }
-
-  return openPRs;
-};
 
 const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
   const isSetupProperly: boolean =
@@ -338,7 +287,7 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
     logger.info(
       `There's an open setup PR for this repository: ${setupPullRequest.pullRequestId}. Please merge this PR to continue using Copilot. Exiting...`,
     );
-    haltProcessWithSuccess();
+    ProcessUtil.haltProcessWithSuccess();
     return;
   }
 
@@ -351,7 +300,7 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
       ". Please megre this PR to continue using Copilot. Exiting..",
   );
 
-  haltProcessWithSuccess();
+  ProcessUtil.haltProcessWithSuccess();
 };
 
 export default init;
