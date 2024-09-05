@@ -20,7 +20,7 @@ export interface CopilotActionVars {
 }
 
 export interface CopilotProcessStart {
-  input: CopilotActionProp;
+  actionProp: CopilotActionProp;
 }
 
 export interface CopilotProcess extends CopilotProcessStart {

@@ -25,7 +25,7 @@ export interface CopilotExecutionResult {
 }
 
 export default class CopilotActionService {
-  public static async execute(data: {
+  public static async executeAction(data: {
     serviceRepository: ServiceCopilotCodeRepository;
     copilotAction: CopilotAction;
   }): Promise<CopilotExecutionResult> {
@@ -39,13 +39,20 @@ export default class CopilotActionService {
       ActionDictionary[data.copilotAction.copilotActionType!];
 
     if (!ActionType) {
+      debugger;
       throw new BadDataException("Invalid CopilotActionType");
     }
 
     const action: CopilotActionBase = new ActionType() as CopilotActionBase;
 
+    // mark this action as processing. 
+    await CopilotActionUtil.updateCopilotAction({
+      actionStatus: CopilotActionStatus.PROCESSING,
+      actionId: data.copilotAction.id!,
+    });
+
     const processResult: CopilotProcess | null = await action.execute({
-      input: data.copilotAction.copilotActionProp!,
+      actionProp: data.copilotAction.copilotActionProp!,
     });
 
     let executionResult: CopilotExecutionResult = {

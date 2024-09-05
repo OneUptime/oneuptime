@@ -127,7 +127,7 @@ const executeAction: ExecutionActionFunction = async (
   const { serviceRepository, copilotAction } = data;
 
   try {
-    return await CopilotActionService.execute({
+    return await CopilotActionService.executeAction({
       serviceRepository: serviceRepository,
       copilotAction: copilotAction,
     });
@@ -172,9 +172,9 @@ const cloneRepository: CloneRepositoryFunction = async (data: {
 
   if (onAfterCloneScript) {
     logger.info("Executing on-after-clone script.");
-    // await CodeRepositoryUtil.executeScript({
-    //   script: onAfterCloneScript,
-    // });
+    await CodeRepositoryUtil.executeScript({
+      script: onAfterCloneScript,
+    });
     logger.info("on-after-clone script executed successfully.");
   }
 

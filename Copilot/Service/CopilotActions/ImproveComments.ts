@@ -160,7 +160,7 @@ export default class ImproveComments extends CopilotActionBase {
     logger.debug("New Content:");
     logger.debug(newContent);
 
-    const fileActionProps: FileActionProp = data.input as FileActionProp;
+    const fileActionProps: FileActionProp = data.actionProp as FileActionProp;
 
     // add to result.
     data.result.files[fileActionProps.filePath] = {
