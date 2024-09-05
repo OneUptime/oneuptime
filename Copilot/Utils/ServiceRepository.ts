@@ -1,4 +1,4 @@
-import ServiceFileTypesUtil from "./ServiceFileTypes";
+import ServiceFileTypesUtil from "./FileTypes";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
@@ -15,11 +15,34 @@ import PullRequestUtil from "./PullRequest";
 import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 import logger from "Common/Server/Utils/Logger";
 import ProcessUtil from "./Process";
+import ObjectID from "Common/Types/ObjectID";
 
-export default class ServiceCopilotCodeRepositoryUtil {
+export default class ServiceRepositoryUtil {
+
+  public static codeRepositoryResult: CodeRepositoryResult | null = null;
+  public static servicesToImprove: Array<ServiceCopilotCodeRepository> = [];
+
+  public static setCodeRepositoryResult(data: {
+    codeRepositoryResult: CodeRepositoryResult;
+  }): void {
+    ServiceRepositoryUtil.codeRepositoryResult = data.codeRepositoryResult;
+  }
+
+
   public static async getServicesToImprove(
-    codeRepositoryResult: CodeRepositoryResult,
+
   ): Promise<Array<ServiceCopilotCodeRepository>> {
+
+    if (this.servicesToImprove) {
+      return this.servicesToImprove;
+    }
+
+    const codeRepositoryResult: CodeRepositoryResult = ServiceRepositoryUtil.codeRepositoryResult!;
+
+    if (!codeRepositoryResult) {
+      throw new BadDataException("Code repository result is not set");
+    }
+
     // before cloning the repo, check if there are any services to improve.
     const openPullRequests: Array<CopilotPullRequest> =
       await PullRequestUtil.getOpenPRs();
@@ -42,6 +65,8 @@ export default class ServiceCopilotCodeRepositoryUtil {
       logger.info("No services to improve. Exiting.");
       ProcessUtil.haltProcessWithSuccess();
     }
+
+    this.servicesToImprove = servicesToImprove;
 
     return servicesToImprove;
   }
@@ -74,6 +99,30 @@ export default class ServiceCopilotCodeRepositoryUtil {
     return fileContent;
   }
 
+  public static async getFilesByServiceCatalogId(data: {
+    serviceCatalogId: ObjectID;
+  }): Promise<Dictionary<CodeRepositoryFile>> {
+    const { serviceCatalogId } = data;
+
+    const serviceRepository: ServiceCopilotCodeRepository | undefined =
+      ServiceRepositoryUtil.servicesToImprove.find(
+        (serviceRepository: ServiceCopilotCodeRepository) => {
+          return serviceRepository.serviceCatalog!.id?.toString() === serviceCatalogId.toString();
+        },
+      );
+
+    if (!serviceRepository) {
+      throw new BadDataException("Service repository not found");
+    }
+
+    const allFiles: Dictionary<CodeRepositoryFile> =
+      await ServiceRepositoryUtil.getFilesInServiceDirectory({
+        serviceRepository,
+      });
+
+    return allFiles;
+  }
+
   public static async getFilesInServiceDirectory(data: {
     serviceRepository: ServiceCopilotCodeRepository;
   }): Promise<Dictionary<CodeRepositoryFile>> {
@@ -101,4 +150,6 @@ export default class ServiceCopilotCodeRepositoryUtil {
 
     return allFiles;
   }
+
+
 }

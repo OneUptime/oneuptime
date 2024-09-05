@@ -110,7 +110,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Delete Service",
+            title: "Delete",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE] as Route,
               { modelId: props.modelId },

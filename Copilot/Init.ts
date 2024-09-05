@@ -3,7 +3,7 @@ import CodeRepositoryUtil, {
   RepoScriptType,
 } from "./Utils/CodeRepository";
 import InitUtil from "./Utils/Init";
-import ServiceCopilotCodeRepositoryUtil from "./Utils/ServiceRepository";
+import ServiceRepositoryUtil from "./Utils/ServiceRepository";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import CopilotActionUtil from "./Utils/CopilotAction";
@@ -42,10 +42,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
   // before cloning the repo, check if there are any services to improve.
+  ServiceRepositoryUtil.setCodeRepositoryResult({
+    codeRepositoryResult
+  });
+
   const servicesToImprove: ServiceCopilotCodeRepository[] =
-    await ServiceCopilotCodeRepositoryUtil.getServicesToImprove(
-      codeRepositoryResult,
-    );
+    await ServiceRepositoryUtil.getServicesToImprove();
 
   await cloneRepository({
     codeRepositoryResult,

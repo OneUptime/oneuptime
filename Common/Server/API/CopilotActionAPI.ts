@@ -20,6 +20,8 @@ import CopilotActionTypePriority from "../../Models/DatabaseModels/CopilotAction
 import CopilotActionTypePriorityService from "../Services/CopilotActionTypePriorityService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import JSONFunctions from "../../Types/JSONFunctions";
+import CopilotActionType from "../../Types/Copilot/CopilotActionType";
+import { JSONObject } from "../../Types/JSON";
 
 export default class CopilotActionAPI extends BaseAPI<
   CopilotAction,
@@ -162,6 +164,94 @@ export default class CopilotActionAPI extends BaseAPI<
               copilotActions,
               CopilotAction,
             ),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/get-copilot-action/:secretkey`,
+      CodeRepositoryAuthorization.isAuthorizedRepository,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const secretkey: string = req.params["secretkey"]!;
+
+          if (!secretkey) {
+            throw new BadDataException("Secret key is required");
+          }
+
+          const serviceCatalogId: string = req.body["serviceCatalogId"]!;
+
+          if (!serviceCatalogId) {
+            throw new BadDataException("Service catalog id is required");
+          }
+
+          const codeRepository: CopilotCodeRepository | null =
+            await CopilotCodeRepositoryService.findOneBy({
+              query: {
+                secretToken: new ObjectID(secretkey),
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!codeRepository) {
+            throw new BadDataException(
+              "Code repository not found. Secret key is invalid.",
+            );
+          }
+
+          const actionType: CopilotActionType = req.body["actionType"]!;
+
+          if(!actionType) {
+            throw new BadDataException("Action type is required");
+          }
+
+          const actionProps: JSONObject = req.body["actionProps"]!;
+
+
+          const copilotAction: CopilotAction | null =
+            await CopilotActionService.findOneBy({
+              query: {
+                codeRepositoryId: codeRepository.id!,
+                serviceCatalogId: new ObjectID(serviceCatalogId),
+                copilotActionType: actionType,
+                copilotActionProp: actionProps as any,
+              },
+              select: {
+                _id: true,
+                codeRepositoryId: true,
+                serviceCatalogId: true,
+                copilotActionStatus: true,
+                copilotActionType: true,
+                createdAt: true,
+                copilotPullRequest: {
+                  _id: true,
+                  pullRequestId: true,
+                  copilotPullRequestStatus: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            copilotAction: copilotAction ? CopilotAction.toJSONObject(
+              copilotAction,
+              CopilotAction,
+            ) : null,
           });
         } catch (err) {
           next(err);

@@ -20,6 +20,56 @@ import CopilotActionBase from "../Service/CopilotActions/CopilotActionsBase";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
 export default class CopilotActionUtil {
+
+
+  public static async getExistingAction(data: {
+    serviceCatalogId: ObjectID;
+    actionType: CopilotActionType;
+    actionProps: JSONObject;
+  }): Promise<CopilotAction | null> {
+    if (!data.serviceCatalogId) {
+      throw new BadDataException("Service Catalog ID is required");
+    }
+
+    if (!data.actionType) {
+      throw new BadDataException("Action Type is required");
+    }
+
+    const repositorySecretKey: string | null = GetRepositorySecretKey();
+
+    if (!repositorySecretKey) {
+      throw new BadDataException("Repository Secret Key is required");
+    }
+
+    const url: URL = URL.fromString(
+      GetOneUptimeURL().toString() + "/api",
+    ).addRoute(
+      `${new CopilotAction()
+        .getCrudApiPath()
+        ?.toString()}/get-copilot-action/${repositorySecretKey}`,
+    );
+
+    const copilotActionResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get(url, {
+        serviceCatalogId: data.serviceCatalogId.toString(),
+        actionType: data.actionType,
+        actionProps: JSON.stringify(data.actionProps),
+      });
+
+    if (copilotActionResult instanceof HTTPErrorResponse) {
+      throw copilotActionResult;
+    }
+
+    if (!copilotActionResult.data["copilotAction"]) {
+      return null;
+    }
+
+    return CopilotAction.fromJSONObject(
+      copilotActionResult.data["copilotAction"] as JSONObject,
+      CopilotAction,
+    );
+  }
+
   public static async getActionTypesBasedOnPriority(): Promise<
     Array<CopilotActionTypePriority>
   > {

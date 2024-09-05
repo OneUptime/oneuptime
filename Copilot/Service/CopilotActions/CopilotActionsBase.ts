@@ -30,12 +30,13 @@ export default class CopilotActionBase {
   }
 
   protected async isActionRequired(_data: {
+    serviceCatalogId: ObjectID;
     copilotActionProp: CopilotActionProp;
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
 
-  public getActionsToQueue(_data: {
+  protected async getActionsToQueue(_data: {
     serviceCatalogId: ObjectID;
     maxActionsToQueue: number;
   }): Promise<Array<CopilotAction>> {

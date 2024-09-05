@@ -9,6 +9,13 @@ import { PromptRole } from "../LLM/Prompt";
 import logger from "Common/Server/Utils/Logger";
 import FileActionProp from "Common/Types/Copilot/CopilotActionProps/FileActionProp";
 import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
+import CopilotActionUtil from "../../Utils/CopilotAction";
+import ObjectID from "Common/Types/ObjectID";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
+import ServiceRepositoryUtil from "../../Utils/ServiceRepository";
+import Dictionary from "Common/Types/Dictionary";
+import ArrayUtil from "Common/Utils/ArrayUtil";
+import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -19,10 +26,84 @@ export default class ImproveComments extends CopilotActionBase {
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
-  protected override async isActionRequired(_data: {
+  protected override async isActionRequired(data: {
+    serviceCatalogId: ObjectID;
     copilotActionProp: FileActionProp;
   }): Promise<boolean> {
-    return true;
+    // check if the action has already been processed for this file.
+    const existingAction: CopilotAction | null = await CopilotActionUtil.getExistingAction({
+      serviceCatalogId: data.serviceCatalogId,
+      actionType: this.copilotActionType,
+      actionProps: {
+        filePath: data.copilotActionProp.filePath, // has this action run on this file before? 
+      }
+    });
+ 
+
+    if(!existingAction) {
+      return true;
+    }
+
+    return false; 
+  }
+
+  protected override async getActionsToQueue(data: {
+    serviceCatalogId: ObjectID;
+    maxActionsToQueue: number;
+  }): Promise<Array<CopilotAction>> {
+    // get files in the repo. 
+
+    let totalActionsToQueue: number = 0;
+
+    const files: Dictionary<CodeRepositoryFile> = await ServiceRepositoryUtil.getFilesByServiceCatalogId({
+      serviceCatalogId: data.serviceCatalogId,
+    });
+
+    // get keys in random order. 
+    let fileKeys: string[] = Object.keys(files);
+
+    //randomize the order of the files.
+    fileKeys = ArrayUtil.shuffle(fileKeys);
+
+    const actionsQueued: Array<CopilotAction> = [];
+
+    for(const fileKey of fileKeys){
+      const file: CodeRepositoryFile = files[fileKey]!;
+
+      if(await this.isActionRequired({
+        serviceCatalogId: data.serviceCatalogId,
+        copilotActionProp: {
+          filePath: file.filePath,
+        }
+      })){
+
+        let action = new CopilotAction(); 
+        action.copilotActionType = this.copilotActionType;
+        action.copilotActionProp = {
+          filePath: file.filePath,
+        };
+        action.serviceCatalogId = data.serviceCatalogId;
+        action.copilotActionStatus = CopilotActionStatus.IN_QUEUE;
+
+        // create action. 
+        action = await CopilotActionUtil.createCopilotAction({
+          copilotAction: action,
+        })
+
+        actionsQueued.push(action);
+
+        totalActionsToQueue++;
+
+      }
+
+    
+      if(totalActionsToQueue >= data.maxActionsToQueue){
+        break;
+      }
+    }
+
+    return actionsQueued;
+
   }
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {

@@ -1,4 +1,4 @@
-import ObjectID from "./ObjectID";
+import ObjectID from "../Types/ObjectID";
 
 export default class ArrayUtil {
   public static mergeStringArrays(
