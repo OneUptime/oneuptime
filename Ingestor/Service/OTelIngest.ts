@@ -1,4 +1,4 @@
-import ArrayUtil from "Common/Types/ArrayUtil";
+import ArrayUtil from "Common/Utils/ArrayUtil";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";

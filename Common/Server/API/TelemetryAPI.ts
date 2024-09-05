@@ -11,7 +11,7 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
-import ArrayUtil from "Common/Types/ArrayUtil";
+import ArrayUtil from "Common/Utils/ArrayUtil";
 
 const router: ExpressRouter = Express.getRouter();
 
