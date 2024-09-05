@@ -290,6 +290,8 @@ export default class CodeRepositoryUtil {
     });
 
     this.folderNameOfClonedRepository = folderName;
+
+    logger.debug(`Repository cloned to ${repoLocalPath}/${folderName}`);
   }
 
   public static async executeScript(data: { script: string }): Promise<string> {

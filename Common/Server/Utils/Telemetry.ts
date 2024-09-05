@@ -18,10 +18,8 @@ import { CompressionAlgorithm } from "@opentelemetry/otlp-exporter-base";
 import { Resource } from "@opentelemetry/resources";
 import {
   BatchLogRecordProcessor,
-  ConsoleLogRecordExporter,
   LoggerProvider,
   LogRecordProcessor,
-  SimpleLogRecordProcessor,
 } from "@opentelemetry/sdk-logs";
 import {
   MeterProvider,
@@ -167,9 +165,7 @@ export default class Telemetry {
         }),
       });
 
-      let logRecordProcessor: LogRecordProcessor = new SimpleLogRecordProcessor(
-        new ConsoleLogRecordExporter(),
-      );
+      let logRecordProcessor: LogRecordProcessor | null = null;
 
       if (this.getOltpLogsEndpoint() && hasHeaders) {
         const logExporter: OTLPLogExporter = new OTLPLogExporter({
@@ -181,19 +177,21 @@ export default class Telemetry {
         logRecordProcessor = new BatchLogRecordProcessor(logExporter);
       }
 
-      this.loggerProvider.addLogRecordProcessor(logRecordProcessor);
+      if (logRecordProcessor) {
+        this.loggerProvider.addLogRecordProcessor(logRecordProcessor);
+      }
 
       logs.setGlobalLoggerProvider(this.loggerProvider);
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
-        {
-          idGenerator: new AWSXRayIdGenerator(),
-          instrumentations: [],
-          resource: this.getResource({
-            serviceName: data.serviceName,
-          }),
-          autoDetectResources: true,
-        };
+      {
+        idGenerator: new AWSXRayIdGenerator(),
+        instrumentations: [],
+        resource: this.getResource({
+          serviceName: data.serviceName,
+        }),
+        autoDetectResources: true,
+      };
 
       if (traceExporter) {
         nodeSdkConfiguration.traceExporter = traceExporter;

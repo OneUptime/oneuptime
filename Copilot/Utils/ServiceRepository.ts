@@ -19,7 +19,7 @@ import ObjectID from "Common/Types/ObjectID";
 
 export default class ServiceRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
-  public static servicesToImprove: Array<ServiceCopilotCodeRepository> = [];
+  public static servicesToImprove: Array<ServiceCopilotCodeRepository> | null = null;
 
   public static setCodeRepositoryResult(data: {
     codeRepositoryResult: CodeRepositoryResult;
@@ -103,7 +103,7 @@ export default class ServiceRepositoryUtil {
     const { serviceCatalogId } = data;
 
     const serviceRepository: ServiceCopilotCodeRepository | undefined =
-      ServiceRepositoryUtil.servicesToImprove.find(
+      (await ServiceRepositoryUtil.getServicesToImprove()).find(
         (serviceRepository: ServiceCopilotCodeRepository) => {
           return (
             serviceRepository.serviceCatalog!.id?.toString() ===

@@ -27,6 +27,9 @@ let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   // check if copilot is disabled.
+
+  debugger;
+
   if (GetIsCopilotDisabled()) {
     logger.info("Copilot is disabled. Exiting.");
     ProcessUtil.haltProcessWithSuccess();
@@ -48,6 +51,19 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   const servicesToImprove: ServiceCopilotCodeRepository[] =
     await ServiceRepositoryUtil.getServicesToImprove();
+
+
+  logger.debug(`Found ${servicesToImprove.length} services to improve.`);
+
+  // if no services to improve, then exit.
+  if (servicesToImprove.length === 0) {
+    logger.info("No services to improve. Exiting.");
+    ProcessUtil.haltProcessWithSuccess();
+  }
+
+  for (const serviceToImprove of servicesToImprove) {
+    logger.debug(`- ${serviceToImprove.serviceCatalog!.name}`);
+  }
 
   await cloneRepository({
     codeRepositoryResult,
@@ -207,8 +223,8 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
 
   logger.info(
     "Repository setup PR created - #" +
-      pullRequest.pullRequestNumber +
-      ". Please megre this PR to continue using Copilot. Exiting..",
+    pullRequest.pullRequestNumber +
+    ". Please megre this PR to continue using Copilot. Exiting..",
   );
 
   ProcessUtil.haltProcessWithSuccess();
