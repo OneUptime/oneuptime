@@ -124,7 +124,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
         this.copilotActionType,
     );
 
-    logger.info(data.actionProp)
+    logger.info(data.actionProp);
 
     const onBeforeExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({

@@ -45,7 +45,7 @@ export default class CopilotActionService {
 
     const action: CopilotActionBase = new ActionType() as CopilotActionBase;
 
-    // mark this action as processing. 
+    // mark this action as processing.
     await CopilotActionUtil.updateCopilotAction({
       actionStatus: CopilotActionStatus.PROCESSING,
       actionId: data.copilotAction.id!,

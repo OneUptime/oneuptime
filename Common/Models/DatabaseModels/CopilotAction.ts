@@ -737,7 +737,6 @@ export default class CopilotAction extends BaseModel {
   })
   public isPriority?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

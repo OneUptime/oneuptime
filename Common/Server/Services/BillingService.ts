@@ -693,22 +693,25 @@ export class BillingService extends BaseService {
       await this.stripe.invoices.list({
         customer: customerId,
         limit: 100,
-        
       });
 
-    let billingInvoices: Array<Invoice> =  invoices.data.map((invoice: Stripe.Invoice) => {
-      return {
-        id: invoice.id!,
-        amount: invoice.amount_due,
-        currencyCode: invoice.currency,
-        subscriptionId: invoice.subscription?.toString() || undefined,
-        status: invoice.status?.toString() || "Unknown",
-        downloadableLink: invoice.invoice_pdf?.toString() || "",
-        customerId: invoice.customer?.toString() || "",
-        invoiceDate: invoice.created ? new Date(invoice.created * 1000) : OneUptimeDate.getCurrentDate(),
-        invoiceNumber: invoice.number || undefined,
-      };
-    });
+    let billingInvoices: Array<Invoice> = invoices.data.map(
+      (invoice: Stripe.Invoice) => {
+        return {
+          id: invoice.id!,
+          amount: invoice.amount_due,
+          currencyCode: invoice.currency,
+          subscriptionId: invoice.subscription?.toString() || undefined,
+          status: invoice.status?.toString() || "Unknown",
+          downloadableLink: invoice.invoice_pdf?.toString() || "",
+          customerId: invoice.customer?.toString() || "",
+          invoiceDate: invoice.created
+            ? new Date(invoice.created * 1000)
+            : OneUptimeDate.getCurrentDate(),
+          invoiceNumber: invoice.number || undefined,
+        };
+      },
+    );
 
     // sort by date in descending order.
     billingInvoices = billingInvoices.sort((a: Invoice, b: Invoice) => {
@@ -782,7 +785,9 @@ export class BillingService extends BaseService {
       status: invoice.status?.toString() || "Unknown",
       downloadableLink: invoice.invoice_pdf?.toString() || "",
       customerId: invoice.customer?.toString() || "",
-      invoiceDate: invoice.created ? new Date(invoice.created * 1000) : OneUptimeDate.getCurrentDate(),
+      invoiceDate: invoice.created
+        ? new Date(invoice.created * 1000)
+        : OneUptimeDate.getCurrentDate(),
       invoiceNumber: invoice.number || undefined,
     };
   }
