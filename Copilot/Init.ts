@@ -26,6 +26,7 @@ import ProcessUtil from "./Utils/Process";
 let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
+
   // check if copilot is disabled.
   if (GetIsCopilotDisabled()) {
     logger.info("Copilot is disabled. Exiting.");

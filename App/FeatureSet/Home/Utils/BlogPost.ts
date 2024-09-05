@@ -111,9 +111,9 @@ export default class BlogPostUtil {
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
     let blogPost: BlogPost | null = this.getBlogPostFromCache(fileName);
 
-    // if (blogPost) {
-    //     return Promise.resolve(blogPost);
-    // }
+    if (blogPost) {
+        return Promise.resolve(blogPost);
+    }
 
     blogPost = await this.getBlogPostFromGitHub(fileName);
 

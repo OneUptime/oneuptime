@@ -314,10 +314,7 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-
             - /usr/src/Common/node_modules/
-
-            
         ports:
             - '9985:9229' # Debugging port.
         extends:
