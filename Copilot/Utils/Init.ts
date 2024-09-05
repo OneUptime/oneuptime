@@ -73,7 +73,7 @@ export default class InitUtil {
       );
     }
 
-    // check copilot action types enabled and print it out for user. 
+    // check copilot action types enabled and print it out for user.
     CopilotActionTypeUtil.printEnabledAndDisabledActionTypes();
 
     return codeRepositoryResult;

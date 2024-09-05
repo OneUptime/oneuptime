@@ -10,7 +10,6 @@ import logger from "Common/Server/Utils/Logger";
 import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
 import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
 import ObjectID from "Common/Types/ObjectID";
-import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import {
   CopilotActionPrompt,
   CopilotProcess,
@@ -31,15 +30,17 @@ export default class CopilotActionBase {
 
   protected async isActionRequired(_data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
     copilotActionProp: CopilotActionProp;
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
 
-  public async getActionsToQueue(_data: {
+  public async getActionPropsToQueue(_data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
     maxActionsToQueue: number;
-  }): Promise<Array<CopilotAction>> {
+  }): Promise<Array<CopilotActionProp>> {
     throw new NotImplementedException();
   }
 

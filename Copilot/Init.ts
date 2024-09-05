@@ -42,7 +42,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     name: "OneUptime Copilot",
   });
 
-  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.innrl it();
+  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
 
   // before cloning the repo, check if there are any services to improve.
   ServiceRepositoryUtil.setCodeRepositoryResult({
@@ -76,6 +76,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const actionsToWorkOn: Array<CopilotAction> =
       await CopilotActionUtil.getActionsToWorkOn({
         serviceCatalogId: serviceRepository.serviceCatalog!.id!,
+        serviceRepositoryId: serviceRepository.id!,
       });
 
     for (const actionToWorkOn of actionsToWorkOn) {
@@ -171,9 +172,9 @@ const cloneRepository: CloneRepositoryFunction = async (data: {
 
   if (onAfterCloneScript) {
     logger.info("Executing on-after-clone script.");
-    await CodeRepositoryUtil.executeScript({
-      script: onAfterCloneScript,
-    });
+    // await CodeRepositoryUtil.executeScript({
+    //   script: onAfterCloneScript,
+    // });
     logger.info("on-after-clone script executed successfully.");
   }
 

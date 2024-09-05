@@ -1,5 +1,8 @@
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
-import CopilotActionType, {CopilotActionTypeUtil as ActionTypeUtil, CopilotActionTypeData} from "Common/Types/Copilot/CopilotActionType";
+import CopilotActionType, {
+  CopilotActionTypeUtil as ActionTypeUtil,
+  CopilotActionTypeData,
+} from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionUtil from "./CopilotAction";
 import { ActionDictionary } from "../Service/CopilotActions/Index";
 import logger from "Common/Server/Utils/Logger";
@@ -34,20 +37,19 @@ export default class CopilotActionTypeUtil {
   }
 
   public static printEnabledAndDisabledActionTypes(): void {
-    const allActionTypes: Array<CopilotActionTypeData> = ActionTypeUtil.getAllCopilotActionTypes(); 
+    const allActionTypes: Array<CopilotActionTypeData> =
+      ActionTypeUtil.getAllCopilotActionTypes();
 
     // log all the actions from these actions that are in Action dictionary
-    const enabledActionTypesData: Array<CopilotActionTypeData> = allActionTypes.filter(
-      (actionTypeData: CopilotActionTypeData) => {
+    const enabledActionTypesData: Array<CopilotActionTypeData> =
+      allActionTypes.filter((actionTypeData: CopilotActionTypeData) => {
         return this.isActionEnabled(actionTypeData.type);
-      },
-    );
+      });
 
-    const disabledActionTypesData: Array<CopilotActionTypeData> = allActionTypes.filter(
-      (actionTypeData: CopilotActionTypeData) => {
+    const disabledActionTypesData: Array<CopilotActionTypeData> =
+      allActionTypes.filter((actionTypeData: CopilotActionTypeData) => {
         return !this.isActionEnabled(actionTypeData.type);
-      },
-    );
+      });
 
     logger.info("--------------------");
     logger.info("Copilot will fix the following issues:");
@@ -56,7 +58,9 @@ export default class CopilotActionTypeUtil {
     }
 
     logger.info("--------------------");
-    logger.info("Copilot will not fix the following issues at this time (but we will in the future update of the software. We're working on this and they will be launched soon):");
+    logger.info(
+      "Copilot will not fix the following issues at this time (but we will in the future update of the software. We're working on this and they will be launched soon):",
+    );
 
     for (const disabledTypesData of disabledActionTypesData) {
       logger.info(`- ${disabledTypesData.type}`);
