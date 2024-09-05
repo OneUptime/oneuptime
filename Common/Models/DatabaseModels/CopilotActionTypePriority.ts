@@ -25,15 +25,30 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [],
+  create: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.CreateCopilotAction,
+  ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadCopilotAction,
   ],
-  delete: [],
-  update: [],
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.DeleteCopilotAction,
+  ],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.EditCopilotAction,
+  ],
 })
 @EnableWorkflow({
   create: true,

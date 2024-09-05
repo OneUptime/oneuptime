@@ -19,12 +19,11 @@ export default class ImproveComments extends CopilotActionBase {
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
-  protected override async isActionRequired(data: {
+  protected override async isActionRequired(_data: {
     copilotActionProp: FileActionProp;
   }): Promise<boolean> {
-    
+    return true;
   }
-
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {
     return Promise.resolve(this.isRequirementsMet);

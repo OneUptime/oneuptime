@@ -237,9 +237,7 @@ export default class CopilotActionAPI extends BaseAPI<
         ?.toString()}/update-copilot-action/:secretkey`,
       CodeRepositoryAuthorization.isAuthorizedRepository,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-
         try {
-
           const secretkey: string = req.params["secretkey"]!;
 
           if (!secretkey) {
@@ -274,7 +272,7 @@ export default class CopilotActionAPI extends BaseAPI<
             commitHash,
             statusMessage,
             logs,
-            actionId
+            actionId,
           }: {
             actionStatus: CopilotActionStatus;
             pullRequestId?: ObjectID | undefined;
@@ -284,18 +282,19 @@ export default class CopilotActionAPI extends BaseAPI<
             actionId: ObjectID;
           } = req.body;
 
-          const exisingAction = await CopilotActionService.findOneBy({
-            query: {
-              _id: actionId,
-              codeRepositoryId: codeRepository.id!,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          const exisingAction: CopilotAction | null =
+            await CopilotActionService.findOneBy({
+              query: {
+                _id: actionId,
+                codeRepositoryId: codeRepository.id!,
+              },
+              select: {
+                _id: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
           if (!exisingAction) {
             throw new BadDataException("Action not found");
