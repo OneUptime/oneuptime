@@ -31,35 +31,36 @@ export default class ImproveComments extends CopilotActionBase {
     copilotActionProp: FileActionProp;
   }): Promise<boolean> {
     // check if the action has already been processed for this file.
-    const existingAction: CopilotAction | null = await CopilotActionUtil.getExistingAction({
-      serviceCatalogId: data.serviceCatalogId,
-      actionType: this.copilotActionType,
-      actionProps: {
-        filePath: data.copilotActionProp.filePath, // has this action run on this file before? 
-      }
-    });
- 
+    const existingAction: CopilotAction | null =
+      await CopilotActionUtil.getExistingAction({
+        serviceCatalogId: data.serviceCatalogId,
+        actionType: this.copilotActionType,
+        actionProps: {
+          filePath: data.copilotActionProp.filePath, // has this action run on this file before?
+        },
+      });
 
-    if(!existingAction) {
+    if (!existingAction) {
       return true;
     }
 
-    return false; 
+    return false;
   }
 
-  protected override async getActionsToQueue(data: {
+  public override async getActionsToQueue(data: {
     serviceCatalogId: ObjectID;
     maxActionsToQueue: number;
   }): Promise<Array<CopilotAction>> {
-    // get files in the repo. 
+    // get files in the repo.
 
     let totalActionsToQueue: number = 0;
 
-    const files: Dictionary<CodeRepositoryFile> = await ServiceRepositoryUtil.getFilesByServiceCatalogId({
-      serviceCatalogId: data.serviceCatalogId,
-    });
+    const files: Dictionary<CodeRepositoryFile> =
+      await ServiceRepositoryUtil.getFilesByServiceCatalogId({
+        serviceCatalogId: data.serviceCatalogId,
+      });
 
-    // get keys in random order. 
+    // get keys in random order.
     let fileKeys: string[] = Object.keys(files);
 
     //randomize the order of the files.
@@ -67,17 +68,18 @@ export default class ImproveComments extends CopilotActionBase {
 
     const actionsQueued: Array<CopilotAction> = [];
 
-    for(const fileKey of fileKeys){
+    for (const fileKey of fileKeys) {
       const file: CodeRepositoryFile = files[fileKey]!;
 
-      if(await this.isActionRequired({
-        serviceCatalogId: data.serviceCatalogId,
-        copilotActionProp: {
-          filePath: file.filePath,
-        }
-      })){
-
-        let action = new CopilotAction(); 
+      if (
+        await this.isActionRequired({
+          serviceCatalogId: data.serviceCatalogId,
+          copilotActionProp: {
+            filePath: file.filePath,
+          },
+        })
+      ) {
+        let action: CopilotAction = new CopilotAction();
         action.copilotActionType = this.copilotActionType;
         action.copilotActionProp = {
           filePath: file.filePath,
@@ -85,25 +87,22 @@ export default class ImproveComments extends CopilotActionBase {
         action.serviceCatalogId = data.serviceCatalogId;
         action.copilotActionStatus = CopilotActionStatus.IN_QUEUE;
 
-        // create action. 
+        // create action.
         action = await CopilotActionUtil.createCopilotAction({
           copilotAction: action,
-        })
+        });
 
         actionsQueued.push(action);
 
         totalActionsToQueue++;
-
       }
 
-    
-      if(totalActionsToQueue >= data.maxActionsToQueue){
+      if (totalActionsToQueue >= data.maxActionsToQueue) {
         break;
       }
     }
 
     return actionsQueued;
-
   }
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {

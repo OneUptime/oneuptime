@@ -20,8 +20,6 @@ import CopilotActionBase from "../Service/CopilotActions/CopilotActionsBase";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
 export default class CopilotActionUtil {
-
-
   public static async getExistingAction(data: {
     serviceCatalogId: ObjectID;
     actionType: CopilotActionType;

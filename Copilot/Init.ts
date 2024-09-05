@@ -43,7 +43,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   // before cloning the repo, check if there are any services to improve.
   ServiceRepositoryUtil.setCodeRepositoryResult({
-    codeRepositoryResult
+    codeRepositoryResult,
   });
 
   const servicesToImprove: ServiceCopilotCodeRepository[] =

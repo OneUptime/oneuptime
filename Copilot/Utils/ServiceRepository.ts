@@ -18,7 +18,6 @@ import ProcessUtil from "./Process";
 import ObjectID from "Common/Types/ObjectID";
 
 export default class ServiceRepositoryUtil {
-
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static servicesToImprove: Array<ServiceCopilotCodeRepository> = [];
 
@@ -28,16 +27,15 @@ export default class ServiceRepositoryUtil {
     ServiceRepositoryUtil.codeRepositoryResult = data.codeRepositoryResult;
   }
 
-
-  public static async getServicesToImprove(
-
-  ): Promise<Array<ServiceCopilotCodeRepository>> {
-
+  public static async getServicesToImprove(): Promise<
+    Array<ServiceCopilotCodeRepository>
+  > {
     if (this.servicesToImprove) {
       return this.servicesToImprove;
     }
 
-    const codeRepositoryResult: CodeRepositoryResult = ServiceRepositoryUtil.codeRepositoryResult!;
+    const codeRepositoryResult: CodeRepositoryResult =
+      ServiceRepositoryUtil.codeRepositoryResult!;
 
     if (!codeRepositoryResult) {
       throw new BadDataException("Code repository result is not set");
@@ -107,7 +105,10 @@ export default class ServiceRepositoryUtil {
     const serviceRepository: ServiceCopilotCodeRepository | undefined =
       ServiceRepositoryUtil.servicesToImprove.find(
         (serviceRepository: ServiceCopilotCodeRepository) => {
-          return serviceRepository.serviceCatalog!.id?.toString() === serviceCatalogId.toString();
+          return (
+            serviceRepository.serviceCatalog!.id?.toString() ===
+            serviceCatalogId.toString()
+          );
         },
       );
 
@@ -150,6 +151,4 @@ export default class ServiceRepositoryUtil {
 
     return allFiles;
   }
-
-
 }

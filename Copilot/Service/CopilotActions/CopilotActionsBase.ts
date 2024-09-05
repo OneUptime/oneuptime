@@ -36,7 +36,7 @@ export default class CopilotActionBase {
     throw new NotImplementedException();
   }
 
-  protected async getActionsToQueue(_data: {
+  public async getActionsToQueue(_data: {
     serviceCatalogId: ObjectID;
     maxActionsToQueue: number;
   }): Promise<Array<CopilotAction>> {

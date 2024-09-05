@@ -381,6 +381,7 @@ export default class CodeRepositoryUtil {
           filePath: LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`),
           repoPath,
         }),
+        filePath: filePath,
       };
     }
 

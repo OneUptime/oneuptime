@@ -211,12 +211,11 @@ export default class CopilotActionAPI extends BaseAPI<
 
           const actionType: CopilotActionType = req.body["actionType"]!;
 
-          if(!actionType) {
+          if (!actionType) {
             throw new BadDataException("Action type is required");
           }
 
           const actionProps: JSONObject = req.body["actionProps"]!;
-
 
           const copilotAction: CopilotAction | null =
             await CopilotActionService.findOneBy({
@@ -248,10 +247,9 @@ export default class CopilotActionAPI extends BaseAPI<
             });
 
           return Response.sendJsonObjectResponse(req, res, {
-            copilotAction: copilotAction ? CopilotAction.toJSONObject(
-              copilotAction,
-              CopilotAction,
-            ) : null,
+            copilotAction: copilotAction
+              ? CopilotAction.toJSONObject(copilotAction, CopilotAction)
+              : null,
           });
         } catch (err) {
           next(err);
