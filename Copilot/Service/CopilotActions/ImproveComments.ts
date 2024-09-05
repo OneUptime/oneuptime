@@ -16,6 +16,7 @@ import ServiceRepositoryUtil from "../../Utils/ServiceRepository";
 import Dictionary from "Common/Types/Dictionary";
 import ArrayUtil from "Common/Utils/Array";
 import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -54,9 +55,6 @@ export default class ImproveComments extends CopilotActionBase {
     maxActionsToQueue: number;
   }): Promise<Array<CopilotActionProp>> {
     // get files in the repo.
-
-    debugger;
-
     logger.debug(
       `${this.copilotActionType} - Getting files to queue for improve comments.`,
     );
@@ -113,6 +111,31 @@ export default class ImproveComments extends CopilotActionBase {
     return actionsPropsQueued;
   }
 
+  public override async getCommitMessage(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestTitle(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestBody(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return `Improved comments on ${(data.actionProp as FileActionProp).filePath}
+    
+    ${await this.getDefaultPullRequestBody()}
+    `;
+  }
+
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {
     return Promise.resolve(this.isRequirementsMet);
   }
@@ -120,10 +143,18 @@ export default class ImproveComments extends CopilotActionBase {
   public override async onExecutionStep(
     data: CopilotProcess,
   ): Promise<CopilotProcess> {
-    // Action Prompt
+    const filePath: string = (data.actionProp as FileActionProp).filePath;
+
+    if (!filePath) {
+      throw new BadDataException("File Path is not set in the action prop.");
+    }
+
+    const fileContent: string = await ServiceRepositoryUtil.getFileContent({
+      filePath: filePath,
+    });
 
     const codeParts: string[] = await this.splitInputCode({
-      code: "",
+      code: fileContent,
       itemSize: 500,
     });
 

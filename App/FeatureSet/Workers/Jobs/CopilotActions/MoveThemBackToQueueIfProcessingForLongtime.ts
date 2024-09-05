@@ -22,7 +22,7 @@ RunCron(
       await CopilotActionService.findBy({
         query: {
           copilotActionStatus: CopilotActionStatus.PROCESSING,
-          statusChangedAt: QueryHelper.lessThanEqualTo(lastHour),
+          statusChangedAt: QueryHelper.lessThanEqualToOrNull(lastHour),
         },
         select: {
           _id: true,

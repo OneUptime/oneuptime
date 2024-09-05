@@ -28,8 +28,6 @@ let currentFixCount: number = 1;
 const init: PromiseVoidFunction = async (): Promise<void> => {
   // check if copilot is disabled.
 
-  debugger;
-
   if (GetIsCopilotDisabled()) {
     logger.info("Copilot is disabled. Exiting.");
     ProcessUtil.haltProcessWithSuccess();

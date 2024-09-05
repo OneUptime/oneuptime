@@ -39,7 +39,6 @@ export default class CopilotActionService {
       ActionDictionary[data.copilotAction.copilotActionType!];
 
     if (!ActionType) {
-      debugger;
       throw new BadDataException("Invalid CopilotActionType");
     }
 
