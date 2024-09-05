@@ -112,7 +112,7 @@ export default class BlogPostUtil {
     let blogPost: BlogPost | null = this.getBlogPostFromCache(fileName);
 
     if (blogPost) {
-        return Promise.resolve(blogPost);
+      return Promise.resolve(blogPost);
     }
 
     blogPost = await this.getBlogPostFromGitHub(fileName);
