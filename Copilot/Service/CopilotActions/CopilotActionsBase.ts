@@ -4,46 +4,21 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import LLM from "../LLM/LLM";
 import { GetLlmType } from "../../Config";
 import Text from "Common/Types/Text";
-import LocalFile from "Common/Server/Utils/LocalFile";
-import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
-import Dictionary from "Common/Types/Dictionary";
 import { CopilotPromptResult } from "../LLM/LLMBase";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
 import CodeRepositoryUtil, { RepoScriptType } from "../../Utils/CodeRepository";
-
-export interface CopilotActionRunResult {
-  files: Dictionary<CodeRepositoryFile>;
-}
-
-export enum PromptRole {
-  System = "system",
-  User = "user",
-  Assistant = "assistant",
-}
-
-export interface Prompt {
-  content: string;
-  role: PromptRole;
-}
-
-export interface CopilotActionPrompt {
-  messages: Array<Prompt>;
-  timeoutInMinutes?: number | undefined;
-}
-
-export interface CopilotActionVars {
-  currentFilePath: string;
-  files: Dictionary<CodeRepositoryFile>;
-}
-
-export interface CopilotProcess {
-  result: CopilotActionRunResult;
-  input: CopilotActionVars;
-}
+import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
+import ObjectID from "Common/Types/ObjectID";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
+import {
+  CopilotActionPrompt,
+  CopilotProcess,
+  CopilotProcessStart,
+} from "./Types";
 
 export default class CopilotActionBase {
-  public llmType: LlmType = LlmType.LLM; // temp value which will be overridden in the constructor
+  public llmType: LlmType = LlmType.ONEUPTIME_LLM; // temp value which will be overridden in the constructor
 
   public copilotActionType: CopilotActionType =
     CopilotActionType.IMPROVE_COMMENTS; // temp value which will be overridden in the constructor
@@ -54,36 +29,40 @@ export default class CopilotActionBase {
     this.llmType = GetLlmType();
   }
 
-  public async validateExecutionStep(data: CopilotProcess): Promise<boolean> {
+  protected async isActionRequired(_data: {
+    copilotActionProp: CopilotActionProp;
+  }): Promise<boolean> {
+    throw new NotImplementedException();
+  }
+
+  public getActionsToQueue(_data: {
+    serviceCatalogId: ObjectID;
+    maxActionsToQueue: number;
+  }): Promise<Array<CopilotAction>> {
+    throw new NotImplementedException();
+  }
+
+  protected async validateExecutionStep(
+    _data: CopilotProcess,
+  ): Promise<boolean> {
     if (!this.copilotActionType) {
       throw new BadDataException("Copilot Action Type is not set");
     }
 
-    // check if the file extension is accepted or not
-
-    if (
-      !this.acceptFileExtentions.find((item: string) => {
-        return item.includes(
-          LocalFile.getFileExtension(data.input.currentFilePath),
-        );
-      })
-    ) {
-      logger.info(
-        `The file extension ${data.input.currentFilePath.split(".").pop()} is not accepted by the copilot action ${this.copilotActionType}. Ignore this file...`,
-      );
-
-      return false;
-    }
-
+    // validate by default.
     return true;
   }
 
-  public async onAfterExecute(data: CopilotProcess): Promise<CopilotProcess> {
+  protected async onAfterExecute(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     // do nothing
     return data;
   }
 
-  public async onBeforeExecute(data: CopilotProcess): Promise<CopilotProcess> {
+  protected async onBeforeExecute(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     // do nothing
     return data;
   }
@@ -95,18 +74,15 @@ export default class CopilotActionBase {
     return Text.replaceAll(bracnhName, "--", "-");
   }
 
-  public async getPullRequestTitle(data: CopilotProcess): Promise<string> {
-    return `[OneUptime Copilot] ${this.copilotActionType} on ${data.input.currentFilePath}`;
+  public async getPullRequestTitle(_data: CopilotProcess): Promise<string> {
+    throw new NotImplementedException();
   }
 
-  public async getPullRequestBody(data: CopilotProcess): Promise<string> {
-    return `OneUptime Copilot: ${this.copilotActionType} on ${data.input.currentFilePath}
-    
-${await this.getDefaultPullRequestBody()}
-    `;
+  public async getPullRequestBody(_data: CopilotProcess): Promise<string> {
+    throw new NotImplementedException();
   }
 
-  public async getDefaultPullRequestBody(): Promise<string> {
+  protected async getDefaultPullRequestBody(): Promise<string> {
     return `
     
 #### Warning
@@ -118,28 +94,33 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     `;
   }
 
-  public async getCommitMessage(data: CopilotProcess): Promise<string> {
-    return `OneUptime Copilot: ${this.copilotActionType} on ${data.input.currentFilePath}`;
+  public async getCommitMessage(_data: CopilotProcess): Promise<string> {
+    throw new NotImplementedException();
   }
 
-  public async onExecutionStep(data: CopilotProcess): Promise<CopilotProcess> {
+  protected async onExecutionStep(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
     return Promise.resolve(data);
   }
 
-  public async isActionComplete(_data: CopilotProcess): Promise<boolean> {
+  protected async isActionComplete(_data: CopilotProcess): Promise<boolean> {
     return true; // by default the action is completed
   }
 
-  public async getNextFilePath(_data: CopilotProcess): Promise<string | null> {
+  protected async getNextFilePath(
+    _data: CopilotProcess,
+  ): Promise<string | null> {
     return null;
   }
 
-  public async execute(data: CopilotProcess): Promise<CopilotProcess | null> {
+  public async execute(
+    data: CopilotProcessStart,
+  ): Promise<CopilotProcess | null> {
     logger.info(
       "Executing Copilot Action (this will take several minutes to complete): " +
         this.copilotActionType,
     );
-    logger.info("Current File Path: " + data.input.currentFilePath);
 
     const onBeforeExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({
@@ -158,37 +139,46 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       logger.info("on-before-copilot-action script executed successfully");
     }
 
-    data = await this.onBeforeExecute(data);
-
-    if (!data.result) {
-      data.result = {
+    const processData: CopilotProcess = await this.onBeforeExecute({
+      ...data,
+      result: {
         files: {},
+        statusMessage: "",
+        logs: [],
+      },
+    });
+
+    if (!processData.result) {
+      processData.result = {
+        files: {},
+        statusMessage: "",
+        logs: [],
       };
     }
 
-    if (!data.result.files) {
-      data.result.files = {};
+    if (!processData.result.files) {
+      processData.result.files = {};
     }
 
     let isActionComplete: boolean = false;
 
     while (!isActionComplete) {
-      if (!(await this.validateExecutionStep(data))) {
+      if (!(await this.validateExecutionStep(processData))) {
         // execution step not valid
         // return data as it is
 
-        return data;
+        return processData;
       }
 
-      data = await this.onExecutionStep(data);
+      data = await this.onExecutionStep(processData);
 
-      isActionComplete = await this.isActionComplete(data);
+      isActionComplete = await this.isActionComplete(processData);
     }
 
-    data = await this.onAfterExecute(data);
+    data = await this.onAfterExecute(processData);
 
     // write to disk.
-    await this.writeToDisk({ data });
+    await this.writeToDisk({ data: processData });
 
     const onAfterExecuteActionScript: string | null =
       await CodeRepositoryUtil.getRepoScript({
@@ -209,7 +199,7 @@ If you have  any feedback or suggestions, please let us know. We would love to h
       logger.info("on-after-copilot-action script executed successfully");
     }
 
-    return data;
+    return processData;
   }
 
   protected async _getPrompt(
@@ -228,33 +218,26 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     return prompt;
   }
 
-  public async getPrompt(
+  protected async getPrompt(
     _data: CopilotProcess,
     _inputCode: string,
   ): Promise<CopilotActionPrompt | null> {
     throw new NotImplementedException();
   }
 
-  public async askCopilot(
+  protected async askCopilot(
     prompt: CopilotActionPrompt,
   ): Promise<CopilotPromptResult> {
     return await LLM.getResponse(prompt);
   }
 
-  public async getInputCode(data: CopilotProcess): Promise<string> {
-    return data.input.files[data.input.currentFilePath]?.fileContent as string;
-  }
-
-  public async writeToDisk(data: { data: CopilotProcess }): Promise<void> {
+  protected async writeToDisk(data: { data: CopilotProcess }): Promise<void> {
     // write all the modified files.
 
     const processResult: CopilotProcess = data.data;
 
     for (const filePath in processResult.result.files) {
-      const fileCommitHash: string =
-        processResult.result.files[filePath]!.gitCommitHash;
-
-      logger.info(`Writing file: ${filePath} ${fileCommitHash}`);
+      logger.info(`Writing file: ${filePath}`);
       logger.info(`File content: `);
       logger.info(`${processResult.result.files[filePath]!.fileContent}`);
 
@@ -267,15 +250,15 @@ If you have  any feedback or suggestions, please let us know. We would love to h
     }
   }
 
-  public async discardAllChanges(): Promise<void> {
+  protected async discardAllChanges(): Promise<void> {
     await CodeRepositoryUtil.discardAllChangesOnCurrentBranch();
   }
 
-  public async splitInputCode(data: {
-    copilotProcess: CopilotProcess;
+  protected async splitInputCode(data: {
+    code: string;
     itemSize: number;
   }): Promise<string[]> {
-    const inputCode: string = await this.getInputCode(data.copilotProcess);
+    const inputCode: string = data.code;
 
     const items: Array<string> = [];
 

@@ -40,7 +40,7 @@ RunCron(
   },
   async () => {
     return await Telemetry.startActiveSpan<Promise<void>>({
-      name: "StatusPageCerts:OrderSSL",
+      name: "StatusPageCerts.OrderSSL",
       options: {
         attributes: {
           schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,

@@ -29,10 +29,16 @@ const CodeRepositoryView: LazyExoticComponent<
   return import("../Pages/AICopilot/CodeRepository/View/Index");
 });
 
-const CodeRepositoryViewPullRequests: LazyExoticComponent<
+const CodeRepositoryViewActionsInQueue: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/AICopilot/CodeRepository/View/PullRequests");
+  return import("../Pages/AICopilot/CodeRepository/View/InQueue");
+});
+
+const CodeRepositoryViewProcessed: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AICopilot/CodeRepository/View/Processed");
 });
 
 const CodeRepositoryViewDocumentation: LazyExoticComponent<
@@ -51,6 +57,12 @@ const CodeRepositoryViewSettings: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/AICopilot/CodeRepository/View/Settings");
+});
+
+const CodeRepositoryViewPriorities: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AICopilot/CodeRepository/View/Actions");
 });
 
 const CodeRepositoryViewServices: LazyExoticComponent<
@@ -98,15 +110,33 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS,
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE,
           )}
           element={
             <Suspense fallback={Loader}>
-              <CodeRepositoryViewPullRequests
+              <CodeRepositoryViewActionsInQueue
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewProcessed
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
                   ] as Route
                 }
               />
@@ -161,6 +191,24 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewPriorities
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
                   ] as Route
                 }
               />

@@ -1,5 +1,5 @@
 import Pill from "../Pill/Pill";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Red, Yellow } from "Common/Types/BrandColors";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -11,7 +11,7 @@ const WorkflowStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (props.status === WorkflowStatus.Success) {
-    return <Pill color={Green} text="Success" />;
+    return <Pill color={Blue} text="Executed" />;
   }
   if (props.status === WorkflowStatus.Running) {
     return <Pill color={Yellow} text="Running" />;

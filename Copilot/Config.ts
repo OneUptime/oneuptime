@@ -6,6 +6,8 @@ type GetStringFunction = () => string;
 type GetStringOrNullFunction = () => string | null;
 type GetURLFunction = () => URL;
 
+export const MIN_ITEMS_IN_QUEUE_PER_SERVICE_CATALOG: number = 10;
+
 export const GetIsCopilotDisabled: () => boolean = () => {
   return process.env["DISABLE_COPILOT"] === "true";
 };
@@ -65,10 +67,10 @@ export const GetLlmType: GetLlmTypeFunction = (): LlmType => {
   }
 
   if (GetLlmServerUrl()) {
-    return LlmType.LLM;
+    return LlmType.ONEUPTIME_LLM;
   }
 
-  return LlmType.LLM;
+  return LlmType.ONEUPTIME_LLM;
 };
 
 export const FixNumberOfCodeEventsInEachRun: number = 5;

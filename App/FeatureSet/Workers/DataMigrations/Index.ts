@@ -34,6 +34,7 @@ import UpdateGlobalConfigFromEnv from "./UpdateGlobalCongfigFromEnv";
 import MigrateServiceLanguageToTechStack from "./MigrateServiceLanguageToTechStack";
 import DeleteOldTelemetryTable from "./DeleteOldTelelmetryTable";
 import MoveTelemetryServiceTokenToTelemetryIngestionKey from "./MoveTelemetryServiceTokenToTelemetryIngestionKey";
+import AddDefaultCopilotActionTypes from "./AddDefaultCopilotActionTypes";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -73,6 +74,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MigrateServiceLanguageToTechStack(),
   new DeleteOldTelemetryTable(),
   new MoveTelemetryServiceTokenToTelemetryIngestionKey(),
+  new AddDefaultCopilotActionTypes(),
 ];
 
 export default DataMigrations;

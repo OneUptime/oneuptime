@@ -117,7 +117,7 @@ const Alert: FunctionComponent<ComponentProps> = (
             <div>
               <span className="font-medium">
                 {props.strongTitle}{" "}
-                {props.title && props.strongTitle ? "-" : ""}
+                {props.title && props.strongTitle ? "- " : ""}
               </span>
               {props.title}
             </div>

@@ -63,7 +63,7 @@ OneUptime Cloud is the easiest and fastest way to monitor your website uptime an
 
 By using OneUptime Cloud, you also support the development of OneUptime open source project, which is a powerful and flexible tool for website monitoring. You can find more information about OneUptime open source project on [GitHub](##Philosophy). The code of OneUptime is completely open source, which means you can access, modify, and distribute it freely. You can also contribute to the project by reporting issues, suggesting features, or submitting pull requests.
 
-If you need advanced features, such as API Access, Advances Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
+If you need advanced features, such as API Access, Advanced Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
 
 
 ## Installation
@@ -74,13 +74,13 @@ If you need advanced features, such as API Access, Advances Workflows, or Advanc
 
 ## Philosophy
 
-Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
+Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand the causes of downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
 
 ## Contributing
 
 We <3 contributions big and small. In priority order (although everything is appreciated) with the most helpful first:
 
-- Give us feedback in our [Customer Slack community](https://oneuptimesupport.slack.com/join/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ#/shared-invite/email)
+- Give us feedback in our [Customer Slack community](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)
 - Talk to developers in our [Developer Slack community](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)
 - Write tests for some of our codebase. [See issues here](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)
 - Work on any issue you like. [See issues here](https://github.com/OneUptime/oneuptime/issues)

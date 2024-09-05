@@ -35,6 +35,9 @@ sudo oneuptime-infrastructure-agent start
 
 # To Stop
 sudo oneuptime-infrastructure-agent stop
+
+# To Uninstall
+sudo oneuptime-infrastructure-agent uninstall
 `}
             />
           </div>
@@ -62,6 +65,9 @@ oneuptime-infrastructure-agent start
 
 # To Stop
 oneuptime-infrastructure-agent stop
+
+# To Uninstall
+oneuptime-infrastructure-agent uninstall
 `}
             />
           </div>
