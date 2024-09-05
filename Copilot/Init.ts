@@ -42,7 +42,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     name: "OneUptime Copilot",
   });
 
-  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.init();
+  const codeRepositoryResult: CodeRepositoryResult = await InitUtil.innrl it();
 
   // before cloning the repo, check if there are any services to improve.
   ServiceRepositoryUtil.setCodeRepositoryResult({
@@ -51,7 +51,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
   const servicesToImprove: ServiceCopilotCodeRepository[] =
     await ServiceRepositoryUtil.getServicesToImprove();
-
 
   logger.debug(`Found ${servicesToImprove.length} services to improve.`);
 
@@ -223,8 +222,8 @@ const setUpRepository: PromiseVoidFunction = async (): Promise<void> => {
 
   logger.info(
     "Repository setup PR created - #" +
-    pullRequest.pullRequestNumber +
-    ". Please megre this PR to continue using Copilot. Exiting..",
+      pullRequest.pullRequestNumber +
+      ". Please megre this PR to continue using Copilot. Exiting..",
   );
 
   ProcessUtil.haltProcessWithSuccess();

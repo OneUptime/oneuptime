@@ -15,6 +15,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import CopilotActionTypeUtil from "./CopilotActionTypes";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
@@ -71,6 +72,9 @@ export default class InitUtil {
         "GitHub token is required for this repository. Please provide the GitHub token in the environment variables.",
       );
     }
+
+    // check copilot action types enabled and print it out for user. 
+    CopilotActionTypeUtil.printEnabledAndDisabledActionTypes();
 
     return codeRepositoryResult;
   }

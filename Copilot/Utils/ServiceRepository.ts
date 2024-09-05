@@ -19,7 +19,8 @@ import ObjectID from "Common/Types/ObjectID";
 
 export default class ServiceRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
-  public static servicesToImprove: Array<ServiceCopilotCodeRepository> | null = null;
+  public static servicesToImprove: Array<ServiceCopilotCodeRepository> | null =
+    null;
 
   public static setCodeRepositoryResult(data: {
     codeRepositoryResult: CodeRepositoryResult;
@@ -102,15 +103,14 @@ export default class ServiceRepositoryUtil {
   }): Promise<Dictionary<CodeRepositoryFile>> {
     const { serviceCatalogId } = data;
 
-    const serviceRepository: ServiceCopilotCodeRepository | undefined =
-      (await ServiceRepositoryUtil.getServicesToImprove()).find(
-        (serviceRepository: ServiceCopilotCodeRepository) => {
-          return (
-            serviceRepository.serviceCatalog!.id?.toString() ===
-            serviceCatalogId.toString()
-          );
-        },
+    const serviceRepository: ServiceCopilotCodeRepository | undefined = (
+      await ServiceRepositoryUtil.getServicesToImprove()
+    ).find((serviceRepository: ServiceCopilotCodeRepository) => {
+      return (
+        serviceRepository.serviceCatalog!.id?.toString() ===
+        serviceCatalogId.toString()
       );
+    });
 
     if (!serviceRepository) {
       throw new BadDataException("Service repository not found");

@@ -184,14 +184,14 @@ export default class Telemetry {
       logs.setGlobalLoggerProvider(this.loggerProvider);
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
-      {
-        idGenerator: new AWSXRayIdGenerator(),
-        instrumentations: [],
-        resource: this.getResource({
-          serviceName: data.serviceName,
-        }),
-        autoDetectResources: true,
-      };
+        {
+          idGenerator: new AWSXRayIdGenerator(),
+          instrumentations: [],
+          resource: this.getResource({
+            serviceName: data.serviceName,
+          }),
+          autoDetectResources: true,
+        };
 
       if (traceExporter) {
         nodeSdkConfiguration.traceExporter = traceExporter;

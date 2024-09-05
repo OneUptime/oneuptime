@@ -1,7 +1,8 @@
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
-import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
+import CopilotActionType, {CopilotActionTypeUtil as ActionTypeUtil, CopilotActionTypeData} from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionUtil from "./CopilotAction";
 import { ActionDictionary } from "../Service/CopilotActions/Index";
+import logger from "Common/Server/Utils/Logger";
 
 export default class CopilotActionTypeUtil {
   private static isActionEnabled(actionType: CopilotActionType): boolean {
@@ -30,5 +31,37 @@ export default class CopilotActionTypeUtil {
     // so if the priority is 1, then there will be 5 items in queue. If the priority is 5, then there will be 1 item in queue.
     const itemsInQueue: number = 6;
     return itemsInQueue - priority;
+  }
+
+  public static printEnabledAndDisabledActionTypes(): void {
+    const allActionTypes: Array<CopilotActionTypeData> = ActionTypeUtil.getAllCopilotActionTypes(); 
+
+    // log all the actions from these actions that are in Action dictionary
+    const enabledActionTypesData: Array<CopilotActionTypeData> = allActionTypes.filter(
+      (actionTypeData: CopilotActionTypeData) => {
+        return this.isActionEnabled(actionTypeData.type);
+      },
+    );
+
+    const disabledActionTypesData: Array<CopilotActionTypeData> = allActionTypes.filter(
+      (actionTypeData: CopilotActionTypeData) => {
+        return !this.isActionEnabled(actionTypeData.type);
+      },
+    );
+
+    logger.info("--------------------");
+    logger.info("Copilot will fix the following issues:");
+    for (const actionTypeData of enabledActionTypesData) {
+      logger.info(`- ${actionTypeData.type}`);
+    }
+
+    logger.info("--------------------");
+    logger.info("Copilot will not fix the following issues at this time (but we will in the future update of the software. We're working on this and they will be launched soon):");
+
+    for (const disabledTypesData of disabledActionTypesData) {
+      logger.info(`- ${disabledTypesData.type}`);
+    }
+
+    logger.info("--------------------");
   }
 }
