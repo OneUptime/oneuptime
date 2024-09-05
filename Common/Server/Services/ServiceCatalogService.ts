@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import ArrayUtil from "../../Utils/ArrayUtil";
+import ArrayUtil from "../../Utils/Array";
 import { BrightColors } from "../../Types/BrandColors";
 import Model from "Common/Models/DatabaseModels/ServiceCatalog";
 

@@ -6,7 +6,7 @@ import AccessControlModel from "Common/Models/DatabaseModels/DatabaseBaseModel/A
 import BaseModel, {
   DatabaseBaseModelType,
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ArrayUtil from "Common/Utils/ArrayUtil";
+import ArrayUtil from "Common/Utils/Array";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {

@@ -14,7 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import ServiceRepositoryUtil from "../../Utils/ServiceRepository";
 import Dictionary from "Common/Types/Dictionary";
-import ArrayUtil from "Common/Utils/ArrayUtil";
+import ArrayUtil from "Common/Utils/Array";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 
 export default class ImproveComments extends CopilotActionBase {

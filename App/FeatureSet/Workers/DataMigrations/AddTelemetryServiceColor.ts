@@ -1,5 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
-import ArrayUtil from "Common/Utils/ArrayUtil";
+import ArrayUtil from "Common/Utils/Array";
 import { BrightColors } from "Common/Types/BrandColors";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";

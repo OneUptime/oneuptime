@@ -1,4 +1,4 @@
-import ArrayUtil from "Common/Utils/ArrayUtil";
+import ArrayUtil from "Common/Utils/Array";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "../Middleware/TelemetryIngest";

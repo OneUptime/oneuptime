@@ -1,4 +1,4 @@
-import ArrayUtil from "../../Utils/ArrayUtil";
+import ArrayUtil from "../../Utils/Array";
 
 describe("ArrayUtil.isEqual", () => {
   const equalArrays: Array<[Array<any>, Array<any>]> = [
