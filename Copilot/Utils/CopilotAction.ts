@@ -285,6 +285,8 @@ export default class CopilotActionUtil {
       throw new BadDataException("Repository Secret Key is required");
     }
 
+    debugger;
+
     const url: URL = URL.fromString(
       GetOneUptimeURL().toString() + "/api",
     ).addRoute(

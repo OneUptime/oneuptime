@@ -736,4 +736,37 @@ export default class CopilotAction extends BaseModel {
     default: false,
   })
   public isPriority?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateCopilotAction,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCopilotAction,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditCopilotAction,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Status Changed at",
+    description: "When the status of this action was changed",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public statusChangedAt?: Date = undefined;
 }

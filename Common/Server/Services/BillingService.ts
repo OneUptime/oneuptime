@@ -35,6 +35,8 @@ export interface Invoice {
   status: string;
   downloadableLink: string;
   customerId: string | undefined;
+  invoiceDate: Date;
+  invoiceNumber: string | undefined;
 }
 
 export class BillingService extends BaseService {
@@ -691,9 +693,10 @@ export class BillingService extends BaseService {
       await this.stripe.invoices.list({
         customer: customerId,
         limit: 100,
+        
       });
 
-    return invoices.data.map((invoice: Stripe.Invoice) => {
+    let billingInvoices: Array<Invoice> =  invoices.data.map((invoice: Stripe.Invoice) => {
       return {
         id: invoice.id!,
         amount: invoice.amount_due,
@@ -702,8 +705,17 @@ export class BillingService extends BaseService {
         status: invoice.status?.toString() || "Unknown",
         downloadableLink: invoice.invoice_pdf?.toString() || "",
         customerId: invoice.customer?.toString() || "",
+        invoiceDate: invoice.created ? new Date(invoice.created * 1000) : OneUptimeDate.getCurrentDate(),
+        invoiceNumber: invoice.number || undefined,
       };
     });
+
+    // sort by date in descending order.
+    billingInvoices = billingInvoices.sort((a: Invoice, b: Invoice) => {
+      return a.invoiceDate.getTime() - b.invoiceDate.getTime();
+    });
+
+    return billingInvoices;
   }
 
   public async generateInvoiceAndChargeCustomer(
@@ -770,6 +782,8 @@ export class BillingService extends BaseService {
       status: invoice.status?.toString() || "Unknown",
       downloadableLink: invoice.invoice_pdf?.toString() || "",
       customerId: invoice.customer?.toString() || "",
+      invoiceDate: invoice.created ? new Date(invoice.created * 1000) : OneUptimeDate.getCurrentDate(),
+      invoiceNumber: invoice.number || undefined,
     };
   }
 

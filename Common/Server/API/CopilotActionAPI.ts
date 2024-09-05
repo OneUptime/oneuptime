@@ -22,6 +22,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import JSONFunctions from "../../Types/JSONFunctions";
 import CopilotActionType from "../../Types/Copilot/CopilotActionType";
 import { JSONObject } from "../../Types/JSON";
+import OneUptimeDate from "../../Types/Date";
 
 export default class CopilotActionAPI extends BaseAPI<
   CopilotAction,
@@ -145,6 +146,7 @@ export default class CopilotActionAPI extends BaseAPI<
                 serviceCatalogId: true,
                 copilotActionStatus: true,
                 copilotActionType: true,
+                copilotActionProp: true,
                 createdAt: true,
                 copilotPullRequest: {
                   _id: true,
@@ -398,6 +400,7 @@ export default class CopilotActionAPI extends BaseAPI<
               copilotPullRequestId: pullRequestId!,
               commitHash: commitHash!,
               statusMessage: statusMessage!,
+              statusChangedAt: OneUptimeDate.getCurrentDate(),
               logs: logs?.join("\n") || "",
             },
             props: {
