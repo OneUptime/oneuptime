@@ -411,6 +411,7 @@ export default class CopilotPullRequest extends BaseModel {
     type: TableColumnType.ShortText,
     required: false,
     isDefaultValueColumn: false,
+    canReadOnRelationQuery: true,
     title: "Pull Request ID",
     description:
       "ID of Pull Request in the repository where this event was executed and then PR was created.",
