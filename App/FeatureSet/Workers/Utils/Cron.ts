@@ -8,6 +8,7 @@ import Telemetry, {
   SpanStatusCode,
 } from "Common/Server/Utils/Telemetry";
 
+// Define the function type RunCronFunction
 type RunCronFunction = (
   jobName: string,
   options: {
@@ -18,6 +19,7 @@ type RunCronFunction = (
   runFunction: PromiseVoidFunction,
 ) => void;
 
+// Implement the RunCron function
 const RunCron: RunCronFunction = (
   jobName: string,
   options: {
@@ -27,6 +29,7 @@ const RunCron: RunCronFunction = (
   },
   runFunction: PromiseVoidFunction,
 ): void => {
+  // Start a telemetry span for the RunCron operation
   return Telemetry.startActiveSpan<void>({
     name: "RunCron",
     options: {
@@ -38,14 +41,17 @@ const RunCron: RunCronFunction = (
     },
     fn: (span: Span): void => {
       try {
+        // Set the job function in JobDictionary
         JobDictionary.setJobFunction(jobName, runFunction);
 
+        // Set the timeout if provided
         if (options.timeoutInMS) {
           JobDictionary.setTimeoutInMs(jobName, options.timeoutInMS);
         }
 
         logger.debug("Adding job to the queue: " + jobName);
 
+        // Add the job to the queue with the specified schedule
         Queue.addJob(
           QueueName.Worker,
           jobName,
@@ -58,6 +64,7 @@ const RunCron: RunCronFunction = (
           return logger.error(err);
         });
 
+        // Run the job immediately on startup if specified
         if (options.runOnStartup) {
           Queue.addJob(QueueName.Worker, jobName, jobName, {}, {}).catch(
             (err: Error) => {
