@@ -840,7 +840,7 @@ export default class StatusPageAPI extends BaseAPI<
               query: {
                 statusPages: objectId as any,
                 showAnnouncementAt: QueryHelper.lessThan(today),
-                endAnnouncementAt: QueryHelper.greaterThan(today),
+                endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
                 projectId: statusPage.projectId!,
               },
               select: {

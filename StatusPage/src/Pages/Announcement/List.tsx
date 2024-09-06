@@ -148,17 +148,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const activeAnnouncement: Array<StatusPageAnnouncement> =
       announcements.filter((announcement: StatusPageAnnouncement) => {
-        return OneUptimeDate.isBefore(
-          OneUptimeDate.getCurrentDate(),
-          announcement.endAnnouncementAt!,
+        return (
+          !announcement.endAnnouncementAt ||
+          (announcement.endAnnouncementAt &&
+            OneUptimeDate.isBefore(
+              OneUptimeDate.getCurrentDate(),
+              announcement.endAnnouncementAt!,
+            ))
         );
       });
 
     const pastAnnouncement: Array<StatusPageAnnouncement> =
       announcements.filter((announcement: StatusPageAnnouncement) => {
-        return OneUptimeDate.isAfter(
-          OneUptimeDate.getCurrentDate(),
-          announcement.endAnnouncementAt!,
+        return (
+          announcement.endAnnouncementAt &&
+          OneUptimeDate.isAfter(
+            OneUptimeDate.getCurrentDate(),
+            announcement.endAnnouncementAt!,
+          )
         );
       });
 
