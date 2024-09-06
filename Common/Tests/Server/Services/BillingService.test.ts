@@ -1240,7 +1240,6 @@ describe("BillingService", () => {
           customer: customerId,
           limit: 100,
         });
-
       });
 
       it("should return an empty array if no invoices are found for the customer", async () => {
