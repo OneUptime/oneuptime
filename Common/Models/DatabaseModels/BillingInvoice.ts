@@ -336,4 +336,37 @@ export default class BillingInvoice extends BaseModel {
     unique: false,
   })
   public paymentProviderInvoiceId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadInvoices,
+    ],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.Date })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public invoiceDate?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadInvoices,
+    ],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.LongText })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public invoiceNumber?: string = undefined;
 }

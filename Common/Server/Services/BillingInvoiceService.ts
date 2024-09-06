@@ -77,6 +77,8 @@ export class Service extends DatabaseService<Model> {
       billingInvoice.status =
         (invoice.status as InvoiceStatus) || InvoiceStatus.Undefined;
       billingInvoice.paymentProviderInvoiceId = invoice.id;
+      billingInvoice.invoiceDate = invoice.invoiceDate;
+      billingInvoice.invoiceNumber = invoice.invoiceNumber || "Unknown";
 
       await this.create({
         data: billingInvoice,

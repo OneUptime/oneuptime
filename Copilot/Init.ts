@@ -27,6 +27,7 @@ let currentFixCount: number = 1;
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   // check if copilot is disabled.
+
   if (GetIsCopilotDisabled()) {
     logger.info("Copilot is disabled. Exiting.");
     ProcessUtil.haltProcessWithSuccess();
@@ -49,6 +50,18 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   const servicesToImprove: ServiceCopilotCodeRepository[] =
     await ServiceRepositoryUtil.getServicesToImprove();
 
+  logger.debug(`Found ${servicesToImprove.length} services to improve.`);
+
+  // if no services to improve, then exit.
+  if (servicesToImprove.length === 0) {
+    logger.info("No services to improve. Exiting.");
+    ProcessUtil.haltProcessWithSuccess();
+  }
+
+  for (const serviceToImprove of servicesToImprove) {
+    logger.debug(`- ${serviceToImprove.serviceCatalog!.name}`);
+  }
+
   await cloneRepository({
     codeRepositoryResult,
   });
@@ -61,6 +74,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const actionsToWorkOn: Array<CopilotAction> =
       await CopilotActionUtil.getActionsToWorkOn({
         serviceCatalogId: serviceRepository.serviceCatalog!.id!,
+        serviceRepositoryId: serviceRepository.id!,
       });
 
     for (const actionToWorkOn of actionsToWorkOn) {
@@ -111,7 +125,7 @@ const executeAction: ExecutionActionFunction = async (
   const { serviceRepository, copilotAction } = data;
 
   try {
-    return await CopilotActionService.execute({
+    return await CopilotActionService.executeAction({
       serviceRepository: serviceRepository,
       copilotAction: copilotAction,
     });

@@ -15,7 +15,8 @@ import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
 import ServiceRepositoryUtil from "../../Utils/ServiceRepository";
 import Dictionary from "Common/Types/Dictionary";
 import ArrayUtil from "Common/Utils/Array";
-import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
+import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -28,6 +29,7 @@ export default class ImproveComments extends CopilotActionBase {
 
   protected override async isActionRequired(data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
     copilotActionProp: FileActionProp;
   }): Promise<boolean> {
     // check if the action has already been processed for this file.
@@ -47,18 +49,28 @@ export default class ImproveComments extends CopilotActionBase {
     return false;
   }
 
-  public override async getActionsToQueue(data: {
+  public override async getActionPropsToQueue(data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
     maxActionsToQueue: number;
-  }): Promise<Array<CopilotAction>> {
+  }): Promise<Array<CopilotActionProp>> {
     // get files in the repo.
+    logger.debug(
+      `${this.copilotActionType} - Getting files to queue for improve comments.`,
+    );
 
     let totalActionsToQueue: number = 0;
+
+    logger.debug(`${this.copilotActionType} - Reading files in the service.`);
 
     const files: Dictionary<CodeRepositoryFile> =
       await ServiceRepositoryUtil.getFilesByServiceCatalogId({
         serviceCatalogId: data.serviceCatalogId,
       });
+
+    logger.debug(
+      `${this.copilotActionType} - Files read. ${Object.keys(files).length} files found.`,
+    );
 
     // get keys in random order.
     let fileKeys: string[] = Object.keys(files);
@@ -66,33 +78,27 @@ export default class ImproveComments extends CopilotActionBase {
     //randomize the order of the files.
     fileKeys = ArrayUtil.shuffle(fileKeys);
 
-    const actionsQueued: Array<CopilotAction> = [];
+    const actionsPropsQueued: Array<CopilotActionProp> = [];
 
     for (const fileKey of fileKeys) {
       const file: CodeRepositoryFile = files[fileKey]!;
 
+      logger.debug(
+        `${this.copilotActionType} - Checking file: ${file.filePath}`,
+      );
+
       if (
         await this.isActionRequired({
           serviceCatalogId: data.serviceCatalogId,
+          serviceRepositoryId: data.serviceRepositoryId,
           copilotActionProp: {
             filePath: file.filePath,
           },
         })
       ) {
-        let action: CopilotAction = new CopilotAction();
-        action.copilotActionType = this.copilotActionType;
-        action.copilotActionProp = {
+        actionsPropsQueued.push({
           filePath: file.filePath,
-        };
-        action.serviceCatalogId = data.serviceCatalogId;
-        action.copilotActionStatus = CopilotActionStatus.IN_QUEUE;
-
-        // create action.
-        action = await CopilotActionUtil.createCopilotAction({
-          copilotAction: action,
         });
-
-        actionsQueued.push(action);
 
         totalActionsToQueue++;
       }
@@ -102,7 +108,32 @@ export default class ImproveComments extends CopilotActionBase {
       }
     }
 
-    return actionsQueued;
+    return actionsPropsQueued;
+  }
+
+  public override async getCommitMessage(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestTitle(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestBody(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return `Improved comments on ${(data.actionProp as FileActionProp).filePath}
+    
+    ${await this.getDefaultPullRequestBody()}
+    `;
   }
 
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {
@@ -112,10 +143,18 @@ export default class ImproveComments extends CopilotActionBase {
   public override async onExecutionStep(
     data: CopilotProcess,
   ): Promise<CopilotProcess> {
-    // Action Prompt
+    const filePath: string = (data.actionProp as FileActionProp).filePath;
+
+    if (!filePath) {
+      throw new BadDataException("File Path is not set in the action prop.");
+    }
+
+    const fileContent: string = await ServiceRepositoryUtil.getFileContent({
+      filePath: filePath,
+    });
 
     const codeParts: string[] = await this.splitInputCode({
-      code: "",
+      code: fileContent,
       itemSize: 500,
     });
 
@@ -152,7 +191,7 @@ export default class ImproveComments extends CopilotActionBase {
     logger.debug("New Content:");
     logger.debug(newContent);
 
-    const fileActionProps: FileActionProp = data.input as FileActionProp;
+    const fileActionProps: FileActionProp = data.actionProp as FileActionProp;
 
     // add to result.
     data.result.files[fileActionProps.filePath] = {

@@ -102,7 +102,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             stepId: "more",
             title: "End Showing Announcement At",
             fieldType: FormFieldSchemaType.DateTime,
-            required: true,
+            required: false,
             placeholder: "Pick Date and Time",
           },
           {
@@ -171,6 +171,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "End Announcement At",
             type: FieldType.DateTime,
+            noValueMessage: "-",
           },
           {
             field: {

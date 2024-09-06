@@ -146,13 +146,16 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const isPendingAction: boolean =
+    props.query.copilotActionStatus === CopilotActionStatus.IN_QUEUE;
+
   return (
     <div>
       <ModelTable<CopilotAction>
         modelType={CopilotAction}
         id="table-copiolt-pull-requests"
         name="Code Repository > Pull Requests"
-        isDeleteable={false}
+        isDeleteable={isPendingAction}
         isCreateable={false}
         isEditable={false}
         isViewable={false}

@@ -67,6 +67,9 @@ import logger from "Common/Server/Utils/Logger";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
+// Copilot Actions.
+import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";

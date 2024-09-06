@@ -1230,9 +1230,12 @@ describe("BillingService", () => {
               downloadableLink: "",
               status: "paid",
               subscriptionId: invoice.subscription,
+              invoiceNumber: invoice.number,
+              invoiceDate: new Date(invoice.created * 1000),
             };
           }),
         );
+
         expect(mockStripe.invoices.list).toHaveBeenCalledWith({
           customer: customerId,
           limit: 100,
@@ -1428,6 +1431,8 @@ describe("BillingService", () => {
           status: mockPaidInvoice.status,
           downloadableLink: "",
           subscriptionId: mockPaidInvoice.subscription,
+          invoiceNumber: mockPaidInvoice.number,
+          invoiceDate: new Date(mockPaidInvoice.created * 1000),
         });
         expect(mockStripe.invoices.pay).toHaveBeenCalledWith(
           mockPaidInvoice.id,

@@ -18,6 +18,8 @@ import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import { ActionDictionary } from "../Service/CopilotActions/Index";
 import CopilotActionBase from "../Service/CopilotActions/CopilotActionsBase";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
+import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
+import CodeRepositoryUtil from "./CodeRepository";
 
 export default class CopilotActionUtil {
   public static async getExistingAction(data: {
@@ -101,6 +103,7 @@ export default class CopilotActionUtil {
 
   public static async getActionsToWorkOn(data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
   }): Promise<Array<CopilotAction>> {
     if (!data.serviceCatalogId) {
       throw new BadDataException("Service Catalog ID is required");
@@ -139,6 +142,7 @@ export default class CopilotActionUtil {
       // get actions based on priority
       const actions: Array<CopilotAction> = await CopilotActionUtil.getActions({
         serviceCatalogId: data.serviceCatalogId,
+        serviceRepositoryId: data.serviceRepositoryId,
         actionType: actionTypePriority.actionType!,
         itemsInQueue,
       });
@@ -152,6 +156,7 @@ export default class CopilotActionUtil {
 
   public static async getActions(data: {
     serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
     actionType: CopilotActionType;
     itemsInQueue: number;
   }): Promise<Array<CopilotAction>> {
@@ -167,19 +172,24 @@ export default class CopilotActionUtil {
       ActionDictionary[data.actionType]!;
     const ActionBase: CopilotActionBase = new CopilotActionBaseType();
 
-    const actions: Array<CopilotAction> = await ActionBase.getActionsToQueue({
-      serviceCatalogId: data.serviceCatalogId,
-      maxActionsToQueue: data.itemsInQueue,
-    });
+    const actionProps: Array<CopilotActionProp> =
+      await ActionBase.getActionPropsToQueue({
+        serviceCatalogId: data.serviceCatalogId,
+        serviceRepositoryId: data.serviceRepositoryId,
+        maxActionsToQueue: data.itemsInQueue,
+      });
 
     const savedActions: Array<CopilotAction> = [];
 
     // now these actions need to be saved.
-    for (const action of actions) {
+    for (const actionProp of actionProps) {
       try {
         const savedAction: CopilotAction =
           await CopilotActionUtil.createCopilotAction({
-            copilotAction: action,
+            actionType: data.actionType,
+            serviceCatalogId: data.serviceCatalogId,
+            serviceRepositoryId: data.serviceRepositoryId,
+            actionProps: actionProp,
           });
 
         savedActions.push(savedAction);
@@ -219,8 +229,25 @@ export default class CopilotActionUtil {
   }
 
   public static async createCopilotAction(data: {
-    copilotAction: CopilotAction;
+    actionType: CopilotActionType;
+    serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
+    actionProps: CopilotActionProp;
+    actionStatus?: CopilotActionStatus;
   }): Promise<CopilotAction> {
+    const action: CopilotAction = new CopilotAction();
+    action.copilotActionType = data.actionType;
+    action.serviceCatalogId = data.serviceCatalogId;
+    action.serviceRepositoryId = data.serviceRepositoryId;
+    action.copilotActionProp = data.actionProps;
+    action.commitHash = await CodeRepositoryUtil.getCurrentCommitHash();
+
+    if (data.actionStatus) {
+      action.copilotActionStatus = data.actionStatus;
+    } else {
+      action.copilotActionStatus = CopilotActionStatus.IN_QUEUE;
+    }
+
     // send this to the API.
     const url: URL = URL.fromString(
       GetOneUptimeURL().toString() + "/api",
@@ -232,14 +259,17 @@ export default class CopilotActionUtil {
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(url, {
-        copilotAction: CopilotAction.toJSON(data.copilotAction, CopilotAction),
+        copilotAction: CopilotAction.toJSON(action, CopilotAction),
       });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
       throw codeRepositoryResult;
     }
 
-    return CopilotAction.fromJSONObject(data.copilotAction, CopilotAction);
+    return CopilotAction.fromJSONObject(
+      codeRepositoryResult.data["copilotAction"] as JSONObject,
+      CopilotAction,
+    );
   }
 
   public static async getInQueueActions(data: {

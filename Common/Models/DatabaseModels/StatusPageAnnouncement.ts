@@ -260,7 +260,7 @@ export default class StatusPageAnnouncement extends BaseModel {
   @TableColumn({
     title: "End At",
     type: TableColumnType.Date,
-    required: true,
+    required: false,
     description: "When should this announcement hidden?",
   })
   @ColumnAccessControl({
@@ -284,7 +284,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     ],
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.Date,
   })
   public endAnnouncementAt?: Date = undefined;

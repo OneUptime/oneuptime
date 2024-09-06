@@ -514,7 +514,7 @@ const FormField: <T extends GenericObject>(
               }}
               mimeTypes={
                 props.field.fieldType === FormFieldSchemaType.ImageFile
-                  ? [MimeType.png, MimeType.jpeg, MimeType.jpg]
+                  ? [MimeType.png, MimeType.jpeg, MimeType.jpg, MimeType.svg]
                   : []
               }
               dataTestId={props.field.dataTestId}

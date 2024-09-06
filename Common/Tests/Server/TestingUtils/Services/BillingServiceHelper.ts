@@ -107,6 +107,8 @@ const getStripeInvoice: GetStripeInvoiceFunction = (): Stripe.Invoice => {
     currency: "usd",
     customer: Faker.generateRandomObjectID().toString(),
     subscription: Faker.generateRandomObjectID().toString(),
+    created: new Date().getTime() / 1000,
+    number: Faker.generateRandomString(),
     status: "paid",
   };
 };

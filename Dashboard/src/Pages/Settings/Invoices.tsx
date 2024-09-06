@@ -134,10 +134,17 @@ const Settings: FunctionComponent<ComponentProps> = (
           columns={[
             {
               field: {
-                paymentProviderInvoiceId: true,
+                invoiceNumber: true,
               },
-              title: "Invoice ID",
+              title: "Invoice Number",
               type: FieldType.Text,
+            },
+            {
+              field: {
+                invoiceDate: true,
+              },
+              title: "Invoice Date",
+              type: FieldType.Date,
             },
             {
               field: {
