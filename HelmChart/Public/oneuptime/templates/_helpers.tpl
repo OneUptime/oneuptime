@@ -97,11 +97,10 @@ Usage:
   {{- if $.Values.oneuptimeSecret }}
   value: {{ $.Values.oneuptimeSecret }}
   {{- else }}
-  
   {{- if $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s" $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+        name: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
         key: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
   {{- else }}
   valueFrom:
@@ -135,7 +134,7 @@ Usage:
   {{- if $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s" $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+        name: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
         key: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.passwordKey }}
   {{- else }}
   valueFrom:
