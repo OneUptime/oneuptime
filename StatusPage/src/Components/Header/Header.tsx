@@ -33,8 +33,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                       props.onLogoClicked();
                     }}
                     style={{
-                      maxWidth: "200px",
-                      maxHeight: "50px",
+                      height: "50px",
                     }}
                   />
                 </div>
