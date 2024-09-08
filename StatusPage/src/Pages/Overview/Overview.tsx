@@ -26,7 +26,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Accordion from "Common/UI/Components/Accordion/Accordion";
 import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
-import Alert from "Common/UI/Components/Alerts/Alert";
+import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem from "Common/UI/Components/EventItem/EventItem";
@@ -700,6 +700,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           <div>
             {currentStatus && statusPageResources.length > 0 && (
               <Alert
+                size={AlertSize.Large}
                 title={`${
                   currentStatus.isOperationalState ? `All` : "Some"
                 } Resources are ${

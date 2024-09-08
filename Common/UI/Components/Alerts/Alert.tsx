@@ -28,6 +28,7 @@ export interface ComponentProps {
   color?: Color | undefined;
   id?: string | undefined;
   textOnRight?: string | undefined;
+  size?: AlertSize | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -48,7 +49,7 @@ const Alert: FunctionComponent<ComponentProps> = (
       hover: "hover:bg-red-600",
     },
     [AlertType.INFO]: {
-      text: "text-gray-200",
+      text: "text-white",
       bg: "bg-gray-700",
       hover: "hover:bg-gray-600",
     },
@@ -64,11 +65,14 @@ const Alert: FunctionComponent<ComponentProps> = (
     },
   };
 
-  const {
-    text: textClassName,
-    bg: bgClassName,
-    hover: hoverClassName,
-  } = typeClassNames[type];
+  let textClassName: string = typeClassNames[type].text;
+  const bgClassName: string = typeClassNames[type].bg;
+  const hoverClassName: string = typeClassNames[type].hover;
+
+  if (props.size === AlertSize.Large) {
+    // Add large size classes
+    textClassName += " text-lg";
+  }
 
   return (
     <div
@@ -112,7 +116,7 @@ const Alert: FunctionComponent<ComponentProps> = (
           className={`alert-text ml-3 mr-3 flex-1 md:flex md:justify-between ${props.textClassName}`}
         >
           <div
-            className={`alert-message text-sm flex justify-between ${textClassName}`}
+            className={`alert-message text-sm flex justify-between w-full ${textClassName}`}
           >
             <div>
               <span className="font-medium">
