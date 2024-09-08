@@ -11,6 +11,18 @@ httpProtocol: http
 oneuptimeSecret:
 encryptionSecret:
 
+# External Secrets
+# You need to leave blank oneuptimeSecret and encryptionSecret to use this section
+externalSecrets:
+  oneuptimeSecret:
+    existingSecret:
+      name:
+      passwordKey:
+  encryptionSecret:
+    existingSecret:
+      name:
+      passwordKey:
+
 # (Optional): You usually do not need to set this if you're self hosting.
 openTelemetryCollectorHost:
 fluentdHost:

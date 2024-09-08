@@ -77,6 +77,10 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `global.storageClass` | Storage class to be used for all persistent volumes | `nil` | 🚨 |
 | `host` | Hostname for the ingress | `localhost` | 🚨 |
 | `httpProtocol` | If the server is hosted with SSL/TLS cert then change this value to https | `http` | 🚨 |
+
+| `oneuptimeSecret` | Value used to define ONEUPTIME_SECRET | `nil` | |
+| `encryptionSecret` | Value used to define ENCRYPTION_SECRET | `nil` | |
+
 | `global.clusterDomain` | Kubernetes Cluster Domain | `cluster.local` |  |
 | `image.registry` | Docker image registry | `docker.io` |  |
 | `image.repository` | Docker image repository | `oneuptime` | |
@@ -307,7 +311,7 @@ Please do the same for Redis and Clickhouse.
 
 - [ ] Please make sure you have a backups enabled for your PVCs. This is outside the scope of this chart. Please refer to your cloud provider's documentation on how to enable backups for PVCs.
 - [ ] Please make sure you have static passwords for your database passswords (for redis, clickhouse and postgres). You can refer to Bitnami documentation on how to set static passwords for these databases. 
-- [ ] Please set `oneuptimeSecret` and `encryptionSecret` to a long random string. You can use a password generator to generate these strings.
+- [ ] Please set `oneuptimeSecret` and `encryptionSecret` (or setup in `externalSecrets` section) to a long random string. You can use a password generator to generate these strings.
 - [ ] Please set `probes.<key>.key` to a long random string. This is used to secure your probes.
 - [ ] Please regularly update OneUptime. We release updates every day. We recommend you to update the software aleast once a week if you're running OneUptime production. 
 
