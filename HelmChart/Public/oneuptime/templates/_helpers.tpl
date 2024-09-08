@@ -97,10 +97,17 @@ Usage:
   {{- if $.Values.oneuptimeSecret }}
   value: {{ $.Values.oneuptimeSecret }}
   {{- else }}
+  {{- if $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+        key: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: oneuptime-secret
+  {{- end }}
   {{- end }}
 {{- end }}
 
@@ -124,10 +131,17 @@ Usage:
   {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}
   {{- else }}
+  {{- if $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+        key: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.passwordKey }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: encryption-secret
+  {{- end }}
   {{- end }}
 
 - name: CLICKHOUSE_USER

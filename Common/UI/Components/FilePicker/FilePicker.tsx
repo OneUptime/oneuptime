@@ -152,7 +152,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             />
           </div>
           <div>
-            <img src={url} className="rounded" />
+            <img
+              src={url}
+              className="rounded"
+              style={{
+                height: "100px",
+              }}
+            />
           </div>
         </div>
       );

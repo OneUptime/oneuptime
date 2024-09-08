@@ -11,8 +11,7 @@ export default class AddMonitoringDatesToMonitor extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
-    // get all the users with email isVerified true.
-
+    // Find all monitor probes where nextPingAt is null
     let probeMonitors: Array<MonitorProbe> = await MonitorProbeService.findBy({
       query: {
         nextPingAt: QueryHelper.isNull(),
@@ -27,6 +26,7 @@ export default class AddMonitoringDatesToMonitor extends DataMigrationBase {
       },
     });
 
+    // Update each monitor probe to set nextPingAt to the current date
     for (const probeMonitor of probeMonitors) {
       await MonitorProbeService.updateOneById({
         id: probeMonitor.id!,
@@ -39,6 +39,7 @@ export default class AddMonitoringDatesToMonitor extends DataMigrationBase {
       });
     }
 
+    // Find all monitor probes where lastPingAt is null
     probeMonitors = await MonitorProbeService.findBy({
       query: {
         lastPingAt: QueryHelper.isNull(),
@@ -53,6 +54,7 @@ export default class AddMonitoringDatesToMonitor extends DataMigrationBase {
       },
     });
 
+    // Update each monitor probe to set lastPingAt to the current date
     for (const probeMonitor of probeMonitors) {
       await MonitorProbeService.updateOneById({
         id: probeMonitor.id!,
