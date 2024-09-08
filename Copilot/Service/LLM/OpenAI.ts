@@ -3,6 +3,7 @@ import { GetOpenAIAPIKey, GetOpenAIModel } from "../../Config";
 import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { CopilotActionPrompt } from "../CopilotActions/Types";
+import logger from "Common/Server/Utils/Logger";
 
 export default class Llama extends LlmBase {
   public static openai: OpenAI | null = null;
@@ -20,17 +21,24 @@ export default class Llama extends LlmBase {
       });
     }
 
+    logger.debug("Getting response from OpenAI");
+
     const chatCompletion: OpenAI.Chat.Completions.ChatCompletion =
       await this.openai.chat.completions.create({
         messages: data.messages,
         model: GetOpenAIModel()!,
       });
 
+    logger.debug("Got response from OpenAI");
+
     if (
       chatCompletion.choices.length > 0 &&
       chatCompletion.choices[0]?.message?.content
     ) {
       const response: string = chatCompletion.choices[0]!.message.content;
+
+      logger.debug(`Response from OpenAI: ${response}`);
+
       return {
         output: response,
       };

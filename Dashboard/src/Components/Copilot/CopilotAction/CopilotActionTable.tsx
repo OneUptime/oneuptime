@@ -88,13 +88,6 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
     },
     {
       field: {
-        createdAt: true,
-      },
-      title: "Created At",
-      type: FieldType.DateTime,
-    },
-    {
-      field: {
         copilotActionStatus: true,
       },
       title: "Status",
@@ -112,6 +105,32 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
       },
     },
   ];
+
+  const isProcessingAction: boolean =
+    props.query.copilotActionStatus === CopilotActionStatus.PROCESSING;
+
+  if (isProcessingAction) {
+    columns.push({
+      field: {
+        statusChangedAt: true,
+      },
+      title: "Processing At",
+      type: FieldType.DateTime,
+    });
+  }
+
+  const isQueuedAction: boolean =
+    props.query.copilotActionStatus === CopilotActionStatus.IN_QUEUE;
+
+  if (isQueuedAction) {
+    columns.push({
+      field: {
+        createdAt: true,
+      },
+      title: "Created At",
+      type: FieldType.DateTime,
+    });
+  }
 
   if (isPullRequestTable) {
     // then
@@ -143,6 +162,14 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
           </Fragment>
         );
       },
+    });
+
+    columns.push({
+      field: {
+        statusChangedAt: true,
+      },
+      title: "PR Created At",
+      type: FieldType.DateTime,
     });
   }
 

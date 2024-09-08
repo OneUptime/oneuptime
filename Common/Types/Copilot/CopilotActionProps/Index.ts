@@ -54,7 +54,7 @@ export class CopilotActionPropUtil {
     }
 
     if (actionType === CopilotActionType.ADD_SPANS) {
-      return CopilotActionPropType.Function;
+      return CopilotActionPropType.File;
     }
 
     if (actionType === CopilotActionType.ADD_METRICS) {

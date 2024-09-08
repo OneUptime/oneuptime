@@ -19,12 +19,12 @@ import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import LocalFile from "Common/Server/Utils/LocalFile";
 
-export default class ImproveComments extends CopilotActionBase {
+export default class AddSpans extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
 
   public constructor() {
     super();
-    this.copilotActionType = CopilotActionType.IMPROVE_COMMENTS;
+    this.copilotActionType = CopilotActionType.ADD_SPANS;
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
@@ -81,28 +81,13 @@ export default class ImproveComments extends CopilotActionBase {
 
     const actionsPropsQueued: Array<CopilotActionProp> = [];
 
-    logger.debug(
-      `${this.copilotActionType} - Accepted File Extentions: ${this.acceptFileExtentions}`,
-    );
-
     for (const fileKey of fileKeys) {
-      logger.debug(
-        `${this.copilotActionType} - Checking file: ${files[fileKey]!.filePath}`,
-      );
-
       // check if the file is in accepted file extentions.
       const fileExtention: string = LocalFile.getFileExtension(
         files[fileKey]!.filePath,
       );
 
-      logger.debug(
-        `${this.copilotActionType} - File Extention: ${fileExtention}`,
-      );
-
       if (!this.acceptFileExtentions.includes(fileExtention)) {
-        logger.debug(
-          `${this.copilotActionType} - File is not in accepted file extentions. Skipping.`,
-        );
         continue;
       }
 
@@ -139,23 +124,19 @@ export default class ImproveComments extends CopilotActionBase {
   public override async getCommitMessage(
     data: CopilotProcess,
   ): Promise<string> {
-    return (
-      "Improved comments on " + (data.actionProp as FileActionProp).filePath
-    );
+    return "Add Spans in " + (data.actionProp as FileActionProp).filePath;
   }
 
   public override async getPullRequestTitle(
     data: CopilotProcess,
   ): Promise<string> {
-    return (
-      "Improved comments on " + (data.actionProp as FileActionProp).filePath
-    );
+    return "Add spans in " + (data.actionProp as FileActionProp).filePath;
   }
 
   public override async getPullRequestBody(
     data: CopilotProcess,
   ): Promise<string> {
-    return `Improved comments on ${(data.actionProp as FileActionProp).filePath}
+    return `Add spans in ${(data.actionProp as FileActionProp).filePath}
     
     ${await this.getDefaultPullRequestBody()}
     `;
@@ -185,28 +166,28 @@ export default class ImproveComments extends CopilotActionBase {
 
     let newContent: string = "";
 
-    let isWellCommented: boolean = true;
+    let hasSpansBeenAdded: boolean = true;
 
     for (const codePart of codeParts) {
       const codePartResult: {
         newCode: string;
-        isWellCommented: boolean;
-      } = await this.commentCodePart({
+        hasSpansBeenAdded: boolean;
+      } = await this.addSpansInCode({
         data: data,
         codePart: codePart,
         currentRetryCount: 0,
         maxRetryCount: 3,
       });
 
-      if (!codePartResult.isWellCommented) {
-        isWellCommented = false;
+      if (!codePartResult.hasSpansBeenAdded) {
+        hasSpansBeenAdded = false;
         newContent += codePartResult.newCode + "\n";
       } else {
         newContent += codePart + "\n";
       }
     }
 
-    if (isWellCommented) {
+    if (hasSpansBeenAdded) {
       this.isRequirementsMet = true;
       return data;
     }
@@ -236,7 +217,7 @@ export default class ImproveComments extends CopilotActionBase {
     return false;
   }
 
-  private async isFileAlreadyWellCommented(content: string): Promise<boolean> {
+  private async hasSpansBeenAddedAlready(content: string): Promise<boolean> {
     if (content.includes("--all-good--")) {
       return true;
     }
@@ -244,16 +225,16 @@ export default class ImproveComments extends CopilotActionBase {
     return false;
   }
 
-  private async commentCodePart(options: {
+  private async addSpansInCode(options: {
     data: CopilotProcess;
     codePart: string;
     currentRetryCount: number;
     maxRetryCount: number;
   }): Promise<{
     newCode: string;
-    isWellCommented: boolean;
+    hasSpansBeenAdded: boolean;
   }> {
-    let isWellCommented: boolean = true;
+    let hasSpansBeenAdded: boolean = true;
 
     const codePart: string = options.codePart;
     const data: CopilotProcess = options.data;
@@ -271,8 +252,8 @@ export default class ImproveComments extends CopilotActionBase {
       outputCode: copilotResult.output as string,
     });
 
-    if (!(await this.isFileAlreadyWellCommented(newCodePart))) {
-      isWellCommented = false;
+    if (!(await this.hasSpansBeenAddedAlready(newCodePart))) {
+      hasSpansBeenAdded = false;
     }
 
     const validationPrompt: CopilotActionPrompt =
@@ -291,7 +272,7 @@ export default class ImproveComments extends CopilotActionBase {
       !didPassValidation &&
       options.currentRetryCount < options.maxRetryCount
     ) {
-      return await this.commentCodePart({
+      return await this.addSpansInCode({
         data: data,
         codePart: codePart,
         currentRetryCount: options.currentRetryCount + 1,
@@ -302,13 +283,13 @@ export default class ImproveComments extends CopilotActionBase {
     if (!didPassValidation) {
       return {
         newCode: codePart,
-        isWellCommented: false,
+        hasSpansBeenAdded: false,
       };
     }
 
     return {
       newCode: newCodePart,
-      isWellCommented: isWellCommented,
+      hasSpansBeenAdded: hasSpansBeenAdded,
     };
   }
 
@@ -320,7 +301,7 @@ export default class ImproveComments extends CopilotActionBase {
     const newCode: string = data.newCode;
 
     const prompt: string = `
-        I've asked to improve comments in the code. 
+        I've asked to add open telemetry spans in the code. 
 
         This is the old code: 
 
@@ -331,10 +312,10 @@ export default class ImproveComments extends CopilotActionBase {
 
         ${newCode}
 
-        Was anything changed in the code except comments? If yes, please reply with the following text: 
+        Was anything changed in the code except adding spans? If yes, please reply with the following text: 
         --yes--
 
-        If the code was NOT changed EXCEPT comments, please reply with the following text:
+        If the code was NOT changed EXCEPT adding spans, please reply with the following text:
         --no--
       `;
 
@@ -363,9 +344,9 @@ export default class ImproveComments extends CopilotActionBase {
 
     const fileLanguage: TechStack = TechStack.TypeScript;
 
-    const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
+    const prompt: string = `Please add OpenTelemetry spans in the code to functions and methods. If spans are already added, do not modify them.
 
-    If you think the code is already well commented, please reply with the following text:
+    If you think functions in the code already have spans, please reply with the following text:
     --all-good--
     
     Here is the code. This is in ${fileLanguage}: 
@@ -393,7 +374,7 @@ export default class ImproveComments extends CopilotActionBase {
     const systemPrompt: string = `You are an expert programmer. Here are your instructions:
 - You will follow the instructions given by the user strictly.
 - You will not deviate from the instructions given by the user.
-- You will not change the code. You will only improve the comments.`;
+- You will not only add OpenTelemetry Spans in this code. You will not do anything else.`;
 
     return systemPrompt;
   }
