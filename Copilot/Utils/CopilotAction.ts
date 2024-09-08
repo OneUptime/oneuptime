@@ -136,9 +136,11 @@ export default class CopilotActionUtil {
 
     logger.debug(
       "Action type priorities: " +
-        actionTypePriorities.map((actionTypePriority) => {
-          return actionTypePriority.actionType;
-        }),
+        actionTypePriorities.map(
+          (actionTypePriority: CopilotActionTypePriority) => {
+            return actionTypePriority.actionType;
+          },
+        ),
     );
 
     for (const actionTypePriority of actionTypePriorities) {
