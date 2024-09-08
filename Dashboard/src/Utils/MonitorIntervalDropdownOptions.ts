@@ -6,6 +6,10 @@ const MonitoringInterval: Array<DropdownOption> = [
     label: "Every Minute",
   },
   {
+    value: "*/2 * * * *",
+    label: "Every 2 Minutes",
+  },
+  {
     value: "*/5 * * * *",
     label: "Every 5 Minutes",
   },
