@@ -27,6 +27,10 @@ const WorkflowStatusElement: FunctionComponent<ComponentProps> = (
     return <Pill color={Red} text="Timeout" />;
   }
 
+  if (props.status === WorkflowStatus.Waiting) {
+    return <Pill color={Yellow} text="Waiting" />;
+  }
+
   if (props.status === WorkflowStatus.WorkflowCountExceeded) {
     return <Pill color={Red} text="Execution Exceeded Current Plan" />;
   }

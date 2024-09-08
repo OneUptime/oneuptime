@@ -94,13 +94,15 @@ export default class Queue {
     options?: {
       scheduleAt?: string | undefined;
       repeatableKey?: string | undefined;
+      delay?: number | undefined; // either delay or scheduleAt
     },
   ): Promise<Job> {
     const optionsObject: JobsOptions = {
       jobId: jobId.toString(),
     };
-
-    if (options && options.scheduleAt) {
+    if (options?.delay) {
+      optionsObject.delay = options.delay;
+    } else if (options?.scheduleAt) {
       optionsObject.repeat = {
         pattern: options.scheduleAt,
       };

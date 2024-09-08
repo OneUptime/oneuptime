@@ -16,6 +16,7 @@ enum ComponentID {
   ApiPatch = "api-patch",
   SendEmail = "send-email",
   IfElse = "if-else",
+  Delay = "delay",
 }
 
 export default ComponentID;

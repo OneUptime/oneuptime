@@ -11,12 +11,26 @@ export interface RunOptions {
   workflowLogId: ObjectID;
   workflowId: ObjectID;
   projectId: ObjectID;
+  nodeId: string;
   onError: (exception: Exception) => Exception;
+}
+
+export interface Interactive {
+  // If the component returns Interactive property
+  // and waiting is true
+  // the workflow stops the execution, saves the current state
+  // and schedules the new workflow, starting from the id of the node
+  waiting: boolean;
+  componentId: string; // where is waiting in the workflow
+  startedWaiting: Date;
+  lastTimeChecked?: Date;
+  nextStateCheck: Date; // component is responsible to define when the next run date happens
 }
 
 export interface RunReturnType {
   returnValues: JSONObject;
   executePort?: Port | undefined;
+  interactive?: Interactive | undefined;
 }
 
 export default class ComponentCode {

@@ -521,4 +521,21 @@ export default class Workflow extends BaseModel {
     nullable: true,
   })
   public repeatableJobKey?: string = undefined;
+
+  // Interactive node, all kind of nodes that stop the workflow and schedule it again at some future time
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public interactiveData?: JSONObject = undefined;
 }

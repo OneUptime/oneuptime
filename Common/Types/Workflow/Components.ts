@@ -12,6 +12,7 @@ import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
+import InteractiveComponents from "./Components/Interactive";
 
 const components: Array<ComponentMetadata> = [
   ...LogComponents,
@@ -26,6 +27,7 @@ const components: Array<ComponentMetadata> = [
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
+  ...InteractiveComponents,
 ];
 
 export default components;
@@ -80,5 +82,11 @@ export const Categories: Array<ComponentCategory> = [
     name: "Utils",
     description: "Utils that make workflow design simpler.",
     icon: IconProp.Window,
+  },
+  {
+    name: "Interactive",
+    description:
+      "Pause a workflow until external event occurs - delay expiry, manual or webhook interaction",
+    icon: IconProp.Stop,
   },
 ];

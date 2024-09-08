@@ -33,6 +33,7 @@ import Dictionary from "Common/Types/Dictionary";
 import Text from "Common/Types/Text";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import ApiPatch from "./API/Patch";
+import Delay from "./Interactive/Delay";
 
 const Components: Dictionary<ComponentCode> = {
   [ComponentID.Webhook]: new WebhookTrigger(),
@@ -53,6 +54,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.SendEmail]: new Email(),
   [ComponentID.IfElse]: new IfElse(),
+  [ComponentID.Delay]: new Delay(),
 };
 
 for (const baseModelService of Services) {

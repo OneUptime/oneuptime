@@ -20,6 +20,7 @@ import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ComponentCode, {
+  Interactive,
   RunReturnType,
 } from "Common/Server/Types/Workflow/ComponentCode";
 import Components from "Common/Server/Types/Workflow/Components/Index";
@@ -29,6 +30,8 @@ import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
+import QueueWorkflow from "./QueueWorkflow";
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -83,6 +86,7 @@ export default class RunWorkflow {
         select: {
           graph: true,
           projectId: true,
+          interactiveData: true,
         },
         props: {
           isRoot: true,
@@ -96,6 +100,10 @@ export default class RunWorkflow {
       if (!workflow.graph) {
         throw new BadDataException("Workflow graph not found");
       }
+
+      const interactive: Interactive | undefined =
+        workflow.interactiveData &&
+        (workflow.interactiveData as unknown as Interactive);
 
       this.projectId = workflow.projectId || null;
 
@@ -146,7 +154,9 @@ export default class RunWorkflow {
       variables = getVariableResult.variables;
 
       // start execute different components.
-      let executeComponentId: string = runStack.startWithComponentId;
+      let executeComponentId: string =
+        interactive?.componentId ?? runStack.startWithComponentId;
+      // if there is an interactive node set for this workflow, start from that node, all the previous nodes are already executed
 
       const fifoStackOfComponentsPendingExecution: Array<string> = [
         executeComponentId,
@@ -230,6 +240,64 @@ export default class RunWorkflow {
           returnValues: result.returnValues,
         };
 
+        const interactive: Interactive | undefined = result.interactive; // TODO the actual data conversion, dates are converted into strings when writing to the database
+        if (interactive?.waiting) {
+          this.log(
+            "Interactive component " +
+              executeComponentId +
+              " is in the waiting  state, delaying the workflow execution",
+          );
+
+          let delay: number | undefined =
+            new Date(interactive.nextStateCheck).getTime() -
+            new Date().getTime();
+          if (delay < 0) {
+            delay = undefined;
+          }
+
+          this.log(result.interactive as any);
+          this.log(result.interactive?.lastTimeChecked);
+          this.log(new Date(result.interactive!.lastTimeChecked!).toString());
+          this.log(
+            "Adding the workflow to the queue with the delay " + delay + " ms",
+          );
+
+          // update workflow log.
+          await WorkflowLogService.updateOneById({
+            id: runProps.workflowLogId,
+            data: {
+              workflowStatus: WorkflowStatus.Waiting,
+              logs: this.logs.join("\n"),
+              completedAt: OneUptimeDate.getCurrentDate(),
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          await WorkflowService.updateOneById({
+            data: {
+              interactiveData: interactive as any, // TS-2589
+            },
+            id: runProps.workflowId,
+            props: {
+              isRoot: true,
+            },
+          });
+          const executeWorkflow: ExecuteWorkflowType = {
+            workflowId: workflow.id!,
+            returnValues: {},
+          };
+
+          await QueueWorkflow.addWorkflowToQueue(
+            executeWorkflow,
+            undefined,
+            delay,
+          );
+          this.cleanLogs(variables);
+
+          return;
+        }
         const portToBeExecuted: Port | undefined = result.executePort;
 
         if (!portToBeExecuted) {
@@ -397,6 +465,7 @@ export default class RunWorkflow {
         workflowId: this.workflowId!,
         workflowLogId: this.workflowLogId!,
         projectId: this.projectId!,
+        nodeId: node.id,
         onError: (exception: Exception) => {
           this.log(exception);
           onError();

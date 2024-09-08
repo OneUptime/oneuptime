@@ -56,6 +56,7 @@ export default class QueueWorkflow {
   public static async addWorkflowToQueue(
     executeWorkflow: ExecuteWorkflowType,
     scheduleAt?: string,
+    delay?: number,
   ): Promise<void> {
     const workflowId: ObjectID = executeWorkflow.workflowId;
 
@@ -153,7 +154,7 @@ export default class QueueWorkflow {
 
     // Add Workflow Run Log.
     let workflowLog: WorkflowLog | null = null;
-    if (!scheduleAt) {
+    if (!scheduleAt && !delay) {
       // if the workflow is to be run immediately.
       const runLog: WorkflowLog = new WorkflowLog();
       runLog.workflowId = workflowId;
@@ -186,6 +187,7 @@ export default class QueueWorkflow {
       },
       {
         scheduleAt: scheduleAt,
+        delay: delay,
         repeatableKey: workflow.repeatableJobKey || undefined,
       },
     );

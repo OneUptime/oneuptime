@@ -4,6 +4,7 @@ enum WorkflowStatus {
   Success = "Success",
   Error = "Error",
   Timeout = "Timeout",
+  Waiting = "Waiting",
   WorkflowCountExceeded = "Workflow Count Exceeded",
 }
 
