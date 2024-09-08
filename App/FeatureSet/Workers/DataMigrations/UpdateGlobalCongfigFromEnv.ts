@@ -10,11 +10,11 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
     super("UpdateGlobalConfigFromEnv");
   }
 
+  // Main migration function
   public override async migrate(): Promise<void> {
-    // get all the users with email isVerified true.
-
     let emailServerType: EmailServerType = EmailServerType.Internal;
 
+    // Check environment variables to set email server type
     if (process.env["USE_INTERNAL_SMTP"] !== "true") {
       emailServerType = EmailServerType.CustomSMTP;
     }
@@ -23,16 +23,16 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
       emailServerType = EmailServerType.Sendgrid;
     }
 
+    // Update global configuration settings using environment variables
     await GlobalConfigService.updateOneById({
       id: ObjectID.getZeroObjectID(),
       data: {
-        // Update Twilio
-
+        // Update Twilio settings
         twilioAccountSID: process.env["TWILIO_ACCOUNT_SID"] || "",
         twilioAuthToken: process.env["TWILIO_AUTH_TOKEN"] || "",
         twilioPhoneNumber: process.env["TWILIO_PHONE_NUMBER"] || "",
 
-        // Update SMTP
+        // Update SMTP settings
         smtpUsername: process.env["SMTP_USERNAME"] || "",
         smtpPassword: process.env["SMTP_PASSWORD"] || "",
         smtpHost: Hostname.fromString(process.env["SMTP_HOST"] || ""),
@@ -44,7 +44,7 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
 
         emailServerType: emailServerType,
 
-        // diable signup
+        // Disable user signup if required
         disableSignup: process.env["DISABLE_SIGNUP"] === "true",
 
         sendgridApiKey: process.env["SENDGRID_API_KEY"] || "",
@@ -55,6 +55,7 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
     });
   }
 
+  // Rollback function
   public override async rollback(): Promise<void> {
     return;
   }
