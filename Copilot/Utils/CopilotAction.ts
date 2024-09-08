@@ -105,6 +105,8 @@ export default class CopilotActionUtil {
     serviceCatalogId: ObjectID;
     serviceRepositoryId: ObjectID;
   }): Promise<Array<CopilotAction>> {
+    logger.debug("Getting actions to work on");
+
     if (!data.serviceCatalogId) {
       throw new BadDataException("Service Catalog ID is required");
     }
@@ -132,7 +134,18 @@ export default class CopilotActionUtil {
     const actionTypePriorities: Array<CopilotActionTypePriority> =
       await CopilotActionTypeUtil.getEnabledActionTypesBasedOnPriority();
 
+    logger.debug(
+      "Action type priorities: " +
+        actionTypePriorities.map((actionTypePriority) => {
+          return actionTypePriority.actionType;
+        }),
+    );
+
     for (const actionTypePriority of actionTypePriorities) {
+      logger.debug(
+        `Getting actions for action type: ${actionTypePriority.actionType}`,
+      );
+
       // get items in queue based on priority
       const itemsInQueue: number =
         CopilotActionTypeUtil.getItemsInQueueByPriority(
@@ -160,6 +173,8 @@ export default class CopilotActionUtil {
     actionType: CopilotActionType;
     itemsInQueue: number;
   }): Promise<Array<CopilotAction>> {
+    logger.debug(`Getting actions for action type: ${data.actionType}`);
+
     if (!data.serviceCatalogId) {
       throw new BadDataException("Service Catalog ID is required");
     }
@@ -172,6 +187,8 @@ export default class CopilotActionUtil {
       ActionDictionary[data.actionType]!;
     const ActionBase: CopilotActionBase = new CopilotActionBaseType();
 
+    logger.debug(`Getting action props for action type: ${data.actionType}`);
+
     const actionProps: Array<CopilotActionProp> =
       await ActionBase.getActionPropsToQueue({
         serviceCatalogId: data.serviceCatalogId,
@@ -179,11 +196,17 @@ export default class CopilotActionUtil {
         maxActionsToQueue: data.itemsInQueue,
       });
 
+    logger.debug(`Action props for action type: ${data.actionType}`);
+
     const savedActions: Array<CopilotAction> = [];
 
     // now these actions need to be saved.
     for (const actionProp of actionProps) {
       try {
+        logger.debug(
+          `Creating copilot action for action type: ${data.actionType}`,
+        );
+
         const savedAction: CopilotAction =
           await CopilotActionUtil.createCopilotAction({
             actionType: data.actionType,
@@ -191,6 +214,11 @@ export default class CopilotActionUtil {
             serviceRepositoryId: data.serviceRepositoryId,
             actionProps: actionProp,
           });
+
+        logger.debug(
+          `Copilot action created for action type: ${data.actionType}`,
+        );
+        logger.debug(savedAction);
 
         savedActions.push(savedAction);
       } catch (error) {
@@ -266,10 +294,20 @@ export default class CopilotActionUtil {
       throw codeRepositoryResult;
     }
 
-    return CopilotAction.fromJSONObject(
-      codeRepositoryResult.data["copilotAction"] as JSONObject,
+    const copilotAction: CopilotAction = CopilotAction.fromJSONObject(
+      codeRepositoryResult.data as JSONObject,
       CopilotAction,
     );
+
+    if (!copilotAction) {
+      throw new BadDataException("Copilot action not created");
+    }
+
+    if (!copilotAction._id) {
+      throw new BadDataException("Copilot action ID not created");
+    }
+
+    return copilotAction;
   }
 
   public static async getInQueueActions(data: {

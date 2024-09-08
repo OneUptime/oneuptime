@@ -14,9 +14,11 @@ import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest"
 import CopilotPullRequestService from "../CopilotPullRequest";
 import CopilotActionUtil from "../../Utils/CopilotAction";
 import { CopilotProcess } from "./Types";
+// import AddSpans from "./AddSpan";
 
 export const ActionDictionary: Dictionary<typeof CopilotActionBase> = {
   [CopilotActionType.IMPROVE_COMMENTS]: ImproveComments,
+  // [CopilotActionType.ADD_SPANS]: AddSpans,
 };
 
 export interface CopilotExecutionResult {

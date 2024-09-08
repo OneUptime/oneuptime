@@ -120,7 +120,7 @@ jobs:
           --net=host oneuptime/copilot:release
 ```
 
-#### Docker
+#### Docker (with any CI/CD)
 
 You can also run Copilot using docker. You can run this in any CI/CD of your choice. 
 
