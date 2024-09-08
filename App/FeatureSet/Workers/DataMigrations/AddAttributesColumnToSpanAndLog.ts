@@ -17,7 +17,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
   }
 
   public async addAttributesColumnToLog(): Promise<void> {
-    // logs
+    // Find the 'attributes' column for logs
     const logsAttributesColumn: AnalyticsTableColumn | undefined =
       new Log().tableColumns.find((column: AnalyticsTableColumn) => {
         return column.key === "attributes";
@@ -27,6 +27,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
       return;
     }
 
+    // Check if the column type exists in the database
     const columnType: TableColumnType | null =
       await LogService.getColumnTypeInDatabase(logsAttributesColumn);
 
@@ -37,8 +38,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
   }
 
   public async addAttributesColumnToSpan(): Promise<void> {
-    // spans
-
+    // Find the 'attributes' column for spans
     const spansAttributesColumn: AnalyticsTableColumn | undefined =
       new Span().tableColumns.find((column: AnalyticsTableColumn) => {
         return column.key === "attributes";
@@ -48,6 +48,7 @@ export default class AddAttributeColumnToSpanAndLog extends DataMigrationBase {
       return;
     }
 
+    // Check if the column type exists in the database
     const spansColumnType: TableColumnType | null =
       await SpanService.getColumnTypeInDatabase(spansAttributesColumn);
 
