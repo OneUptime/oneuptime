@@ -34,7 +34,15 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
+@TableBillingAccessControl({
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
+})
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")

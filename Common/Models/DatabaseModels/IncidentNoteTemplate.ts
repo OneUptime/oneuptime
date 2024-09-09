@@ -17,7 +17,15 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
+@TableBillingAccessControl({
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
+})
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({

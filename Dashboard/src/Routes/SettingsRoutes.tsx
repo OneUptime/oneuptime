@@ -1,6 +1,8 @@
 import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import SettingsLayout from "../Pages/Settings/Layout";
+import ScheduledMaintenanceTemplates from "../Pages/Settings/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateView from "../Pages/Settings/ScheduledMaintenanceTemplateView";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -248,6 +250,43 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceTemplateView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW
+                  ] as Route
                 }
               />
             </Suspense>

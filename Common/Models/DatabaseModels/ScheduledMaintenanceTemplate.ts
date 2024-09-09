@@ -34,7 +34,16 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import Recurring from "../../Types/Events/Recurring";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
+@TableBillingAccessControl({
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
+})
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
@@ -149,6 +158,74 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Name",
+    description: "Name of the Scheduled Maintenance Template",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public templateName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Template Description",
+    description: "Description of the Scheduled Maintenance Template",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public templateDescription?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -511,83 +588,6 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditScheduledMaintenanceTemplate,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "currentScheduledMaintenanceStateId",
-    type: TableColumnType.Entity,
-    modelType: ScheduledMaintenanceState,
-    title: "Current Scheduled Maintenance State",
-    description:
-      "Relation to Scheduled Maintenance State. The state the event currently is in.",
-  })
-  @ManyToOne(
-    () => {
-      return ScheduledMaintenanceState;
-    },
-    {
-      eager: false,
-      nullable: true,
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "currentScheduledMaintenanceStateId" })
-  public currentScheduledMaintenanceState?: ScheduledMaintenanceState =
-    undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditScheduledMaintenanceTemplate,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: true,
-    title: "Current Scheduled Maintenance State ID",
-    description:
-      "Scheduled Maintenance State ID. The state the event currently is in.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public currentScheduledMaintenanceStateId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceTemplate,
-    ],
     update: [],
   })
   @TableColumn({
@@ -828,4 +828,37 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  // Recurring Event
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Recurring Interval",
+    description: "How often should this event recur?",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    transformer: Recurring.getDatabaseTransformer(),
+  })
+  public recurringInterval?: Recurring = undefined;
 }

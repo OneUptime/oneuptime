@@ -161,6 +161,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Clock}
         />
+
+        {/** Templates */}
+
+        <SideMenuItem
+          link={{
+            title: "Scheduled Maintenance Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.Template}
+        />
+
         <SideMenuItem
           link={{
             title: "Note Templates",
