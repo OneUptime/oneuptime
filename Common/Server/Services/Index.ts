@@ -133,6 +133,9 @@ import TelemetryAttributeService from "./TelemetryAttributeService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import CopilotActionTypePriorityService from "./CopilotActionTypePriorityService";
+import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
+import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
+import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -277,6 +280,11 @@ const services: Array<BaseService> = [
   CopilotActionTypePriorityService,
 
   TelemetryExceptionService,
+
+  // scheduled maintenance templates 
+  ScheduledMaintenanceTemplateService, 
+  ScheduledMaintenanceTemplateOwnerTeamService,
+  ScheduledMaintenanceTemplateOwnerUserService
 ];
 
 export const AnalyticsServices: Array<

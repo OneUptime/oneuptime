@@ -430,6 +430,21 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
 
+
+// scheduled maintenance template
+import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
+import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
+import ScheduledMaintenanceTemplateService, {
+  Service as ScheduledMaintenanceTemplateServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceTemplateService";
+import ScheduledMaintenanceTemplateOwnerTeamService, {
+  Service as ScheduledMaintenanceTemplateOwnerTeamServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
+import ScheduledMaintenanceTemplateOwnerUserService, {
+  Service as ScheduledMaintenanceTemplateOwnerUserServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -457,6 +472,31 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetyException, TelemetryExceptionServiceType>(
         TelemetyException,
         TelemetryExceptionService,
+      ).getRouter(),
+    );
+
+    // scheduled maintenance template
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceTemplate, ScheduledMaintenanceTemplateServiceType>(
+        ScheduledMaintenanceTemplate,
+        ScheduledMaintenanceTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceTemplateOwnerTeam, ScheduledMaintenanceTemplateOwnerTeamServiceType>(
+        ScheduledMaintenanceTemplateOwnerTeam,
+        ScheduledMaintenanceTemplateOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceTemplateOwnerUser, ScheduledMaintenanceTemplateOwnerUserServiceType>(
+        ScheduledMaintenanceTemplateOwnerUser,
+        ScheduledMaintenanceTemplateOwnerUserService,
       ).getRouter(),
     );
 

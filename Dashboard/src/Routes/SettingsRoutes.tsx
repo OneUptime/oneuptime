@@ -1,8 +1,7 @@
 import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import SettingsLayout from "../Pages/Settings/Layout";
-import ScheduledMaintenanceTemplates from "../Pages/Settings/ScheduledMaintenanceTemplate";
-import ScheduledMaintenanceTemplateView from "../Pages/Settings/ScheduledMaintenanceTemplateView";
+
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -24,6 +23,19 @@ const SettingsApiKeys: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/APIKeys");
   });
+
+  const ScheduledMaintenanceTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps> 
+> = lazy(() => {
+  return import("../Pages/Settings/ScheduledMaintenanceTemplates");
+});
+
+const ScheduledMaintenanceTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/ScheduledMaintenanceTemplateView");
+});
+
 const SettingsApiKeyView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
