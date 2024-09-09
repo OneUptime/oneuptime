@@ -251,8 +251,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             id: "owners",
           },
           {
-            title: "More",
-            id: "more",
+            title: "Subscribers",
+            id: "subscribers",
+          },
+          {
+            title: "Labels",
+            id: "labels",
           },
         ]}
         formFields={[
@@ -386,30 +390,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             placeholder: "Select Users",
             overrideFieldKey: "ownerUsers",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "more",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+
           {
             field: {
               shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
             },
 
             title: "Event Created: Notify Status Page Subscribers",
-            stepId: "more",
+            stepId: "subscribers",
             description:
               "Should status page subscribers be notified when this event is created?",
             fieldType: FormFieldSchemaType.Checkbox,
@@ -423,7 +411,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
 
             title: "Event Ongoing: Notify Status Page Subscribers",
-            stepId: "more",
+            stepId: "subscribers",
             description:
               "Should status page subscribers be notified when this event state changes to ongoing?",
             fieldType: FormFieldSchemaType.Checkbox,
@@ -437,12 +425,29 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
 
             title: "Event Ended: Notify Status Page Subscribers",
-            stepId: "more",
+            stepId: "subscribers",
             description:
               "Should status page subscribers be notified when this event state changes to ended?",
             fieldType: FormFieldSchemaType.Checkbox,
             defaultValue: true,
             required: false,
+          },
+          {
+            field: {
+              labels: true,
+            },
+            title: "Labels ",
+            stepId: "labels",
+            description:
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Labels",
           },
         ]}
         showViewIdButton={true}

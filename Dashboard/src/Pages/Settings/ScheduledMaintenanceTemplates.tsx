@@ -245,6 +245,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       title: "First Event Scheduled At",
       description: "When would you like the first event to be scheduled?",
       stepId: "recurring",
+      hideOptionalLabel: true,
       fieldType: FormFieldSchemaType.DateTime,
       showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
         return Boolean(model.isRecurringEvent);
@@ -259,6 +260,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       title: "First Event Starts At",
       description: "When does the first event start?",
       stepId: "recurring",
+      hideOptionalLabel: true,
       fieldType: FormFieldSchemaType.DateTime,
       showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
         return Boolean(model.isRecurringEvent);
@@ -273,6 +275,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       title: "First Event Ends At",
       description: "When does the first event end?",
       stepId: "recurring",
+      hideOptionalLabel: true,
       showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
         return Boolean(model.isRecurringEvent);
       },
@@ -285,6 +288,11 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         recurringInterval: true,
       },
       title: "How often would you this event to recur?",
+      stepId: "recurring",
+      hideOptionalLabel: true,
+      showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
+        return Boolean(model.isRecurringEvent);
+      },
       description:
         "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
       fieldType: FormFieldSchemaType.CustomComponent,
@@ -432,7 +440,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
                 <span>No</span>
               ) : (
                 <span>
-                  Next Event will be scheduled at{" "}
+                  Next event will be scheduled at{" "}
                   {OneUptimeDate.getDateAsLocalFormattedString(
                     item.scheduleNextEventAt,
                   )}

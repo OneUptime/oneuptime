@@ -14,6 +14,7 @@ import Recurring from "../../Types/Events/Recurring";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -28,52 +29,64 @@ export class Service extends DatabaseService<Model> {
       const scheduledTime: Date | undefined = template.firstEventScheduledAt;
 
       if (!startDate) {
-        throw new Error("Start date is required for recurring events.");
+        throw new BadDataException(
+          "Start date is required for recurring events.",
+        );
       }
 
       if (!endDate) {
-        throw new Error("End date is required for recurring events.");
+        throw new BadDataException(
+          "End date is required for recurring events.",
+        );
       }
 
       if (!scheduledTime) {
-        throw new Error("Scheduled time is required for recurring events.");
+        throw new BadDataException(
+          "Scheduled time is required for recurring events.",
+        );
       }
 
       // check if all dates are in the future.
 
       if (OneUptimeDate.isInTheFuture(startDate) === false) {
-        throw new Error("Start date should be in the future.");
+        throw new BadDataException("Start date should be in the future.");
       }
 
       if (OneUptimeDate.isInTheFuture(endDate) === false) {
-        throw new Error("End date should be in the future.");
+        throw new BadDataException("End date should be in the future.");
       }
 
       if (OneUptimeDate.isInTheFuture(scheduledTime) === false) {
-        throw new Error("Scheduled time should be in the future.");
+        throw new BadDataException("Scheduled time should be in the future.");
       }
 
       // make sure scheduedDate is < start date
       if (!OneUptimeDate.isBefore(scheduledTime, startDate)) {
-        throw new Error("Scheduled time should be less than start date.");
+        throw new BadDataException(
+          "Scheduled time should be less than start date.",
+        );
       }
 
       // make sure scheduledDate is < end date
 
       if (!OneUptimeDate.isBefore(scheduledTime, endDate)) {
-        throw new Error("Scheduled time should be less than end date.");
+        throw new BadDataException(
+          "Scheduled time should be less than end date.",
+        );
       }
 
       // make sure start date is < end date
 
       if (!OneUptimeDate.isBefore(startDate, endDate)) {
-        throw new Error("Start date should be less than end date.");
+        throw new BadDataException("Start date should be less than end date.");
       }
 
       // check recurring internval
 
       if (template.recurringInterval === undefined) {
-        throw new Error("Recurring interval is required for recurring events.");
+        throw new BadDataException(
+          "Recurring interval is required for recurring events.",
+        );
       }
     }
   }
@@ -98,11 +111,13 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     this.validateEventTemplate(createBy.data);
 
-    // if all is good then the next scheduled at time should be set.
-    createBy.data.scheduleNextEventAt = this.getNextEventTime({
-      dateAndTime: createBy.data.firstEventScheduledAt!,
-      recurringInterval: createBy.data.recurringInterval!,
-    });
+    if (createBy.data.isRecurringEvent) {
+      // if all is good then the next scheduled at time should be set.
+      createBy.data.scheduleNextEventAt = this.getNextEventTime({
+        dateAndTime: createBy.data.firstEventScheduledAt!,
+        recurringInterval: createBy.data.recurringInterval!,
+      });
+    }
 
     return {
       createBy: createBy,
@@ -168,25 +183,25 @@ export class Service extends DatabaseService<Model> {
         // make sure all are not null.
 
         if (!firstEventScheduledAt) {
-          throw new Error(
+          throw new BadDataException(
             "First event scheduled at is required for recurring events.",
           );
         }
 
         if (!recurringInterval) {
-          throw new Error(
+          throw new BadDataException(
             "Recurring interval is required for recurring events.",
           );
         }
 
         if (!firstEventEndsAt) {
-          throw new Error(
+          throw new BadDataException(
             "First event ends at is required for recurring events.",
           );
         }
 
         if (!firstEventStartsAt) {
-          throw new Error(
+          throw new BadDataException(
             "First event starts at is required for recurring events.",
           );
         }
@@ -195,19 +210,25 @@ export class Service extends DatabaseService<Model> {
         if (
           !OneUptimeDate.isBefore(firstEventScheduledAt, firstEventStartsAt)
         ) {
-          throw new Error("Scheduled time should be less than start date.");
+          throw new BadDataException(
+            "Scheduled time should be less than start date.",
+          );
         }
 
         // make sure scheduledDate is < end date
 
         if (!OneUptimeDate.isBefore(firstEventScheduledAt, firstEventEndsAt)) {
-          throw new Error("Scheduled time should be less than end date.");
+          throw new BadDataException(
+            "Scheduled time should be less than end date.",
+          );
         }
 
         // make sure start date is < end date
 
         if (!OneUptimeDate.isBefore(firstEventStartsAt, firstEventEndsAt)) {
-          throw new Error("Start date should be less than end date.");
+          throw new BadDataException(
+            "Start date should be less than end date.",
+          );
         }
 
         // now get next interval time.

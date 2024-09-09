@@ -170,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 scheduleNextEventAt: true,
               },
-              title: "Schedule Next Event At",
+              title: "Next event will be autoamtically scheduled at",
               fieldType: FieldType.DateTime,
               showIf: (item: ScheduledMaintenanceTemplate): boolean => {
                 return Boolean(item.isRecurringEvent);
