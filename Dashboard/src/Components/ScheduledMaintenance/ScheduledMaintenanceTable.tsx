@@ -80,8 +80,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             statusPages: true,
             labels: true,
             changeMonitorStatusToId: true,
-            startsAt: true,
-            endsAt: true,
             shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:

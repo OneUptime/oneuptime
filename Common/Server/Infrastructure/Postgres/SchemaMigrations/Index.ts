@@ -55,6 +55,9 @@ import { MigrationName1725880508430 } from "./1725880508430-MigrationName";
 import { MigrationName1725881099935 } from "./1725881099935-MigrationName";
 import { MigrationName1725881475134 } from "./1725881475134-MigrationName";
 import { MigrationName1725884177663 } from "./1725884177663-MigrationName";
+import { MigrationName1725898621366 } from "./1725898621366-MigrationName";
+import { MigrationName1725900315712 } from "./1725900315712-MigrationName";
+import { MigrationName1725901024444 } from "./1725901024444-MigrationName";
 
 export default [
   InitialMigration,
@@ -114,4 +117,8 @@ export default [
   MigrationName1725881099935,
   MigrationName1725881475134,
   MigrationName1725884177663,
+  MigrationName1725898621366,
+  MigrationName1725900315712,
+  MigrationName1725901024444,
+  
 ];

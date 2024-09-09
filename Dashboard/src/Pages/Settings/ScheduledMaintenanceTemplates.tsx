@@ -14,8 +14,17 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
+import Recurring from "Common/Types/Events/Recurring";
+import OneUptimeDate from "Common/Types/Date";
 
-export const getTemplateFormFields = (data: {
+type GetTemplateFormFieldsFunction = (data: {
+  isViewPage: boolean;
+}) => ModelField<ScheduledMaintenanceTemplate>[];
+
+export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
 }): ModelField<ScheduledMaintenanceTemplate>[] => {
   // if its the view page then ignore the owner fields
@@ -69,26 +78,6 @@ export const getTemplateFormFields = (data: {
       stepId: "event-info",
       fieldType: FormFieldSchemaType.Markdown,
       required: true,
-    },
-    {
-      field: {
-        startsAt: true,
-      },
-      title: "Event Starts At",
-      stepId: "event-time",
-      fieldType: FormFieldSchemaType.DateTime,
-      required: true,
-      placeholder: "Pick Date and Time",
-    },
-    {
-      field: {
-        endsAt: true,
-      },
-      title: "Ends At",
-      stepId: "event-time",
-      fieldType: FormFieldSchemaType.DateTime,
-      required: true,
-      placeholder: "Pick Date and Time",
     },
     {
       field: {
@@ -190,7 +179,7 @@ export const getTemplateFormFields = (data: {
         labels: true,
       },
       title: "Labels ",
-      stepId: "more",
+      stepId: "labels",
       description:
         "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -208,7 +197,7 @@ export const getTemplateFormFields = (data: {
       },
 
       title: "Event Created: Notify Status Page Subscribers",
-      stepId: "more",
+      stepId: "subscribers",
       description:
         "Should status page subscribers be notified when this event is created?",
       fieldType: FormFieldSchemaType.Checkbox,
@@ -221,7 +210,7 @@ export const getTemplateFormFields = (data: {
       },
 
       title: "Event Ongoing: Notify Status Page Subscribers",
-      stepId: "more",
+      stepId: "subscribers",
       description:
         "Should status page subscribers be notified when this event state changes to ongoing?",
       fieldType: FormFieldSchemaType.Checkbox,
@@ -234,19 +223,93 @@ export const getTemplateFormFields = (data: {
       },
 
       title: "Event Ended: Notify Status Page Subscribers",
-      stepId: "more",
+      stepId: "subscribers",
       description:
         "Should status page subscribers be notified when this event state changes to ended?",
       fieldType: FormFieldSchemaType.Checkbox,
       defaultValue: true,
       required: false,
     },
+    {
+      field: {
+        isRecurringEvent: true,
+      },
+      title: "Recurring Event",
+      stepId: "recurring",
+      fieldType: FormFieldSchemaType.Toggle,
+    },
+    {
+      field: {
+        firstEventScheduledAt: true,
+      },
+      title: "First Event Scheduled At",
+      description: "When would you like the first event to be scheduled?",
+      stepId: "recurring",
+      fieldType: FormFieldSchemaType.DateTime,
+      showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
+        return Boolean(model.isRecurringEvent);
+      },
+      required: true,
+      placeholder: "Pick Date and Time",
+    },
+    {
+      field: {
+        firstEventStartsAt: true,
+      },
+      title: "First Event Starts At",
+      description: "When does the first event start?",
+      stepId: "recurring",
+      fieldType: FormFieldSchemaType.DateTime,
+      showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
+        return Boolean(model.isRecurringEvent);
+      },
+      required: true,
+      placeholder: "Pick Date and Time",
+    },
+    {
+      field: {
+        firstEventEndsAt: true,
+      },
+      title: "First Event Ends At",
+      description: "When does the first event end?",
+      stepId: "recurring",
+      showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
+        return Boolean(model.isRecurringEvent);
+      },
+      fieldType: FormFieldSchemaType.DateTime,
+      required: true,
+      placeholder: "Pick Date and Time",
+    },
+    {
+      field: {
+        recurringInterval: true,
+      },
+      title: "How often would you this event to recur?",
+      description:
+        "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      getCustomElement: (
+        value: FormValues<ScheduledMaintenanceTemplate>,
+        props: CustomElementProps,
+      ) => {
+        return (
+          <RecurringFieldElement
+            {...props}
+            initialValue={value.recurringInterval as Recurring}
+          />
+        );
+      },
+    },
   ]);
 
   return fields;
 };
 
-export const getFormSteps = (data: {
+type GetFormStepsFunction = (data: {
+  isViewPage: boolean;
+}) => Array<FormStep<ScheduledMaintenanceTemplate>>;
+
+export const getFormSteps: GetFormStepsFunction = (data: {
   isViewPage: boolean;
 }): Array<FormStep<ScheduledMaintenanceTemplate>> => {
   // if its the view page then ignore the owner fields
@@ -260,10 +323,6 @@ export const getFormSteps = (data: {
     {
       title: "Event Details",
       id: "event-info",
-    },
-    {
-      title: "Event Time",
-      id: "event-time",
     },
     {
       title: "Resources Affected",
@@ -283,8 +342,18 @@ export const getFormSteps = (data: {
   }
 
   steps.push({
-    title: "More",
-    id: "more",
+    title: "Subscribers",
+    id: "subscribers",
+  });
+
+  steps.push({
+    title: "Labels",
+    id: "labels",
+  });
+
+  steps.push({
+    title: "Recurring",
+    id: "recurring",
   });
 
   return steps;
@@ -354,10 +423,22 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              recurringInterval: true,
+              scheduleNextEventAt: true,
             },
             title: "Recurring Event",
-            type: FieldType.Boolean,
+            type: FieldType.Element,
+            getElement: (item: ScheduledMaintenanceTemplate) => {
+              return !item.scheduleNextEventAt ? (
+                <span>No</span>
+              ) : (
+                <span>
+                  Next Event will be scheduled at{" "}
+                  {OneUptimeDate.getDateAsLocalFormattedString(
+                    item.scheduleNextEventAt,
+                  )}
+                </span>
+              );
+            },
           },
         ]}
       />

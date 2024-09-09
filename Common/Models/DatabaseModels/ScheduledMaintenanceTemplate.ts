@@ -646,43 +646,13 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
   })
   public changeMonitorStatusToId?: ObjectID = undefined;
 
-  @TableColumn({
-    title: "Start At",
-    type: TableColumnType.Date,
-    required: true,
-    description: "When does this event start?",
-  })
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditScheduledMaintenanceTemplate,
-    ],
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.Date,
-  })
-  public startsAt?: Date = undefined;
+  // RECURRING EVENT PROPS
 
   @TableColumn({
-    title: "End At",
+    title: "Schedule First Event At",
     type: TableColumnType.Date,
-    required: true,
-    description: "When does this event end?",
+    required: false,
+    description: "When would you like to schedule the first event?",
   })
   @ColumnAccessControl({
     create: [
@@ -705,10 +675,162 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     ],
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.Date,
   })
-  public endsAt?: Date = undefined;
+  public firstEventScheduledAt?: Date = undefined;
+
+  @TableColumn({
+    title: "First Event Start At",
+    type: TableColumnType.Date,
+    required: false,
+    description: "When does the first event start?",
+  })
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public firstEventStartsAt?: Date = undefined;
+
+  @TableColumn({
+    title: "First Event Ends At",
+    type: TableColumnType.Date,
+    required: false,
+    description: "When does the first event end?",
+  })
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public firstEventEndsAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Recurring Interval",
+    description: "How often should this event recur?",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    transformer: Recurring.getDatabaseTransformer(),
+  })
+  public recurringInterval?: Recurring = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.Boolean,
+    title: "Is Recurring Event",
+    description: "Is this a recurring event?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isRecurringEvent?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.Date,
+    title: "Schedule Next Event At",
+    description: "When is the next event scheduled?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scheduleNextEventAt?: Date = undefined;
+
+  // Recurring Props End.
 
   @ColumnAccessControl({
     create: [
@@ -828,37 +950,4 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
-
-  // Recurring Event
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditScheduledMaintenanceTemplate,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.JSON,
-    title: "Recurring Interval",
-    description: "How often should this event recur?",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-    transformer: Recurring.getDatabaseTransformer(),
-  })
-  public recurringInterval?: Recurring = undefined;
 }

@@ -405,9 +405,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
     >
       {props.fields &&
         props.fields.length > 0 &&
-        props.fields.map((field: Field<T>, i: number) => {
-          return getField(field, i);
-        })}
+        props.fields
+          .filter((field: Field<T>) => {
+            // check if showIf exists.
+            if (field.showIf) {
+              return field.showIf(props.item);
+            }
+
+            return true;
+          })
+          .map((field: Field<T>, i: number) => {
+            return getField(field, i);
+          })}
     </div>
   );
 };

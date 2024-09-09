@@ -77,17 +77,17 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                _id: true,
-              },
-              title: "Scheduled Maintenance ID",
-              fieldType: FieldType.ObjectID,
-            },
-            {
-              field: {
                 title: true,
               },
               title: "Scheduled Maintenance Title",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Scheduled Maintenance Description",
+              fieldType: FieldType.Markdown,
             },
             {
               field: {
@@ -121,27 +121,57 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 );
               },
             },
+
             {
               field: {
-                startsAt: true,
+                isRecurringEvent: true,
               },
-              title: "Starts At",
+              title: "Is Recurring Event",
+              fieldType: FieldType.Boolean,
+            },
+
+            {
+              field: {
+                firstEventScheduledAt: true,
+              },
+              showIf: (item: ScheduledMaintenanceTemplate): boolean => {
+                return Boolean(item.isRecurringEvent);
+              },
+              title: "First Event Scheduled At",
               fieldType: FieldType.DateTime,
+            },
+
+            {
+              field: {
+                firstEventStartsAt: true,
+              },
+              title: "First Event Starts At",
+              fieldType: FieldType.DateTime,
+              showIf: (item: ScheduledMaintenanceTemplate): boolean => {
+                return Boolean(item.isRecurringEvent);
+              },
             },
             {
               field: {
-                endsAt: true,
+                firstEventEndsAt: true,
               },
-              title: "Ends At",
+              title: "First Event Ends At",
               fieldType: FieldType.DateTime,
+              showIf: (item: ScheduledMaintenanceTemplate): boolean => {
+                return Boolean(item.isRecurringEvent);
+              },
             },
             {
               field: {
-                createdAt: true,
+                scheduleNextEventAt: true,
               },
-              title: "Created At",
+              title: "Schedule Next Event At",
               fieldType: FieldType.DateTime,
+              showIf: (item: ScheduledMaintenanceTemplate): boolean => {
+                return Boolean(item.isRecurringEvent);
+              },
             },
+
             {
               field: {
                 shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
