@@ -77,10 +77,8 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `global.storageClass` | Storage class to be used for all persistent volumes | `nil` | 🚨 |
 | `host` | Hostname for the ingress | `localhost` | 🚨 |
 | `httpProtocol` | If the server is hosted with SSL/TLS cert then change this value to https | `http` | 🚨 |
-
 | `oneuptimeSecret` | Value used to define ONEUPTIME_SECRET | `nil` | |
 | `encryptionSecret` | Value used to define ENCRYPTION_SECRET | `nil` | |
-
 | `global.clusterDomain` | Kubernetes Cluster Domain | `cluster.local` |  |
 | `image.registry` | Docker image registry | `docker.io` |  |
 | `image.repository` | Docker image repository | `oneuptime` | |
