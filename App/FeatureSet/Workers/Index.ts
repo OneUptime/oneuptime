@@ -31,6 +31,7 @@ import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 // Scheduled Event
 import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
 import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
+import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";

@@ -181,6 +181,9 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]:
+    "scheduled-maintenance-templates",
+  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: `scheduled-maintenance-templates/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES]:
     "scheduled-maintenance-note-templates",
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: `scheduled-maintenance-note-templates/${RouteParams.ModelID}`,
@@ -1221,6 +1224,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_INCIDENT_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]
     }`,
   ),
 

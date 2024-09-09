@@ -4,7 +4,6 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -17,15 +16,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 
-@TableBillingAccessControl({
-  create: PlanType.Growth,
-  read: PlanType.Growth,
-  update: PlanType.Growth,
-  delete: PlanType.Growth,
-})
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -33,30 +25,26 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateIncidentNoteTemplate,
+    Permission.CreateScheduledMaintenanceTemplateOwnerUser,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadIncidentNoteTemplate,
+    Permission.ReadScheduledMaintenanceTemplateOwnerUser,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteIncidentNoteTemplate,
+    Permission.DeleteScheduledMaintenanceTemplateOwnerUser,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditIncidentNoteTemplate,
+    Permission.EditScheduledMaintenanceTemplateOwnerUser,
   ],
-})
-@CrudApiEndpoint(new Route("/incident-note-template"))
-@Entity({
-  name: "IncidentNoteTemplate",
 })
 @EnableWorkflow({
   create: true,
@@ -64,26 +52,31 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   update: true,
   read: true,
 })
+@CrudApiEndpoint(new Route("/scheduled-maintenance-template--owner-user"))
 @TableMetadata({
-  tableName: "IncidentNoteTemplate",
-  singularName: "Incident Note Template",
-  pluralName: "Incident Note Templates",
-  icon: IconProp.Alert,
-  tableDescription: "Manage incident note templates for your project",
+  tableName: "ScheduledMaintenanceTemplateOwnerUser",
+  singularName: "Scheduled Maintenance Template User Owner",
+  pluralName: "Scheduled Maintenance Template User Owners",
+  icon: IconProp.Signal,
+  tableDescription:
+    "Add users as owners to your scheduled maintenance template.",
 })
-export default class IncidentNoteTemplate extends BaseModel {
+@Entity({
+  name: "ScheduledMaintenanceTemplateOwnerUser",
+})
+export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     ],
     update: [],
   })
@@ -100,7 +93,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     },
     {
       eager: false,
-      nullable: true,
+      nullable: false,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -113,13 +106,13 @@ export default class IncidentNoteTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     ],
     update: [],
   })
@@ -143,115 +136,149 @@ export default class IncidentNoteTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     ],
-    update: [
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "User",
+    description:
+      "User that is the owner. This user will receive notifications. ",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userId" })
+  public user?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
+    ],
+    update: [],
   })
   @Index()
   @TableColumn({
-    type: TableColumnType.Markdown,
-    title: "Note",
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "User ID",
+    description: "ID of your OneUptime User in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplateOwnerTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "scheduledMaintenanceTemplateId",
+    type: TableColumnType.Entity,
+    modelType: ScheduledMaintenanceTemplate,
+    title: "ScheduledMaintenanceTemplate",
     description:
-      "Note template for public or private notes. This is in markdown.",
+      "Relation to Scheduled Maintenance Template Resource in which this object belongs",
   })
-  @Column({
-    type: ColumnType.Markdown,
-    nullable: false,
-    unique: false,
-  })
-  public note?: string = undefined;
+  @ManyToOne(
+    () => {
+      return ScheduledMaintenanceTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "scheduledMaintenanceTemplateId" })
+  public scheduledMaintenanceTemplate?: ScheduledMaintenanceTemplate =
+    undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentNoteTemplate,
-    ],
+    update: [],
   })
+  @Index()
   @TableColumn({
+    type: TableColumnType.ObjectID,
     required: true,
-    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Name",
-    description: "Name of the Incident Template",
+    title: "Scheduled Maintenance Template ID",
+    description:
+      "ID of your OneUptime Scheduled Maintenance Template in which this object belongs",
   })
   @Column({
+    type: ColumnType.ObjectID,
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public templateName?: string = undefined;
+  public scheduledMaintenanceTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentNoteTemplate,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.LongText,
-    canReadOnRelationQuery: true,
-    title: "Template Description",
-    description: "Description of the Incident Template",
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public templateDescription?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     ],
     update: [],
   })
@@ -282,13 +309,13 @@ export default class IncidentNoteTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentNoteTemplate,
+      Permission.CreateScheduledMaintenanceTemplateOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentNoteTemplate,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     ],
     update: [],
   })
@@ -307,7 +334,12 @@ export default class IncidentNoteTemplate extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
+    ],
     update: [],
   })
   @TableColumn({
@@ -334,7 +366,12 @@ export default class IncidentNoteTemplate extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplateOwnerUser,
+    ],
     update: [],
   })
   @TableColumn({

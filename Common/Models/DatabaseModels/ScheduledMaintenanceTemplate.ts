@@ -1,10 +1,9 @@
-import IncidentSeverity from "./IncidentSeverity";
-import IncidentState from "./IncidentState";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
-import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
+import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
+import StatusPage from "./StatusPage";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -16,6 +15,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -34,6 +34,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import Recurring from "../../Types/Events/Recurring";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
@@ -45,37 +46,38 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 })
 @EnableDocumentation()
 @AccessControlColumn("labels")
+@MultiTenentQueryAllowed(true)
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateIncidentTemplate,
+    Permission.CreateScheduledMaintenanceTemplate,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadIncidentTemplate,
+    Permission.ReadScheduledMaintenanceTemplate,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteIncidentTemplate,
+    Permission.DeleteScheduledMaintenanceTemplate,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditIncidentTemplate,
+    Permission.EditScheduledMaintenanceTemplate,
   ],
 })
-@CrudApiEndpoint(new Route("/incident-templates"))
+@CrudApiEndpoint(new Route("/scheduled-maintenance-template"))
 @SlugifyColumn("name", "slug")
 @Entity({
-  name: "IncidentTemplate",
+  name: "ScheduledMaintenanceTemplate",
 })
 @EnableWorkflow({
   create: true,
@@ -84,25 +86,25 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   read: true,
 })
 @TableMetadata({
-  tableName: "IncidentTemplate",
-  singularName: "Incident Template",
-  pluralName: "Incident Templates",
-  icon: IconProp.Alert,
-  tableDescription: "Manage incident templates for your project",
+  singularName: "Scheduled Maintenance Template",
+  pluralName: "Scheduled Maintenance Templates",
+  icon: IconProp.Clock,
+  tableName: "ScheduledMaintenanceTemplate",
+  tableDescription: "Manage scheduled maintenance templates for your project",
 })
-export default class IncidentTemplate extends BaseModel {
+export default class ScheduledMaintenanceTemplate extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
@@ -132,13 +134,13 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
@@ -162,54 +164,19 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    required: true,
-    type: TableColumnType.LongText,
-    canReadOnRelationQuery: true,
-    title: "Title",
-    description: "Title of this incident",
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public title?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -217,7 +184,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Name of the Incident Template",
+    description: "Name of the Scheduled Maintenance Template",
   })
   @Column({
     nullable: false,
@@ -231,19 +198,19 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -251,7 +218,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Template Description",
-    description: "Description of the Incident Template",
+    description: "Description of the Scheduled Maintenance Template",
   })
   @Column({
     nullable: false,
@@ -265,19 +232,54 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Title",
+    description: "Title of this scheduled event.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public title?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -285,7 +287,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Short description of this incident. This is in markdown and will be visible on the status page.",
+      "Description of this scheduled event that will show up on Status Page. This is in markdown.",
   })
   @Column({
     nullable: true,
@@ -299,13 +301,13 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
@@ -329,13 +331,13 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
@@ -366,13 +368,13 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
@@ -439,19 +441,19 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -459,7 +461,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Monitor,
     title: "Monitors",
-    description: "List of monitors affected by this incident",
+    description: "List of monitors attached to this event",
   })
   @ManyToMany(
     () => {
@@ -468,82 +470,82 @@ export default class IncidentTemplate extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "IncidentTemplateMonitor",
+    name: "ScheduledMaintenanceTemplateMonitor",
     inverseJoinColumn: {
       name: "monitorId",
       referencedColumnName: "_id",
     },
     joinColumn: {
-      name: "incidentTemplateId",
+      name: "scheduledMaintenanceTemplateId",
       referencedColumnName: "_id",
     },
   })
-  public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+  public monitors?: Array<Monitor> = undefined; // monitors affected by this scheduledMaintenance.
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: Monitor,
-    title: "On-Call Duty Policies",
-    description: "List of on-call duty policy affected by this incident.",
+    modelType: StatusPage,
+    title: "Status Pages",
+    description: "List of status pages to show this event on",
   })
   @ManyToMany(
     () => {
-      return OnCallDutyPolicy;
+      return StatusPage;
     },
     { eager: false },
   )
   @JoinTable({
-    name: "IncidentTemplateOnCallDutyPolicy",
+    name: "ScheduledMaintenanceTemplateStatusPage",
     inverseJoinColumn: {
-      name: "onCallDutyPolicyId",
+      name: "statusPageId",
       referencedColumnName: "_id",
     },
     joinColumn: {
-      name: "incidentTemplateId",
+      name: "scheduledMaintenanceTemplateId",
       referencedColumnName: "_id",
     },
   })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this incident.
+  public statusPages?: Array<StatusPage> = undefined; // visible on which status page?
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -561,13 +563,13 @@ export default class IncidentTemplate extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "IncidentTemplateLabel",
+    name: "ScheduledMaintenanceTemplateLabel",
     inverseJoinColumn: {
       name: "labelId",
       referencedColumnName: "_id",
     },
     joinColumn: {
-      name: "incidentTemplateId",
+      name: "scheduledMaintenanceTemplateId",
       referencedColumnName: "_id",
     },
   })
@@ -578,98 +580,23 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "incidentSeverityId",
-    type: TableColumnType.Entity,
-    modelType: IncidentSeverity,
-    title: "Incident Severity",
-    description:
-      "How severe is this incident. Is it critical? or a minor incident?. This is related to Incident Severity.",
-  })
-  @ManyToOne(
-    () => {
-      return IncidentSeverity;
-    },
-    {
-      eager: false,
-      nullable: true,
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "incidentSeverityId" })
-  public incidentSeverity?: IncidentSeverity = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Incident Severity ID",
-    description: "Incident Severity ID",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public incidentSeverityId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
+    modelType: ScheduledMaintenanceState,
     title: "Change Monitor Status To",
     description:
-      "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.",
+      "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.",
   })
   @ManyToOne(
     () => {
@@ -689,19 +616,19 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @Index()
@@ -710,7 +637,7 @@ export default class IncidentTemplate extends BaseModel {
     required: false,
     title: "Change Monitor Status To ID",
     description:
-      "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the incident is created.",
+      "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -719,24 +646,296 @@ export default class IncidentTemplate extends BaseModel {
   })
   public changeMonitorStatusToId?: ObjectID = undefined;
 
+  // RECURRING EVENT PROPS
+
+  @TableColumn({
+    title: "Schedule First Event At",
+    type: TableColumnType.Date,
+    required: false,
+    description: "When would you like to schedule the first event?",
+  })
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentTemplate,
+      Permission.CreateScheduledMaintenanceTemplate,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentTemplate,
+      Permission.ReadScheduledMaintenanceTemplate,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditIncidentTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public firstEventScheduledAt?: Date = undefined;
+
+  @TableColumn({
+    title: "First Event Start At",
+    type: TableColumnType.Date,
+    required: false,
+    description: "When does the first event start?",
+  })
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public firstEventStartsAt?: Date = undefined;
+
+  @TableColumn({
+    title: "First Event Ends At",
+    type: TableColumnType.Date,
+    required: false,
+    description: "When does the first event end?",
+  })
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public firstEventEndsAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Recurring Interval",
+    description: "How often should this event recur?",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    transformer: Recurring.getDatabaseTransformer(),
+  })
+  public recurringInterval?: Recurring = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.Boolean,
+    title: "Is Recurring Event",
+    description: "Is this a recurring event?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isRecurringEvent?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.Date,
+    title: "Schedule Next Event At",
+    description: "When is the next event scheduled?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public scheduleNextEventAt?: Date = undefined;
+
+  // Recurring Props End.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should subscribers be notified when event is created?",
+    description: "Should subscribers be notified about this event creation?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldStatusPageSubscribersBeNotifiedOnEventCreated?: boolean =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should subscribers be notified when event is changed to ongoing?",
+    description:
+      "Should subscribers be notified about this event event is changed to ongoing?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing?: boolean =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should subscribers be notified when event is changed to ended?",
+    description:
+      "Should subscribers be notified about this event event is changed to ended?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded?: boolean =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({

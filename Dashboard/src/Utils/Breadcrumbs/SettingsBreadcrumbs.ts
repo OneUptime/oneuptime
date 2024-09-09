@@ -52,6 +52,19 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident Templates",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES,
+      ["Project", "Settings", "Scheduled Maintenance Templates"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Settings",
+        "Scheduled Maintenance Templates",
+        "View Template",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW, [
       "Project",
       "Settings",

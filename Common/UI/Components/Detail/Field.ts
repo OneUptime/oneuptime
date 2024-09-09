@@ -17,12 +17,12 @@ export interface FieldBase<T> {
   title?: string;
   description?: string;
   fieldTitleSize?: Size | undefined;
-
   fieldType?: FieldType;
   dropdownOptions?: Array<DropdownOption> | undefined;
   colSpan?: number | undefined;
   alignItem?: AlignItem | undefined;
   contentClassName?: string | undefined;
+  showIf?: ((item: T) => boolean) | undefined;
   getElement?:
     | ((
         item: T,
