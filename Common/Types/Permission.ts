@@ -174,10 +174,20 @@ enum Permission {
   EditScheduledMaintenanceOwnerTeam = "EditScheduledMaintenanceOwnerTeam",
   ReadScheduledMaintenanceOwnerTeam = "ReadScheduledMaintenanceOwnerTeam",
 
-  CreateScheduledMaintenanceOwnerUser = "CreateScheduledMaintenanceOwner",
+  CreateScheduledMaintenanceOwnerUser = "CreateScheduledMaintenanceOwnerUser",
   DeleteScheduledMaintenanceOwnerUser = "DeleteScheduledMaintenanceOwnerUser",
   EditScheduledMaintenanceOwnerUser = "EditScheduledMaintenanceOwnerUser",
   ReadScheduledMaintenanceOwnerUser = "ReadScheduledMaintenanceOwnerUser",
+
+  CreateScheduledMaintenanceTemplateOwnerUser = "CreateScheduledMaintenanceOwnerUser",
+  DeleteScheduledMaintenanceTemplateOwnerUser = "DeleteScheduledMaintenanceTemplateOwnerUser",
+  EditScheduledMaintenanceTemplateOwnerUser = "EditScheduledMaintenanceTemplateOwnerUser",
+  ReadScheduledMaintenanceTemplateOwnerUser = "ReadScheduledMaintenanceTemplateOwnerUser",
+
+  CreateScheduledMaintenanceTemplateOwnerTeam = "CreateScheduledMaintenanceOwnerTeam",
+  DeleteScheduledMaintenanceTemplateOwnerTeam = "DeleteScheduledMaintenanceTemplateOwnerTeam",
+  EditScheduledMaintenanceTemplateOwnerTeam = "EditScheduledMaintenanceTemplateOwnerTeam",
+  ReadScheduledMaintenanceTemplateOwnerTeam = "ReadScheduledMaintenanceTemplateOwnerTeam",
 
   CreateStatusPageOwnerTeam = "CreateStatusPageOwnerTeam",
   DeleteStatusPageOwnerTeam = "DeleteStatusPageOwnerTeam",
@@ -233,6 +243,11 @@ enum Permission {
   DeleteProjectIncident = "DeleteProjectIncident",
   EditProjectIncident = "EditProjectIncident",
   ReadProjectIncident = "ReadProjectIncident",
+
+  CreateScheduledMaintenanceTemplate = "CreateScheduledMaintenanceTemplate",
+  DeleteScheduledMaintenanceTemplate = "DeleteScheduledMaintenanceTemplate",
+  EditScheduledMaintenanceTemplate = "EditScheduledMaintenanceTemplate",
+  ReadScheduledMaintenanceTemplate = "ReadScheduledMaintenanceTemplate",
 
   CreateStatusPageSubscriber = "CreateStatusPageSubscriber",
   DeleteStatusPageSubscriber = "DeleteStatusPageSubscriber",
@@ -2905,6 +2920,72 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateScheduledMaintenanceTemplateOwnerUser,
+        title: "Create Scheduled Maintenance Template User Owner",
+        description:
+          "This permission can create Scheduled Maintenance Template User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceTemplateOwnerUser,
+        title: "Delete Scheduled Maintenance Template User Owner",
+        description:
+          "This permission can delete Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceTemplateOwnerUser,
+        title: "Edit Scheduled Maintenance Template User Owner",
+        description:
+          "This permission can edit Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceTemplateOwnerUser,
+        title: "Read Scheduled Maintenance Template User Owner",
+        description:
+          "This permission can read Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateScheduledMaintenanceTemplateOwnerTeam,
+        title: "Create Scheduled Maintenance Template User Team",
+        description:
+          "This permission can create Scheduled Maintenance Template User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceTemplateOwnerTeam,
+        title: "Delete Scheduled Maintenance Template User Team",
+        description:
+          "This permission can delete Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceTemplateOwnerTeam,
+        title: "Edit Scheduled Maintenance Template User Team",
+        description:
+          "This permission can edit Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+        title: "Read Scheduled Maintenance Template User Team",
+        description:
+          "This permission can read Scheduled Maintenance Template User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
         permission: Permission.CreateIncidentOwnerTeam,
         title: "Create Incident Team Owner",
         description:
@@ -3459,6 +3540,39 @@ export class PermissionHelper {
         description: "This permission can read incident of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+      },
+
+      {
+        permission: Permission.CreateScheduledMaintenanceTemplate,
+        title: "Create Scheduled Maintenance Template",
+        description:
+          "This permission can create scheduled maintenance template in the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceTemplate,
+        title: "Delete Scheduled Maintenance Template",
+        description:
+          "This permission can delete scheduled maintenance template in the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceTemplate,
+        title: "Edit Scheduled Maintenance Template",
+        description:
+          "This permission can edit scheduled maintenance template in the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceTemplate,
+        title: "Read Scheduled Maintenance Template",
+        description:
+          "This permission can read scheduled maintenance template in the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
       },
 
       {

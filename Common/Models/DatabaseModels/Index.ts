@@ -137,6 +137,9 @@ import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
 import CopilotActionTypePriority from "./CopilotActionTypePriority";
+import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
+import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
 export default [
   User,
@@ -244,6 +247,9 @@ export default [
 
   IncidentNoteTemplate,
 
+  ScheduledMaintenanceTemplate,
+  ScheduledMaintenanceTemplateOwnerTeam,
+  ScheduledMaintenanceTemplateOwnerUser,
   ScheduledMaintenanceNoteTemplate,
 
   Reseller,
