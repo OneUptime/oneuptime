@@ -19,14 +19,15 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesLabel";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import {
+  getFormSteps,
+  getTemplateFormFields,
+} from "./ScheduledMaintenanceTemplates";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -42,141 +43,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Here are more details for this ScheduledMaintenance template.",
         }}
         isEditable={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Event Details",
-            id: "event-info",
-          },
-
-          {
-            title: "Resources Affected",
-            id: "resources-affected",
-          },
-          {
-            title: "Status Pages",
-            id: "status-pages",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              templateName: true,
-            },
-            title: "Template Name",
-            fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
-            required: true,
-            placeholder: "Template Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              templateDescription: true,
-            },
-            title: "Template Description",
-            fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
-            required: true,
-            placeholder: "Template Description",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            stepId: "event-info",
-            title: "Scheduled Maintenance Title",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Scheduled Maintenance Title",
-            validation: {
-              minLength: 2,
-            },
-          },
-
-          {
-            field: {
-              startsAt: true,
-            },
-            stepId: "event-info",
-            title: "Event Starts At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            stepId: "event-info",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors affected ",
-            stepId: "resources-affected",
-            description:
-              "Select monitors affected by this scheduled maintenance.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitors affected",
-          },
-          {
-            field: {
-              statusPages: true,
-            },
-            title: "Show event on these status pages ",
-            stepId: "status-pages",
-            description: "Select status pages to show this event on",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: StatusPage,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Status Pages",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        formSteps={getFormSteps({
+          isViewPage: true,
+        })}
+        formFields={getTemplateFormFields({
+          isViewPage: true,
+        })}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: ScheduledMaintenanceTemplate,
@@ -377,10 +249,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Owners (Teams)",
           description:
-            "These are the list of teams that will be added to the ScheduledMaintenance by default when its created.",
+            "These are the list of teams that will be added to the Scheduled Maintenance by default when its created.",
         }}
         noItemsMessage={
-          "No teams associated with this ScheduledMaintenance template so far."
+          "No teams associated with this Scheduled Maintenance template so far."
         }
         formFields={[
           {
@@ -465,10 +337,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Owners (Users)",
           description:
-            "These are the list of users that will be added to the ScheduledMaintenance by default when its created.",
+            "These are the list of users that will be added to the Scheduled Maintenance by default when its created.",
         }}
         noItemsMessage={
-          "No users associated with this ScheduledMaintenance template so far."
+          "No users associated with this Scheduled Maintenance template so far."
         }
         formFields={[
           {

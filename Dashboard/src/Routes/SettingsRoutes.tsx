@@ -24,8 +24,8 @@ const SettingsApiKeys: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/APIKeys");
   });
 
-  const ScheduledMaintenanceTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps> 
+const ScheduledMaintenanceTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Settings/ScheduledMaintenanceTemplates");
 });

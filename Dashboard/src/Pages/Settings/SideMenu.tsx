@@ -166,7 +166,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
         <SideMenuItem
           link={{
-            title: "Scheduled Maintenance Templates",
+            title: "Event Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES

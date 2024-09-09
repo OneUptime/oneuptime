@@ -281,10 +281,10 @@ const services: Array<BaseService> = [
 
   TelemetryExceptionService,
 
-  // scheduled maintenance templates 
-  ScheduledMaintenanceTemplateService, 
+  // scheduled maintenance templates
+  ScheduledMaintenanceTemplateService,
   ScheduledMaintenanceTemplateOwnerTeamService,
-  ScheduledMaintenanceTemplateOwnerUserService
+  ScheduledMaintenanceTemplateOwnerUserService,
 ];
 
 export const AnalyticsServices: Array<

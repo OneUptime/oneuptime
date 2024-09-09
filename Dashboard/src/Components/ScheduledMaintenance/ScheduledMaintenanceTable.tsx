@@ -697,9 +697,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 field: {
                   scheduledMaintenanceTemplateId: true,
                 },
-                title: "Select ScheduledMaintenance Template",
+                title: "Select Scheduled Maintenance Template",
                 description:
-                  "Select an scheduledMaintenance template to create an scheduledMaintenance from.",
+                  "Select an scheduled maintenance template to create an scheduled maintenance from.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
                   {
