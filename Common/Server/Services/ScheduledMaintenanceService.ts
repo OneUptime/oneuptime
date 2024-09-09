@@ -76,7 +76,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.props.tenantId) {
+    if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenane.",
       );
