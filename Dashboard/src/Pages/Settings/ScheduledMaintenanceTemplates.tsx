@@ -249,7 +249,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
         return Boolean(model.isRecurringEvent);
       },
-      required: true,
+      required: false,
       placeholder: "Pick Date and Time",
     },
     {
@@ -263,7 +263,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       showIf: (model: FormValues<ScheduledMaintenanceTemplate>) => {
         return Boolean(model.isRecurringEvent);
       },
-      required: true,
+      required: false,
       placeholder: "Pick Date and Time",
     },
     {
@@ -277,7 +277,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         return Boolean(model.isRecurringEvent);
       },
       fieldType: FormFieldSchemaType.DateTime,
-      required: true,
+      required: false,
       placeholder: "Pick Date and Time",
     },
     {

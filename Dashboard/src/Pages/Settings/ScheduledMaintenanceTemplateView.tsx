@@ -53,6 +53,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showDetailsInNumberOfColumns: 2,
           modelType: ScheduledMaintenanceTemplate,
           id: "model-detail-ScheduledMaintenances",
+          selectMoreFields: {
+            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+              true,
+            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
+          },
           fields: [
             {
               field: {
