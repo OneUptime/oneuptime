@@ -14,6 +14,8 @@ import ScheduledMaintenanceTemplateOwnerTeamService from "Common/Server/Services
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import logger from "Common/Server/Utils/Logger";
+import Recurring from "Common/Types/Events/Recurring";
 
 RunCron(
   "ScheduledMaintenance:ScheduleRecurringEvents",
@@ -57,126 +59,155 @@ RunCron(
     // change their state to Ongoing.
 
     for (const recurringTemplate of recurringTemplates) {
-      // get owner users for this template.
-      const ownerUsers: Array<ScheduledMaintenanceTemplateOwnerUser> =
-        await ScheduledMaintenanceTemplateOwnerUserService.findBy({
-          query: {
-            scheduledMaintenanceTemplateId: recurringTemplate.id!,
+      try {
+        if (recurringTemplate.recurringInterval === undefined) {
+          continue;
+        }
+
+        // update the next scheduled time for this event.
+        const recurringInterval: Recurring =
+          recurringTemplate.recurringInterval!;
+        const nextScheduledTime: Date =
+          ScheduledMaintenanceTemplateService.getNextEventTime({
+            dateAndTime: recurringTemplate.scheduleNextEventAt!,
+            recurringInterval,
+          });
+
+        await ScheduledMaintenanceTemplateService.updateOneById({
+          id: recurringTemplate.id!,
+          data: {
+            scheduleNextEventAt: nextScheduledTime,
           },
           props: {
             isRoot: true,
           },
-          limit: LIMIT_MAX,
-          skip: 0,
-          select: {
-            userId: true,
-          },
         });
 
-      // owner teams.
-      const ownerTeams: Array<ScheduledMaintenanceOwnerTeam> =
-        await ScheduledMaintenanceTemplateOwnerTeamService.findBy({
-          query: {
-            scheduledMaintenanceTemplateId: recurringTemplate.id!,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          select: {
-            teamId: true,
-          },
-        });
+        // get owner users for this template.
+        const ownerUsers: Array<ScheduledMaintenanceTemplateOwnerUser> =
+          await ScheduledMaintenanceTemplateOwnerUserService.findBy({
+            query: {
+              scheduledMaintenanceTemplateId: recurringTemplate.id!,
+            },
+            props: {
+              isRoot: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+              userId: true,
+            },
+          });
 
-      // now create a new scheduled maintenance event for this template.
-      let scheduledMaintenanceEvent = new ScheduledMaintenance();
-      scheduledMaintenanceEvent.projectId = recurringTemplate.projectId!;
-      scheduledMaintenanceEvent.changeMonitorStatusToId =
-        recurringTemplate.changeMonitorStatusToId!;
-      scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded =
-        recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded!;
-      scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedOnEventCreated =
-        recurringTemplate.shouldStatusPageSubscribersBeNotifiedOnEventCreated!;
-      scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
-        recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing!;
-      scheduledMaintenanceEvent.monitors = recurringTemplate.monitors!;
-      scheduledMaintenanceEvent.statusPages = recurringTemplate.statusPages!;
-      scheduledMaintenanceEvent.title = recurringTemplate.title!;
-      scheduledMaintenanceEvent.description = recurringTemplate.description!;
-      scheduledMaintenanceEvent.labels = recurringTemplate.labels!;
+        // owner teams.
+        const ownerTeams: Array<ScheduledMaintenanceOwnerTeam> =
+          await ScheduledMaintenanceTemplateOwnerTeamService.findBy({
+            query: {
+              scheduledMaintenanceTemplateId: recurringTemplate.id!,
+            },
+            props: {
+              isRoot: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+              teamId: true,
+            },
+          });
 
-      const eventscheduledTime = recurringTemplate.scheduleNextEventAt!;
+        // now create a new scheduled maintenance event for this template.
+        let scheduledMaintenanceEvent: ScheduledMaintenance =
+          new ScheduledMaintenance();
+        scheduledMaintenanceEvent.projectId = recurringTemplate.projectId!;
+        scheduledMaintenanceEvent.changeMonitorStatusToId =
+          recurringTemplate.changeMonitorStatusToId!;
+        scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded =
+          recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded!;
+        scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedOnEventCreated =
+          recurringTemplate.shouldStatusPageSubscribersBeNotifiedOnEventCreated!;
+        scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
+          recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing!;
+        scheduledMaintenanceEvent.monitors = recurringTemplate.monitors!;
+        scheduledMaintenanceEvent.statusPages = recurringTemplate.statusPages!;
+        scheduledMaintenanceEvent.title = recurringTemplate.title!;
+        scheduledMaintenanceEvent.description = recurringTemplate.description!;
+        scheduledMaintenanceEvent.labels = recurringTemplate.labels!;
 
-      const firstScheduledTime = recurringTemplate.firstEventScheduledAt!;
-      const firstStartTime = recurringTemplate.firstEventStartsAt!;
-      const firstEndTime = recurringTemplate.firstEventEndsAt!;
+        const eventscheduledTime: Date = recurringTemplate.scheduleNextEventAt!;
 
-      const minutesBetwenScheduledAndStartTime =
-        OneUptimeDate.getMinutesBetweenTwoDates(
-          eventscheduledTime,
-          firstStartTime,
+        const firstScheduledTime: Date =
+          recurringTemplate.firstEventScheduledAt!;
+        const firstStartTime: Date = recurringTemplate.firstEventStartsAt!;
+        const firstEndTime: Date = recurringTemplate.firstEventEndsAt!;
+
+        const minutesBetwenScheduledAndStartTime: number =
+          OneUptimeDate.getMinutesBetweenTwoDates(
+            eventscheduledTime,
+            firstStartTime,
+          );
+        const minutesBetweenScheduledAndEndTime: number =
+          OneUptimeDate.getMinutesBetweenTwoDates(
+            eventscheduledTime,
+            firstEndTime,
+          );
+
+        // set the scheduled time for this event.
+        scheduledMaintenanceEvent.createdAt = eventscheduledTime!;
+        scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(
+          firstScheduledTime,
+          minutesBetwenScheduledAndStartTime,
         );
-      const minutesBetweenScheduledAndEndTime =
-        OneUptimeDate.getMinutesBetweenTwoDates(
-          eventscheduledTime,
-          firstEndTime,
+        scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(
+          firstScheduledTime,
+          minutesBetweenScheduledAndEndTime,
         );
 
-      // set the scheduled time for this event.
-      scheduledMaintenanceEvent.createdAt = eventscheduledTime!;
-      scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(
-        firstScheduledTime,
-        minutesBetwenScheduledAndStartTime,
-      );
-      scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(
-        firstScheduledTime,
-        minutesBetweenScheduledAndEndTime,
-      );
+        // now create this event.
 
-      // now create this event.
-
-      scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({
-        data: scheduledMaintenanceEvent,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      // now add owners and teams to this event.
-
-      for (const ownerUser of ownerUsers) {
-        const scheduledMaintenanceOwnerUser =
-          new ScheduledMaintenanceOwnerUser();
-        scheduledMaintenanceOwnerUser.scheduledMaintenanceId =
-          scheduledMaintenanceEvent.id!;
-        scheduledMaintenanceOwnerUser.projectId =
-          scheduledMaintenanceEvent.projectId!;
-        scheduledMaintenanceOwnerUser.userId = ownerUser.userId!;
-        await ScheduledMaintenanceOwnerUserService.create({
-          data: scheduledMaintenanceOwnerUser,
+        scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({
+          data: scheduledMaintenanceEvent,
           props: {
             isRoot: true,
           },
         });
-      }
 
-      // now do the same for owner teams.
+        // now add owners and teams to this event.
 
-      for (const ownerTeam of ownerTeams) {
-        const scheduledMaintenanceOwnerTeam =
-          new ScheduledMaintenanceOwnerTeam();
-        scheduledMaintenanceOwnerTeam.scheduledMaintenanceId =
-          scheduledMaintenanceEvent.id!;
-        scheduledMaintenanceOwnerTeam.projectId =
-          scheduledMaintenanceEvent.projectId!;
-        scheduledMaintenanceOwnerTeam.teamId = ownerTeam.teamId!;
-        await ScheduledMaintenanceOwnerTeamService.create({
-          data: scheduledMaintenanceOwnerTeam,
-          props: {
-            isRoot: true,
-          },
-        });
+        for (const ownerUser of ownerUsers) {
+          const scheduledMaintenanceOwnerUser: ScheduledMaintenanceOwnerUser =
+            new ScheduledMaintenanceOwnerUser();
+          scheduledMaintenanceOwnerUser.scheduledMaintenanceId =
+            scheduledMaintenanceEvent.id!;
+          scheduledMaintenanceOwnerUser.projectId =
+            scheduledMaintenanceEvent.projectId!;
+          scheduledMaintenanceOwnerUser.userId = ownerUser.userId!;
+          await ScheduledMaintenanceOwnerUserService.create({
+            data: scheduledMaintenanceOwnerUser,
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+
+        // now do the same for owner teams.
+
+        for (const ownerTeam of ownerTeams) {
+          const scheduledMaintenanceOwnerTeam: ScheduledMaintenanceOwnerTeam =
+            new ScheduledMaintenanceOwnerTeam();
+          scheduledMaintenanceOwnerTeam.scheduledMaintenanceId =
+            scheduledMaintenanceEvent.id!;
+          scheduledMaintenanceOwnerTeam.projectId =
+            scheduledMaintenanceEvent.projectId!;
+          scheduledMaintenanceOwnerTeam.teamId = ownerTeam.teamId!;
+          await ScheduledMaintenanceOwnerTeamService.create({
+            data: scheduledMaintenanceOwnerTeam,
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      } catch (e) {
+        logger.error(e);
       }
     }
   },
