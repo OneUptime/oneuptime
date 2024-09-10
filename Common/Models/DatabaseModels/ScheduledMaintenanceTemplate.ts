@@ -982,5 +982,6 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public sendSubscriberNotificationsOnBeforeTheEvent?: Array<Recurring> = undefined;
+  public sendSubscriberNotificationsOnBeforeTheEvent?: Array<Recurring> =
+    undefined;
 }

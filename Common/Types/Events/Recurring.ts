@@ -20,8 +20,11 @@ export default class Recurring extends DatabaseProperty {
     };
   }
 
-  public static getNextDateInterval(startDate: Date, rotation: Recurring, getDateInThePast?: boolean | undefined): Date { 
-
+  public static getNextDateInterval(
+    startDate: Date,
+    rotation: Recurring,
+    getDateInThePast?: boolean | undefined,
+  ): Date {
     const intervalType: EventInterval = rotation.intervalType;
     const intervalCount: PositiveNumber = rotation.intervalCount;
 
@@ -62,16 +65,13 @@ export default class Recurring extends DatabaseProperty {
         );
         break;
       default:
-        throw new BadDataException(
-          "Invalid Interval Type: " + intervalType,
-        );
-      }
+        throw new BadDataException("Invalid Interval Type: " + intervalType);
+    }
 
-      return nextDate; 
+    return nextDate;
   }
 
   public static getNextDate(startDate: Date, rotation: Recurring): Date {
-
     let nextDate: Date = OneUptimeDate.fromString(startDate);
     const dateNow: Date = OneUptimeDate.getCurrentDate();
 
