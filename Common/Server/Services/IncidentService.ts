@@ -41,8 +41,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async isIncidentAcknowledged(data: {
-    incidentId: ObjectID
-  }){
+    incidentId: ObjectID;
+  }): Promise<boolean> {
     const incident: Model | null = await this.findOneBy({
       query: {
         _id: data.incidentId,
@@ -50,38 +50,39 @@ export class Service extends DatabaseService<Model> {
       select: {
         projectId: true,
         currentIncidentState: {
-          order: true
-        }
+          order: true,
+        },
       },
       props: {
-        isRoot: true
-      }
+        isRoot: true,
+      },
     });
 
-    if(!incident){
+    if (!incident) {
       throw new BadDataException("Incident not found");
     }
 
-    if(!incident.projectId){
+    if (!incident.projectId) {
       throw new BadDataException("Incient Project ID not found");
     }
 
-    const ackIncidentState: IncidentState = await IncidentStateService.getAcknowledgedIncidentState({
-      projectId: incident.projectId, 
-      props: {
-        isRoot: true,
-      }
-    });
+    const ackIncidentState: IncidentState =
+      await IncidentStateService.getAcknowledgedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const currentIncidentStateOrder: number  = incident.currentIncidentState?.order!; 
-    const ackIncidentStateOrder: number = ackIncidentState.order!; 
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const ackIncidentStateOrder: number = ackIncidentState.order!;
 
-    if(currentIncidentStateOrder>=ackIncidentStateOrder){
-      return true; 
+    if (currentIncidentStateOrder >= ackIncidentStateOrder) {
+      return true;
     }
 
-    return false; 
-
+    return false;
   }
 
   public async acknowledgeIncident(

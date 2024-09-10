@@ -1,7 +1,7 @@
 import DatabaseProperty from "../Database/DatabaseProperty";
 import OneUptimeDate from "../Date";
 import BadDataException from "../Exception/BadDataException";
-import { JSONObject, ObjectType } from "../JSON";
+import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import PositiveNumber from "../PositiveNumber";
 import EventInterval from "./EventInterval";
@@ -112,6 +112,18 @@ export default class Recurring extends DatabaseProperty {
         intervalCount: this.intervalCount.toJSON(),
       },
     });
+  }
+
+  public static fromJSONArray(
+    json: JSONArray | Array<Recurring>,
+  ): Array<Recurring> {
+    const arrayToReturn: Array<Recurring> = [];
+
+    for (const item of json) {
+      arrayToReturn.push(this.fromJSON(item));
+    }
+
+    return arrayToReturn;
   }
 
   public static override fromJSON(json: JSONObject | Recurring): Recurring {

@@ -153,9 +153,9 @@ export class Service extends DatabaseService<IncidentState> {
   }
 
   public async getAllIncidentStates(data: {
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  }){
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<IncidentState>> {
     const incidentStates: Array<IncidentState> = await this.findBy({
       query: {
         projectId: data.projectId,
@@ -168,24 +168,25 @@ export class Service extends DatabaseService<IncidentState> {
       select: {
         _id: true,
         isResolvedState: true,
-        isAcknowledgedState: true, 
+        isAcknowledgedState: true,
         isCreatedState: true,
-        order: true
+        order: true,
       },
       props: data.props,
     });
 
-    return incidentStates; 
+    return incidentStates;
   }
 
   public async getUnresolvedIncidentStates(
     projectId: ObjectID,
     props: DatabaseCommonInteractionProps,
   ): Promise<IncidentState[]> {
-    const incidentStates: Array<IncidentState> = await this.getAllIncidentStates({
-      projectId: projectId, 
-      props: props
-    })
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: projectId,
+        props: props,
+      });
 
     const unresolvedIncidentStates: Array<IncidentState> = [];
 
@@ -201,21 +202,25 @@ export class Service extends DatabaseService<IncidentState> {
   }
 
   public async getAcknowledgedIncidentState(data: {
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  }
-  ): Promise<IncidentState> {
-    const incidentStates: Array<IncidentState> = await this.getAllIncidentStates({
-      projectId: data.projectId, 
-      props: data.props
-    })
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<IncidentState> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: data.props,
+      });
 
-    const ackIncidentState: IncidentState | undefined = incidentStates.find((incidentState: IncidentState)=>{
-      return incidentState?.isAcknowledgedState; 
-    }); 
+    const ackIncidentState: IncidentState | undefined = incidentStates.find(
+      (incidentState: IncidentState) => {
+        return incidentState?.isAcknowledgedState;
+      },
+    );
 
-    if(!ackIncidentState){
-      throw new BadDataException("Acknowledged Incident State not found for this project");
+    if (!ackIncidentState) {
+      throw new BadDataException(
+        "Acknowledged Incident State not found for this project",
+      );
     }
 
     return ackIncidentState;

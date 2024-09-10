@@ -24,6 +24,11 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
+import Recurring from "Common/Types/Events/Recurring";
+import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
@@ -52,6 +57,10 @@ const ScheduledMaintenanceView: FunctionComponent<
           {
             title: "Status Pages",
             id: "status-pages",
+          },
+          {
+            title: "Subscribers",
+            id: "subscribers",
           },
           {
             title: "Labels",
@@ -126,6 +135,72 @@ const ScheduledMaintenanceView: FunctionComponent<
             },
             required: false,
             placeholder: "Select Status Pages",
+          },
+
+          {
+            field: {
+              shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+            },
+
+            title: "Event Created: Notify Status Page Subscribers",
+            stepId: "subscribers",
+            description:
+              "Should status page subscribers be notified when this event is created?",
+            fieldType: FormFieldSchemaType.Checkbox,
+            defaultValue: true,
+            required: false,
+          },
+          {
+            field: {
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                true,
+            },
+
+            title: "Event Ongoing: Notify Status Page Subscribers",
+            stepId: "subscribers",
+            description:
+              "Should status page subscribers be notified when this event state changes to ongoing?",
+            fieldType: FormFieldSchemaType.Checkbox,
+            defaultValue: true,
+            required: false,
+          },
+          {
+            field: {
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                true,
+            },
+
+            title: "Event Ended: Notify Status Page Subscribers",
+            stepId: "subscribers",
+            description:
+              "Should status page subscribers be notified when this event state changes to ended?",
+            fieldType: FormFieldSchemaType.Checkbox,
+            defaultValue: true,
+            required: false,
+          },
+          {
+            field: {
+              subscriberNotificationsBeforeTheEvent: true,
+            },
+            stepId: "subscribers",
+            title: "Send reminders to subscribers before the event",
+            description:
+              "Please add a list of notification options to notify subscribers before the event",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            getCustomElement: (
+              value: FormValues<ScheduledMaintenance>,
+              props: CustomElementProps,
+            ) => {
+              return (
+                <RecurringArrayFieldElement
+                  {...props}
+                  initialValue={
+                    value.subscriberNotificationsBeforeTheEvent as Array<Recurring>
+                  }
+                />
+              );
+            },
+            required: true,
           },
           {
             field: {
@@ -275,6 +350,20 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               title: "Created At",
               fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+              },
+              title: "Send reminders to subscribers before the event",
+              fieldType: FieldType.Boolean,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <RecurringArrayViewElement
+                    value={item.subscriberNotificationsBeforeTheEvent}
+                  />
+                );
+              },
             },
             {
               field: {

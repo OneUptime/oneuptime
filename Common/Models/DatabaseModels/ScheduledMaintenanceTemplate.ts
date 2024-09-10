@@ -950,4 +950,37 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Subscriber notifications before the event",
+    description: "Should subscribers be notified before the event?",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public subscriberNotificationsBeforeTheEvent?: Array<Recurring> = undefined;
 }

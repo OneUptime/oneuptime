@@ -19,6 +19,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import OneUptimeDate from "Common/Types/Date";
+import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
@@ -229,6 +230,30 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       fieldType: FormFieldSchemaType.Checkbox,
       defaultValue: true,
       required: false,
+    },
+    {
+      field: {
+        subscriberNotificationsBeforeTheEvent: true,
+      },
+      stepId: "subscribers",
+      title: "Send reminders to subscribers before the event",
+      description:
+        "Please add a list of notification options to notify subscribers before the event",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      getCustomElement: (
+        value: FormValues<ScheduledMaintenanceTemplate>,
+        props: CustomElementProps,
+      ) => {
+        return (
+          <RecurringArrayFieldElement
+            {...props}
+            initialValue={
+              value.subscriberNotificationsBeforeTheEvent as Array<Recurring>
+            }
+          />
+        );
+      },
+      required: true,
     },
     {
       field: {

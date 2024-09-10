@@ -882,7 +882,6 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -915,7 +914,6 @@ export default class ScheduledMaintenance extends BaseModel {
     nullable: true,
   })
   public subscriberNotificationsBeforeTheEvent?: Array<Recurring> = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -950,5 +948,4 @@ export default class ScheduledMaintenance extends BaseModel {
     nullable: true,
   })
   public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
-
 }
