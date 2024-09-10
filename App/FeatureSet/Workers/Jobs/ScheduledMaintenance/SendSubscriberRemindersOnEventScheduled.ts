@@ -6,15 +6,16 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 RunCron(
-  "ScheduledMaintenance:SendNotificationToSubscribers",
+  "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
         query: {
-          isStatusPageSubscribersNotifiedOnEventScheduled: false,
-          shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+          nextSubscriberNotificationBeforeTheEventAt: QueryHelper.lessThan(
+            OneUptimeDate.getCurrentDate(),
+          ),
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
         props: {
@@ -33,18 +34,27 @@ RunCron(
           statusPages: {
             _id: true,
           },
+          sendSubscriberNotificationsOnBeforeTheEvent: true,
+          nextSubscriberNotificationBeforeTheEventAt: true,
         },
       });
 
     for (const event of scheduledEvents) {
+      const nextSubscriberNotificationAt: Date | null =
+        ScheduledMaintenanceService.getNextTimeToNotify({
+          eventScheduledDate: event.startsAt!,
+          sendSubscriberNotifiationsOn:
+            event.sendSubscriberNotificationsOnBeforeTheEvent!,
+        });
+
       await ScheduledMaintenanceService.updateOneById({
         id: event.id!,
         data: {
-          isStatusPageSubscribersNotifiedOnEventScheduled: true,
+          nextSubscriberNotificationBeforeTheEventAt:
+            nextSubscriberNotificationAt,
         },
         props: {
           isRoot: true,
-          ignoreHooks: true,
         },
       });
     }

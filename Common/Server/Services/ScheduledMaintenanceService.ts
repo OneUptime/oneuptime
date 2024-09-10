@@ -26,11 +26,224 @@ import User from "Common/Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
+import { FileRoute } from "Common/ServiceRoute";
+import Dictionary from "Common/Types/Dictionary";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import SMS from "Common/Types/SMS/SMS";
+import MailService from "Common/Server/Services/MailService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
+import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigService";
+import SmsService from "Common/Server/Services/SmsService";
+import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import logger from "Common/Server/Utils/Logger";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+  }
+
+  public async notififySubscribersOnEventScheduled(
+    scheduledEvents: Array<Model>,
+  ): Promise<void> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    for (const event of scheduledEvents) {
+      // get status page resources from monitors.
+
+      let statusPageResources: Array<StatusPageResource> = [];
+
+      if (event.monitors && event.monitors.length > 0) {
+        statusPageResources = await StatusPageResourceService.findBy({
+          query: {
+            monitorId: QueryHelper.any(
+              event.monitors
+                .filter((m: Monitor) => {
+                  return m._id;
+                })
+                .map((m: Monitor) => {
+                  return new ObjectID(m._id!);
+                }),
+            ),
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            _id: true,
+            displayName: true,
+            statusPageId: true,
+          },
+        });
+      }
+
+      const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+
+      for (const resource of statusPageResources) {
+        if (!resource.statusPageId) {
+          continue;
+        }
+
+        if (!statusPageToResources[resource.statusPageId?.toString()]) {
+          statusPageToResources[resource.statusPageId?.toString()] = [];
+        }
+
+        statusPageToResources[resource.statusPageId?.toString()]?.push(
+          resource,
+        );
+      }
+
+      const statusPages: Array<StatusPage> =
+        await StatusPageSubscriberService.getStatusPagesToSendNotification(
+          event.statusPages?.map((i: StatusPage) => {
+            return i.id!;
+          }) || [],
+        );
+
+      for (const statuspage of statusPages) {
+        if (!statuspage.id) {
+          continue;
+        }
+
+        const subscribers: Array<StatusPageSubscriber> =
+          await StatusPageSubscriberService.getSubscribersByStatusPage(
+            statuspage.id!,
+            {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          );
+
+        const statusPageURL: string = await StatusPageService.getStatusPageURL(
+          statuspage.id,
+        );
+
+        const statusPageName: string =
+          statuspage.pageTitle || statuspage.name || "Status Page";
+
+        // Send email to Email subscribers.
+
+        const resourcesAffected: string =
+          statusPageToResources[statuspage._id!]
+            ?.map((r: StatusPageResource) => {
+              return r.displayName;
+            })
+            .join(", ") || "";
+
+        for (const subscriber of subscribers) {
+          if (!subscriber._id) {
+            continue;
+          }
+
+          const shouldNotifySubscriber: boolean =
+            StatusPageSubscriberService.shouldSendNotification({
+              subscriber: subscriber,
+              statusPageResources: statusPageToResources[statuspage._id!] || [],
+              statusPage: statuspage,
+            });
+
+          if (!shouldNotifySubscriber) {
+            continue;
+          }
+
+          const unsubscribeUrl: string =
+            StatusPageSubscriberService.getUnsubscribeLink(
+              URL.fromString(statusPageURL),
+              subscriber.id!,
+            ).toString();
+
+          if (subscriber.subscriberPhone) {
+            const sms: SMS = {
+              message: `
+                            Scheduled Maintenance - ${statusPageName}
+
+                            ${event.title || ""}
+
+                            ${
+                              resourcesAffected
+                                ? "Resources Affected: " + resourcesAffected
+                                : ""
+                            }
+
+                            To view this event, visit ${statusPageURL}
+
+                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
+                            `,
+              to: subscriber.subscriberPhone,
+            };
+
+            // send sms here.
+            SmsService.sendSms(sms, {
+              projectId: statuspage.projectId,
+              customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+                statuspage.callSmsConfig,
+              ),
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+
+          if (subscriber.subscriberEmail) {
+            // send email here.
+
+            MailService.sendMail(
+              {
+                toEmail: subscriber.subscriberEmail,
+                templateType:
+                  EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                vars: {
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  logoUrl: statuspage.logoFileId
+                    ? new URL(httpProtocol, host)
+                        .addRoute(FileRoute)
+                        .addRoute("/image/" + statuspage.logoFileId)
+                        .toString()
+                    : "",
+                  isPublicStatusPage: statuspage.isPublicStatusPage
+                    ? "true"
+                    : "false",
+                  resourcesAffected: resourcesAffected,
+                  scheduledAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                      date: event.startsAt!,
+                      timezones: statuspage.subscriberTimezones || [],
+                    }),
+                  eventTitle: event.title || "",
+                  eventDescription: await Markdown.convertToHTML(
+                    event.description || "",
+                    MarkdownContentType.Email,
+                  ),
+                  unsubscribeUrl: unsubscribeUrl,
+                },
+                subject: "[Scheduled Maintenance] " + statusPageName,
+              },
+              {
+                mailServer: ProjectSmtpConfigService.toEmailServer(
+                  statuspage.smtpConfig,
+                ),
+                projectId: statuspage.projectId!,
+              },
+            ).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+        }
+      }
+    }
   }
 
   protected override async onBeforeUpdate(
@@ -40,16 +253,15 @@ export class Service extends DatabaseService<Model> {
       updateBy.query.id &&
       updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
     ) {
-      const scheduledMaintenance: Model | null =
-        await this.findOneById({
-          id: updateBy.query.id! as ObjectID,
-          select: {
-            startsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const scheduledMaintenance: Model | null = await this.findOneById({
+        id: updateBy.query.id! as ObjectID,
+        select: {
+          startsAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
       if (!scheduledMaintenance) {
         throw new BadDataException("Scheduled Maintennace Event not found");
