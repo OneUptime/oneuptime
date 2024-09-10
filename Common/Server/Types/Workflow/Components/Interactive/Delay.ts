@@ -61,14 +61,17 @@ export default class Delay extends ComponentCode {
     if (!workflow) {
       throw options.onError(new BadDataException("Workflow not found"));
     }
-    if (workflow.interactiveData) {
+    let interactive: Interactive | undefined = workflow.interactiveData
+      ? (workflow.interactiveData as unknown as Interactive)
+      : undefined; // TODO this is not 100% correct, the Date attributes are still strings, find how to convert
+    if (interactive?.waiting) {
       options.log(
         "Interactive data present, workflow already in the waiting state",
       );
       options.log(workflow.interactiveData);
-      // already is delayed, check is it the same node first
+      // already delayed, check is it the same node first
       const interactive: Interactive =
-        workflow.interactiveData as unknown as Interactive; // TODO this is not 100% correct, the Date attributes are still strings, find how to convert
+        workflow.interactiveData as unknown as Interactive;
       if (interactive.componentId !== options.nodeId) {
         throw options.onError(
           new BadDataException(
@@ -76,18 +79,15 @@ export default class Delay extends ComponentCode {
           ),
         );
       }
-      options.log(JSON.stringify(interactive));
       if (
         new Date(interactive.startedWaiting).getTime() + delay <
         new Date().getTime()
       ) {
+        interactive.waiting = false;
         options.log("Delay expired, continuing to the next node");
-        return Promise.resolve({
-          returnValues: {},
-          executePort: outPort,
-        });
+      } else {
+        options.log("Delay not yet expired, continuing with the wait");
       }
-      options.log("Delay not yet expired, continuing with the wait");
       interactive.lastTimeChecked = new Date();
       return Promise.resolve({
         returnValues: {},
@@ -95,14 +95,14 @@ export default class Delay extends ComponentCode {
         interactive,
       });
     }
-    const interactive: Interactive = {
+    interactive = {
       componentId: options.nodeId,
       lastTimeChecked: new Date(),
       startedWaiting: new Date(),
       nextStateCheck: new Date(new Date().getTime() + delay),
       waiting: true,
     };
-    options.log("Initated the waiting node");
+    options.log("Initiated the waiting node");
     return Promise.resolve({
       returnValues: {},
       executePort: outPort,

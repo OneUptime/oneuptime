@@ -240,8 +240,8 @@ export default class RunWorkflow {
           returnValues: result.returnValues,
         };
 
-        const interactive: Interactive | undefined = result.interactive; // TODO the actual data conversion, dates are converted into strings when writing to the database
-        if (interactive?.waiting) {
+        const interactiveRes: Interactive | undefined = result.interactive;
+        if (interactiveRes?.waiting) {
           this.log(
             "Interactive component " +
               executeComponentId +
@@ -249,7 +249,7 @@ export default class RunWorkflow {
           );
 
           let delay: number | undefined =
-            new Date(interactive.nextStateCheck).getTime() -
+            new Date(interactiveRes.nextStateCheck).getTime() -
             new Date().getTime();
           if (delay < 0) {
             delay = undefined;
@@ -277,7 +277,7 @@ export default class RunWorkflow {
 
           await WorkflowService.updateOneById({
             data: {
-              interactiveData: interactive as any, // TS-2589
+              interactiveData: interactiveRes as any, // TS-2589
             },
             id: runProps.workflowId,
             props: {
@@ -297,6 +297,22 @@ export default class RunWorkflow {
           this.cleanLogs(variables);
 
           return;
+        }
+
+        if (interactive?.waiting && interactiveRes && !interactiveRes.waiting) {
+          // The value from the database still has the interactive value in it, need to update it
+          this.log(
+            "Updating the workflow database record, removing the interactive data",
+          );
+          await WorkflowService.updateOneById({
+            data: {
+              interactiveData: interactiveRes as any, //TS-2589
+            },
+            id: runProps.workflowId,
+            props: {
+              isRoot: true,
+            },
+          });
         }
         const portToBeExecuted: Port | undefined = result.executePort;
 
