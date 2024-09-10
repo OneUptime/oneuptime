@@ -34,6 +34,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import Recurring from "../../Types/Events/Recurring";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -880,4 +881,74 @@ export default class ScheduledMaintenance extends BaseModel {
     default: false,
   })
   public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Subscriber notifications before the event",
+    description: "Should subscribers be notified before the event?",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public subscriberNotificationsBeforeTheEvent?: Array<Recurring> = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Next subscriber notification before the event at?",
+    description: "When will the next notification to subscribers be sent out?",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
+
 }
