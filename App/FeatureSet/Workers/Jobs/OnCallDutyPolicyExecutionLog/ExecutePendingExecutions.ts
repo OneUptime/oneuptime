@@ -8,6 +8,8 @@ import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDu
 import logger from "Common/Server/Utils/Logger";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import ObjectID from "Common/Types/ObjectID";
+import IncidentService from "Common/Server/Services/IncidentService";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -56,6 +58,7 @@ RunCron(
   },
 );
 
+
 type ExecuteOnCallPolicyFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
 ) => Promise<void>;
@@ -64,6 +67,31 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
+
+    // get trigger by incident
+    if(executionLog.triggeredByIncidentId){
+      // check if this incident is ack. 
+      const isAcknowledged: boolean = await IncidentService.isIncidentAcknowledged({
+        incidentId: executionLog.triggeredByIncidentId
+      }); 
+
+      if(isAcknowledged){
+        // then mark this policy as executed. 
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            status: OnCallDutyPolicyStatus.Completed
+          },
+          props: {
+            isRoot: true
+          }
+        })
+
+        return; 
+      }
+    }
+
+
     // check if this execution needs to be executed.
 
     const currentDate: Date = OneUptimeDate.getCurrentDate();
