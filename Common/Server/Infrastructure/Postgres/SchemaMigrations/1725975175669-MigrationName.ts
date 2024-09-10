@@ -5,7 +5,7 @@ export class MigrationName1725975175669 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "ScheduledMaintenance" ADD "subscriberNotificationsBeforeTheEvent" jsonb`,
+      `ALTER TABLE "ScheduledMaintenance" ADD "sendSubscriberNotificationsOnBeforeTheEvent" jsonb`,
     );
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenance" ADD "nextSubscriberNotificationBeforeTheEventAt" TIMESTAMP WITH TIME ZONE`,
@@ -23,7 +23,7 @@ export class MigrationName1725975175669 implements MigrationInterface {
       `ALTER TABLE "ScheduledMaintenance" DROP COLUMN "nextSubscriberNotificationBeforeTheEventAt"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ScheduledMaintenance" DROP COLUMN "subscriberNotificationsBeforeTheEvent"`,
+      `ALTER TABLE "ScheduledMaintenance" DROP COLUMN "sendSubscriberNotificationsOnBeforeTheEvent"`,
     );
   }
 }

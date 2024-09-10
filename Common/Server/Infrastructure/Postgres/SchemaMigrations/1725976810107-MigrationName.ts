@@ -5,13 +5,13 @@ export class MigrationName1725976810107 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "ScheduledMaintenanceTemplate" ADD "subscriberNotificationsBeforeTheEvent" jsonb`,
+      `ALTER TABLE "ScheduledMaintenanceTemplate" ADD "sendSubscriberNotificationsOnBeforeTheEvent" jsonb`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "ScheduledMaintenanceTemplate" DROP COLUMN "subscriberNotificationsBeforeTheEvent"`,
+      `ALTER TABLE "ScheduledMaintenanceTemplate" DROP COLUMN "sendSubscriberNotificationsOnBeforeTheEvent"`,
     );
   }
 }

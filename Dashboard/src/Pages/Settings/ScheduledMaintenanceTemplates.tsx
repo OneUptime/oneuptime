@@ -233,7 +233,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
     },
     {
       field: {
-        subscriberNotificationsBeforeTheEvent: true,
+        sendSubscriberNotificationsOnBeforeTheEvent: true,
       },
       stepId: "subscribers",
       title: "Send reminders to subscribers before the event",
@@ -248,7 +248,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           <RecurringArrayFieldElement
             {...props}
             initialValue={
-              value.subscriberNotificationsBeforeTheEvent as Array<Recurring>
+              value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
             }
           />
         );

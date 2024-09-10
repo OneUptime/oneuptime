@@ -87,7 +87,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
               true,
-            subscriberNotificationsBeforeTheEvent: true,
+            sendSubscriberNotificationsOnBeforeTheEvent: true,
           },
         });
 
@@ -438,7 +438,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              subscriberNotificationsBeforeTheEvent: true,
+              sendSubscriberNotificationsOnBeforeTheEvent: true,
             },
             stepId: "subscribers",
             title: "Send reminders to subscribers before the event",
@@ -453,7 +453,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 <RecurringArrayFieldElement
                   {...props}
                   initialValue={
-                    value.subscriberNotificationsBeforeTheEvent as Array<Recurring>
+                    value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
                   }
                 />
               );

@@ -23,6 +23,8 @@ import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/Schedule
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import Recurring from "../../Types/Events/Recurring";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -73,6 +75,33 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  public getNextTimeToNotify(data: {
+    eventScheduledDate: Date; 
+    sendSubscriberNotifiationsOn: Array<Recurring>
+  }): Date | null {
+
+    let recurringDate: Date | null = null; 
+
+    for(const recurringItem of data.sendSubscriberNotifiationsOn){
+      const notificationDate: Date = Recurring.getNextDateInterval(data.eventScheduledDate, recurringItem, true);
+
+      // if this date is in the future. set it to recurring date. 
+      if(OneUptimeDate.isInTheFuture(notificationDate)){
+        recurringDate = notificationDate; 
+      }
+
+      // if this new date is less than the recurring date then set it to recuring date. We need to get the least date. 
+
+      if(recurringDate){
+        if(OneUptimeDate.isBefore(notificationDate, recurringDate)){
+          recurringDate = notificationDate; 
+        }
+      }
+    }
+
+    return recurringDate; 
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -104,6 +133,21 @@ export class Service extends DatabaseService<Model> {
 
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
+
+
+      // get next notification date. 
+
+      if(createBy.data.sendSubscriberNotificationsOnBeforeTheEvent && createBy.data.startsAt){
+        const nextNotificationDate: Date | null = this.getNextTimeToNotify({
+          eventScheduledDate: createBy.data.startsAt, 
+          sendSubscriberNotifiationsOn: createBy.data.sendSubscriberNotificationsOnBeforeTheEvent
+        });
+
+        if(nextNotificationDate){
+          // set this. 
+          createBy.data.nextSubscriberNotificationBeforeTheEventAt = nextNotificationDate;
+        }
+      }
 
     return { createBy, carryForward: null };
   }

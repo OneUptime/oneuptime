@@ -20,9 +20,57 @@ export default class Recurring extends DatabaseProperty {
     };
   }
 
-  public static getNextDate(startDate: Date, rotation: Recurring): Date {
+  public static getNextDateInterval(startDate: Date, rotation: Recurring, getDateInThePast?: boolean | undefined): Date { 
+
     const intervalType: EventInterval = rotation.intervalType;
     const intervalCount: PositiveNumber = rotation.intervalCount;
+
+    // past or present date.
+    const multiplier: number = getDateInThePast ? -1 : 1;
+
+    let nextDate: Date = OneUptimeDate.fromString(startDate);
+
+    switch (intervalType) {
+      case EventInterval.Hour:
+        nextDate = OneUptimeDate.addRemoveHours(
+          nextDate,
+          intervalCount.toNumber() * multiplier,
+        );
+        break;
+      case EventInterval.Day:
+        nextDate = OneUptimeDate.addRemoveDays(
+          nextDate,
+          intervalCount.toNumber() * multiplier,
+        );
+        break;
+      case EventInterval.Week:
+        nextDate = OneUptimeDate.addRemoveDays(
+          nextDate,
+          intervalCount.toNumber() * 7 * multiplier,
+        );
+        break;
+      case EventInterval.Month:
+        nextDate = OneUptimeDate.addRemoveMonths(
+          nextDate,
+          intervalCount.toNumber() * multiplier,
+        );
+        break;
+      case EventInterval.Year:
+        nextDate = OneUptimeDate.addRemoveYears(
+          nextDate,
+          intervalCount.toNumber() * multiplier,
+        );
+        break;
+      default:
+        throw new BadDataException(
+          "Invalid Interval Type: " + intervalType,
+        );
+      }
+
+      return nextDate; 
+  }
+
+  public static getNextDate(startDate: Date, rotation: Recurring): Date {
 
     let nextDate: Date = OneUptimeDate.fromString(startDate);
     const dateNow: Date = OneUptimeDate.getCurrentDate();
@@ -33,42 +81,7 @@ export default class Recurring extends DatabaseProperty {
 
     if (nextDate.getTime() <= dateNow.getTime()) {
       while (nextDate.getTime() <= dateNow.getTime()) {
-        switch (intervalType) {
-          case EventInterval.Hour:
-            nextDate = OneUptimeDate.addRemoveHours(
-              nextDate,
-              intervalCount.toNumber(),
-            );
-            break;
-          case EventInterval.Day:
-            nextDate = OneUptimeDate.addRemoveDays(
-              nextDate,
-              intervalCount.toNumber(),
-            );
-            break;
-          case EventInterval.Week:
-            nextDate = OneUptimeDate.addRemoveDays(
-              nextDate,
-              intervalCount.toNumber() * 7,
-            );
-            break;
-          case EventInterval.Month:
-            nextDate = OneUptimeDate.addRemoveMonths(
-              nextDate,
-              intervalCount.toNumber(),
-            );
-            break;
-          case EventInterval.Year:
-            nextDate = OneUptimeDate.addRemoveYears(
-              nextDate,
-              intervalCount.toNumber(),
-            );
-            break;
-          default:
-            throw new BadDataException(
-              "Invalid Interval Type: " + intervalType,
-            );
-        }
+        nextDate = this.getNextDateInterval(startDate, rotation);
       }
     }
 

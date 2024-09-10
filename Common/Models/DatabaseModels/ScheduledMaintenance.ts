@@ -913,7 +913,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public subscriberNotificationsBeforeTheEvent?: Array<Recurring> = undefined;
+  public sendSubscriberNotificationsOnBeforeTheEvent?: Array<Recurring> = undefined;
 
   @ColumnAccessControl({
     create: [

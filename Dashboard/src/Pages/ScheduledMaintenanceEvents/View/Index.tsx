@@ -180,7 +180,7 @@ const ScheduledMaintenanceView: FunctionComponent<
           },
           {
             field: {
-              subscriberNotificationsBeforeTheEvent: true,
+              sendSubscriberNotificationsOnBeforeTheEvent: true,
             },
             stepId: "subscribers",
             title: "Send reminders to subscribers before the event",
@@ -195,7 +195,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 <RecurringArrayFieldElement
                   {...props}
                   initialValue={
-                    value.subscriberNotificationsBeforeTheEvent as Array<Recurring>
+                    value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
                   }
                 />
               );
@@ -360,7 +360,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return (
                   <RecurringArrayViewElement
-                    value={item.subscriberNotificationsBeforeTheEvent}
+                    value={item.sendSubscriberNotificationsOnBeforeTheEvent}
                   />
                 );
               },
