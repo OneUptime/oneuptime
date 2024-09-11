@@ -253,7 +253,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           />
         );
       },
-      required: true,
+      required: false,
     },
     {
       field: {

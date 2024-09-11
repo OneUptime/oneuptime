@@ -458,7 +458,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 />
               );
             },
-            required: true,
+            required: false,
           },
           {
             field: {

@@ -200,7 +200,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 />
               );
             },
-            required: true,
+            required: false,
           },
           {
             field: {
