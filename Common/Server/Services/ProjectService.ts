@@ -347,6 +347,17 @@ export class ProjectService extends DatabaseService<Model> {
               " completed.",
           );
 
+          // refresh subscription status.
+          const subscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+              subscription.subscriptionId as string,
+            );
+
+          const meteredSubscriptionState: SubscriptionStatus =
+            await BillingService.getSubscriptionStatus(
+              subscription.meteredSubscriptionId as string,
+            );
+
           await this.updateOneById({
             id: new ObjectID(updateBy.query._id! as string),
             data: {
@@ -357,6 +368,9 @@ export class ProjectService extends DatabaseService<Model> {
               planName: SubscriptionPlan.getPlanType(
                 updateBy.data.paymentProviderPlanId! as string,
               ),
+              paymentProviderMeteredSubscriptionStatus:
+                meteredSubscriptionState,
+              paymentProviderSubscriptionStatus: subscriptionState,
             },
             props: {
               isRoot: true,
