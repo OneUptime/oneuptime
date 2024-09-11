@@ -152,13 +152,13 @@ export class Service extends DatabaseService<IncidentState> {
     }
   }
 
-  public async getUnresolvedIncidentStates(
-    projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<IncidentState[]> {
+  public async getAllIncidentStates(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<IncidentState>> {
     const incidentStates: Array<IncidentState> = await this.findBy({
       query: {
-        projectId: projectId,
+        projectId: data.projectId,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -168,9 +168,25 @@ export class Service extends DatabaseService<IncidentState> {
       select: {
         _id: true,
         isResolvedState: true,
+        isAcknowledgedState: true,
+        isCreatedState: true,
+        order: true,
       },
-      props: props,
+      props: data.props,
     });
+
+    return incidentStates;
+  }
+
+  public async getUnresolvedIncidentStates(
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<IncidentState[]> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: projectId,
+        props: props,
+      });
 
     const unresolvedIncidentStates: Array<IncidentState> = [];
 
@@ -183,6 +199,31 @@ export class Service extends DatabaseService<IncidentState> {
     }
 
     return unresolvedIncidentStates;
+  }
+
+  public async getAcknowledgedIncidentState(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<IncidentState> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: data.props,
+      });
+
+    const ackIncidentState: IncidentState | undefined = incidentStates.find(
+      (incidentState: IncidentState) => {
+        return incidentState?.isAcknowledgedState;
+      },
+    );
+
+    if (!ackIncidentState) {
+      throw new BadDataException(
+        "Acknowledged Incident State not found for this project",
+      );
+    }
+
+    return ackIncidentState;
   }
 }
 export default new Service();

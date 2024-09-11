@@ -28,6 +28,7 @@ import {
   getFormSteps,
   getTemplateFormFields,
 } from "./ScheduledMaintenanceTemplates";
+import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -176,7 +177,23 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return Boolean(item.isRecurringEvent);
               },
             },
-
+            {
+              field: {
+                sendSubscriberNotificationsOnBeforeTheEvent: true,
+              },
+              title: "Send reminders to subscribers before the event",
+              fieldType: FieldType.Boolean,
+              getElement: (
+                item: ScheduledMaintenanceTemplate,
+              ): ReactElement => {
+                return (
+                  <RecurringArrayViewElement
+                    value={item.sendSubscriberNotificationsOnBeforeTheEvent}
+                    postfix=" before the event is scheduled"
+                  />
+                );
+              },
+            },
             {
               field: {
                 shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,

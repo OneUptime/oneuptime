@@ -40,6 +40,51 @@ export class Service extends DatabaseService<Model> {
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
   }
 
+  public async isIncidentAcknowledged(data: {
+    incidentId: ObjectID;
+  }): Promise<boolean> {
+    const incident: Model | null = await this.findOneBy({
+      query: {
+        _id: data.incidentId,
+      },
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    const ackIncidentState: IncidentState =
+      await IncidentStateService.getAcknowledgedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const ackIncidentStateOrder: number = ackIncidentState.order!;
+
+    if (currentIncidentStateOrder >= ackIncidentStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
   public async acknowledgeIncident(
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,

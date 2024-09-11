@@ -33,6 +33,9 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
+import Recurring from "Common/Types/Events/Recurring";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -84,6 +87,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
               true,
+            sendSubscriberNotificationsOnBeforeTheEvent: true,
           },
         });
 
@@ -430,6 +434,30 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               "Should status page subscribers be notified when this event state changes to ended?",
             fieldType: FormFieldSchemaType.Checkbox,
             defaultValue: true,
+            required: false,
+          },
+          {
+            field: {
+              sendSubscriberNotificationsOnBeforeTheEvent: true,
+            },
+            stepId: "subscribers",
+            title: "Send reminders to subscribers before the event",
+            description:
+              "Please add a list of notification options to notify subscribers before the event",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            getCustomElement: (
+              value: FormValues<ScheduledMaintenance>,
+              props: CustomElementProps,
+            ) => {
+              return (
+                <RecurringArrayFieldElement
+                  {...props}
+                  initialValue={
+                    value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
+                  }
+                />
+              );
+            },
             required: false,
           },
           {

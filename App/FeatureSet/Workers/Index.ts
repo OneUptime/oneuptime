@@ -37,10 +37,13 @@ import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
+
 // Scheduled Event Notes
 import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/ServerMonitor/CheckOnlineStatus";
+import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
+
 // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
