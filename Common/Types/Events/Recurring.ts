@@ -133,7 +133,7 @@ export default class Recurring extends DatabaseProperty {
     const arrayToReturn: Array<Recurring> = [];
 
     for (const item of json) {
-      arrayToReturn.push(this.fromJSON(item));
+      arrayToReturn.push(this.fromJSON(item) as Recurring);
     }
 
     return arrayToReturn;
@@ -176,9 +176,23 @@ export default class Recurring extends DatabaseProperty {
     return rotation;
   }
 
+  public static toJSONArray(recurrings: Array<Recurring>): JSONArray {
+    const arrayToReturn: JSONArray = [];
+
+    for (const item of recurrings) {
+      arrayToReturn.push(item.toJSON());
+    }
+
+    return arrayToReturn;
+  }
+
   protected static override toDatabase(
-    value: Recurring | FindOperator<Recurring>,
-  ): JSONObject | null {
+    value: Recurring | Array<Recurring> | FindOperator<Recurring>,
+  ): JSONObject | Array<JSONObject> | null {
+    if (Array.isArray(value)) {
+      return this.toJSONArray(value as Array<Recurring>);
+    }
+
     if (value && value instanceof Recurring) {
       return (value as Recurring).toJSON();
     } else if (value) {
@@ -188,7 +202,13 @@ export default class Recurring extends DatabaseProperty {
     return null;
   }
 
-  protected static override fromDatabase(value: JSONObject): Recurring | null {
+  protected static override fromDatabase(
+    value: JSONObject | Array<JSONObject>,
+  ): Recurring | Array<Recurring> | null {
+    if (Array.isArray(value)) {
+      return Recurring.fromJSONArray(value as Array<JSONObject>);
+    }
+
     if (value) {
       return Recurring.fromJSON(value);
     }

@@ -179,7 +179,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+                sendSubscriberNotificationsOnBeforeTheEvent: true,
               },
               title: "Send reminders to subscribers before the event",
               fieldType: FieldType.Boolean,
@@ -189,6 +189,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <RecurringArrayViewElement
                     value={item.sendSubscriberNotificationsOnBeforeTheEvent}
+                    postfix=" before the event is scheduled"
                   />
                 );
               },

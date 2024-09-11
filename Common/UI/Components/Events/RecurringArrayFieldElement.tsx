@@ -17,9 +17,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [recurrings, setRecurrings] = useState<Array<Recurring> | undefined>(
     props.initialValue && props.initialValue.length > 0
-      ? props.initialValue.map((item: Recurring) => {
-          return Recurring.fromJSON(item);
-        })
+      ? Recurring.fromJSONArray(props.initialValue)
       : undefined,
   );
 
@@ -73,7 +71,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
           );
         })}
 
-      <div className="flex space-x-3 mt-3">
+      <div className="flex space-x-3 mt-3 -ml-3">
         <Button
           dataTestId={`add-recurring`}
           title="Add"

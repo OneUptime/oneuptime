@@ -353,7 +353,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             },
             {
               field: {
-                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+                sendSubscriberNotificationsOnBeforeTheEvent: true,
               },
               title: "Send reminders to subscribers before the event",
               fieldType: FieldType.Boolean,
@@ -361,6 +361,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 return (
                   <RecurringArrayViewElement
                     value={item.sendSubscriberNotificationsOnBeforeTheEvent}
+                    postfix=" before the event is scheduled"
                   />
                 );
               },

@@ -17,6 +17,7 @@ import OneUptimeDate from "./Date";
 import Dictionary from "./Dictionary";
 import Domain from "./Domain";
 import Email from "./Email";
+import Recurring from "./Events/Recurring";
 import HashedString from "./HashedString";
 import IP from "./IP/IP";
 import { ObjectType } from "./JSON";
@@ -60,6 +61,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.Includes]: Includes,
   [ObjectType.NotNull]: NotNull,
   [ObjectType.IsNull]: IsNull,
+  [ObjectType.Recurring]: Recurring,
 };
 
 export default SerializableObjectDictionary;

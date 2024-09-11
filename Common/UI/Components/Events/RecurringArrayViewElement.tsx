@@ -4,6 +4,7 @@ import RecurringViewElement from "./RecurringViewElement";
 
 export interface ComponentProps {
   value?: Array<Recurring> | undefined;
+  postfix?: string | undefined;
 }
 
 const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
@@ -20,7 +21,13 @@ const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
       {items &&
         items.length > 0 &&
         items.map((item: Recurring, index: number) => {
-          return <RecurringViewElement key={index} value={item} />;
+          return (
+            <RecurringViewElement
+              key={index}
+              value={item}
+              postfix={props.postfix}
+            />
+          );
         })}
       {(!items || items.length === 0) && <p>-</p>}
     </div>

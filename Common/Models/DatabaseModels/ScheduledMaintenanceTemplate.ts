@@ -981,6 +981,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
   @Column({
     type: ColumnType.JSON,
     nullable: true,
+    transformer: Recurring.getDatabaseTransformer(),
   })
   public sendSubscriberNotificationsOnBeforeTheEvent?: Array<Recurring> =
     undefined;
