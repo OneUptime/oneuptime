@@ -233,6 +233,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 
+        // To log data, use console.log
+        console.log('Hello World');
+
         // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
         return {

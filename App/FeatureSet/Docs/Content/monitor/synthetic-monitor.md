@@ -30,6 +30,9 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
+// To log data, use console.log
+// console.log('Hello World');
+
 return {
     data: 'Hello World',
     screenshots: screenshots 

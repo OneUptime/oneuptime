@@ -303,6 +303,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               interval = interval.filter((option: DropdownOption) => {
                 return (
                   option.value !== "* * * * *" &&
+                  option.value !== "*/2 * * * *" &&
                   option.value !== "*/5 * * * *" &&
                   option.value !== "*/10 * * * *"
                 );
