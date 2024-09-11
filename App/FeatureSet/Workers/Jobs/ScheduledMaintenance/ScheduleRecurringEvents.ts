@@ -133,7 +133,8 @@ RunCron(
         scheduledMaintenanceEvent.title = recurringTemplate.title!;
         scheduledMaintenanceEvent.description = recurringTemplate.description!;
         scheduledMaintenanceEvent.labels = recurringTemplate.labels!;
-        scheduledMaintenanceEvent.sendSubscriberNotificationsOnBeforeTheEvent = recurringTemplate.sendSubscriberNotificationsOnBeforeTheEvent!;
+        scheduledMaintenanceEvent.sendSubscriberNotificationsOnBeforeTheEvent =
+          recurringTemplate.sendSubscriberNotificationsOnBeforeTheEvent!;
 
         const eventscheduledTime: Date = recurringTemplate.scheduleNextEventAt!;
 
