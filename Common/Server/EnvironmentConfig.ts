@@ -258,3 +258,9 @@ export const AccountsClientUrl: URL = new URL(
 
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
+
+export const SyntheticMonitorScriptTimeoutMs: number = process.env[
+  "SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS"
+]
+  ? parseInt(process.env["SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS"])
+  : 60000;
