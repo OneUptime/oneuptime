@@ -13,6 +13,7 @@ import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import Sleep from "../Types/Sleep";
+import SyntheticMonitorResponse from "../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 
 export interface RequestOptions {
   retries?: number | undefined;
@@ -317,7 +318,8 @@ export default class API {
       | BaseModel
       | Array<BaseModel>
       | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
+      | Array<AnalyticsBaseModel>
+      | Array<SyntheticMonitorResponse>,
   >(
     url: URL,
     data?: JSONObject | JSONArray,
@@ -341,7 +343,8 @@ export default class API {
       | BaseModel
       | Array<BaseModel>
       | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
+      | Array<AnalyticsBaseModel>
+      | Array<SyntheticMonitorResponse>,
   >(
     method: HTTPMethod,
     url: URL,

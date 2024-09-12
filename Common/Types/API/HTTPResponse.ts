@@ -2,6 +2,7 @@ import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONArray, JSONObject, JSONObjectOrArray } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
+import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import Typeof from "../Typeof";
 import Headers from "./Headers";
 
@@ -11,7 +12,8 @@ export default class HTTPResponse<
     | BaseModel
     | Array<BaseModel>
     | AnalyticsBaseModel
-    | Array<AnalyticsBaseModel>,
+    | Array<AnalyticsBaseModel>
+    | Array<SyntheticMonitorResponse>,
 > {
   private _statusCode: number = -1;
   public get statusCode(): number {
