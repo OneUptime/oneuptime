@@ -17,67 +17,82 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
+import { context, trace } from "@opentelemetry/api";
 
 const APP_NAME: string = "app";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
-  try {
-    // Initialize telemetry
-    Telemetry.init({
-      serviceName: APP_NAME,
-    });
-
-    const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      // Check the status of infrastructure components
-      return await InfrastructureStatus.checkStatus({
-        checkClickhouseStatus: true,
-        checkPostgresStatus: true,
-        checkRedisStatus: true,
+  const tracer = trace.getTracer("default");
+  const span = tracer.startSpan("init");
+  return context.with(trace.setSpan(context.active(), span), async () => {
+    try {
+      // Initialize telemetry
+      Telemetry.init({
+        serviceName: APP_NAME,
       });
-    };
 
-    // Initialize the app with service name and status checks
-    await App.init({
-      appName: APP_NAME,
-      statusOptions: {
-        liveCheck: statusCheck,
-        readyCheck: statusCheck,
-      },
-    });
+      const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
+        const statusCheckSpan = tracer.startSpan("statusCheck");
+        return context.with(trace.setSpan(context.active(), statusCheckSpan), async () => {
+          try {
+            // Check the status of infrastructure components
+            await InfrastructureStatus.checkStatus({
+              checkClickhouseStatus: true,
+              checkPostgresStatus: true,
+              checkRedisStatus: true,
+            });
+          } finally {
+            statusCheckSpan.end();
+          }
+        });
+      };
 
-    // Connect to Postgres database
-    await PostgresAppInstance.connect();
+      // Initialize the app with service name and status checks
+      await App.init({
+        appName: APP_NAME,
+        statusOptions: {
+          liveCheck: statusCheck,
+          readyCheck: statusCheck,
+        },
+      });
 
-    // Connect to Redis
-    await Redis.connect();
+      // Connect to Postgres database
+      await PostgresAppInstance.connect();
 
-    // Connect to Clickhouse database
-    await ClickhouseAppInstance.connect(
-      ClickhouseAppInstance.getDatasourceOptions(),
-    );
+      // Connect to Redis
+      await Redis.connect();
 
-    // Initialize real-time functionalities
-    await Realtime.init();
+      // Connect to Clickhouse database
+      await ClickhouseAppInstance.connect(
+        ClickhouseAppInstance.getDatasourceOptions(),
+      );
 
-    // Initialize feature sets
-    await IdentityRoutes.init();
-    await NotificationRoutes.init();
-    await DocsRoutes.init();
-    await BaseAPIRoutes.init();
-    await APIReferenceRoutes.init();
-    await Workers.init();
-    await Workflow.init();
+      // Initialize real-time functionalities
+      await Realtime.init();
 
-    // Initialize home routes at the end since it has a catch-all route
-    await HomeRoutes.init();
+      // Initialize feature sets
+      await IdentityRoutes.init();
+      await NotificationRoutes.init();
+      await DocsRoutes.init();
+      await BaseAPIRoutes.init();
+      await APIReferenceRoutes.init();
+      await Workers.init();
+      await Workflow.init();
 
-    // Add default routes to the app
-    await App.addDefaultRoutes();
-  } catch (err) {
-    logger.error("App Init Failed:");
-    logger.error(err);
-    throw err;
-  }
+      // Initialize home routes at the end since it has a catch-all route
+      await HomeRoutes.init();
+
+      // Add default routes to the app
+      await App.addDefaultRoutes();
+    } catch (err) {
+      logger.error("App Init Failed:");
+      logger.error(err);
+      span.recordException(err);
+      throw err;
+    } finally {
+      span.end();
+    }
+  });
 };
 
 init().catch((err: Error) => {
