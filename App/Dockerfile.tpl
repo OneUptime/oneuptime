@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:21.2-alpine3.18
+FROM node:21.2
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -22,19 +22,18 @@ ENV APP_VERSION=${APP_VERSION}
 # IF APP_VERSION is not set, set it to 1.0.0
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
+RUN apt-get update
 
 # Install bash. 
-RUN apk add bash && apk add curl
+RUN apt-get install bash -y && apt-get install curl -y
 
 
 # Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+RUN apt-get install .gyp python3 make g++ -y
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
-
-RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
@@ -46,6 +45,8 @@ COPY ./Common /usr/src/Common
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
+
+RUN npx playwright install --with-deps
 
 # Install app dependencies
 COPY ./App/package*.json /usr/src/app/
