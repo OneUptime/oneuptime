@@ -302,6 +302,18 @@ services:
             options:
                 max-size: "1000m"
 
+    workflow:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${WORKFLOW_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     probe-1:   
         networks:
           - oneuptime

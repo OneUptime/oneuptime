@@ -29,7 +29,7 @@ const WorkflowFeatureSet: FeatureSet = {
         `/${APP_NAME}/docs/:componentName`,
         (req: ExpressRequest, res: ExpressResponse) => {
           res.sendFile(
-            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/" +
+            "/usr/src/app/Docs/ComponentDocumentation/" +
               req.params["componentName"],
           );
         },

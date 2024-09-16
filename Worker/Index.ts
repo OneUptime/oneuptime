@@ -18,9 +18,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
-        checkClickhouseStatus: false,
-        checkPostgresStatus: false,
-        checkRedisStatus: false,
+        checkClickhouseStatus: true,
+        checkPostgresStatus: true,
+        checkRedisStatus: true,
       });
     };
 
