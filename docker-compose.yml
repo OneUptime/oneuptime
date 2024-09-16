@@ -71,6 +71,12 @@ services:
             file: ./docker-compose.base.yml
             service: worker
 
+    workflow:
+        image:  oneuptime/workflow:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: workflow
+
     home:
         image:  oneuptime/home:${APP_TAG}
         extends:
