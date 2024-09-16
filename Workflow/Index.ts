@@ -1,9 +1,14 @@
-import WorkerRoutes from "./Routes";
+import WorkflowRoutes from "./Routes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Realtime from "Common/Server/Utils/Realtime";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import Redis from "Common/Server/Infrastructure/Redis";
+import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import "ejs";
 
 const APP_NAME: string = "workflow";
 
@@ -32,8 +37,22 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
+    // Connect to Postgres database
+    await PostgresAppInstance.connect();
+
+    // Connect to Redis
+    await Redis.connect();
+
+    // Connect to Clickhouse database
+    await ClickhouseAppInstance.connect(
+      ClickhouseAppInstance.getDatasourceOptions(),
+    );
+
+    // Initialize real-time functionalities
+    await Realtime.init();
+
     // Initialize home routes at the end since it has a catch-all route
-    await WorkerRoutes.init();
+    await WorkflowRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();
