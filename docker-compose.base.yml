@@ -34,6 +34,7 @@ x-common-variables: &common-variables
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
     SERVER_ISOLATED_VM_HOSTNAME: isolated-vm
+    SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
 
     #Ports. Usually they don't need to change. 
@@ -47,6 +48,7 @@ x-common-variables: &common-variables
     DASHBOARD_PORT: ${DASHBOARD_PORT}
     ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
     ISOLATED_VM_PORT: ${ISOLATED_VM_PORT}
+    WORKER_PORT: ${WORKER_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -283,6 +285,18 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${HOME_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    worker:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${WORKER_PORT}
         logging:
             driver: "local"
             options:
