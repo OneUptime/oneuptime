@@ -2,7 +2,7 @@
     "name": "@oneuptime/home",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "Index.ts",
     "scripts": {
         "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",

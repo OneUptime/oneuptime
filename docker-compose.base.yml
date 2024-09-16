@@ -34,9 +34,11 @@ x-common-variables: &common-variables
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
     SERVER_ISOLATED_VM_HOSTNAME: isolated-vm
+    SERVER_HOME_HOSTNAME: home
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
+    HOME_PORT: ${HOME_PORT}
     INGESTOR_PORT: ${INGESTOR_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
@@ -269,6 +271,18 @@ services:
             INTERNAL_SMTP_FROM_NAME: ${INTERNAL_SMTP_FROM_NAME}
             INTERNAL_SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    home:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${HOME_PORT}
         logging:
             driver: "local"
             options:

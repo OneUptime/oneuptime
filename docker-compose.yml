@@ -65,6 +65,12 @@ services:
             file: ./docker-compose.base.yml
             service: app
 
+    home:
+        image:  oneuptime/home:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: home
+
     probe-1:   
         image:  oneuptime/probe:${APP_TAG}
         extends:

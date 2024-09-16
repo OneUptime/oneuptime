@@ -22,6 +22,10 @@ upstream isolated-vm {
     server ${SERVER_ISOLATED_VM_HOSTNAME}:${ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
+upstream home {
+    server ${SERVER_HOME_HOSTNAME}:${HOME_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
 upstream status-page {
     server ${SERVER_STATUS_PAGE_HOSTNAME}:${STATUS_PAGE_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -384,7 +388,7 @@ server {
         
         # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing paages for on-prem install.
         if ($billing_enabled = true) {
-            proxy_pass http://app;
+            proxy_pass http://home;
         }
 
         if ($billing_enabled != true) {
