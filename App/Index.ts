@@ -1,7 +1,6 @@
 import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
-import HomeRoutes from "../Home/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
@@ -67,9 +66,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await APIReferenceRoutes.init();
     await Workers.init();
     await Workflow.init();
-
-    // Initialize home routes at the end since it has a catch-all route
-    await HomeRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();
