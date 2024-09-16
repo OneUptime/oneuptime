@@ -65,6 +65,8 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: PORT
+              value: {{ $.Values.port.home | quote }}
           ports:
             - containerPort: {{ $.Values.port.home }}
               protocol: TCP
