@@ -1,7 +1,7 @@
 import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
-import HomeRoutes from "./FeatureSet/Home/Index";
+import HomeRoutes from "../Home/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
