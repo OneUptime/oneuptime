@@ -100,6 +100,18 @@ export const IsolatedVMHostname: Hostname = Hostname.fromString(
   }`,
 );
 
+export const WorkerHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_WORKER_HOSTNAME"] || "localhost"}:${
+    process.env["WORKER_PORT"] || 80
+  }`,
+);
+
+export const HomeHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_HOME_HOSTNAME"] || "localhost"}:${
+    process.env["HOME_PORT"] || 80
+  }`,
+);
+
 export const AccountsHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_ACCOUNTS_HOSTNAME"] || "localhost"}:${
     process.env["ACCOUNTS_PORT"] || 80

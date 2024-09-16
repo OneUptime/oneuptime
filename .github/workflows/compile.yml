@@ -55,8 +55,31 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      
       - run: cd App && npm install && npm run compile && npm run dep-check
+
+  compile-home:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Home && npm install && npm run compile && npm run dep-check
+
+  compile-worker:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd Worker && npm install && npm run compile && npm run dep-check
 
   compile-copilot:
     runs-on: ubuntu-latest

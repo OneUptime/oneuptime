@@ -48,6 +48,10 @@ Usage:
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ISOLATED_VM_HOSTNAME
   value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_WORKER_HOSTNAME
+  value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_HOME_HOSTNAME
+  value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
@@ -75,6 +79,10 @@ Usage:
   value: {{ $.Values.port.accounts | squote }}
 - name: ISOLATED_VM_PORT
   value: {{ $.Values.port.isolatedVM | squote }}
+- name: HOME_PORT
+  value: {{ $.Values.port.home | squote }}
+- name: WORKER_PORT
+  value: {{ $.Values.port.worker | squote }}
 - name: STATUS_PAGE_PORT
   value: {{ $.Values.port.statusPage | squote }}
 - name: DASHBOARD_PORT

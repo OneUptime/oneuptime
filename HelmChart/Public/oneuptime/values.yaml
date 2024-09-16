@@ -207,6 +207,8 @@ port:
   otelCollectorGrpc: 4317
   otelCollectorHttp: 4318
   isolatedVM: 4572
+  home: 1444
+  worker: 1445
 
 
 testServer:

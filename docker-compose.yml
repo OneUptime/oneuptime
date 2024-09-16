@@ -64,6 +64,18 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: app
+    
+    worker:
+        image:  oneuptime/worker:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: worker
+
+    home:
+        image:  oneuptime/home:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: home
 
     probe-1:   
         image:  oneuptime/probe:${APP_TAG}
