@@ -44,21 +44,21 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Home/package*.json /usr/src/app/
+COPY ./Worker/package*.json /usr/src/app/
 # Set version in ./App/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
 # Expose ports.
-#   - 1444: OneUptime-home
-EXPOSE 1444
+#   - 1445: OneUptime-worker
+EXPOSE 1445
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Home /usr/src/app
+COPY ./Worker /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
