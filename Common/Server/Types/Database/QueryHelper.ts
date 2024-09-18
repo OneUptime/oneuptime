@@ -313,7 +313,7 @@ export default class QueryHelper {
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
-        return `(${alias} <= :${rid} or ${alias} IS NULL)`;
+        return `(${alias} >= :${rid} or ${alias} IS NULL)`;
       },
       {
         [rid]: value,
