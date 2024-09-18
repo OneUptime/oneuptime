@@ -15,7 +15,7 @@ import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
 
-const APP_NAME: string = "app";
+const APP_NAME: string = "api";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
