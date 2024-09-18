@@ -14,7 +14,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 
-const APP_NAME: string = "api/workflow";
+const APP_NAME: string = "workflow";
 
 const WorkflowFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
