@@ -1,4 +1,4 @@
-import { AppApiHostname } from "../EnvironmentConfig";
+import { WorkflowHostname } from "../EnvironmentConfig";
 import ClickhouseDatabase, {
   ClickhouseAppInstance,
   ClickhouseClient,
@@ -1045,9 +1045,9 @@ export default class AnalyticsDatabaseService<
       API.post(
         new URL(
           Protocol.HTTP,
-          AppApiHostname,
+          WorkflowHostname,
           new Route(
-            `/api${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
+            `/${WorkflowRoute.toString()}/analytics-model/${projectId.toString()}/${Text.pascalCaseToDashes(
               this.getModel().tableName!,
             )}/${triggerType}`,
           ),
