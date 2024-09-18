@@ -77,7 +77,7 @@ spec:
 
 # OneUptime app Service
 {{- $apiReferencePorts := dict "port" $.Values.port.apiReference -}}
-{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" apiReferencePorts "Release" $.Release "Values" $.Values -}}
+{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $apiReferencePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---
 
