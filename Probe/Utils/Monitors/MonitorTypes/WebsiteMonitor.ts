@@ -33,6 +33,7 @@ export default class WebsiteMonitor {
       currentRetryCount?: number | undefined;
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
+      timeout?: PositiveNumber; // timeout in milliseconds
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -59,7 +60,7 @@ export default class WebsiteMonitor {
       let startTime: [number, number] = process.hrtime();
       let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
         isHeadRequest: options.isHeadRequest,
-        timeout: 30000,
+        timeout: options.timeout?.toNumber() || 5000,
       });
 
       if (
@@ -70,7 +71,7 @@ export default class WebsiteMonitor {
         startTime = process.hrtime();
         result = await WebsiteRequest.fetch(url, {
           isHeadRequest: false,
-          timeout: 30000,
+          timeout: options.timeout?.toNumber() || 5000,
         });
       }
 

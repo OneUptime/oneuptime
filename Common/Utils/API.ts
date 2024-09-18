@@ -11,12 +11,13 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Sleep from "../Types/Sleep";
 
 export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
+  timeout?: number | undefined;
 }
 
 export default class API {
@@ -383,12 +384,18 @@ export default class API {
       while (currentRetry <= maxRetries) {
         currentRetry++;
         try {
-          result = await axios({
+          const axiosOptions: AxiosRequestConfig = {
             method: method,
             url: url.toString(),
             headers: finalHeaders,
             data: finalBody,
-          });
+          };
+
+          if (options?.timeout) {
+            axiosOptions.timeout = options.timeout;
+          }
+
+          result = await axios(axiosOptions);
 
           break;
         } catch (e) {

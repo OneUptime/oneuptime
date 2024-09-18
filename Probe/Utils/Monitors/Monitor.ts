@@ -29,6 +29,7 @@ import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import PositiveNumber from "Common/Types/PositiveNumber";
 
 export default class MonitorUtil {
   public static async probeMonitor(
@@ -151,6 +152,7 @@ export default class MonitorUtil {
           {
             retry: 5,
             monitorId: monitor.id!,
+            timeout: new PositiveNumber(60000), // 60 seconds
           },
         );
 
@@ -167,6 +169,7 @@ export default class MonitorUtil {
           {
             retry: 5,
             monitorId: monitor.id!,
+            timeout: new PositiveNumber(60000), // 60 seconds
           },
         );
 
@@ -203,6 +206,7 @@ export default class MonitorUtil {
         {
           retry: 5,
           monitorId: monitor.id!,
+          timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
 
@@ -278,6 +282,7 @@ export default class MonitorUtil {
         {
           retry: 5,
           monitorId: monitor.id!,
+          timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
 
@@ -305,6 +310,7 @@ export default class MonitorUtil {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitor.id!,
           retry: 5,
+          timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
 
@@ -345,6 +351,7 @@ export default class MonitorUtil {
           monitorId: monitor.id!,
           requestType: monitorStep.data?.requestType || HTTPMethod.GET,
           retry: 5,
+          timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
 
