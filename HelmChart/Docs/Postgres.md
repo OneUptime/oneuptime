@@ -45,3 +45,12 @@ Please fill the values in config.env file and run the following command to resto
 ```
 bash ./restore.sh
 ```
+
+### Create Read Only User in Postgres (This can be used for reporting purpose like Metabase)
+
+```
+CREATE ROLE readonlyuser WITH LOGIN PASSWORD '<password>'
+GRANT pg_read_all_data TO readonlyuser;
+```
+
+```

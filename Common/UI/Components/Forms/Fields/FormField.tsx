@@ -230,6 +230,18 @@ const FormField: <T extends GenericObject>(
       return <></>;
     };
 
+    let booleanValue: boolean = false;
+
+    //toggle
+    if (props.field.fieldType === FormFieldSchemaType.Toggle) {
+      booleanValue =
+        (props.currentValues &&
+        ((props.currentValues as any)[props.fieldName] === true ||
+          (props.currentValues as any)[props.fieldName] === false)
+          ? (props.currentValues as any)[props.fieldName]
+          : (props.field.defaultValue as boolean)) || false;
+    }
+
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
         {/*** Do not display label on checkbox because checkbox can display its own label */}
@@ -539,14 +551,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               dataTestId={props.field.dataTestId}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName] &&
-                ((props.currentValues as any)[props.fieldName] === true ||
-                  (props.currentValues as any)[props.fieldName] === false)
-                  ? (props.currentValues as any)[props.fieldName]
-                  : (props.field.defaultValue as boolean) || false
-              }
+              initialValue={booleanValue}
             />
           )}
 

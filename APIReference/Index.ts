@@ -1,19 +1,12 @@
-import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
-// import FeatureSets.
-import IdentityRoutes from "./FeatureSet/Identity/Index";
-import NotificationRoutes from "./FeatureSet/Notification/Index";
+import APIReferenceRoutes from "./Routes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
-import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
-import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
-import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
 
-const APP_NAME: string = "api";
+const APP_NAME: string = "reference";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
@@ -25,9 +18,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
       return await InfrastructureStatus.checkStatus({
-        checkClickhouseStatus: true,
-        checkPostgresStatus: true,
-        checkRedisStatus: true,
+        checkClickhouseStatus: false,
+        checkPostgresStatus: false,
+        checkRedisStatus: false,
       });
     };
 
@@ -40,24 +33,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
-    // Connect to Postgres database
-    await PostgresAppInstance.connect();
-
-    // Connect to Redis
-    await Redis.connect();
-
-    // Connect to Clickhouse database
-    await ClickhouseAppInstance.connect(
-      ClickhouseAppInstance.getDatasourceOptions(),
-    );
-
-    // Initialize real-time functionalities
-    await Realtime.init();
-
-    // Initialize feature sets
-    await IdentityRoutes.init();
-    await NotificationRoutes.init();
-    await BaseAPIRoutes.init();
+    await APIReferenceRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();
