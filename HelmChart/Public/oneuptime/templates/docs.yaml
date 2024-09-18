@@ -1,0 +1,87 @@
+# OneUptime docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "docs"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "docs"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "docs"  }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "docs"  }}
+        date: "{{ now | unixEpoch }}"
+        appname: oneuptime
+    spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.nodeSelector }}
+      nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "docs" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name "docs"  }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.docs }}
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            timeoutSeconds: 30
+          # Readyness Probe
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: {{ $.Values.port.docs }}
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            timeoutSeconds: 30
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: PORT
+              value: {{ $.Values.port.docs | quote }}
+          ports:
+            - containerPort: {{ $.Values.port.docs }}
+              protocol: TCP
+              name: http
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+
+# OneUptime app Service
+{{- $docsPorts := dict "port" $.Values.port.docs -}}
+{{- $docsServiceArgs := dict "ServiceName" "docs" "Ports" $docsPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $docsServiceArgs }}
+---
+
+# OneUptime app autoscaler
+{{- $docsAutoScalerArgs := dict "ServiceName" "docs" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $docsAutoScalerArgs }}
+---
