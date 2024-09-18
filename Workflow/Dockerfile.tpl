@@ -44,7 +44,7 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Worker/package*.json /usr/src/app/
+COPY ./Workflow/package*.json /usr/src/app/
 # Set version in ./App/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
@@ -58,7 +58,7 @@ EXPOSE 3099
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Worker /usr/src/app
+COPY ./Workflow /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
