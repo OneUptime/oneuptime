@@ -76,12 +76,12 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $api-referencePorts := dict "port" $.Values.port.apiReference -}}
-{{- $api-referenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $api-referencePorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $api-referenceServiceArgs }}
+{{- $apiReferencePorts := dict "port" $.Values.port.apiReference -}}
+{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" apiReferencePortss "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---
 
 # OneUptime app autoscaler
-{{- $api-referenceAutoScalerArgs := dict "ServiceName" "api-reference" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $api-referenceAutoScalerArgs }}
+{{- $apiReferenceAutoScalerArgs := dict "ServiceName" "api-reference" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $apiReferenceAutoScalerArgs }}
 ---
