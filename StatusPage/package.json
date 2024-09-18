@@ -32,7 +32,7 @@
 
     "css-loader": "^6.11.0",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.20.0",
     "file-loader": "^6.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
