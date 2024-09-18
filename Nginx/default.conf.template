@@ -18,6 +18,11 @@ upstream admin-dashboard {
     server ${SERVER_ADMIN_DASHBOARD_HOSTNAME}:${ADMIN_DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
+upstream api-reference {
+    server ${SERVER_API_REFERENCE_HOSTNAME}:${API_REFERENCE_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+
 upstream isolated-vm {
     server ${SERVER_ISOLATED_VM_HOSTNAME}:${ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -663,7 +668,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/reference;
+        proxy_pass http://api-reference;
     }
 
     location /docs {

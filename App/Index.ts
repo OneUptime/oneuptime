@@ -1,4 +1,4 @@
-import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
+
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
 // import FeatureSets.
@@ -61,7 +61,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await NotificationRoutes.init();
     await DocsRoutes.init();
     await BaseAPIRoutes.init();
-    await APIReferenceRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

@@ -37,6 +37,7 @@ x-common-variables: &common-variables
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
     SERVER_WORKFLOW_HOSTNAME: workflow
+    SERVER_API_REFERENCE_HOSTNAME: api-reference
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
@@ -51,6 +52,7 @@ x-common-variables: &common-variables
     ISOLATED_VM_PORT: ${ISOLATED_VM_PORT}
     WORKER_PORT: ${WORKER_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
+    API_REFERENCE_PORT: ${API_REFERENCE_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -299,6 +301,18 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${WORKER_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    api-reference:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${API_REFERENCE_PORT}
         logging:
             driver: "local"
             options:
