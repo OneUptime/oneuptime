@@ -45,7 +45,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.api-reference }}
+              port: {{ $.Values.port.apiReference }}
             initialDelaySeconds: 300
             periodSeconds: 10
             timeoutSeconds: 30
@@ -53,7 +53,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.api-reference }}
+              port: {{ $.Values.port.apiReference }}
             initialDelaySeconds: 300
             periodSeconds: 10
             timeoutSeconds: 30
@@ -66,9 +66,9 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.api-reference | quote }}
+              value: {{ $.Values.port.apiReference | quote }}
           ports:
-            - containerPort: {{ $.Values.port.api-reference }}
+            - containerPort: {{ $.Values.port.apiReference }}
               protocol: TCP
               name: http
       restartPolicy: {{ $.Values.image.restartPolicy }}
@@ -76,7 +76,7 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $api-referencePorts := dict "port" $.Values.port.api-reference -}}
+{{- $api-referencePorts := dict "port" $.Values.port.apiReference -}}
 {{- $api-referenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $api-referencePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $api-referenceServiceArgs }}
 ---
