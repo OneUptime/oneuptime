@@ -1278,7 +1278,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           file: ./Workflow/Dockerfile
-          context: ./Workflow
+          context: .
           # arm64 is not supported by the base image of the LLM
           platforms: linux/amd64 
           push: true
