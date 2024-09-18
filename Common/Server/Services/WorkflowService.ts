@@ -1,4 +1,4 @@
-import { AppApiHostname } from "../EnvironmentConfig";
+import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -15,6 +15,7 @@ import {
 } from "../../Types/Workflow/Component";
 import API from "Common/Utils/API";
 import Model from "Common/Models/DatabaseModels/Workflow";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -63,17 +64,21 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    logger.debug("Updating workflow on the workflow service");
+
     await API.post<EmptyResponseData>(
       new URL(
         Protocol.HTTP,
-        AppApiHostname,
-        new Route("/api/workflow/update/" + onUpdate.updateBy.query._id!),
+        WorkflowHostname,
+        new Route("/workflow/update/" + onUpdate.updateBy.query._id!),
       ),
       {},
       {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
     );
+
+    logger.debug("Updated workflow on the workflow service");
 
     return onUpdate;
   }

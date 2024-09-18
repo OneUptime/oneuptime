@@ -36,6 +36,7 @@ x-common-variables: &common-variables
     SERVER_ISOLATED_VM_HOSTNAME: isolated-vm
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
+    SERVER_WORKFLOW_HOSTNAME: workflow
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
@@ -49,6 +50,7 @@ x-common-variables: &common-variables
     ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
     ISOLATED_VM_PORT: ${ISOLATED_VM_PORT}
     WORKER_PORT: ${WORKER_PORT}
+    WORKFLOW_PORT: ${WORKFLOW_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -297,6 +299,18 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${WORKER_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    workflow:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${WORKFLOW_PORT}
         logging:
             driver: "local"
             options:

@@ -36,6 +36,7 @@ export default class ApiMonitor {
       currentRetryCount?: number | undefined;
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
+      timeout?: PositiveNumber; // timeout in milliseconds
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -62,6 +63,10 @@ export default class ApiMonitor {
           url,
           options.requestBody || undefined,
           options.requestHeaders || undefined,
+          undefined,
+          {
+            timeout: options.timeout?.toNumber() || 5000,
+          },
         );
 
       if (
@@ -75,6 +80,10 @@ export default class ApiMonitor {
           url,
           options.requestBody || undefined,
           options.requestHeaders || undefined,
+          undefined,
+          {
+            timeout: options.timeout?.toNumber() || 5000,
+          },
         );
       }
 

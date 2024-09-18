@@ -1,4 +1,4 @@
-import { AppApiHostname, EncryptionSecret } from "../EnvironmentConfig";
+import { EncryptionSecret, WorkflowHostname } from "../EnvironmentConfig";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/Database/CountBy";
@@ -526,9 +526,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       API.post(
         new URL(
           Protocol.HTTP,
-          AppApiHostname,
+          WorkflowHostname,
           new Route(
-            `/api${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
+            `/${WorkflowRoute.toString()}/model/${projectId.toString()}/${Text.pascalCaseToDashes(
               this.getModel().tableName!,
             )}/${triggerType}`,
           ),

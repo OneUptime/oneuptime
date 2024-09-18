@@ -37,7 +37,7 @@ const Help: () => JSX.Element = (): ReactElement => {
               setIsDropdownVisible(false);
             }}
             url={URL.fromString(
-              "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ",
+              "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA",
             )}
           />
           <IconDropdownItem

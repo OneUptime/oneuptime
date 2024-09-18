@@ -1,21 +1,16 @@
-import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
-import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
-import DocsRoutes from "./FeatureSet/Docs/Index";
-// import FeatureSets.
-import IdentityRoutes from "./FeatureSet/Identity/Index";
-import NotificationRoutes from "./FeatureSet/Notification/Index";
+import WorkflowRoutes from "./Routes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
-import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
-import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
-import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Realtime from "Common/Server/Utils/Realtime";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import Redis from "Common/Server/Infrastructure/Redis";
+import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import "ejs";
 
-const APP_NAME: string = "api";
+const APP_NAME: string = "workflow";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
@@ -56,12 +51,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Initialize real-time functionalities
     await Realtime.init();
 
-    // Initialize feature sets
-    await IdentityRoutes.init();
-    await NotificationRoutes.init();
-    await DocsRoutes.init();
-    await BaseAPIRoutes.init();
-    await APIReferenceRoutes.init();
+    // Initialize home routes at the end since it has a catch-all route
+    await WorkflowRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

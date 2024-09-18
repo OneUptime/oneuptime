@@ -14,7 +14,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 
-const APP_NAME: string = "api/workflow";
+const APP_NAME: string = "workflow";
 
 const WorkflowFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -29,7 +29,7 @@ const WorkflowFeatureSet: FeatureSet = {
         `/${APP_NAME}/docs/:componentName`,
         (req: ExpressRequest, res: ExpressResponse) => {
           res.sendFile(
-            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/" +
+            "/usr/src/app/Docs/ComponentDocumentation/" +
               req.params["componentName"],
           );
         },

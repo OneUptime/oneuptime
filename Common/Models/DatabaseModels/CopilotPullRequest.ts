@@ -435,6 +435,7 @@ export default class CopilotPullRequest extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     title: "Copilot Event Status",
+    canReadOnRelationQuery: true,
     description:
       "Status of Copilot Event that was triggered for this file in Code Repository",
   })
