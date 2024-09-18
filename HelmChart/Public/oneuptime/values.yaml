@@ -211,6 +211,7 @@ port:
   worker: 1445
   workflow: 3099
   apiReference: 1446
+  docs: 1447
 
 testServer:
   enabled: false

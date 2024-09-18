@@ -70,6 +70,8 @@ Usage:
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_DOCS_HOSTNAME
+  value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
 - name: APP_PORT
   value: {{ $.Values.port.app | squote }}
@@ -97,6 +99,8 @@ Usage:
   value: {{ $.Values.port.adminDashboard | squote }}
 - name: API_REFERENCE_PORT
   value: {{ $.Values.port.apiReference | squote }}
+- name: DOCS_PORT
+  value: {{ $.Values.port.docs | squote }}
 {{- end }}
 
 

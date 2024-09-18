@@ -71,6 +71,12 @@ services:
             file: ./docker-compose.base.yml
             service: worker
 
+    docs:
+        image:  oneuptime/docs:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: docs
+
     api-reference:
         image:  oneuptime/api-reference:${APP_TAG}
         extends:
