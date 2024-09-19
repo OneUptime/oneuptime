@@ -1130,8 +1130,7 @@ jobs:
         with:
           file: ./LLM/Dockerfile
           context: ./LLM
-          # arm64 is not supported by the base image of the LLM
-          platforms: linux/amd64 
+          platforms: linux/amd64,linux/arm64 
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -1202,8 +1201,7 @@ jobs:
         with:
           file: ./Docs/Dockerfile
           context: .
-          # arm64 is not supported by the base image of the LLM
-          platforms: linux/amd64 
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -1277,8 +1275,7 @@ jobs:
         with:
           file: ./Worker/Dockerfile
           context: .
-          # arm64 is not supported by the base image of the LLM
-          platforms: linux/amd64 
+          platforms: linux/amd64,linux/arm64 
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -1352,8 +1349,7 @@ jobs:
         with:
           file: ./Workflow/Dockerfile
           context: .
-          # arm64 is not supported by the base image of the LLM
-          platforms: linux/amd64 
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -1428,8 +1424,7 @@ jobs:
         with:
           file: ./APIReference/Dockerfile
           context: .
-          # arm64 is not supported by the base image of the LLM
-          platforms: linux/amd64 
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
