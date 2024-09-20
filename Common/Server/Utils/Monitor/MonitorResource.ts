@@ -69,6 +69,7 @@ export default class MonitorResourceUtil {
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
+    logger.debug("Fetching Monitor...");
 
     // fetch monitor
     const monitor: Monitor | null = await MonitorService.findOneById({
@@ -88,7 +89,11 @@ export default class MonitorResourceUtil {
       },
     });
 
+    logger.debug("Monitor found");
+    logger.debug("Monitor ID: " + dataToProcess.monitorId);
+
     if (!monitor) {
+      logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
       throw new BadDataException("Monitor not found");
     }
 
@@ -205,6 +210,10 @@ export default class MonitorResourceUtil {
       monitor.monitorType === MonitorType.Server &&
       (dataToProcess as ServerMonitorResponse).requestReceivedAt
     ) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
+      );
+
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
@@ -217,7 +226,13 @@ export default class MonitorResourceUtil {
           isRoot: true,
         },
       });
+
+      logger.debug(`${dataToProcess.monitorId.toString()} - Monitor Updated`);
     }
+
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
+    );
 
     await this.saveMonitorMetrics({
       monitorId: monitor.id!,
@@ -225,20 +240,25 @@ export default class MonitorResourceUtil {
       dataToProcess: dataToProcess,
     });
 
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
+    );
+
     const monitorSteps: MonitorSteps = monitor.monitorSteps!;
 
     if (
       !monitorSteps.data?.monitorStepsInstanceArray ||
       monitorSteps.data?.monitorStepsInstanceArray.length === 0
     ) {
-      // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
       );
       return response;
     }
 
-    // auto resolve criteria Id's.
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`,
+    );
 
     const criteriaInstances: Array<MonitorCriteriaInstance> =
       monitorSteps.data.monitorStepsInstanceArray
@@ -287,6 +307,8 @@ export default class MonitorResourceUtil {
     const monitorStep: MonitorStep | undefined =
       monitorSteps.data.monitorStepsInstanceArray[0];
 
+    logger.debug(`Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`);
+
     if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
       monitorSteps.data.monitorStepsInstanceArray.find(
         (monitorStep: MonitorStep) => {
@@ -296,16 +318,19 @@ export default class MonitorResourceUtil {
           );
         },
       );
+      logger.debug(
+        `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
+      );
     }
 
     if (!monitorStep) {
-      // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
+      logger.debug("No steps found, ignoring everything.");
       return response;
     }
 
     // now process the monitor step
-
     response.ingestedMonitorStepId = monitorStep.id;
+    logger.debug(`Ingested Monitor Step ID: ${monitorStep.id}`);
 
     //find next monitor step after this one.
     const nextMonitorStepIndex: number =
@@ -318,8 +343,12 @@ export default class MonitorResourceUtil {
     response.nextMonitorStepId =
       monitorSteps.data.monitorStepsInstanceArray[nextMonitorStepIndex + 1]?.id;
 
-    // now process probe response monitors
+    logger.debug(`Next Monitor Step ID: ${response.nextMonitorStepId}`);
 
+    // now process probe response monitors
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
+    );
     response = await MonitorResourceUtil.processMonitorStep({
       dataToProcess: dataToProcess,
       monitorStep: monitorStep,
@@ -346,6 +375,9 @@ export default class MonitorResourceUtil {
           telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
           telemetryType: TelemetryType.Log,
         };
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Log query found.`,
+        );
       }
 
       if (dataToProcess && (dataToProcess as TraceMonitorResponse).spanQuery) {
@@ -353,6 +385,9 @@ export default class MonitorResourceUtil {
           telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
           telemetryType: TelemetryType.Trace,
         };
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Span query found.`,
+        );
       }
 
       await this.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
@@ -401,6 +436,9 @@ export default class MonitorResourceUtil {
           isRoot: true,
         },
       });
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+      );
     }
 
     return response;
