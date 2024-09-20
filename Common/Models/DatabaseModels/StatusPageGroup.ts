@@ -23,6 +23,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -476,4 +477,101 @@ export default class StatusPageGroup extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageGroup,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageGroup,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageGroup,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show current status",
+    description: "Show current status like offline, operational or degraded.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public showCurrentStatus?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageGroup,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageGroup,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageGroup,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show Uptime Percent",
+    description: "Show uptime percent of this group for the last 90 days",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public showUptimePercent?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageGroup,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageGroup,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageGroup,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Uptime Percent Precision",
+    required: false,
+    description:
+      "Precision of uptime percent of this group for the last 90 days",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public uptimePercentPrecision?: UptimePrecision = undefined;
 }
