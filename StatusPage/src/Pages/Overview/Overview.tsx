@@ -340,8 +340,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         data.group,
       );
 
-
-      if(resourcesInGroup.length === 0) {
+      if (resourcesInGroup.length === 0) {
         return <></>;
       }
 
