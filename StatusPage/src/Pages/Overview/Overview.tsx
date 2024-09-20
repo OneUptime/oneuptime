@@ -293,6 +293,118 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPrivateStatusPage(),
   ]);
 
+  type GetMonitorStatusTimelineForResourceFunction = (data: {
+    resource: StatusPageResource;
+  }) => Array<MonitorStatusTimeline>;
+
+  const getMonitorStatusTimelineForResource: GetMonitorStatusTimelineForResourceFunction =
+    (data: { resource: StatusPageResource }): Array<MonitorStatusTimeline> => {
+      return [...monitorStatusTimelines].filter(
+        (timeline: MonitorStatusTimeline) => {
+          // check monitor if first.
+
+          if (data.resource.monitorId) {
+            return (
+              timeline.monitorId?.toString() ===
+              data.resource.monitorId?.toString()
+            );
+          }
+
+          if (data.resource.monitorGroupId) {
+            const monitorsInThisGroup: Array<ObjectID> | undefined =
+              monitorsInGroup[data.resource.monitorGroupId?.toString() || ""];
+
+            if (!monitorsInThisGroup) {
+              return false;
+            }
+
+            return monitorsInThisGroup.find((monitorId: ObjectID) => {
+              return monitorId.toString() === timeline.monitorId?.toString();
+            });
+          }
+
+          return false;
+        },
+      );
+    };
+
+  type GetCurrentGroupStatusElementFunction = (data: {
+    group: StatusPageGroup;
+  }) => ReactElement;
+
+  const getCurrentGroupStatusElement: GetCurrentGroupStatusElementFunction =
+    (data: { group: StatusPageGroup }): ReactElement => {
+      const currentStatus: MonitorStatus = getCurrentGroupStatus(data.group);
+
+      const resourcesInGroup: Array<StatusPageResource> = getResourcesInGroup(
+        data.group,
+      );
+
+      const monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
+
+      for (const resource of resourcesInGroup) {
+        // get monitor status timeline.
+        const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+          getMonitorStatusTimelineForResource({
+            resource: resource,
+          });
+
+        // add to the monitor status timelines.
+
+        monitorStatusTimelines.push(...monitorStatusTimelines);
+      }
+
+      const downtimeMonitorStatuses: Array<MonitorStatus> =
+        statusPage?.downtimeMonitorStatuses || [];
+
+      // if the current status is operational then show uptime Percent.
+
+      let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;
+
+      if (data.group.uptimePercentPrecision) {
+        precision = data.group.uptimePercentPrecision;
+      }
+
+      if (
+        !downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
+          return currentStatus.id?.toString() === downtimeStatus.id?.toString();
+        }) &&
+        data.group.showUptimePercent
+      ) {
+        const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+          monitorStatusTimelines,
+          precision,
+          downtimeMonitorStatuses,
+        );
+
+        return (
+          <div
+            className="font-medium"
+            style={{
+              color: currentStatus?.color?.toString() || Green.toString(),
+            }}
+          >
+            {uptimePercent}% uptime
+          </div>
+        );
+      }
+
+      if (data.group.showCurrentStatus) {
+        return (
+          <div
+            className=""
+            style={{
+              color: currentStatus?.color?.toString() || Green.toString(),
+            }}
+          >
+            {currentStatus?.name || "Operational"}
+          </div>
+        );
+      }
+
+      return <></>;
+    };
+
   type GetOverallMonitorStatusFunction = (
     statusPageResources: Array<StatusPageResource>,
     monitorStatuses: Array<MonitorStatus>,
@@ -416,14 +528,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimePrecision={
                 resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
               }
-              monitorStatusTimeline={[...monitorStatusTimelines].filter(
-                (timeline: MonitorStatusTimeline) => {
-                  return (
-                    timeline.monitorId?.toString() ===
-                    resource.monitorId?.toString()
-                  );
-                },
-              )}
+              monitorStatusTimeline={getMonitorStatusTimelineForResource({
+                resource: resource,
+              })}
               startDate={startDate}
               endDate={endDate}
               showHistoryChart={resource.showStatusHistoryChart}
@@ -468,22 +575,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
               description={resource.displayDescription || ""}
               tooltip={resource.displayTooltip || ""}
               currentStatus={currentStatus}
-              monitorStatusTimeline={[...monitorStatusTimelines].filter(
-                (timeline: MonitorStatusTimeline) => {
-                  const monitorsInThisGroup: Array<ObjectID> | undefined =
-                    monitorsInGroup[resource.monitorGroupId?.toString() || ""];
-
-                  if (!monitorsInThisGroup) {
-                    return false;
-                  }
-
-                  return monitorsInThisGroup.find((monitorId: ObjectID) => {
-                    return (
-                      monitorId.toString() === timeline.monitorId?.toString()
-                    );
-                  });
-                },
-              )}
+              monitorStatusTimeline={getMonitorStatusTimelineForResource({
+                resource: resource,
+              })}
               downtimeMonitorStatuses={
                 statusPage?.downtimeMonitorStatuses || []
               }
@@ -598,62 +692,52 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return groups;
     };
 
-  type GetRightAccordionElementFunction = (
+  type GetResourcesInGroupFunction = (
     group: StatusPageGroup,
-  ) => ReactElement;
+  ) => Array<StatusPageResource>;
 
-  const getRightAccordionElement: GetRightAccordionElementFunction = (
+  const getResourcesInGroup: GetResourcesInGroupFunction = (
     group: StatusPageGroup,
-  ): ReactElement => {
+  ): Array<StatusPageResource> => {
+    return statusPageResources.filter((resource: StatusPageResource) => {
+      return resource.statusPageGroupId?.toString() === group._id?.toString();
+    });
+  };
+
+  type GetCurrentGroupStatus = (group: StatusPageGroup) => MonitorStatus;
+
+  const getCurrentGroupStatus: GetCurrentGroupStatus = (
+    group: StatusPageGroup,
+  ): MonitorStatus => {
     let currentStatus: MonitorStatus = new MonitorStatus();
     currentStatus.name = "Operational";
     currentStatus.color = Green;
-    let hasResource: boolean = false;
 
-    for (const resource of statusPageResources) {
+    const resourcesInGroup: Array<StatusPageResource> =
+      getResourcesInGroup(group);
+
+    for (const resource of resourcesInGroup) {
+      const currentMonitorStatus: MonitorStatus | undefined =
+        monitorStatuses.find((status: MonitorStatus) => {
+          return (
+            status._id?.toString() ===
+            resource.monitor?.currentMonitorStatusId?.toString()
+          );
+        });
+
       if (
-        (resource.statusPageGroupId &&
-          resource.statusPageGroupId.toString() &&
-          group &&
-          group._id?.toString() &&
-          group._id?.toString() === resource.statusPageGroupId.toString()) ||
-        (!resource.statusPageGroupId && !group)
+        (currentStatus &&
+          currentStatus.priority &&
+          currentMonitorStatus?.priority &&
+          currentMonitorStatus?.priority > currentStatus.priority) ||
+        !currentStatus ||
+        !currentStatus.priority
       ) {
-        hasResource = true;
-        const currentMonitorStatus: MonitorStatus | undefined =
-          monitorStatuses.find((status: MonitorStatus) => {
-            return (
-              status._id?.toString() ===
-              resource.monitor?.currentMonitorStatusId?.toString()
-            );
-          });
-
-        if (
-          (currentStatus &&
-            currentStatus.priority &&
-            currentMonitorStatus?.priority &&
-            currentMonitorStatus?.priority > currentStatus.priority) ||
-          !currentStatus ||
-          !currentStatus.priority
-        ) {
-          currentStatus = currentMonitorStatus!;
-        }
+        currentStatus = currentMonitorStatus!;
       }
     }
 
-    if (hasResource) {
-      return (
-        <div
-          className="bold font16"
-          style={{
-            color: currentStatus?.color?.toString() || Green.toString(),
-          }}
-        >
-          {currentStatus?.name || "Operational"}
-        </div>
-      );
-    }
-    return <></>;
+    return currentStatus;
   };
 
   const activeIncidentsInIncidentGroup: Array<IncidentGroup> =
@@ -759,9 +843,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         return (
                           <Accordion
                             key={i}
-                            rightElement={getRightAccordionElement(
-                              resourceGroup,
-                            )}
+                            rightElement={getCurrentGroupStatusElement({
+                              group: resourceGroup,
+                            })}
                             isInitiallyExpanded={
                               resourceGroup.isExpandedByDefault
                             }

@@ -541,6 +541,9 @@ export default class StatusPageAPI extends BaseAPI<
                 order: true,
                 description: true,
                 isExpandedByDefault: true,
+                showCurrentStatus: true,
+                showUptimePercent: true,
+                uptimePercentPrecision: true,
               },
               sort: {
                 order: SortOrder.Ascending,
