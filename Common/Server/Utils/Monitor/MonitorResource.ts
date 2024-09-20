@@ -214,6 +214,8 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
       );
 
+      logger.debug(dataToProcess);
+
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
@@ -224,6 +226,7 @@ export default class MonitorResourceUtil {
         },
         props: {
           isRoot: true,
+          ignoreHooks: true,
         },
       });
 

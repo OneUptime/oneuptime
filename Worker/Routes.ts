@@ -31,7 +31,9 @@ import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 // Scheduled Event
 import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
 import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
-import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
+// import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
+// import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
+
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
 import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";
@@ -42,7 +44,6 @@ import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
 import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/ServerMonitor/CheckOnlineStatus";
-import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 
 // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";
