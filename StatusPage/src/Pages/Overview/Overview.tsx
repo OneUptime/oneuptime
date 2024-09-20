@@ -340,7 +340,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         data.group,
       );
 
-      const monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
+
+      if(resourcesInGroup.length === 0) {
+        return <></>;
+      }
+
+      let allMonitorStatusTimelines: Array<MonitorStatusTimeline> = [];
 
       for (const resource of resourcesInGroup) {
         // get monitor status timeline.
@@ -351,7 +356,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         // add to the monitor status timelines.
 
-        monitorStatusTimelines.push(...monitorStatusTimelines);
+        allMonitorStatusTimelines = allMonitorStatusTimelines.concat(
+          monitorStatusTimelines,
+        );
       }
 
       const downtimeMonitorStatuses: Array<MonitorStatus> =
@@ -372,7 +379,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         data.group.showUptimePercent
       ) {
         const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-          monitorStatusTimelines,
+          allMonitorStatusTimelines,
           precision,
           downtimeMonitorStatuses,
         );
