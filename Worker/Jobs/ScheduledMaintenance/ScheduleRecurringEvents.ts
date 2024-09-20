@@ -21,6 +21,8 @@ RunCron(
   "ScheduledMaintenance:ScheduleRecurringEvents",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    logger.debug("ScheduledMaintenance:ScheduleRecurringEvents  Running");
+
     // get all scheduled events of all the projects.
     const recurringTemplates: Array<ScheduledMaintenanceTemplate> =
       await ScheduledMaintenanceTemplateService.findBy({
@@ -61,6 +63,10 @@ RunCron(
 
     for (const recurringTemplate of recurringTemplates) {
       try {
+        logger.debug(
+          `ScheduledMaintenance:ScheduleRecurringEvents: Updating event: ${recurringTemplate.id}`,
+        );
+
         if (recurringTemplate.recurringInterval === undefined) {
           continue;
         }
@@ -209,7 +215,14 @@ RunCron(
             },
           });
         }
+
+        logger.debug(
+          `ScheduledMaintenance:ScheduleRecurringEvents: Created event: ${scheduledMaintenanceEvent.id}`,
+        );
       } catch (e) {
+        logger.error(
+          `ScheduledMaintenance:ScheduleRecurringEvents: Error creating event for template: ${recurringTemplate.id}`,
+        );
         logger.error(e);
       }
     }
