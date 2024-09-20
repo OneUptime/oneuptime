@@ -15,54 +15,59 @@ RunCron(
   "ServerMonitor:CheckOnlineStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    const twoMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
+    try {
+      const twoMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
 
-    const serverMonitors: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        monitorType: MonitorType.Server,
-        serverMonitorRequestReceivedAt:
-          QueryHelper.lessThanEqualToOrNull(twoMinsAgo),
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        monitorSteps: true,
-        serverMonitorRequestReceivedAt: true,
-        createdAt: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-    });
+      const serverMonitors: Array<Monitor> = await MonitorService.findBy({
+        query: {
+          monitorType: MonitorType.Server,
+          serverMonitorRequestReceivedAt:
+            QueryHelper.lessThanEqualToOrNull(twoMinsAgo),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          monitorSteps: true,
+          serverMonitorRequestReceivedAt: true,
+          createdAt: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
 
-    for (const monitor of serverMonitors) {
-      try {
-        if (!monitor.monitorSteps) {
-          continue;
+      for (const monitor of serverMonitors) {
+        try {
+          if (!monitor.monitorSteps) {
+            continue;
+          }
+
+          const processRequest: boolean = shouldProcessRequest(monitor);
+
+          if (!processRequest) {
+            continue;
+          }
+
+          const serverMonitorResponse: ServerMonitorResponse = {
+            monitorId: monitor.id!,
+            onlyCheckRequestReceivedAt: true,
+            requestReceivedAt:
+              monitor.serverMonitorRequestReceivedAt || monitor.createdAt!,
+            hostname: "",
+          };
+
+          await MonitorResourceUtil.monitorResource(serverMonitorResponse);
+        } catch (error) {
+          logger.error(
+            `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
+          );
+          logger.error(error);
         }
-
-        const processRequest: boolean = shouldProcessRequest(monitor);
-
-        if (!processRequest) {
-          continue;
-        }
-
-        const serverMonitorResponse: ServerMonitorResponse = {
-          monitorId: monitor.id!,
-          onlyCheckRequestReceivedAt: true,
-          requestReceivedAt:
-            monitor.serverMonitorRequestReceivedAt || monitor.createdAt!,
-          hostname: "",
-        };
-
-        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
-      } catch (error) {
-        logger.error(
-          `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
-        );
-        logger.error(error);
       }
+    } catch (error) {
+      logger.error("Error in ServerMonitor:CheckOnlineStatus");
+      logger.error(error);
     }
   },
 );
