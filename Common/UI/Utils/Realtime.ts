@@ -1,12 +1,10 @@
 import { HOST, HTTP_PROTOCOL } from "../Config";
-import Select from "./BaseDatabase/Select";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { RealtimeRoute } from "Common/ServiceRoute";
 import URL from "Common/Types/API/URL";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import RealtimeUtil, {
   EventName,
@@ -14,19 +12,16 @@ import RealtimeUtil, {
   ModelEventType,
 } from "Common/Utils/Realtime";
 import SocketIO, { Socket } from "socket.io-client";
-import Query from "../../Types/BaseDatabase/Query";
 
 export interface ListenToModelEvent<
   Model extends AnalyticsBaseModel | BaseModel,
 > {
   modelType: { new (): Model };
-  query: Query<Model>;
   eventType: ModelEventType;
   tenantId: ObjectID;
-  select: Select<Model>;
 }
 
-export default abstract class Reatime {
+export default abstract class Realtime {
   private static socket: Socket;
 
   public static init(): void {
@@ -39,7 +34,7 @@ export default abstract class Reatime {
 
   public static listenToModelEvent<Model extends BaseModel>(
     listenToModelEvent: ListenToModelEvent<Model>,
-    onEvent: (model: Model) => void,
+    onEvent: (modelId: ObjectID) => void,
   ): () => void {
     // conver this to json and send it to the server.
 
@@ -51,9 +46,7 @@ export default abstract class Reatime {
       eventType: listenToModelEvent.eventType,
       modelType: DatabaseType.Database,
       modelName: listenToModelEvent.modelType.name,
-      query: JSONFunctions.serialize(listenToModelEvent.query),
       tenantId: listenToModelEvent.tenantId.toString(),
-      select: JSONFunctions.serialize(listenToModelEvent.select),
     };
 
     this.emit(EventName.ListenToModalEvent, listenToModelEventJSON as any);
@@ -64,8 +57,11 @@ export default abstract class Reatime {
       listenToModelEvent.eventType,
     );
 
-    this.socket.on(roomId, (model: JSONObject) => {
-      onEvent(BaseModel.fromJSON(model, listenToModelEvent.modelType) as Model);
+    this.socket.on(roomId, (data: JSONObject) => {
+      const id: ObjectID = ObjectID.fromString(
+        data["modelId"]?.toString() as string,
+      );
+      onEvent(id);
     });
 
     // Stop listening to the event.
@@ -88,9 +84,7 @@ export default abstract class Reatime {
       eventType: listenToModelEvent.eventType,
       modelType: DatabaseType.AnalyticsDatabase,
       modelName: listenToModelEvent.modelType.name,
-      query: JSONFunctions.serialize(listenToModelEvent.query),
       tenantId: listenToModelEvent.tenantId.toString(),
-      select: JSONFunctions.serialize(listenToModelEvent.select),
     };
 
     this.emit(EventName.ListenToModalEvent, listenToModelEventJSON as any);

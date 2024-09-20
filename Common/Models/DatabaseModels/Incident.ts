@@ -94,6 +94,11 @@ export interface TelemetryIncidentQuery {
   pluralName: "Incidents",
   icon: IconProp.Alert,
   tableDescription: "Manage incidents for your project",
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class Incident extends BaseModel {
   @ColumnAccessControl({

@@ -60,6 +60,8 @@ import API from "Common/Utils/API";
 import Slug from "Common/Utils/Slug";
 import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
+import Realtime from "../Utils/Realtime";
+import { ModelEventType } from "../../Utils/Realtime";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -516,7 +518,52 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
-  public async onTrigger(
+  public async onTriggerRealtime(
+    modelId: ObjectID,
+    projectId: ObjectID,
+    modelEventType: ModelEventType,
+  ): Promise<void> {
+    if (Realtime.isInitialized() && this.model.enableRealtimeEventsOn) {
+      let shouldEmitEvent = false;
+
+      if (
+        this.model.enableRealtimeEventsOn.create &&
+        modelEventType === ModelEventType.Create
+      ) {
+        shouldEmitEvent = true;
+      }
+
+      if (
+        this.model.enableRealtimeEventsOn.update &&
+        modelEventType === ModelEventType.Update
+      ) {
+        shouldEmitEvent = true;
+      }
+
+      if (
+        this.model.enableRealtimeEventsOn.delete &&
+        modelEventType === ModelEventType.Delete
+      ) {
+        shouldEmitEvent = true;
+      }
+
+      if (!shouldEmitEvent) {
+        return;
+      }
+
+      Realtime.emitModelEvent({
+        tenantId: projectId,
+        eventType: modelEventType,
+        modelId: modelId,
+        modelType: this.modelType,
+      }).catch((err) => {
+        logger.error("Cannot emit realtime event");
+        logger.error(err);
+      });
+    }
+  }
+
+  public async onTriggerWorkflow(
     id: ObjectID,
     projectId: ObjectID,
     triggerType: DatabaseTriggerType,
@@ -629,7 +676,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         if (tenantId) {
-          await this.onTrigger(createBy.data.id!, tenantId, "on-create");
+          await this.onTriggerWorkflow(
+            createBy.data.id!,
+            tenantId,
+            "on-create",
+          );
+          await this.onTriggerRealtime(
+            createBy.data.id!,
+            tenantId,
+            ModelEventType.Create,
+          );
         }
       }
 
@@ -1031,7 +1087,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             }
 
             if (tenantId) {
-              await this.onTrigger(item.id!, tenantId, "on-delete");
+              await this.onTriggerWorkflow(item.id!, tenantId, "on-delete");
+              await this.onTriggerRealtime(
+                item.id!,
+                tenantId,
+                ModelEventType.Delete,
+              );
             }
           }
         }
@@ -1337,9 +1398,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
 
           if (tenantId) {
-            await this.onTrigger(item.id!, tenantId, "on-update", {
+            await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
               updatedFields: JSONFunctions.serialize(data as JSONObject),
             });
+
+            await this.onTriggerRealtime(
+              item.id!,
+              tenantId,
+              ModelEventType.Update,
+            );
           }
         }
       }

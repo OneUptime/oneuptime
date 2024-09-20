@@ -1,15 +1,10 @@
 import IO, { Socket, SocketServer } from "../Infrastructure/SocketIO";
 import logger from "./Logger";
-import AnalyticsBaseModel, {
-  AnalyticsBaseModelType,
-} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel, {
-  DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import RealtimeUtil, {
   EventName,
@@ -67,9 +62,7 @@ export default abstract class Realtime {
           eventType: data["eventType"] as ModelEventType,
           modelType: data["modelType"] as DatabaseType,
           modelName: data["modelName"] as string,
-          query: JSONFunctions.deserialize(data["query"] as JSONObject),
           tenantId: data["tenantId"] as string,
-          select: JSONFunctions.deserialize(data["select"] as JSONObject),
         });
       });
     });
@@ -112,32 +105,26 @@ export default abstract class Realtime {
   public static async emitModelEvent(data: {
     tenantId: string | ObjectID;
     eventType: ModelEventType;
-    model: BaseModel | AnalyticsBaseModel;
+    modelId: ObjectID;
     modelType: { new (): BaseModel | AnalyticsBaseModel };
   }): Promise<void> {
     if (!this.socketServer) {
       await this.init();
     }
 
-    let jsonObject: JSONObject = {};
+    const jsonObject: JSONObject = {
+      modelId: data.modelId.toString(),
+    };
 
-    if (data.model instanceof BaseModel) {
-      jsonObject = BaseModel.toJSON(
-        data.model,
-        data.modelType as DatabaseBaseModelType,
-      );
-    }
+    const model = new data.modelType();
 
-    if (data.model instanceof AnalyticsBaseModel) {
-      jsonObject = AnalyticsBaseModel.toJSON(
-        data.model,
-        data.modelType as AnalyticsBaseModelType,
-      );
+    if (!model.tableName) {
+      return;
     }
 
     const roomId: string = RealtimeUtil.getRoomId(
       data.tenantId,
-      data.model.tableName!,
+      model.tableName!,
       data.eventType,
     );
 
