@@ -106,10 +106,10 @@ const WorkersFeatureSet: FeatureSet = {
           const funcToRun: PromiseVoidFunction =
             JobDictionary.getJobFunction(name);
 
-          const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
+          // const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
 
           if (funcToRun) {
-            await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
+            await funcToRun();
           }
         },
         { concurrency: 100 },
