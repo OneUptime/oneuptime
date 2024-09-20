@@ -1,5 +1,5 @@
 {
-    "name": "@oneuptime/home",
+    "name": "@oneuptime/worker",
     "version": "1.0.0",
     "description": "",
     "main": "Index.ts",
