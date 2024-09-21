@@ -34,24 +34,25 @@ import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 // import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 // import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 
-// // Scheduled Event Owners
-// import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
-// import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";
-// import "./Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
-// import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
+// Scheduled Event Owners
+import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
+import "./Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification";
+import "./Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
+import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
 
-// // Scheduled Event Notes
-// import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
-// import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
+// Scheduled Event Notes
+import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
+import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 
 // import "./Jobs/ServerMonitor/CheckOnlineStatus";
 
 // // Certs Routers
 // import "./Jobs/StatusPageCerts/StatusPageCerts";
 // import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
-// // Status Page Owners
-// import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
-// import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
+
+// Status Page Owners
+import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
+import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 
 // Status Page Reports
 import "./Jobs/StatusPage/SendReportsToSubscribers";
@@ -120,16 +121,16 @@ const WorkersFeatureSet: FeatureSet = {
           const funcToRun: PromiseVoidFunction =
             JobDictionary.getJobFunction(name);
 
-          // const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
+          const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
 
           if (funcToRun) {
-            await funcToRun();
+            await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
           }
         },
         { concurrency: 100 },
       );
 
-      
+
     } catch (err) {
       logger.error("App Init Failed:");
       logger.error(err);
