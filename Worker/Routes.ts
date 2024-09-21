@@ -31,11 +31,11 @@ import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
 import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
-// // Scheduled Event
-// import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
-// import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
-// import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
-// import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
+// Scheduled Event
+import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
+import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
+import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
+import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
@@ -53,11 +53,11 @@ import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 // import "./Jobs/StatusPageCerts/StatusPageCerts";
 
 // Status Page Announcements
-// import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
+import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
 
 // Status Page Owners
-// import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
-// import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
+import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
+import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 
 // Status Page Reports
 // import "./Jobs/StatusPage/SendReportsToSubscribers";
