@@ -14,20 +14,20 @@ import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
-// // Monitor Metrics
-// import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
-// // Monitor Owners
-// import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
-// import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
-// import "./Jobs/MonitorOwners/SendStatusChangeNotification";
-// // On-Call Duty Policy Executions.
-// import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
-// import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
-// // Payments.
-// import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
-// import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
-// import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
-// import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
+// Monitor Metrics
+import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
+// Monitor Owners
+import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
+import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
+import "./Jobs/MonitorOwners/SendStatusChangeNotification";
+// On-Call Duty Policy Executions.
+import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
+import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
+// Payments.
+import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
+import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
+import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
+import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 // // Scheduled Event
 // import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
 // import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
@@ -52,24 +52,25 @@ import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 // // Status Page Owners
 // import "./Jobs/StatusPageOwners/SendCreatedResourceNotification";
 // import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
-// // Status Page Reports
-// import "./Jobs/StatusPage/SendReportsToSubscribers";
-// // Telemetry Service
-// import "./Jobs/TelemetryService/DeleteOldData";
-// // User Notifications Log
-// import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
-// import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
-// import "./Jobs/Workflow/TimeoutJobs";
 
-// // Probes
-// import "./Jobs/Probe/SendOwnerAddedNotification";
-// import "./Jobs/Probe/UpdateConnectionStatus";
+// Status Page Reports
+import "./Jobs/StatusPage/SendReportsToSubscribers";
+// Telemetry Service
+import "./Jobs/TelemetryService/DeleteOldData";
+// User Notifications Log
+import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
+import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+import "./Jobs/Workflow/TimeoutJobs";
 
-// // Copilot Actions.
-// import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
+// Probes
+import "./Jobs/Probe/SendOwnerAddedNotification";
+import "./Jobs/Probe/UpdateConnectionStatus";
 
-// // Telemetry Monitors.
-// import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+// Copilot Actions.
+import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
+
+// Telemetry Monitors.
+import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
