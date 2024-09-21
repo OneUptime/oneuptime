@@ -109,7 +109,10 @@ const WorkersFeatureSet: FeatureSet = {
           // const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
 
           if (funcToRun) {
-            await funcToRun();
+            funcToRun().catch((err: Error) => {
+              logger.error("Error running job: " + name);
+              logger.error(err);
+            });
           }
         },
         { concurrency: 100 },
