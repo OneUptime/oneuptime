@@ -14,8 +14,10 @@ import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
+
 // Monitor Metrics
-import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
+// import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
+
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
