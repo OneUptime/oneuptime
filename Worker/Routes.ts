@@ -30,6 +30,7 @@ import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
 import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
+
 // // Scheduled Event
 // import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
 // import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
@@ -59,7 +60,8 @@ import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 // Status Page Reports
 import "./Jobs/StatusPage/SendReportsToSubscribers";
 // Telemetry Service
-import "./Jobs/TelemetryService/DeleteOldData";
+// import "./Jobs/TelemetryService/DeleteOldData";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
@@ -73,7 +75,7 @@ import "./Jobs/Probe/UpdateConnectionStatus";
 import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
 
 // Telemetry Monitors.
-import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+// import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";

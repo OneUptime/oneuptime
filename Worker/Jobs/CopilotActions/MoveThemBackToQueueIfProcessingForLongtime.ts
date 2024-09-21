@@ -9,7 +9,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
   "CopilotAction:MoveThemBackToQueueIfProcessingForLongtime",
-  { schedule: EVERY_THIRTY_MINUTES, runOnStartup: true },
+  { schedule: EVERY_THIRTY_MINUTES, runOnStartup: false },
   async () => {
     const lastHour: Date = OneUptimeDate.addRemoveHours(
       OneUptimeDate.getCurrentDate(),

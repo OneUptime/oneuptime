@@ -14,7 +14,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(
   "PaymentProvider:CheckSubscriptionStatus",
-  { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: true },
+  { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
   async () => {
     // get all projects.
     if (!IsBillingEnabled) {

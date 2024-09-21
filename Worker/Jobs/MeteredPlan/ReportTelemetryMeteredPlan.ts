@@ -21,7 +21,7 @@ RunCron(
   "MeteredPlan:ReportTelemetryMeteredPlan",
   {
     schedule: IsDevelopment ? EVERY_FIVE_MINUTE : EVERY_DAY,
-    runOnStartup: true,
+    runOnStartup: false,
   },
   async () => {
     if (!IsBillingEnabled) {
