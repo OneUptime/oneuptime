@@ -65,9 +65,9 @@ import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 // import "./Jobs/TelemetryService/DeleteOldData";
 
 // User Notifications Log
-// import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
-// import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
-// import "./Jobs/Workflow/TimeoutJobs";
+import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
+import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+import "./Jobs/Workflow/TimeoutJobs";
 
 // Probes
 // import "./Jobs/Probe/SendOwnerAddedNotification";
