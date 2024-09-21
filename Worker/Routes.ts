@@ -61,8 +61,9 @@ import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 
 // Status Page Reports
 // import "./Jobs/StatusPage/SendReportsToSubscribers";
+
 // Telemetry Service
-// import "./Jobs/TelemetryService/DeleteOldData";
+import "./Jobs/TelemetryService/DeleteOldData";
 
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
@@ -77,7 +78,7 @@ import "./Jobs/Workflow/TimeoutJobs";
 // import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
 
 // Telemetry Monitors.
-// import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
