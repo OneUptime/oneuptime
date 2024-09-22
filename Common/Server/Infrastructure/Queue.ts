@@ -14,8 +14,7 @@ import { ExpressRouter } from "../Utils/Express";
 
 export enum QueueName {
   Workflow = "Workflow",
-  Worker = "Worker",
-  WorkerNotification = "WorkerNotification",
+  Worker = "Worker"
 }
 
 export type QueueJob = Job;

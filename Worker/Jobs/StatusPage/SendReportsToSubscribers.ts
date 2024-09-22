@@ -7,14 +7,12 @@ import StatusPageService from "Common/Server/Services/StatusPageService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import { QueueName } from "Common/Server/Infrastructure/Queue";
 
 RunCron(
   "StatusPage:SendReportToSubscribers",
   {
     schedule: EVERY_MINUTE,
-    runOnStartup: false,
-    queueName: QueueName.WorkerNotification,
+    runOnStartup: false
   },
   async () => {
     // get all scheduled events of all the projects.
