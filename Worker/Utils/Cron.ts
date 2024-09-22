@@ -15,6 +15,7 @@ type RunCronFunction = (
     schedule: string;
     runOnStartup: boolean;
     timeoutInMS?: number | undefined;
+    queueName?: QueueName | undefined;
   },
   runFunction: PromiseVoidFunction,
 ) => void;
@@ -26,6 +27,7 @@ const RunCron: RunCronFunction = (
     schedule: string;
     runOnStartup: boolean;
     timeoutInMS?: number | undefined;
+    queueName?: QueueName | undefined;
   },
   runFunction: PromiseVoidFunction,
 ): void => {
@@ -51,9 +53,11 @@ const RunCron: RunCronFunction = (
 
         logger.debug("Adding job to the queue: " + jobName);
 
+        const queueName: QueueName = options.queueName || QueueName.Worker;
+
         // Add the job to the queue with the specified schedule
         Queue.addJob(
-          QueueName.Worker,
+          queueName,
           jobName,
           jobName,
           {},
@@ -66,7 +70,7 @@ const RunCron: RunCronFunction = (
 
         // Run the job immediately on startup if specified
         if (options.runOnStartup) {
-          Queue.addJob(QueueName.Worker, jobName, jobName, {}, {}).catch(
+          Queue.addJob(queueName, jobName, jobName, {}, {}).catch(
             (err: Error) => {
               return logger.error(err);
             },

@@ -132,6 +132,26 @@ const WorkersFeatureSet: FeatureSet = {
         },
         { concurrency: 100 },
       );
+
+      // Job process.
+      QueueWorker.getWorker(
+        QueueName.WorkerNotification,
+        async (job: QueueJob) => {
+          const name: string = job.name;
+
+          logger.debug("Running Job: " + name);
+
+          const funcToRun: PromiseVoidFunction =
+            JobDictionary.getJobFunction(name);
+
+          const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
+
+          if (funcToRun) {
+            await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
+          }
+        },
+        { concurrency: 100 },
+      );
     } catch (err) {
       logger.error("App Init Failed:");
       logger.error(err);
