@@ -16,7 +16,7 @@ import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
 // Monitor Metrics
-// import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
+import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
@@ -71,8 +71,8 @@ import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
 import "./Jobs/Workflow/TimeoutJobs";
 
 // Probes
-// import "./Jobs/Probe/SendOwnerAddedNotification";
-// import "./Jobs/Probe/UpdateConnectionStatus";
+import "./Jobs/Probe/SendOwnerAddedNotification";
+import "./Jobs/Probe/UpdateConnectionStatus";
 
 // Copilot Actions.
 // import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
