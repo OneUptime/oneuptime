@@ -47,10 +47,10 @@ import "./Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
 import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 
-// import "./Jobs/ServerMonitor/CheckOnlineStatus";
+import "./Jobs/ServerMonitor/CheckOnlineStatus";
 
 // // Certs Routers
-// import "./Jobs/StatusPageCerts/StatusPageCerts";
+import "./Jobs/StatusPageCerts/StatusPageCerts";
 
 // Status Page Announcements
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";
