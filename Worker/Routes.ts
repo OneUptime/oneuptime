@@ -75,7 +75,7 @@ import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
 // Copilot Actions.
-// import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
+import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
