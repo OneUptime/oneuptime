@@ -132,7 +132,6 @@ const WorkersFeatureSet: FeatureSet = {
         },
         { concurrency: 100 },
       );
-
     } catch (err) {
       logger.error("App Init Failed:");
       logger.error(err);

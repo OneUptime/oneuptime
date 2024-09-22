@@ -12,7 +12,7 @@ RunCron(
   "StatusPage:SendReportToSubscribers",
   {
     schedule: EVERY_MINUTE,
-    runOnStartup: false
+    runOnStartup: false,
   },
   async () => {
     // get all scheduled events of all the projects.
