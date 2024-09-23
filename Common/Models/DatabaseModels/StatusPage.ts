@@ -1312,7 +1312,7 @@ export default class StatusPage extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
