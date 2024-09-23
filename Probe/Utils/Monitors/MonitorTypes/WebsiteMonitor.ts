@@ -161,10 +161,8 @@ export default class WebsiteMonitor {
         logger.debug(
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
-        probeWebsiteResponse.failureCause = "Timeout exceeded";
-        probeWebsiteResponse.isOnline = false;
 
-        return probeWebsiteResponse;
+        return null;
       }
 
       if (!options.isOnlineCheckRequest) {
