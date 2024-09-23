@@ -876,7 +876,7 @@ export class Service extends DatabaseService<Model> {
             monitorStatusId: true,
           },
           sort: {
-            createdAt: SortOrder.Descending,
+            startsAt: SortOrder.Descending,
           },
           props: {
             isRoot: true,
@@ -889,6 +889,7 @@ export class Service extends DatabaseService<Model> {
         lastMonitorStatusTimeline.monitorStatusId.toString() ===
           monitorStatusId.toString()
       ) {
+        // status is same as last status. do not create new status timeline.
         continue;
       }
 
