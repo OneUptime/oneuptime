@@ -7,6 +7,7 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Columns from "../../../Types/Database/Columns";
+import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
   TableColumnMetadata,
   getTableColumn,
@@ -63,7 +64,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was created.",
   })
-  @CreateDateColumn()
+  @CreateDateColumn({
+    type: ColumnType.Date,
+  })
   public createdAt?: Date = undefined;
 
   @TableColumn({
@@ -71,7 +74,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was updated.",
   })
-  @UpdateDateColumn()
+  @UpdateDateColumn({
+    type: ColumnType.Date,
+  })
   public updatedAt?: Date = undefined;
 
   @TableColumn({
@@ -79,7 +84,11 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was deleted.",
   })
-  @DeleteDateColumn()
+  @DeleteDateColumn(
+    {
+      type: ColumnType.Date,
+    },
+  )
   public deletedAt?: Date = undefined;
 
   @TableColumn({

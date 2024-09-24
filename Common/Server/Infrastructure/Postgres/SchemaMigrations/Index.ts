@@ -66,6 +66,11 @@ import { MigrationName1727102156072 } from "./1727102156072-MigrationName";
 import { MigrationName1727102331367 } from "./1727102331367-MigrationName";
 import { MigrationName1727103023745 } from "./1727103023745-MigrationName";
 import { MigrationName1727104469670 } from "./1727104469670-MigrationName";
+import { MigrationName1727192530019 } from "./1727192530019-MigrationName";
+import { MigrationName1727193130193 } from "./1727193130193-MigrationName";
+import { MigrationName1727193702212 } from "./1727193702212-MigrationName";
+import { MigrationName1727194211048 } from "./1727194211048-MigrationName";
+import { MigrationName1727194579925 } from "./1727194579925-MigrationName";
 
 export default [
   InitialMigration,
@@ -136,4 +141,10 @@ export default [
   MigrationName1727102331367,
   MigrationName1727103023745,
   MigrationName1727104469670,
+  MigrationName1727192530019,
+  MigrationName1727193130193,
+  MigrationName1727193702212,
+  MigrationName1727194211048,
+  MigrationName1727194579925
+  
 ];
