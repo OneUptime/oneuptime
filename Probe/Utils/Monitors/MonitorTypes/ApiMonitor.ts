@@ -187,7 +187,11 @@ export default class ApiMonitor {
           `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        return null; // timeout exceeded
+        apiResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
+        apiResponse.isOnline = false;
       }
 
       logger.error(

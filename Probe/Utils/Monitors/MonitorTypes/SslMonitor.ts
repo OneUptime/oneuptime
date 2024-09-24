@@ -88,7 +88,13 @@ export default class SSLMonitor {
           `Ping Monitor - Timeout exceeded ${pingOptions.monitorId?.toString()} ${url.toString()} - ERROR: ${err}`,
         );
 
-        return null;
+        return {
+          isOnline: false,
+          failureCause:
+            "Request was tried " +
+            pingOptions.currentRetryCount +
+            " times and it timed out.",
+        };
       }
 
       // check if the probe is online.
