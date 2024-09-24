@@ -2,7 +2,6 @@ import OnlineCheck from "../../OnlineCheck";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import UnableToReachServer from "Common/Types/Exception/UnableToReachServer";
 import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
@@ -115,7 +114,7 @@ export default class PortMonitor {
             logger.debug("Ping timeout");
 
             if (!hasPromiseResolved) {
-              reject(new UnableToReachServer("Ping timeout"));
+              resolve(new PositiveNumber(timeout));
             }
 
             hasPromiseResolved = true;
