@@ -35,7 +35,9 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.nodeSelector }}
+      {{- if $val.nodeSelector }}
+      nodeSelector: {{- $val.nodeSelector | toYaml | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
       nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
       {{- end }}
       containers:
