@@ -84,11 +84,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was deleted.",
   })
-  @DeleteDateColumn(
-    {
-      type: ColumnType.Date,
-    },
-  )
+  @DeleteDateColumn({
+    type: ColumnType.Date,
+  })
   public deletedAt?: Date = undefined;
 
   @TableColumn({
