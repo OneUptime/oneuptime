@@ -162,7 +162,13 @@ export default class WebsiteMonitor {
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        return null;
+        probeWebsiteResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
+        probeWebsiteResponse.isOnline = false;
+
+        return probeWebsiteResponse;
       }
 
       if (!options.isOnlineCheckRequest) {
