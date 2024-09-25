@@ -17,13 +17,13 @@ spec:
   tls:
     {{- range $key, $val := $.Values.oneuptimeIngress.tls.hosts }}
     - hosts:
-        - {{ $val.host }}
+        - {{ $val.host | quote }}
       secretName: {{ $val.secretName }}
     {{- end }}
   {{- end }}
   rules:
     {{- range $key, $val := $.Values.oneuptimeIngress.hosts }}
-    - host: {{ $val }}
+    - host: {{ $val | quote }}
       http:
         paths:
           - path: /
