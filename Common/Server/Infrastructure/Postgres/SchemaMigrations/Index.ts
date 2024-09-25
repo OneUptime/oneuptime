@@ -61,6 +61,16 @@ import { MigrationName1725901024444 } from "./1725901024444-MigrationName";
 import { MigrationName1725975175669 } from "./1725975175669-MigrationName";
 import { MigrationName1725976810107 } from "./1725976810107-MigrationName";
 import { MigrationName1726831037585 } from "./1726831037585-MigrationName";
+import { MigrationName1727101782315 } from "./1727101782315-MigrationName";
+import { MigrationName1727102156072 } from "./1727102156072-MigrationName";
+import { MigrationName1727102331367 } from "./1727102331367-MigrationName";
+import { MigrationName1727103023745 } from "./1727103023745-MigrationName";
+import { MigrationName1727104469670 } from "./1727104469670-MigrationName";
+import { MigrationName1727192530019 } from "./1727192530019-MigrationName";
+import { MigrationName1727193130193 } from "./1727193130193-MigrationName";
+import { MigrationName1727193702212 } from "./1727193702212-MigrationName";
+import { MigrationName1727194211048 } from "./1727194211048-MigrationName";
+import { MigrationName1727194579925 } from "./1727194579925-MigrationName";
 
 export default [
   InitialMigration,
@@ -126,4 +136,14 @@ export default [
   MigrationName1725975175669,
   MigrationName1725976810107,
   MigrationName1726831037585,
+  MigrationName1727101782315,
+  MigrationName1727102156072,
+  MigrationName1727102331367,
+  MigrationName1727103023745,
+  MigrationName1727104469670,
+  MigrationName1727192530019,
+  MigrationName1727193130193,
+  MigrationName1727193702212,
+  MigrationName1727194211048,
+  MigrationName1727194579925,
 ];

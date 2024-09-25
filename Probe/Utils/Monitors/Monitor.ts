@@ -150,7 +150,7 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
-            retry: 5,
+            retry: 10,
             monitorId: monitor.id!,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
@@ -167,7 +167,7 @@ export default class MonitorUtil {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
           {
-            retry: 5,
+            retry: 10,
             monitorId: monitor.id!,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
@@ -204,7 +204,7 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
-          retry: 5,
+          retry: 10,
           monitorId: monitor.id!,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
@@ -280,7 +280,7 @@ export default class MonitorUtil {
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
-          retry: 5,
+          retry: 10,
           monitorId: monitor.id!,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
@@ -309,7 +309,7 @@ export default class MonitorUtil {
         {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitor.id!,
-          retry: 5,
+          retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
@@ -350,7 +350,7 @@ export default class MonitorUtil {
           requestBody: requestBody || undefined,
           monitorId: monitor.id!,
           requestType: monitorStep.data?.requestType || HTTPMethod.GET,
-          retry: 5,
+          retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
       );

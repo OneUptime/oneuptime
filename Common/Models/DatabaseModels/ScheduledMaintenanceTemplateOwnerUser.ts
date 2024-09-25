@@ -297,7 +297,7 @@ export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -357,7 +357,7 @@ export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

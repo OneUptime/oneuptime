@@ -81,7 +81,7 @@ export default class Recurring extends DatabaseProperty {
 
     if (nextDate.getTime() <= dateNow.getTime()) {
       while (nextDate.getTime() <= dateNow.getTime()) {
-        nextDate = this.getNextDateInterval(startDate, rotation);
+        nextDate = this.getNextDateInterval(nextDate, rotation);
       }
     }
 

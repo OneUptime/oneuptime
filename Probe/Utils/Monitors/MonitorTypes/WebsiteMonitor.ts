@@ -153,6 +153,15 @@ export default class WebsiteMonitor {
         };
       }
 
+      if (!options.isOnlineCheckRequest) {
+        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
+          logger.error(
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+          );
+          return null;
+        }
+      }
+
       // check if timeout exceeded and if yes, return null
       if (
         (err as any).toString().includes("timeout") &&
@@ -161,19 +170,14 @@ export default class WebsiteMonitor {
         logger.debug(
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
-        probeWebsiteResponse.failureCause = "Timeout exceeded";
+
+        probeWebsiteResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
         probeWebsiteResponse.isOnline = false;
 
         return probeWebsiteResponse;
-      }
-
-      if (!options.isOnlineCheckRequest) {
-        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
-          logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
-          );
-          return null;
-        }
       }
 
       logger.error(

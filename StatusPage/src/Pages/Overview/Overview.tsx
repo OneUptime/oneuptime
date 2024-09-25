@@ -373,7 +373,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       if (
         !downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
-          return currentStatus.id?.toString() === downtimeStatus.id?.toString();
+          return (
+            currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
+          );
         }) &&
         data.group.showUptimePercent
       ) {
@@ -723,13 +725,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
       getResourcesInGroup(group);
 
     for (const resource of resourcesInGroup) {
-      const currentMonitorStatus: MonitorStatus | undefined =
+      let currentMonitorStatus: MonitorStatus | undefined =
         monitorStatuses.find((status: MonitorStatus) => {
           return (
             status._id?.toString() ===
             resource.monitor?.currentMonitorStatusId?.toString()
           );
         });
+
+      if (!currentMonitorStatus) {
+        currentMonitorStatus = currentStatus;
+      }
 
       if (
         (currentStatus &&

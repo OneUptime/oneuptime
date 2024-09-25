@@ -23,7 +23,7 @@ spec:
   {{- end }}
   rules:
     {{- range $key, $val := $.Values.oneuptimeIngress.hosts }}
-    - host: {{ $val }}
+    - host: {{ $val | quote }}
       http:
         paths:
           - path: /
@@ -35,7 +35,7 @@ spec:
                   name: "oneuptime-http"
     {{- end }}
     {{- if $.Values.openTelemetryCollectorHost }}
-    - host: {{ $.Values.openTelemetryCollectorHost }}
+    - host: {{ $.Values.openTelemetryCollectorHost | quote }}
       http:
         paths:
          - path: /
@@ -47,7 +47,7 @@ spec:
                  name: "oneuptime-http"
     {{- end }}
     {{- if $.Values.fluentdHost }}
-    - host: {{ $.Values.fluentdHost }}
+    - host: {{ $.Values.fluentdHost | quote }}
       http:
         paths:
          - path: /

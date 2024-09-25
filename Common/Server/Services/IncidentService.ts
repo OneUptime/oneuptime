@@ -586,7 +586,7 @@ export class Service extends DatabaseService<Model> {
                 isRoot: true,
               },
               sort: {
-                createdAt: SortOrder.Descending,
+                startsAt: SortOrder.Descending,
               },
             });
 

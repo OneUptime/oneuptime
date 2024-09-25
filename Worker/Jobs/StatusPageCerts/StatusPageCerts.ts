@@ -10,7 +10,7 @@ RunCron(
   "StatusPageCerts:RenewCerts",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_DAY,
-    runOnStartup: true,
+    runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
   },
   async () => {
@@ -24,7 +24,7 @@ RunCron(
   "StatusPageCerts:CheckSslProvisioningStatus",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
-    runOnStartup: true,
+    runOnStartup: false,
   },
   async () => {
     await StatusPageDomainService.updateSslProvisioningStatusForAllDomains();
@@ -35,7 +35,7 @@ RunCron(
   "StatusPageCerts:OrderSSL",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
-    runOnStartup: true,
+    runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
   },
   async () => {
@@ -44,7 +44,7 @@ RunCron(
       options: {
         attributes: {
           schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
-          runOnStartup: true,
+          runOnStartup: false,
           timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
         },
       },
@@ -70,7 +70,7 @@ RunCron(
   "StatusPageCerts:VerifyCnameWhoseCnameisNotVerified",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
-    runOnStartup: true,
+    runOnStartup: false,
   },
   async () => {
     await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
@@ -81,7 +81,7 @@ RunCron(
   "StatusPageCerts:CheckOrderStatus",
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
-    runOnStartup: true,
+    runOnStartup: false,
   },
   async () => {
     // checks if the certificate exists for the domains that have ordered certificates, otherwise orders again,

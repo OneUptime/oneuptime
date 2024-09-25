@@ -214,6 +214,8 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
       );
 
+      logger.debug(dataToProcess);
+
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
@@ -224,6 +226,7 @@ export default class MonitorResourceUtil {
         },
         props: {
           isRoot: true,
+          ignoreHooks: true,
         },
       });
 
@@ -418,27 +421,57 @@ export default class MonitorResourceUtil {
         dataToProcess: dataToProcess,
       });
 
-      // if no criteria is met then update monitor to default state.
-      const monitorStatusTimeline: MonitorStatusTimeline =
-        new MonitorStatusTimeline();
-      monitorStatusTimeline.monitorId = monitor.id!;
-      monitorStatusTimeline.monitorStatusId =
-        monitorSteps.data.defaultMonitorStatusId!;
-      monitorStatusTimeline.projectId = monitor.projectId!;
-      monitorStatusTimeline.statusChangeLog = JSON.parse(
-        JSON.stringify(dataToProcess),
-      );
-      monitorStatusTimeline.rootCause =
-        "No monitoring criteria met. Change to default status. ";
-      await MonitorStatusTimelineService.create({
-        data: monitorStatusTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
-      );
+      // get last monitor status timeline.
+      const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+        await MonitorStatusTimelineService.findOneBy({
+          query: {
+            monitorId: monitor.id!,
+            projectId: monitor.projectId!,
+          },
+          select: {
+            _id: true,
+            monitorStatusId: true,
+          },
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (
+        lastMonitorStatusTimeline &&
+        lastMonitorStatusTimeline.monitorStatusId &&
+        lastMonitorStatusTimeline.monitorStatusId.toString() ===
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        // status is same as last status. do not create new status timeline.
+        // do nothing! status is same as last status.
+      } else {
+        // if no criteria is met then update monitor to default state.
+        const monitorStatusTimeline: MonitorStatusTimeline =
+          new MonitorStatusTimeline();
+        monitorStatusTimeline.monitorId = monitor.id!;
+        monitorStatusTimeline.monitorStatusId =
+          monitorSteps.data.defaultMonitorStatusId!;
+        monitorStatusTimeline.projectId = monitor.projectId!;
+        monitorStatusTimeline.statusChangeLog = JSON.parse(
+          JSON.stringify(dataToProcess),
+        );
+        monitorStatusTimeline.rootCause =
+          "No monitoring criteria met. Change to default status. ";
+
+        await MonitorStatusTimelineService.create({
+          data: monitorStatusTimeline,
+          props: {
+            isRoot: true,
+          },
+        });
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+        );
+      }
     }
 
     return response;
@@ -733,6 +766,37 @@ export default class MonitorResourceUtil {
         input.criteriaInstance.data?.monitorStatusId;
 
       //change monitor status.
+
+      // get last status of this monitor.
+
+      // get last monitor status timeline.
+      const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+        await MonitorStatusTimelineService.findOneBy({
+          query: {
+            monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
+          },
+          select: {
+            _id: true,
+            monitorStatusId: true,
+          },
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (
+        lastMonitorStatusTimeline &&
+        lastMonitorStatusTimeline.monitorStatusId &&
+        lastMonitorStatusTimeline.monitorStatusId.toString() ===
+          monitorStatusId.toString()
+      ) {
+        // status is same as last status. do not create new status timeline.
+        return;
+      }
 
       const monitorStatusTimeline: MonitorStatusTimeline =
         new MonitorStatusTimeline();

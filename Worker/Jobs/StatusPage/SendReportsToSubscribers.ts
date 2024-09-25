@@ -10,7 +10,10 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 RunCron(
   "StatusPage:SendReportToSubscribers",
-  { schedule: EVERY_MINUTE, runOnStartup: false },
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+  },
   async () => {
     // get all scheduled events of all the projects.
     const statusPageToSendReports: Array<StatusPage> =

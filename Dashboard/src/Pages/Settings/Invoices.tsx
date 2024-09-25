@@ -97,11 +97,12 @@ const Settings: FunctionComponent<ComponentProps> = (
           selectMoreFields={{
             currencyCode: true,
             paymentProviderCustomerId: true,
+            paymentProviderInvoiceId: true,
           }}
           filters={[
             {
               field: {
-                paymentProviderInvoiceId: true,
+                invoiceNumber: true,
               },
               title: "Invoice ID",
               type: FieldType.Text,
