@@ -8,7 +8,7 @@ export default (props: {
   pluralName: string;
   icon: IconProp;
   tableDescription: string;
-  enableRealtimeEventsOn?: EnableRealtimeEventsOn;
+  enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
 }) => {
   return (ctr: GenericFunction) => {
     ctr.prototype.singularName = props.singularName;

@@ -16,6 +16,7 @@ import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import React, { ReactElement, useEffect, useState } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 const Call: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -26,7 +27,9 @@ const Call: () => JSX.Element = (): ReactElement => {
 
   const [error, setError] = useState<string>("");
   const [currentItem, setCurrentItem] = useState<UserCall | null>(null);
-  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
@@ -182,7 +185,7 @@ const Call: () => JSX.Element = (): ReactElement => {
               } else {
                 setIsLoading(false);
                 setShowVerificationCodeModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
               }
             } catch (e) {
               setError(API.getFriendlyMessage(e));

@@ -967,7 +967,7 @@ export default class AnalyticsDatabaseService<
 
             promises.push(
               Realtime.emitModelEvent({
-                model: item,
+                modelId: item.id!,
                 tenantId: tenantId,
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,

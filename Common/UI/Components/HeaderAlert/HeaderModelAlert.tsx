@@ -6,8 +6,6 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
-import RealtimeUtil, { ModelEventType } from "../../../Utils/Realtime";
-import Realtime from "../../Utils/Realtime";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   icon: IconProp;
@@ -18,7 +16,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   requestOptions?: RequestOptions | undefined;
   onCountFetchInit?: (() => void) | undefined;
   onClick?: (() => void) | undefined;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
   className?: string | undefined;
 }
 
@@ -67,9 +65,6 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
     });
     setIsLoading(false);
   }, []);
-
-
-
 
   if (error) {
     return <></>;

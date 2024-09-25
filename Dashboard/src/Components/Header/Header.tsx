@@ -46,42 +46,53 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-    useState<boolean>(true);
+    useState<string>(OneUptimeDate.getCurrentDate().toString());
 
   const refreshIncidentCount: VoidFunction = () => {
-    setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
+    setActiveIncidentToggleRefresh(OneUptimeDate.getCurrentDate().toString());
   };
 
   useEffect(() => {
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
 
-    const stopListeningOnCreate = Realtime.listenToModelEvent<Incident>({
-      eventType: ModelEventType.Create,
-      modelType: Incident,
-      tenantId: DashboardNavigation.getProjectId()!,
-    }, () => {
-      refreshIncidentCount();
-    });
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
 
-    const stopListeningOnUpdate = Realtime.listenToModelEvent<Incident>({
-      eventType: ModelEventType.Update,
-      modelType: Incident,
-      tenantId: DashboardNavigation.getProjectId()!,
-    }, () => {
-      refreshIncidentCount();
-    });
-
-    const stopListeningOnDelete = Realtime.listenToModelEvent<Incident>({
-      eventType: ModelEventType.Delete,
-      modelType: Incident,
-      tenantId: DashboardNavigation.getProjectId()!,
-    }, () => {
-      refreshIncidentCount();
-    });
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
 
     return () => {
       // on unmount.
       stopListeningOnCreate();
-      stopListeningOnUpdate(); 
+      stopListeningOnUpdate();
       stopListeningOnDelete();
     };
   }, []);

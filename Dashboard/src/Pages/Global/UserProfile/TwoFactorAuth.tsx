@@ -25,6 +25,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import User from "Common/Models/DatabaseModels/User";
+import OneUptimeDate from "Common/Types/Date";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
@@ -37,8 +38,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [verificationLoading, setVerificationLoading] =
     React.useState<boolean>(false);
 
-  const [tableRefreshToggle, setTableRefreshToggle] =
-    React.useState<boolean>(false);
+  const [tableRefreshToggle, setTableRefreshToggle] = React.useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
 
   return (
     <Page
@@ -209,7 +211,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   throw response;
                 }
 
-                setTableRefreshToggle(!tableRefreshToggle);
+                setTableRefreshToggle(
+                  OneUptimeDate.getCurrentDate().toString(),
+                );
               } catch (err) {
                 setVerificationError(API.getFriendlyMessage(err));
                 setVerificationLoading(false);

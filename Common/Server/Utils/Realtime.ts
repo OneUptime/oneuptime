@@ -16,56 +16,63 @@ export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
 
   public static isInitialized(): boolean {
-    return this.socketServer !== null;
+    logger.debug("Checking if socket server is initialized");
+    const isInitialized: boolean = this.socketServer !== null;
+    logger.debug(`Socket server is initialized: ${isInitialized}`);
+    return isInitialized;
   }
 
   public static async init(): Promise<SocketServer | null> {
     if (!this.socketServer) {
+      logger.debug("Initializing socket server");
       this.socketServer = IO.getSocketServer();
       logger.debug("Realtime socket server initialized");
-    }
 
-    this.socketServer!.on("connection", (socket: Socket) => {
-      socket.on(EventName.ListenToModalEvent, async (data: JSONObject) => {
-        // TODO: validate if this soocket has access to this tenant
+      this.socketServer!.on("connection", (socket: Socket) => {
+        logger.debug("New socket connection established");
 
-        // TODO: validate if this socket has access to this model
+        socket.on(EventName.ListenToModalEvent, async (data: JSONObject) => {
+          logger.debug("Received ListenToModalEvent with data:");
+          logger.debug(data);
 
-        // TODO: validate if this socket has access to this event type
+          // TODO: validate if this socket has access to this tenant
 
-        // TODO: validate if this socket has access to this query
+          // TODO: validate if this socket has access to this model
 
-        // TODO: validate if this socket has access to this select
+          // TODO: validate if this socket has access to this event type
 
-        // validate data
+          // TODO: validate if this socket has access to this query
 
-        if (typeof data["eventType"] !== "string") {
-          throw new BadDataException("eventType is not a string");
-        }
-        if (typeof data["modelType"] !== "string") {
-          throw new BadDataException("modelType is not a string");
-        }
-        if (typeof data["modelName"] !== "string") {
-          throw new BadDataException("modelName is not a string");
-        }
-        if (typeof data["query"] !== "object") {
-          throw new BadDataException("query is not an object");
-        }
-        if (typeof data["tenantId"] !== "string") {
-          throw new BadDataException("tenantId is not a string");
-        }
-        if (typeof data["select"] !== "object") {
-          throw new BadDataException("select is not an object");
-        }
+          // TODO: validate if this socket has access to this select
 
-        await Realtime.listenToModelEvent(socket, {
-          eventType: data["eventType"] as ModelEventType,
-          modelType: data["modelType"] as DatabaseType,
-          modelName: data["modelName"] as string,
-          tenantId: data["tenantId"] as string,
+          // validate data
+
+          if (typeof data["eventType"] !== "string") {
+            logger.error("eventType is not a string");
+            throw new BadDataException("eventType is not a string");
+          }
+          if (typeof data["modelType"] !== "string") {
+            logger.error("modelType is not a string");
+            throw new BadDataException("modelType is not a string");
+          }
+          if (typeof data["modelName"] !== "string") {
+            logger.error("modelName is not a string");
+            throw new BadDataException("modelName is not a string");
+          }
+          if (typeof data["tenantId"] !== "string") {
+            logger.error("tenantId is not a string");
+            throw new BadDataException("tenantId is not a string");
+          }
+
+          await Realtime.listenToModelEvent(socket, {
+            eventType: data["eventType"] as ModelEventType,
+            modelType: data["modelType"] as DatabaseType,
+            modelName: data["modelName"] as string,
+            tenantId: data["tenantId"] as string,
+          });
         });
       });
-    });
+    }
 
     return this.socketServer;
   }
@@ -74,7 +81,11 @@ export default abstract class Realtime {
     socket: Socket,
     data: ListenToModelEventJSON,
   ): Promise<void> {
+    logger.debug("Listening to model event with data:");
+    logger.debug(data);
+
     if (!this.socketServer) {
+      logger.debug("Socket server not initialized, initializing now");
       await this.init();
     }
 
@@ -84,6 +95,7 @@ export default abstract class Realtime {
       data.eventType,
     );
 
+    logger.debug(`Joining room with ID: ${roomId}`);
     // join the room.
     await socket.join(roomId);
   }
@@ -92,14 +104,22 @@ export default abstract class Realtime {
     socket: Socket,
     data: ListenToModelEventJSON,
   ): Promise<void> {
+    logger.debug("Stopping listening to model event with data:");
+    logger.debug(data);
+
     if (!this.socketServer) {
+      logger.debug("Socket server not initialized, initializing now");
       await this.init();
     }
 
-    // leave this room.
-    await socket.leave(
-      RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType),
+    const roomId: string = RealtimeUtil.getRoomId(
+      data.tenantId,
+      data.modelName,
+      data.eventType,
     );
+    logger.debug(`Leaving room with ID: ${roomId}`);
+    // leave this room.
+    await socket.leave(roomId);
   }
 
   public static async emitModelEvent(data: {
@@ -108,7 +128,13 @@ export default abstract class Realtime {
     modelId: ObjectID;
     modelType: { new (): BaseModel | AnalyticsBaseModel };
   }): Promise<void> {
+    logger.debug("Emitting model event with data:");
+    logger.debug(`Tenant ID: ${data.tenantId}`);
+    logger.debug(`Event Type: ${data.eventType}`);
+    logger.debug(`Model ID: ${data.modelId}`);
+
     if (!this.socketServer) {
+      logger.debug("Socket server not initialized, initializing now");
       await this.init();
     }
 
@@ -116,9 +142,10 @@ export default abstract class Realtime {
       modelId: data.modelId.toString(),
     };
 
-    const model = new data.modelType();
+    const model: BaseModel | AnalyticsBaseModel = new data.modelType();
 
     if (!model.tableName) {
+      logger.warn("Model does not have a tableName, aborting emit");
       return;
     }
 
@@ -128,6 +155,8 @@ export default abstract class Realtime {
       data.eventType,
     );
 
+    logger.debug(`Emitting event to room with ID: ${roomId}`);
+    logger.debug(jsonObject);
     this.socketServer!.to(roomId).emit(roomId, jsonObject);
   }
 }

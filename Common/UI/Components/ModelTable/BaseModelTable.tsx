@@ -176,7 +176,7 @@ export interface BaseTableProps<
   onCreateEditModalClose?: (() => void) | undefined;
   editButtonText?: string | undefined;
   viewButtonText?: string | undefined;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;

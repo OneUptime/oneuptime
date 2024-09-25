@@ -124,7 +124,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   public pluralName!: string | null;
 
   // realtime events.
-  public enableRealtimeEventsOn: EnableRealtimeEventsOn | null = null;
+  public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
 
   // total items  by
   public totalItemsByColumnName!: string | null;
