@@ -129,13 +129,12 @@ export default abstract class Realtime {
     // check if the user has access to this tenant
 
     if (userGlobalAccessPermission && !hasAccess) {
-      const hasAccessToPrpojectId = userGlobalAccessPermission.projectIds.some(
-        (projectId: ObjectID) => {
+      const hasAccessToProjectId: boolean =
+        userGlobalAccessPermission.projectIds.some((projectId: ObjectID) => {
           return projectId.toString() === data.tenantId.toString();
-        },
-      );
+        });
 
-      if (!hasAccessToPrpojectId) {
+      if (!hasAccessToProjectId) {
         logger.debug(
           "User does not have access to this tenant, aborting joining room",
         );

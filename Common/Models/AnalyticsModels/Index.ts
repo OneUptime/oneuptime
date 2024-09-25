@@ -17,7 +17,11 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};
 
-export const getModelTypeByName = (
+type GetModelTypeByName = (
+  tableName: string,
+) => (new () => AnalyticsBaseModel) | null;
+
+export const getModelTypeByName: GetModelTypeByName = (
   tableName: string,
 ): (new () => AnalyticsBaseModel) | null => {
   if (modelTypeMap[tableName]) {

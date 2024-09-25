@@ -143,7 +143,9 @@ import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplat
 
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 
-const AllModelTypes = [
+const AllModelTypes: Array<{
+  new (): BaseModel;
+}> = [
   User,
   Probe,
   Project,
@@ -307,7 +309,11 @@ const AllModelTypes = [
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
 
-export const getModelTypeByName = (
+type GetModelTypeByNameFunction = (
+  tableName: string,
+) => { new (): BaseModel } | null;
+
+export const getModelTypeByName: GetModelTypeByNameFunction = (
   tableName: string,
 ): { new (): BaseModel } | null => {
   if (modelTypeMap[tableName]) {
