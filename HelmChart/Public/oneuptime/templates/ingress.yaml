@@ -17,7 +17,7 @@ spec:
   tls:
     {{- range $key, $val := $.Values.oneuptimeIngress.tls.hosts }}
     - hosts:
-        - {{ $val.host }}
+        - {{ $val.host | quote }}
       secretName: {{ $val.secretName }}
     {{- end }}
   {{- end }}
