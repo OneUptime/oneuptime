@@ -31,6 +31,7 @@ import {
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
 import Project from "Common/Models/DatabaseModels/Project";
+import { Socket } from "../Infrastructure/SocketIO";
 
 export default class UserMiddleware {
   /*
@@ -40,11 +41,51 @@ export default class UserMiddleware {
    * Returns: 401: User is unauthorized since unauthorized token was present.
    */
 
-  public static getAccessToken(req: ExpressRequest): string | undefined {
+  public static getAccessTokenFromCookie(
+    req: ExpressRequest,
+  ): string | undefined {
     let accessToken: string | undefined = undefined;
 
-    if (CookieUtil.getCookie(req, CookieUtil.getUserTokenKey())) {
-      accessToken = CookieUtil.getCookie(req, CookieUtil.getUserTokenKey());
+    if (
+      CookieUtil.getCookieFromExpressRequest(req, CookieUtil.getUserTokenKey())
+    ) {
+      accessToken = CookieUtil.getCookieFromExpressRequest(
+        req,
+        CookieUtil.getUserTokenKey(),
+      );
+    }
+
+    return accessToken;
+  }
+
+  public static getAccessTokenFromSocket(socket: Socket): string | undefined {
+    let accessToken: string | undefined = undefined;
+
+    if (socket.handshake.headers.cookie) {
+      const cookies: Dictionary<string> = CookieUtil.getCookiesFromCookieString(
+        socket.handshake.headers.cookie,
+      );
+
+      if (cookies[CookieUtil.getUserTokenKey()]) {
+        accessToken = cookies[CookieUtil.getUserTokenKey()];
+      }
+    }
+
+    return accessToken;
+  }
+
+  public static getAccessTokenFromExpressRequest(
+    req: ExpressRequest,
+  ): string | undefined {
+    let accessToken: string | undefined = undefined;
+
+    if (
+      CookieUtil.getCookieFromExpressRequest(req, CookieUtil.getUserTokenKey())
+    ) {
+      accessToken = CookieUtil.getCookieFromExpressRequest(
+        req,
+        CookieUtil.getUserTokenKey(),
+      );
     }
 
     return accessToken;
@@ -130,7 +171,8 @@ export default class UserMiddleware {
       );
     }
 
-    const accessToken: string | undefined = UserMiddleware.getAccessToken(req);
+    const accessToken: string | undefined =
+      UserMiddleware.getAccessTokenFromExpressRequest(req);
 
     if (!accessToken) {
       oneuptimeRequest.userType = UserType.Public;
@@ -202,6 +244,7 @@ export default class UserMiddleware {
             new ObjectID(userId),
             userGlobalAccessPermission.projectIds,
           );
+
         if (userTenantAccessPermission) {
           oneuptimeRequest.userTenantAccessPermission =
             userTenantAccessPermission;

@@ -16,6 +16,7 @@ export interface ListenToModelEventJSON {
   modelType: DatabaseType;
   eventType: ModelEventType;
   tenantId: string;
+  modelId?: string | undefined;
 }
 
 export interface EnableRealtimeEventsOn {
@@ -29,7 +30,15 @@ export default class RealtimeUtil {
     tenantId: string | ObjectID,
     modelName: string,
     eventType: ModelEventType,
+    modelId?: string | ObjectID,
   ): string {
-    return tenantId.toString() + "-" + modelName + "-" + eventType;
+    const roomId: string =
+      tenantId.toString() + "-" + modelName + "-" + eventType;
+
+    if (modelId) {
+      return roomId + "-" + modelId;
+    }
+
+    return roomId;
   }
 }

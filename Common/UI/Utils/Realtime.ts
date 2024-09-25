@@ -19,6 +19,7 @@ export interface ListenToModelEvent<
   modelType: { new (): Model };
   eventType: ModelEventType;
   tenantId: ObjectID;
+  modelId?: ObjectID | undefined;
 }
 
 export default abstract class Realtime {
@@ -89,11 +90,20 @@ export default abstract class Realtime {
 
     this.emit(EventName.ListenToModalEvent, listenToModelEventJSON as any);
 
-    const roomId: string = RealtimeUtil.getRoomId(
+    let roomId: string = RealtimeUtil.getRoomId(
       listenToModelEvent.tenantId,
       listenToModelEvent.modelType.name,
       listenToModelEvent.eventType,
     );
+
+    if (listenToModelEvent.modelId) {
+      roomId = RealtimeUtil.getRoomId(
+        listenToModelEvent.tenantId,
+        listenToModelEvent.modelType.name,
+        listenToModelEvent.eventType,
+        listenToModelEvent.modelId,
+      );
+    }
 
     this.socket.on(roomId, (model: JSONObject) => {
       onEvent(
