@@ -90,6 +90,7 @@ export default abstract class Realtime {
     // before joining room check the user token and check if the user has access to this tenant
     // and to this model and to this event type
 
+    logger.debug("Extracting user access token from socket");
     const userAccessToken: string | undefined =
       UserMiddleware.getAccessTokenFromSocket(socket);
 
@@ -100,6 +101,7 @@ export default abstract class Realtime {
       return;
     }
 
+    logger.debug("Decoding user access token");
     const userAuthorizationData: JSONWebTokenData =
       JSONWebToken.decode(userAccessToken);
 
@@ -115,20 +117,23 @@ export default abstract class Realtime {
       return;
     }
 
+    logger.debug("Checking user access permissions");
     let hasAccess: boolean = false;
 
     if (userAuthorizationData.isMasterAdmin) {
+      logger.debug("User is a master admin, granting access");
       hasAccess = true;
     }
 
+    logger.debug("Fetching user global access permissions");
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
       await AccessTokenService.getUserGlobalAccessPermission(
         userAuthorizationData.userId,
       );
 
     // check if the user has access to this tenant
-
     if (userGlobalAccessPermission && !hasAccess) {
+      logger.debug("Checking if user has access to the tenant");
       const hasAccessToProjectId: boolean =
         userGlobalAccessPermission.projectIds.some((projectId: ObjectID) => {
           return projectId.toString() === data.tenantId.toString();
@@ -141,6 +146,7 @@ export default abstract class Realtime {
         return;
       }
 
+      logger.debug("User has access to the tenant, checking model access");
       const userId: ObjectID = new ObjectID(
         userAuthorizationData.userId.toString(),
       );
@@ -156,14 +162,17 @@ export default abstract class Realtime {
       let databaseRequestType: DatabaseRequestType = DatabaseRequestType.Read;
 
       if (data.eventType === ModelEventType.Create) {
+        logger.debug("Event type is Create, setting request type to Create");
         databaseRequestType = DatabaseRequestType.Create;
       }
 
       if (data.eventType === ModelEventType.Update) {
+        logger.debug("Event type is Update, setting request type to Update");
         databaseRequestType = DatabaseRequestType.Update;
       }
 
       if (data.eventType === ModelEventType.Delete) {
+        logger.debug("Event type is Delete, setting request type to Delete");
         databaseRequestType = DatabaseRequestType.Delete;
       }
 
@@ -176,6 +185,7 @@ export default abstract class Realtime {
           databaseRequestType,
         )
       ) {
+        logger.debug("User has access to the model, granting access");
         hasAccess = true;
       }
     }
