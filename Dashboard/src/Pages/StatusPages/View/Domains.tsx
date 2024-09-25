@@ -25,13 +25,16 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
 
   const [showCnameModal, setShowCnameModal] = useState<boolean>(false);
 
@@ -311,7 +314,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowCnameModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedStatusPageDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));
@@ -371,7 +374,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowOrderSSLModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedStatusPageDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));

@@ -36,6 +36,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from "typeorm";
+import { EnableRealtimeEventsOn } from "../../../Utils/Realtime";
 
 export type DbTypes =
   | string
@@ -121,6 +122,9 @@ export default class DatabaseBaseModel extends BaseEntity {
   public saveSlugToColumn!: string | null;
   public singularName!: string | null;
   public pluralName!: string | null;
+
+  // realtime events.
+  public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
 
   // total items  by
   public totalItemsByColumnName!: string | null;

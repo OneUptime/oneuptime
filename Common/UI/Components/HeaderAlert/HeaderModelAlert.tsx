@@ -16,7 +16,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   requestOptions?: RequestOptions | undefined;
   onCountFetchInit?: (() => void) | undefined;
   onClick?: (() => void) | undefined;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
   className?: string | undefined;
 }
 

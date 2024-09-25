@@ -8,7 +8,7 @@ import { useAsyncEffect } from "use-async-effect";
 
 export interface ComponentProps {
   monitorId: ObjectID;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
 }
 
 const DisabledWarning: FunctionComponent<ComponentProps> = (

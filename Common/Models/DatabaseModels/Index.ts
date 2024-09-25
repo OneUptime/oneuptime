@@ -141,7 +141,11 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
-export default [
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+
+const AllModelTypes: Array<{
+  new (): BaseModel;
+}> = [
   User,
   Probe,
   Project,
@@ -302,3 +306,33 @@ export default [
 
   TelemetryException,
 ];
+
+const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
+
+type GetModelTypeByNameFunction = (
+  tableName: string,
+) => { new (): BaseModel } | null;
+
+export const getModelTypeByName: GetModelTypeByNameFunction = (
+  tableName: string,
+): { new (): BaseModel } | null => {
+  if (modelTypeMap[tableName]) {
+    return modelTypeMap[tableName];
+  }
+
+  const modelType: { new (): BaseModel } | undefined = AllModelTypes.find(
+    (modelType: { new (): BaseModel }) => {
+      return new modelType().tableName === tableName;
+    },
+  );
+
+  if (!modelType) {
+    return null;
+  }
+
+  modelTypeMap[tableName] = modelType;
+
+  return modelType;
+};
+
+export default AllModelTypes;

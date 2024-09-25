@@ -132,10 +132,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     const disconnectFunction: () => void = Realtime.listenToAnalyticsModelEvent(
       {
         modelType: Log,
-        query: {},
         eventType: ModelEventType.Create,
         tenantId: ProjectUtil.getCurrentProjectId()!,
-        select: select,
       },
       (model: Log) => {
         setLogs((logs: Array<Log>) => {

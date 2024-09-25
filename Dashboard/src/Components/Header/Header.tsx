@@ -1,4 +1,3 @@
-import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 // import SearchBox from './SearchBox';
@@ -19,7 +18,6 @@ import HeaderAlert from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
 import { SizeProp } from "Common/UI/Components/Icon/Icon";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -31,6 +29,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Realtime from "Common/UI/Utils/Realtime";
+import { ModelEventType } from "Common/Utils/Realtime";
+import DashboardNavigation from "../../Utils/Navigation";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -45,24 +46,54 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-    useState<boolean>(true);
+    useState<string>(OneUptimeDate.getCurrentDate().toString());
 
   const refreshIncidentCount: VoidFunction = () => {
-    setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
+    setActiveIncidentToggleRefresh(OneUptimeDate.getCurrentDate().toString());
   };
 
   useEffect(() => {
-    GlobalEvents.addEventListener(
-      EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-      refreshIncidentCount,
-    );
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
+
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
+
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
 
     return () => {
       // on unmount.
-      GlobalEvents.removeEventListener(
-        EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-        refreshIncidentCount,
-      );
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
     };
   }, []);
 
