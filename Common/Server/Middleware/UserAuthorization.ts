@@ -59,21 +59,7 @@ export default class UserMiddleware {
     return accessToken;
   }
 
-  public static getAccessTokenFromSocket(socket: Socket): string | undefined {
-    let accessToken: string | undefined = undefined;
 
-    if (socket.handshake.headers.cookie) {
-      const cookies: Dictionary<string> = CookieUtil.getCookiesFromCookieString(
-        socket.handshake.headers.cookie,
-      );
-
-      if (cookies[CookieUtil.getUserTokenKey()]) {
-        accessToken = cookies[CookieUtil.getUserTokenKey()];
-      }
-    }
-
-    return accessToken;
-  }
 
   public static getAccessTokenFromExpressRequest(
     req: ExpressRequest,
