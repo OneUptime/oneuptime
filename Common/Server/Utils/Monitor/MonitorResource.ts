@@ -756,42 +756,71 @@ export default class MonitorResourceUtil {
   }): Promise<void> {
     // criteria filters are met, now process the actions.
 
+    const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+      await MonitorStatusTimelineService.findOneBy({
+        query: {
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+        },
+        select: {
+          _id: true,
+          monitorStatusId: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    let shouldUpdateStatus: boolean = false;
+
+    if (!lastMonitorStatusTimeline) {
+      // if monitor does not have any status timeline, then create one.
+      shouldUpdateStatus = true;
+    }
+
+    if (
+      input.criteriaInstance.data?.changeMonitorStatus &&
+      input.criteriaInstance.data?.monitorStatusId &&
+      input.criteriaInstance.data?.monitorStatusId.toString() !==
+        lastMonitorStatusTimeline?.id?.toString()
+    ) {
+      // if monitor status is changed, then create a new status timeline.
+      shouldUpdateStatus = true;
+    }
+
+    // check if the current status is same as the last status.
+
     if (
       input.criteriaInstance.data?.changeMonitorStatus &&
       input.criteriaInstance.data?.monitorStatusId &&
       input.criteriaInstance.data?.monitorStatusId.toString() !==
         input.monitor.currentMonitorStatusId?.toString()
     ) {
+      // if monitor status is changed, then create a new status timeline.
+      shouldUpdateStatus = true;
+    }
+
+    if (shouldUpdateStatus) {
       logger.debug(
-        `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`,
+        `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId?.toString()}`,
       );
       // change monitor status
 
       const monitorStatusId: ObjectID | undefined =
         input.criteriaInstance.data?.monitorStatusId;
 
+      if (!monitorStatusId) {
+        throw new BadDataException("Monitor status is not defined.");
+      }
+
       //change monitor status.
 
       // get last status of this monitor.
 
       // get last monitor status timeline.
-      const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
-        await MonitorStatusTimelineService.findOneBy({
-          query: {
-            monitorId: input.monitor.id!,
-            projectId: input.monitor.projectId!,
-          },
-          select: {
-            _id: true,
-            monitorStatusId: true,
-          },
-          sort: {
-            startsAt: SortOrder.Descending,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
 
       if (
         lastMonitorStatusTimeline &&
