@@ -64,7 +64,8 @@ describe("UserMiddleware", () => {
         query: {},
       } as any;
 
-      const result: StringOrUndefined = UserMiddleware.getAccessToken(req);
+      const result: StringOrUndefined =
+        UserMiddleware.getAccessTokenFromExpressRequest(req);
 
       expect(result).toEqual(mockedAccessToken);
     });
@@ -76,7 +77,8 @@ describe("UserMiddleware", () => {
         query: {},
       } as ExpressRequest;
 
-      const result: StringOrUndefined = UserMiddleware.getAccessToken(req);
+      const result: StringOrUndefined =
+        UserMiddleware.getAccessTokenFromExpressRequest(req);
 
       expect(result).toBeUndefined();
     });

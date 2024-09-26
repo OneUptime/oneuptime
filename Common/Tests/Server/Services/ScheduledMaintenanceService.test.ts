@@ -95,7 +95,7 @@ describe("ScheduledMaintenanceService", () => {
 
       expect(ongoingState).not.toBeNull();
 
-      jest.spyOn(ScheduledMaintenanceService, "onTrigger");
+      jest.spyOn(ScheduledMaintenanceService, "onTriggerWorkflow");
 
       await ScheduledMaintenanceService.changeScheduledMaintenanceState({
         projectId: project.id!,
@@ -113,7 +113,9 @@ describe("ScheduledMaintenanceService", () => {
       });
 
       // Assert triggering workflows only once
-      expect(ScheduledMaintenanceService.onTrigger).toHaveBeenCalledTimes(1);
+      expect(
+        ScheduledMaintenanceService.onTriggerWorkflow,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 });

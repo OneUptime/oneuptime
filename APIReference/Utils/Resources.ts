@@ -15,7 +15,7 @@ export default class ResourceUtil {
   // Get all resources that should have documentation enabled
   public static getResources(): Array<ModelDocumentation> {
     const resources: Array<ModelDocumentation> = Models.filter(
-      (model: typeof BaseModel) => {
+      (model: { new (): BaseModel }) => {
         const modelInstance: BaseModel = new model();
         let showDocs: boolean = modelInstance.enableDocumentation;
 
@@ -27,7 +27,7 @@ export default class ResourceUtil {
         return showDocs;
       },
     )
-      .map((model: typeof BaseModel) => {
+      .map((model: { new (): BaseModel }) => {
         const modelInstance: BaseModel = new model();
 
         return {
