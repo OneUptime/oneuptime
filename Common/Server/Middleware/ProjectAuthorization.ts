@@ -1,4 +1,3 @@
-import AccessTokenService from "../Services/AccessTokenService";
 import ApiKeyService from "../Services/ApiKeyService";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import UserService from "../Services/UserService";
@@ -95,7 +94,7 @@ export default class ProjectMiddleware {
           // (req as OneUptimeRequest).permissions =
           //     apiKeyModel.permissions || [];
           (req as OneUptimeRequest).userGlobalAccessPermission =
-            await AccessTokenService.getDefaultApiGlobalPermission(tenantId);
+            await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);
 
           const userTenantAccessPermission: UserTenantAccessPermission | null =
             await APIKeyAccessPermission.getApiTenantAccessPermission(
