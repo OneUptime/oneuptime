@@ -94,7 +94,9 @@ export default class ProjectMiddleware {
           // (req as OneUptimeRequest).permissions =
           //     apiKeyModel.permissions || [];
           (req as OneUptimeRequest).userGlobalAccessPermission =
-            await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);
+            await APIKeyAccessPermission.getDefaultApiGlobalPermission(
+              tenantId,
+            );
 
           const userTenantAccessPermission: UserTenantAccessPermission | null =
             await APIKeyAccessPermission.getApiTenantAccessPermission(

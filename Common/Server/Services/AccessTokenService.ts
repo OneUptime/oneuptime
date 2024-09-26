@@ -16,8 +16,6 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 
-
-
 export class AccessTokenService extends BaseService {
   public constructor() {
     super();
@@ -60,8 +58,6 @@ export class AccessTokenService extends BaseService {
       await this.refreshUserTenantAccessPermission(userId, projectId);
     }
   }
-
-
 
   public async refreshUserGlobalAccessPermission(
     userId: ObjectID,
@@ -110,16 +106,14 @@ export class AccessTokenService extends BaseService {
   public async getUserGlobalAccessPermission(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission | null> {
-    const json: UserGlobalAccessPermission | null = await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
-      userId,
-    )
+    const json: UserGlobalAccessPermission | null =
+      await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(userId);
 
     if (!json) {
       return await this.refreshUserGlobalAccessPermission(userId);
     }
 
     return json;
-
   }
 
   public async refreshUserTenantAccessPermission(

@@ -1,5 +1,4 @@
-
-Error.stackTraceLimit = Infinity
+Error.stackTraceLimit = Infinity;
 
 import WorkflowRoutes from "./Routes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -12,7 +11,6 @@ import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import "ejs";
-
 
 const APP_NAME: string = "workflow";
 

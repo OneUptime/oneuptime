@@ -9,7 +9,6 @@ import GlobalCache from "../../Infrastructure/GlobalCache";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
 
 export default class UserPermissionUtil {
-
   public static async getUserTenantAccessPermissionFromCache(
     userId: ObjectID,
     projectId: ObjectID,
@@ -40,7 +39,7 @@ export default class UserPermissionUtil {
     );
 
     if (!json) {
-      return null; 
+      return null;
     }
 
     const accessPermission: UserGlobalAccessPermission =

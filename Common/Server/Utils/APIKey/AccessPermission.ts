@@ -11,7 +11,6 @@ import ApiKeyPermissionService from "../../Services/ApiKeyPermissionService";
 import UserPermissionUtil from "../UserPermission/UserPermission";
 
 export default class APIKeyAccessPermission {
-
   public static async getDefaultApiGlobalPermission(
     projectId: ObjectID,
   ): Promise<UserGlobalAccessPermission> {
@@ -26,7 +25,7 @@ export default class APIKeyAccessPermission {
     };
   }
 
-  public static async  getMasterKeyApiGlobalPermission(
+  public static async getMasterKeyApiGlobalPermission(
     projectId: ObjectID,
   ): Promise<UserGlobalAccessPermission> {
     return {
@@ -59,7 +58,6 @@ export default class APIKeyAccessPermission {
 
     return permission;
   }
-
 
   public static async getApiTenantAccessPermission(
     projectId: ObjectID,

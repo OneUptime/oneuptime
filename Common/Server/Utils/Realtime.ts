@@ -93,7 +93,8 @@ export default abstract class Realtime {
     // and to this model and to this event type
 
     logger.debug("Extracting user access token from socket");
-    const userAccessToken: string | undefined =  this.getAccessTokenFromSocket(socket);
+    const userAccessToken: string | undefined =
+      this.getAccessTokenFromSocket(socket);
 
     if (!userAccessToken) {
       logger.debug(

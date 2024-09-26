@@ -1,6 +1,6 @@
 enum PermissionNamespace {
-    GlobalPermission = "global-permissions",
-    ProjectPermission = "project-permissions",
-  }
+  GlobalPermission = "global-permissions",
+  ProjectPermission = "project-permissions",
+}
 
-  export default PermissionNamespace;
+export default PermissionNamespace;

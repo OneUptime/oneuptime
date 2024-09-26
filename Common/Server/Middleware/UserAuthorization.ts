@@ -31,7 +31,6 @@ import {
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
 import Project from "Common/Models/DatabaseModels/Project";
-import { Socket } from "../Infrastructure/SocketIO";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 export default class UserMiddleware {
@@ -58,8 +57,6 @@ export default class UserMiddleware {
 
     return accessToken;
   }
-
-
 
   public static getAccessTokenFromExpressRequest(
     req: ExpressRequest,
