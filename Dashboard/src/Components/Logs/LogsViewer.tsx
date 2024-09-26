@@ -3,7 +3,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import { ModelEventType } from "Common/Utils/Realtime";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LogsViewer from "Common/UI/Components/LogsViewer/LogsViewer";
 import API from "Common/UI/Utils/API/API";
@@ -16,6 +15,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import ModelEventType from "Common/Types/Realtime/ModelEventType";
 
 export interface ComponentProps {
   id: string;

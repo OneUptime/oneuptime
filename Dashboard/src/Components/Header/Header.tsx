@@ -30,8 +30,8 @@ import React, {
   useState,
 } from "react";
 import Realtime from "Common/UI/Utils/Realtime";
-import { ModelEventType } from "Common/Utils/Realtime";
 import DashboardNavigation from "../../Utils/Navigation";
+import ModelEventType from "Common/Types/Realtime/ModelEventType";
 
 export interface ComponentProps {
   projects: Array<Project>;

@@ -6,12 +6,11 @@ import URL from "Common/Types/API/URL";
 import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import RealtimeUtil, {
-  EventName,
-  ListenToModelEventJSON,
-  ModelEventType,
-} from "Common/Utils/Realtime";
+import RealtimeUtil from "Common/Utils/Realtime";
 import SocketIO, { Socket } from "socket.io-client";
+import ModelEventType from "../../Types/Realtime/ModelEventType";
+import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
+import EventName from "../../Types/Realtime/EventName";
 
 export interface ListenToModelEvent<
   Model extends AnalyticsBaseModel | BaseModel,
