@@ -1,3 +1,4 @@
+import EnableRealtimeEventsOn from "../../../Server/Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
@@ -19,7 +20,6 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Text from "../../../Types/Text";
-import { EnableRealtimeEventsOn } from "../../../Utils/Realtime";
 import CommonModel from "./CommonModel";
 
 export type AnalyticsBaseModelType = { new (): AnalyticsBaseModel };

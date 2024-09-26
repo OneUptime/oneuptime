@@ -1,3 +1,4 @@
+import EnableRealtimeEventsOn from "../../../Server/Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
@@ -36,7 +37,6 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from "typeorm";
-import { EnableRealtimeEventsOn } from "../../../Utils/Realtime";
 
 export type DbTypes =
   | string

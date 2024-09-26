@@ -317,7 +317,7 @@ export const getModelTypeByName: GetModelTypeByNameFunction = (
   tableName: string,
 ): { new (): BaseModel } | null => {
   if (modelTypeMap[tableName]) {
-    return modelTypeMap[tableName];
+    return modelTypeMap[tableName] || null;
   }
 
   const modelType: { new (): BaseModel } | undefined = AllModelTypes.find(

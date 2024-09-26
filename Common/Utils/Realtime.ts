@@ -19,12 +19,6 @@ export interface ListenToModelEventJSON {
   modelId?: string | undefined;
 }
 
-export interface EnableRealtimeEventsOn {
-  create?: boolean | undefined;
-  update?: boolean | undefined;
-  delete?: boolean | undefined;
-}
-
 export default class RealtimeUtil {
   public static getRoomId(
     tenantId: string | ObjectID,

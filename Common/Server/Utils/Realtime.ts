@@ -14,13 +14,15 @@ import RealtimeUtil, {
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import JSONWebToken from "./JsonWebToken";
-import {
+import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import AccessTokenService from "../Services/AccessTokenService";
-import ModelPermission from "../../Types/BaseDatabase/ModelPermission";
+import { getModelTypeByName } from "../../Models/DatabaseModels/Index";
+import { getModelTypeByName as getAnalyticsModelTypeByname } from "../../Models/AnalyticsModels/Index";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../Types/BaseDatabase/ModelPermission";
 
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
@@ -179,7 +181,7 @@ export default abstract class Realtime {
       // check if the user has access to this model
       if (
         userTenantAccessPermission &&
-        ModelPermission.hasPermissionsByModelName(
+        this.hasPermissionsByModelName(
           userTenantAccessPermission,
           data.modelName,
           databaseRequestType,
@@ -290,5 +292,48 @@ export default abstract class Realtime {
 
     this.socketServer!.to(roomId).emit(roomId, jsonObject);
     this.socketServer!.to(modelRoomId).emit(modelRoomId, jsonObject);
+  }
+
+  public static hasPermissionsByModelName(
+    userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
+    modelName: string,
+    requestType: DatabaseRequestType,
+  ): boolean {
+    let modelPermissions: Array<Permission> = [];
+
+    let modelType:
+      | { new (): BaseModel }
+      | { new (): AnalyticsBaseModel }
+      | null = getModelTypeByName(modelName);
+
+    if (!modelType) {
+      // check if it is an analytics model
+      modelType = getAnalyticsModelTypeByname(modelName);
+
+      if (!modelType) {
+        return false;
+      }
+    }
+
+    if (requestType === DatabaseRequestType.Create) {
+      modelPermissions = new modelType().getCreatePermissions();
+    }
+
+    if (requestType === DatabaseRequestType.Read) {
+      modelPermissions = new modelType().getReadPermissions();
+    }
+
+    if (requestType === DatabaseRequestType.Update) {
+      modelPermissions = new modelType().getUpdatePermissions();
+    }
+
+    if (requestType === DatabaseRequestType.Delete) {
+      modelPermissions = new modelType().getDeletePermissions();
+    }
+
+    return ModelPermission.hasPermissions(
+      userProjectPermissions,
+      modelPermissions,
+    );
   }
 }

@@ -25,7 +25,7 @@ export const getModelTypeByName: GetModelTypeByName = (
   tableName: string,
 ): (new () => AnalyticsBaseModel) | null => {
   if (modelTypeMap[tableName]) {
-    return modelTypeMap[tableName];
+    return modelTypeMap[tableName] || null;
   }
 
   const modelType: { new (): AnalyticsBaseModel } | undefined =

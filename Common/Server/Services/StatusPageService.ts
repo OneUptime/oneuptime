@@ -313,7 +313,7 @@ export class Service extends DatabaseService<StatusPage> {
   ): Promise<boolean> {
     try {
       // token decode.
-      const token: string | undefined = CookieUtil.getCookie(
+      const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
         req,
         CookieUtil.getUserTokenKey(statusPageId),
       );
