@@ -1,5 +1,4 @@
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
-import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
