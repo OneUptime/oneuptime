@@ -1,23 +1,5 @@
-import DatabaseType from "../Types/BaseDatabase/DatabaseType";
 import ObjectID from "../Types/ObjectID";
-
-export enum EventName {
-  ListenToModalEvent = "ListenToModelEvent",
-}
-
-export enum ModelEventType {
-  Create = "Create",
-  Update = "Update",
-  Delete = "Delete",
-}
-
-export interface ListenToModelEventJSON {
-  modelName: string;
-  modelType: DatabaseType;
-  eventType: ModelEventType;
-  tenantId: string;
-  modelId?: string | undefined;
-}
+import ModelEventType from "../Types/Realtime/ModelEventType";
 
 export default class RealtimeUtil {
   public static getRoomId(

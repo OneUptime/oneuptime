@@ -47,12 +47,12 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "Common/Utils/API";
-import { ModelEventType } from "Common/Utils/Realtime";
 import { Stream } from "node:stream";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
+import ModelEventType from "../../Types/Realtime/ModelEventType";
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,

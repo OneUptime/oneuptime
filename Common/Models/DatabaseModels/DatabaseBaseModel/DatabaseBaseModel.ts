@@ -1,4 +1,4 @@
-import EnableRealtimeEventsOn from "../../../Server/Types/Realtime/EnableRealtimeEventsOn";
+import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";

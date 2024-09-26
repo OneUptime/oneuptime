@@ -61,7 +61,7 @@ import Slug from "Common/Utils/Slug";
 import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
-import { ModelEventType } from "../../Utils/Realtime";
+import ModelEventType from "../../Types/Realtime/ModelEventType";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };

@@ -1,4 +1,4 @@
-import EnableRealtimeEventsOn from "../../Server/Types/Realtime/EnableRealtimeEventsOn";
+import EnableRealtimeEventsOn from "../Realtime/EnableRealtimeEventsOn";
 import GenericFunction from "../GenericFunction";
 import IconProp from "../Icon/IconProp";
 

@@ -32,6 +32,7 @@ import {
 import UserType from "Common/Types/UserType";
 import Project from "Common/Models/DatabaseModels/Project";
 import { Socket } from "../Infrastructure/SocketIO";
+import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 export default class UserMiddleware {
   /*
@@ -383,7 +384,7 @@ export default class UserMiddleware {
       ) {
         // Add default permissions.
         userTenantAccessPermission =
-          AccessTokenService.getDefaultUserTenantAccessPermission(projectId);
+          UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
       } else {
         // get project level permissions if projectid exists in request.
         userTenantAccessPermission =

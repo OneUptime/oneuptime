@@ -6,11 +6,7 @@ import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import RealtimeUtil, {
-  EventName,
-  ListenToModelEventJSON,
-  ModelEventType,
-} from "Common/Utils/Realtime";
+import RealtimeUtil from "Common/Utils/Realtime";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import JSONWebToken from "./JsonWebToken";
@@ -23,6 +19,9 @@ import { getModelTypeByName } from "../../Models/DatabaseModels/Index";
 import { getModelTypeByName as getAnalyticsModelTypeByname } from "../../Models/AnalyticsModels/Index";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/BaseDatabase/ModelPermission";
+import ModelEventType from "../../Types/Realtime/ModelEventType";
+import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
+import EventName from "../../Types/Realtime/EventName";
 
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;

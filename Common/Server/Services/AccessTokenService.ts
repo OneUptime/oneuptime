@@ -1,6 +1,5 @@
 import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
-import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import BaseService from "./BaseService";
 import TeamMemberService from "./TeamMemberService";
 import TeamPermissionService from "./TeamPermissionService";
@@ -12,10 +11,10 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
-import APIKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 enum PermissionNamespace {
   GlobalPermission = "global-permissions",
@@ -106,57 +105,7 @@ export class AccessTokenService extends BaseService {
     });
 
     const permission: UserTenantAccessPermission =
-      this.getDefaultUserTenantAccessPermission(projectId);
-
-    permission.permissions = permission.permissions.concat(userPermissions);
-
-    return permission;
-  }
-
-  public async getApiTenantAccessPermission(
-    projectId: ObjectID,
-    apiKeyId: ObjectID,
-  ): Promise<UserTenantAccessPermission> {
-    // get team permissions.
-    const apiKeyPermission: Array<APIKeyPermission> =
-      await ApiKeyPermissionService.findBy({
-        query: {
-          apiKeyId: apiKeyId,
-        },
-        select: {
-          permission: true,
-          labels: {
-            _id: true,
-          },
-          isBlockPermission: true,
-        },
-
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const userPermissions: Array<UserPermission> = [];
-
-    for (const apiPermission of apiKeyPermission) {
-      if (!apiPermission.labels) {
-        apiPermission.labels = [];
-      }
-
-      userPermissions.push({
-        permission: apiPermission.permission!,
-        labelIds: apiPermission.labels.map((label: Label) => {
-          return label.id!;
-        }),
-        isBlockPermission: apiPermission.isBlockPermission,
-        _type: "UserPermission",
-      });
-    }
-
-    const permission: UserTenantAccessPermission =
-      this.getDefaultUserTenantAccessPermission(projectId);
+      UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
 
     permission.permissions = permission.permissions.concat(userPermissions);
 
@@ -205,35 +154,6 @@ export class AccessTokenService extends BaseService {
     await GlobalCache.setJSON("user", userId.toString(), permissionToStore);
 
     return permissionToStore;
-  }
-
-  public getDefaultUserTenantAccessPermission(
-    projectId: ObjectID,
-  ): UserTenantAccessPermission {
-    const userPermissions: Array<UserPermission> = [];
-
-    userPermissions.push({
-      permission: Permission.CurrentUser,
-      labelIds: [],
-      isBlockPermission: false,
-      _type: "UserPermission",
-    });
-
-    userPermissions.push({
-      permission: Permission.UnAuthorizedSsoUser,
-      labelIds: [],
-      isBlockPermission: false,
-      _type: "UserPermission",
-    });
-
-    const permission: UserTenantAccessPermission = {
-      projectId,
-      permissions: userPermissions,
-      isBlockPermission: false,
-      _type: "UserTenantAccessPermission",
-    };
-
-    return permission;
   }
 
   public async getUserGlobalAccessPermission(
@@ -325,7 +245,7 @@ export class AccessTokenService extends BaseService {
     }
 
     const permission: UserTenantAccessPermission =
-      this.getDefaultUserTenantAccessPermission(projectId);
+      UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
 
     permission.permissions = permission.permissions.concat(userPermissions);
 
