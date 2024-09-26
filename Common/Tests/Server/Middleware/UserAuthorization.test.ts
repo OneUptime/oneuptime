@@ -281,9 +281,10 @@ describe("UserMiddleware", () => {
         projectId,
       );
       getJestSpyOn(ProjectMiddleware, "hasApiKey").mockReturnValue(false);
-      getJestSpyOn(UserMiddleware, "getAccessTokenFromExpressRequest").mockReturnValue(
-        mockedAccessToken,
-      );
+      getJestSpyOn(
+        UserMiddleware,
+        "getAccessTokenFromExpressRequest",
+      ).mockReturnValue(mockedAccessToken);
       getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
       getJestSpyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
     });
