@@ -9,7 +9,7 @@ import {
 import ApiKeyPermissionService from "../../Services/ApiKeyPermissionService";
 import UserPermissionUtil from "../UserPermission/UserPermission";
 
-export default class AccessPermission {
+export default class APIKeyAccessPermission {
   public static async getApiTenantAccessPermission(
     projectId: ObjectID,
     apiKeyId: ObjectID,

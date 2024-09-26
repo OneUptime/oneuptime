@@ -18,6 +18,7 @@ import UserType from "Common/Types/UserType";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import User from "Common/Models/DatabaseModels/User";
+import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
 
 export default class ProjectMiddleware {
   public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -97,7 +98,7 @@ export default class ProjectMiddleware {
             await AccessTokenService.getDefaultApiGlobalPermission(tenantId);
 
           const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getApiTenantAccessPermission(
+            await APIKeyAccessPermission.getApiTenantAccessPermission(
               tenantId,
               apiKeyModel.id!,
             );
