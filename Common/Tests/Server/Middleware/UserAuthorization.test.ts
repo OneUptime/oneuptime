@@ -57,7 +57,7 @@ describe("UserMiddleware", () => {
     jest.clearAllMocks();
   });
 
-  describe("getAccessToken", () => {
+  describe("getAccessTokenFromExpressRequest", () => {
     test("should return access token when authorization token is passed in the cookie", () => {
       const req: ExpressRequest = {
         cookies: { "user-token": mockedAccessToken },
@@ -281,7 +281,7 @@ describe("UserMiddleware", () => {
         projectId,
       );
       getJestSpyOn(ProjectMiddleware, "hasApiKey").mockReturnValue(false);
-      getJestSpyOn(UserMiddleware, "getAccessToken").mockReturnValue(
+      getJestSpyOn(UserMiddleware, "getAccessTokenFromExpressRequest").mockReturnValue(
         mockedAccessToken,
       );
       getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
@@ -304,7 +304,7 @@ describe("UserMiddleware", () => {
 
       const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(
         UserMiddleware,
-        "getAccessToken",
+        "getAccessTokenFromExpressRequest",
       );
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -315,10 +315,10 @@ describe("UserMiddleware", () => {
       expect(spyGetAccessToken).not.toHaveBeenCalled();
     });
 
-    test("should call function 'next' and return, when getAccessToken returns a null value", async () => {
+    test("should call function 'next' and return, when getAccessTokenFromExpressRequest returns a null value", async () => {
       const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(
         UserMiddleware,
-        "getAccessToken",
+        "getAccessTokenFromExpressRequest",
       ).mockReturnValueOnce(undefined);
 
       await UserMiddleware.getUserMiddleware(req, res, next);

@@ -18,6 +18,7 @@ import { describe, expect, afterEach, jest } from "@jest/globals";
 import getJestMockFunction from "Common/Tests/MockType";
 import { getJestSpyOn } from "Common/Tests/Spy";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
+import APIKeyAccessPermission from "../../../Server/Utils/APIKey/AccessPermission";
 
 jest.mock("../../../Server/Services/ApiKeyService");
 jest.mock("../../../Server/Services/AccessTokenService");
@@ -250,7 +251,7 @@ describe("ProjectMiddleware", () => {
     test("should call Response.sendErrorResponse when apiKeyModel is not null but getApiTenantAccessPermission returned null", async () => {
       jest.spyOn(ApiKeyService, "findOneBy").mockResolvedValue(mockedApiModel);
       const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
-        AccessTokenService,
+        APIKeyAccessPermission,
         "getApiTenantAccessPermission",
       ).mockImplementationOnce(getJestMockFunction().mockResolvedValue(null));
 
@@ -272,7 +273,7 @@ describe("ProjectMiddleware", () => {
         {} as UserTenantAccessPermission;
       jest.spyOn(ApiKeyService, "findOneBy").mockResolvedValue(mockedApiModel);
       const spyGetApiTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
-        AccessTokenService,
+        APIKeyAccessPermission,
         "getApiTenantAccessPermission",
       ).mockResolvedValue(mockedUserTenantAccessPermission);
 
