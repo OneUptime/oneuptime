@@ -4,7 +4,6 @@ import BaseService from "./BaseService";
 import TeamMemberService from "./TeamMemberService";
 import TeamPermissionService from "./TeamPermissionService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -15,11 +14,9 @@ import Label from "Common/Models/DatabaseModels/Label";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 
-enum PermissionNamespace {
-  GlobalPermission = "global-permissions",
-  ProjectPermission = "project-permissions",
-}
+
 
 export class AccessTokenService extends BaseService {
   public constructor() {
@@ -113,21 +110,16 @@ export class AccessTokenService extends BaseService {
   public async getUserGlobalAccessPermission(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission | null> {
-    const json: JSONObject | null = await GlobalCache.getJSONObject(
-      "user",
-      userId.toString(),
-    );
+    const json: UserGlobalAccessPermission | null = await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
+      userId,
+    )
 
     if (!json) {
       return await this.refreshUserGlobalAccessPermission(userId);
     }
 
-    const accessPermission: UserGlobalAccessPermission =
-      json as UserGlobalAccessPermission;
+    return json;
 
-    accessPermission._type = "UserGlobalAccessPermission";
-
-    return accessPermission;
   }
 
   public async refreshUserTenantAccessPermission(
@@ -217,14 +209,10 @@ export class AccessTokenService extends BaseService {
     projectId: ObjectID,
   ): Promise<UserTenantAccessPermission | null> {
     const json: UserTenantAccessPermission | null =
-      (await GlobalCache.getJSONObject(
-        PermissionNamespace.ProjectPermission,
-        userId.toString() + projectId.toString(),
-      )) as UserTenantAccessPermission;
-
-    if (json) {
-      json._type = "UserTenantAccessPermission";
-    }
+      await UserPermissionUtil.getUserTenantAccessPermissionFromCache(
+        userId,
+        projectId,
+      );
 
     if (!json) {
       return await this.refreshUserTenantAccessPermission(userId, projectId);

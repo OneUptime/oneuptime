@@ -13,7 +13,6 @@ import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
-import AccessTokenService from "../Services/AccessTokenService";
 import { getModelTypeByName } from "../../Models/DatabaseModels/Index";
 import { getModelTypeByName as getAnalyticsModelTypeByname } from "../../Models/AnalyticsModels/Index";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
@@ -23,6 +22,7 @@ import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON"
 import EventName from "../../Types/Realtime/EventName";
 import CookieUtil from "./Cookie";
 import Dictionary from "../../Types/Dictionary";
+import UserPermissionUtil from "./UserPermission/UserPermission";
 
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
@@ -128,7 +128,7 @@ export default abstract class Realtime {
 
     logger.debug("Fetching user global access permissions");
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
-      await AccessTokenService.getUserGlobalAccessPermission(
+      await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
         userAuthorizationData.userId,
       );
 
@@ -155,7 +155,7 @@ export default abstract class Realtime {
 
       // if it has the access to the tenant, check if it has access to the model
       const userTenantAccessPermission: UserTenantAccessPermission | null =
-        await AccessTokenService.getUserTenantAccessPermission(
+        await UserPermissionUtil.getUserTenantAccessPermissionFromCache(
           userId,
           projectId,
         );
