@@ -11,6 +11,7 @@ import SocketIO, { Socket } from "socket.io-client";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
 import EventName from "../../Types/Realtime/EventName";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export interface ListenToModelEvent<
   Model extends AnalyticsBaseModel | BaseModel,
@@ -40,6 +41,12 @@ export default abstract class Realtime {
 
     if (!this.socket) {
       this.init();
+    }
+
+    if (!listenToModelEvent.tenantId) {
+      throw new BadDataException(
+        "TenantId is required to listen to model event.",
+      );
     }
 
     const listenToModelEventJSON: ListenToModelEventJSON = {

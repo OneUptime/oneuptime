@@ -34,6 +34,7 @@ import {
 } from "@jest/globals";
 import { getJestSpyOn } from "Common/Tests/Spy";
 import getJestMockFunction from "Common/Tests/MockType";
+import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 
 jest.mock("../../../Server/Utils/Logger");
 jest.mock("../../../Server/Middleware/ProjectAuthorization");
@@ -718,7 +719,7 @@ describe("UserMiddleware", () => {
 
       const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance =
         getJestSpyOn(
-          AccessTokenService,
+          UserPermissionUtil,
           "getDefaultUserTenantAccessPermission",
         ).mockReturnValueOnce(mockedUserTenantAccessPermission);
 
