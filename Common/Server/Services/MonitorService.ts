@@ -21,7 +21,7 @@ import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import MonitorType, {
@@ -50,10 +50,33 @@ import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import Query from "../Types/Database/Query";
+import DeleteBy from "../Types/Database/DeleteBy";
+import StatusPageResourceService from "./StatusPageResourceService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (deleteBy.query._id) {
+      // delete all the status page resource for this monitor.
+
+      await StatusPageResourceService.deleteBy({
+        query: {
+          monitorId: new ObjectID(deleteBy.query._id as string),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   protected override async onDeleteSuccess(
