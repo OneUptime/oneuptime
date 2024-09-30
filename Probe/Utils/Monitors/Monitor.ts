@@ -6,7 +6,7 @@ import CustomCodeMonitor from "./MonitorTypes/CustomCodeMonitor";
 import PingMonitor, { PingResponse } from "./MonitorTypes/PingMonitor";
 import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
-import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
+import SyntheticMonitor from "Common/Utils/Monitors/MonitorTypes/SyntheticMonitor";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";

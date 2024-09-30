@@ -55,6 +55,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import TestSyntheticMonitorStep from './TestSyntheticMonitorStep';
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -666,6 +667,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
+      )}
+
+      {props.monitorType === MonitorType.SyntheticMonitor && monitorStep?.data?.customCode
+        && monitorStep?.data?.browserTypes
+        && monitorStep?.data?.screenSizeTypes &&
+        (<TestSyntheticMonitorStep
+          monitorId={monitorStep?.id.toString() || ''}
+          script={monitorStep?.data?.customCode.toString()}
+          browserTypes={monitorStep?.data?.browserTypes}
+          screenSizeTypes={monitorStep?.data?.screenSizeTypes}
+        />
       )}
 
       <div className="mt-5">

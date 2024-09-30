@@ -443,6 +443,7 @@ import ScheduledMaintenanceTemplateOwnerTeamService, {
 import ScheduledMaintenanceTemplateOwnerUserService, {
   Service as ScheduledMaintenanceTemplateOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
+import TestMonitorAPI from "Common/Server/API/TestMonitorAPI";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -1399,6 +1400,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TestMonitorAPI);
 
     //attach api's
     app.use(

@@ -1,4 +1,4 @@
-import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
+import { SyntheticMonitorScriptTimeoutMs } from 'Common/Server/EnvironmentConfig';
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
@@ -90,7 +90,7 @@ export default class SyntheticMonitor {
         result = await VMRunner.runCodeInSandbox({
           code: options.script,
           options: {
-            timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+            timeout: SyntheticMonitorScriptTimeoutMs,
             args: {},
             context: {
               page: pageAndBrowser.page,
