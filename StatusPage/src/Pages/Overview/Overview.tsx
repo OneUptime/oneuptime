@@ -725,13 +725,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
       getResourcesInGroup(group);
 
     for (const resource of resourcesInGroup) {
-      let currentMonitorStatus: MonitorStatus | undefined =
-        monitorStatuses.find((status: MonitorStatus) => {
+      let currentMonitorStatus: MonitorStatus | undefined = undefined;
+
+      if (resource.monitor) {
+        currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
           return (
             status._id?.toString() ===
             resource.monitor?.currentMonitorStatusId?.toString()
           );
         });
+      }
+
+      if (resource.monitorGroupId) {
+        currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
+          return (
+            status._id?.toString() ===
+            monitorGroupCurrentStatuses[
+              resource.monitorGroupId?.toString() || ""
+            ]?.toString()
+          );
+        });
+      }
 
       if (!currentMonitorStatus) {
         currentMonitorStatus = currentStatus;
