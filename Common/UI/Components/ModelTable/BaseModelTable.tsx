@@ -84,11 +84,18 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 
 export enum ShowAs {
   Table,
   List,
   OrderedStatesList,
+}
+
+
+export interface SaveFilterProps {
+  tableId: string;
 }
 
 export interface BaseTableCallbacks<
@@ -207,6 +214,8 @@ export interface BaseTableProps<
   onShowFormType?: (formType: ModalType) => void;
 
   initialFilterData?: FilterData<TBaseModel> | undefined;
+
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 export interface ComponentProps<
@@ -254,7 +263,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Array<ClassicFilterType<TBaseModel>>
   >([]);
 
-  const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
+  const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema | ReactElement>>([]);
 
   const [actionButtonSchema, setActionButtonSchema] = useState<
     Array<ActionButtonSchema<TBaseModel>>
@@ -784,9 +793,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return selectFields;
   };
 
+
+  const getSaveFilterDropdown: GetReactElementFunction = (): ReactElement => {
+    if(!props.saveFilterProps){
+      return <></>
+    }
+
+    if(props.saveFilterProps && props.saveFilterProps.tableId){
+      return (<MoreMenu>
+        <MoreMenuItem text="Save Filter" onClick={() => {
+        }}></MoreMenuItem>
+      </MoreMenu>)
+    }
+
+    return <></>
+  }
+
   const setHeaderButtons: VoidFunction = (): void => {
     // add header buttons.
-    let headerbuttons: Array<CardButtonSchema> = [];
+    let headerbuttons: Array<CardButtonSchema | ReactElement> = [];
 
     if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
       headerbuttons = [...props.cardProps.buttons];
@@ -838,6 +863,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
+
     if (showFilterButton) {
       headerbuttons.push({
         title: "",
@@ -852,6 +878,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         disabled: isFilterFetchLoading,
         icon: IconProp.Filter,
       });
+    }
+
+    if(props.saveFilterProps){
+      headerbuttons.push(getSaveFilterDropdown());
     }
 
     setCardButtons(headerbuttons);
@@ -1610,6 +1640,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       </span>
     );
   };
+
+
 
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
