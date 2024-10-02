@@ -46,6 +46,35 @@ import TelemetryIngestionKeyService, {
 import EmailVerificationTokenService, {
   Service as EmailVerificationTokenServiceType,
 } from "Common/Server/Services/EmailVerificationTokenService";
+
+import AlertCustomFieldService, {
+  Service as AlertCustomFieldServiceType,
+} from "Common/Server/Services/AlertCustomFieldService";
+import AlertInternalNoteService, {
+  Service as AlertInternalNoteServiceType,
+} from "Common/Server/Services/AlertInternalNoteService";
+import AlertNoteTemplateService, {
+  Service as AlertNoteTemplateServiceType,
+} from "Common/Server/Services/AlertNoteTemplateService";
+import AlertOwnerTeamService, {
+  Service as AlertOwnerTeamServiceType,
+} from "Common/Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService, {
+  Service as AlertOwnerUserServiceType,
+} from "Common/Server/Services/AlertOwnerUserService";
+import AlertService, {
+  Service as AlertServiceType,
+} from "Common/Server/Services/AlertService";
+import AlertSeverityService, {
+  Service as AlertSeverityServiceType,
+} from "Common/Server/Services/AlertSeverityService";
+import AlertStateService, {
+  Service as AlertStateServiceType,
+} from "Common/Server/Services/AlertStateService";
+import AlertStateTimelineService, {
+  Service as AlertStateTimelineServiceType,
+} from "Common/Server/Services/AlertStateTimelineService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -342,6 +371,17 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
+import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
@@ -355,6 +395,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
@@ -455,6 +496,75 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
         TelemetryAttribute,
         TelemetryAttributeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertState, AlertStateServiceType>(
+        AlertState,
+        AlertStateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertNoteTemplate, AlertNoteTemplateServiceType>(
+        AlertNoteTemplate,
+        AlertNoteTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Alert, AlertServiceType>(Alert, AlertService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertSeverity, AlertSeverityServiceType>(
+        AlertSeverity,
+        AlertSeverityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOwnerTeam, AlertOwnerTeamServiceType>(
+        AlertOwnerTeam,
+        AlertOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertOwnerUser, AlertOwnerUserServiceType>(
+        AlertOwnerUser,
+        AlertOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertCustomField, AlertCustomFieldServiceType>(
+        AlertCustomField,
+        AlertCustomFieldService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertInternalNote, AlertInternalNoteServiceType>(
+        AlertInternalNote,
+        AlertInternalNoteService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertStateTimeline, AlertStateTimelineServiceType>(
+        AlertStateTimeline,
+        AlertStateTimelineService,
       ).getRouter(),
     );
 
