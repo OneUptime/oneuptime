@@ -147,6 +147,7 @@ import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
+import TableViewService from "./TableViewService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -306,6 +307,7 @@ const services: Array<BaseService> = [
   AlertOwnerUserService,
   AlertSeverityService,
   AlertNoteTemplateService,
+  TableViewService,
 ];
 
 export const AnalyticsServices: Array<

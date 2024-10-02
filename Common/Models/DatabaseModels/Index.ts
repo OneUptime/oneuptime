@@ -151,6 +151,7 @@ import AlertOwnerTeam from "./AlertOwnerTeam";
 import AlertOwnerUser from "./AlertOwnerUser";
 import AlertSeverity from "./AlertSeverity";
 import AlertNoteTemplate from "./AlertNoteTemplate";
+import TableView from "./TableView";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -324,6 +325,8 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+
+  TableView,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

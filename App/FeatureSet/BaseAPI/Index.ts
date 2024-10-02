@@ -84,6 +84,9 @@ import IncidentInternalNoteService, {
 import IncidentNoteTemplateService, {
   Service as IncidentNoteTemplateServiceType,
 } from "Common/Server/Services/IncidentNoteTemplateService";
+import TableViewService, {
+  Service as TableViewServiceType,
+} from "Common/Server/Services/TableViewService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -484,6 +487,7 @@ import ScheduledMaintenanceTemplateOwnerTeamService, {
 import ScheduledMaintenanceTemplateOwnerUserService, {
   Service as ScheduledMaintenanceTemplateOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
+import TableView from "Common/Models/DatabaseModels/TableView";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -883,6 +887,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TableView, TableViewServiceType>(
+        TableView,
+        TableViewService,
       ).getRouter(),
     );
 
