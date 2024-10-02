@@ -59,6 +59,7 @@ import MonitorStepTraceMonitor, {
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   initialValue?: undefined | MonitorStep;
   onChange?: undefined | ((value: MonitorStep) => void);
@@ -688,6 +689,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           incidentSeverityDropdownOptions={
             props.incidentSeverityDropdownOptions
           }
+          alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           initialValue={monitorStep?.data?.monitorCriteria}
           onChange={(value: MonitorCriteria) => {

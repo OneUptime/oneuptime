@@ -31,10 +31,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
+import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
   initialValue?: undefined | MonitorCriteriaInstance;
@@ -86,6 +89,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     );
   const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
     (props.initialValue?.data?.incidents?.length || 0) > 0,
+  );
+
+
+  const [showAlertControl, setShowAlertControl] = useState<boolean>(
+    (props.initialValue?.data?.alerts?.length || 0) > 0,
   );
 
   return (
@@ -277,6 +285,60 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               monitorCriteriaInstance.setMonitorStatusId(
                 value ? new ObjectID(value.toString()) : undefined,
               );
+              setMonitorCriteriaInstance(
+                MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+              );
+            }}
+          />
+        </div>
+      )}
+
+
+
+<div className="mt-4">
+        <Toggle
+          value={showAlertControl}
+          title="When filters match, create an alert."
+          onChange={(value: boolean) => {
+            setShowAlertControl(value);
+            monitorCriteriaInstance.setCreateAlerts(value);
+
+            if (
+              (value && !monitorCriteriaInstance.data?.alerts) ||
+              monitorCriteriaInstance.data?.alerts?.length === 0
+            ) {
+              monitorCriteriaInstance.setAlerts([
+                {
+                  title: "",
+                  description: "",
+                  alertSeverityId: undefined,
+                  id: ObjectID.generate().toString(),
+                },
+              ]);
+            }
+            if (!value) {
+              monitorCriteriaInstance.setAlerts([]);
+            }
+
+            setMonitorCriteriaInstance(
+              MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+            );
+          }}
+        />
+      </div>
+
+      {showAlertControl && (
+        <div className="mt-4">
+          <FieldLabelElement title="Create Alert" />
+
+          <MonitorCriteriaAlertsForm
+            initialValue={monitorCriteriaInstance?.data?.alerts || []}
+            alertSeverityDropdownOptions={
+              props.alertSeverityDropdownOptions
+            }
+            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            onChange={(value: Array<CriteriaAlert>) => {
+              monitorCriteriaInstance.setAlerts(value);
               setMonitorCriteriaInstance(
                 MonitorCriteriaInstance.clone(monitorCriteriaInstance),
               );
