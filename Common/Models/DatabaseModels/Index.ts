@@ -307,7 +307,7 @@ const AllModelTypes: Array<{
 
   TelemetryException,
 
-  TableView
+  TableView,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

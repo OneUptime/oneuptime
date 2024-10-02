@@ -93,7 +93,6 @@ export enum ShowAs {
   OrderedStatesList,
 }
 
-
 export interface SaveFilterProps {
   tableId: string;
 }
@@ -263,7 +262,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Array<ClassicFilterType<TBaseModel>>
   >([]);
 
-  const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema | ReactElement>>([]);
+  const [cardButtons, setCardButtons] = useState<
+    Array<CardButtonSchema | ReactElement>
+  >([]);
 
   const [actionButtonSchema, setActionButtonSchema] = useState<
     Array<ActionButtonSchema<TBaseModel>>
@@ -793,21 +794,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return selectFields;
   };
 
-
   const getSaveFilterDropdown: GetReactElementFunction = (): ReactElement => {
-    if(!props.saveFilterProps){
-      return <></>
+    if (!props.saveFilterProps) {
+      return <></>;
     }
 
-    if(props.saveFilterProps && props.saveFilterProps.tableId){
-      return (<MoreMenu>
-        <MoreMenuItem text="Save Filter" onClick={() => {
-        }}></MoreMenuItem>
-      </MoreMenu>)
+    if (props.saveFilterProps && props.saveFilterProps.tableId) {
+      return (
+        <MoreMenu>
+          <MoreMenuItem text="Save Filter" onClick={() => {}}></MoreMenuItem>
+        </MoreMenu>
+      );
     }
 
-    return <></>
-  }
+    return <></>;
+  };
 
   const setHeaderButtons: VoidFunction = (): void => {
     // add header buttons.
@@ -863,7 +864,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-
     if (showFilterButton) {
       headerbuttons.push({
         title: "",
@@ -880,7 +880,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    if(props.saveFilterProps){
+    if (props.saveFilterProps) {
       headerbuttons.push(getSaveFilterDropdown());
     }
 
@@ -1640,8 +1640,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       </span>
     );
   };
-
-
 
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {

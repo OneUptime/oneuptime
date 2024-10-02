@@ -137,6 +137,8 @@ import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateS
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 
+import TableViewService from "./TableViewService";
+
 const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
@@ -285,6 +287,8 @@ const services: Array<BaseService> = [
   ScheduledMaintenanceTemplateService,
   ScheduledMaintenanceTemplateOwnerTeamService,
   ScheduledMaintenanceTemplateOwnerUserService,
+
+  TableViewService,
 ];
 
 export const AnalyticsServices: Array<

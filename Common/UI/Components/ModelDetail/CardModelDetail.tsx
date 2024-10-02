@@ -39,7 +39,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema | ReactElement>>([]);
+  const [cardButtons, setCardButtons] = useState<
+    Array<CardButtonSchema | ReactElement>
+  >([]);
   const [showModel, setShowModal] = useState<boolean>(false);
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);

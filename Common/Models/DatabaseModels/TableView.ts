@@ -168,7 +168,6 @@ export default class TableView extends BaseModel {
   })
   public name?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -383,7 +382,6 @@ export default class TableView extends BaseModel {
   })
   public filters?: Query<BaseModel> = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -417,7 +415,6 @@ export default class TableView extends BaseModel {
   })
   public sort?: Sort<BaseModel> = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -448,8 +445,7 @@ export default class TableView extends BaseModel {
     type: ColumnType.Number,
     unique: false,
     nullable: false,
-    default: 10
+    default: 10,
   })
   public itemsOnPage?: number = undefined;
-
 }

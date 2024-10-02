@@ -57,42 +57,46 @@ const Card: FunctionComponent<ComponentProps> = (
               </div>
               <div className="flex w-fit">
                 {props.rightElement}
-                {props.buttons?.map((button: CardButtonSchema | ReactElement, i: number) => {
-                  return (
-                    <div
-                      style={
-                        i > 0
-                          ? {
-                            marginLeft: "10px",
-                          }
-                          : {}
-                      }
-                      key={i}
-                    >
-
-                      {React.isValidElement(button) ? button : null}
-                      {React.isValidElement(button) ? null : (
-                        <Button
-                          key={i}
-                          title={(button as CardButtonSchema).title}
-                          buttonStyle={(button as CardButtonSchema).buttonStyle}
-                          className={(button as CardButtonSchema).className}
-                          onClick={() => {
-                            if ((button as CardButtonSchema).onClick) {
-                              (button as CardButtonSchema).onClick();
+                {props.buttons?.map(
+                  (button: CardButtonSchema | ReactElement, i: number) => {
+                    return (
+                      <div
+                        style={
+                          i > 0
+                            ? {
+                                marginLeft: "10px",
+                              }
+                            : {}
+                        }
+                        key={i}
+                      >
+                        {React.isValidElement(button) ? button : null}
+                        {React.isValidElement(button) ? null : (
+                          <Button
+                            key={i}
+                            title={(button as CardButtonSchema).title}
+                            buttonStyle={
+                              (button as CardButtonSchema).buttonStyle
                             }
-                          }}
-                          disabled={(button as CardButtonSchema).disabled}
-                          icon={(button as CardButtonSchema).icon}
-                          shortcutKey={(button as CardButtonSchema).shortcutKey}
-                          dataTestId="card-button"
-                          isLoading={(button as CardButtonSchema).isLoading}
-                        />
-                      )}
-
-                    </div>
-                  );
-                })}
+                            className={(button as CardButtonSchema).className}
+                            onClick={() => {
+                              if ((button as CardButtonSchema).onClick) {
+                                (button as CardButtonSchema).onClick();
+                              }
+                            }}
+                            disabled={(button as CardButtonSchema).disabled}
+                            icon={(button as CardButtonSchema).icon}
+                            shortcutKey={
+                              (button as CardButtonSchema).shortcutKey
+                            }
+                            dataTestId="card-button"
+                            isLoading={(button as CardButtonSchema).isLoading}
+                          />
+                        )}
+                      </div>
+                    );
+                  },
+                )}
               </div>
             </div>
 
