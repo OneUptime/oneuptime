@@ -3,9 +3,8 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
-import IncidentPublicNoteService from "./IncidentPublicNoteService";
-import IncidentService from "./IncidentService";
-import IncidentStateService from "./IncidentStateService";
+import AlertService from "./AlertService";
+import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
@@ -13,16 +12,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Incident from "Common/Models/DatabaseModels/Incident";
-import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 
-export class Service extends DatabaseService<IncidentStateTimeline> {
+export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
-    super(IncidentStateTimeline);
+    super(AlertStateTimeline);
     if(IsBillingEnabled){
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
@@ -31,8 +28,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
+    const resolvedState: AlertState | null =
+      await AlertStateService.findOneBy({
         query: {
           projectId: projectId,
           isResolvedState: true,
@@ -53,10 +50,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<IncidentStateTimeline>,
-  ): Promise<OnCreate<IncidentStateTimeline>> {
-    if (!createBy.data.incidentId) {
-      throw new BadDataException("incidentId is null");
+    createBy: CreateBy<AlertStateTimeline>,
+  ): Promise<OnCreate<AlertStateTimeline>> {
+    if (!createBy.data.alertId) {
+      throw new BadDataException("alertId is null");
     }
 
     if (!createBy.data.startsAt) {
@@ -94,14 +91,14 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       });
 
       if (user) {
-        createBy.data.rootCause = `Incident state created by ${user.name} (${user.email})`;
+        createBy.data.rootCause = `Alert state created by ${user.name} (${user.email})`;
       }
     }
 
-    const lastIncidentStateTimeline: IncidentStateTimeline | null =
+    const lastAlertStateTimeline: AlertStateTimeline | null =
       await this.findOneBy({
         query: {
-          incidentId: createBy.data.incidentId,
+          alertId: createBy.data.alertId,
         },
         sort: {
           createdAt: SortOrder.Descending,
@@ -114,58 +111,32 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         },
       });
 
-    const publicNote: string | undefined = (
-      createBy.miscDataProps as JSONObject | undefined
-    )?.["publicNote"] as string | undefined;
-
-    if (publicNote) {
-      const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
-      incidentPublicNote.incidentId = createBy.data.incidentId;
-      incidentPublicNote.note = publicNote;
-      incidentPublicNote.postedAt = createBy.data.startsAt;
-      incidentPublicNote.createdAt = createBy.data.startsAt;
-      incidentPublicNote.projectId = createBy.data.projectId!;
-      incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
-      // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-      if (
-        incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-      ) {
-        createBy.data.isStatusPageSubscribersNotified = true;
-      }
-
-      await IncidentPublicNoteService.create({
-        data: incidentPublicNote,
-        props: createBy.props,
-      });
-    }
 
     return {
       createBy,
       carryForward: {
-        lastIncidentStateTimelineId: lastIncidentStateTimeline?.id || null,
+        lastAlertStateTimelineId: lastAlertStateTimeline?.id || null,
       },
     };
   }
 
   protected override async onCreateSuccess(
-    onCreate: OnCreate<IncidentStateTimeline>,
-    createdItem: IncidentStateTimeline,
-  ): Promise<IncidentStateTimeline> {
-    if (!createdItem.incidentId) {
-      throw new BadDataException("incidentId is null");
+    onCreate: OnCreate<AlertStateTimeline>,
+    createdItem: AlertStateTimeline,
+  ): Promise<AlertStateTimeline> {
+    if (!createdItem.alertId) {
+      throw new BadDataException("alertId is null");
     }
 
-    if (!createdItem.incidentStateId) {
-      throw new BadDataException("incidentStateId is null");
+    if (!createdItem.alertStateId) {
+      throw new BadDataException("alertStateId is null");
     }
 
     // update the last status as ended.
 
-    if (onCreate.carryForward.lastIncidentStateTimelineId) {
+    if (onCreate.carryForward.lastAlertStateTimelineId) {
       await this.updateOneById({
-        id: onCreate.carryForward.lastIncidentStateTimelineId!,
+        id: onCreate.carryForward.lastAlertStateTimelineId!,
         data: {
           endsAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
         },
@@ -175,70 +146,28 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       });
     }
 
-    await IncidentService.updateOneBy({
+    await AlertService.updateOneBy({
       query: {
-        _id: createdItem.incidentId?.toString(),
+        _id: createdItem.alertId?.toString(),
       },
       data: {
-        currentIncidentStateId: createdItem.incidentStateId,
+        currentAlertStateId: createdItem.alertStateId,
       },
       props: onCreate.createBy.props,
     });
-
-    // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
-    // check if this is resolved state, and if it is then resolve all the monitors.
-
-    const isResolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          _id: createdItem.incidentStateId.toString()!,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
-
-    if (isResolvedState) {
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: createdItem.incidentId.toString(),
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          monitors: {
-            _id: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (incident) {
-        await IncidentService.markMonitorsActiveForMonitoring(
-          incident.projectId!,
-          incident.monitors || [],
-        );
-      }
-    }
 
     return createdItem;
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<IncidentStateTimeline>,
-  ): Promise<OnDelete<IncidentStateTimeline>> {
+    deleteBy: DeleteBy<AlertStateTimeline>,
+  ): Promise<OnDelete<AlertStateTimeline>> {
     if (deleteBy.query._id) {
-      const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
+      const alertStateTimelineToBeDeleted: AlertStateTimeline | null =
         await this.findOneById({
           id: new ObjectID(deleteBy.query._id as string),
           select: {
-            incidentId: true,
+            alertId: true,
             startsAt: true,
           },
           props: {
@@ -246,32 +175,32 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           },
         });
 
-      const incidentId: ObjectID | undefined =
-        incidentStateTimelineToBeDeleted?.incidentId;
+      const alertId: ObjectID | undefined =
+        alertStateTimelineToBeDeleted?.alertId;
 
-      if (incidentId) {
-        const incidentStateTimeline: PositiveNumber = await this.countBy({
+      if (alertId) {
+        const alertStateTimeline: PositiveNumber = await this.countBy({
           query: {
-            incidentId: incidentId,
+            alertId: alertId,
           },
           props: {
             isRoot: true,
           },
         });
 
-        if (incidentStateTimeline.isOne()) {
+        if (alertStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Incident should have at least one state in its timeline.",
+            "Cannot delete the only state timeline. Alert should have at least one state in its timeline.",
           );
         }
 
-        if (incidentStateTimelineToBeDeleted?.startsAt) {
-          const beforeState: IncidentStateTimeline | null =
+        if (alertStateTimelineToBeDeleted?.startsAt) {
+          const beforeState: AlertStateTimeline | null =
             await this.findOneBy({
               query: {
-                incidentId: incidentId,
+                alertId: alertId,
                 startsAt: QueryHelper.lessThan(
-                  incidentStateTimelineToBeDeleted?.startsAt,
+                  alertStateTimelineToBeDeleted?.startsAt,
                 ),
               },
               sort: {
@@ -287,12 +216,12 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             });
 
           if (beforeState) {
-            const afterState: IncidentStateTimeline | null =
+            const afterState: AlertStateTimeline | null =
               await this.findOneBy({
                 query: {
-                  incidentId: incidentId,
+                  alertId: alertId,
                   startsAt: QueryHelper.greaterThan(
-                    incidentStateTimelineToBeDeleted?.startsAt,
+                    alertStateTimelineToBeDeleted?.startsAt,
                   ),
                 },
                 sort: {
@@ -336,25 +265,25 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         }
       }
 
-      return { deleteBy, carryForward: incidentId };
+      return { deleteBy, carryForward: alertId };
     }
 
     return { deleteBy, carryForward: null };
   }
 
   protected override async onDeleteSuccess(
-    onDelete: OnDelete<IncidentStateTimeline>,
+    onDelete: OnDelete<AlertStateTimeline>,
     _itemIdsBeforeDelete: ObjectID[],
-  ): Promise<OnDelete<IncidentStateTimeline>> {
+  ): Promise<OnDelete<AlertStateTimeline>> {
     if (onDelete.carryForward) {
-      // this is incidentId.
-      const incidentId: ObjectID = onDelete.carryForward as ObjectID;
+      // this is alertId.
+      const alertId: ObjectID = onDelete.carryForward as ObjectID;
 
       // get last status of this monitor.
-      const incidentStateTimeline: IncidentStateTimeline | null =
+      const alertStateTimeline: AlertStateTimeline | null =
         await this.findOneBy({
           query: {
-            incidentId: incidentId,
+            alertId: alertId,
           },
           sort: {
             createdAt: SortOrder.Descending,
@@ -364,17 +293,17 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           },
           select: {
             _id: true,
-            incidentStateId: true,
+            alertStateId: true,
           },
         });
 
-      if (incidentStateTimeline && incidentStateTimeline.incidentStateId) {
-        await IncidentService.updateOneBy({
+      if (alertStateTimeline && alertStateTimeline.alertStateId) {
+        await AlertService.updateOneBy({
           query: {
-            _id: incidentId.toString(),
+            _id: alertId.toString(),
           },
           data: {
-            currentIncidentStateId: incidentStateTimeline.incidentStateId,
+            currentAlertStateId: alertStateTimeline.alertStateId,
           },
           props: {
             isRoot: true,

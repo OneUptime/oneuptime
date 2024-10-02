@@ -10,11 +10,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryUsageBilling";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+    if(IsBillingEnabled){
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async getUnreportedUsageBilling(data: {

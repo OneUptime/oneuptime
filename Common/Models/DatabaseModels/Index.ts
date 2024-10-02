@@ -142,6 +142,15 @@ import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplat
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import AlertState from "./AlertState";
+import Alert from "./Alert";
+import AlertCustomField from "./AlertCustomField";
+import AlertStateTimeline from "./AlertStateTimeline";
+import AlertInternalNote from "./AlertInternalNote";
+import AlertOwnerTeam from "./AlertOwnerTeam";
+import AlertOwnerUser from "./AlertOwnerUser";
+import AlertSeverity from "./AlertSeverity";
+import AlertNoteTemplate from "./AlertNoteTemplate";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -185,6 +194,19 @@ const AllModelTypes: Array<{
   IncidentOwnerUser,
   IncidentSeverity,
   IncidentNoteTemplate,
+
+
+
+  AlertState,
+  Alert,
+  AlertCustomField,
+  AlertStateTimeline,
+  AlertInternalNote,
+  AlertOwnerTeam,
+  AlertOwnerUser,
+  AlertSeverity,
+  AlertNoteTemplate,
+
 
   MonitorStatusTimeline,
   

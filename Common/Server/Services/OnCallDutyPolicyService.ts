@@ -16,6 +16,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     policyId: ObjectID,
     options: {
       triggeredByIncidentId?: ObjectID | undefined;
+      triggeredByAlertId?: ObjectID | undefined; 
       userNotificationEventType: UserNotificationEventType;
     },
   ): Promise<void> {
@@ -28,6 +29,17 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     ) {
       throw new BadDataException(
         "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+      );
+    }
+
+
+    if (
+      UserNotificationEventType.AlertCreated ===
+        options.userNotificationEventType &&
+      !options.triggeredByAlertId
+    ) {
+      throw new BadDataException(
+        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
       );
     }
 
@@ -60,6 +72,10 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
     if (options.triggeredByIncidentId) {
       log.triggeredByIncidentId = options.triggeredByIncidentId;
+    }
+
+    if (options.triggeredByAlertId) {
+      log.triggeredByAlertId = options.triggeredByAlertId;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

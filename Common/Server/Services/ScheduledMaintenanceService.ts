@@ -45,11 +45,14 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+    if(IsBillingEnabled){
     this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async notififySubscribersOnEventScheduled(
