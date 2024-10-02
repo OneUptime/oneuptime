@@ -84,8 +84,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MoreMenu from "../MoreMenu/MoreMenu";
-import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import TableViewElement from "./TableView";
+import TableView from "../../../Models/DatabaseModels/TableView";
 
 export enum ShowAs {
   Table,
@@ -800,10 +800,48 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     if (props.saveFilterProps && props.saveFilterProps.tableId) {
+      const currentTableView: TableView = new TableView();
+      currentTableView.query = (query || {}) as any;
+      currentTableView.itemsOnPage = itemsOnPage || 10;
+
+      if (sortBy && sortOrder) {
+        currentTableView.sort = {
+          [sortBy as string]: sortOrder,
+        };
+      } else {
+        currentTableView.sort = {};
+      }
+
       return (
-        <MoreMenu>
-          <MoreMenuItem text="Save Filter" onClick={() => {}}></MoreMenuItem>
-        </MoreMenu>
+        <TableViewElement
+          tableId={props.saveFilterProps.tableId}
+          currentTableView={currentTableView}
+          onViewChange={(tableView: TableView | null) => {
+            if (tableView) {
+              const sortBy: string | undefined = Object.keys(
+                tableView.sort || {},
+              )[0];
+              let sortOrder: SortOrder = SortOrder.Descending;
+
+              if (sortBy && tableView.sort) {
+                sortOrder =
+                  ((tableView.sort as any)[sortBy as any] as any) ||
+                  SortOrder.Descending;
+              }
+
+              // then set query, sort and items on the page
+              setQuery(tableView.query || {});
+              setItemsOnPage(tableView.itemsOnPage || 10);
+              setSortBy(sortBy as keyof TBaseModel);
+              setSortOrder(sortOrder);
+            } else {
+              setQuery({});
+              setSortBy(null);
+              setSortOrder(SortOrder.Descending);
+              setItemsOnPage(10);
+            }
+          }}
+        />
       );
     }
 

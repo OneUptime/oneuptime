@@ -21,6 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import Query from "../../Types/BaseDatabase/Query";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Sort from "../../Types/BaseDatabase/Sort";
+import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 
 @TableBillingAccessControl({
   create: PlanType.Growth,
@@ -380,7 +381,7 @@ export default class TableView extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public query?: Query<BaseModel> = undefined;
+  public query?: Query<BaseModel | AnalyticsBaseModel> = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -413,7 +414,7 @@ export default class TableView extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public sort?: Sort<BaseModel> = undefined;
+  public sort?: Sort<BaseModel | AnalyticsBaseModel> = undefined;
 
   @ColumnAccessControl({
     create: [

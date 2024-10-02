@@ -23,13 +23,13 @@ import { FormType } from "../Forms/ModelForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import ProjectUtil from "../../Utils/Project";
+import User from "../../Utils/User";
 
 export interface ComponentProps {
   tableId: string;
   onViewChange: (tableView: TableView | null) => void;
   currentTableView: TableView | null;
-  projectId: ObjectID;
-  userId: ObjectID;
 }
 
 const TableViewElement: FunctionComponent<ComponentProps> = (
@@ -47,6 +47,9 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
   const [showCreateNewViewModal, setShowCreateNewViewModel] =
     useState<boolean>(false);
 
+  const [currentlySelectedView, setCurrentlySelectedView] =
+    useState<TableView | null>(null);
+
   // load all the filters for this user and for this project.
   const fetchTableViews: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -56,8 +59,8 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
       const tableViews: ListResult<TableView> = await ModelAPI.getList({
         modelType: TableView,
         query: {
-          projectId: props.projectId,
-          createdByUserId: props.userId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          createdByUserId: User.getUserId(),
           tableId: props.tableId,
         },
         limit: LIMIT_PER_PROJECT,
@@ -149,6 +152,7 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
           text={item.name || ""}
           onClick={() => {
             props.onViewChange && props.onViewChange(item);
+            setCurrentlySelectedView(item);
           }}
         />
       );
@@ -169,7 +173,25 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <MoreMenuItem text="Save View" onClick={() => {}}></MoreMenuItem>
+
+        {currentlySelectedView ? (
+          <MoreMenuItem
+            text="Deselect View"
+            onClick={() => {
+              setCurrentlySelectedView(null);
+              props.onViewChange && props.onViewChange(null);
+            }}
+          ></MoreMenuItem>
+        ) : (
+          <></>
+        )}
+
+        <MoreMenuItem
+          text="Save View"
+          onClick={() => {
+            setShowCreateNewViewModel(true);
+          }}
+        ></MoreMenuItem>
       </>
     );
   };
