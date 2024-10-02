@@ -25,10 +25,18 @@ enum EmailTemplateType {
   MonitorOwnerResourceCreated = "MonitorOwnerResourceCreated.hbs",
   MonitorProbesStatus = "MonitorProbesStatus.hbs",
   MonitorOwnerStatusChanged = "MonitorOwnerStatusChanged.hbs",
+
   IncidentOwnerAdded = "IncidentOwnerAdded.hbs",
   IncidentOwnerStateChanged = "IncidentOwnerStateChanged.hbs",
   IncidentOwnerNotePosted = "IncidentOwnerNotePosted.hbs",
   IncidentOwnerResourceCreated = "IncidentOwnerResourceCreated.hbs",
+
+
+  AlertOwnerAdded = "AlertOwnerAdded.hbs",
+  AlertOwnerStateChanged = "AlertOwnerStateChanged.hbs",
+  AlertOwnerNotePosted = "AlertOwnerNotePosted.hbs",
+  AlertOwnerResourceCreated = "AlertOwnerResourceCreated.hbs",
+  
   ScheduledMaintenanceOwnerNotePosted = "ScheduledMaintenanceOwnerNotePosted.hbs",
   ScheduledMaintenanceOwnerAdded = "ScheduledMaintenanceOwnerAdded.hbs",
   ScheduledMaintenanceOwnerStateChanged = "ScheduledMaintenanceOwnerStateChanged.hbs",
