@@ -6,6 +6,7 @@ export interface ComponentProps {
   icon?: IconProp | undefined;
   text: string;
   onClick: () => void;
+  rightElement?: Array<ReactElement> | ReactElement | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -25,7 +26,10 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
         />
       )}
-      {props.text}
+      <div className="flex justify-between">
+        <div>{props.text}</div>
+        <div>{props.rightElement}</div>
+      </div>
     </a>
   );
 };

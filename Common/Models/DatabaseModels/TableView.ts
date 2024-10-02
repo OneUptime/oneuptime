@@ -380,7 +380,7 @@ export default class TableView extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public filters?: Query<BaseModel> = undefined;
+  public query?: Query<BaseModel> = undefined;
 
   @ColumnAccessControl({
     create: [
