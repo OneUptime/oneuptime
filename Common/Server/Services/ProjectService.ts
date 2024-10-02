@@ -28,7 +28,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
-import { Black, Green, Moroon500, Red, Yellow } from "../../Types/BrandColors";
+import { Black, Green, Moroon500, Red, Yellow, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -50,6 +50,8 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import User from "Common/Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import Query from "../Types/Database/Query";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertSeverityService from "./AlertSeverityService";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -167,8 +169,8 @@ export class ProjectService extends DatabaseService<Model> {
           if (promoCode.planType !== data.data.planName) {
             throw new BadDataException(
               "Promocode is not valid for this plan. Please select the " +
-                promoCode.planType +
-                " plan.",
+              promoCode.planType +
+              " plan.",
             );
           }
 
@@ -299,9 +301,9 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName(),
+            project.id?.toString() +
+            " to " +
+            plan.getName(),
           );
 
           if (!project.paymentProviderSubscriptionSeats) {
@@ -313,11 +315,11 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats,
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats,
           );
 
           const subscription: {
@@ -339,12 +341,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed.",
           );
 
           // refresh subscription status.
@@ -380,12 +382,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed and project updated.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed and project updated.",
           );
         }
       }
@@ -543,6 +545,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     createdItem = await this.addDefaultIncidentSeverity(createdItem);
+    createdItem = await this.addDefaultAlertSeverity(createdItem);
     createdItem = await this.addDefaultProjectTeams(createdItem);
     createdItem = await this.addDefaultMonitorStatus(createdItem);
     createdItem = await this.addDefaultIncidentState(createdItem);
@@ -599,6 +602,44 @@ export class ProjectService extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    return createdItem;
+  }
+
+  private async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
+    let highSeverity: AlertSeverity = new AlertSeverity();
+    highSeverity.name = "High";
+    highSeverity.description =
+      "Issues causing very high impact to customers. Immediate attention is required.";
+    highSeverity.color = Moroon500;
+    highSeverity.projectId = createdItem.id!;
+    highSeverity.order = 1;
+
+    highSeverity = await AlertSeverityService.create({
+      data: highSeverity,
+      props: {
+        isRoot: true,
+      },
+    });
+
+
+    let lowSeverity: AlertSeverity = new AlertSeverity();
+    lowSeverity.name = "Low";
+    lowSeverity.description =
+      "Issues causing low impact to customers.";
+    lowSeverity.color = Yellow500;
+    lowSeverity.projectId = createdItem.id!;
+    lowSeverity.order = 2;
+
+    lowSeverity = await AlertSeverityService.create({
+      data: lowSeverity,
+      props: {
+        isRoot: true,
+      },
+    });
+
+
+
 
     return createdItem;
   }
