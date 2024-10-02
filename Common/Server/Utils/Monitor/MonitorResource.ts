@@ -42,7 +42,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Incident, {
-  TelemetryIncidentQuery,
+  TelemetryQuery,
 } from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -376,7 +376,7 @@ export default class MonitorResourceUtil {
         }`,
       );
 
-      let telemetryQuery: TelemetryIncidentQuery | undefined = undefined;
+      let telemetryQuery: TelemetryQuery | undefined = undefined;
 
       if (dataToProcess && (dataToProcess as LogMonitorResponse).logQuery) {
         telemetryQuery = {
@@ -751,7 +751,7 @@ export default class MonitorResourceUtil {
       Array<string>
     >;
     props: {
-      telemetryQuery?: TelemetryIncidentQuery | undefined;
+      telemetryQuery?: TelemetryQuery | undefined;
     };
   }): Promise<void> {
     // criteria filters are met, now process the actions.

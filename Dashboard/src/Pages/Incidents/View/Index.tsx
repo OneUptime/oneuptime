@@ -28,9 +28,7 @@ import BaseAPI from "Common/UI/Utils/API/API";
 import GlobalEvent from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import Incident, {
-  TelemetryIncidentQuery,
-} from "Common/Models/DatabaseModels/Incident";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -48,6 +46,7 @@ import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import TraceTable from "../../../Components/Traces/TraceTable";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -63,7 +62,7 @@ const IncidentView: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [telemetryQuery, setTelemetryQuery] =
-    useState<TelemetryIncidentQuery | null>(null);
+    useState<TelemetryQuery | null>(null);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -114,7 +113,7 @@ const IncidentView: FunctionComponent<
         },
       });
 
-      let telemetryQuery: TelemetryIncidentQuery | null = null;
+      let telemetryQuery: TelemetryQuery | null = null;
 
       if (incident?.telemetryQuery) {
         telemetryQuery = JSONFunctions.deserialize(

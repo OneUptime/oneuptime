@@ -120,18 +120,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               labelField: "name",
               valueField: "_id",
             },
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotified: true,
-            },
-
-            title: "Notify Status Page Subscribers",
-            description: "Should status page subscribers be notified?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
-            required: false,
-          },
+          }
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -223,14 +212,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 </p>
               );
             },
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotified: true,
-            },
-            title: "Subscribers Notified",
-            type: FieldType.Boolean,
-          },
+          }
         ]}
       />
       {showViewLogsModal ? (
