@@ -5,10 +5,7 @@ import Link from "Common/Types/Link";
 
 export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS, [
-      "Project",
-      "Alerts",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS, ["Project", "Alerts"]),
     ...BuildBreadcrumbLinksByTitles(PageMap.UNRESOLVED_ALERTS, [
       "Project",
       "Alerts",

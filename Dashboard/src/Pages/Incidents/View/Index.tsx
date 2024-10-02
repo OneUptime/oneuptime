@@ -61,8 +61,9 @@ const IncidentView: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [telemetryQuery, setTelemetryQuery] =
-    useState<TelemetryQuery | null>(null);
+  const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
+    null,
+  );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {

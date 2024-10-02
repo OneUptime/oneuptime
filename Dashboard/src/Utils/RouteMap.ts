@@ -140,8 +140,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
 };
 
-
-
 export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_ALERTS]: "unresolved",
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -177,10 +175,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: "monitor-custom-fields",
   [PageMap.SETTINGS_MONITOR_SECRETS]: "monitor-secrets",
 
-
   [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: "incident-custom-fields",
   [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
-
 
   [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]:
     "on-call-duty-policy-custom-fields",
@@ -196,7 +192,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
 
   [PageMap.SETTINGS_ALERTS_SEVERITY]: "alerts-severity",
-
 
   [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]: "alert-note-templates",
   [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]: `alert-note-templates/${RouteParams.ModelID}`,
@@ -371,22 +366,17 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.ALERTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/*`,
   ),
 
-  [PageMap.ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/alerts`,
-  ),
+  [PageMap.ALERTS]: new Route(`/dashboard/${RouteParams.ProjectID}/alerts`),
 
   [PageMap.UNRESOLVED_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.UNRESOLVED_ALERTS]
     }`,
   ),
-
-
 
   [PageMap.ALERT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
@@ -423,7 +413,6 @@ const RouteMap: Dictionary<Route> = {
       AlertsRoutePath[PageMap.ALERT_INTERNAL_NOTE]
     }`,
   ),
-
 
   // Incidents
 

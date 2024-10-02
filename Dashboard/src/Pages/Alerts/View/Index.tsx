@@ -47,9 +47,7 @@ import TraceTable from "../../../Components/Traces/TraceTable";
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 
-const AlertView: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [alertStateTimeline, setAlertStateTimeline] = useState<
@@ -60,8 +58,9 @@ const AlertView: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [telemetryQuery, setTelemetryQuery] =
-    useState<TelemetryQuery | null>(null);
+  const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
+    null,
+  );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -122,9 +121,7 @@ const AlertView: FunctionComponent<
 
       setTelemetryQuery(telemetryQuery);
       setAlertStates(alertStates.data as AlertState[]);
-      setAlertStateTimeline(
-        alertTimelines.data as AlertStateTimeline[],
-      );
+      setAlertStateTimeline(alertTimelines.data as AlertStateTimeline[]);
       setError("");
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
@@ -168,8 +165,7 @@ const AlertView: FunctionComponent<
   type getTimeFunction = () => string;
 
   const getTimeToAcknowledge: getTimeFunction = (): string => {
-    const alertStartTime: Date =
-      alertStateTimeline[0]?.startsAt || new Date();
+    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
 
     const acknowledgeTime: Date | undefined = alertStateTimeline.find(
       (timeline: AlertStateTimeline) => {
@@ -208,8 +204,7 @@ const AlertView: FunctionComponent<
   };
 
   const getTimeToResolve: getTimeFunction = (): string => {
-    const alertStartTime: Date =
-      alertStateTimeline[0]?.startsAt || new Date();
+    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
 
     const resolveTime: Date | undefined = alertStateTimeline.find(
       (timeline: AlertStateTimeline) => {

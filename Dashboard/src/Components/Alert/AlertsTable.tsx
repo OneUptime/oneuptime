@@ -32,7 +32,6 @@ export interface ComponentProps {
 const AlertsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  
   const [error, setError] = useState<string>("");
   const [initialValuesForAlert, setInitialValuesForAlert] =
     useState<JSONObject>({});
@@ -63,8 +62,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title || "Alerts",
           description:
-            props.description ||
-            "Here is a list of alerts for this project.",
+            props.description || "Here is a list of alerts for this project.",
         }}
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}

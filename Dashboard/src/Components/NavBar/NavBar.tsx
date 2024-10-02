@@ -87,9 +87,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       <NavBarItem
         title="Alerts"
         activeRoute={RouteMap[PageMap.ALERTS]}
-        route={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.ALERTS] as Route,
-        )}
+        route={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route)}
         icon={IconProp.Circle}
       ></NavBarItem>
 
@@ -101,8 +99,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
         icon={IconProp.Alert}
       ></NavBarItem>
-
-
 
       <NavBarItem
         title="Telemetry and APM"

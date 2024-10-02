@@ -120,7 +120,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               labelField: "name",
               valueField: "_id",
             },
-          }
+          },
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -212,7 +212,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 </p>
               );
             },
-          }
+          },
         ]}
       />
       {showViewLogsModal ? (

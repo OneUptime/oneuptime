@@ -15,9 +15,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const AlertOwners: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -36,9 +34,7 @@ const AlertOwners: FunctionComponent<
           alertId: modelId,
           projectId: DashboardNavigation.getProjectId()!,
         }}
-        onBeforeCreate={(
-          item: AlertOwnerTeam,
-        ): Promise<AlertOwnerTeam> => {
+        onBeforeCreate={(item: AlertOwnerTeam): Promise<AlertOwnerTeam> => {
           item.alertId = modelId;
           item.projectId = DashboardNavigation.getProjectId()!;
           return Promise.resolve(item);
@@ -133,9 +129,7 @@ const AlertOwners: FunctionComponent<
           alertId: modelId,
           projectId: DashboardNavigation.getProjectId()!,
         }}
-        onBeforeCreate={(
-          item: AlertOwnerUser,
-        ): Promise<AlertOwnerUser> => {
+        onBeforeCreate={(item: AlertOwnerUser): Promise<AlertOwnerUser> => {
           item.alertId = modelId;
           item.projectId = DashboardNavigation.getProjectId()!;
           return Promise.resolve(item);

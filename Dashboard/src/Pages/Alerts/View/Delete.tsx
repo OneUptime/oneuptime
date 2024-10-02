@@ -8,9 +8,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const AlertDelete: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

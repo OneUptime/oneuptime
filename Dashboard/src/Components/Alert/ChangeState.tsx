@@ -73,15 +73,11 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         )}
         {!alertTimeline.createdByUser && (
           <p>
-            {props.alertType === AlertType.Ack
-              ? "Acknowledged"
-              : "Resolved"}{" "}
-            by OneUptime
+            {props.alertType === AlertType.Ack ? "Acknowledged" : "Resolved"} by
+            OneUptime
           </p>
         )}
-        {OneUptimeDate.getDateAsLocalFormattedString(
-          alertTimeline.createdAt,
-        )}
+        {OneUptimeDate.getDateAsLocalFormattedString(alertTimeline.createdAt)}
       </div>
     );
   }
@@ -208,7 +204,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
                 required: false,
                 overrideFieldKey: "publicNote",
                 showEvenIfPermissionDoesNotExist: true,
-              }
+              },
             ],
             formType: FormType.Create,
           }}
