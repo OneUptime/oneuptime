@@ -19,8 +19,8 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
-    if(IsBillingEnabled){
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
   }
 

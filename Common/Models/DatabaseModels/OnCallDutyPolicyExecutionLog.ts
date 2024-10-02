@@ -226,7 +226,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   public triggeredByIncidentId?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [
@@ -242,8 +241,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Triggered By Alert",
-    description:
-      "Relation to Alert which triggered this on-call duty policy.",
+    description: "Relation to Alert which triggered this on-call duty policy.",
   })
   @ManyToOne(
     () => {
@@ -281,7 +279,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertId?: ObjectID = undefined;
-
 
   @ColumnAccessControl({
     create: [],

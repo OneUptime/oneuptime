@@ -16,7 +16,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     policyId: ObjectID,
     options: {
       triggeredByIncidentId?: ObjectID | undefined;
-      triggeredByAlertId?: ObjectID | undefined; 
+      triggeredByAlertId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
     },
   ): Promise<void> {
@@ -31,7 +31,6 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
       );
     }
-
 
     if (
       UserNotificationEventType.AlertCreated ===

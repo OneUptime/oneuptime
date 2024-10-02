@@ -26,17 +26,14 @@ import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    if(IsBillingEnabled){
-        this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
   }
 
@@ -74,8 +71,7 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    const currentAlertStateOrder: number =
-      alert.currentAlertState!.order!;
+    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
     const ackAlertStateOrder: number = ackAlertState.order!;
 
     if (currentAlertStateOrder >= ackAlertStateOrder) {
@@ -103,19 +99,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Alert not found.");
     }
 
-    const alertState: AlertState | null =
-      await AlertStateService.findOneBy({
-        query: {
-          projectId: alert.projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: alert.projectId,
+        isAcknowledgedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
@@ -123,8 +118,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const alertStateTimeline: AlertStateTimeline =
-      new AlertStateTimeline();
+    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
     alertStateTimeline.projectId = alert.projectId;
     alertStateTimeline.alertId = alertId;
     alertStateTimeline.alertStateId = alertState.id;
@@ -145,19 +139,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("ProjectId required to create alert.");
     }
 
-    const alertState: AlertState | null =
-      await AlertStateService.findOneBy({
-        query: {
-          projectId: createBy.props.tenantId || createBy.data.projectId!,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: createBy.props.tenantId || createBy.data.projectId!,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
@@ -261,8 +254,7 @@ export class Service extends DatabaseService<Model> {
           new ObjectID(policy._id as string),
           {
             triggeredByAlertId: createdItem.id!,
-            userNotificationEventType:
-              UserNotificationEventType.AlertCreated,
+            userNotificationEventType: UserNotificationEventType.AlertCreated,
           },
         );
       }
@@ -432,8 +424,7 @@ export class Service extends DatabaseService<Model> {
         await this.changeAlertState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           alertId: itemId,
-          alertStateId: onUpdate.updateBy.data
-            .currentAlertStateId as ObjectID,
+          alertStateId: onUpdate.updateBy.data.currentAlertStateId as ObjectID,
           notifyOwners: true,
           rootCause: "This status was changed when the alert was updated.",
           stateChangeLog: undefined,
@@ -451,20 +442,19 @@ export class Service extends DatabaseService<Model> {
     monitorId: ObjectID,
     proojectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: AlertState | null =
-      await AlertStateService.findOneBy({
-        query: {
-          projectId: proojectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-      });
+    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: proojectId,
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        order: true,
+      },
+    });
 
     const alertCount: PositiveNumber = await this.countBy({
       query: {

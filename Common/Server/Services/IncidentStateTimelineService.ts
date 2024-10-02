@@ -23,8 +23,8 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
-    if(IsBillingEnabled){
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
   }
 

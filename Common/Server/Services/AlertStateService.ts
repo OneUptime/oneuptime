@@ -182,11 +182,10 @@ export class Service extends DatabaseService<AlertState> {
     projectId: ObjectID,
     props: DatabaseCommonInteractionProps,
   ): Promise<AlertState[]> {
-    const alertStates: Array<AlertState> =
-      await this.getAllAlertStates({
-        projectId: projectId,
-        props: props,
-      });
+    const alertStates: Array<AlertState> = await this.getAllAlertStates({
+      projectId: projectId,
+      props: props,
+    });
 
     const unresolvedAlertStates: Array<AlertState> = [];
 
@@ -205,11 +204,10 @@ export class Service extends DatabaseService<AlertState> {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<AlertState> {
-    const alertStates: Array<AlertState> =
-      await this.getAllAlertStates({
-        projectId: data.projectId,
-        props: data.props,
-      });
+    const alertStates: Array<AlertState> = await this.getAllAlertStates({
+      projectId: data.projectId,
+      props: data.props,
+    });
 
     const ackAlertState: AlertState | undefined = alertStates.find(
       (alertState: AlertState) => {

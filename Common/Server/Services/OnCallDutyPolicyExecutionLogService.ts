@@ -11,9 +11,9 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    if(IsBillingEnabled){
-    this.hardDeleteItemsOlderThanInDays("createdAt", 30);}
-    
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    }
   }
 
   protected override async onBeforeCreate(

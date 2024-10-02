@@ -336,7 +336,6 @@ export default class Alert extends BaseModel {
 
   // monitor this alert was created for.
 
-
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -346,8 +345,7 @@ export default class Alert extends BaseModel {
     manyToOneRelationColumn: "monitorId",
     type: TableColumnType.Entity,
     title: "Monitor",
-    description:
-      "Relation to monitor this alert belongs to",
+    description: "Relation to monitor this alert belongs to",
   })
   @ManyToOne(
     () => {

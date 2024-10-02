@@ -195,8 +195,6 @@ const AllModelTypes: Array<{
   IncidentSeverity,
   IncidentNoteTemplate,
 
-
-
   AlertState,
   Alert,
   AlertCustomField,
@@ -207,10 +205,8 @@ const AllModelTypes: Array<{
   AlertSeverity,
   AlertNoteTemplate,
 
-
   MonitorStatusTimeline,
-  
-  
+
   File,
   Domain,
 
@@ -250,8 +246,6 @@ const AllModelTypes: Array<{
 
   MonitorOwnerTeam,
   MonitorOwnerUser,
-
-  
 
   ScheduledMaintenanceOwnerTeam,
   ScheduledMaintenanceOwnerUser,

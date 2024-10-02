@@ -5,7 +5,7 @@ import Model from "Common/Models/DatabaseModels/CallLog";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    if(IsBillingEnabled){
+    if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3);
     }
   }

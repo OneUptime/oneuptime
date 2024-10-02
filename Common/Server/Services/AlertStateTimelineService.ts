@@ -9,7 +9,6 @@ import UserService from "./UserService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -20,27 +19,26 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
     super(AlertStateTimeline);
-    if(IsBillingEnabled){
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
   }
 
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: AlertState | null =
-      await AlertStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: projectId,
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
 
     if (!resolvedState) {
       throw new BadDataException("No resolved state found for the project");
@@ -110,7 +108,6 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           _id: true,
         },
       });
-
 
     return {
       createBy,
@@ -195,16 +192,35 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         }
 
         if (alertStateTimelineToBeDeleted?.startsAt) {
-          const beforeState: AlertStateTimeline | null =
-            await this.findOneBy({
+          const beforeState: AlertStateTimeline | null = await this.findOneBy({
+            query: {
+              alertId: alertId,
+              startsAt: QueryHelper.lessThan(
+                alertStateTimelineToBeDeleted?.startsAt,
+              ),
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+              startsAt: true,
+            },
+          });
+
+          if (beforeState) {
+            const afterState: AlertStateTimeline | null = await this.findOneBy({
               query: {
                 alertId: alertId,
-                startsAt: QueryHelper.lessThan(
+                startsAt: QueryHelper.greaterThan(
                   alertStateTimelineToBeDeleted?.startsAt,
                 ),
               },
               sort: {
-                createdAt: SortOrder.Descending,
+                createdAt: SortOrder.Ascending,
               },
               props: {
                 isRoot: true,
@@ -214,27 +230,6 @@ export class Service extends DatabaseService<AlertStateTimeline> {
                 startsAt: true,
               },
             });
-
-          if (beforeState) {
-            const afterState: AlertStateTimeline | null =
-              await this.findOneBy({
-                query: {
-                  alertId: alertId,
-                  startsAt: QueryHelper.greaterThan(
-                    alertStateTimelineToBeDeleted?.startsAt,
-                  ),
-                },
-                sort: {
-                  createdAt: SortOrder.Ascending,
-                },
-                props: {
-                  isRoot: true,
-                },
-                select: {
-                  _id: true,
-                  startsAt: true,
-                },
-              });
 
             if (!afterState) {
               // if there's nothing after then end date of before state is null.

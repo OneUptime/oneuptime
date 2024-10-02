@@ -76,11 +76,7 @@ export class Service extends DatabaseService<Model> {
     const alertSeverity: Model | null = onDelete.carryForward;
 
     if (!deleteBy.props.isRoot && alertSeverity) {
-      if (
-        alertSeverity &&
-        alertSeverity.order &&
-        alertSeverity.projectId
-      ) {
+      if (alertSeverity && alertSeverity.order && alertSeverity.projectId) {
         await this.rearrangeOrder(
           alertSeverity.order,
           alertSeverity.projectId,

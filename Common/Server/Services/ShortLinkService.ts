@@ -14,8 +14,8 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    if(IsBillingEnabled){
-    this.hardDeleteItemsOlderThanInDays("createdAt", 3); //expire links in 3 days.
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3); //expire links in 3 days.
     }
   }
 

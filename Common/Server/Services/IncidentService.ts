@@ -234,9 +234,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-        "Status was changed because incident " +
-        createdItem.id.toString() +
-        " was created.",
+          "Status was changed because incident " +
+            createdItem.id.toString() +
+            " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -271,9 +271,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -596,7 +596,7 @@ export class Service extends DatabaseService<Model> {
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-            resolvedMonitorState.id!.toString()
+              resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -709,7 +709,7 @@ export class Service extends DatabaseService<Model> {
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-      incidentStateId.toString()
+        incidentStateId.toString()
     ) {
       return;
     }
