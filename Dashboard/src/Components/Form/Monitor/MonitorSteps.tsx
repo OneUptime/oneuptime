@@ -40,8 +40,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
-
-    const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
+  const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
@@ -99,8 +98,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           },
         });
 
-
-        const alertSeverityList: ListResult<AlertSeverity> =
+      const alertSeverityList: ListResult<AlertSeverity> =
         await ModelAPI.getList({
           modelType: AlertSeverity,
           query: {},
@@ -137,7 +135,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           }),
         );
       }
-
 
       if (alertSeverityList.data) {
         setAlertSeverityDropdownOptions(
@@ -184,7 +181,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               },
             )!.id!,
             defaultIncidentSeverityId: incidentSeverityList.data[0]!.id!,
-            defaultAlertSeverityId: alertSeverityList.data[0]!.id!
+            defaultAlertSeverityId: alertSeverityList.data[0]!.id!,
           }),
         );
       }

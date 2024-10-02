@@ -81,19 +81,18 @@ RunCron(
       const alertState: AlertState = alertStateTimeline.alertState!;
 
       // get alert severity
-      const alertWithSeverity: Alert | null =
-        await AlertService.findOneById({
-          id: alert.id!,
-          props: {
-            isRoot: true,
+      const alertWithSeverity: Alert | null = await AlertService.findOneById({
+        id: alert.id!,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          alertSeverity: {
+            name: true,
           },
-          select: {
-            _id: true,
-            alertSeverity: {
-              name: true,
-            },
-          },
-        });
+        },
+      });
 
       if (!alertWithSeverity) {
         continue;
@@ -119,9 +118,7 @@ RunCron(
         doesResourceHasOwners = false;
 
         // find project owners.
-        owners = await ProjectService.getOwners(
-          alertStateTimeline.projectId!,
-        );
+        owners = await ProjectService.getOwners(alertStateTimeline.projectId!);
       }
 
       if (owners.length === 0) {
@@ -137,9 +134,7 @@ RunCron(
             alert.description! || "",
             MarkdownContentType.Email,
           ),
-          resourcesAffected:
-            alert
-              .monitor?.name || "",
+          resourcesAffected: alert.monitor?.name || "",
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: alertStateTimeline.createdAt!,

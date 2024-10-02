@@ -22,7 +22,6 @@ RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-
     const privateNotes: Array<AlertInternalNote> =
       await AlertInternalNoteService.findBy({
         query: {
@@ -47,7 +46,6 @@ RunCron(
       },
     );
 
-
     for (const note of privateNotes) {
       await AlertInternalNoteService.updateOneById({
         id: note.id!,
@@ -60,7 +58,7 @@ RunCron(
       });
     }
 
-    const notes: Array<BaseModel> = [ ...privateNotes];
+    const notes: Array<BaseModel> = [...privateNotes];
 
     for (const noteObject of notes) {
       const note: BaseModel = noteObject as BaseModel;
@@ -124,8 +122,7 @@ RunCron(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          alert.monitor?.name || "None",
+        resourcesAffected: alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(

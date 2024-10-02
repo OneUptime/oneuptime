@@ -117,8 +117,7 @@ RunCron(
               alert.description! || "",
               MarkdownContentType.Email,
             ),
-            resourcesAffected:
-              alert.monitor?.name || "None",
+            resourcesAffected: alert.monitor?.name || "None",
             alertSeverity: alert.alertSeverity!.name!,
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
@@ -134,8 +133,7 @@ RunCron(
               )) || "",
             rootCause:
               (await Markdown.convertToHTML(
-                alert.rootCause ||
-                  "No root cause identified for this alert",
+                alert.rootCause || "No root cause identified for this alert",
                 MarkdownContentType.Email,
               )) || "",
             alertViewLink: (
@@ -178,9 +176,7 @@ RunCron(
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });
         } catch (e) {
-          logger.error(
-            "Error in sending alert created resource notification",
-          );
+          logger.error("Error in sending alert created resource notification");
           logger.error(e);
         }
       }

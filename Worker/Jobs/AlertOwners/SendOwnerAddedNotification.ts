@@ -165,8 +165,7 @@ RunCron(
           alert.description! || "",
           MarkdownContentType.Email,
         ),
-        resourcesAffected:
-          alert.monitor?.name || "None",
+        resourcesAffected: alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(

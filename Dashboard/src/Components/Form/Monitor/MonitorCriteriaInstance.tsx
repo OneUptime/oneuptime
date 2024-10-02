@@ -91,7 +91,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     (props.initialValue?.data?.incidents?.length || 0) > 0,
   );
 
-
   const [showAlertControl, setShowAlertControl] = useState<boolean>(
     (props.initialValue?.data?.alerts?.length || 0) > 0,
   );
@@ -293,9 +292,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-
-
-<div className="mt-4">
+      <div className="mt-4">
         <Toggle
           value={showAlertControl}
           title="When filters match, create an alert."
@@ -333,9 +330,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
           <MonitorCriteriaAlertsForm
             initialValue={monitorCriteriaInstance?.data?.alerts || []}
-            alertSeverityDropdownOptions={
-              props.alertSeverityDropdownOptions
-            }
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             onChange={(value: Array<CriteriaAlert>) => {
               monitorCriteriaInstance.setAlerts(value);

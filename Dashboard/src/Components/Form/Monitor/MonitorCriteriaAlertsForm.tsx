@@ -37,9 +37,7 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
         return (
           <MonitorCriteriaAlertForm
             key={index}
-            alertSeverityDropdownOptions={
-              props.alertSeverityDropdownOptions
-            }
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             initialValue={i}
             // onDelete={() => {

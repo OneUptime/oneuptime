@@ -10,7 +10,6 @@ import "./Jobs/IncidentOwners/SendNotePostedNotification";
 import "./Jobs/IncidentOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentOwners/SendStateChangeNotification";
 
-
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertOwners/SendNotePostedNotification";
