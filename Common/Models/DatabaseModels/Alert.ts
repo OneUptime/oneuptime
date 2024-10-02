@@ -1,5 +1,5 @@
-import IncidentSeverity from "./IncidentSeverity";
-import IncidentState from "./IncidentState";
+import AlertSeverity from "./AlertSeverity";
+import AlertState from "./AlertState";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
@@ -18,7 +18,6 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -39,7 +38,6 @@ import {
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 
 
-
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
@@ -49,31 +47,30 @@ import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateProjectIncident,
+    Permission.CreateAlert,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadProjectIncident,
+    Permission.ReadAlert,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteProjectIncident,
+    Permission.DeleteAlert,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditProjectIncident,
+    Permission.EditAlert,
   ],
 })
-@CrudApiEndpoint(new Route("/incident"))
-@SlugifyColumn("name", "slug")
+@CrudApiEndpoint(new Route("/alert"))
 @Entity({
-  name: "Incident",
+  name: "Alert",
 })
 @EnableWorkflow({
   create: true,
@@ -82,30 +79,30 @@ import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
   read: true,
 })
 @TableMetadata({
-  tableName: "Incident",
-  singularName: "Incident",
-  pluralName: "Incidents",
+  tableName: "Alert",
+  singularName: "Alert",
+  pluralName: "Alerts",
   icon: IconProp.Alert,
-  tableDescription: "Manage incidents for your project",
+  tableDescription: "Manage alerts for your project",
   enableRealtimeEventsOn: {
     create: true,
     update: true,
     delete: true,
   },
 })
-export default class Incident extends BaseModel {
+export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -135,13 +132,13 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -165,19 +162,19 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @Index()
@@ -186,7 +183,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Title",
-    description: "Title of this incident",
+    description: "Title of this alert",
   })
   @Column({
     nullable: false,
@@ -200,19 +197,19 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -220,7 +217,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Short description of this incident. This is in markdown and will be visible on the status page.",
+      "Short description of this alert. This is in markdown and will be visible on the status page.",
   })
   @Column({
     nullable: true,
@@ -228,49 +225,19 @@ export default class Incident extends BaseModel {
   })
   public description?: string = undefined;
 
-  @Index()
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncident,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: true,
-    unique: true,
-    type: TableColumnType.Slug,
-    title: "Slug",
-    description: "Friendly globally unique name for your object",
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.Slug,
-    length: ColumnLength.Slug,
-    unique: true,
-  })
-  public slug?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -301,13 +268,13 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -369,70 +336,28 @@ export default class Incident extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncident,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncident,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: Monitor,
-    title: "Monitors",
-    description: "List of monitors affected by this incident",
-  })
-  @ManyToMany(
-    () => {
-      return Monitor;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "IncidentMonitor",
-    inverseJoinColumn: {
-      name: "monitorId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "incidentId",
-      referencedColumnName: "_id",
-    },
-  })
-  public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
+  // monitor this alert was created for. 
+
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -440,7 +365,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Monitor,
     title: "On-Call Duty Policies",
-    description: "List of on-call duty policy affected by this incident.",
+    description: "List of on-call duty policy affected by this alert.",
   })
   @ManyToMany(
     () => {
@@ -449,7 +374,7 @@ export default class Incident extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "IncidentOnCallDutyPolicy",
+    name: "AlertOnCallDutyPolicy",
     inverseJoinColumn: {
       name: "monitorId",
       referencedColumnName: "_id",
@@ -459,26 +384,26 @@ export default class Incident extends BaseModel {
       referencedColumnName: "_id",
     },
   })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this incident.
+  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this alert.
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -496,13 +421,13 @@ export default class Incident extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "IncidentLabel",
+    name: "AlertLabel",
     inverseJoinColumn: {
       name: "labelId",
       referencedColumnName: "_id",
     },
     joinColumn: {
-      name: "incidentId",
+      name: "alertId",
       referencedColumnName: "_id",
     },
   })
@@ -513,32 +438,32 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "currentIncidentStateId",
+    manyToOneRelationColumn: "currentAlertStateId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
-    title: "Current Incident State",
+    modelType: AlertState,
+    title: "Current Alert State",
     description:
-      "Current state of this incident. Is the incident acknowledged? or resolved?. This is related to Incident State",
+      "Current state of this alert. Is the alert acknowledged? or resolved?. This is related to Alert State",
   })
   @ManyToOne(
     () => {
-      return IncidentState;
+      return AlertState;
     },
     {
       eager: false,
@@ -546,74 +471,74 @@ export default class Incident extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "currentIncidentStateId" })
-  public currentIncidentState?: IncidentState = undefined;
+  @JoinColumn({ name: "currentAlertStateId" })
+  public currentAlertState?: AlertState = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    title: "Current Incident State ID",
-    description: "Current Incident State ID",
+    title: "Current Alert State ID",
+    description: "Current Alert State ID",
   })
   @Column({
     type: ColumnType.ObjectID,
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public currentIncidentStateId?: ObjectID = undefined;
+  public currentAlertStateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "incidentSeverityId",
+    manyToOneRelationColumn: "alertSeverityId",
     type: TableColumnType.Entity,
-    modelType: IncidentSeverity,
-    title: "Incident Severity",
+    modelType: AlertSeverity,
+    title: "Alert Severity",
     description:
-      "How severe is this incident. Is it critical? or a minor incident?. This is related to Incident Severity.",
+      "How severe is this alert. Is it critical? or a minor alert?. This is related to Alert Severity.",
   })
   @ManyToOne(
     () => {
-      return IncidentSeverity;
+      return AlertSeverity;
     },
     {
       eager: false,
@@ -621,65 +546,65 @@ export default class Incident extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "incidentSeverityId" })
-  public incidentSeverity?: IncidentSeverity = undefined;
+  @JoinColumn({ name: "alertSeverityId" })
+  public alertSeverity?: AlertSeverity = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    title: "Incident Severity ID",
-    description: "Incident Severity ID",
+    title: "Alert Severity ID",
+    description: "Alert Severity ID",
   })
   @Column({
     type: ColumnType.ObjectID,
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public incidentSeverityId?: ObjectID = undefined;
+  public alertSeverityId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "changeMonitorStatusToId",
+    manyToOneRelationColumn: "monitorStatusWhenThisAlertWasCreatedId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
-    title: "Change Monitor Status To",
+    modelType: AlertState,
+    title: "Monitor status when this alert was created",
     description:
-      "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.",
+      "Monitor status when this alert was created",
   })
   @ManyToOne(
     () => {
@@ -691,112 +616,62 @@ export default class Incident extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "changeMonitorStatusToId" })
-  public changeMonitorStatusTo?: MonitorStatus = undefined;
+  @JoinColumn({ name: "monitorStatusWhenThisAlertWasCreatedId" })
+  public monitorStatusWhenThisAlertWasCreated?: MonitorStatus = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
-    title: "Change Monitor Status To ID",
+    title: "Monitor Status ID when this alert was created",
     description:
-      "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the incident is created.",
+      "Monitor Status ID when this alert was created",
   })
   @Column({
     type: ColumnType.ObjectID,
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public changeMonitorStatusToId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncident,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Are subscribers notified?",
-    description: "Are subscribers notified about this incident?",
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
+  public monitorStatusWhenThisAlertWasCreatedId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Should subscribers be notified?",
-    description: "Should subscribers be notified about this incident?",
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: true,
-  })
-  public shouldStatusPageSubscribersBeNotifiedOnIncidentCreated?: boolean =
-    undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -817,13 +692,13 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -832,28 +707,28 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
-    title: "Are Owners Notified Of Resource Creation?",
-    description: "Are owners notified of when this resource is created?",
+    title: "Are Owners Notified Of Alert Creation?",
+    description: "Are owners notified of when this alert is created?",
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
     default: false,
   })
-  public isOwnerNotifiedOfResourceCreation?: boolean = undefined;
+  public isOwnerNotifiedOfAlertCreation?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -863,7 +738,7 @@ export default class Incident extends BaseModel {
     required: false,
     isDefaultValueColumn: false,
     title: "Root Cause",
-    description: "What is the root cause of this incident?",
+    description: "What is the root cause of this alert?",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -877,7 +752,7 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -899,7 +774,7 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -910,7 +785,7 @@ export default class Incident extends BaseModel {
     isDefaultValueColumn: false,
     title: "Created Criteria ID",
     description:
-      "If this incident was created by a Probe, this is the ID of the criteria that created it.",
+      "If this alert was created by a Probe, this is the ID of the criteria that created it.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -924,32 +799,7 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.LongText,
-    required: false,
-    isDefaultValueColumn: false,
-    title: "Created Incident Template ID",
-    description:
-      "If this incident was created by a Probe, this is the ID of the incident template that was used for creation.",
-  })
-  @Column({
-    type: ColumnType.LongText,
-    nullable: true,
-  })
-  public createdIncidentTemplateId?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -959,7 +809,7 @@ export default class Incident extends BaseModel {
     modelType: Probe,
     title: "Created By Probe",
     description:
-      "If this incident was created by a Probe, this is the probe that created it.",
+      "If this alert was created by a Probe, this is the probe that created it.",
   })
   @ManyToOne(
     () => {
@@ -981,7 +831,7 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -992,7 +842,7 @@ export default class Incident extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Created By Probe ID",
     description:
-      "If this incident was created by a Probe, this is the ID of the probe that created it.",
+      "If this alert was created by a Probe, this is the ID of the probe that created it.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1007,7 +857,7 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [],
   })
@@ -1016,7 +866,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is created automatically?",
     description:
-      "Is this incident created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
+      "Is this alert created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1029,19 +879,19 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -1049,7 +899,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Remediation Notes",
     description:
-      "Notes on how to remediate this incident. This is in markdown.",
+      "Notes on how to remediate this alert. This is in markdown.",
   })
   @Column({
     nullable: true,
@@ -1062,19 +912,19 @@ export default class Incident extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateAlert,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectIncident,
+      Permission.ReadAlert,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectIncident,
+      Permission.EditAlert,
     ],
   })
   @TableColumn({
@@ -1082,7 +932,7 @@ export default class Incident extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     title: "Telemetry Query",
-    description: "Telemetry query for this incident",
+    description: "Telemetry query for this alert",
   })
   @Column({
     type: ColumnType.JSON,
