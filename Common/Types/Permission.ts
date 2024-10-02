@@ -425,6 +425,12 @@ enum Permission {
   DeleteIncidentInternalNote = "DeleteIncidentInternalNote",
   ReadIncidentInternalNote = "ReadIncidentInternalNote",
 
+
+  CreateAlertInternalNote = "CreateAlertInternalNote",
+  EditAlertInternalNote = "EditAlertInternalNote",
+  DeleteAlertInternalNote = "DeleteAlertInternalNote",
+  ReadAlertInternalNote = "ReadAlertInternalNote",
+
   CreateIncidentPublicNote = "CreateIncidentPublicNote",
   EditIncidentPublicNote = "EditIncidentPublicNote",
   DeleteIncidentPublicNote = "DeleteIncidentPublicNote",
@@ -1836,6 +1842,43 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
+
+
+
+      {
+        permission: Permission.CreateAlertInternalNote,
+        title: "Create Alert Internal Note",
+        description:
+          "This permission can create Alert Internal Note this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertInternalNote,
+        title: "Delete Alert Internal Note",
+        description:
+          "This permission can delete Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertInternalNote,
+        title: "Edit Alert Internal Note",
+        description:
+          "This permission can edit Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertInternalNote,
+        title: "Read Alert Internal Note",
+        description:
+          "This permission can read Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
 
       {
         permission: Permission.CreateIncidentPublicNote,
