@@ -2,7 +2,6 @@ import ChangeAlertState, {
   AlertType,
 } from "../../../Components/Alert/ChangeState";
 import LabelsElement from "../../../Components/Label/Labels";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
@@ -15,7 +14,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
@@ -28,9 +26,7 @@ import BaseAPI from "Common/UI/Utils/API/API";
 import GlobalEvent from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import Alert, {
-  TelemetryAlertQuery,
-} from "Common/Models/DatabaseModels/Alert";
+import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
@@ -48,6 +44,8 @@ import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import TraceTable from "../../../Components/Traces/TraceTable";
+import MonitorElement from "../../../Components/Monitor/Monitor";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 
 const AlertView: FunctionComponent<
   PageComponentProps
@@ -63,7 +61,7 @@ const AlertView: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [telemetryQuery, setTelemetryQuery] =
-    useState<TelemetryAlertQuery | null>(null);
+    useState<TelemetryQuery | null>(null);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -114,7 +112,7 @@ const AlertView: FunctionComponent<
         },
       });
 
-      let telemetryQuery: TelemetryAlertQuery | null = null;
+      let telemetryQuery: TelemetryQuery | null = null;
 
       if (alert?.telemetryQuery) {
         telemetryQuery = JSONFunctions.deserialize(
@@ -415,7 +413,7 @@ const AlertView: FunctionComponent<
             },
             {
               field: {
-                monitors: {
+                monitor: {
                   name: true,
                   _id: true,
                 },
@@ -423,7 +421,7 @@ const AlertView: FunctionComponent<
               title: "Monitors Affected",
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
-                return <MonitorsElement monitors={item["monitors"] || []} />;
+                return <MonitorElement monitor={item["monitor"]!} />;
               },
             },
             {
@@ -471,34 +469,6 @@ const AlertView: FunctionComponent<
                 return <p>Unknown</p>;
               },
             },
-            {
-              field: {
-                shouldStatusPageSubscribersBeNotifiedOnAlertCreated: true,
-              },
-              title: "Notify Status Page Subscribers",
-              fieldType: FieldType.Boolean,
-              getElement: (item: Alert): ReactElement => {
-                return (
-                  <div className="">
-                    <CheckboxViewer
-                      isChecked={
-                        item[
-                          "shouldStatusPageSubscribersBeNotifiedOnAlertCreated"
-                        ] as boolean
-                      }
-                      text={
-                        item[
-                          "shouldStatusPageSubscribersBeNotifiedOnAlertCreated"
-                        ]
-                          ? "Subscribers Notified"
-                          : "Subscribers Not Notified"
-                      }
-                    />{" "}
-                  </div>
-                );
-              },
-            },
-
             {
               field: {
                 labels: {

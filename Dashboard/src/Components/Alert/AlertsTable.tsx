@@ -1,4 +1,4 @@
-import LabelsElement from "../../Components/Label/Labels";
+import LabelsElement from "../Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
 import AlertElement from "./Alert";
 import { Black } from "Common/Types/BrandColors";
@@ -33,10 +33,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [showAlertTemplateModal, setShowAlertTemplateModal] =
-    useState<boolean>(false);
   const [initialValuesForAlert, setInitialValuesForAlert] =
     useState<JSONObject>({});
 
