@@ -139,7 +139,18 @@ enum Permission {
   EditIncidentOwnerTeam = "EditIncidentOwnerTeam",
   ReadIncidentOwnerTeam = "ReadIncidentOwnerTeam",
 
-  CreateIncidentOwnerUser = "CreateIncidentOwner",
+  CreateAlertOwnerTeam = "CreateAlertOwnerTeam",
+  DeleteAlertOwnerTeam = "DeleteAlertOwnerTeam",
+  EditAlertOwnerTeam = "EditAlertOwnerTeam",
+  ReadAlertOwnerTeam = "ReadAlertOwnerTeam",
+
+
+  CreateAlertOwnerUser = "CreateAlertOwnerUser",
+  DeleteAlertOwnerUser = "DeleteAlertOwnerUser",
+  EditAlertOwnerUser = "EditAlertOwnerUser",
+  ReadAlertOwnerUser = "ReadAlertOwnerUser",
+
+  CreateIncidentOwnerUser = "CreateIncidentOwnerUser",
   DeleteIncidentOwnerUser = "DeleteIncidentOwnerUser",
   EditIncidentOwnerUser = "EditIncidentOwnerUser",
   ReadIncidentOwnerUser = "ReadIncidentOwnerUser",
@@ -3195,6 +3206,41 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
+
+      {
+        permission: Permission.CreateAlertOwnerTeam,
+        title: "Create Alert Team Owner",
+        description:
+          "This permission can create Alert Team Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertOwnerTeam,
+        title: "Delete Alert Team Owner",
+        description:
+          "This permission can delete Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertOwnerTeam,
+        title: "Edit Alert Team Owner",
+        description:
+          "This permission can edit Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertOwnerTeam,
+        title: "Read Alert Team Owner",
+        description:
+          "This permission can read Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
       {
         permission: Permission.CreateIncidentNoteTemplate,
         title: "Create Incident Note Template",
@@ -3359,6 +3405,41 @@ export class PermissionHelper {
         title: "Read Incident User Owner",
         description:
           "This permission can read Incident User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
+
+      {
+        permission: Permission.CreateAlertOwnerUser,
+        title: "Create Alert User Owner",
+        description:
+          "This permission can create Alert User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertOwnerUser,
+        title: "Delete Alert User Owner",
+        description:
+          "This permission can delete Alert User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertOwnerUser,
+        title: "Edit Alert User Owner",
+        description:
+          "This permission can edit Alert User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertOwnerUser,
+        title: "Read Alert User Owner",
+        description:
+          "This permission can read Alert User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
