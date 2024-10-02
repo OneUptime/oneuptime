@@ -142,6 +142,7 @@ import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplat
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import TableView from "./TableView";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -305,6 +306,8 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+
+  TableView
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

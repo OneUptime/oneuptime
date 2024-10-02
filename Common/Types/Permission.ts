@@ -534,6 +534,11 @@ enum Permission {
   DeleteServiceCopilotCodeRepository = "DeleteServiceCopilotCodeRepository",
   EditServiceCopilotCodeRepository = "EditServiceCopilotCodeRepository",
   ReadServiceCopilotCodeRepository = "ReadServiceCopilotCodeRepository",
+
+  CreateTableView = "CreateTableView",
+  DeleteTableView = "DeleteTableView",
+  EditTableView = "EditTableView",
+  ReadTableView = "ReadTableView",
 }
 
 export class PermissionHelper {
@@ -802,6 +807,37 @@ export class PermissionHelper {
         title: "Read Telemetry Ingestion Key",
         description:
           "This permission can read Telemetry Ingestion Keys of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Table view permissions
+
+      {
+        permission: Permission.CreateTableView,
+        title: "Create Table View",
+        description: "This permission can create table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTableView,
+        title: "Delete Table View",
+        description: "This permission can delete table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTableView,
+        title: "Edit Table View",
+        description: "This permission can edit table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTableView,
+        title: "Read Table View",
+        description: "This permission can read table views of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
