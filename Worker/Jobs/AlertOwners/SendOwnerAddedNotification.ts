@@ -17,7 +17,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
@@ -148,7 +147,7 @@ RunCron(
           alertSeverity: {
             name: true,
           },
-          monitors: {
+          monitor: {
             name: true,
           },
         },
@@ -167,11 +166,7 @@ RunCron(
           MarkdownContentType.Email,
         ),
         resourcesAffected:
-          alert
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+          alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(

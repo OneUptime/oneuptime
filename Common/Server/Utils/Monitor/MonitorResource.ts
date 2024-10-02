@@ -41,9 +41,7 @@ import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
-import Incident, {
-  TelemetryQuery,
-} from "Common/Models/DatabaseModels/Incident";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -56,6 +54,7 @@ import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorRespon
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
+import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(

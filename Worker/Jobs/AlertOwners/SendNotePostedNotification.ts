@@ -10,38 +10,18 @@ import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertInternalNoteService from "Common/Server/Services/AlertInternalNoteService";
-import AlertPublicNoteService from "Common/Server/Services/AlertPublicNoteService";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
-import AlertPublicNote from "Common/Models/DatabaseModels/AlertPublicNote";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    const publicNotes: Array<AlertPublicNote> =
-      await AlertPublicNoteService.findBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        select: {
-          _id: true,
-          note: true,
-          alertId: true,
-          projectId: true,
-        },
-      });
 
     const privateNotes: Array<AlertInternalNote> =
       await AlertInternalNoteService.findBy({
@@ -67,17 +47,6 @@ RunCron(
       },
     );
 
-    for (const note of publicNotes) {
-      await AlertPublicNoteService.updateOneById({
-        id: note.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
 
     for (const note of privateNotes) {
       await AlertInternalNoteService.updateOneById({
@@ -91,7 +60,7 @@ RunCron(
       });
     }
 
-    const notes: Array<BaseModel> = [...publicNotes, ...privateNotes];
+    const notes: Array<BaseModel> = [ ...privateNotes];
 
     for (const noteObject of notes) {
       const note: BaseModel = noteObject as BaseModel;
@@ -116,7 +85,7 @@ RunCron(
           alertSeverity: {
             name: true,
           },
-          monitors: {
+          monitor: {
             name: true,
           },
         },
@@ -156,11 +125,7 @@ RunCron(
           MarkdownContentType.Email,
         ),
         resourcesAffected:
-          alert
-            .monitors!.map((monitor: Monitor) => {
-              return monitor.name!;
-            })
-            .join(", ") || "None",
+          alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(

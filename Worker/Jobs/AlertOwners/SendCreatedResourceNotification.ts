@@ -16,7 +16,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 
@@ -27,7 +26,7 @@ RunCron(
     // get all scheduled events of all the projects.
     const alerts: Array<Alert> = await AlertService.findBy({
       query: {
-        isOwnerNotifiedOfResourceCreation: false,
+        isOwnerNotifiedOfAlertCreation: false,
       },
       props: {
         isRoot: true,
@@ -50,7 +49,7 @@ RunCron(
           name: true,
         },
         rootCause: true,
-        monitors: {
+        monitor: {
           name: true,
         },
         createdByProbe: {
@@ -70,7 +69,7 @@ RunCron(
       await AlertService.updateOneById({
         id: alert.id!,
         data: {
-          isOwnerNotifiedOfResourceCreation: true,
+          isOwnerNotifiedOfAlertCreation: true,
         },
         props: {
           isRoot: true,
@@ -119,11 +118,7 @@ RunCron(
               MarkdownContentType.Email,
             ),
             resourcesAffected:
-              alert
-                .monitors!.map((monitor: Monitor) => {
-                  return monitor.name!;
-                })
-                .join(", ") || "None",
+              alert.monitor?.name || "None",
             alertSeverity: alert.alertSeverity!.name!,
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {

@@ -9,6 +9,14 @@ import "./Jobs/IncidentOwners/SendCreatedResourceNotification";
 import "./Jobs/IncidentOwners/SendNotePostedNotification";
 import "./Jobs/IncidentOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentOwners/SendStateChangeNotification";
+
+
+// Alert Owners
+import "./Jobs/AlertOwners/SendCreatedResourceNotification";
+import "./Jobs/AlertOwners/SendNotePostedNotification";
+import "./Jobs/AlertOwners/SendOwnerAddedNotification";
+import "./Jobs/AlertOwners/SendStateChangeNotification";
+
 // Incident Notes
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";

@@ -18,7 +18,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 
 RunCron(
@@ -69,7 +68,7 @@ RunCron(
           _id: true,
           title: true,
           description: true,
-          monitors: {
+          monitor: {
             name: true,
           },
         },
@@ -140,10 +139,7 @@ RunCron(
           ),
           resourcesAffected:
             alert
-              .monitors!.map((monitor: Monitor) => {
-                return monitor.name!;
-              })
-              .join(", ") || "None",
+              .monitor?.name || "",
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: alertStateTimeline.createdAt!,
