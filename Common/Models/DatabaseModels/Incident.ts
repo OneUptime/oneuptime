@@ -38,8 +38,6 @@ import {
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 
-
-
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)

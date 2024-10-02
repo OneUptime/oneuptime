@@ -5,6 +5,6 @@ import Query from "../BaseDatabase/Query";
 import TelemetryType from "./TelemetryType";
 
 export interface TelemetryQuery {
-    telemetryType: TelemetryType;
-    telemetryQuery: Query<Log> | Query<Span> | Query<Metric>;
-  }
+  telemetryType: TelemetryType;
+  telemetryQuery: Query<Log> | Query<Span> | Query<Metric>;
+}

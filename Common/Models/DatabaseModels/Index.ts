@@ -176,9 +176,19 @@ const AllModelTypes: Array<{
   Incident,
   IncidentCustomField,
   IncidentStateTimeline,
-  MonitorStatusTimeline,
-  IncidentPublicNote,
   IncidentInternalNote,
+  IncidentPublicNote,
+  IncidentTemplate,
+  IncidentTemplateOwnerTeam,
+  IncidentTemplateOwnerUser,
+  IncidentOwnerTeam,
+  IncidentOwnerUser,
+  IncidentSeverity,
+  IncidentNoteTemplate,
+
+  MonitorStatusTimeline,
+  
+  
   File,
   Domain,
 
@@ -186,7 +196,7 @@ const AllModelTypes: Array<{
   StatusPageDomain,
   StatusPageCustomField,
   StatusPageResource,
-  IncidentSeverity,
+
   StatusPageAnnouncement,
   StatusPageSubscriber,
   StatusPageFooterLink,
@@ -219,8 +229,7 @@ const AllModelTypes: Array<{
   MonitorOwnerTeam,
   MonitorOwnerUser,
 
-  IncidentOwnerTeam,
-  IncidentOwnerUser,
+  
 
   ScheduledMaintenanceOwnerTeam,
   ScheduledMaintenanceOwnerUser,
@@ -244,12 +253,6 @@ const AllModelTypes: Array<{
   DataMigration,
 
   ShortLink,
-
-  IncidentTemplate,
-  IncidentTemplateOwnerTeam,
-  IncidentTemplateOwnerUser,
-
-  IncidentNoteTemplate,
 
   ScheduledMaintenanceTemplate,
   ScheduledMaintenanceTemplateOwnerTeam,

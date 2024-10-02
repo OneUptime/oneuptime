@@ -37,7 +37,6 @@ import {
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 
-
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
@@ -225,7 +224,6 @@ export default class Alert extends BaseModel {
   })
   public description?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -336,9 +334,7 @@ export default class Alert extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-
-  // monitor this alert was created for. 
-
+  // monitor this alert was created for.
 
   @ColumnAccessControl({
     create: [
@@ -603,8 +599,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.Entity,
     modelType: AlertState,
     title: "Monitor status when this alert was created",
-    description:
-      "Monitor status when this alert was created",
+    description: "Monitor status when this alert was created",
   })
   @ManyToOne(
     () => {
@@ -644,8 +639,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "Monitor Status ID when this alert was created",
-    description:
-      "Monitor Status ID when this alert was created",
+    description: "Monitor Status ID when this alert was created",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -898,8 +892,7 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.Markdown,
     title: "Remediation Notes",
-    description:
-      "Notes on how to remediate this alert. This is in markdown.",
+    description: "Notes on how to remediate this alert. This is in markdown.",
   })
   @Column({
     nullable: true,
