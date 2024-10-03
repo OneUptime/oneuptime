@@ -278,7 +278,7 @@ const App: () => JSX.Element = () => {
               {...commonPageProps}
               pageRoute={
                 RouteMap[
-                PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                  PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                 ] as Route
               }
             />

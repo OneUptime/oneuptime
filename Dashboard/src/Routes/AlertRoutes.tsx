@@ -19,15 +19,15 @@ const Alerts: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
     return import("../Pages/Alerts/Alerts");
   },
 );
-const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
+const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
+  () => {
     return import("../Pages/Alerts/View/Index");
+  },
+);
+const AlertViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/View/Delete");
   });
-const AlertViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/Delete");
-});
 const AlertViewStateTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -40,21 +40,19 @@ const AlertInternalNote: LazyExoticComponent<
   return import("../Pages/Alerts/View/InternalNote");
 });
 
-const UnresolvedAlerts: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Unresolved");
-});
+const UnresolvedAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/Unresolved");
+  });
 const AlertViewCustomFields: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Alerts/View/CustomFields");
 });
-const AlertViewOwner: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/Owners");
-});
+const AlertViewOwner: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/View/Owners");
+  });
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -115,16 +113,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ALERT_VIEW_STATE_TIMELINE,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_STATE_TIMELINE)}
           element={
             <Suspense fallback={Loader}>
               <AlertViewStateTimeline
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route
-                }
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route}
               />
             </Suspense>
           }
@@ -143,16 +137,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ALERT_VIEW_CUSTOM_FIELDS,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_CUSTOM_FIELDS)}
           element={
             <Suspense fallback={Loader}>
               <AlertViewCustomFields
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_VIEW_CUSTOM_FIELDS] as Route
-                }
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_CUSTOM_FIELDS] as Route}
               />
             </Suspense>
           }
