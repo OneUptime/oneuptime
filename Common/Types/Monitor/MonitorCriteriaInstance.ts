@@ -311,7 +311,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: true,
         createAlerts: false,
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} is offline`,
       };
@@ -337,7 +346,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 200,
           },
         ],
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         incidents: [
           {
@@ -378,7 +396,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             onCallPolicyIds: [],
           },
         ],
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
@@ -399,7 +426,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 0, // if there are no logs then the monitor is offline
           },
         ],
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         incidents: [
           {
@@ -430,7 +466,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
           },
         ],
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         incidents: [
           {
@@ -464,7 +509,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: undefined,
           },
         ],
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         incidents: [
           {
@@ -488,7 +542,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
-        alerts: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.incidentSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         createAlerts: false,
         filters: [
           {

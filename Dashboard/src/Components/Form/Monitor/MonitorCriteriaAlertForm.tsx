@@ -46,6 +46,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             stepId: "alert-details",
             required: true,
+
             placeholder: "Alert Title",
             validation: {
               minLength: 2,
@@ -70,6 +71,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             description: "What type of alert is this?",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: props.alertSeverityDropdownOptions,
+
             required: true,
             placeholder: "Alert Severity",
             id: "alert-severity",
@@ -84,6 +86,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
               "Execute these on-call policies when this alert is created.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: props.onCallPolicyDropdownOptions,
+
             required: false,
             placeholder: "Select On-Call Policies",
           },
@@ -96,6 +99,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             description:
               "Automatically resolve this alert when this criteria is no longer met.",
             fieldType: FormFieldSchemaType.Toggle,
+
             required: false,
           },
           {

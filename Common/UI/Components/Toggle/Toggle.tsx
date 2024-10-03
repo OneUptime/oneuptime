@@ -4,6 +4,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Tooltip from "../Tooltip/Tooltip";
+import Icon from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export interface ComponentProps {
   onChange: (value: boolean) => void;
@@ -16,6 +19,7 @@ export interface ComponentProps {
   description?: string | undefined;
   error?: string | undefined;
   dataTestId?: string | undefined;
+  tooltip?: string | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -100,6 +104,16 @@ const Toggle: FunctionComponent<ComponentProps> = (
             {props.description}
           </span>
         </span>
+        {props.tooltip && (
+          <Tooltip key={1} text={props.tooltip || "Not available"}>
+            <div className="ml-1">
+              <Icon
+                className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
+                icon={IconProp.Help}
+              />
+            </div>
+          </Tooltip>
+        )}
       </div>
       {props.error && (
         <p data-testid="error-message" className="mt-1 text-sm text-red-400">

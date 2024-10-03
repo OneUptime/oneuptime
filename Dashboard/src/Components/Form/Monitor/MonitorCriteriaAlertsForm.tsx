@@ -15,14 +15,16 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [alerts, setAlerts] = React.useState<Array<CriteriaAlert>>(
-    props.initialValue || [
-      {
-        title: "",
-        description: "",
-        alertSeverityId: undefined,
-        id: ObjectID.generate().toString(),
-      },
-    ],
+    props.initialValue && props.initialValue?.length > 0
+      ? props.initialValue
+      : [
+          {
+            title: "",
+            description: "",
+            alertSeverityId: undefined,
+            id: ObjectID.generate().toString(),
+          },
+        ],
   );
 
   useEffect(() => {

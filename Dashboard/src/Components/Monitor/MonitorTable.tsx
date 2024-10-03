@@ -21,7 +21,7 @@ import {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import { ModalTableBulkDefaultActions, SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -46,6 +46,7 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   actionButtons?: Array<ActionButtonSchema<Monitor>> | undefined;
   cardButtons?: Array<CardButtonSchema> | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -56,9 +57,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       modelType={Monitor}
       name="Monitors"
       id="Monitors-table"
-      saveFilterProps={{
-        tableId: "monitor-table",
-      }}
+      saveFilterProps={props.saveFilterProps}
       bulkActions={{
         buttons: [
           {
