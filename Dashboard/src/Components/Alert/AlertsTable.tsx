@@ -67,7 +67,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         showRefreshButton={true}
         showViewIdButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.INCIDENTS]!,
+          RouteMap[PageMap.ALERTS]!,
         )}
         filters={[
           {
