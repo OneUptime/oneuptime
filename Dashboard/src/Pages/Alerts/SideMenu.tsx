@@ -38,7 +38,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.UNRESOLVED_ALERTS] as Route,
             ),
           }}
-          icon={IconProp.Alert}
+          icon={IconProp.ExclaimationCircle}
           badgeType={BadgeType.DANGER}
           modelType={Alert}
           countQuery={{

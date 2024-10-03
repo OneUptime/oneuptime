@@ -283,6 +283,8 @@ export default class MonitorResourceUtil {
     const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     > = {};
+
+    
     const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
     for (const criteriaInstance of criteriaInstances) {
       criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;

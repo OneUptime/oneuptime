@@ -55,6 +55,7 @@ import {
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
 import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
+import AlertsRoutes from "./Routes/AlertRoutes";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -277,7 +278,7 @@ const App: () => JSX.Element = () => {
               {...commonPageProps}
               pageRoute={
                 RouteMap[
-                  PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                 ] as Route
               }
             />
@@ -323,6 +324,12 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ""}
           element={<IncidentsRoutes {...commonPageProps} />}
+        />
+
+        {/* Incidents */}
+        <PageRoute
+          path={RouteMap[PageMap.ALERTS_ROOT]?.toString() || ""}
+          element={<AlertsRoutes {...commonPageProps} />}
         />
 
         {/* Scheduled Events */}

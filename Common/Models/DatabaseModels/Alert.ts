@@ -337,13 +337,29 @@ export default class Alert extends BaseModel {
   // monitor this alert was created for.
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlert,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "monitorId",
     type: TableColumnType.Entity,
+    modelType: Monitor,
     title: "Monitor",
     description: "Relation to monitor this alert belongs to",
   })
@@ -363,9 +379,24 @@ export default class Alert extends BaseModel {
   public monitor?: Monitor = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlert,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,

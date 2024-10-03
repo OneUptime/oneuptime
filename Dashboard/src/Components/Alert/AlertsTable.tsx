@@ -26,7 +26,6 @@ export interface ComponentProps {
   title?: string | undefined;
   description?: string | undefined;
   createInitialValues?: FormValues<Alert> | undefined;
-  disableCreate?: boolean | undefined;
 }
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
@@ -52,7 +51,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         showCreateForm={Object.keys(initialValuesForAlert).length > 0}
         query={props.query || {}}
         isEditable={false}
-        isCreateable={!props.disableCreate}
+        isCreateable={false}
         isViewable={true}
         createInitialValues={
           Object.keys(initialValuesForAlert).length > 0

@@ -194,7 +194,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3"
       />,
     );
-  } else if (icon === IconProp.Reload) {
+  }else if (icon === IconProp.ExclaimationCircle) {
+    return getSvgWrapper(
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+    );
+  }  else if (icon === IconProp.Reload) {
     return getSvgWrapper(
       <path
         strokeLinecap="round"
