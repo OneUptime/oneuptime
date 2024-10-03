@@ -88,11 +88,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       Boolean(props.initialValue?.data?.monitorStatusId?.id) || false,
     );
   const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
-    props.initialValue?.data?.createIncidents || false
+    props.initialValue?.data?.createIncidents || false,
   );
 
   const [showAlertControl, setShowAlertControl] = useState<boolean>(
-    props.initialValue?.data?.createAlerts || false
+    props.initialValue?.data?.createAlerts || false,
   );
 
   return (

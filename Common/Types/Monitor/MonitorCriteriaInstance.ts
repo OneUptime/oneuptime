@@ -773,6 +773,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: this.data.filterCondition,
         filters: this.data.filters,
         incidents: this.data.incidents,
+        alerts: this.data.alerts,
+        createAlerts: this.data.createAlerts,
         changeMonitorStatus: this.data.changeMonitorStatus,
         createIncidents: this.data.createIncidents,
         name: this.data.name,
@@ -826,6 +828,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       throw new BadDataException("json.incidents should be an array");
     }
 
+    if (!json["alerts"]) {
+      throw new BadDataException("json.alerts is null");
+    }
+
+    if (!Array.isArray(json["alerts"])) {
+      throw new BadDataException("json.alerts should be an array");
+    }
+
     let monitorStatusId: ObjectID | undefined = undefined;
 
     if (
@@ -858,6 +868,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       incidents.push({ ...(incident as any) });
     }
 
+    const alerts: Array<CriteriaAlert> = [];
+
+    for (const alert of json["alerts"]) {
+      alerts.push({ ...(alert as any) });
+    }
+
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
@@ -867,8 +883,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       filterCondition,
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,
       createIncidents: (json["createIncidents"] as boolean) || false,
+      createAlerts: (json["createAlerts"] as boolean) || false,
       filters: filters as any,
       incidents: incidents as any,
+      alerts: alerts as any,
       name: (json["name"] as string) || "",
       description: (json["description"] as string) || "",
     }) as any;

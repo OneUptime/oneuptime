@@ -279,7 +279,7 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
         }}
         submitButtonText="Save Changes"
         onBeforeCreate={(tableView: TableView) => {
-          tableView.tableId =   props.tableId;
+          tableView.tableId = props.tableId;
           tableView.query = props.currentTableView?.query || {};
           tableView.itemsOnPage = props.currentTableView?.itemsOnPage || 10;
           tableView.sort = props.currentTableView?.sort || {};

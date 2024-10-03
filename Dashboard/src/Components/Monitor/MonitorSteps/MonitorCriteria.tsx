@@ -11,6 +11,7 @@ export interface ComponentProps {
   monitorCriteria: MonitorCriteria;
   monitorStatusOptions: Array<MonitorStatus>;
   incidentSeverityOptions: Array<IncidentSeverity>;
+  alertSeverityOptions: Array<IncidentSeverity>;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
 }
 
@@ -42,6 +43,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       monitorStatusOptions={props.monitorStatusOptions}
                       onCallPolicyOptions={props.onCallPolicyOptions}
                       incidentSeverityOptions={props.incidentSeverityOptions}
+                      alertSeverityOptions={props.alertSeverityOptions}
                       monitorCriteriaInstance={i}
                       isLastCriteria={
                         index ===

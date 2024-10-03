@@ -21,7 +21,10 @@ import {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ModalTableBulkDefaultActions, SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  ModalTableBulkDefaultActions,
+  SaveFilterProps,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
