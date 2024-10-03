@@ -57,7 +57,7 @@ const SettingsIngestionKeyView: LazyExoticComponent<
 const AlertNoteTemplateView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/Settings/AlertNoteTemplateView");
+  return import("../Pages/Settings/NoteTemplate");
 });
 
 const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -94,6 +94,13 @@ const SettingsMonitors: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   });
 
 
+  const SettingsIncidents: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentState");
+});
+
+
 const SettingsAlerts: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -114,11 +121,6 @@ const AlertCustomFields: LazyExoticComponent<
 });
 
 
-const AlertTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/AlertTemplatesView");
-});
 const AlertNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
