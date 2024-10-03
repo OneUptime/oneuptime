@@ -2,7 +2,6 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -16,7 +15,6 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
-import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
 import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
@@ -86,102 +84,6 @@ export default class MonitorIncident {
       telemetryQuery?: TelemetryQuery | undefined;
     };
   }): Promise<void> {
-    // criteria filters are met, now process the actions.
-
-    const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
-      await MonitorStatusTimelineService.findOneBy({
-        query: {
-          monitorId: input.monitor.id!,
-          projectId: input.monitor.projectId!,
-        },
-        select: {
-          _id: true,
-          monitorStatusId: true,
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    let shouldUpdateStatus: boolean = false;
-
-    if (!lastMonitorStatusTimeline) {
-      // if monitor does not have any status timeline, then create one.
-      shouldUpdateStatus = true;
-    }
-
-    if (
-      input.criteriaInstance.data?.changeMonitorStatus &&
-      input.criteriaInstance.data?.monitorStatusId &&
-      input.criteriaInstance.data?.monitorStatusId.toString() !==
-        lastMonitorStatusTimeline?.id?.toString()
-    ) {
-      // if monitor status is changed, then create a new status timeline.
-      shouldUpdateStatus = true;
-    }
-
-    // check if the current status is same as the last status.
-
-    if (
-      input.criteriaInstance.data?.changeMonitorStatus &&
-      input.criteriaInstance.data?.monitorStatusId &&
-      input.criteriaInstance.data?.monitorStatusId.toString() !==
-        input.monitor.currentMonitorStatusId?.toString()
-    ) {
-      // if monitor status is changed, then create a new status timeline.
-      shouldUpdateStatus = true;
-    }
-
-    if (shouldUpdateStatus) {
-      logger.debug(
-        `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId?.toString()}`,
-      );
-      // change monitor status
-
-      const monitorStatusId: ObjectID | undefined =
-        input.criteriaInstance.data?.monitorStatusId;
-
-      if (!monitorStatusId) {
-        throw new BadDataException("Monitor status is not defined.");
-      }
-
-      //change monitor status.
-
-      // get last status of this monitor.
-
-      // get last monitor status timeline.
-
-      if (
-        lastMonitorStatusTimeline &&
-        lastMonitorStatusTimeline.monitorStatusId &&
-        lastMonitorStatusTimeline.monitorStatusId.toString() ===
-          monitorStatusId.toString()
-      ) {
-        // status is same as last status. do not create new status timeline.
-        return;
-      }
-
-      const monitorStatusTimeline: MonitorStatusTimeline =
-        new MonitorStatusTimeline();
-      monitorStatusTimeline.monitorId = input.monitor.id!;
-      monitorStatusTimeline.monitorStatusId = monitorStatusId;
-      monitorStatusTimeline.projectId = input.monitor.projectId!;
-      monitorStatusTimeline.statusChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
-      monitorStatusTimeline.rootCause = input.rootCause;
-
-      await MonitorStatusTimelineService.create({
-        data: monitorStatusTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
     // check open incidents
     logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
     // check active incidents and if there are open incidents, do not cretae anothr incident.

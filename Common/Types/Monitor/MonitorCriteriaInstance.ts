@@ -821,7 +821,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (!json["incidents"]) {
-      throw new BadDataException("json.incidents is null");
+      json["incidents"] = [];
     }
 
     if (!Array.isArray(json["incidents"])) {
@@ -829,7 +829,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (!json["alerts"]) {
-      throw new BadDataException("json.alerts is null");
+      json["alerts"] = [];
     }
 
     if (!Array.isArray(json["alerts"])) {
