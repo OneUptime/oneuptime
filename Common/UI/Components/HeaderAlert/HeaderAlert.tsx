@@ -14,14 +14,13 @@ export interface ComponentProps {
   onClick?: (() => void) | undefined;
   title: string;
   className?: string | undefined;
-  alertType: HeaderAlertType; 
+  alertType: HeaderAlertType;
 }
 
 const HeaderAlert: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
-
-  let bgColor: string = "bg-indigo-500" // default color info. 
+  let bgColor: string = "bg-indigo-500"; // default color info.
 
   switch (props.alertType) {
     case HeaderAlertType.SUCCESS:
@@ -37,7 +36,6 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
       bgColor = "bg-indigo-500 hover:bg-indigo-600";
       break;
   }
-
 
   return (
     <div

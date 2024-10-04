@@ -14,7 +14,9 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
-import HeaderAlert, { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import HeaderAlert, {
+  HeaderAlertType,
+} from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
 import { SizeProp } from "Common/UI/Components/Icon/Icon";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
