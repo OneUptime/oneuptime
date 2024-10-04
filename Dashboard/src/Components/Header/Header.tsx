@@ -276,6 +276,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Clock}
                     tooltip="Your trial ends soon"
                     alertType={HeaderAlertType.INFO}
+                    onClick={() => {
+                      Navigation.navigate(RouteMap[PageMap.SETTINGS_BILLING]!);
+                    }}
                     title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                       OneUptimeDate.getCurrentDate(),
                       props.selectedProject!.trialEndsAt!,

@@ -9,18 +9,24 @@ const HeaderAlertGroup: (props: ComponentProps) => ReactElement = (
 ): ReactElement => {
   return (
     <div className="rounded-lg m-2 flex border-2 border-gray-200">
-      {props.children.map((child: ReactElement, index: number) => {
-        const isLastElement: boolean = index === props.children.length - 1;
+      {props.children &&
+        props.children
+          .filter((child: ReactElement) => {
+            // does this child has children?;
+            return true;
+          })
+          .map((child: ReactElement, index: number) => {
+            const isLastElement: boolean = index === props.children.length - 1;
 
-        return (
-          <div key={index} className="p-4 flex">
-            {child}
-            {!isLastElement && (
-              <div className="border-r-2 border-gray-200"></div>
-            )}
-          </div>
-        );
-      })}
+            return (
+              <div key={index} className="p-4 flex">
+                {child}
+                {!isLastElement && (
+                  <div className="border-r-2 border-gray-200"></div>
+                )}
+              </div>
+            );
+          })}
     </div>
   );
 };
