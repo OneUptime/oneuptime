@@ -14,7 +14,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
-import HeaderAlert from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import HeaderAlert, { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
 import { SizeProp } from "Common/UI/Components/Icon/Icon";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
@@ -143,12 +143,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             <div className="flex ml-3">
               <HeaderModelAlert<TeamMember>
                 icon={IconProp.Folder}
-                className="rounded-md m-3 bg-indigo-500 p-3  hover:bg-indigo-600 cursor-pointer ml-0"
                 modelType={TeamMember}
                 query={{
                   userId: User.getUserId(),
                   hasAcceptedInvitation: false,
                 }}
+                alertType={HeaderAlertType.INFO}
                 singularName="Project Invitation"
                 pluralName="Project Invitations"
                 requestOptions={{
@@ -162,7 +162,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               <HeaderModelAlert<Incident>
                 icon={IconProp.Alert}
                 modelType={Incident}
-                className="rounded-md m-3 bg-red-500 p-3  hover:bg-red-600 cursor-pointer ml-0"
+                alertType={HeaderAlertType.ERROR}
                 query={{
                   currentIncidentState: {
                     order: 1,
@@ -182,7 +182,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               {showTrialButton && (
                 <HeaderAlert
                   icon={IconProp.Clock}
-                  className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
+                  alertType={HeaderAlertType.INFO}
                   title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                     OneUptimeDate.getCurrentDate(),
                     props.selectedProject!.trialEndsAt!,

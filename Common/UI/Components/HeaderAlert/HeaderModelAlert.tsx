@@ -1,7 +1,7 @@
 import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
-import HeaderAlert from "./HeaderAlert";
+import HeaderAlert, { HeaderAlertType } from "./HeaderAlert";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -18,6 +18,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onClick?: (() => void) | undefined;
   refreshToggle?: string | undefined;
   className?: string | undefined;
+  alertType: HeaderAlertType;
 }
 
 const HeaderModelAlert: <TBaseModel extends BaseModel>(
@@ -84,6 +85,7 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
       icon={props.icon}
       onClick={props.onClick}
       className={props.className}
+      alertType={props.alertType}
     />
   );
 };
