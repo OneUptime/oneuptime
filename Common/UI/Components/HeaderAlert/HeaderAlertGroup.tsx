@@ -9,7 +9,6 @@ const HeaderAlertGroup: (props: ComponentProps) => ReactElement = (
 ): ReactElement => {
   let children: Array<ReactElement | false> = props.children || [];
 
-
   children = children.filter((child: ReactElement | false) => {
     if (!child) {
       return false;

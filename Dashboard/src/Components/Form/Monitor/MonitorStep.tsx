@@ -533,8 +533,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
-
-          <HorizontalRule />
         </div>
       )}
 

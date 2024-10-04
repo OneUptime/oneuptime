@@ -27,7 +27,7 @@ export default class MonitorCriteria extends DatabaseProperty {
     onlineMonitorStatusId: ObjectID;
     offlineMonitorStatusId: ObjectID;
     defaultIncidentSeverityId: ObjectID;
-    defaultAlertSeverityId: ObjectID; 
+    defaultAlertSeverityId: ObjectID;
   }): MonitorCriteria {
     const monitorCriteria: MonitorCriteria = new MonitorCriteria();
     const offlineCriteria: MonitorCriteriaInstance =
