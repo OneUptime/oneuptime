@@ -43,7 +43,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
   const getElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div
-        className={`cursor-pointer hover:bg-gray-100 p-1 h-7 pl-2 pr-2 -mt-2 -ml-7 mr-1 rounded-full ${props.className}`}
+        className={`cursor-pointer hover:bg-gray-100 p-1 h-7 pl-2 pr-2 -mt-2 -ml-5 mr-1 rounded-full ${props.className}`}
         onClick={() => {
           props.onClick && props.onClick();
         }}

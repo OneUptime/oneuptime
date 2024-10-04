@@ -271,7 +271,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   }}
                 />
 
-                {showTrialButton ? (
+                {showTrialButton && (
                   <HeaderAlert
                     icon={IconProp.Clock}
                     tooltip="Your trial ends soon"
@@ -291,8 +291,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         : "day"
                     }`}
                   />
-                ) : (
-                  <></>
                 )}
               </HeaderAlertGroup>
             </div>
