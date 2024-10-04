@@ -19,6 +19,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   refreshToggle?: string | undefined;
   className?: string | undefined;
   alertType: HeaderAlertType;
+  tooltip?: string | undefined;
 }
 
 const HeaderModelAlert: <TBaseModel extends BaseModel>(
@@ -86,6 +87,7 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
       onClick={props.onClick}
       className={props.className}
       alertType={props.alertType}
+      tooltip={props.tooltip}
     />
   );
 };

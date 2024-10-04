@@ -18,6 +18,7 @@ import HeaderAlert, {
   HeaderAlertType,
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
+import HeaderAlertGroup from "Common/UI/Components/HeaderAlert/HeaderAlertGroup";
 import { SizeProp } from "Common/UI/Components/Icon/Icon";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -34,6 +35,7 @@ import React, {
 import Realtime from "Common/UI/Utils/Realtime";
 import DashboardNavigation from "../../Utils/Navigation";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
+import Alert from "Common/Models/DatabaseModels/Alert";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -50,11 +52,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
     useState<string>(OneUptimeDate.getCurrentDate().toString());
 
+  const [activeAlertToggleRefresh, setActiveAlertToggleRefresh] =
+    useState<string>(OneUptimeDate.getCurrentDate().toString());
+
   const refreshIncidentCount: VoidFunction = () => {
     setActiveIncidentToggleRefresh(OneUptimeDate.getCurrentDate().toString());
   };
 
-  useEffect(() => {
+  const refreshAlertCount: VoidFunction = () => {
+    setActiveAlertToggleRefresh(OneUptimeDate.getCurrentDate().toString());
+  };
+
+  const realtimeIncidentCountRefresh: () => VoidFunction = (): VoidFunction => {
     const stopListeningOnCreate: VoidFunction =
       Realtime.listenToModelEvent<Incident>(
         {
@@ -91,11 +100,71 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         },
       );
 
-    return () => {
+    const stopListening: VoidFunction = () => {
       // on unmount.
       stopListeningOnCreate();
       stopListeningOnUpdate();
       stopListeningOnDelete();
+    };
+
+    return stopListening;
+  };
+
+  const realtimeAlertCountRefresh: () => VoidFunction = (): VoidFunction => {
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListening: VoidFunction = () => {
+      // on unmount.
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
+    };
+
+    return stopListening;
+  };
+
+  useEffect(() => {
+    const realtimeIncidentStop: VoidFunction = realtimeIncidentCountRefresh();
+
+    const realtimeAlertStop: VoidFunction = realtimeAlertCountRefresh();
+
+    return () => {
+      realtimeIncidentStop();
+      realtimeAlertStop();
     };
   }, []);
 
@@ -143,61 +212,86 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             />
 
             <div className="flex ml-3">
-              <HeaderModelAlert<TeamMember>
-                icon={IconProp.Folder}
-                modelType={TeamMember}
-                query={{
-                  userId: User.getUserId(),
-                  hasAcceptedInvitation: false,
-                }}
-                alertType={HeaderAlertType.INFO}
-                singularName="Project Invitation"
-                pluralName="Project Invitations"
-                requestOptions={{
-                  isMultiTenantRequest: true,
-                }}
-                onClick={() => {
-                  Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!);
-                }}
-              />
-
-              <HeaderModelAlert<Incident>
-                icon={IconProp.Alert}
-                modelType={Incident}
-                alertType={HeaderAlertType.ERROR}
-                query={{
-                  currentIncidentState: {
-                    order: 1,
-                  },
-                }}
-                refreshToggle={activeIncidentToggleRefresh}
-                singularName="New Incident"
-                pluralName="New Incidents"
-                requestOptions={{
-                  isMultiTenantRequest: true,
-                }}
-                onClick={() => {
-                  Navigation.navigate(RouteMap[PageMap.NEW_INCIDENTS]!);
-                }}
-              />
-
-              {showTrialButton && (
-                <HeaderAlert
-                  icon={IconProp.Clock}
+              <HeaderAlertGroup>
+                <HeaderModelAlert<TeamMember>
+                  icon={IconProp.Folder}
+                  modelType={TeamMember}
+                  query={{
+                    userId: User.getUserId(),
+                    hasAcceptedInvitation: false,
+                  }}
                   alertType={HeaderAlertType.INFO}
-                  title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                    OneUptimeDate.getCurrentDate(),
-                    props.selectedProject!.trialEndsAt!,
-                  )} ${
-                    OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                  singularName=""
+                  pluralName=""
+                  tooltip="Looks like you have pending project invitations. Please click here to review and accept them."
+                  requestOptions={{
+                    isMultiTenantRequest: true,
+                  }}
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!);
+                  }}
+                />
+
+                <HeaderModelAlert<Incident>
+                  icon={IconProp.Alert}
+                  modelType={Incident}
+                  alertType={HeaderAlertType.ERROR}
+                  query={{
+                    currentIncidentState: {
+                      order: 1,
+                    },
+                  }}
+                  refreshToggle={activeIncidentToggleRefresh}
+                  singularName=""
+                  pluralName=""
+                  tooltip="View all active incidents"
+                  requestOptions={{
+                    isMultiTenantRequest: true,
+                  }}
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.NEW_INCIDENTS]!);
+                  }}
+                />
+
+                <HeaderModelAlert<Alert>
+                  icon={IconProp.ExclaimationCircle}
+                  modelType={Alert}
+                  alertType={HeaderAlertType.ERROR}
+                  query={{
+                    currentAlertState: {
+                      order: 1,
+                    },
+                  }}
+                  refreshToggle={activeAlertToggleRefresh}
+                  singularName=""
+                  pluralName=""
+                  tooltip="View all active alerts"
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.ALERTS]!);
+                  }}
+                />
+
+                {showTrialButton ? (
+                  <HeaderAlert
+                    icon={IconProp.Clock}
+                    tooltip="Your trial ends soon"
+                    alertType={HeaderAlertType.INFO}
+                    title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                       OneUptimeDate.getCurrentDate(),
                       props.selectedProject!.trialEndsAt!,
-                    ) > 1
-                      ? "days"
-                      : "day"
-                  }`}
-                />
-              )}
+                    )} ${
+                      OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                        OneUptimeDate.getCurrentDate(),
+                        props.selectedProject!.trialEndsAt!,
+                      ) > 1
+                        ? "days"
+                        : "day"
+                    }`}
+                  />
+                ) : (
+                  <></>
+                )}
+              </HeaderAlertGroup>
             </div>
           </>
         }
