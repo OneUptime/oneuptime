@@ -1560,6 +1560,12 @@ const RouteMap: Dictionary<Route> = {
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_INCIDENTS]
     }`,
   ),
+
+  [PageMap.MONITOR_GROUP_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+      MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_ALERTS]
+    }`,
+  ),
 };
 
 export class RouteUtil {

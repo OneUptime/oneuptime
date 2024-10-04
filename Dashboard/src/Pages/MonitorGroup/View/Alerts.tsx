@@ -16,7 +16,6 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
-import Includes from "Common/Types/BaseDatabase/Includes";
 
 const MonitorAlerts: FunctionComponent<
   PageComponentProps
@@ -78,7 +77,7 @@ const MonitorAlerts: FunctionComponent<
       <AlertsTable
         query={{
           projectId: DashboardNavigation.getProjectId()!,
-          monitor: new Includes(monitorIds),
+          monitorId: monitorIds,
         }}
       />
     </Fragment>
