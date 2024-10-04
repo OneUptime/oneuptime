@@ -10,6 +10,7 @@ import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
 // Pages
 import Home from "./Pages/Home/Home";
 import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
+import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
 import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
 import Logout from "./Pages/Logout/Logout";
 import Sso from "./Pages/Onboarding/SSO";
@@ -261,6 +262,16 @@ const App: () => JSX.Element = () => {
               pageRoute={
                 RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
+          element={
+            <HomeActiveAlerts
+              {...commonPageProps}
+              pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
             />
           }
         />

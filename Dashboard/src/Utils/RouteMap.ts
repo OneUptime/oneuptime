@@ -267,6 +267,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`,
   ),
 
+  [PageMap.HOME_ACTIVE_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-alerts`,
+  ),
+
   [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`,
   ),
