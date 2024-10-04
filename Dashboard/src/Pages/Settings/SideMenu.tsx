@@ -160,7 +160,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Alert}
         />
-      
+
         <SideMenuItem
           link={{
             title: "Note Templates",

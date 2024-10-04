@@ -93,20 +93,16 @@ const SettingsMonitors: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/MonitorStatus");
   });
 
-
-  const SettingsIncidents: LazyExoticComponent<
+const SettingsIncidents: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Settings/IncidentState");
 });
 
-
-const SettingsAlerts: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/AlertState");
-});
-
+const SettingsAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/AlertState");
+  });
 
 const SettingsAlertSeverity: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -119,7 +115,6 @@ const AlertCustomFields: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Settings/AlertCustomFields");
 });
-
 
 const AlertNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -227,7 +222,6 @@ const ScheduledMaintenanceCustomFields: LazyExoticComponent<
   return import("../Pages/Settings/ScheduledMaintenanceCusomFields");
 });
 
-
 const ScheduledMaintenanceNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -292,8 +286,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-
-
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -389,8 +381,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_ALERT_NOTE_TEMPLATES,
           )}
@@ -425,7 +416,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW,
             2,
@@ -435,9 +426,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <AlertNoteTemplateView
                 {...props}
                 pageRoute={
-                  RouteMap[
-                    PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW
-                  ] as Route
+                  RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW] as Route
                 }
               />
             </Suspense>
@@ -545,8 +534,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_ALERTS_STATE)}
           element={
             <Suspense fallback={Loader}>
@@ -604,18 +592,13 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_ALERTS_SEVERITY,
-          )}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_ALERTS_SEVERITY)}
           element={
             <Suspense fallback={Loader}>
               <SettingsAlertSeverity
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route
-                }
+                pageRoute={RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route}
               />
             </Suspense>
           }
@@ -770,8 +753,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_ALERT_CUSTOM_FIELDS,
           )}

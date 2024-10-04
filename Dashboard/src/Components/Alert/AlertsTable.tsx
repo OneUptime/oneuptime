@@ -66,9 +66,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}
         showViewIdButton={true}
-        viewPageRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.ALERTS]!,
-        )}
+        viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}
         filters={[
           {
             title: "Alert ID",

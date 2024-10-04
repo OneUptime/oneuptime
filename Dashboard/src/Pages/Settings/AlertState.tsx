@@ -11,9 +11,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const AlertsPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<AlertState>

@@ -10,7 +10,7 @@ import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
 export default class MonitorStatusTimelineUtil {
-  public static async getNewMonitorStatusTimeline(input: {
+  public static async updateMonitorStatusTimeline(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     dataToProcess: DataToProcess;

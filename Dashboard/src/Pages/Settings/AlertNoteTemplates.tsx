@@ -21,9 +21,9 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         isCreateable={true}
         isViewable={true}
         cardProps={{
-          title: "Public or Private Note Templates for Alerts",
+          title: "Private Note Templates for Alerts",
           description:
-            "Here is a list of all the public and private note templates for alerts.",
+            "Here is a list of all the private note templates for alerts.",
         }}
         noItemsMessage={"No note templates found."}
         query={{

@@ -55,8 +55,6 @@ export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
-    debugger;
-
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -432,40 +430,37 @@ export default class MonitorResourceUtil {
         );
       }
 
-      const monitorStatusTimeline: MonitorStatusTimeline | null =
-        await MonitorStatusTimelineUtil.getNewMonitorStatusTimeline({
-          monitor: monitor,
-          rootCause: response.rootCause,
-          dataToProcess: dataToProcess,
-          criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
-          props: {
-            telemetryQuery: telemetryQuery,
-          },
-        });
+      await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+        monitor: monitor,
+        rootCause: response.rootCause,
+        dataToProcess: dataToProcess,
+        criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
+      });
 
-      if (monitorStatusTimeline) {
-        await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
-          monitor: monitor,
-          rootCause: response.rootCause,
-          dataToProcess: dataToProcess,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-          criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
-          props: {
-            telemetryQuery: telemetryQuery,
-          },
-        });
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        monitor: monitor,
+        rootCause: response.rootCause,
+        dataToProcess: dataToProcess,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
+      });
 
-        await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
-          monitor: monitor,
-          rootCause: response.rootCause,
-          dataToProcess: dataToProcess,
-          autoResolveCriteriaInstanceIdAlertIdsDictionary,
-          criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
-          props: {
-            telemetryQuery: telemetryQuery,
-          },
-        });
-      }
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        monitor: monitor,
+        rootCause: response.rootCause,
+        dataToProcess: dataToProcess,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
+      });
     } else if (
       !response.criteriaMetId &&
       monitorSteps.data.defaultMonitorStatusId &&
