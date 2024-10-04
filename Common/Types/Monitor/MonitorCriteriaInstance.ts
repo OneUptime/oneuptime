@@ -276,6 +276,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
     incidentSeverityId: ObjectID;
+    alertSeverityId: ObjectID;
     monitorName: string;
   }): MonitorCriteriaInstance {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -315,7 +316,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -350,7 +351,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -400,7 +401,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -430,7 +431,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -470,7 +471,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -513,7 +514,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
@@ -546,7 +547,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
-            alertSeverityId: arg.incidentSeverityId,
+            alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],

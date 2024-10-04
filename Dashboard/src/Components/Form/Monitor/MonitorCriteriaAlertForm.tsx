@@ -71,7 +71,6 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             description: "What type of alert is this?",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: props.alertSeverityDropdownOptions,
-
             required: true,
             placeholder: "Alert Severity",
             id: "alert-severity",
