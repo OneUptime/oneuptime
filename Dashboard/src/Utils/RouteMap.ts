@@ -17,6 +17,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: `${RouteParams.ModelID}/status-timeline`,
   [PageMap.MONITOR_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.MONITOR_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.MONITOR_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
@@ -237,6 +238,7 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_GROUP_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_GROUP_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.MONITOR_GROUP_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_GROUP_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_GROUP_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
 };
@@ -343,6 +345,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.MONITOR_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_ALERTS]
     }`,
   ),
 

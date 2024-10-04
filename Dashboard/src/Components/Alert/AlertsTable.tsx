@@ -232,7 +232,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
             },
-            title: "Monitors Affected",
+            title: "Monitor Affected",
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {

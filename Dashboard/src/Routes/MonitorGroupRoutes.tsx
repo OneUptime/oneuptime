@@ -27,6 +27,13 @@ const MonitorGroupViewDelete: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/MonitorGroup/View/Delete");
 });
+
+const MonitorGroupAlerts: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/MonitorGroup/View/Alerts");
+});
+
 const MonitorGroupViewMonitors: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -82,6 +89,18 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
               <MonitorGroupViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_ALERTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorGroupAlerts
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route}
               />
             </Suspense>
           }
