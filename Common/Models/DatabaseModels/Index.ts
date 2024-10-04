@@ -142,6 +142,16 @@ import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplat
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import AlertState from "./AlertState";
+import Alert from "./Alert";
+import AlertCustomField from "./AlertCustomField";
+import AlertStateTimeline from "./AlertStateTimeline";
+import AlertInternalNote from "./AlertInternalNote";
+import AlertOwnerTeam from "./AlertOwnerTeam";
+import AlertOwnerUser from "./AlertOwnerUser";
+import AlertSeverity from "./AlertSeverity";
+import AlertNoteTemplate from "./AlertNoteTemplate";
+import TableView from "./TableView";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -176,9 +186,28 @@ const AllModelTypes: Array<{
   Incident,
   IncidentCustomField,
   IncidentStateTimeline,
-  MonitorStatusTimeline,
-  IncidentPublicNote,
   IncidentInternalNote,
+  IncidentPublicNote,
+  IncidentTemplate,
+  IncidentTemplateOwnerTeam,
+  IncidentTemplateOwnerUser,
+  IncidentOwnerTeam,
+  IncidentOwnerUser,
+  IncidentSeverity,
+  IncidentNoteTemplate,
+
+  AlertState,
+  Alert,
+  AlertCustomField,
+  AlertStateTimeline,
+  AlertInternalNote,
+  AlertOwnerTeam,
+  AlertOwnerUser,
+  AlertSeverity,
+  AlertNoteTemplate,
+
+  MonitorStatusTimeline,
+
   File,
   Domain,
 
@@ -186,7 +215,7 @@ const AllModelTypes: Array<{
   StatusPageDomain,
   StatusPageCustomField,
   StatusPageResource,
-  IncidentSeverity,
+
   StatusPageAnnouncement,
   StatusPageSubscriber,
   StatusPageFooterLink,
@@ -219,9 +248,6 @@ const AllModelTypes: Array<{
   MonitorOwnerTeam,
   MonitorOwnerUser,
 
-  IncidentOwnerTeam,
-  IncidentOwnerUser,
-
   ScheduledMaintenanceOwnerTeam,
   ScheduledMaintenanceOwnerUser,
 
@@ -244,12 +270,6 @@ const AllModelTypes: Array<{
   DataMigration,
 
   ShortLink,
-
-  IncidentTemplate,
-  IncidentTemplateOwnerTeam,
-  IncidentTemplateOwnerUser,
-
-  IncidentNoteTemplate,
 
   ScheduledMaintenanceTemplate,
   ScheduledMaintenanceTemplateOwnerTeam,
@@ -305,6 +325,8 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+
+  TableView,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

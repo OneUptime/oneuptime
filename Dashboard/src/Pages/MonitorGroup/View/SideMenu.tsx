@@ -41,7 +41,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Monitors and Incidents">
+      <SideMenuSection title="More">
         <SideMenuItem
           link={{
             title: "Monitors",
@@ -62,6 +62,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Alert}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
         />
       </SideMenuSection>
 

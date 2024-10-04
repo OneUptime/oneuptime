@@ -6,11 +6,14 @@ import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolic
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    }
   }
 
   protected override async onBeforeCreate(

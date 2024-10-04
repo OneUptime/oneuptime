@@ -1,0 +1,39 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Alert: " alertTitle) }}
+
+{{> InfoBlock info="A new note has been posted on this alert."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Alert Title:" text=alertTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " text=alertSeverity  }}
+{{#if isPrivateNote}}
+{{> DetailBoxField title="Private Note: " text=""  }}
+{{else}}
+{{> DetailBoxField title="Public Note: " text=""  }}
+{{/if}}
+{{> DetailBoxField title="" text=note  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this alert by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=alertViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

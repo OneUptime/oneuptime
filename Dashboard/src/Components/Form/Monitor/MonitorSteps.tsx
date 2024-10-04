@@ -20,6 +20,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -37,6 +38,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     React.useState<Array<DropdownOption>>([]);
 
   const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =
+    React.useState<Array<DropdownOption>>([]);
+
+  const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
@@ -94,6 +98,21 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           },
         });
 
+      const alertSeverityList: ListResult<AlertSeverity> =
+        await ModelAPI.getList({
+          modelType: AlertSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            order: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
+
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
         await ModelAPI.getList({
           modelType: OnCallDutyPolicy,
@@ -109,6 +128,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       if (incidentSeverityList.data) {
         setIncidentSeverityDropdownOptions(
           incidentSeverityList.data.map((i: IncidentSeverity) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
+
+      if (alertSeverityList.data) {
+        setAlertSeverityDropdownOptions(
+          alertSeverityList.data.map((i: AlertSeverity) => {
             return {
               value: i._id!,
               label: i.name!,
@@ -151,6 +181,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               },
             )!.id!,
             defaultIncidentSeverityId: incidentSeverityList.data[0]!.id!,
+            defaultAlertSeverityId: alertSeverityList.data[0]!.id!,
           }),
         );
       }
@@ -192,6 +223,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               key={index}
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
+              alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               initialValue={i}
               // onDelete={() => {

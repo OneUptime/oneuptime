@@ -139,7 +139,17 @@ enum Permission {
   EditIncidentOwnerTeam = "EditIncidentOwnerTeam",
   ReadIncidentOwnerTeam = "ReadIncidentOwnerTeam",
 
-  CreateIncidentOwnerUser = "CreateIncidentOwner",
+  CreateAlertOwnerTeam = "CreateAlertOwnerTeam",
+  DeleteAlertOwnerTeam = "DeleteAlertOwnerTeam",
+  EditAlertOwnerTeam = "EditAlertOwnerTeam",
+  ReadAlertOwnerTeam = "ReadAlertOwnerTeam",
+
+  CreateAlertOwnerUser = "CreateAlertOwnerUser",
+  DeleteAlertOwnerUser = "DeleteAlertOwnerUser",
+  EditAlertOwnerUser = "EditAlertOwnerUser",
+  ReadAlertOwnerUser = "ReadAlertOwnerUser",
+
+  CreateIncidentOwnerUser = "CreateIncidentOwnerUser",
   DeleteIncidentOwnerUser = "DeleteIncidentOwnerUser",
   EditIncidentOwnerUser = "EditIncidentOwnerUser",
   ReadIncidentOwnerUser = "ReadIncidentOwnerUser",
@@ -153,6 +163,11 @@ enum Permission {
   DeleteIncidentNoteTemplate = "DeleteIncidentNoteTemplate",
   EditIncidentNoteTemplate = "EditIncidentNoteTemplate",
   ReadIncidentNoteTemplate = "ReadIncidentNoteTemplate",
+
+  CreateAlertNoteTemplate = "CreateAlertNoteTemplate",
+  DeleteAlertNoteTemplate = "DeleteAlertNoteTemplate",
+  EditAlertNoteTemplate = "EditAlertNoteTemplate",
+  ReadAlertNoteTemplate = "ReadAlertNoteTemplate",
 
   CreateScheduledMaintenanceNoteTemplate = "CreateScheduledMaintenanceNoteTemplate",
   DeleteScheduledMaintenanceNoteTemplate = "DeleteScheduledMaintenanceNoteTemplate",
@@ -239,10 +254,20 @@ enum Permission {
   EditIncidentCustomField = "EditIncidentCustomField",
   ReadIncidentCustomField = "ReadIncidentCustomField",
 
+  CreateAlertCustomField = "CreateAlertCustomField",
+  DeleteAlertCustomField = "DeleteAlertCustomField",
+  EditAlertCustomField = "EditAlertCustomField",
+  ReadAlertCustomField = "ReadAlertCustomField",
+
   CreateProjectIncident = "CreateProjectIncident",
   DeleteProjectIncident = "DeleteProjectIncident",
   EditProjectIncident = "EditProjectIncident",
   ReadProjectIncident = "ReadProjectIncident",
+
+  CreateAlert = "CreateAlert",
+  DeleteAlert = "DeleteAlert",
+  EditAlert = "EditAlert",
+  ReadAlert = "ReadAlert",
 
   CreateScheduledMaintenanceTemplate = "CreateScheduledMaintenanceTemplate",
   DeleteScheduledMaintenanceTemplate = "DeleteScheduledMaintenanceTemplate",
@@ -371,6 +396,17 @@ enum Permission {
   ReadIncidentState = "ReadIncidentState",
   DeleteIncidentState = "DeleteIncidentState",
 
+  CreateAlertState = "CreateAlertState",
+  EditAlertState = "EditAlertState",
+  ReadAlertState = "ReadAlertState",
+  DeleteAlertState = "DeleteAlertState",
+
+  // Incident Status Permissions (Owner + Admin Permission by default)
+  CreateAlertStateTimeline = "CreateAlertStateTimeline",
+  EditAlertStateTimeline = "EditAlertStateTimeline",
+  ReadAlertStateTimeline = "ReadAlertStateTimeline",
+  DeleteAlertStateTimeline = "DeleteAlertStateTimeline",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateIncidentStateTimeline = "CreateIncidentStateTimeline",
   EditIncidentStateTimeline = "EditIncidentStateTimeline",
@@ -400,6 +436,11 @@ enum Permission {
   EditIncidentInternalNote = "EditIncidentInternalNote",
   DeleteIncidentInternalNote = "DeleteIncidentInternalNote",
   ReadIncidentInternalNote = "ReadIncidentInternalNote",
+
+  CreateAlertInternalNote = "CreateAlertInternalNote",
+  EditAlertInternalNote = "EditAlertInternalNote",
+  DeleteAlertInternalNote = "DeleteAlertInternalNote",
+  ReadAlertInternalNote = "ReadAlertInternalNote",
 
   CreateIncidentPublicNote = "CreateIncidentPublicNote",
   EditIncidentPublicNote = "EditIncidentPublicNote",
@@ -488,6 +529,11 @@ enum Permission {
   DeleteIncidentSeverity = "DeleteIncidentSeverity",
   ReadIncidentSeverity = "ReadIncidentSeverity",
 
+  CreateAlertSeverity = "CreateAlertSeverity",
+  EditAlertSeverity = "EditAlertSeverity",
+  DeleteAlertSeverity = "DeleteAlertSeverity",
+  ReadAlertSeverity = "ReadAlertSeverity",
+
   CreateServiceCatalog = "CreateServiceCatalog",
   DeleteServiceCatalog = "DeleteServiceCatalog",
   EditServiceCatalog = "EditServiceCatalog",
@@ -534,6 +580,11 @@ enum Permission {
   DeleteServiceCopilotCodeRepository = "DeleteServiceCopilotCodeRepository",
   EditServiceCopilotCodeRepository = "EditServiceCopilotCodeRepository",
   ReadServiceCopilotCodeRepository = "ReadServiceCopilotCodeRepository",
+
+  CreateTableView = "CreateTableView",
+  DeleteTableView = "DeleteTableView",
+  EditTableView = "EditTableView",
+  ReadTableView = "ReadTableView",
 }
 
 export class PermissionHelper {
@@ -806,6 +857,37 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
+      // Table view permissions
+
+      {
+        permission: Permission.CreateTableView,
+        title: "Create Table View",
+        description: "This permission can create table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTableView,
+        title: "Delete Table View",
+        description: "This permission can delete table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTableView,
+        title: "Edit Table View",
+        description: "This permission can edit table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTableView,
+        title: "Read Table View",
+        description: "This permission can read table views of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
       {
         permission: Permission.CreateProjectLabel,
         title: "Create Label",
@@ -876,6 +958,35 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateAlertState,
+        title: "Create Alert State",
+        description: "This permission can create alert states this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertState,
+        title: "Delete Alert State",
+        description: "This permission can delete alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertState,
+        title: "Edit Alert State",
+        description: "This permission can edit alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertState,
+        title: "Read Alert State",
+        description: "This permission can read alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
         permission: Permission.CreateIncidentStateTimeline,
         title: "Create Incident State Timeline",
         description:
@@ -904,6 +1015,39 @@ export class PermissionHelper {
         title: "Read Incident State Timeline",
         description:
           "This permission can read incident state history of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertStateTimeline,
+        title: "Create Alert State Timeline",
+        description:
+          "This permission can create alert state history of an alert in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertStateTimeline,
+        title: "Delete Alert State Timeline",
+        description:
+          "This permission can delete alert state history of an alert in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertStateTimeline,
+        title: "Edit  Alert State  Timeline",
+        description:
+          "This permission can edit incident alert history of an alert in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertStateTimeline,
+        title: "Read Alert State Timeline",
+        description:
+          "This permission can read alert state history of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1598,6 +1742,36 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateAlertSeverity,
+        title: "Create Alert Severity",
+        description: "This permission can create Alert Severity this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertSeverity,
+        title: "Delete Alert Severity",
+        description:
+          "This permission can delete Alert Severity of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertSeverity,
+        title: "Edit Alert Severity",
+        description: "This permission can edit Alert Severity of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertSeverity,
+        title: "Read Alert Severity",
+        description: "This permission can read Alert Severity of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
         permission: Permission.CreateProjectTeam,
         title: "Create Team",
         description: "This permission can create teams this project.",
@@ -1699,6 +1873,39 @@ export class PermissionHelper {
         title: "Read Incident Internal Note",
         description:
           "This permission can read Incident Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertInternalNote,
+        title: "Create Alert Internal Note",
+        description:
+          "This permission can create Alert Internal Note this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertInternalNote,
+        title: "Delete Alert Internal Note",
+        description:
+          "This permission can delete Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertInternalNote,
+        title: "Edit Alert Internal Note",
+        description:
+          "This permission can edit Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertInternalNote,
+        title: "Read Alert Internal Note",
+        description:
+          "This permission can read Alert Internal Note of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -2320,6 +2527,39 @@ export class PermissionHelper {
         title: "Read Incident Custom Field",
         description:
           "This permission can read Incident Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertCustomField,
+        title: "Create Alert Custom Field",
+        description:
+          "This permission can create Alert Custom Field this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertCustomField,
+        title: "Delete Alert Custom Field",
+        description:
+          "This permission can delete Alert Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertCustomField,
+        title: "Edit Alert Custom Field",
+        description:
+          "This permission can edit Alert Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertCustomField,
+        title: "Read Alert Custom Field",
+        description:
+          "This permission can read Alert Custom Field of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -3019,6 +3259,39 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateAlertOwnerTeam,
+        title: "Create Alert Team Owner",
+        description:
+          "This permission can create Alert Team Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertOwnerTeam,
+        title: "Delete Alert Team Owner",
+        description:
+          "This permission can delete Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertOwnerTeam,
+        title: "Edit Alert Team Owner",
+        description:
+          "This permission can edit Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertOwnerTeam,
+        title: "Read Alert Team Owner",
+        description:
+          "This permission can read Alert Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
         permission: Permission.CreateIncidentNoteTemplate,
         title: "Create Incident Note Template",
         description:
@@ -3047,6 +3320,39 @@ export class PermissionHelper {
         title: "Read Incident Note Template",
         description:
           "This permission can read Incident Note Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertNoteTemplate,
+        title: "Create Alert Note Template",
+        description:
+          "This permission can create Alert Note Template this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertNoteTemplate,
+        title: "Delete Alert Note Template",
+        description:
+          "This permission can delete Alert Note Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertNoteTemplate,
+        title: "Edit Alert Note Template",
+        description:
+          "This permission can edit Alert Note Template of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertNoteTemplate,
+        title: "Read Alert Note Template",
+        description:
+          "This permission can read Alert Note Template of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -3146,6 +3452,39 @@ export class PermissionHelper {
         title: "Read Incident User Owner",
         description:
           "This permission can read Incident User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertOwnerUser,
+        title: "Create Alert User Owner",
+        description:
+          "This permission can create Alert User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertOwnerUser,
+        title: "Delete Alert User Owner",
+        description:
+          "This permission can delete Alert User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertOwnerUser,
+        title: "Edit Alert User Owner",
+        description:
+          "This permission can edit Alert User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertOwnerUser,
+        title: "Read Alert User Owner",
+        description:
+          "This permission can read Alert User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -3538,6 +3877,35 @@ export class PermissionHelper {
         permission: Permission.ReadProjectIncident,
         title: "Read Incident",
         description: "This permission can read incident of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      {
+        permission: Permission.CreateAlert,
+        title: "Create Alert",
+        description: "This permission can create alerts for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlert,
+        title: "Delete Alert",
+        description: "This permission can delete alerts of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditAlert,
+        title: "Edit Alert",
+        description: "This permission can edit alerts of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadAlert,
+        title: "Read Alert",
+        description: "This permission can read alerts of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },

@@ -4,6 +4,7 @@ import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Typeof from "../Typeof";
+import { CriteriaAlert } from "./CriteriaAlert";
 import {
   CheckOn,
   CriteriaFilter,
@@ -19,10 +20,12 @@ export interface MonitorCriteriaInstanceType {
   filterCondition: FilterCondition;
   filters: Array<CriteriaFilter>;
   incidents: Array<CriteriaIncident>;
+  alerts: Array<CriteriaAlert>;
   name: string;
   description: string;
   changeMonitorStatus?: boolean | undefined;
   createIncidents?: boolean | undefined;
+  createAlerts?: boolean | undefined;
   id: string;
 }
 
@@ -43,8 +46,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         },
       ],
       createIncidents: false,
+      createAlerts: false,
       changeMonitorStatus: false,
       incidents: [],
+      alerts: [],
       name: "",
       description: "",
     };
@@ -71,6 +76,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -96,8 +103,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
         changeMonitorStatus: true,
         createIncidents: false,
+        createAlerts: false,
         name: `Check if ${arg.monitorName} is online`,
         description: `This criteria checks if the ${arg.monitorName} is online`,
       };
@@ -121,6 +130,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -146,6 +157,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -174,6 +187,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -199,6 +214,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -230,6 +247,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         incidents: [],
+        alerts: [],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
@@ -257,6 +276,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
     incidentSeverityId: ObjectID;
+    alertSeverityId: ObjectID;
     monitorName: string;
   }): MonitorCriteriaInstance {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -291,6 +311,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         changeMonitorStatus: true,
         createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} is offline`,
       };
@@ -316,6 +347,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 200,
           },
         ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
@@ -355,6 +397,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             onCallPolicyIds: [],
           },
         ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         changeMonitorStatus: true,
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
@@ -374,6 +427,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 0, // if there are no logs then the monitor is offline
           },
         ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
@@ -403,6 +467,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
           },
         ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
@@ -435,6 +510,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             value: undefined,
           },
         ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
@@ -457,6 +543,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
         filters: [
           {
             checkOn: CheckOn.IsNotAValidCertificate,
@@ -626,6 +723,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setAlerts(alerts: Array<CriteriaAlert>): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.alerts = [...alerts];
+    }
+
+    return this;
+  }
+
   public setChangeMonitorStatus(
     changeMonitorStatus: boolean | undefined,
   ): MonitorCriteriaInstance {
@@ -646,6 +751,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setCreateAlerts(
+    createAlerts: boolean | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.createAlerts = createAlerts;
+    }
+
+    return this;
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -659,6 +774,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: this.data.filterCondition,
         filters: this.data.filters,
         incidents: this.data.incidents,
+        alerts: this.data.alerts,
+        createAlerts: this.data.createAlerts,
         changeMonitorStatus: this.data.changeMonitorStatus,
         createIncidents: this.data.createIncidents,
         name: this.data.name,
@@ -705,11 +822,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (!json["incidents"]) {
-      throw new BadDataException("json.incidents is null");
+      json["incidents"] = [];
     }
 
     if (!Array.isArray(json["incidents"])) {
       throw new BadDataException("json.incidents should be an array");
+    }
+
+    if (!json["alerts"]) {
+      json["alerts"] = [];
+    }
+
+    if (!Array.isArray(json["alerts"])) {
+      throw new BadDataException("json.alerts should be an array");
     }
 
     let monitorStatusId: ObjectID | undefined = undefined;
@@ -744,6 +869,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       incidents.push({ ...(incident as any) });
     }
 
+    const alerts: Array<CriteriaAlert> = [];
+
+    for (const alert of json["alerts"]) {
+      alerts.push({ ...(alert as any) });
+    }
+
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
@@ -753,8 +884,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       filterCondition,
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,
       createIncidents: (json["createIncidents"] as boolean) || false,
+      createAlerts: (json["createAlerts"] as boolean) || false,
       filters: filters as any,
       incidents: incidents as any,
+      alerts: alerts as any,
       name: (json["name"] as string) || "",
       description: (json["description"] as string) || "",
     }) as any;

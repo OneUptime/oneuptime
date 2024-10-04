@@ -55,6 +55,11 @@ const MonitorIncidents: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/View/Incidents");
   });
+
+const MonitorAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Monitor/View/Alerts");
+  });
 const MonitorInoperational: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -265,6 +270,19 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_ALERTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorAlerts
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_DELETE)}
           element={

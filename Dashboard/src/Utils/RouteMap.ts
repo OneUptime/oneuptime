@@ -17,6 +17,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: `${RouteParams.ModelID}/status-timeline`,
   [PageMap.MONITOR_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.MONITOR_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.MONITOR_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
@@ -140,6 +141,16 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
 };
 
+export const AlertsRoutePath: Dictionary<string> = {
+  [PageMap.UNRESOLVED_ALERTS]: "unresolved",
+  [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
+  [PageMap.ALERT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.ALERT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.ALERT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+};
+
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
@@ -164,23 +175,34 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_MONITORS_STATUS]: "monitors-status",
   [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: "monitor-custom-fields",
   [PageMap.SETTINGS_MONITOR_SECRETS]: "monitor-secrets",
+
   [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: "incident-custom-fields",
+  [PageMap.SETTINGS_INCIDENTS_STATE]: "incidents-state",
+  [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
+  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: "incident-templates",
+  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
+  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
+
+  [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
+  [PageMap.SETTINGS_ALERTS_STATE]: "alerts-state",
+  [PageMap.SETTINGS_ALERTS_SEVERITY]: "alerts-severity",
+  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]: "alert-note-templates",
+  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]: `alert-note-templates/${RouteParams.ModelID}`,
+
   [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]:
     "on-call-duty-policy-custom-fields",
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]:
     "scheduled-maintenance-custom-fields",
   [PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]: "status-page-custom-fields",
-  [PageMap.SETTINGS_INCIDENTS_STATE]: "incidents-state",
+
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: "scheduled-maintenance-state",
-  [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
+
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
   [PageMap.SETTINGS_TEAMS]: "teams",
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: "incident-templates",
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
+
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]:
     "scheduled-maintenance-templates",
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: `scheduled-maintenance-templates/${RouteParams.ModelID}`,
@@ -216,6 +238,7 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_GROUP_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_GROUP_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.MONITOR_GROUP_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_GROUP_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_GROUP_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
 };
@@ -242,6 +265,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`,
+  ),
+
+  [PageMap.HOME_ACTIVE_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-alerts`,
   ),
 
   [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
@@ -325,6 +352,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MONITOR_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_ALERTS]
+    }`,
+  ),
+
   [PageMap.MONITOR_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_SETTINGS]
@@ -342,6 +375,56 @@ const RouteMap: Dictionary<Route> = {
       MonitorsRoutePath[PageMap.MONITOR_VIEW_CRITERIA]
     }`,
   ),
+
+  [PageMap.ALERTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/*`,
+  ),
+
+  [PageMap.ALERTS]: new Route(`/dashboard/${RouteParams.ProjectID}/alerts`),
+
+  [PageMap.UNRESOLVED_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.UNRESOLVED_ALERTS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_STATE_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_STATE_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.ALERT_INTERNAL_NOTE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_INTERNAL_NOTE]
+    }`,
+  ),
+
+  // Incidents
 
   [PageMap.INCIDENTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/*`,
@@ -1179,21 +1262,81 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]
+    }`,
+  ),
+
   [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE]
     }`,
   ),
 
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: new Route(
+  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES]
     }`,
   ),
 
   [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_SEVERITY]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_ALERTS_STATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_ALERTS_STATE]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_ALERTS_SEVERITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_ALERTS_SEVERITY]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]
     }`,
   ),
 
@@ -1221,12 +1364,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES]
-    }`,
-  ),
-
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]
@@ -1236,24 +1373,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]
     }`,
   ),
 
@@ -1390,12 +1509,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]
-    }`,
-  ),
-
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]
@@ -1445,6 +1558,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_GROUP_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.MONITOR_GROUP_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
+      MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_ALERTS]
     }`,
   ),
 };

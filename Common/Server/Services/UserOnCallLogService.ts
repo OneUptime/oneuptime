@@ -15,11 +15,14 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import Model from "Common/Models/DatabaseModels/UserOnCallLog";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    }
   }
 
   protected override async onBeforeCreate(

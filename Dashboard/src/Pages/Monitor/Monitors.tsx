@@ -18,6 +18,9 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={{
           projectId: DashboardNavigation.getProjectId()!,
         }}
+        saveFilterProps={{
+          tableId: "main-monitor-table",
+        }}
       />
     </Fragment>
   );

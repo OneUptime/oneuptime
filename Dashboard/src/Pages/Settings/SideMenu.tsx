@@ -140,6 +140,53 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.TextFile}
                 /> */}
       </SideMenuSection>
+
+      <SideMenuSection title="Alerts">
+        <SideMenuItem
+          link={{
+            title: "Alert State",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERTS_STATE] as Route,
+            ),
+          }}
+          icon={IconProp.ArrowCircleRight}
+        />
+        <SideMenuItem
+          link={{
+            title: "Alert Severity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route,
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Note Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route,
+            ),
+          }}
+          icon={IconProp.Pencil}
+        />
+        <SideMenuItem
+          link={{
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS] as Route,
+            ),
+          }}
+          icon={IconProp.TableCells}
+        />
+        {/* <SideMenuItem
+                    link={{
+                        title: 'Alert Templates',
+                        to: new Route('/:projectSlug/home'),
+                    }}
+                    icon={IconProp.TextFile}
+                /> */}
+      </SideMenuSection>
       <SideMenuSection title="Telemetry & APM">
         <SideMenuItem
           link={{

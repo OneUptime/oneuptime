@@ -10,6 +10,7 @@ import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
 // Pages
 import Home from "./Pages/Home/Home";
 import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
+import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
 import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
 import Logout from "./Pages/Logout/Logout";
 import Sso from "./Pages/Onboarding/SSO";
@@ -55,6 +56,7 @@ import {
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
 import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
+import AlertsRoutes from "./Routes/AlertRoutes";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -265,6 +267,16 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
+          element={
+            <HomeActiveAlerts
+              {...commonPageProps}
+              pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={
             RouteMap[
               PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
@@ -323,6 +335,12 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ""}
           element={<IncidentsRoutes {...commonPageProps} />}
+        />
+
+        {/* Incidents */}
+        <PageRoute
+          path={RouteMap[PageMap.ALERTS_ROOT]?.toString() || ""}
+          element={<AlertsRoutes {...commonPageProps} />}
         />
 
         {/* Scheduled Events */}

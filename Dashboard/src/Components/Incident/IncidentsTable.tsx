@@ -222,6 +222,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             props.description ||
             "Here is a list of incidents for this project.",
         }}
+        createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
         formSteps={[
           {
