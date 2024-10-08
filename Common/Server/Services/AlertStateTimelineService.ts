@@ -114,7 +114,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
 
     const internalNote: string | undefined = (
       createBy.miscDataProps as JSONObject | undefined
-    )?.["publicNote"] as string | undefined;
+    )?.["internalNote"] as string | undefined;
 
     if (internalNote) {
       const alertNote: AlertInternalNote = new AlertInternalNote();

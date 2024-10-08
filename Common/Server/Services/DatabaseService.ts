@@ -671,28 +671,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
+      let tenantId: ObjectID | undefined = createBy.props.tenantId;
+
+      if (!tenantId && this.getModel().getTenantColumn()) {
+        tenantId = createBy.data.getValue<ObjectID>(
+          this.getModel().getTenantColumn()!,
+        );
+      }
+
       // hit workflow.;
-      if (this.getModel().enableWorkflowOn?.create) {
-        let tenantId: ObjectID | undefined = createBy.props.tenantId;
+      if (this.getModel().enableWorkflowOn?.create && tenantId) {
+        await this.onTriggerWorkflow(createBy.data.id!, tenantId, "on-create");
+      }
 
-        if (!tenantId && this.getModel().getTenantColumn()) {
-          tenantId = createBy.data.getValue<ObjectID>(
-            this.getModel().getTenantColumn()!,
-          );
-        }
-
-        if (tenantId) {
-          await this.onTriggerWorkflow(
-            createBy.data.id!,
-            tenantId,
-            "on-create",
-          );
-          await this.onTriggerRealtime(
-            createBy.data.id!,
-            tenantId,
-            ModelEventType.Create,
-          );
-        }
+      if (tenantId) {
+        await this.onTriggerRealtime(
+          createBy.data.id!,
+          tenantId,
+          ModelEventType.Create,
+        );
       }
 
       return createBy.data;
