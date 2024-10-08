@@ -40,10 +40,27 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
       break;
   }
 
+  let bgColor: string = "bg-gray";
+
+  switch (props.alertType) {
+    case HeaderAlertType.SUCCESS:
+      bgColor = "bg-green";
+      break;
+    case HeaderAlertType.ERROR:
+      bgColor = "bg-red";
+      break;
+    case HeaderAlertType.WARNING:
+      bgColor = "bg-yellow";
+      break;
+    case HeaderAlertType.INFO:
+      bgColor = "bg-indigo";
+      break;
+  }
+
   const getElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div
-        className={`cursor-pointer hover:bg-gray-100 p-1 h-7 pl-2 pr-2 -mt-2 -ml-5 mr-1 rounded-full ${props.className}`}
+        className={`cursor-pointer ${bgColor}-50 hover:${bgColor}-200 mr-2 ml-2 p-1 h-7 pl-2 pr-2 rounded-full ${props.className}`}
         onClick={() => {
           props.onClick && props.onClick();
         }}

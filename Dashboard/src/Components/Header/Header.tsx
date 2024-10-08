@@ -221,8 +221,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     hasAcceptedInvitation: false,
                   }}
                   alertType={HeaderAlertType.INFO}
-                  singularName=""
-                  pluralName=""
+                  singularName="Invitation"
+                  pluralName="Invitations"
                   tooltip="Looks like you have pending project invitations. Please click here to review and accept them."
                   requestOptions={{
                     isMultiTenantRequest: true,
@@ -242,8 +242,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     },
                   }}
                   refreshToggle={activeIncidentToggleRefresh}
-                  singularName=""
-                  pluralName=""
+                  singularName="Incident"
+                  pluralName="Incidents"
                   tooltip="View all active incidents"
                   requestOptions={{
                     isMultiTenantRequest: true,
@@ -263,8 +263,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     },
                   }}
                   refreshToggle={activeAlertToggleRefresh}
-                  singularName=""
-                  pluralName=""
+                  singularName="Alert"
+                  pluralName="Alerts"
                   tooltip="View all active alerts"
                   onClick={() => {
                     Navigation.navigate(RouteMap[PageMap.ALERTS]!);

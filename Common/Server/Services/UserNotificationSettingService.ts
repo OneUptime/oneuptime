@@ -282,6 +282,38 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       });
     }
 
+
+    const alertCreatedNotificationEvent: PositiveNumber = await this.countBy(
+      {
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    if (alertCreatedNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+
     // check monitor state changed notification
     const monitorStateChangedNotificationEvent: PositiveNumber =
       await this.countBy({
@@ -404,6 +436,38 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         },
       });
     }
+
+
+    // check alert state changed notification
+    const alertStateChangedNotificationEvent: PositiveNumber =
+      await this.countBy({
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (alertStateChangedNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
   }
 
   protected override async onBeforeCreate(
