@@ -771,7 +771,7 @@ export default class MonitorResourceUtil {
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = `
-**This incident is created because the following criteria was met**: 
+**Created because the following criteria was met**: 
 
 **Criteria Name**: ${criteriaInstance.data?.name}
 `;

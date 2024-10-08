@@ -214,7 +214,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
               if (item["alertSeverity"]) {
                 return (
                   <Pill
-                    isMinimal={true}
+                    isMinimal={false}
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
                   />

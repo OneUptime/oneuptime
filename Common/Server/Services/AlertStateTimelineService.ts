@@ -15,6 +15,9 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import { JSONObject } from "../../Types/JSON";
+import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
+import AlertInternalNoteService from "./AlertInternalNoteService";
 
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
@@ -108,6 +111,23 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           _id: true,
         },
       });
+
+    const internalNote: string | undefined = (
+      createBy.miscDataProps as JSONObject | undefined
+    )?.["publicNote"] as string | undefined;
+
+    if (internalNote) {
+      const alertNote: AlertInternalNote = new AlertInternalNote();
+      alertNote.alertId = createBy.data.alertId;
+      alertNote.note = internalNote;
+      alertNote.createdAt = createBy.data.startsAt;
+      alertNote.projectId = createBy.data.projectId!;
+
+      await AlertInternalNoteService.create({
+        data: alertNote,
+        props: createBy.props,
+      });
+    }
 
     return {
       createBy,

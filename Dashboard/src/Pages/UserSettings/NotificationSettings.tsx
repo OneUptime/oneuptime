@@ -132,8 +132,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-
-<div>
+      <div>
         {getModelTable({
           eventOptions: [
             NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
@@ -146,7 +145,6 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Here are the list of notification methods we will use when an event happens on an alert.",
         })}
       </div>
-
 
       <div>
         {getModelTable({

@@ -195,14 +195,13 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             fields: [
               {
                 field: {
-                  publicNote: true,
+                  internalNote: true,
                 } as any,
                 fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Post a public note about this state change to the status page.",
-                title: "Public Note",
+                description: "Post an internal note about this state change.",
+                title: "Private Note",
                 required: false,
-                overrideFieldKey: "publicNote",
+                overrideFieldKey: "internalNote",
                 showEvenIfPermissionDoesNotExist: true,
               },
             ],

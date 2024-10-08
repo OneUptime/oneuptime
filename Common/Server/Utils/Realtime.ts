@@ -15,7 +15,6 @@ import Permission, {
 } from "../../Types/Permission";
 import { getModelTypeByName } from "../../Models/DatabaseModels/Index";
 import { getModelTypeByName as getAnalyticsModelTypeByname } from "../../Models/AnalyticsModels/Index";
-import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/BaseDatabase/ModelPermission";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
@@ -161,30 +160,12 @@ export default abstract class Realtime {
           projectId,
         );
 
-      let databaseRequestType: DatabaseRequestType = DatabaseRequestType.Read;
-
-      if (data.eventType === ModelEventType.Create) {
-        logger.debug("Event type is Create, setting request type to Create");
-        databaseRequestType = DatabaseRequestType.Create;
-      }
-
-      if (data.eventType === ModelEventType.Update) {
-        logger.debug("Event type is Update, setting request type to Update");
-        databaseRequestType = DatabaseRequestType.Update;
-      }
-
-      if (data.eventType === ModelEventType.Delete) {
-        logger.debug("Event type is Delete, setting request type to Delete");
-        databaseRequestType = DatabaseRequestType.Delete;
-      }
-
       // check if the user has access to this model
       if (
         userTenantAccessPermission &&
         this.hasPermissionsByModelName(
           userTenantAccessPermission,
           data.modelName,
-          databaseRequestType,
         )
       ) {
         logger.debug("User has access to the model, granting access");
@@ -297,7 +278,6 @@ export default abstract class Realtime {
   public static hasPermissionsByModelName(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
     modelName: string,
-    requestType: DatabaseRequestType,
   ): boolean {
     let modelPermissions: Array<Permission> = [];
 
@@ -315,21 +295,7 @@ export default abstract class Realtime {
       }
     }
 
-    if (requestType === DatabaseRequestType.Create) {
-      modelPermissions = new modelType().getCreatePermissions();
-    }
-
-    if (requestType === DatabaseRequestType.Read) {
-      modelPermissions = new modelType().getReadPermissions();
-    }
-
-    if (requestType === DatabaseRequestType.Update) {
-      modelPermissions = new modelType().getUpdatePermissions();
-    }
-
-    if (requestType === DatabaseRequestType.Delete) {
-      modelPermissions = new modelType().getDeletePermissions();
-    }
+    modelPermissions = new modelType().getReadPermissions();
 
     return ModelPermission.hasPermissions(
       userProjectPermissions,

@@ -27,8 +27,7 @@ const HeaderAlertGroup: (props: ComponentProps) => ReactElement = (
   }
 
   // const className: string = "rounded-lg m-3 h-10 pr-0 pl-0 flex border-2 border-gray-200";
-  const className: string = "rounded-lg m-3 mt-5 h-10 pr-0 pl-0 flex"
-
+  const className: string = "rounded-lg m-3 mt-5 h-10 pr-0 pl-0 flex";
 
   return (
     <div className={className}>

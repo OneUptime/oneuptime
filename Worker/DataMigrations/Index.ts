@@ -78,7 +78,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MoveTelemetryServiceTokenToTelemetryIngestionKey(),
   new AddDefaultCopilotActionTypes(),
   new AddDefaultAlertSeverityAndStateToExistingProjects(),
-  new RefreshDefaultUserNotificationSetting()
+  new RefreshDefaultUserNotificationSetting(),
 ];
 
 export default DataMigrations;
