@@ -36,6 +36,7 @@ import DeleteOldTelemetryTable from "./DeleteOldTelelmetryTable";
 import MoveTelemetryServiceTokenToTelemetryIngestionKey from "./MoveTelemetryServiceTokenToTelemetryIngestionKey";
 import AddDefaultCopilotActionTypes from "./AddDefaultCopilotActionTypes";
 import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlertSeverityAndStateToExistingProjects";
+import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -77,6 +78,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MoveTelemetryServiceTokenToTelemetryIngestionKey(),
   new AddDefaultCopilotActionTypes(),
   new AddDefaultAlertSeverityAndStateToExistingProjects(),
+  new RefreshDefaultUserNotificationSetting()
 ];
 
 export default DataMigrations;

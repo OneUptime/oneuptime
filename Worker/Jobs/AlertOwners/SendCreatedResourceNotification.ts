@@ -173,7 +173,7 @@ RunCron(
             smsMessage: sms,
             callRequestMessage: callMessage,
             eventType:
-              NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+              NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
           });
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
