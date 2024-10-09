@@ -50,11 +50,23 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
+import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: dataToProcess.monitorId.toString(),
+        namespace: "MonitorResourceUtil.monitorResource",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -529,6 +541,14 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
         );
+      }
+    }
+
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
       }
     }
 

@@ -324,6 +324,7 @@ router.post(
       try {
         mutex = await Semaphore.lock({
           key: probeId.toString(),
+          namespace: "MonitorAPI.monitor-list",
         });
       } catch (err) {
         logger.error(err);
