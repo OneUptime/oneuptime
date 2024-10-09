@@ -319,16 +319,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
         data.group.showUptimePercent
       ) {
         const uptimePercent: number | null =
-          StatusPageResourceUptimeUtil.calculateUptimePercentOfStatusPageGroup({
-            statusPageGroup: data.group,
-            monitorStatusTimelines: monitorStatusTimelines,
-            precision:
-              data.group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
-            downtimeMonitorStatuses: statusPage?.downtimeMonitorStatuses || [],
-            statusPageResources: statusPageResources,
-            monitorsInGroup: monitorsInGroup,
-            monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
-          });
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: data.group,
+              monitorStatusTimelines: monitorStatusTimelines,
+              precision:
+                data.group.uptimePercentPrecision ||
+                UptimePrecision.ONE_DECIMAL,
+              downtimeMonitorStatuses:
+                statusPage?.downtimeMonitorStatuses || [],
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+            },
+          );
 
         return (
           <div

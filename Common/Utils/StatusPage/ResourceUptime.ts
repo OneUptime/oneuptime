@@ -108,27 +108,47 @@ export default class StatusPageResourceUptimeUtil {
     return currentStatus;
   }
 
-  public static calculateUptimePercentOfStatusPageGroup(data: {
+  public static calculateUptimePercentOfResource(data: {
+    statusPageResource: StatusPageResource;
+    monitorStatusTimelines: Array<MonitorStatusTimeline>;
+    precision: UptimePrecision;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+  }): number | null {
+    if (!data.statusPageResource.showUptimePercent) {
+      return null;
+    }
+
+    const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+      this.getMonitorStatusTimelineForResource({
+        statusPageResource: data.statusPageResource,
+        monitorStatusTimelines: data.monitorStatusTimelines,
+        monitorsInGroup: data.monitorsInGroup,
+      });
+
+    const downtimeMonitorStatuses: Array<MonitorStatus> =
+      data?.downtimeMonitorStatuses || [];
+
+    const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
+      monitorStatusTimelines,
+      data.precision,
+      downtimeMonitorStatuses,
+    );
+
+    return uptimePercent;
+  }
+
+  public static calculateAvgUptimePercentOfStatusPageGroup(data: {
     statusPageGroup: StatusPageGroup;
     monitorStatusTimelines: Array<MonitorStatusTimeline>;
     precision: UptimePrecision;
     downtimeMonitorStatuses: Array<MonitorStatus>;
     statusPageResources: Array<StatusPageResource>;
     monitorsInGroup: Dictionary<Array<ObjectID>>;
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
     }
-
-    const currentStatus: MonitorStatus | null =
-      this.getCurrentStatusPageGroupStatus({
-        statusPageGroup: data.statusPageGroup,
-        monitorStatusTimelines: data.monitorStatusTimelines,
-        statusPageResources: data.statusPageResources,
-        monitorStatuses: data.downtimeMonitorStatuses,
-        monitorGroupCurrentStatuses: data.monitorGroupCurrentStatuses,
-      });
 
     const resourcesInGroup: Array<StatusPageResource> =
       this.getResourcesInStatusPageGroup({
@@ -140,26 +160,33 @@ export default class StatusPageResourceUptimeUtil {
       return null; // no resources in group.
     }
 
-    let allMonitorStatusTimelines: Array<MonitorStatusTimeline> = [];
+    const uptimePercentPerResource: Array<number> = [];
 
     for (const resource of resourcesInGroup) {
-      // get monitor status timeline.
-      const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-        this.getMonitorStatusTimelineForResource({
+      const calculateUptimePercentOfResource: number | null =
+        this.calculateUptimePercentOfResource({
           statusPageResource: resource,
           monitorStatusTimelines: data.monitorStatusTimelines,
+          precision: data.precision,
+          downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           monitorsInGroup: data.monitorsInGroup,
         });
 
-      // add to the monitor status timelines.
-
-      allMonitorStatusTimelines = allMonitorStatusTimelines.concat(
-        monitorStatusTimelines,
-      );
+      if (calculateUptimePercentOfResource !== null) {
+        uptimePercentPerResource.push(calculateUptimePercentOfResource);
+      }
     }
 
-    const downtimeMonitorStatuses: Array<MonitorStatus> =
-      data?.downtimeMonitorStatuses || [];
+    // calculate avg
+
+    if (uptimePercentPerResource.length === 0) {
+      return null;
+    }
+
+    const averageUptimePercentage: number =
+      uptimePercentPerResource.reduce((a: number, b: number) => {
+        return a + b;
+      }) / uptimePercentPerResource.length;
 
     // if the current status is operational then show uptime Percent.
 
@@ -169,22 +196,18 @@ export default class StatusPageResourceUptimeUtil {
       precision = data.statusPageGroup.uptimePercentPrecision;
     }
 
-    if (
-      !downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
-        return currentStatus?.id?.toString() === downtimeStatus?.id?.toString();
-      }) &&
-      data.statusPageGroup.showUptimePercent
-    ) {
-      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-        allMonitorStatusTimelines,
-        precision,
-        downtimeMonitorStatuses,
-      );
+    return UptimeUtil.roundToPrecision({
+      number: averageUptimePercentage,
+      precision: precision,
+    });
+  }
 
-      return uptimePercent;
-    }
-
-    return null;
+  public static getResourcesWithoutStatusPageGroup(data: {
+    statusPageResources: Array<StatusPageResource>;
+  }): Array<StatusPageResource> {
+    return data.statusPageResources.filter((resource: StatusPageResource) => {
+      return !resource.statusPageGroupId;
+    });
   }
 
   public static getResourcesInStatusPageGroup(data: {
@@ -217,93 +240,62 @@ export default class StatusPageResourceUptimeUtil {
       return null;
     }
 
-    const uptimePercentPerResource: Array<number> = [];
+    const allUptimePercent: Array<number> = [];
 
-    for (const resource of data.statusPageResources) {
-      if (!resource.showUptimePercent && !resource.showStatusHistoryChart) {
-        continue;
+    // calculate for groups first.
+
+    for (const group of data.resourceGroups) {
+      const calculateAvgUptimePercentOfStatusPageGroup: number | null =
+        this.calculateAvgUptimePercentOfStatusPageGroup({
+          statusPageGroup: group,
+          monitorStatusTimelines: data.monitorStatusTimelines,
+          precision: data.precision,
+          downtimeMonitorStatuses: data.downtimeMonitorStatuses,
+          statusPageResources: data.statusPageResources,
+          monitorsInGroup: data.monitorsInGroup,
+        });
+
+      if (calculateAvgUptimePercentOfStatusPageGroup !== null) {
+        allUptimePercent.push(calculateAvgUptimePercentOfStatusPageGroup);
       }
+    }
 
-      let timelinesForThisResource: Array<MonitorStatusTimeline> = [];
+    // now fetch resources without group.
 
-      if (resource.monitorGroupId) {
-        timelinesForThisResource = [...data.monitorStatusTimelines].filter(
-          (timeline: MonitorStatusTimeline) => {
-            const monitorsInThisGroup: Array<ObjectID> | undefined =
-              data.monitorsInGroup[resource.monitorGroupId?.toString() || ""];
+    const resourcesWithoutGroup: Array<StatusPageResource> =
+      this.getResourcesWithoutStatusPageGroup({
+        statusPageResources: data.statusPageResources,
+      });
 
-            if (!monitorsInThisGroup) {
-              return false;
-            }
+    for (const resource of resourcesWithoutGroup) {
+      const calculateUptimePercentOfResource: number | null =
+        this.calculateUptimePercentOfResource({
+          statusPageResource: resource,
+          monitorStatusTimelines: data.monitorStatusTimelines,
+          precision: data.precision,
+          downtimeMonitorStatuses: data.downtimeMonitorStatuses,
+          monitorsInGroup: data.monitorsInGroup,
+        });
 
-            return monitorsInThisGroup.find((monitorId: ObjectID) => {
-              return monitorId.toString() === timeline.monitorId?.toString();
-            });
-          },
-        );
+      if (calculateUptimePercentOfResource !== null) {
+        allUptimePercent.push(calculateUptimePercentOfResource);
       }
-
-      if (resource.monitorId || resource.monitor?.id) {
-        const monitorId: ObjectID | null | undefined =
-          resource.monitorId || resource.monitor?.id;
-
-        if (!monitorId) {
-          // this should never happen.
-          continue;
-        }
-
-        timelinesForThisResource = [...data.monitorStatusTimelines].filter(
-          (timeline: MonitorStatusTimeline) => {
-            return (
-              timeline.monitorId?.toString() === resource.monitorId?.toString()
-            );
-          },
-        );
-      }
-
-      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-        timelinesForThisResource,
-        data.precision,
-        data.downtimeMonitorStatuses,
-      );
-
-      uptimePercentPerResource.push(uptimePercent);
     }
 
     // calculate avg
 
-    if (uptimePercentPerResource.length === 0) {
+    if (allUptimePercent.length === 0) {
       return null;
     }
 
     const averageUptimePercentage: number =
-      uptimePercentPerResource.reduce((a: number, b: number) => {
+      allUptimePercent.reduce((a: number, b: number) => {
         return a + b;
-      }) / uptimePercentPerResource.length;
+      }) / allUptimePercent.length;
 
-    //round this to precision.
-
-    if (data.precision === UptimePrecision.NO_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage);
-
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.ONE_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 10) / 10;
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.TWO_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 100) / 100;
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.THREE_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 1000) / 1000;
-      return percent;
-    }
-
-    return averageUptimePercentage;
+    return UptimeUtil.roundToPrecision({
+      number: averageUptimePercentage,
+      precision: data.precision,
+    });
   }
 }

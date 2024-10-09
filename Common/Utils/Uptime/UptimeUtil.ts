@@ -299,6 +299,31 @@ export default class UptimeUtil {
     };
   }
 
+  public static roundToPrecision(data: {
+    number: number;
+    precision: UptimePrecision;
+  }): number {
+    const { number, precision } = data;
+
+    if (precision === UptimePrecision.NO_DECIMAL) {
+      return Math.floor(number);
+    }
+
+    if (precision === UptimePrecision.ONE_DECIMAL) {
+      return Math.floor(number * 10) / 10;
+    }
+
+    if (precision === UptimePrecision.TWO_DECIMAL) {
+      return Math.floor(number * 100) / 100;
+    }
+
+    if (precision === UptimePrecision.THREE_DECIMAL) {
+      return Math.floor(number * 1000) / 1000;
+    }
+
+    return number;
+  }
+
   public static calculateUptimePercentage(
     monitorStatusTimelines: Array<MonitorStatusTimeline>,
     precision: UptimePrecision,
@@ -325,42 +350,9 @@ export default class UptimeUtil {
         totalSecondsInTimePeriod) *
       100;
 
-    if (precision === UptimePrecision.NO_DECIMAL) {
-      const noDecimalPercent: number = Math.round(percentage);
-      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
-        return 99;
-      }
-
-      return noDecimalPercent;
-    }
-
-    if (precision === UptimePrecision.ONE_DECIMAL) {
-      const noDecimalPercent: number = Math.round(percentage * 10) / 10;
-      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
-        return 99.9;
-      }
-
-      return noDecimalPercent;
-    }
-
-    if (precision === UptimePrecision.TWO_DECIMAL) {
-      const noDecimalPercent: number = Math.round(percentage * 100) / 100;
-      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
-        return 99.99;
-      }
-
-      return noDecimalPercent;
-    }
-
-    if (precision === UptimePrecision.THREE_DECIMAL) {
-      const noDecimalPercent: number = Math.round(percentage * 1000) / 1000;
-      if (noDecimalPercent === 100 && totalDowntimeInSeconds > 0) {
-        return 99.999;
-      }
-
-      return noDecimalPercent;
-    }
-
-    return percentage;
+    return this.roundToPrecision({
+      number: percentage,
+      precision,
+    });
   }
 }
