@@ -309,13 +309,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
         });
 
       if (
-        !((statusPage?.downtimeMonitorStatuses || []).find(
+        !(statusPage?.downtimeMonitorStatuses || []).find(
           (downtimeStatus: MonitorStatus) => {
             return (
               currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
             );
           },
-        )) &&
+        ) &&
         data.group.showUptimePercent
       ) {
         const uptimePercent: number | null =
@@ -333,9 +333,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             },
           );
 
-          if(uptimePercent === null) {
-            return <></>;
-          }
+        if (uptimePercent === null) {
+          return <></>;
+        }
 
         return (
           <div

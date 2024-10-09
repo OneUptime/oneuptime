@@ -306,7 +306,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
-
     </Fragment>
   );
 };
