@@ -275,8 +275,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 if (item.isCustomCertificate) {
                   return (
                     <span>
-                      No action is required. You have uploaded a custom
-                      certificate which will be used.
+                      No action is required. Please allow 30 minutes for the
+                      certificate to be provisioned.
                     </span>
                   );
                 }
