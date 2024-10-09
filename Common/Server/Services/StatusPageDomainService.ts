@@ -50,6 +50,17 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
+    if (createBy.data.isCustomCertificate) {
+      if (
+        !createBy.data.customCertificate ||
+        !createBy.data.customCertificateKey
+      ) {
+        throw new BadDataException(
+          "Custom certificate or private key is missing",
+        );
+      }
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -168,6 +179,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     const domains: Array<StatusPageDomain> = await this.findBy({
       query: {
         isSslOrdered: true,
+        isCustomCertificate: false,
       },
       select: {
         _id: true,
@@ -419,6 +431,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           const domains: Array<StatusPageDomain> = await this.findBy({
             query: {
               isSslOrdered: false,
+              isCustomCertificate: false, // only order for non custom certificates.
             },
             select: {
               _id: true,
@@ -507,6 +520,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     const domains: Array<StatusPageDomain> = await this.findBy({
       query: {
         isSslOrdered: true,
+        isCustomCertificate: false,
       },
       select: {
         _id: true,
