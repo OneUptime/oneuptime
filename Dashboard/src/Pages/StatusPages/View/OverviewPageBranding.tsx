@@ -13,6 +13,9 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -243,6 +246,67 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Settings"
+        cardProps={{
+          title: "Overall Uptime Percent",
+          description: "Settings for overall uptime percent on status page",
+        }}
+        editButtonText="Edit Settings"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              showOverallUptimePercentOnStatusPage: true,
+            },
+            title: "Show Overall Uptime Percent",
+            description:
+              "Show or hide the overall uptime percent on the status page",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder: "No",
+          },
+          {
+            field: {
+              overallUptimePercentPrecision: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+            showIf: (item: FormValues<StatusPage>): boolean => {
+              return Boolean(item.showOverallUptimePercentOnStatusPage);
+            },
+            title: "Select Uptime Precision",
+            defaultValue: UptimePrecision.TWO_DECIMAL,
+            required: true,
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page",
+          fields: [
+            {
+              field: {
+                showOverallUptimePercentOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Overall Uptime Percent",
+            },
+
+            {
+              field: {
+                overallUptimePercentPrecision: true,
+              },
+              title: "Overall Uptime Precision",
+              fieldType: FieldType.Text,
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
     </Fragment>
   );
 };
