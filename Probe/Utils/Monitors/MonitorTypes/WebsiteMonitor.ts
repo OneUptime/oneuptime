@@ -61,6 +61,7 @@ export default class WebsiteMonitor {
       let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
+        doNotFollowRedirects: true,
       });
 
       if (
