@@ -211,7 +211,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               selectedProject={props.selectedProject}
             />
 
-            <div className="flex ml-3">
+            <div className="flex">
               <HeaderAlertGroup>
                 <HeaderModelAlert<TeamMember>
                   icon={IconProp.Folder}

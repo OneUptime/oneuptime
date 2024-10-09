@@ -53,8 +53,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -293,97 +293,42 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPrivateStatusPage(),
   ]);
 
-  type GetMonitorStatusTimelineForResourceFunction = (data: {
-    resource: StatusPageResource;
-  }) => Array<MonitorStatusTimeline>;
-
-  const getMonitorStatusTimelineForResource: GetMonitorStatusTimelineForResourceFunction =
-    (data: { resource: StatusPageResource }): Array<MonitorStatusTimeline> => {
-      return [...monitorStatusTimelines].filter(
-        (timeline: MonitorStatusTimeline) => {
-          // check monitor if first.
-
-          if (data.resource.monitorId) {
-            return (
-              timeline.monitorId?.toString() ===
-              data.resource.monitorId?.toString()
-            );
-          }
-
-          if (data.resource.monitorGroupId) {
-            const monitorsInThisGroup: Array<ObjectID> | undefined =
-              monitorsInGroup[data.resource.monitorGroupId?.toString() || ""];
-
-            if (!monitorsInThisGroup) {
-              return false;
-            }
-
-            return monitorsInThisGroup.find((monitorId: ObjectID) => {
-              return monitorId.toString() === timeline.monitorId?.toString();
-            });
-          }
-
-          return false;
-        },
-      );
-    };
-
   type GetCurrentGroupStatusElementFunction = (data: {
     group: StatusPageGroup;
   }) => ReactElement;
 
   const getCurrentGroupStatusElement: GetCurrentGroupStatusElementFunction =
     (data: { group: StatusPageGroup }): ReactElement => {
-      const currentStatus: MonitorStatus = getCurrentGroupStatus(data.group);
-
-      const resourcesInGroup: Array<StatusPageResource> = getResourcesInGroup(
-        data.group,
-      );
-
-      if (resourcesInGroup.length === 0) {
-        return <></>;
-      }
-
-      let allMonitorStatusTimelines: Array<MonitorStatusTimeline> = [];
-
-      for (const resource of resourcesInGroup) {
-        // get monitor status timeline.
-        const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-          getMonitorStatusTimelineForResource({
-            resource: resource,
-          });
-
-        // add to the monitor status timelines.
-
-        allMonitorStatusTimelines = allMonitorStatusTimelines.concat(
-          monitorStatusTimelines,
-        );
-      }
-
-      const downtimeMonitorStatuses: Array<MonitorStatus> =
-        statusPage?.downtimeMonitorStatuses || [];
-
-      // if the current status is operational then show uptime Percent.
-
-      let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;
-
-      if (data.group.uptimePercentPrecision) {
-        precision = data.group.uptimePercentPrecision;
-      }
+      const currentStatus: MonitorStatus =
+        StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+          statusPageGroup: data.group,
+          monitorStatusTimelines: monitorStatusTimelines,
+          statusPageResources: statusPageResources,
+          monitorStatuses: monitorStatuses,
+          monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+        });
 
       if (
-        !downtimeMonitorStatuses.find((downtimeStatus: MonitorStatus) => {
-          return (
-            currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
-          );
-        }) &&
+        !(statusPage?.downtimeMonitorStatuses || []).find(
+          (downtimeStatus: MonitorStatus) => {
+            return (
+              currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
+            );
+          },
+        ) &&
         data.group.showUptimePercent
       ) {
-        const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-          allMonitorStatusTimelines,
-          precision,
-          downtimeMonitorStatuses,
-        );
+        const uptimePercent: number | null =
+          StatusPageResourceUptimeUtil.calculateUptimePercentOfStatusPageGroup({
+            statusPageGroup: data.group,
+            monitorStatusTimelines: monitorStatusTimelines,
+            precision:
+              data.group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+            downtimeMonitorStatuses: statusPage?.downtimeMonitorStatuses || [],
+            statusPageResources: statusPageResources,
+            monitorsInGroup: monitorsInGroup,
+            monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+          });
 
         return (
           <div
@@ -536,9 +481,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimePrecision={
                 resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
               }
-              monitorStatusTimeline={getMonitorStatusTimelineForResource({
-                resource: resource,
-              })}
+              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                {
+                  statusPageResource: resource,
+                  monitorStatusTimelines: monitorStatusTimelines,
+                  monitorsInGroup: monitorsInGroup,
+                },
+              )}
               startDate={startDate}
               endDate={endDate}
               showHistoryChart={resource.showStatusHistoryChart}
@@ -583,9 +532,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
               description={resource.displayDescription || ""}
               tooltip={resource.displayTooltip || ""}
               currentStatus={currentStatus}
-              monitorStatusTimeline={getMonitorStatusTimelineForResource({
-                resource: resource,
-              })}
+              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                {
+                  statusPageResource: resource,
+                  monitorStatusTimelines: monitorStatusTimelines,
+                  monitorsInGroup: monitorsInGroup,
+                },
+              )}
               downtimeMonitorStatuses={
                 statusPage?.downtimeMonitorStatuses || []
               }
@@ -700,72 +653,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return groups;
     };
 
-  type GetResourcesInGroupFunction = (
-    group: StatusPageGroup,
-  ) => Array<StatusPageResource>;
-
-  const getResourcesInGroup: GetResourcesInGroupFunction = (
-    group: StatusPageGroup,
-  ): Array<StatusPageResource> => {
-    return statusPageResources.filter((resource: StatusPageResource) => {
-      return resource.statusPageGroupId?.toString() === group._id?.toString();
-    });
-  };
-
-  type GetCurrentGroupStatus = (group: StatusPageGroup) => MonitorStatus;
-
-  const getCurrentGroupStatus: GetCurrentGroupStatus = (
-    group: StatusPageGroup,
-  ): MonitorStatus => {
-    let currentStatus: MonitorStatus = new MonitorStatus();
-    currentStatus.name = "Operational";
-    currentStatus.color = Green;
-
-    const resourcesInGroup: Array<StatusPageResource> =
-      getResourcesInGroup(group);
-
-    for (const resource of resourcesInGroup) {
-      let currentMonitorStatus: MonitorStatus | undefined = undefined;
-
-      if (resource.monitor) {
-        currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
-          return (
-            status._id?.toString() ===
-            resource.monitor?.currentMonitorStatusId?.toString()
-          );
-        });
-      }
-
-      if (resource.monitorGroupId) {
-        currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
-          return (
-            status._id?.toString() ===
-            monitorGroupCurrentStatuses[
-              resource.monitorGroupId?.toString() || ""
-            ]?.toString()
-          );
-        });
-      }
-
-      if (!currentMonitorStatus) {
-        currentMonitorStatus = currentStatus;
-      }
-
-      if (
-        (currentStatus &&
-          currentStatus.priority &&
-          currentMonitorStatus?.priority &&
-          currentMonitorStatus?.priority > currentStatus.priority) ||
-        !currentStatus ||
-        !currentStatus.priority
-      ) {
-        currentStatus = currentMonitorStatus!;
-      }
-    }
-
-    return currentStatus;
-  };
-
   const activeIncidentsInIncidentGroup: Array<IncidentGroup> =
     getActiveIncidents();
   const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
@@ -823,16 +710,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 textOnRight={
                   currentStatus.isOperationalState &&
                   statusPage?.showOverallUptimePercentOnStatusPage
-                    ? UptimeUtil.calculateAvgUptimePercentageOfAllResources({
-                        monitorStatusTimelines: monitorStatusTimelines,
-                        statusPageResources: statusPageResources,
-                        downtimeMonitorStatuses:
-                          statusPage.downtimeMonitorStatuses || [],
-                        precision:
-                          statusPage.overallUptimePercentPrecision ||
-                          UptimePrecision.TWO_DECIMAL,
-                        monitorsInGroup: monitorsInGroup,
-                      })?.toString() + "% uptime" || "100%"
+                    ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+                        {
+                          monitorStatusTimelines: monitorStatusTimelines,
+                          statusPageResources: statusPageResources,
+                          downtimeMonitorStatuses:
+                            statusPage.downtimeMonitorStatuses || [],
+                          precision:
+                            statusPage.overallUptimePercentPrecision ||
+                            UptimePrecision.TWO_DECIMAL,
+                          resourceGroups: resourceGroups,
+                          monitorsInGroup: monitorsInGroup,
+                        },
+                      )?.toString() + "% uptime" || "100%"
                     : undefined
                 }
                 textClassName="text-white text-lg flex justify-between w-full"

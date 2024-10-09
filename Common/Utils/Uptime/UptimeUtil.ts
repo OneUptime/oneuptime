@@ -5,8 +5,6 @@ import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
-import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
-import Dictionary from "../../Types/Dictionary";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 export default class UptimeUtil {
@@ -299,113 +297,6 @@ export default class UptimeUtil {
       totalDowntimeInSeconds: totalDowntime,
       totalSecondsInTimePeriod,
     };
-  }
-
-  public static calculateAvgUptimePercentageOfAllResources(data: {
-    monitorStatusTimelines: Array<MonitorStatusTimeline>;
-    precision: UptimePrecision;
-    downtimeMonitorStatuses: Array<MonitorStatus>;
-    statusPageResources: Array<StatusPageResource>;
-    monitorsInGroup: Dictionary<Array<ObjectID>>;
-  }): number | null {
-    const showUptimePercentage: boolean = Boolean(
-      data.statusPageResources.find((item: StatusPageResource) => {
-        return item.showUptimePercent || item.showStatusHistoryChart;
-      }),
-    );
-
-    if (!showUptimePercentage) {
-      return null;
-    }
-
-    const uptimePercentPerResource: Array<number> = [];
-
-    for (const resource of data.statusPageResources) {
-      if (!resource.showUptimePercent && !resource.showStatusHistoryChart) {
-        continue;
-      }
-
-      let timelinesForThisResource: Array<MonitorStatusTimeline> = [];
-
-      if (resource.monitorGroupId) {
-        timelinesForThisResource = [...data.monitorStatusTimelines].filter(
-          (timeline: MonitorStatusTimeline) => {
-            const monitorsInThisGroup: Array<ObjectID> | undefined =
-              data.monitorsInGroup[resource.monitorGroupId?.toString() || ""];
-
-            if (!monitorsInThisGroup) {
-              return false;
-            }
-
-            return monitorsInThisGroup.find((monitorId: ObjectID) => {
-              return monitorId.toString() === timeline.monitorId?.toString();
-            });
-          },
-        );
-      }
-
-      if (resource.monitorId || resource.monitor?.id) {
-        const monitorId: ObjectID | null | undefined =
-          resource.monitorId || resource.monitor?.id;
-
-        if (!monitorId) {
-          // this should never happen.
-          continue;
-        }
-
-        timelinesForThisResource = [...data.monitorStatusTimelines].filter(
-          (timeline: MonitorStatusTimeline) => {
-            return (
-              timeline.monitorId?.toString() === resource.monitorId?.toString()
-            );
-          },
-        );
-      }
-
-      const uptimePercent: number = this.calculateUptimePercentage(
-        timelinesForThisResource,
-        data.precision,
-        data.downtimeMonitorStatuses,
-      );
-
-      uptimePercentPerResource.push(uptimePercent);
-    }
-
-    // calculate avg
-
-    if (uptimePercentPerResource.length === 0) {
-      return null;
-    }
-
-    const averageUptimePercentage: number =
-      uptimePercentPerResource.reduce((a: number, b: number) => {
-        return a + b;
-      }) / uptimePercentPerResource.length;
-
-    //round this to precision.
-
-    if (data.precision === UptimePrecision.NO_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage);
-
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.ONE_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 10) / 10;
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.TWO_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 100) / 100;
-      return percent;
-    }
-
-    if (data.precision === UptimePrecision.THREE_DECIMAL) {
-      const percent: number = Math.round(averageUptimePercentage * 1000) / 1000;
-      return percent;
-    }
-
-    return averageUptimePercentage;
   }
 
   public static calculateUptimePercentage(
