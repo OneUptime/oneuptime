@@ -63,6 +63,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           id="domains-table"
           isDeleteable={true}
           isCreateable={true}
+          isEditable={true}
           cardProps={{
             title: "Custom Domains",
             description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
@@ -204,7 +205,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               title: "Certificate",
               fieldType: FormFieldSchemaType.LongText,
-              required: true,
+              required: false,
               stepId: "more",
               placeholder:
                 "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
@@ -218,7 +219,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               title: "Certificate Private Key",
               fieldType: FormFieldSchemaType.LongText,
-              required: true,
+              required: false,
               placeholder:
                 "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
               stepId: "more",
