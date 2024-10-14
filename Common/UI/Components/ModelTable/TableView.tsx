@@ -14,7 +14,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import API from "../../../Utils/API";
 import MoreMenuSection from "../MoreMenu/MoreMenuSection";
-import Button, { ButtonStyleType } from "../Button/Button";
+import { ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import { BarLoader } from "react-spinners";
 import ConfirmModal from "../Modal/ConfirmModal";
@@ -22,9 +22,10 @@ import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import { FormType } from "../Forms/ModelForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementArrayFunction } from "../../Types/FunctionTypes";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
+import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 
 export interface ComponentProps {
   tableId: string;
@@ -122,21 +123,28 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
     (item: TableView): ReactElement => {
       return (
         <div className="flex">
-          <Button
-            icon={IconProp.Edit}
-            buttonStyle={ButtonStyleType.ICON_LIGHT}
-            onClick={() => {
-              setTableViewToEdit(item);
-            }}
-          />
-
-          <Button
-            icon={IconProp.Trash}
-            buttonStyle={ButtonStyleType.ICON_LIGHT}
-            onClick={() => {
-              setTableViewToDelete(item);
-            }}
-          />
+          <div className="h-4 w-4 mr-2">
+            <Icon
+              icon={IconProp.Edit}
+              className="text-gray-400 hover:text-gray-600"
+              size={SizeProp.Regular}
+              thick={ThickProp.Thick}
+              onClick={() => {
+                setTableViewToEdit(item);
+              }}
+            />
+          </div>
+          <div className="h-4 w-4">
+            <Icon
+              className="text-gray-400 hover:text-gray-600"
+              icon={IconProp.Trash}
+              size={SizeProp.Regular}
+              thick={ThickProp.Thick}
+              onClick={() => {
+                setTableViewToDelete(item);
+              }}
+            />
+          </div>
         </div>
       );
     };
@@ -150,6 +158,8 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
           key={index}
           rightElement={getRightElementForTableViewMenuItem(item)}
           text={item.name || ""}
+          className="text-gray-600 hover:text-gray-800"
+          icon={IconProp.Window}
           onClick={() => {
             props.onViewChange && props.onViewChange(item);
             setCurrentlySelectedView(item);
@@ -159,42 +169,36 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const getMenuContents: GetReactElementFunction = (): ReactElement => {
-    if (isLoading) {
-      return <BarLoader />;
-    }
+  const getMenuContents: GetReactElementArrayFunction =
+    (): Array<ReactElement> => {
+      if (isLoading) {
+        return [<BarLoader />];
+      }
 
-    return (
-      <>
-        {allTableViews.length > 0 ? (
+      const elements: Array<ReactElement> = [];
+
+      if (allTableViews.length > 0) {
+        elements.push(
           <MoreMenuSection title="Saved Views">
             {getViewItems()}
-          </MoreMenuSection>
-        ) : (
-          <></>
-        )}
+          </MoreMenuSection>,
+        );
+      }
 
-        {currentlySelectedView ? (
-          <MoreMenuItem
-            text="Deselect View"
-            onClick={() => {
-              setCurrentlySelectedView(null);
-              props.onViewChange && props.onViewChange(null);
-            }}
-          ></MoreMenuItem>
-        ) : (
-          <></>
-        )}
-
+      elements.push(
         <MoreMenuItem
-          text="Save View"
+          text="Save as New View"
+          className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
+          icon={IconProp.Add}
+          iconClassName=""
           onClick={() => {
             setShowCreateNewViewModel(true);
           }}
-        ></MoreMenuItem>
-      </>
-    );
-  };
+        ></MoreMenuItem>,
+      );
+
+      return elements;
+    };
 
   if (error) {
     return (
@@ -311,7 +315,38 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return <MoreMenu>{getMenuContents()}</MoreMenu>;
+  type GetElementToBeShownInsteadOfButtonFunction = () => ReactElement | undefined;
+
+  const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction = (): ReactElement | undefined => {
+    if (!currentlySelectedView) {
+      return undefined;
+    }
+
+    return (
+      <div className="ml-2 mt-1 cursor-pointer font-semibold flex rounded-full border-2 border-gray-600 text-gray-600 text-xs p-1 pl-2 pr-2">
+        {currentlySelectedView.name}
+        <div className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1">
+          <Icon
+            icon={IconProp.Close}
+            size={SizeProp.Regular}
+            thick={ThickProp.Thick}
+            onClick={() => {
+              setCurrentlySelectedView(null);
+              props.onViewChange && props.onViewChange(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <MoreMenu
+      elementToBeShownInsteadOfButton={getElementToBeShownInsteadOfButton()}
+    >
+      {getMenuContents()}
+    </MoreMenu>
+  );
 };
 
 export default TableViewElement;

@@ -10,8 +10,8 @@ const MoreMenuSection: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div>
-      <div className="text-gray-400 text-sm font-medium">
-        {props.title.toLocaleUpperCase()}
+      <div className="text-gray-400 text-xs font-medium pt-2 pl-3 pr-3 pb-2">
+        {props.title.toUpperCase()}
       </div>
       {props.children}
       <MoreMenuDivider />

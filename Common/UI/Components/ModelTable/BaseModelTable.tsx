@@ -906,9 +906,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons.push({
         title: "",
         buttonStyle: ButtonStyleType.ICON,
-        className: props.showRefreshButton
-          ? "p-1 px-1 pr-0 pl-0 py-0 mt-1"
-          : "py-0 pr-0 pl-1 mt-1",
+        className: "py-0 pr-0 pl-1 mt-1",
         onClick: () => {
           setQuery({});
           setShowFilterModal(true);

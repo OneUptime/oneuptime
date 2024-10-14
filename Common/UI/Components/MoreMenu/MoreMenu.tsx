@@ -9,7 +9,8 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 
 export interface ComponentProps {
-  children: Array<ReactElement> | ReactElement;
+  children: Array<ReactElement>;
+  elementToBeShownInsteadOfButton?: ReactElement | undefined;
 }
 
 const MoreMenu: FunctionComponent<ComponentProps> = (
@@ -26,15 +27,27 @@ const MoreMenu: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="relative inline-block text-left">
-      <div>
-        <Button
-          icon={IconProp.More}
-          buttonStyle={ButtonStyleType.ICON}
+      {!props.elementToBeShownInsteadOfButton && (
+        <div>
+          <Button
+            icon={IconProp.More}
+            buttonStyle={ButtonStyleType.ICON}
+            onClick={() => {
+              setIsComponentVisible(!isDropdownVisible);
+            }}
+          />
+        </div>
+      )}
+
+      {props.elementToBeShownInsteadOfButton && (
+        <div
           onClick={() => {
             setIsComponentVisible(!isDropdownVisible);
           }}
-        />
-      </div>
+        >
+          {props.elementToBeShownInsteadOfButton}
+        </div>
+      )}
 
       {isComponentVisible && (
         <div
@@ -44,7 +57,21 @@ const MoreMenu: FunctionComponent<ComponentProps> = (
           aria-orientation="vertical"
           aria-labelledby="menu-button"
         >
-          {props.children}
+          {props.children.map((child: ReactElement, index: number) => {
+            return (
+              <div
+                key={index}
+                role="menuitem"
+                onClick={() => {
+                  if (isComponentVisible) {
+                    setIsComponentVisible(false);
+                  }
+                }}
+              >
+                {child}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

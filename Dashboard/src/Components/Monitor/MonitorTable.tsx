@@ -60,7 +60,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       modelType={Monitor}
       name="Monitors"
       id="Monitors-table"
-      // saveFilterProps={props.saveFilterProps}
+      saveFilterProps={props.saveFilterProps}
       bulkActions={{
         buttons: [
           {
