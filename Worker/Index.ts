@@ -14,10 +14,14 @@ const APP_NAME: string = "worker";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    logger.debug("Initializing Worker");
+
     // Initialize telemetry
     Telemetry.init({
       serviceName: APP_NAME,
     });
+
+    logger.debug("Telemetry initialized");
 
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
@@ -37,27 +41,43 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
+    logger.debug("App initialized");
+
     // Connect to Postgres database
     await PostgresAppInstance.connect();
 
+    logger.debug("Postgres connected");
+
     // Connect to Redis
     await Redis.connect();
+
+    logger.debug("Redis connected");
 
     // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(
       ClickhouseAppInstance.getDatasourceOptions(),
     );
 
+    logger.debug("Clickhouse connected");
+
     // Initialize real-time functionalities
     await Realtime.init();
+
+    logger.debug("Realtime initialized");
+
+    // Add default routes to the app
+    await App.addDefaultRoutes();
+
+    logger.debug("Default routes added");
 
     // Initialize home routes at the end since it has a catch-all route
     await WorkerRoutes.init();
 
-    // Add default routes to the app
-    await App.addDefaultRoutes();
+    logger.debug("Routes initialized");
+
+    logger.info("Worker Initialized Successfully");
   } catch (err) {
-    logger.error("App Init Failed:");
+    logger.error("Worker Init Failed:");
     logger.error(err);
     throw err;
   }

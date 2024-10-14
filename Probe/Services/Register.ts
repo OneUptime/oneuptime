@@ -20,6 +20,20 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 
 export default class Register {
+  public static async isPingMonitoringEnabled(): Promise<boolean> {
+    // check cache
+    const pingMonitoring: string | null = LocalCache.getString(
+      "PROBE",
+      "PING_MONITORING",
+    );
+
+    if (pingMonitoring) {
+      return pingMonitoring === "PING";
+    }
+
+    return true;
+  }
+
   public static async reportIfOffline(): Promise<void> {
     const pingMonitoringCheck: boolean =
       await OnlineCheck.canProbeMonitorPingMonitors();
@@ -33,6 +47,7 @@ export default class Register {
       logger.warn(
         "Ping monitoring is disabled on this machine. Ping/ICMP checks are usually disabled by cloud providers (Azure, AWS, GCP, etc.). If you need ICMP checks, please use a different provider or use port checks.",
       );
+
       LocalCache.setString("PROBE", "PING_MONITORING", "PORT");
     }
 

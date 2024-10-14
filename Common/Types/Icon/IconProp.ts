@@ -128,6 +128,7 @@ enum IconProp {
   NoSignal = "NoSignal",
   EyeSlash = "EyeSlash",
   SquareStack3D = "SquareStack3D",
+  ExclaimationCircle = "ExclaimationCircle",
 }
 
 export default IconProp;

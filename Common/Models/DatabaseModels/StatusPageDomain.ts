@@ -352,7 +352,7 @@ export default class StatusPageDomain extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -412,7 +412,7 @@ export default class StatusPageDomain extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -538,4 +538,90 @@ export default class StatusPageDomain extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageDomain,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageDomain,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageDomain,
+    ],
+  })
+  @TableColumn({ type: TableColumnType.VeryLongText })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: false,
+  })
+  public customCertificate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageDomain,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageDomain,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageDomain,
+    ],
+  })
+  @TableColumn({ type: TableColumnType.VeryLongText })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: false,
+  })
+  public customCertificateKey?: string = undefined;
+
+  // If this is true, then the certificate is custom and not managed by OneUptime (LetsEncrypt)
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageDomain,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageDomain,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageDomain,
+    ],
+  })
+  @TableColumn({ type: TableColumnType.Boolean })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false, // default is false
+  })
+  public isCustomCertificate?: boolean = undefined;
 }

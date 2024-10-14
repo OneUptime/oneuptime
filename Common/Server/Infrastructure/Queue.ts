@@ -61,7 +61,7 @@ export default class Queue {
   }
 
   public static getInspectorRoute(): string {
-    return "/api/inspect/queue/:clusterKey";
+    return "/worker/inspect/queue/:clusterKey";
   }
 
   public static getQueueInspectorRouter(): ExpressRouter {

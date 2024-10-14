@@ -1,0 +1,44 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Alert: " alertTitle) }}
+
+{{> InfoBlock info=(concat "A new alert has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Alert Title:" text=alertTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Alert Declared By: " text=declaredBy  }}
+{{> DetailBoxField title="Alert Declared At: " text=""  }}
+{{> DetailBoxField title="" text=declaredAt  }}
+{{> DetailBoxField title="Severity: " text=alertSeverity  }}
+{{> DetailBoxField title="Root Cause: " text=""  }}
+{{> DetailBoxField title="" text=rootCause  }}
+{{> DetailBoxField title="Description: " text=""  }}
+{{> DetailBoxField title="" text=alertDescription  }}
+{{#ifNotCond remediationNotes ""}}
+{{> DetailBoxField title="Remediation Notes: " text=""  }}
+{{> DetailBoxField title="" text=remediationNotes  }}
+{{/ifNotCond}}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this alert by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=alertViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this alert changes."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

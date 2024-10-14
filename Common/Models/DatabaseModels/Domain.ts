@@ -209,7 +209,7 @@ export default class Domain extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -268,7 +268,7 @@ export default class Domain extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

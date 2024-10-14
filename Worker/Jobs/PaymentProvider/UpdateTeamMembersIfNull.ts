@@ -9,7 +9,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(
   "PaymentProvider:UpdateTeamMembersIfNull",
-  { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: true },
+  { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
   async () => {
     const projects: Array<Project> = await ProjectService.findBy({
       query: {

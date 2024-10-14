@@ -5,10 +5,14 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import logger from "Common/Server/Utils/Logger";
 RunCron(
   "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    logger.debug(
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Running",
+    );
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
@@ -39,24 +43,53 @@ RunCron(
         },
       });
 
+    logger.debug(
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Found " +
+        scheduledEvents.length +
+        " events",
+    );
+
     for (const event of scheduledEvents) {
-      const nextSubscriberNotificationAt: Date | null =
-        ScheduledMaintenanceService.getNextTimeToNotify({
-          eventScheduledDate: event.startsAt!,
-          sendSubscriberNotifiationsOn:
-            event.sendSubscriberNotificationsOnBeforeTheEvent!,
+      try {
+        logger.debug(
+          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
+            event.id,
+        );
+
+        const nextSubscriberNotificationAt: Date | null =
+          ScheduledMaintenanceService.getNextTimeToNotify({
+            eventScheduledDate: event.startsAt!,
+            sendSubscriberNotifiationsOn:
+              event.sendSubscriberNotificationsOnBeforeTheEvent!,
+          });
+
+        logger.debug(
+          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Next subscriber notification at: " +
+            nextSubscriberNotificationAt,
+        );
+
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            nextSubscriberNotificationBeforeTheEventAt:
+              nextSubscriberNotificationAt,
+          },
+          props: {
+            isRoot: true,
+          },
         });
 
-      await ScheduledMaintenanceService.updateOneById({
-        id: event.id!,
-        data: {
-          nextSubscriberNotificationBeforeTheEventAt:
-            nextSubscriberNotificationAt,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        logger.debug(
+          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Notification sent for event: " +
+            event.id,
+        );
+      } catch (err) {
+        logger.error(
+          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Error sending notification for event: " +
+            event.id,
+        );
+        logger.error(err);
+      }
     }
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(

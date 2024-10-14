@@ -115,6 +115,16 @@ export default class PingMonitor {
         return await this.ping(host, pingOptions);
       }
 
+      // check if the probe is online.
+      if (!pingOptions.isOnlineCheckRequest) {
+        if (!(await OnlineCheck.canProbeMonitorPingMonitors())) {
+          logger.error(
+            `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
+          );
+          return null;
+        }
+      }
+
       // check if timeout exceeded and if yes, return null
       if (
         (err as any).toString().includes("timeout") &&
@@ -126,18 +136,11 @@ export default class PingMonitor {
 
         return {
           isOnline: false,
-          failureCause: "Host is not reachable. Timeout exceeded.",
+          failureCause:
+            "Request was tried " +
+            pingOptions.currentRetryCount +
+            " times and it timed out.",
         };
-      }
-
-      // check if the probe is online.
-      if (!pingOptions.isOnlineCheckRequest) {
-        if (!(await OnlineCheck.canProbeMonitorPingMonitors())) {
-          logger.error(
-            `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
-          );
-          return null;
-        }
       }
 
       return {

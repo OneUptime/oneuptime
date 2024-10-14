@@ -9,6 +9,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -48,6 +51,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             "Here are different groups for your status page resources.",
         }}
         noItemsMessage={"No status page group created for this status page."}
+        formSteps={[
+          {
+            title: "Group Details",
+            id: "group-details",
+          },
+          {
+            title: "Advanced",
+            id: "advanced",
+          },
+        ]}
         formFields={[
           {
             field: {
@@ -57,6 +70,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Resource Group Name",
+            stepId: "group-details",
           },
           {
             field: {
@@ -65,6 +79,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             title: "Group Description",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
+            stepId: "group-details",
           },
           {
             field: {
@@ -73,6 +88,46 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             title: "Expand on Status Page by Default",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            stepId: "group-details",
+          },
+          {
+            field: {
+              showCurrentStatus: true,
+            },
+            title: "Show Current Group Status",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+            description:
+              "Current Status will be shown beside this group on your status page.",
+            stepId: "advanced",
+          },
+          {
+            field: {
+              showUptimePercent: true,
+            },
+            title: "Show Uptime %",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+            description:
+              "Show uptime percentage for the past 90 days beside this group on your status page.",
+            stepId: "advanced",
+          },
+          {
+            field: {
+              uptimePercentPrecision: true,
+            },
+            stepId: "advanced",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+            showIf: (item: FormValues<StatusPageGroup>): boolean => {
+              return Boolean(item.showUptimePercent);
+            },
+            title: "Select Uptime Precision",
+            defaultValue: UptimePrecision.ONE_DECIMAL,
+            required: true,
           },
         ]}
         showRefreshButton={true}

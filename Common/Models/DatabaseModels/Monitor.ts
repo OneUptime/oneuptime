@@ -279,7 +279,7 @@ export default class Monitor extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -334,7 +334,7 @@ export default class Monitor extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

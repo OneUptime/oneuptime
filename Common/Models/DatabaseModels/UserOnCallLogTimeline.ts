@@ -604,7 +604,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -649,7 +649,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

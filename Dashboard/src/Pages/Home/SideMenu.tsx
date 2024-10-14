@@ -20,6 +20,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertStateUtil from "../../Utils/AlertState";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -30,6 +33,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
+  >([]);
+
+  const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
+    Array<AlertState>
   >([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
@@ -46,8 +53,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchAlertStates: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      if (props.project?.id) {
+        const unresolvedAlertStates: Array<AlertState> =
+          await AlertStateUtil.getUnresolvedAlertStates(props.project?.id);
+        setUnresolvedAlertStates(unresolvedAlertStates);
+      }
+    } catch (err) {
+      // maybe show an error message
+    }
+  };
+
   useEffect(() => {
     fetchIncidentStates().catch((_err: Error) => {
+      // do nothing
+    });
+
+    fetchAlertStates().catch((_err: Error) => {
       // do nothing
     });
   }, []);
@@ -67,6 +90,28 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             projectId: props.project?._id,
             currentIncidentStateId: new Includes(
               unresolvedIncidentStates.map((state: IncidentState) => {
+                return state.id!;
+              }),
+            ),
+          }}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Alerts">
+        <SideMenuItem<Alert>
+          link={{
+            title: "Active",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
+          badgeType={BadgeType.DANGER}
+          modelType={Alert}
+          countQuery={{
+            projectId: props.project?._id,
+            currentAlertStateId: new Includes(
+              unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
               }),
             ),

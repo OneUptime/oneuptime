@@ -135,12 +135,40 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         {getModelTable({
           eventOptions: [
+            NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+          ],
+          title: "Alert Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an alert.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
           ],
           title: "Incident Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an incident.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
+            NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+          ],
+          title: "Alert Notifications",
           description:
             "Here are the list of notification methods we will use when an event happens on an incident.",
         })}

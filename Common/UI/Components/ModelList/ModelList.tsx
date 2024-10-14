@@ -35,7 +35,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   noItemsMessage: string;
   headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
   onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
   footer?: ReactElement | undefined;
   isDeleteable?: boolean | undefined;
   enableDragAndDrop?: boolean | undefined;

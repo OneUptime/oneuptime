@@ -54,6 +54,12 @@ const SettingsIngestionKeyView: LazyExoticComponent<
   return import("../Pages/Settings/TelemetryIngestionKeyView");
 });
 
+const AlertNoteTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AlertNoteTemplateDetail");
+});
+
 const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Labels");
@@ -86,11 +92,69 @@ const SettingsMonitors: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/MonitorStatus");
   });
+
 const SettingsIncidents: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Settings/IncidentState");
 });
+
+const SettingsAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/AlertState");
+  });
+
+const SettingsAlertSeverity: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AlertSeverity");
+});
+
+const AlertCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AlertCustomFields");
+});
+
+const AlertNoteTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AlertNoteTemplates");
+});
+
+const SettingsIncidentSeverity: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentSeverity");
+});
+
+const IncidentCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentCustomFields");
+});
+
+const IncidentTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentTemplates");
+});
+const IncidentTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentTemplatesView");
+});
+const IncidentNoteTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentNoteTemplates");
+});
+const IncidentNoteTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentNoteTemplateView");
+});
+
 const SettingsScheduledMaintenanceState: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -100,11 +164,7 @@ const SettingsDomains: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Domains");
   });
-const SettingsIncidentSeverity: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentSeverity");
-});
+
 const SettingsBilling: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Billing");
@@ -150,11 +210,7 @@ const StatusPageCustomFields: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Settings/StatusPageCustomFields");
 });
-const IncidentCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentCustomFields");
-});
+
 const OnCallDutyPolicyCustomFields: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -164,26 +220,6 @@ const ScheduledMaintenanceCustomFields: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Settings/ScheduledMaintenanceCusomFields");
-});
-const IncidentTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentTemplates");
-});
-const IncidentTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentTemplatesView");
-});
-const IncidentNoteTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentNoteTemplates");
-});
-const IncidentNoteTemplateView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Settings/IncidentNoteTemplateView");
 });
 
 const ScheduledMaintenanceNoteTemplates: LazyExoticComponent<
@@ -347,6 +383,22 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_ALERT_NOTE_TEMPLATES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertNoteTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW,
             2,
           )}
@@ -358,6 +410,23 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                   RouteMap[
                     PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                   ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertNoteTemplateView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW] as Route
                 }
               />
             </Suspense>
@@ -466,6 +535,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_ALERTS_STATE)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsAlerts
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_ALERTS_STATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE,
           )}
@@ -506,6 +587,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.SETTINGS_INCIDENTS_SEVERITY] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_ALERTS_SEVERITY)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsAlertSeverity
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route}
               />
             </Suspense>
           }
@@ -654,6 +747,22 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_ALERT_CUSTOM_FIELDS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS] as Route
                 }
               />
             </Suspense>

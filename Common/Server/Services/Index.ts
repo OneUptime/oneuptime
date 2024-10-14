@@ -137,6 +137,18 @@ import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateS
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 
+// Alert Services
+import AlertStateService from "./AlertStateService";
+import AlertService from "./AlertService";
+import AlertCustomFieldService from "./AlertCustomFieldService";
+import AlertStateTimelineService from "./AlertStateTimelineService";
+import AlertInternalNoteService from "./AlertInternalNoteService";
+import AlertOwnerTeamService from "./AlertOwnerTeamService";
+import AlertOwnerUserService from "./AlertOwnerUserService";
+import AlertSeverityService from "./AlertSeverityService";
+import AlertNoteTemplateService from "./AlertNoteTemplateService";
+import TableViewService from "./TableViewService";
+
 const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
@@ -285,6 +297,17 @@ const services: Array<BaseService> = [
   ScheduledMaintenanceTemplateService,
   ScheduledMaintenanceTemplateOwnerTeamService,
   ScheduledMaintenanceTemplateOwnerUserService,
+
+  AlertStateService,
+  AlertService,
+  AlertCustomFieldService,
+  AlertStateTimelineService,
+  AlertInternalNoteService,
+  AlertOwnerTeamService,
+  AlertOwnerUserService,
+  AlertSeverityService,
+  AlertNoteTemplateService,
+  TableViewService,
 ];
 
 export const AnalyticsServices: Array<

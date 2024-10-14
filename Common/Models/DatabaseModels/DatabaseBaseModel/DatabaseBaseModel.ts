@@ -1,3 +1,4 @@
+import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
@@ -7,6 +8,7 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Columns from "../../../Types/Database/Columns";
+import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
   TableColumnMetadata,
   getTableColumn,
@@ -63,7 +65,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was created.",
   })
-  @CreateDateColumn()
+  @CreateDateColumn({
+    type: ColumnType.Date,
+  })
   public createdAt?: Date = undefined;
 
   @TableColumn({
@@ -71,7 +75,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was updated.",
   })
-  @UpdateDateColumn()
+  @UpdateDateColumn({
+    type: ColumnType.Date,
+  })
   public updatedAt?: Date = undefined;
 
   @TableColumn({
@@ -79,7 +85,9 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     description: "Date and Time when the object was deleted.",
   })
-  @DeleteDateColumn()
+  @DeleteDateColumn({
+    type: ColumnType.Date,
+  })
   public deletedAt?: Date = undefined;
 
   @TableColumn({
@@ -114,6 +122,9 @@ export default class DatabaseBaseModel extends BaseEntity {
   public saveSlugToColumn!: string | null;
   public singularName!: string | null;
   public pluralName!: string | null;
+
+  // realtime events.
+  public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;
 
   // total items  by
   public totalItemsByColumnName!: string | null;

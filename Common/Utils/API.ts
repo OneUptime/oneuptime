@@ -18,6 +18,7 @@ export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
   timeout?: number | undefined;
+  doNotFollowRedirects?: boolean | undefined;
 }
 
 export default class API {
@@ -393,6 +394,10 @@ export default class API {
 
           if (options?.timeout) {
             axiosOptions.timeout = options.timeout;
+          }
+
+          if (options?.doNotFollowRedirects) {
+            axiosOptions.maxRedirects = 0;
           }
 
           result = await axios(axiosOptions);

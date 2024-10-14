@@ -18,11 +18,14 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async getResolvedStateIdForProject(

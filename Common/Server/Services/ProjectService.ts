@@ -28,7 +28,14 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
-import { Black, Green, Moroon500, Red, Yellow } from "../../Types/BrandColors";
+import {
+  Black,
+  Green,
+  Moroon500,
+  Red,
+  Yellow,
+  Yellow500,
+} from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -50,6 +57,10 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import User from "Common/Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import Query from "../Types/Database/Query";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertSeverityService from "./AlertSeverityService";
+import AlertState from "../../Models/DatabaseModels/AlertState";
+import AlertStateService from "./AlertStateService";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -543,10 +554,12 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     createdItem = await this.addDefaultIncidentSeverity(createdItem);
+    createdItem = await this.addDefaultAlertSeverity(createdItem);
     createdItem = await this.addDefaultProjectTeams(createdItem);
     createdItem = await this.addDefaultMonitorStatus(createdItem);
     createdItem = await this.addDefaultIncidentState(createdItem);
     createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
+    createdItem = await this.addDefaultAlertState(createdItem);
 
     return createdItem;
   }
@@ -595,6 +608,91 @@ export class ProjectService extends DatabaseService<Model> {
 
     resolvedIncidentState = await IncidentStateService.create({
       data: resolvedIncidentState,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return createdItem;
+  }
+
+  public async addDefaultAlertState(createdItem: Model): Promise<Model> {
+    let createdAlertState: AlertState = new AlertState();
+    createdAlertState.name = "Identified";
+    createdAlertState.description =
+      "When an alert is created, it belongs to this state";
+    createdAlertState.color = Red;
+    createdAlertState.isCreatedState = true;
+    createdAlertState.projectId = createdItem.id!;
+    createdAlertState.order = 1;
+
+    createdAlertState = await AlertStateService.create({
+      data: createdAlertState,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let acknowledgedAlertState: AlertState = new AlertState();
+    acknowledgedAlertState.name = "Acknowledged";
+    acknowledgedAlertState.description =
+      "When an alert is acknowledged, it belongs to this state.";
+    acknowledgedAlertState.color = Yellow;
+    acknowledgedAlertState.isAcknowledgedState = true;
+    acknowledgedAlertState.projectId = createdItem.id!;
+    acknowledgedAlertState.order = 2;
+
+    acknowledgedAlertState = await AlertStateService.create({
+      data: acknowledgedAlertState,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let resolvedAlertState: AlertState = new AlertState();
+    resolvedAlertState.name = "Resolved";
+    resolvedAlertState.description =
+      "When an incident is resolved, it belongs to this state.";
+    resolvedAlertState.color = Green;
+    resolvedAlertState.isResolvedState = true;
+    resolvedAlertState.projectId = createdItem.id!;
+    resolvedAlertState.order = 3;
+
+    resolvedAlertState = await AlertStateService.create({
+      data: resolvedAlertState,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return createdItem;
+  }
+
+  public async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
+    let highSeverity: AlertSeverity = new AlertSeverity();
+    highSeverity.name = "High";
+    highSeverity.description =
+      "Issues causing very high impact to customers. Immediate attention is required.";
+    highSeverity.color = Moroon500;
+    highSeverity.projectId = createdItem.id!;
+    highSeverity.order = 1;
+
+    highSeverity = await AlertSeverityService.create({
+      data: highSeverity,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let lowSeverity: AlertSeverity = new AlertSeverity();
+    lowSeverity.name = "Low";
+    lowSeverity.description = "Issues causing low impact to customers.";
+    lowSeverity.color = Yellow500;
+    lowSeverity.projectId = createdItem.id!;
+    lowSeverity.order = 2;
+
+    lowSeverity = await AlertSeverityService.create({
+      data: lowSeverity,
       props: {
         isRoot: true,
       },

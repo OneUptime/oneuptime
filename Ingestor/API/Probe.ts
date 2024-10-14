@@ -38,6 +38,7 @@ router.post(
   ): Promise<void> => {
     try {
       const data: JSONObject = req.body;
+
       const statusReport: ProbeStatusReport = JSONFunctions.deserialize(
         (data as JSONObject)["statusReport"] as any,
       ) as any;

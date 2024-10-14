@@ -141,7 +141,21 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
-export default [
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import AlertState from "./AlertState";
+import Alert from "./Alert";
+import AlertCustomField from "./AlertCustomField";
+import AlertStateTimeline from "./AlertStateTimeline";
+import AlertInternalNote from "./AlertInternalNote";
+import AlertOwnerTeam from "./AlertOwnerTeam";
+import AlertOwnerUser from "./AlertOwnerUser";
+import AlertSeverity from "./AlertSeverity";
+import AlertNoteTemplate from "./AlertNoteTemplate";
+import TableView from "./TableView";
+
+const AllModelTypes: Array<{
+  new (): BaseModel;
+}> = [
   User,
   Probe,
   Project,
@@ -172,9 +186,28 @@ export default [
   Incident,
   IncidentCustomField,
   IncidentStateTimeline,
-  MonitorStatusTimeline,
-  IncidentPublicNote,
   IncidentInternalNote,
+  IncidentPublicNote,
+  IncidentTemplate,
+  IncidentTemplateOwnerTeam,
+  IncidentTemplateOwnerUser,
+  IncidentOwnerTeam,
+  IncidentOwnerUser,
+  IncidentSeverity,
+  IncidentNoteTemplate,
+
+  AlertState,
+  Alert,
+  AlertCustomField,
+  AlertStateTimeline,
+  AlertInternalNote,
+  AlertOwnerTeam,
+  AlertOwnerUser,
+  AlertSeverity,
+  AlertNoteTemplate,
+
+  MonitorStatusTimeline,
+
   File,
   Domain,
 
@@ -182,7 +215,7 @@ export default [
   StatusPageDomain,
   StatusPageCustomField,
   StatusPageResource,
-  IncidentSeverity,
+
   StatusPageAnnouncement,
   StatusPageSubscriber,
   StatusPageFooterLink,
@@ -215,9 +248,6 @@ export default [
   MonitorOwnerTeam,
   MonitorOwnerUser,
 
-  IncidentOwnerTeam,
-  IncidentOwnerUser,
-
   ScheduledMaintenanceOwnerTeam,
   ScheduledMaintenanceOwnerUser,
 
@@ -240,12 +270,6 @@ export default [
   DataMigration,
 
   ShortLink,
-
-  IncidentTemplate,
-  IncidentTemplateOwnerTeam,
-  IncidentTemplateOwnerUser,
-
-  IncidentNoteTemplate,
 
   ScheduledMaintenanceTemplate,
   ScheduledMaintenanceTemplateOwnerTeam,
@@ -301,4 +325,36 @@ export default [
   TelemetryIngestionKey,
 
   TelemetryException,
+
+  TableView,
 ];
+
+const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
+
+type GetModelTypeByNameFunction = (
+  tableName: string,
+) => { new (): BaseModel } | null;
+
+export const getModelTypeByName: GetModelTypeByNameFunction = (
+  tableName: string,
+): { new (): BaseModel } | null => {
+  if (modelTypeMap[tableName]) {
+    return modelTypeMap[tableName] || null;
+  }
+
+  const modelType: { new (): BaseModel } | undefined = AllModelTypes.find(
+    (modelType: { new (): BaseModel }) => {
+      return new modelType().tableName === tableName;
+    },
+  );
+
+  if (!modelType) {
+    return null;
+  }
+
+  modelTypeMap[tableName] = modelType;
+
+  return modelType;
+};
+
+export default AllModelTypes;

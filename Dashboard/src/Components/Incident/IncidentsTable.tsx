@@ -1,6 +1,5 @@
 import LabelsElement from "../../Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
-import EventName from "../../Utils/EventName";
 import DashboardNavigation from "../../Utils/Navigation";
 import ProjectUser from "../../Utils/ProjectUser";
 import IncidentElement from "./Incident";
@@ -22,7 +21,6 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -196,11 +194,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         id="incidents-table"
         isDeleteable={false}
         showCreateForm={Object.keys(initialValuesForIncident).length > 0}
-        onCreateSuccess={(incident: Incident): Promise<Incident> => {
-          GlobalEvents.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
-
-          return Promise.resolve(incident);
-        }}
         query={props.query || {}}
         isEditable={false}
         isCreateable={!props.disableCreate}
@@ -229,6 +222,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             props.description ||
             "Here is a list of incidents for this project.",
         }}
+        createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
         formSteps={[
           {

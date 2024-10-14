@@ -33,11 +33,14 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async isIncidentAcknowledged(data: {
@@ -586,7 +589,7 @@ export class Service extends DatabaseService<Model> {
                 isRoot: true,
               },
               sort: {
-                createdAt: SortOrder.Descending,
+                startsAt: SortOrder.Descending,
               },
             });
 

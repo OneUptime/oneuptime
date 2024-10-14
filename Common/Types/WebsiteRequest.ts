@@ -21,6 +21,7 @@ export default class WebsiteRequest {
       headers?: Headers | undefined;
       timeout?: number | undefined;
       isHeadRequest?: boolean | undefined;
+      doNotFollowRedirects?: boolean | undefined;
     },
   ): Promise<WebsiteResponse> {
     const axiosOptions: AxiosRequestConfig = {
@@ -34,6 +35,10 @@ export default class WebsiteRequest {
 
     if (options.isHeadRequest) {
       axiosOptions.method = HTTPMethod.HEAD;
+    }
+
+    if (options.doNotFollowRedirects) {
+      axiosOptions.maxRedirects = 0;
     }
 
     // use axios to fetch an HTML page

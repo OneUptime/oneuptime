@@ -12,10 +12,13 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
+import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
   incidentSeverityOptions: Array<IncidentSeverity>;
+  alertSeverityOptions: Array<AlertSeverity>;
   isLastCriteria: boolean;
   monitorCriteriaInstance: MonitorCriteriaInstance;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
@@ -92,22 +95,46 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {(props.monitorCriteriaInstance?.data?.incidents?.length || 0) > 0 && (
-        <div className="mt-4">
-          <div className="flex">
-            <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-900" />
-            <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-              <span className="font-medium text-gray-900">Create incident</span>{" "}
-              when this criteria is met. These are the incident details:{" "}
+      {(props.monitorCriteriaInstance?.data?.incidents?.length || 0) > 0 &&
+        props.monitorCriteriaInstance.data?.createIncidents && (
+          <div className="mt-4">
+            <div className="flex">
+              <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-900" />
+              <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                <span className="font-medium text-gray-900">
+                  Create incident
+                </span>{" "}
+                when this criteria is met. These are the incident details:{" "}
+              </div>
             </div>
+            <MonitorCriteriaIncidents
+              incidents={props.monitorCriteriaInstance?.data?.incidents || []}
+              onCallPolicyOptions={props.onCallPolicyOptions}
+              incidentSeverityOptions={props.incidentSeverityOptions}
+            />
           </div>
-          <MonitorCriteriaIncidents
-            incidents={props.monitorCriteriaInstance?.data?.incidents || []}
-            onCallPolicyOptions={props.onCallPolicyOptions}
-            incidentSeverityOptions={props.incidentSeverityOptions}
-          />
-        </div>
-      )}
+        )}
+
+      {(props.monitorCriteriaInstance?.data?.alerts?.length || 0) > 0 &&
+        props.monitorCriteriaInstance.data?.createAlerts && (
+          <div className="mt-4">
+            <div className="flex">
+              <Icon
+                icon={IconProp.ExclaimationCircle}
+                className="h-5 w-5 text-gray-900"
+              />
+              <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+                <span className="font-medium text-gray-900">Create alert</span>{" "}
+                when this criteria is met. These are the alert details:{" "}
+              </div>
+            </div>
+            <MonitorCriteriaAlerts
+              alerts={props.monitorCriteriaInstance?.data?.alerts || []}
+              onCallPolicyOptions={props.onCallPolicyOptions}
+              alertSeverityOptions={props.alertSeverityOptions}
+            />
+          </div>
+        )}
 
       <div className="mt-10">{!props.isLastCriteria && <HorizontalRule />}</div>
     </div>

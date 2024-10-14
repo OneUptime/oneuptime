@@ -53,6 +53,8 @@ export default class Jobs {
             `/etc/nginx/certs/StatusPageCerts/${cert.domain}.key`,
             cert.certificateKey?.toString() || "",
           );
+
+          logger.debug(`Wrote custom certs to disk for domain: ${cert.domain}`);
         }
       },
     });

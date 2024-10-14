@@ -1,4 +1,5 @@
 import AcmeWriteCertificatesJob from "./Jobs/AcmeWriteCertificates";
+import WriteCustomCertsToDiskJob from "./Jobs/WriteCustomCertsToDisk";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
@@ -34,6 +35,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await PostgresAppInstance.connect();
 
     AcmeWriteCertificatesJob.init();
+    WriteCustomCertsToDiskJob.init();
 
     // add default routes
     await App.addDefaultRoutes();

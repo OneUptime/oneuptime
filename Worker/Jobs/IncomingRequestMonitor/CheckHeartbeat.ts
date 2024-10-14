@@ -101,6 +101,10 @@ RunCron(
           continue;
         }
 
+        logger.debug(
+          `Updating incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
+        );
+
         await MonitorService.updateOneById({
           id: monitor.id!,
           data: {

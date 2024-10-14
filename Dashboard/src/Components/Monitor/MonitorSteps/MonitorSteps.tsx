@@ -18,6 +18,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 
 export interface ComponentProps extends CustomElementProps {
   monitorSteps: MonitorSteps;
@@ -33,6 +34,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [incidentSeverityOptions, setIncidentSeverityOptions] = React.useState<
     Array<IncidentSeverity>
+  >([]);
+
+  const [alertSeverityOptions, setAlertSeverityOptions] = React.useState<
+    Array<AlertSeverity>
   >([]);
 
   const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<
@@ -86,6 +91,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           sort: {},
         });
 
+      const alertSeverityList: ListResult<AlertSeverity> =
+        await ModelAPI.getList({
+          modelType: AlertSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            color: true,
+          },
+          sort: {},
+        });
+
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
         await ModelAPI.getList({
           modelType: OnCallDutyPolicy,
@@ -102,6 +120,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setIncidentSeverityOptions(
           incidentSeverityList.data as Array<IncidentSeverity>,
         );
+      }
+
+      if (alertSeverityList.data) {
+        setAlertSeverityOptions(alertSeverityList.data as Array<AlertSeverity>);
       }
 
       if (onCallPolicyList.data) {
@@ -141,6 +163,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               key={index}
               monitorStatusOptions={monitorStatusOptions}
               incidentSeverityOptions={incidentSeverityOptions}
+              alertSeverityOptions={alertSeverityOptions}
               monitorStep={i}
               onCallPolicyOptions={onCallPolicyOptions}
             />

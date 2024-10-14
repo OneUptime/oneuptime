@@ -47,7 +47,7 @@ describe("CookieUtils", () => {
     const cookieValue: string = "testValue";
 
     mockRequest.cookies[cookieName] = cookieValue;
-    const value: string | undefined = CookieUtil.getCookie(
+    const value: string | undefined = CookieUtil.getCookieFromExpressRequest(
       mockRequest,
       cookieName,
     );

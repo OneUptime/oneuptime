@@ -11,6 +11,7 @@ import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import APIComponents from "Common/Types/Workflow/Components/API";
 import API from "Common/Utils/API";
+import logger from "../../../../Utils/Logger";
 
 export default class ApiPost extends ComponentCode {
   public constructor() {
@@ -38,12 +39,33 @@ export default class ApiPost extends ComponentCode {
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
+    logger.debug("API Post Component is running.");
+
+    const url: URL = args["url"] as URL;
+    if (!url) {
+      throw options.onError(new BadDataException("URL is required"));
+    }
+
+    logger.debug(`URL: ${url}`);
+
+    const requestBody: JSONObject = args["request-body"] as JSONObject;
+
+    logger.debug(`Request Body: ${JSON.stringify(requestBody)}`);
+
+    const requestHeaders: Dictionary<string> = args[
+      "request-headers"
+    ] as Dictionary<string>;
+
+    logger.debug(`Request Headers: ${JSON.stringify(requestHeaders)}`);
+
     try {
       apiResult = await API.post(
         args["url"] as URL,
         args["request-body"] as JSONObject,
         args["request-headers"] as Dictionary<string>,
       );
+
+      logger.debug("API Post Component is done.");
 
       return Promise.resolve({
         returnValues: ApiComponentUtils.getReturnValues(apiResult),
@@ -63,6 +85,9 @@ export default class ApiPost extends ComponentCode {
           executePort: result.successPort,
         });
       }
+
+      logger.debug("API Post Component is done with error.");
+      logger.debug(err);
 
       throw options.onError(new APIException("Something wrong happened."));
     }

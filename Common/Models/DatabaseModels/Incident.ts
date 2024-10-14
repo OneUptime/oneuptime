@@ -36,16 +36,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
-import TelemetryType from "../../Types/Telemetry/TelemetryType";
-import Query from "../../Types/BaseDatabase/Query";
-import Log from "../AnalyticsModels/Log";
-import Span from "../AnalyticsModels/Span";
-import Metric from "../AnalyticsModels/Metric";
-
-export interface TelemetryIncidentQuery {
-  telemetryType: TelemetryType;
-  telemetryQuery: Query<Log> | Query<Span> | Query<Metric>;
-}
+import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -94,6 +85,11 @@ export interface TelemetryIncidentQuery {
   pluralName: "Incidents",
   icon: IconProp.Alert,
   tableDescription: "Manage incidents for your project",
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 export default class Incident extends BaseModel {
   @ColumnAccessControl({
@@ -291,7 +287,7 @@ export default class Incident extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -346,7 +342,7 @@ export default class Incident extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -970,7 +966,7 @@ export default class Incident extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1090,5 +1086,5 @@ export default class Incident extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public telemetryQuery?: TelemetryIncidentQuery = undefined;
+  public telemetryQuery?: TelemetryQuery = undefined;
 }

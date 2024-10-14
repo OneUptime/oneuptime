@@ -84,11 +84,17 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableViewElement from "./TableView";
+import TableView from "../../../Models/DatabaseModels/TableView";
 
 export enum ShowAs {
   Table,
   List,
   OrderedStatesList,
+}
+
+export interface SaveFilterProps {
+  tableId: string;
 }
 
 export interface BaseTableCallbacks<
@@ -176,7 +182,7 @@ export interface BaseTableProps<
   onCreateEditModalClose?: (() => void) | undefined;
   editButtonText?: string | undefined;
   viewButtonText?: string | undefined;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
@@ -207,6 +213,8 @@ export interface BaseTableProps<
   onShowFormType?: (formType: ModalType) => void;
 
   initialFilterData?: FilterData<TBaseModel> | undefined;
+
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 export interface ComponentProps<
@@ -254,7 +262,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Array<ClassicFilterType<TBaseModel>>
   >([]);
 
-  const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
+  const [cardButtons, setCardButtons] = useState<
+    Array<CardButtonSchema | ReactElement>
+  >([]);
 
   const [actionButtonSchema, setActionButtonSchema] = useState<
     Array<ActionButtonSchema<TBaseModel>>
@@ -784,9 +794,63 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return selectFields;
   };
 
+  const getSaveFilterDropdown: GetReactElementFunction = (): ReactElement => {
+    if (!props.saveFilterProps) {
+      return <></>;
+    }
+
+    if (props.saveFilterProps && props.saveFilterProps.tableId) {
+      const currentTableView: TableView = new TableView();
+      currentTableView.query = (query || {}) as any;
+      currentTableView.itemsOnPage = itemsOnPage || 10;
+
+      if (sortBy && sortOrder) {
+        currentTableView.sort = {
+          [sortBy as string]: sortOrder,
+        };
+      } else {
+        currentTableView.sort = {};
+      }
+
+      return (
+        <TableViewElement
+          tableId={props.saveFilterProps.tableId}
+          currentTableView={currentTableView}
+          onViewChange={(tableView: TableView | null) => {
+            if (tableView) {
+              const sortBy: string | undefined = Object.keys(
+                tableView.sort || {},
+              )[0];
+              let sortOrder: SortOrder = SortOrder.Descending;
+
+              if (sortBy && tableView.sort) {
+                sortOrder =
+                  ((tableView.sort as any)[sortBy as any] as any) ||
+                  SortOrder.Descending;
+              }
+
+              // then set query, sort and items on the page
+              setQuery(tableView.query || {});
+              setItemsOnPage(tableView.itemsOnPage || 10);
+              setSortBy(sortBy as keyof TBaseModel);
+              setSortOrder(sortOrder);
+            } else {
+              setQuery({});
+              setSortBy(null);
+              setSortOrder(SortOrder.Descending);
+              setItemsOnPage(10);
+            }
+          }}
+        />
+      );
+    }
+
+    return <></>;
+  };
+
   const setHeaderButtons: VoidFunction = (): void => {
     // add header buttons.
-    let headerbuttons: Array<CardButtonSchema> = [];
+    let headerbuttons: Array<CardButtonSchema | ReactElement> = [];
 
     if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
       headerbuttons = [...props.cardProps.buttons];
@@ -852,6 +916,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         disabled: isFilterFetchLoading,
         icon: IconProp.Filter,
       });
+    }
+
+    if (props.saveFilterProps) {
+      headerbuttons.push(getSaveFilterDropdown());
     }
 
     setCardButtons(headerbuttons);

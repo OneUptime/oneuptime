@@ -45,21 +45,33 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
-    this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async notififySubscribersOnEventScheduled(
     scheduledEvents: Array<Model>,
   ): Promise<void> {
+    logger.debug(
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Running",
+    );
+
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const event of scheduledEvents) {
       // get status page resources from monitors.
+
+      logger.debug(
+        "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
+          event.id,
+      );
 
       let statusPageResources: Array<StatusPageResource> = [];
 
@@ -244,6 +256,10 @@ export class Service extends DatabaseService<Model> {
         }
       }
     }
+
+    logger.debug(
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Completed",
+    );
   }
 
   protected override async onBeforeUpdate(

@@ -34,6 +34,7 @@ import {
 } from "@jest/globals";
 import { getJestSpyOn } from "Common/Tests/Spy";
 import getJestMockFunction from "Common/Tests/MockType";
+import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 
 jest.mock("../../../Server/Utils/Logger");
 jest.mock("../../../Server/Middleware/ProjectAuthorization");
@@ -57,14 +58,15 @@ describe("UserMiddleware", () => {
     jest.clearAllMocks();
   });
 
-  describe("getAccessToken", () => {
+  describe("getAccessTokenFromExpressRequest", () => {
     test("should return access token when authorization token is passed in the cookie", () => {
       const req: ExpressRequest = {
         cookies: { "user-token": mockedAccessToken },
         query: {},
       } as any;
 
-      const result: StringOrUndefined = UserMiddleware.getAccessToken(req);
+      const result: StringOrUndefined =
+        UserMiddleware.getAccessTokenFromExpressRequest(req);
 
       expect(result).toEqual(mockedAccessToken);
     });
@@ -76,7 +78,8 @@ describe("UserMiddleware", () => {
         query: {},
       } as ExpressRequest;
 
-      const result: StringOrUndefined = UserMiddleware.getAccessToken(req);
+      const result: StringOrUndefined =
+        UserMiddleware.getAccessTokenFromExpressRequest(req);
 
       expect(result).toBeUndefined();
     });
@@ -279,9 +282,10 @@ describe("UserMiddleware", () => {
         projectId,
       );
       getJestSpyOn(ProjectMiddleware, "hasApiKey").mockReturnValue(false);
-      getJestSpyOn(UserMiddleware, "getAccessToken").mockReturnValue(
-        mockedAccessToken,
-      );
+      getJestSpyOn(
+        UserMiddleware,
+        "getAccessTokenFromExpressRequest",
+      ).mockReturnValue(mockedAccessToken);
       getJestSpyOn(JSONWebToken, "decode").mockReturnValue(jwtTokenData);
       getJestSpyOn(HashedString, "hashValue").mockResolvedValue(hashValue);
     });
@@ -302,7 +306,7 @@ describe("UserMiddleware", () => {
 
       const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(
         UserMiddleware,
-        "getAccessToken",
+        "getAccessTokenFromExpressRequest",
       );
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -313,10 +317,10 @@ describe("UserMiddleware", () => {
       expect(spyGetAccessToken).not.toHaveBeenCalled();
     });
 
-    test("should call function 'next' and return, when getAccessToken returns a null value", async () => {
+    test("should call function 'next' and return, when getAccessTokenFromExpressRequest returns a null value", async () => {
       const spyGetAccessToken: jest.SpyInstance = getJestSpyOn(
         UserMiddleware,
-        "getAccessToken",
+        "getAccessTokenFromExpressRequest",
       ).mockReturnValueOnce(undefined);
 
       await UserMiddleware.getUserMiddleware(req, res, next);
@@ -715,7 +719,7 @@ describe("UserMiddleware", () => {
 
       const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance =
         getJestSpyOn(
-          AccessTokenService,
+          UserPermissionUtil,
           "getDefaultUserTenantAccessPermission",
         ).mockReturnValueOnce(mockedUserTenantAccessPermission);
 

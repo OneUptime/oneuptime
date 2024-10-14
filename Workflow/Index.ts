@@ -1,3 +1,5 @@
+Error.stackTraceLimit = Infinity;
+
 import WorkflowRoutes from "./Routes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";

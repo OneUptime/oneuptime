@@ -1,6 +1,3 @@
-import IncidentService from "../../Services/IncidentService";
-import IncidentSeverityService from "../../Services/IncidentSeverityService";
-import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import MonitorMetricsByMinuteService from "../../Services/MonitorMetricsByMinuteService";
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
@@ -15,7 +12,6 @@ import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BasicInfrastructureMetrics from "Common/Types/Infrastructure/BasicMetrics";
@@ -41,26 +37,36 @@ import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
-import Incident, {
-  TelemetryIncidentQuery,
-} from "Common/Models/DatabaseModels/Incident";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OneUptimeDate from "Common/Types/Date";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
+import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import MonitorIncident from "./MonitorIncident";
+import MonitorAlert from "./MonitorAlert";
+import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
+import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: dataToProcess.monitorId.toString(),
+        namespace: "MonitorResourceUtil.monitorResource",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -69,6 +75,7 @@ export default class MonitorResourceUtil {
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
+    logger.debug("Fetching Monitor...");
 
     // fetch monitor
     const monitor: Monitor | null = await MonitorService.findOneById({
@@ -88,7 +95,11 @@ export default class MonitorResourceUtil {
       },
     });
 
+    logger.debug("Monitor found");
+    logger.debug("Monitor ID: " + dataToProcess.monitorId);
+
     if (!monitor) {
+      logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
       throw new BadDataException("Monitor not found");
     }
 
@@ -205,6 +216,12 @@ export default class MonitorResourceUtil {
       monitor.monitorType === MonitorType.Server &&
       (dataToProcess as ServerMonitorResponse).requestReceivedAt
     ) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
+      );
+
+      logger.debug(dataToProcess);
+
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
@@ -215,15 +232,31 @@ export default class MonitorResourceUtil {
         },
         props: {
           isRoot: true,
+          ignoreHooks: true,
         },
       });
+
+      logger.debug(`${dataToProcess.monitorId.toString()} - Monitor Updated`);
     }
 
-    await this.saveMonitorMetrics({
-      monitorId: monitor.id!,
-      projectId: monitor.projectId!,
-      dataToProcess: dataToProcess,
-    });
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
+    );
+
+    try {
+      await this.saveMonitorMetrics({
+        monitorId: monitor.id!,
+        projectId: monitor.projectId!,
+        dataToProcess: dataToProcess,
+      });
+    } catch (err) {
+      logger.error("Unable to save metrics");
+      logger.error(err);
+    }
+
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
+    );
 
     const monitorSteps: MonitorSteps = monitor.monitorSteps!;
 
@@ -231,14 +264,15 @@ export default class MonitorResourceUtil {
       !monitorSteps.data?.monitorStepsInstanceArray ||
       monitorSteps.data?.monitorStepsInstanceArray.length === 0
     ) {
-      // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
       );
       return response;
     }
 
-    // auto resolve criteria Id's.
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`,
+    );
 
     const criteriaInstances: Array<MonitorCriteriaInstance> =
       monitorSteps.data.monitorStepsInstanceArray
@@ -256,7 +290,9 @@ export default class MonitorResourceUtil {
     const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     > = {};
+
     const criteriaInstanceMap: Dictionary<MonitorCriteriaInstance> = {};
+
     for (const criteriaInstance of criteriaInstances) {
       criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;
 
@@ -284,8 +320,46 @@ export default class MonitorResourceUtil {
       }
     }
 
+    // alerts.
+
+    const autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<
+      Array<string>
+    > = {};
+
+    const criteriaInstanceAlertMap: Dictionary<MonitorCriteriaInstance> = {};
+
+    for (const criteriaInstance of criteriaInstances) {
+      criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
+        criteriaInstance;
+
+      if (
+        criteriaInstance.data?.alerts &&
+        criteriaInstance.data?.alerts.length > 0
+      ) {
+        for (const alertTemplate of criteriaInstance.data!.alerts) {
+          if (alertTemplate.autoResolveAlert) {
+            if (
+              !autoResolveCriteriaInstanceIdAlertIdsDictionary[
+                criteriaInstance.data.id.toString()
+              ]
+            ) {
+              autoResolveCriteriaInstanceIdAlertIdsDictionary[
+                criteriaInstance.data.id.toString()
+              ] = [];
+            }
+
+            autoResolveCriteriaInstanceIdAlertIdsDictionary[
+              criteriaInstance.data.id.toString()
+            ]?.push(alertTemplate.id);
+          }
+        }
+      }
+    }
+
     const monitorStep: MonitorStep | undefined =
       monitorSteps.data.monitorStepsInstanceArray[0];
+
+    logger.debug(`Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`);
 
     if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
       monitorSteps.data.monitorStepsInstanceArray.find(
@@ -296,16 +370,19 @@ export default class MonitorResourceUtil {
           );
         },
       );
+      logger.debug(
+        `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
+      );
     }
 
     if (!monitorStep) {
-      // no steps, ignore everything. This happens when the monitor is updated shortly after the probing attempt.
+      logger.debug("No steps found, ignoring everything.");
       return response;
     }
 
     // now process the monitor step
-
     response.ingestedMonitorStepId = monitorStep.id;
+    logger.debug(`Ingested Monitor Step ID: ${monitorStep.id}`);
 
     //find next monitor step after this one.
     const nextMonitorStepIndex: number =
@@ -318,8 +395,12 @@ export default class MonitorResourceUtil {
     response.nextMonitorStepId =
       monitorSteps.data.monitorStepsInstanceArray[nextMonitorStepIndex + 1]?.id;
 
-    // now process probe response monitors
+    logger.debug(`Next Monitor Step ID: ${response.nextMonitorStepId}`);
 
+    // now process probe response monitors
+    logger.debug(
+      `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
+    );
     response = await MonitorResourceUtil.processMonitorStep({
       dataToProcess: dataToProcess,
       monitorStep: monitorStep,
@@ -339,13 +420,16 @@ export default class MonitorResourceUtil {
         }`,
       );
 
-      let telemetryQuery: TelemetryIncidentQuery | undefined = undefined;
+      let telemetryQuery: TelemetryQuery | undefined = undefined;
 
       if (dataToProcess && (dataToProcess as LogMonitorResponse).logQuery) {
         telemetryQuery = {
           telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
           telemetryType: TelemetryType.Log,
         };
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Log query found.`,
+        );
       }
 
       if (dataToProcess && (dataToProcess as TraceMonitorResponse).spanQuery) {
@@ -353,14 +437,38 @@ export default class MonitorResourceUtil {
           telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
           telemetryType: TelemetryType.Trace,
         };
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Span query found.`,
+        );
       }
 
-      await this.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+      await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+        monitor: monitor,
+        rootCause: response.rootCause,
+        dataToProcess: dataToProcess,
+        criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
+      });
+
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
         monitor: monitor,
         rootCause: response.rootCause,
         dataToProcess: dataToProcess,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        props: {
+          telemetryQuery: telemetryQuery,
+        },
+      });
+
+      await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+        monitor: monitor,
+        rootCause: response.rootCause,
+        dataToProcess: dataToProcess,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
         props: {
           telemetryQuery: telemetryQuery,
         },
@@ -375,7 +483,7 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
       );
 
-      await this.checkOpenIncidentsAndCloseIfResolved({
+      await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
         monitorId: monitor.id!,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         rootCause: "No monitoring criteria met. Change to default status.",
@@ -383,24 +491,65 @@ export default class MonitorResourceUtil {
         dataToProcess: dataToProcess,
       });
 
-      // if no criteria is met then update monitor to default state.
-      const monitorStatusTimeline: MonitorStatusTimeline =
-        new MonitorStatusTimeline();
-      monitorStatusTimeline.monitorId = monitor.id!;
-      monitorStatusTimeline.monitorStatusId =
-        monitorSteps.data.defaultMonitorStatusId!;
-      monitorStatusTimeline.projectId = monitor.projectId!;
-      monitorStatusTimeline.statusChangeLog = JSON.parse(
-        JSON.stringify(dataToProcess),
-      );
-      monitorStatusTimeline.rootCause =
-        "No monitoring criteria met. Change to default status. ";
-      await MonitorStatusTimelineService.create({
-        data: monitorStatusTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
+      // get last monitor status timeline.
+      const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+        await MonitorStatusTimelineService.findOneBy({
+          query: {
+            monitorId: monitor.id!,
+            projectId: monitor.projectId!,
+          },
+          select: {
+            _id: true,
+            monitorStatusId: true,
+          },
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (
+        lastMonitorStatusTimeline &&
+        lastMonitorStatusTimeline.monitorStatusId &&
+        lastMonitorStatusTimeline.monitorStatusId.toString() ===
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        // status is same as last status. do not create new status timeline.
+        // do nothing! status is same as last status.
+      } else {
+        // if no criteria is met then update monitor to default state.
+        const monitorStatusTimeline: MonitorStatusTimeline =
+          new MonitorStatusTimeline();
+        monitorStatusTimeline.monitorId = monitor.id!;
+        monitorStatusTimeline.monitorStatusId =
+          monitorSteps.data.defaultMonitorStatusId!;
+        monitorStatusTimeline.projectId = monitor.projectId!;
+        monitorStatusTimeline.statusChangeLog = JSON.parse(
+          JSON.stringify(dataToProcess),
+        );
+        monitorStatusTimeline.rootCause =
+          "No monitoring criteria met. Change to default status. ";
+
+        await MonitorStatusTimelineService.create({
+          data: monitorStatusTimeline,
+          props: {
+            isRoot: true,
+          },
+        });
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+        );
+      }
+    }
+
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
     }
 
     return response;
@@ -613,319 +762,6 @@ export default class MonitorResourceUtil {
     });
   }
 
-  private static async checkOpenIncidentsAndCloseIfResolved(input: {
-    monitorId: ObjectID;
-    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
-      Array<string>
-    >;
-    rootCause: string;
-    criteriaInstance: MonitorCriteriaInstance | null;
-    dataToProcess: DataToProcess;
-  }): Promise<Array<Incident>> {
-    // check active incidents and if there are open incidents, do not cretae anothr incident.
-    const openIncidents: Array<Incident> = await IncidentService.findBy({
-      query: {
-        monitors: [input.monitorId] as any,
-        currentIncidentState: {
-          isResolvedState: false,
-        },
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      select: {
-        _id: true,
-        createdCriteriaId: true,
-        createdIncidentTemplateId: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // check if should close the incident.
-
-    for (const openIncident of openIncidents) {
-      const shouldClose: boolean = MonitorResourceUtil.shouldCloseIncident({
-        openIncident,
-        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        criteriaInstance: input.criteriaInstance,
-      });
-
-      if (shouldClose) {
-        // then resolve incident.
-        await MonitorResourceUtil.resolveOpenIncident({
-          openIncident: openIncident,
-          rootCause: input.rootCause,
-          dataToProcess: input.dataToProcess,
-        });
-      }
-    }
-
-    return openIncidents;
-  }
-
-  private static async criteriaMetCreateIncidentsAndUpdateMonitorStatus(input: {
-    criteriaInstance: MonitorCriteriaInstance;
-    monitor: Monitor;
-    dataToProcess: DataToProcess;
-    rootCause: string;
-    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
-      Array<string>
-    >;
-    props: {
-      telemetryQuery?: TelemetryIncidentQuery | undefined;
-    };
-  }): Promise<void> {
-    // criteria filters are met, now process the actions.
-
-    if (
-      input.criteriaInstance.data?.changeMonitorStatus &&
-      input.criteriaInstance.data?.monitorStatusId &&
-      input.criteriaInstance.data?.monitorStatusId.toString() !==
-        input.monitor.currentMonitorStatusId?.toString()
-    ) {
-      logger.debug(
-        `${input.monitor.id?.toString()} - Change monitor status to ${input.criteriaInstance.data?.monitorStatusId.toString()}`,
-      );
-      // change monitor status
-
-      const monitorStatusId: ObjectID | undefined =
-        input.criteriaInstance.data?.monitorStatusId;
-
-      //change monitor status.
-
-      const monitorStatusTimeline: MonitorStatusTimeline =
-        new MonitorStatusTimeline();
-      monitorStatusTimeline.monitorId = input.monitor.id!;
-      monitorStatusTimeline.monitorStatusId = monitorStatusId;
-      monitorStatusTimeline.projectId = input.monitor.projectId!;
-      monitorStatusTimeline.statusChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
-      monitorStatusTimeline.rootCause = input.rootCause;
-
-      await MonitorStatusTimelineService.create({
-        data: monitorStatusTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // check open incidents
-    logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
-    // check active incidents and if there are open incidents, do not cretae anothr incident.
-    const openIncidents: Array<Incident> =
-      await this.checkOpenIncidentsAndCloseIfResolved({
-        monitorId: input.monitor.id!,
-        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        rootCause: input.rootCause,
-        criteriaInstance: input.criteriaInstance,
-        dataToProcess: input.dataToProcess,
-      });
-
-    if (input.criteriaInstance.data?.createIncidents) {
-      // create incidents
-
-      for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
-        []) {
-        // should create incident.
-
-        const alreadyOpenIncident: Incident | undefined = openIncidents.find(
-          (incident: Incident) => {
-            return (
-              incident.createdCriteriaId ===
-                input.criteriaInstance.data?.id.toString() &&
-              incident.createdIncidentTemplateId ===
-                criteriaIncident.id.toString()
-            );
-          },
-        );
-
-        const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Open Incident ${alreadyOpenIncident?.id?.toString()}`,
-        );
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Has open incident ${hasAlreadyOpenIncident}`,
-        );
-
-        if (hasAlreadyOpenIncident) {
-          continue;
-        }
-
-        // create incident here.
-
-        logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
-
-        const incident: Incident = new Incident();
-
-        incident.title = criteriaIncident.title;
-        incident.description = criteriaIncident.description;
-
-        if (!criteriaIncident.incidentSeverityId) {
-          // pick the critical criteria.
-
-          const severity: IncidentSeverity | null =
-            await IncidentSeverityService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-              },
-            });
-
-          if (!severity) {
-            throw new BadDataException(
-              "Project does not have incident severity",
-            );
-          } else {
-            incident.incidentSeverityId = severity.id!;
-          }
-        } else {
-          incident.incidentSeverityId = criteriaIncident.incidentSeverityId!;
-        }
-
-        incident.monitors = [input.monitor];
-        incident.projectId = input.monitor.projectId!;
-        incident.rootCause = input.rootCause;
-        incident.createdStateLog = JSON.parse(
-          JSON.stringify(input.dataToProcess, null, 2),
-        );
-
-        incident.createdCriteriaId = input.criteriaInstance.data.id.toString();
-
-        incident.createdIncidentTemplateId = criteriaIncident.id.toString();
-
-        incident.onCallDutyPolicies =
-          criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
-            const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
-            onCallPolicy._id = id.toString();
-            return onCallPolicy;
-          }) || [];
-
-        incident.isCreatedAutomatically = true;
-
-        if (input.props.telemetryQuery) {
-          incident.telemetryQuery = input.props.telemetryQuery;
-        }
-
-        if (
-          input.dataToProcess &&
-          (input.dataToProcess as ProbeMonitorResponse).probeId
-        ) {
-          incident.createdByProbeId = (
-            input.dataToProcess as ProbeMonitorResponse
-          ).probeId;
-        }
-
-        if (criteriaIncident.remediationNotes) {
-          incident.remediationNotes = criteriaIncident.remediationNotes;
-        }
-
-        await IncidentService.create({
-          data: incident,
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    }
-  }
-
-  private static async resolveOpenIncident(input: {
-    openIncident: Incident;
-    rootCause: string;
-    dataToProcess:
-      | ProbeMonitorResponse
-      | IncomingMonitorRequest
-      | DataToProcess;
-  }): Promise<void> {
-    const resolvedStateId: ObjectID =
-      await IncidentStateTimelineService.getResolvedStateIdForProject(
-        input.openIncident.projectId!,
-      );
-
-    const incidentStateTimeline: IncidentStateTimeline =
-      new IncidentStateTimeline();
-    incidentStateTimeline.incidentId = input.openIncident.id!;
-    incidentStateTimeline.incidentStateId = resolvedStateId;
-    incidentStateTimeline.projectId = input.openIncident.projectId!;
-
-    if (input.rootCause) {
-      incidentStateTimeline.rootCause =
-        "Incident autoresolved because autoresolve is set to true in monitor criteria. " +
-        input.rootCause;
-    }
-
-    if (input.dataToProcess) {
-      incidentStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
-    }
-
-    await IncidentStateTimelineService.create({
-      data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-  }
-
-  private static shouldCloseIncident(input: {
-    openIncident: Incident;
-    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
-      Array<string>
-    >;
-    criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
-  }): boolean {
-    if (
-      input.openIncident.createdCriteriaId?.toString() ===
-      input.criteriaInstance?.data?.id.toString()
-    ) {
-      // same incident active. So, do not close.
-      return false;
-    }
-
-    // If antoher criteria is active then, check if the incident id is present in the map.
-
-    if (!input.openIncident.createdCriteriaId?.toString()) {
-      return false;
-    }
-
-    if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-      return false;
-    }
-
-    if (
-      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
-      ]
-    ) {
-      if (
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId?.toString()
-        ]?.includes(input.openIncident.createdIncidentTemplateId?.toString())
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   private static async processMonitorStep(input: {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
@@ -955,7 +791,7 @@ export default class MonitorResourceUtil {
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = `
-**This incident is created because the following criteria was met**: 
+**Created because the following criteria was met**: 
 
 **Criteria Name**: ${criteriaInstance.data?.name}
 `;

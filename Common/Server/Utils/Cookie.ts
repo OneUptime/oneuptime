@@ -11,6 +11,20 @@ import CookieName from "Common/Types/CookieName";
 export default class CookieUtil {
   // set cookie with express response
 
+  public static getCookiesFromCookieString(
+    cookieString: string,
+  ): Dictionary<string> {
+    const cookies: Dictionary<string> = {};
+    cookieString.split(";").forEach((cookie: string) => {
+      const parts: string[] = cookie.split("=");
+      const key: string = (parts[0] as string).trim() as string;
+      const value: string = parts[1] as string;
+      cookies[key] = value;
+    });
+
+    return cookies;
+  }
+
   public static setSSOCookie(data: {
     user: User;
     projectId: ObjectID;
@@ -141,7 +155,7 @@ export default class CookieUtil {
 
   // get cookie with express request
 
-  public static getCookie(
+  public static getCookieFromExpressRequest(
     req: ExpressRequest,
     name: string,
   ): string | undefined {

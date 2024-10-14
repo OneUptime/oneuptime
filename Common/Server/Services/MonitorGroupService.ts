@@ -12,10 +12,34 @@ import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnDelete } from "../Types/Database/Hooks";
+import StatusPageResourceService from "./StatusPageResourceService";
 
 export class Service extends DatabaseService<MonitorGroup> {
   public constructor() {
     super(MonitorGroup);
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<MonitorGroup>,
+  ): Promise<OnDelete<MonitorGroup>> {
+    if (deleteBy.query._id) {
+      // delete all the status page resource for this monitor.
+
+      await StatusPageResourceService.deleteBy({
+        query: {
+          monitorGroupId: new ObjectID(deleteBy.query._id as string),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   public async getStatusTimeline(

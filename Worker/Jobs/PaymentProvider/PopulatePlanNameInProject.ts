@@ -12,7 +12,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 RunCron(
   "PaymentProvider:PopulatePlanNameInProject",
-  { schedule: EVERY_WEEK, runOnStartup: true },
+  { schedule: EVERY_WEEK, runOnStartup: false },
   async () => {
     // get all projects.
     if (!IsBillingEnabled) {

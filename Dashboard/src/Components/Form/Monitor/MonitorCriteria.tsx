@@ -16,6 +16,7 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorCriteria) => void);
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
 }
@@ -49,6 +50,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 }
                 incidentSeverityDropdownOptions={
                   props.incidentSeverityDropdownOptions
+                }
+                alertSeverityDropdownOptions={
+                  props.alertSeverityDropdownOptions
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 initialValue={i}

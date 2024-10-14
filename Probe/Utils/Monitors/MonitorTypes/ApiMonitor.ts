@@ -83,6 +83,7 @@ export default class ApiMonitor {
           undefined,
           {
             timeout: options.timeout?.toNumber() || 5000,
+            doNotFollowRedirects: true,
           },
         );
       }
@@ -187,7 +188,10 @@ export default class ApiMonitor {
           `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        apiResponse.failureCause = "Timeout exceeded";
+        apiResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
         apiResponse.isOnline = false;
       }
 

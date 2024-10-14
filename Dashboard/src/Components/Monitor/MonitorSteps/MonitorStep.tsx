@@ -34,10 +34,12 @@ import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceEle
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import ObjectID from "Common/Types/ObjectID";
 import SpanUtil from "../../../Utils/SpanUtil";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
   incidentSeverityOptions: Array<IncidentSeverity>;
+  alertSeverityOptions: Array<AlertSeverity>;
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
@@ -518,6 +520,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           onCallPolicyOptions={props.onCallPolicyOptions}
           monitorStatusOptions={props.monitorStatusOptions}
           incidentSeverityOptions={props.incidentSeverityOptions}
+          alertSeverityOptions={props.alertSeverityOptions}
           monitorCriteria={
             props.monitorStep?.data?.monitorCriteria as MonitorCriteria
           }

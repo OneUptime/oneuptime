@@ -7,10 +7,11 @@ export default class Semaphore {
   // returns the mutex id
   public static async lock(data: {
     key: string;
+    namespace: string;
     lockTimeout?: number;
   }): Promise<SemaphoreMutex> {
     if (!data.lockTimeout) {
-      data.lockTimeout = 1000;
+      data.lockTimeout = 5000;
     }
 
     const { key } = data;
@@ -21,9 +22,13 @@ export default class Semaphore {
       throw new Error("Redis client is not connected");
     }
 
-    const mutex: SemaphoreMutex = new Mutex(client, key, {
-      lockTimeout: data.lockTimeout,
-    });
+    const mutex: SemaphoreMutex = new Mutex(
+      client,
+      data.namespace + "-" + key,
+      {
+        lockTimeout: data.lockTimeout,
+      },
+    );
 
     await mutex.acquire();
 

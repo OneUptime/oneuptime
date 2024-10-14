@@ -11,6 +11,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -21,7 +22,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
-  const [reloadList, setReloadList] = useState<boolean>(false);
+  const [reloadList, setReloadList] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
 
   const getAddUserButton: GetReactElementFunction = (): ReactElement => {
     return (
@@ -94,7 +97,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           onSuccess={() => {
             setShowAddUserModal(false);
             // reload the list
-            setReloadList(!reloadList);
+            setReloadList(OneUptimeDate.getCurrentDate().toString());
           }}
           formProps={{
             name: "Add user to layer",
