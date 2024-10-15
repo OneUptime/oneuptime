@@ -233,6 +233,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const [tableView, setTableView] = useState<TableView | null>(null);
+
   const matchBulkSelectedItemByField: keyof TBaseModel =
     props.bulkActions?.matchBulkSelectedItemByField || "_id";
 
@@ -800,23 +802,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     if (props.saveFilterProps && props.saveFilterProps.tableId) {
-      const currentTableView: TableView = new TableView();
-      currentTableView.query = (query || {}) as any;
-      currentTableView.itemsOnPage = itemsOnPage || 10;
-
-      if (sortBy && sortOrder) {
-        currentTableView.sort = {
-          [sortBy as string]: sortOrder,
-        };
-      } else {
-        currentTableView.sort = {};
-      }
-
       return (
         <TableViewElement
           tableId={props.saveFilterProps.tableId}
-          currentTableView={currentTableView}
-          onViewChange={(tableView: TableView | null) => {
+          tableView={tableView}
+          currentQuery={query}
+          currentSortBy={sortBy}
+          currentItemsOnPage={itemsOnPage}
+          currentSortOrder={sortOrder}
+          onViewChange={async (tableView: TableView | null) => {
+            setTableView(tableView);
+
             if (tableView) {
               const sortBy: string | undefined = Object.keys(
                 tableView.sort || {},
@@ -831,9 +827,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
               // then set query, sort and items on the page
               setQuery(tableView.query || {});
+              setFilterData(tableView.query || {});
               setItemsOnPage(tableView.itemsOnPage || 10);
-              setSortBy(sortBy as keyof TBaseModel);
+              setSortBy((sortBy as keyof TBaseModel) || null);
               setSortOrder(sortOrder);
+
+              if (classicTableFilters.length === 0) {
+                await getFilterDropdownItems();
+              }
             } else {
               setQuery({});
               setSortBy(null);
@@ -1236,12 +1237,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setActionButtonSchema(actionsSchema);
   };
 
+  const [filterData, setFilterData] = useState<FilterData<TBaseModel>>(
+    props.initialFilterData || {},
+  );
+
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
   const onFilterChanged: OnFilterChangedFunction = (
     filterData: FilterData<TBaseModel>,
   ): void => {
     const newQuery: Query<TBaseModel> = {};
+
+    setFilterData(filterData);
 
     for (const key in filterData) {
       if (filterData[key] && typeof filterData[key] === Typeof.String) {
@@ -1347,8 +1354,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <Table
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
+          setTableView(null);
         }}
-        initialFilterData={props.initialFilterData}
+        filterData={filterData}
         className={
           props.cardProps
             ? ""
@@ -1398,6 +1406,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }),
           );
         }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
         onBulkSelectItemsOnCurrentPage={() => {
           const items: TBaseModel[] = [...bulkSelectedItems, ...data];
 
@@ -1450,6 +1460,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ) => {
           setSortBy(sortBy);
           setSortOrder(sortOrder);
+          setTableView(null);
         }}
         singularLabel={props.singularName || model.singularName || "Item"}
         pluralLabel={props.pluralName || model.pluralName || "Items"}
@@ -1481,9 +1492,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         disablePagination={props.disablePagination || false}
-        onNavigateToPage={async (pageNumber: number, itemsOnPage: number) => {
+        onNavigateToPage={async (
+          pageNumber: number,
+          newItemsOnPage: number,
+        ) => {
           setCurrentPageNumber(pageNumber);
-          setItemsOnPage(itemsOnPage);
+
+          if (newItemsOnPage !== itemsOnPage) {
+            setTableView(null);
+          }
+
+          setItemsOnPage(newItemsOnPage);
         }}
         noItemsMessage={props.noItemsMessage || ""}
         onRefreshClick={async () => {

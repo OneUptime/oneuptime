@@ -40,6 +40,9 @@ export interface ComponentProps<T extends GenericObject> {
   onRefreshClick?: undefined | (() => void);
 
   noItemsMessage?: undefined | string | ReactElement;
+
+  sortOrder: SortOrder;
+  sortBy: keyof T | null;
   onSortChanged: (sortBy: keyof T | null, sortOrder: SortOrder) => void;
 
   isFilterLoading?: undefined | boolean;
@@ -50,7 +53,7 @@ export interface ComponentProps<T extends GenericObject> {
   onFilterRefreshClick?: undefined | (() => void);
   onFilterModalClose: () => void;
   onFilterModalOpen: () => void;
-  initialFilterData?: undefined | FilterData<T>;
+  filterData?: undefined | FilterData<T>;
 
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
@@ -215,7 +218,7 @@ const Table: TableFunction = <T extends GenericObject>(
         onFilterModalOpen={props.onFilterModalOpen}
         singularLabel={props.singularLabel}
         pluralLabel={props.pluralLabel}
-        initialFilterData={props.initialFilterData}
+        filterData={props.filterData}
       />
       {props.bulkActions?.buttons && (
         <BulkUpdateForm
@@ -263,6 +266,8 @@ const Table: TableFunction = <T extends GenericObject>(
                   columns={props.columns}
                   onSortChanged={props.onSortChanged}
                   enableDragAndDrop={props.enableDragAndDrop}
+                  sortBy={props.sortBy}
+                  sortOrder={props.sortOrder}
                   isBulkActionsEnabled={isBulkActionsEnabled}
                   onAllItemsDeselected={() => {
                     setIsAllItemsSelected(false);

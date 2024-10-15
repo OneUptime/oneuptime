@@ -6,7 +6,7 @@ import Columns from "./Types/Columns";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GenericObject from "Common/Types/GenericObject";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   columns: Columns<T>;
@@ -18,6 +18,8 @@ export interface ComponentProps<T extends GenericObject> {
   onAllItemsDeselected: undefined | (() => void);
   hasTableItems: undefined | boolean;
   isAllItemsOnThePageSelected: undefined | boolean;
+  sortBy: keyof T | null;
+  sortOrder: SortOrder;
 }
 
 type TableHeaderFunction = <T extends GenericObject>(
@@ -27,11 +29,6 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const [currentSortColumn, setCurrentSortColumn] = useState<keyof T | null>(
-    null,
-  );
-  const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
-
   const selectBulkSelectCheckbox: boolean = Boolean(
     props.isAllItemsOnThePageSelected && props.hasTableItems,
   );
@@ -77,16 +74,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   return;
                 }
 
-                if (currentSortColumn === column.key) {
-                  setSortOrder(
-                    sortOrder === SortOrder.Ascending
-                      ? SortOrder.Descending
-                      : SortOrder.Ascending,
-                  );
-                } else {
-                  setCurrentSortColumn(column.key);
-                  setSortOrder(SortOrder.Ascending);
-                }
+                const sortOrder: SortOrder =
+                  props.sortOrder === SortOrder.Ascending
+                    ? SortOrder.Descending
+                    : SortOrder.Ascending;
+
+                const currentSortColumn: keyof T = column.key;
 
                 props.onSortChanged(currentSortColumn, sortOrder);
               }}
@@ -100,8 +93,8 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               >
                 {column.title}
                 {canSort &&
-                  currentSortColumn === column.key &&
-                  sortOrder === SortOrder.Ascending && (
+                  props.sortBy === column.key &&
+                  props.sortOrder === SortOrder.Ascending && (
                     <Icon
                       icon={IconProp.ChevronUp}
                       thick={ThickProp.Thick}
@@ -109,8 +102,8 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                     />
                   )}
                 {canSort &&
-                  currentSortColumn === column.key &&
-                  sortOrder === SortOrder.Descending && (
+                  props.sortBy === column.key &&
+                  props.sortOrder === SortOrder.Descending && (
                     <Icon
                       icon={IconProp.ChevronDown}
                       thick={ThickProp.Thick}

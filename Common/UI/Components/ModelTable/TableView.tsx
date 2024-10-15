@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 import TableView from "../../../Models/DatabaseModels/TableView";
 import ObjectID from "../../../Types/ObjectID";
 import MoreMenu from "../MoreMenu/MoreMenu";
@@ -26,15 +21,26 @@ import { GetReactElementArrayFunction } from "../../Types/FunctionTypes";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
+import GenericObject from "../../../Types/GenericObject";
+import Query from "../../../Types/BaseDatabase/Query";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import Sort from "../../../Types/BaseDatabase/Sort";
 
-export interface ComponentProps {
+export interface ComponentProps<T extends GenericObject> {
   tableId: string;
   onViewChange: (tableView: TableView | null) => void;
-  currentTableView: TableView | null;
+  currentQuery: Query<T>;
+  currentSortOrder: SortOrder | null;
+  currentSortBy: keyof T | null;
+  currentItemsOnPage: number;
+  tableView: TableView | null;
 }
 
-const TableViewElement: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
+  props: ComponentProps<T>,
+) => ReactElement = <T extends DatabaseBaseModel | AnalyticsBaseModel>(
+  props: ComponentProps<T>,
 ): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -48,8 +54,14 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
   const [showCreateNewViewModal, setShowCreateNewViewModel] =
     useState<boolean>(false);
 
+  const moreMenuRef: React.MutableRefObject<undefined> = useRef();
+
   const [currentlySelectedView, setCurrentlySelectedView] =
     useState<TableView | null>(null);
+
+  useEffect(() => {
+    setCurrentlySelectedView(props.tableView);
+  }, [props.tableView]);
 
   // load all the filters for this user and for this project.
   const fetchTableViews: PromiseVoidFunction = async (): Promise<void> => {
@@ -228,6 +240,7 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
         submitButtonText="Save Changes"
         onSuccess={async () => {
           setTableViewToEdit(undefined);
+
           await fetchTableViews();
         }}
         formProps={{
@@ -283,15 +296,28 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
         }}
         submitButtonText="Save Changes"
         onBeforeCreate={(tableView: TableView) => {
+          let sort: Sort<T> = {};
+
+          if (props.currentSortOrder && props.currentSortBy) {
+            sort = {
+              [props.currentSortBy]: props.currentSortOrder,
+            } as Sort<T>;
+          }
+
           tableView.tableId = props.tableId;
-          tableView.query = props.currentTableView?.query || {};
-          tableView.itemsOnPage = props.currentTableView?.itemsOnPage || 10;
-          tableView.sort = props.currentTableView?.sort || {};
+          tableView.query =
+            (props.currentQuery as Query<
+              DatabaseBaseModel | AnalyticsBaseModel
+            >) || {};
+          tableView.itemsOnPage = props?.currentItemsOnPage || 10;
+          tableView.sort = sort || {};
           return Promise.resolve(tableView);
         }}
-        onSuccess={async () => {
+        onSuccess={async (tableView: TableView) => {
           setShowCreateNewViewModel(false);
           await fetchTableViews();
+          // set as current view
+          props.onViewChange && props.onViewChange(tableView);
         }}
         formProps={{
           name: "Save New View",
@@ -315,34 +341,57 @@ const TableViewElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  type GetElementToBeShownInsteadOfButtonFunction = () => ReactElement | undefined;
+  type GetElementToBeShownInsteadOfButtonFunction = () =>
+    | ReactElement
+    | undefined;
 
-  const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction = (): ReactElement | undefined => {
-    if (!currentlySelectedView) {
-      return undefined;
-    }
+  const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction =
+    (): ReactElement | undefined => {
+      if (!currentlySelectedView) {
+        return undefined;
+      }
 
-    return (
-      <div className="ml-2 mt-1 cursor-pointer font-semibold flex rounded-full border-2 border-gray-600 text-gray-600 text-xs p-1 pl-2 pr-2">
-        {currentlySelectedView.name}
-        <div className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1">
-          <Icon
-            icon={IconProp.Close}
-            size={SizeProp.Regular}
-            thick={ThickProp.Thick}
+      return (
+        <div className="ml-2 mt-1 cursor-pointer font-semibold flex rounded-full border-2 border-gray-600 text-gray-600 text-xs p-1 pl-2 pr-2">
+          <div
             onClick={() => {
-              setCurrentlySelectedView(null);
-              props.onViewChange && props.onViewChange(null);
+              flipDropdown();
             }}
-          />
+          >
+            {currentlySelectedView.name}
+          </div>
+          <div className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1">
+            <Icon
+              icon={IconProp.Close}
+              size={SizeProp.Regular}
+              thick={ThickProp.Thick}
+              onClick={() => {
+                setCurrentlySelectedView(null);
+                props.onViewChange && props.onViewChange(null);
+                closeDropdownMenu();
+              }}
+            />
+          </div>
         </div>
-      </div>
-    );
+      );
+    };
+
+  const closeDropdownMenu: VoidFunction = (): void => {
+    if (moreMenuRef.current) {
+      (moreMenuRef.current as any).closeDropdown();
+    }
+  };
+
+  const flipDropdown: VoidFunction = (): void => {
+    if (moreMenuRef.current) {
+      (moreMenuRef.current as any).flipDropdown();
+    }
   };
 
   return (
     <MoreMenu
       elementToBeShownInsteadOfButton={getElementToBeShownInsteadOfButton()}
+      ref={moreMenuRef}
     >
       {getMenuContents()}
     </MoreMenu>

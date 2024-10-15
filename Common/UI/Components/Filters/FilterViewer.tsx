@@ -28,7 +28,7 @@ export interface ComponentProps<T extends GenericObject> {
   onFilterModalOpen: () => void;
   isModalLoading?: boolean;
   onFilterRefreshClick?: undefined | (() => void);
-  initialFilterData?: FilterData<T> | undefined;
+  filterData?: FilterData<T> | undefined;
 }
 
 type FilterComponentFunction = <T extends GenericObject>(
@@ -38,9 +38,6 @@ type FilterComponentFunction = <T extends GenericObject>(
 const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const [filterData, setFilterData] = useState<FilterData<T>>(
-    props.initialFilterData || {},
-  );
   const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
     FilterData<T>
   >({});
@@ -50,14 +47,13 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
   const changeFilterData: ChangeFilterDataFunction = (
     filterData: FilterData<T>,
   ) => {
-    setFilterData(filterData);
     setTempFilterDataForModal(filterData);
     props.onFilterChanged?.(filterData);
   };
 
   useEffect(() => {
     if (props.showFilterModal) {
-      setTempFilterDataForModal({ ...filterData });
+      setTempFilterDataForModal({ ...props.filterData });
     }
   }, [props.showFilterModal]);
 
@@ -337,7 +333,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
 
   const filterTexts: Array<ReactElement> = translateFilterToText({
     filters: props.filters,
-    filterData: filterData,
+    filterData: props.filterData || {},
   });
 
   if (props.filterError) {
@@ -419,7 +415,6 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             props.onFilterModalClose();
           }}
           onSubmit={() => {
-            setFilterData({ ...tempFilterDataForModal });
             setTempFilterDataForModal({});
             if (props.onFilterChanged) {
               props.onFilterChanged({
