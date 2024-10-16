@@ -360,16 +360,18 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           >
             {currentlySelectedView.name}
           </div>
-          <div className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1">
+          <div
+            className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1"
+            onClick={() => {
+              setCurrentlySelectedView(null);
+              props.onViewChange && props.onViewChange(null);
+              closeDropdownMenu();
+            }}
+          >
             <Icon
               icon={IconProp.Close}
               size={SizeProp.Regular}
               thick={ThickProp.Thick}
-              onClick={() => {
-                setCurrentlySelectedView(null);
-                props.onViewChange && props.onViewChange(null);
-                closeDropdownMenu();
-              }}
             />
           </div>
         </div>

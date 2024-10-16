@@ -167,6 +167,7 @@ export class MonitorCharts {
       title: MonitorCharts.getChartTitle({
         checkOn: checkOn,
       }),
+
       description: MonitorCharts.getChartDescription({
         checkOn: checkOn,
       }),
@@ -265,11 +266,12 @@ export class MonitorCharts {
     monitorMetricsByMinute: Array<MonitorMetricsByMinute>;
     checkOn: CheckOn;
   }): XAxis {
-    let startTime: Date | undefined =
-      data.monitorMetricsByMinute[0]?.createdAt || undefined;
-    let endTime: Date | undefined =
-      data.monitorMetricsByMinute[data.monitorMetricsByMinute.length - 1]
-        ?.createdAt || undefined;
+    let startTime: Date | undefined = OneUptimeDate.addRemoveHours(
+      OneUptimeDate.getCurrentDate(),
+      -1,
+    );
+
+    let endTime: Date | undefined = OneUptimeDate.getCurrentDate();
 
     let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
 

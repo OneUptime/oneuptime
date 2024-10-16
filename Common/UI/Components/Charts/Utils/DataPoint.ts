@@ -94,11 +94,13 @@ export default class DataPointUtil {
     aggregateType: XAxisAggregateType,
   ): { [key: string]: SeriesData } {
     const seriesDataMap: { [key: string]: SeriesData } = {};
+
     for (const series of seriesPoints) {
       for (const dataPoint of series.data) {
         const date: Date = dataPoint.x;
         const value: number = dataPoint.y;
         const formattedDate: string = formatter(date);
+
         for (const chartDataPoint of arrayOfData) {
           if (chartDataPoint[xAxisLegend] === formattedDate) {
             if (!seriesDataMap[series.seriesName]) {
