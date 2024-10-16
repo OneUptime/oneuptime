@@ -61,7 +61,7 @@ export default class WebsiteMonitor {
       let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
-        doNotFollowRedirects: true,
+        doNotFollowRedirects: false,
       });
 
       if (
@@ -73,7 +73,7 @@ export default class WebsiteMonitor {
         result = await WebsiteRequest.fetch(url, {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
-          doNotFollowRedirects: true,
+          doNotFollowRedirects: false,
         });
       }
 
