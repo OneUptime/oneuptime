@@ -76,6 +76,9 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "Description",
           },
         ]}
+        saveFilterProps={{
+          tableId: "all-status-pages-table",
+        }}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[

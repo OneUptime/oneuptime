@@ -14,7 +14,10 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  ModalTableBulkDefaultActions,
+  SaveFilterProps,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -44,6 +47,7 @@ export interface ComponentProps {
   description?: string | undefined;
   createInitialValues?: FormValues<Incident> | undefined;
   disableCreate?: boolean | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -191,6 +195,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           setInitialValuesForIncident({});
         }}
         modelType={Incident}
+        saveFilterProps={props.saveFilterProps}
         id="incidents-table"
         isDeleteable={false}
         showCreateForm={Object.keys(initialValuesForIncident).length > 0}

@@ -19,7 +19,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: DashboardNavigation.getProjectId()!,
         }}
         saveFilterProps={{
-          tableId: "main-monitor-table",
+          tableId: "all-monitors-table",
         }}
       />
     </Fragment>

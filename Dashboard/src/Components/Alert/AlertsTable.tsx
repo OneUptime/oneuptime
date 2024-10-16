@@ -5,7 +5,10 @@ import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  ModalTableBulkDefaultActions,
+  SaveFilterProps,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -26,6 +29,7 @@ export interface ComponentProps {
   title?: string | undefined;
   description?: string | undefined;
   createInitialValues?: FormValues<Alert> | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
@@ -66,6 +70,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}
         showViewIdButton={true}
+        saveFilterProps={props.saveFilterProps}
         viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}
         filters={[
           {

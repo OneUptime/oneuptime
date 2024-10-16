@@ -11,6 +11,9 @@ const IncidentsPage: FunctionComponent<
       query={{
         projectId: DashboardNavigation.getProjectId()!,
       }}
+      saveFilterProps={{
+        tableId: "all-incidents-table",
+      }}
     />
   );
 };

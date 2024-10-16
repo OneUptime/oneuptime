@@ -16,6 +16,9 @@ const ScheduledMaintenancesPage: FunctionComponent<
       query={{
         projectId: projectObjectId,
       }}
+      saveFilterProps={{
+        tableId: "all-incidents-table",
+      }}
     />
   );
 };

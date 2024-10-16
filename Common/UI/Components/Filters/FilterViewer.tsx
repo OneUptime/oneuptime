@@ -1,3 +1,4 @@
+import Includes from "../../../Types/BaseDatabase/Includes";
 import Button, { ButtonStyleType } from "../Button/Button";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -291,6 +292,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         items = [items];
       }
 
+      if (items instanceof Includes) {
+        items = items.values as Array<string>;
+      }
+
       const isMoreItems: boolean = items.length > 1;
 
       if (items && items instanceof Array) {
@@ -315,6 +320,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             return item !== null;
           })
           .join(", ");
+
+        if (!entityNames) {
+          return null;
+        }
 
         return (
           <div>

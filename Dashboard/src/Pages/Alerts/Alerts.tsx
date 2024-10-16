@@ -9,6 +9,9 @@ const AlertsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       query={{
         projectId: DashboardNavigation.getProjectId()!,
       }}
+      saveFilterProps={{
+        tableId: "all-alerts-table",
+      }}
     />
   );
 };

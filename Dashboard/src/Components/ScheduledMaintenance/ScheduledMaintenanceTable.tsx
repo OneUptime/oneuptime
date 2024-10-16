@@ -36,6 +36,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
+import { SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -45,6 +46,7 @@ export interface ComponentProps {
   description?: string | undefined;
   disableCreate?: boolean | undefined;
   createInitialValues?: FormValues<ScheduledMaintenance> | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
@@ -203,6 +205,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        saveFilterProps={props.saveFilterProps}
         showCreateForm={
           Object.keys(initialValuesForScheduledMaintenance).length > 0
         }
