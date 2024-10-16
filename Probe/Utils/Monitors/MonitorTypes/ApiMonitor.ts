@@ -66,6 +66,7 @@ export default class ApiMonitor {
           undefined,
           {
             timeout: options.timeout?.toNumber() || 5000,
+            doNotFollowRedirects: true,
           },
         );
 

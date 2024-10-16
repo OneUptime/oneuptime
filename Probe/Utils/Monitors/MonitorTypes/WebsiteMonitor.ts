@@ -73,6 +73,7 @@ export default class WebsiteMonitor {
         result = await WebsiteRequest.fetch(url, {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
+          doNotFollowRedirects: true,
         });
       }
 
