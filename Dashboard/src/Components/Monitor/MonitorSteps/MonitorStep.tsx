@@ -198,6 +198,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.DictionaryOfStrings,
         placeholder: "No data entered",
       },
+      {
+        key: "doNotFollowRedirects",
+        title: "Do Not Follow Redirects",
+        description: "When set, we will not follow redirects.",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
+      },
     ];
   } else if (props.monitorType === MonitorType.Website) {
     fields = [
@@ -207,6 +214,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         description: "URL of the website you want to monitor.",
         fieldType: FieldType.Text,
         placeholder: "No data entered",
+      },
+      {
+        key: "doNotFollowRedirects",
+        title: "Do Not Follow Redirects",
+        description: "Do not follow redirects.",
+        fieldType: FieldType.Boolean,
+        placeholder: "No",
       },
     ];
   } else if (props.monitorType === MonitorType.Ping) {

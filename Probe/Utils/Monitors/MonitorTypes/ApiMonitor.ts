@@ -37,6 +37,7 @@ export default class ApiMonitor {
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
+      doNotFollowRedirects?: boolean | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -66,7 +67,7 @@ export default class ApiMonitor {
           undefined,
           {
             timeout: options.timeout?.toNumber() || 5000,
-            doNotFollowRedirects: false,
+            doNotFollowRedirects: options.doNotFollowRedirects || false,
           },
         );
 
@@ -84,7 +85,7 @@ export default class ApiMonitor {
           undefined,
           {
             timeout: options.timeout?.toNumber() || 5000,
-            doNotFollowRedirects: false,
+            doNotFollowRedirects: options.doNotFollowRedirects || false,
           },
         );
       }

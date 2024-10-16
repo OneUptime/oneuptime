@@ -55,6 +55,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -74,6 +75,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     showAdvancedOptionsRequestBodyAndHeaders,
     setShowAdvancedOptionsRequestBodyAndHeaders,
   ] = useState<boolean>(false);
+
+  const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
+    useState<boolean>(false);
 
   const [monitorStep, setMonitorStep] = useState<MonitorStep>(
     props.initialValue || new MonitorStep(),
@@ -436,7 +440,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.API && (
               <div className="mt-1 -ml-3">
                 <Button
-                  title="Advanced: Add Request Headers and Body"
+                  title="Advanced: Add Request Headers, Body and more."
                   buttonStyle={ButtonStyleType.SECONDARY_LINK}
                   onClick={() => {
                     setShowAdvancedOptionsRequestBodyAndHeaders(true);
@@ -444,6 +448,20 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
+
+          {!showDoNotFollowRedirects &&
+            props.monitorType === MonitorType.Website && (
+              <div className="mt-1 -ml-3">
+                <Button
+                  title="Advanced: More Options"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  onClick={() => {
+                    setShowDoNotFollowRedirects(true);
+                  }}
+                />
+              </div>
+            )}
+
           {showAdvancedOptionsRequestBodyAndHeaders &&
             props.monitorType === MonitorType.API && (
               <div className="mt-5">
@@ -528,6 +546,23 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                     }
 
                     monitorStep.setRequestBody(value);
+                    setMonitorStep(MonitorStep.clone(monitorStep));
+                  }}
+                />
+              </div>
+            )}
+
+          {(showDoNotFollowRedirects ||
+            showAdvancedOptionsRequestBodyAndHeaders) &&
+            (props.monitorType === MonitorType.API ||
+              props.monitorType === MonitorType.Website) && (
+              <div className="mt-5">
+                <CheckboxElement
+                  initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                  title={"Do not follow redirects"}
+                  description="Please check this if you do not want to follow redirects."
+                  onChange={(value: boolean) => {
+                    monitorStep.setDoNotFollowRedirects(value);
                     setMonitorStep(MonitorStep.clone(monitorStep));
                   }}
                 />

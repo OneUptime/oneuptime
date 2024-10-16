@@ -34,6 +34,7 @@ export default class WebsiteMonitor {
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
+      doNotFollowRedirects?: boolean | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -61,7 +62,7 @@ export default class WebsiteMonitor {
       let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
-        doNotFollowRedirects: false,
+        doNotFollowRedirects: options.doNotFollowRedirects || false,
       });
 
       if (
@@ -73,7 +74,7 @@ export default class WebsiteMonitor {
         result = await WebsiteRequest.fetch(url, {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
-          doNotFollowRedirects: false,
+          doNotFollowRedirects: options.doNotFollowRedirects || false,
         });
       }
 

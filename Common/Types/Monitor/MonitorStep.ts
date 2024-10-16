@@ -32,6 +32,9 @@ export interface MonitorStepType {
   requestHeaders?: Dictionary<string> | undefined;
   requestBody?: string | undefined;
 
+  // this is used for API and Website monitor
+  doNotFollowRedirects?: boolean | undefined;
+
   // this is for port monitors.
   monitorDestinationPort?: Port | undefined;
 
@@ -58,6 +61,7 @@ export default class MonitorStep extends DatabaseProperty {
     this.data = {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: new MonitorCriteria(),
       requestType: HTTPMethod.GET,
@@ -84,6 +88,7 @@ export default class MonitorStep extends DatabaseProperty {
     monitorStep.data = {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
       requestType: HTTPMethod.GET,
@@ -133,6 +138,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDoNotFollowRedirects(doNotFollowRedirects: boolean): MonitorStep {
+    this.data!.doNotFollowRedirects = doNotFollowRedirects;
+    return this;
+  }
+
   public setPort(monitorDestinationPort: Port): MonitorStep {
     this.data!.monitorDestinationPort = monitorDestinationPort;
     return this;
@@ -176,6 +186,7 @@ export default class MonitorStep extends DatabaseProperty {
       value: {
         id: ObjectID.generate().toString(),
         monitorDestination: undefined,
+        doNotFollowRedirects: undefined,
         monitorDestinationPort: undefined,
         monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
         requestType: HTTPMethod.GET,
@@ -259,6 +270,7 @@ export default class MonitorStep extends DatabaseProperty {
           id: this.data.id,
           monitorDestination:
             this.data?.monitorDestination?.toJSON() || undefined,
+          doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
@@ -355,6 +367,7 @@ export default class MonitorStep extends DatabaseProperty {
     monitorStep.data = JSONFunctions.deserialize({
       id: json["id"] as string,
       monitorDestination: monitorDestination || undefined,
+      doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,

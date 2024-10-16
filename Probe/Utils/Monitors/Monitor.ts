@@ -311,6 +311,7 @@ export default class MonitorUtil {
           monitorId: monitor.id!,
           retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
+          doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         },
       );
 
@@ -352,6 +353,7 @@ export default class MonitorUtil {
           requestType: monitorStep.data?.requestType || HTTPMethod.GET,
           retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
+          doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         },
       );
 
