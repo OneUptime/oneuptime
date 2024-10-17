@@ -27,8 +27,10 @@ import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivat
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import xml2js from "xml2js";
 
+// Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
 
+// Define a GET route for SSO in a status page context.
 router.get(
   "/status-page-sso/:statusPageId/:statusPageSsoId",
   async (
@@ -37,6 +39,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // Check if statusPageId parameter is present.
       if (!req.params["statusPageId"]) {
         return Response.sendErrorResponse(
           req,
@@ -45,6 +48,7 @@ router.get(
         );
       }
 
+      // Check if statusPageSsoId parameter is present.
       if (!req.params["statusPageSsoId"]) {
         return Response.sendErrorResponse(
           req,
@@ -53,14 +57,16 @@ router.get(
         );
       }
 
+      // Create ObjectID instance from statusPageId parameter.
       const statusPageId: ObjectID = new ObjectID(req.params["statusPageId"]);
 
+      // Find SSO record in the database with specific query parameters.
       const statusPageSSO: StatusPageSSO | null =
         await StatusPageSsoService.findOneBy({
           query: {
-            statusPageId: statusPageId,
-            _id: req.params["statusPageSsoId"],
-            isEnabled: true,
+            statusPageId: statusPageId, // Ensure that statusPageId matches.
+            _id: req.params["statusPageSsoId"], // Ensure SSO ID matches.
+            isEnabled: true, // Ensure the SSO is enabled.
           },
           select: {
             signOnURL: true,
@@ -235,6 +241,7 @@ router.post(
       if (statusPageSSO.issuerURL.toString() !== issuerUrl) {
         return Response.sendErrorResponse(
           req,
+
           res,
           new BadRequestException("Issuer URL does not match"),
         );
@@ -285,6 +292,7 @@ router.post(
         res,
         CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
         token,
+
         {
           httpOnly: true,
           maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
