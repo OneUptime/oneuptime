@@ -14,6 +14,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryMonitorSummaryView from "./TelemetryMonitorView";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -83,6 +84,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (props.monitorType === MonitorType.SyntheticMonitor) {
       return (
         <SyntheticMonitorView
+          key={key}
+          probeMonitorResponse={probeMonitorResponse}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+      return (
+        <CustomCodeMonitorSummaryView
           key={key}
           probeMonitorResponse={probeMonitorResponse}
         />
