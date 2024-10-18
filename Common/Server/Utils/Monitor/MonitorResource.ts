@@ -526,6 +526,7 @@ export default class MonitorResourceUtil {
         monitorStatusTimeline.monitorStatusId =
           monitorSteps.data.defaultMonitorStatusId!;
         monitorStatusTimeline.projectId = monitor.projectId!;
+        monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
         monitorStatusTimeline.statusChangeLog = JSON.parse(
           JSON.stringify(dataToProcess),
         );
