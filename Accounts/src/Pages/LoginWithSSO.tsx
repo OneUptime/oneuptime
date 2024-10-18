@@ -208,7 +208,7 @@ const LoginPage: () => JSX.Element = () => {
                 <div>
                   <Link to={new Route("/accounts/login")}>
                     <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                      Use username and password insead.
+                      Use username and password instead.
                     </div>
                   </Link>
                 </div>

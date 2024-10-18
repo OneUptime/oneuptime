@@ -10,11 +10,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
-  moreDetailElement?: ReactElement;
+  moreDetailElement?: ReactElement | undefined;
   monitoredAt: Date;
 }
 
-const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
+const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.customCodeMonitorResponse) {
@@ -137,4 +137,4 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default CustomCodeMonitorSummaryView;
+export default CustomMonitorSummaryView;
