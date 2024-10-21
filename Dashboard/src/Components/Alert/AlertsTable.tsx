@@ -241,7 +241,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
 
             getElement: (item: Alert): ReactElement => {
-              return <MonitorElement monitor={item["monitor"]!} />;
+              if (item["monitor"]) {
+                return <MonitorElement monitor={item["monitor"]!} />;
+              }
+              return <span>-</span>;
             },
           },
           {

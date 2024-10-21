@@ -17,7 +17,7 @@ export interface ComponentProps {
 const MonitorElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (props.monitor._id) {
+  if (props.monitor?._id) {
     return (
       <Link
         onNavigateComplete={props.onNavigateComplete}
@@ -41,7 +41,7 @@ const MonitorElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return <span>{props.monitor.name}</span>;
+  return <span>{props.monitor?.name || ""}</span>;
 };
 
 export default MonitorElement;
