@@ -61,6 +61,7 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/dashboard"))
 @SlugifyColumn("name", "slug")

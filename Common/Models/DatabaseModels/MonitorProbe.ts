@@ -52,6 +52,7 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/monitor-probe"))
 @TableMetadata({

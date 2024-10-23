@@ -67,6 +67,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/api-key-permission"))

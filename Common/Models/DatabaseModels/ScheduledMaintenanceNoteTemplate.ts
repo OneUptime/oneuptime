@@ -54,6 +54,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TableMetadata({
   tableName: "ScheduledMaintenanceNoteTemplate",

@@ -70,6 +70,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/status-page-announcement"))
 @SlugifyColumn("name", "slug")

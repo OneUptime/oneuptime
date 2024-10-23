@@ -120,10 +120,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
       <NavBarItem
         title="Dashboards"
-        activeRoute={RouteMap[PageMap.STATUS_PAGES]}
-        icon={IconProp.CheckCircle}
+        activeRoute={RouteMap[PageMap.DASHBOARDS]}
+        icon={IconProp.Window}
         route={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.STATUS_PAGES] as Route,
+          RouteMap[PageMap.DASHBOARDS] as Route,
         )}
       ></NavBarItem>
 

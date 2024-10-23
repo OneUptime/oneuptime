@@ -51,6 +51,7 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/scheduled-maintenance-template-owner-team"))
 @TableMetadata({

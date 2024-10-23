@@ -62,6 +62,7 @@ import ServiceCatalog from "./ServiceCatalog";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/service-catalog-dependency"))
 @SlugifyColumn("name", "slug")

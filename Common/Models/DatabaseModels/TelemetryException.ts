@@ -49,6 +49,7 @@ import TelemetryService from "./TelemetryService";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/telemetry-exception-status"))
 @TableMetadata({

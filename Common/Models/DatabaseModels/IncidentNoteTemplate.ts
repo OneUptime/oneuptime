@@ -62,6 +62,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TableMetadata({
   tableName: "IncidentNoteTemplate",

@@ -53,6 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/scheduled-maintenance-state-timeline"))
 @Entity({

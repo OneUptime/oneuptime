@@ -75,6 +75,7 @@ import Recurring from "../../Types/Events/Recurring";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TableMetadata({
   singularName: "Scheduled Maintenance Event",

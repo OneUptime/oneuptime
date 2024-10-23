@@ -77,6 +77,7 @@ import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TableMetadata({
   tableName: "Incident",

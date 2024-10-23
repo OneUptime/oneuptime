@@ -63,6 +63,7 @@ import Monitor from "./Monitor";
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/service-catalog-monitor"))
 @SlugifyColumn("name", "slug")

@@ -68,6 +68,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/monitor"))
 @SlugifyColumn("name", "slug")

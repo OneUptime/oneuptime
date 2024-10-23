@@ -38,6 +38,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")

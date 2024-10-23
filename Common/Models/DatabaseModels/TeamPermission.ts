@@ -73,6 +73,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @TableMetadata({
   tableName: "TeamPermission",

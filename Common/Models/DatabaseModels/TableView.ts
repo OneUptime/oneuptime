@@ -58,6 +58,7 @@ import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsB
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/table-view"))
 @TableMetadata({

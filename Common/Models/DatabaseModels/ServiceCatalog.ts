@@ -74,6 +74,7 @@ import {
   create: true,
   delete: true,
   update: true,
+  read: true,
 })
 @CrudApiEndpoint(new Route("/service-catalog"))
 @SlugifyColumn("name", "slug")
