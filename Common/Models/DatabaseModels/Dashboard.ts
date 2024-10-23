@@ -21,6 +21,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import Label from "./Label";
+import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 
 @AccessControlColumn("labels")
 @EnableDocumentation()
@@ -383,5 +384,36 @@ export default class Dashboard extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.JSON,
+    title: "Dashboard View Config",
+    description: "Configuration of Dashboard View",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.JSON,
+  })
+  public dashboardViewConfig?: DashboardViewConfig = undefined;
 
 }

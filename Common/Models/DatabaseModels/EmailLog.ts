@@ -42,7 +42,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: true,
   delete: false,
   update: false,
-  read: true,
 })
 @TableMetadata({
   tableName: "EmailLog",
