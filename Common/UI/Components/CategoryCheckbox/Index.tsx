@@ -48,10 +48,10 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
   >(sanitizeInitialValues(props.initialValue));
 
   const [categories] = React.useState<Array<CheckboxCategory>>(
-    [...props.categories] || [],
+    [...props.categories],
   );
   const [options] = React.useState<Array<CategoryCheckboxOption>>(
-    [...props.options] || [],
+    [...props.options],
   );
 
   useEffect(() => {
