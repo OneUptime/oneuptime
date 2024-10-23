@@ -46,10 +46,14 @@ const MoreMenu: React.ForwardRefExoticComponent<
     return (
       <div className="relative inline-block text-left">
         {!props.elementToBeShownInsteadOfButton && (
-          <Button icon={props.menuIcon || IconProp.More} title={props.text || ''} buttonStyle={ButtonStyleType.OUTLINE} onClick={()=>{
-            setIsComponentVisible(!isDropdownVisible);
-          }
-          } />
+          <Button
+            icon={props.menuIcon || IconProp.More}
+            title={props.text || ""}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            onClick={() => {
+              setIsComponentVisible(!isDropdownVisible);
+            }}
+          />
         )}
 
         {props.elementToBeShownInsteadOfButton && (

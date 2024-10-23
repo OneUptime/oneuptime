@@ -1,6 +1,6 @@
-enum DashboardMode { 
-    Edit = "Edit", View = "View"
+enum DashboardMode {
+  Edit = "Edit",
+  View = "View",
 }
-
 
 export default DashboardMode;
