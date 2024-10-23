@@ -100,6 +100,11 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: `services/${RouteParams.ModelID}/exceptions/resolved`,
 };
 
+export const DashboardsRoutePath: Dictionary<string> = {
+  [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DASHBOARD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
@@ -690,6 +695,30 @@ const RouteMap: Dictionary<Route> = {
       ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]
     }`,
   ),
+
+  // Dashboards
+
+  [PageMap.DASHBOARDS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/*`,
+  ),
+
+  [PageMap.DASHBOARDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_DELETE]
+    }`,
+  ),
+
+  // Status Pages
 
   [PageMap.STATUS_PAGES_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/*`,

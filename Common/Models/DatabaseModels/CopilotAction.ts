@@ -58,7 +58,6 @@ import CopilotActionProp from "../../Types/Copilot/CopilotActionProps/Index";
   create: true,
   delete: false,
   update: true,
-  read: false,
 })
 @CrudApiEndpoint(new Route("/copilot-action"))
 @TableMetadata({

@@ -13,6 +13,7 @@ import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import Ingestor from "Common/Server/API/ProbeAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
+
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
@@ -59,6 +60,11 @@ import AlertNoteTemplateService, {
 import AlertOwnerTeamService, {
   Service as AlertOwnerTeamServiceType,
 } from "Common/Server/Services/AlertOwnerTeamService";
+
+import DashboardService, {
+  Service as DashboardServiceType,
+} from "Common/Server/Services/DashboardService";
+
 import AlertOwnerUserService, {
   Service as AlertOwnerUserServiceType,
 } from "Common/Server/Services/AlertOwnerUserService";
@@ -374,6 +380,7 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
@@ -635,6 +642,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         CopilotActionTypePriority,
         CopilotActionTypePriorityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<Dashboard, DashboardServiceType>(
+        Dashboard,
+        DashboardService,
       ).getRouter(),
     );
 

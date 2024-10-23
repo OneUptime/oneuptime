@@ -1,79 +1,93 @@
-import CodeRepository from "./CopilotCodeRepository";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
-import CopilotActionType from "../../Types/Copilot/CopilotActionType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import ColumnLength from "../../Types/Database/ColumnLength";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
+import AccessControlColumn from "../../Types/Database/AccessControlColumn";
+import Label from "./Label";
+import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 
-@CanAccessIfCanReadOn("codeRepository")
+@AccessControlColumn("labels")
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.CreateCopilotAction,
+    Permission.CreateDashboard,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadCopilotAction,
+    Permission.ReadDashboard,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.DeleteCopilotAction,
+    Permission.DeleteDashboard,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.EditCopilotAction,
+    Permission.EditDashboard,
   ],
 })
 @EnableWorkflow({
   create: true,
-  delete: false,
+  delete: true,
   update: true,
+  read: true,
 })
-@CrudApiEndpoint(new Route("/copilot-action-type-prority"))
+@CrudApiEndpoint(new Route("/dashboard"))
+@SlugifyColumn("name", "slug")
 @TableMetadata({
-  tableName: "CopilotActionType",
-  singularName: "Copilot Action Priority",
-  pluralName: "Copilot Action Priorities",
-  icon: IconProp.Bolt,
-  tableDescription: "Priority of Copilot Actions",
+  tableName: "Dashboard",
+  singularName: "Dashboard",
+  pluralName: "Dashboards",
+  icon: IconProp.Window,
+  tableDescription:
+    "Create and manage Dashboards to visualize your data in a single place",
 })
 @Entity({
-  name: "CopilotActionTypePriority",
+  name: "Dashboard",
 })
-export default class CopilotActionTypePriority extends BaseModel {
+export default class Dashboard extends BaseModel {
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -90,7 +104,7 @@ export default class CopilotActionTypePriority extends BaseModel {
     },
     {
       eager: false,
-      nullable: false,
+      nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -99,12 +113,16 @@ export default class CopilotActionTypePriority extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -124,62 +142,37 @@ export default class CopilotActionTypePriority extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "codeRepositoryId",
-    type: TableColumnType.Entity,
-    modelType: CodeRepository,
-    title: "Code Repository",
-    description:
-      "Relation to CodeRepository Resource in which this object belongs",
-  })
-  @ManyToOne(
-    () => {
-      return CodeRepository;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "codeRepositoryId" })
-  public codeRepository?: CodeRepository = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
+    update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.EditDashboard,
     ],
-    update: [],
   })
-  @Index()
   @TableColumn({
-    type: TableColumnType.ObjectID,
     required: true,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Code Repository ID",
-    description:
-      "ID of your OneUptime Code Repository in which this object belongs",
+    title: "Name",
+    description: "Any friendly name of this object",
   })
   @Column({
-    type: ColumnType.ObjectID,
     nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
-  public codeRepositoryId?: ObjectID = undefined;
+  @UniqueColumnBy("projectId")
+  public name?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -187,7 +180,66 @@ export default class CopilotActionTypePriority extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    unique: true,
+    type: TableColumnType.Slug,
+    title: "Slug",
+    description: "Friendly globally unique name for your object",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Slug,
+    length: ColumnLength.Slug,
+  })
+  public slug?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description",
+    description: "Friendly description that will help you remember",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public description?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -214,12 +266,16 @@ export default class CopilotActionTypePriority extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -242,7 +298,7 @@ export default class CopilotActionTypePriority extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -274,7 +330,7 @@ export default class CopilotActionTypePriority extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
     update: [],
   })
@@ -292,48 +348,79 @@ export default class CopilotActionTypePriority extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditDashboard,
+    ],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
-    title: "Copilot Action Type",
-    required: true,
-    description: "Copilot Action Type for this Code Repository",
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Relation to Labels Array where this object is categorized in.",
   })
-  @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    nullable: false,
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "DashboardLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "dashboardId",
+      referencedColumnName: "_id",
+    },
   })
-  public actionType?: CopilotActionType = undefined;
+  public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadCopilotAction,
+      Permission.ReadDashboard,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
   })
   @TableColumn({
-    type: TableColumnType.Number,
-    title: "Priority",
     required: true,
-    description: "Priority of Copilot Action Type for this Code Repository",
+    type: TableColumnType.JSON,
+    title: "Dashboard View Config",
+    description: "Configuration of Dashboard View",
   })
   @Column({
-    type: ColumnType.Number,
     nullable: false,
-    default: 1,
+    type: ColumnType.JSON,
   })
-  public priority?: number = undefined;
+  public dashboardViewConfig?: DashboardViewConfig = undefined;
 }

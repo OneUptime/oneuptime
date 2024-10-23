@@ -47,12 +47,12 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     Array<CategoryCheckboxValue>
   >(sanitizeInitialValues(props.initialValue));
 
-  const [categories] = React.useState<Array<CheckboxCategory>>(
-    [...props.categories] || [],
-  );
-  const [options] = React.useState<Array<CategoryCheckboxOption>>(
-    [...props.options] || [],
-  );
+  const [categories] = React.useState<Array<CheckboxCategory>>([
+    ...props.categories,
+  ]);
+  const [options] = React.useState<Array<CategoryCheckboxOption>>([
+    ...props.options,
+  ]);
 
   useEffect(() => {
     // whenevent currentValue changes, make sure all the values are unique.

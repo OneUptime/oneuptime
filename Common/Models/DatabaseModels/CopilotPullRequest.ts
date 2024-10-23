@@ -40,7 +40,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   create: true,
   delete: false,
   update: true,
-  read: false,
 })
 @CrudApiEndpoint(new Route("/copilot-pull-request"))
 @TableMetadata({

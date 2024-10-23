@@ -1,3 +1,3 @@
-import BaseComponent from "./BaseComponent";
+import BaseComponent from "./DashboardBaseComponent";
 
 export interface ValueDashboardComponent extends BaseComponent {}
