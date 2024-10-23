@@ -51,8 +51,7 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @CrudApiEndpoint(new Route("/monitor-probe"))
 @TableMetadata({

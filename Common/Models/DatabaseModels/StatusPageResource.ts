@@ -57,8 +57,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @CrudApiEndpoint(new Route("/status-page-resource"))
 @SlugifyColumn("name", "slug")

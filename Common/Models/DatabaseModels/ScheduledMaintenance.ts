@@ -74,8 +74,7 @@ import Recurring from "../../Types/Events/Recurring";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @TableMetadata({
   singularName: "Scheduled Maintenance Event",

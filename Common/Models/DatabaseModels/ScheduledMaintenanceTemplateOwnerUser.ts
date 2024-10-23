@@ -49,8 +49,7 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @CrudApiEndpoint(new Route("/scheduled-maintenance-template--owner-user"))
 @TableMetadata({

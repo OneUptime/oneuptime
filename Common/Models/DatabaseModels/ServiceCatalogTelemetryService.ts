@@ -62,8 +62,7 @@ import TelemetryService from "./TelemetryService";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @CrudApiEndpoint(new Route("/service-catalog-telemetry-service"))
 @SlugifyColumn("name", "slug")

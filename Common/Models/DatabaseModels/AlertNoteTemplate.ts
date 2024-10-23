@@ -61,8 +61,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @TableMetadata({
   tableName: "AlertNoteTemplate",

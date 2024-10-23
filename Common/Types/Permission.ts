@@ -47,6 +47,13 @@ enum Permission {
   ReadTelemetryIngestionKey = "ReadTelemetryIngestionKey",
   EditTelemetryIngestionKey = "EditTelemetryIngestionKey",
 
+  // Dashboards
+
+  CreateDashboard = "CreateDashboard",
+  DeleteDashboard = "DeleteDashboard",
+  ReadDashboard = "ReadDashboard",
+  EditDashboard = "EditDashboard",
+
   // Logs
   CreateTelemetryServiceLog = "CreateTelemetryServiceLog",
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
@@ -853,6 +860,42 @@ export class PermissionHelper {
         title: "Read Telemetry Ingestion Key",
         description:
           "This permission can read Telemetry Ingestion Keys of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
+      // Dashboards. 
+
+      {
+        permission: Permission.CreateDashboard,
+        title: "Create Dashboard",
+        description:
+          "This permission can create Dashboards of this project",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteDashboard,
+        title: "Delete Dashboard",
+        description:
+          "This permission can delete Dashboard of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditDashboard,
+        title: "Edit Dashboard",
+        description:
+          "This permission can edit Dashboards of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadDashboard,
+        title: "Read Dashboard",
+        description:
+          "This permission can read Dashboards of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

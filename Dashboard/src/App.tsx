@@ -34,7 +34,7 @@ import UserSettingsRoutes from "./Routes/UserSettingsRoutes";
 import WorkflowRoutes from "./Routes/WorkflowRoutes";
 import EventName from "./Utils/EventName";
 import PageMap from "./Utils/PageMap";
-import RouteMap from "./Utils/RouteMap";
+import RouteMap, { DashboardsRoutePath } from "./Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -317,6 +317,12 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ""}
           element={<StatusPagesRoutes {...commonPageProps} />}
+        />
+
+        {/* Dashboards */}
+        <PageRoute
+          path={RouteMap[PageMap.DASHBOARDS]?.toString() || ""}
+          element={<DashboardsRoutes {...commonPageProps} />}
         />
 
         {/* Service Catalog */}

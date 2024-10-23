@@ -119,6 +119,15 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       ></NavBarItem>
 
       <NavBarItem
+        title="Dashboards"
+        activeRoute={RouteMap[PageMap.STATUS_PAGES]}
+        icon={IconProp.CheckCircle}
+        route={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STATUS_PAGES] as Route,
+        )}
+      ></NavBarItem>
+
+      <NavBarItem
         title="More"
         icon={IconProp.More}
         onMouseLeave={() => {

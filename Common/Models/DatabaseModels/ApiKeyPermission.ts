@@ -66,8 +66,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/api-key-permission"))

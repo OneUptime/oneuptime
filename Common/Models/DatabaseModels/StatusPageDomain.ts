@@ -54,8 +54,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @CrudApiEndpoint(new Route("/status-page-domain"))
 @TableMetadata({

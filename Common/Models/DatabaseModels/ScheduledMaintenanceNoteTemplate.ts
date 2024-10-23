@@ -53,8 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true,
-  read: true,
+  update: true
 })
 @TableMetadata({
   tableName: "ScheduledMaintenanceNoteTemplate",
