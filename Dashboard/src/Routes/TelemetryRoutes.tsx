@@ -87,12 +87,6 @@ const TelemetryViewMetric: LazyExoticComponent<
   return import("../Pages/Telemetry/Metrics/View/Index");
 });
 
-const TelemetryDashboard: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Dashboard");
-});
-
 const TelemetryServiceView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -151,12 +145,6 @@ const TelemetryExceptionsServiceArchived: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Telemetry/Services/View/Exceptions/Archived");
-});
-
-const TelemetryServiceViewDashboard: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Services/View/Dashboard/Index");
 });
 
 const TelemetryServicesViewSettings: LazyExoticComponent<
@@ -272,18 +260,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/** ----  */}
-
-        <PageRoute
-          path={TelemetryRoutePath[PageMap.TELEMETRY_DASHBOARDS] || ""}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryDashboard
-                {...props}
-                pageRoute={RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route}
-              />
-            </Suspense>
-          }
-        />
 
         <PageRoute
           path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
@@ -587,22 +563,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_METRICS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS,
-          )}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryServiceViewDashboard
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS] as Route
                 }
               />
             </Suspense>

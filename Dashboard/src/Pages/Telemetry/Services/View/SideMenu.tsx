@@ -109,18 +109,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Archive}
         />
       </SideMenuSection>
-      <SideMenuSection title="Views">
-        <SideMenuItem
-          link={{
-            title: "Dashboards",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Window}
-        />
-      </SideMenuSection>
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

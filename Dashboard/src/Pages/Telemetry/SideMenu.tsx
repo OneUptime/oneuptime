@@ -88,17 +88,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           icon={IconProp.Archive}
         />
       </SideMenuSection>
-      <SideMenuSection title="Views">
-        <SideMenuItem
-          link={{
-            title: "Dashboards",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route,
-            ),
-          }}
-          icon={IconProp.Window}
-        />
-      </SideMenuSection>
     </SideMenu>
   );
 };
