@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
-            title: "Delete Status Page",
+            title: "Delete",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route,
               { modelId: props.modelId },

@@ -8,6 +8,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import DashboardCanvas from "../../../Components/Dashboard/Canvas/Index";
 
 const DashboardView: FunctionComponent<
   PageComponentProps
@@ -116,6 +117,8 @@ const DashboardView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      <DashboardCanvas />
     </Fragment>
   );
 };

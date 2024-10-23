@@ -1,11 +1,11 @@
 export interface DashboardSize {
   widthInDashboardUnits: number;
-  HeightInDashboardUnits: number;
+  heightInDashboardUnits: number;
 }
 
 const DefaultDashboardSize: DashboardSize = {
   widthInDashboardUnits: 12,
-  HeightInDashboardUnits: 120,
+  heightInDashboardUnits: 60,
 };
 
 export default DefaultDashboardSize;
