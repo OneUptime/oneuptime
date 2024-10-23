@@ -263,7 +263,13 @@ describe("SubscriptionPlan", () => {
   });
   describe("isUnpaid", () => {
     it("should return true if the subscription status is unpaid", () => {
-      const subscriptionStatuses: Array<string> = ["incomplete", "incomplete_expired", "past_due", "canceled", "unpaid"];
+      const subscriptionStatuses: Array<string> = [
+        "incomplete",
+        "incomplete_expired",
+        "past_due",
+        "canceled",
+        "unpaid",
+      ];
 
       for (const subscriptionStatus of subscriptionStatuses) {
         const result: boolean = SubscriptionPlan.isUnpaid(subscriptionStatus);

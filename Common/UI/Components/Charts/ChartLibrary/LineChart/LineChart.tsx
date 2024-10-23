@@ -692,7 +692,7 @@ const LineChart: React.ForwardRefExoticComponent<
         <ResponsiveContainer>
           <RechartsLineChart
             data={data}
-            syncId={props.syncId?.toString() || ''}
+            syncId={props.syncId?.toString() || ""}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
@@ -700,7 +700,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     setActiveLegend(undefined);
                     onValueChange?.(null);
                   }
-                : ()=>{} // do nothing
+                : () => {} // do nothing
             }
             margin={{
               bottom: (xAxisLabel ? 30 : undefined) as unknown as number,
