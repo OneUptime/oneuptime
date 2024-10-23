@@ -82,7 +82,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @TableMetadata({
   singularName: "Scheduled Maintenance Template",

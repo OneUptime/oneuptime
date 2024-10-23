@@ -69,7 +69,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/monitor-group"))
 @SlugifyColumn("name", "slug")

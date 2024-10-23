@@ -72,7 +72,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/copilot-code-repository"))
 @SlugifyColumn("name", "slug")

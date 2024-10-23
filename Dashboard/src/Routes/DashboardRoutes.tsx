@@ -5,84 +5,77 @@ import PageMap from "../Utils/PageMap";
 import RouteMap, { DashboardsRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, {
-    FunctionComponent,
-    LazyExoticComponent,
-    ReactElement,
-    Suspense,
-    lazy,
+  FunctionComponent,
+  LazyExoticComponent,
+  ReactElement,
+  Suspense,
+  lazy,
 } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
-
-
-const Dashboards: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import("../Pages/Dashboards/Dashboards");
-    });
+const Dashboards: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
+  () => {
+    return import("../Pages/Dashboards/Dashboards");
+  },
+);
 
 const DashboardsView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-    lazy(() => {
-        return import("../Pages/Dashboards/View/Index");
-    });
+  lazy(() => {
+    return import("../Pages/Dashboards/View/Index");
+  });
 const DashboardsViewDelete: LazyExoticComponent<
-    FunctionComponent<ComponentProps>
+  FunctionComponent<ComponentProps>
 > = lazy(() => {
-    return import("../Pages/Dashboards/View/Delete");
+  return import("../Pages/Dashboards/View/Delete");
 });
 
-
-
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <Routes>
-            <PageRoute
-                path={DashboardsRoutePath[PageMap.DASHBOARDS] || ""}
-                element={
-                    <Suspense fallback={Loader}>
-                        <Dashboards
-                            {...props}
-                            pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
-                        />
-                    </Suspense>
-                }
+  return (
+    <Routes>
+      <PageRoute
+        path={DashboardsRoutePath[PageMap.DASHBOARDS] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <Dashboards
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
             />
+          </Suspense>
+        }
+      />
 
-            <PageRoute
-                path={DashboardsRoutePath[PageMap.DASHBOARD_VIEW] || ""}
-                element={<DashboardViewLayout {...props} />}
-            >
-                <PageRoute
-                    index
-                    element={
-                        <Suspense fallback={Loader}>
-                            <DashboardsView
-                                {...props}
-                                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW] as Route}
-                            />
-                        </Suspense>
-                    }
-                />
+      <PageRoute
+        path={DashboardsRoutePath[PageMap.DASHBOARD_VIEW] || ""}
+        element={<DashboardViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <DashboardsView
+                {...props}
+                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
 
-                <PageRoute
-                    path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_DELETE)}
-                    element={
-                        <Suspense fallback={Loader}>
-                            <DashboardsViewDelete
-                                {...props}
-                                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route}
-                            />
-                        </Suspense>
-                    }
-                />
-
-            </PageRoute>
-
-        </Routes>
-
-    );
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_DELETE)}
+          element={
+            <Suspense fallback={Loader}>
+              <DashboardsViewDelete
+                {...props}
+                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+    </Routes>
+  );
 };
-
 
 export default DashboardsRoutes;

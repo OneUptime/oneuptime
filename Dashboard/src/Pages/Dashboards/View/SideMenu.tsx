@@ -9,45 +9,42 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-    modelId: ObjectID;
+  modelId: ObjectID;
 }
 
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
+  return (
+    <SideMenu>
+      <SideMenuSection title="Basic">
+        <SideMenuItem
+          link={{
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Info}
+        />
+      </SideMenuSection>
 
-    return (
-        <SideMenu>
-            <SideMenuSection title="Basic">
-                <SideMenuItem
-                    link={{
-                        title: "Overview",
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.DASHBOARD_VIEW] as Route,
-                            { modelId: props.modelId },
-                        ),
-                    }}
-                    icon={IconProp.Info}
-                />
-
-            </SideMenuSection>
-
-            <SideMenuSection title="Advanced">
-
-                <SideMenuItem
-                    link={{
-                        title: "Delete Status Page",
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route,
-                            { modelId: props.modelId },
-                        ),
-                    }}
-                    icon={IconProp.Trash}
-                    className="danger-on-hover"
-                />
-            </SideMenuSection>
-        </SideMenu>
-    );
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Delete Status Page",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Trash}
+          className="danger-on-hover"
+        />
+      </SideMenuSection>
+    </SideMenu>
+  );
 };
 
 export default DashboardSideMenu;

@@ -48,7 +48,7 @@ import TelemetryService from "./TelemetryService";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/telemetry-exception-status"))
 @TableMetadata({

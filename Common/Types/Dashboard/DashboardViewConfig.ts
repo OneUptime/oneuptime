@@ -1,3 +1,3 @@
 export default interface DashboardViewConfig {
-    _type: "DashboardViewConfig"
+  _type: "DashboardViewConfig";
 }

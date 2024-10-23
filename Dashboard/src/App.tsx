@@ -23,6 +23,7 @@ import IncidentsRoutes from "./Routes/IncidentsRoutes";
 //Routes
 import InitRoutes from "./Routes/InitRoutes";
 import MonitorGroupRoutes from "./Routes/MonitorGroupRoutes";
+import DashboardRoutes from "./Routes/DashboardRoutes";
 import MonitorsRoutes from "./Routes/MonitorsRoutes";
 import OnCallDutyRoutes from "./Routes/OnCallDutyRoutes";
 import ScheduledMaintenanceEventsRoutes from "./Routes/ScheduleMaintenaceEventsRoutes";
@@ -34,7 +35,7 @@ import UserSettingsRoutes from "./Routes/UserSettingsRoutes";
 import WorkflowRoutes from "./Routes/WorkflowRoutes";
 import EventName from "./Utils/EventName";
 import PageMap from "./Utils/PageMap";
-import RouteMap, { DashboardsRoutePath } from "./Utils/RouteMap";
+import RouteMap from "./Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -322,7 +323,7 @@ const App: () => JSX.Element = () => {
         {/* Dashboards */}
         <PageRoute
           path={RouteMap[PageMap.DASHBOARDS]?.toString() || ""}
-          element={<DashboardsRoutes {...commonPageProps} />}
+          element={<DashboardRoutes {...commonPageProps} />}
         />
 
         {/* Service Catalog */}

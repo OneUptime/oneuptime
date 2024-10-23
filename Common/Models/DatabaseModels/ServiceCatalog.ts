@@ -73,7 +73,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/service-catalog"))
 @SlugifyColumn("name", "slug")

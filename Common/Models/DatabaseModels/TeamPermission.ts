@@ -72,7 +72,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @TableMetadata({
   tableName: "TeamPermission",

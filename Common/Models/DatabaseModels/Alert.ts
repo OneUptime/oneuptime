@@ -74,7 +74,7 @@ import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @TableMetadata({
   tableName: "Alert",

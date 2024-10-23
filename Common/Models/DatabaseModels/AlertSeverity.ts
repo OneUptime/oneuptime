@@ -60,7 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/alert-severity"))
 @SlugifyColumn("name", "slug")

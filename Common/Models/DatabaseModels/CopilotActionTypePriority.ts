@@ -54,7 +54,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
   create: true,
   delete: false,
   update: true,
-  read: false,
 })
 @CrudApiEndpoint(new Route("/copilot-action-type-prority"))
 @TableMetadata({

@@ -864,38 +864,33 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
-      // Dashboards. 
+      // Dashboards.
 
       {
         permission: Permission.CreateDashboard,
         title: "Create Dashboard",
-        description:
-          "This permission can create Dashboards of this project",
+        description: "This permission can create Dashboards of this project",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.DeleteDashboard,
         title: "Delete Dashboard",
-        description:
-          "This permission can delete Dashboard of this project.",
+        description: "This permission can delete Dashboard of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.EditDashboard,
         title: "Edit Dashboard",
-        description:
-          "This permission can edit Dashboards of this project.",
+        description: "This permission can edit Dashboards of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.ReadDashboard,
         title: "Read Dashboard",
-        description:
-          "This permission can read Dashboards of this project.",
+        description: "This permission can read Dashboards of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

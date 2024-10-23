@@ -18,7 +18,15 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import Label from "./Label";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
@@ -52,7 +60,7 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CrudApiEndpoint(new Route("/dashboard"))
 @SlugifyColumn("name", "slug")
@@ -385,7 +393,6 @@ export default class Dashboard extends BaseModel {
   })
   public labels?: Array<Label> = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -415,5 +422,4 @@ export default class Dashboard extends BaseModel {
     type: ColumnType.JSON,
   })
   public dashboardViewConfig?: DashboardViewConfig = undefined;
-
 }

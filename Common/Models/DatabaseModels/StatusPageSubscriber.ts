@@ -37,7 +37,7 @@ import {
 @EnableWorkflow({
   create: true,
   delete: true,
-  update: true
+  update: true,
 })
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
