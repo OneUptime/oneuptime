@@ -322,7 +322,7 @@ const App: () => JSX.Element = () => {
 
         {/* Dashboards */}
         <PageRoute
-          path={RouteMap[PageMap.DASHBOARDS]?.toString() || ""}
+          path={RouteMap[PageMap.DASHBOARDS_ROOT]?.toString() || ""}
           element={<DashboardRoutes {...commonPageProps} />}
         />
 
