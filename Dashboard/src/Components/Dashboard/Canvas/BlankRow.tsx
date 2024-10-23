@@ -10,11 +10,11 @@ export interface ComponentProps {
 const BlankRowElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const defaultRowLength = DefaultDashboardSize.widthInDashboardUnits;
+  const defaultRowLength: number = DefaultDashboardSize.widthInDashboardUnits;
 
   return (
     <div className="flex">
-      {Array.from(Array(defaultRowLength).keys()).map((_, index) => {
+      {Array.from(Array(defaultRowLength).keys()).map((_: number, index: number) => {
         return (
           <DashboardUnitElement
             key={index}

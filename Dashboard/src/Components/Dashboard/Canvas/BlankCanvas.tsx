@@ -9,11 +9,11 @@ export interface ComponentProps {
 const BlankCanvasElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const defaultHeight = DefaultDashboardSize.heightInDashboardUnits;
+  const defaultHeight: number = DefaultDashboardSize.heightInDashboardUnits;
 
   return (
     <div className="">
-      {Array.from(Array(defaultHeight).keys()).map((_, index) => {
+      {Array.from(Array(defaultHeight).keys()).map((_: number, index: number) => {
         return (
           <BlankRowElement
             key={index}

@@ -20,7 +20,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
     DefaultDashboardSize.widthInDashboardUnits;
   const totalWidth: number = defaultWidthInDashbordUnits * 5.94; // 5 rem is the dashboard unit width, and 0.94 is margin between those units.
 
-  const isEditMode = props.dashboardMode === DashboardMode.Edit;
+  const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   return (
     <div
