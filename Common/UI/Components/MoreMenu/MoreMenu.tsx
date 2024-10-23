@@ -7,11 +7,13 @@ import React, {
 } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
-import Icon from "../Icon/Icon";
+import Button, { ButtonStyleType } from "../Button/Button";
 
 export interface ComponentProps {
   children: Array<ReactElement>;
   elementToBeShownInsteadOfButton?: ReactElement | undefined;
+  menuIcon?: IconProp | undefined;
+  text?: string | undefined;
 }
 
 const MoreMenu: React.ForwardRefExoticComponent<
@@ -44,15 +46,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
     return (
       <div className="relative inline-block text-left">
         {!props.elementToBeShownInsteadOfButton && (
-          <div className="h-7 w-7 text-gray-600 mt-1 cursor-pointer">
-            <Icon
-              icon={IconProp.More}
-              className="p-1"
-              onClick={() => {
-                setIsComponentVisible(!isDropdownVisible);
-              }}
-            />
-          </div>
+          <Button icon={props.menuIcon || IconProp.More} title={props.text || ''} buttonStyle={ButtonStyleType.OUTLINE} onClick={()=>{
+            setIsComponentVisible(!isDropdownVisible);
+          }
+          } />
         )}
 
         {props.elementToBeShownInsteadOfButton && (
