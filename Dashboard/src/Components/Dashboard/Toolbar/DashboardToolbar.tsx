@@ -5,12 +5,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 
 export interface ComponentProps {
   onEditClick: () => void;
   onSaveClick: () => void;
   onCancelEditClick: () => void;
   dashboardMode: DashboardMode;
+  onAddComponentClick: (type: DashboardComponentType) => void;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -37,9 +39,15 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         <div className="flex">
           {isEditMode ? (
             <MoreMenu menuIcon={IconProp.Add} text="Add Component">
-              <MoreMenuItem text={"Add Chart"} onClick={() => {}} />
-              <MoreMenuItem text={"Add Value"} onClick={() => {}} />
-              <MoreMenuItem text={"Add Text"} onClick={() => {}} />
+              <MoreMenuItem text={"Add Chart"} onClick={() => {
+                props.onAddComponentClick(DashboardComponentType.Chart);
+              }} />
+              <MoreMenuItem text={"Add Value"} onClick={() => {
+                props.onAddComponentClick(DashboardComponentType.Value);
+              }} />
+              <MoreMenuItem text={"Add Text"} onClick={() => {
+                props.onAddComponentClick(DashboardComponentType.Text);
+              }} />
             </MoreMenu>
           ) : (
             <></>
@@ -57,7 +65,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             <Button
               icon={IconProp.Check}
               title="Save"
-              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
               onClick={props.onSaveClick}
             />
           )}
@@ -65,7 +73,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             <Button
               icon={IconProp.Close}
               title="Cancel"
-              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
               onClick={props.onCancelEditClick}
             />
           )}

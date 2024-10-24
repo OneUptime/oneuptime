@@ -1,6 +1,10 @@
 import ObjectID from "../../ObjectID";
 
 export default interface DashboardBaseComponent {
-  type: string;
+  _type: string;
   componentId: ObjectID;
+  topInDashboardUnits: number;
+  leftInDashboardUnits: number;
+  widthInDashboardUnits: number;
+  heightInDashboardUnits: number;
 }
