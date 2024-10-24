@@ -66,6 +66,7 @@ export enum ObjectType {
   Includes = "Includes",
 
   // Dashboard Components.
+
   DashboardViewConfig = "DashboardViewConfig",
   DashboardTextComponent = "DashboardTextComponent",
   DashboardValueComponent = "DashboardValueComponent",

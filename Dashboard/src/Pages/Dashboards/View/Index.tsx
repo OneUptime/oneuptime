@@ -118,7 +118,7 @@ const DashboardView: FunctionComponent<
         }}
       />
 
-      <DashboardViewer />
+      <DashboardViewer dashboardId={modelId} />
     </Fragment>
   );
 };
