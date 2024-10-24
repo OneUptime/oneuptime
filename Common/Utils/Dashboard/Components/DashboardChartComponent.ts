@@ -1,15 +1,19 @@
-import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardchartComponent";
 import { ObjectType } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import DashboardBaseComponentUtil from "./DashboardBaseComponent";
+import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 
-export default class DashboardChartComponentConfigUtil {
-  public static createDefaultDashboardViewConfig(): DashboardChar {
+export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
+  public static override getDefaultComponent(): DashboardChartComponent {
     return {
       _type: ObjectType.DashboardChartComponent,
-      components: [],
+      widthInDashboardUnits: 3,
+      heightInDashboardUnits: 1,
+      topInDashboardUnits: 0,
+      leftInDashboardUnits: 0,
+      componentId: ObjectID.generate(),
+      chartType: DashboardChartType.Line,
     };
-  }
-
-  public static addDefaultChartComponent(): DashboardViewConfig {
-
   }
 }

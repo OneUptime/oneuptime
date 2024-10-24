@@ -39,15 +39,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         <div className="flex">
           {isEditMode ? (
             <MoreMenu menuIcon={IconProp.Add} text="Add Component">
-              <MoreMenuItem text={"Add Chart"} onClick={() => {
-                props.onAddComponentClick(DashboardComponentType.Chart);
-              }} />
-              <MoreMenuItem text={"Add Value"} onClick={() => {
-                props.onAddComponentClick(DashboardComponentType.Value);
-              }} />
-              <MoreMenuItem text={"Add Text"} onClick={() => {
-                props.onAddComponentClick(DashboardComponentType.Text);
-              }} />
+              <MoreMenuItem
+                text={"Add Chart"}
+                onClick={() => {
+                  props.onAddComponentClick(DashboardComponentType.Chart);
+                }}
+              />
+              <MoreMenuItem
+                text={"Add Value"}
+                onClick={() => {
+                  props.onAddComponentClick(DashboardComponentType.Value);
+                }}
+              />
+              <MoreMenuItem
+                text={"Add Text"}
+                onClick={() => {
+                  props.onAddComponentClick(DashboardComponentType.Text);
+                }}
+              />
             </MoreMenu>
           ) : (
             <></>

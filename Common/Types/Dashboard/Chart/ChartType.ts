@@ -1,3 +1,6 @@
-type ChartType = "line" | "bar"; // | "pie" | "doughnut" | "radar" | "polarArea" | "bubble" | "scatter";
+enum DashboardChartType {
+  Line = "Line",
+  Bar = "Bar",
+}
 
-export default ChartType;
+export default DashboardChartType;

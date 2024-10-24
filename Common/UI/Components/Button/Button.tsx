@@ -22,7 +22,7 @@ export enum ButtonStyleType {
   ICON,
   HOVER_DANGER_OUTLINE,
   HOVER_SUCCESS_OUTLINE,
-  HOVER_PRIMARY_OUTLINE
+  HOVER_PRIMARY_OUTLINE,
 }
 
 export enum ButtonSize {
@@ -176,21 +176,25 @@ const Button: FunctionComponent<ComponentProps> = ({
     }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }
 
-  if (buttonStyle === ButtonStyleType.OUTLINE || buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE || buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE || buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE) {
+  if (
+    buttonStyle === ButtonStyleType.OUTLINE ||
+    buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE ||
+    buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
+    buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE
+  ) {
     buttonStyleCssClass = `flex btn-outline-secondary background-very-light-Gray500-on-hover sm:text-sm ml-1`;
 
-    if(buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE){
+    if (buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE) {
       buttonStyleCssClass += ` hover:text-red-500`;
     }
 
-    if(buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE){
+    if (buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE) {
       buttonStyleCssClass += ` hover:text-green-500`;
     }
 
-    if(buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE){
+    if (buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE) {
       buttonStyleCssClass += ` hover:text-indigo-500`;
     }
-    
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS) {

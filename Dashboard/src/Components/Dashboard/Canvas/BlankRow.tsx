@@ -14,16 +14,18 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="flex">
-      {Array.from(Array(defaultRowLength).keys()).map((_: number, index: number) => {
-        return (
-          <DashboardUnitElement
-            key={index}
-            onDrop={() => {
-              props.onDrop(props.rowNumber, index);
-            }}
-          />
-        );
-      })}
+      {Array.from(Array(defaultRowLength).keys()).map(
+        (_: number, index: number) => {
+          return (
+            <DashboardUnitElement
+              key={index}
+              onDrop={() => {
+                props.onDrop(props.rowNumber, index);
+              }}
+            />
+          );
+        },
+      )}
     </div>
   );
 };

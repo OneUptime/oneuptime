@@ -13,15 +13,17 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="">
-      {Array.from(Array(defaultHeight).keys()).map((_: number, index: number) => {
-        return (
-          <BlankRowElement
-            key={index}
-            rowNumber={index}
-            onDrop={props.onDrop}
-          />
-        );
-      })}
+      {Array.from(Array(defaultHeight).keys()).map(
+        (_: number, index: number) => {
+          return (
+            <BlankRowElement
+              key={index}
+              rowNumber={index}
+              onDrop={props.onDrop}
+            />
+          );
+        },
+      )}
     </div>
   );
 };

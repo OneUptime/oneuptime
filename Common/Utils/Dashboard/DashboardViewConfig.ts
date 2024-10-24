@@ -8,7 +8,5 @@ export default class DashboardViewConfigUtil {
     };
   }
 
-  public static addDefaultChartComponent(): DashboardViewConfig {
-
-  }
+  public static addDefaultChartComponent(): DashboardViewConfig {}
 }

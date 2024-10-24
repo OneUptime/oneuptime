@@ -9,7 +9,6 @@ export interface ComponentProps {}
 const DashboardViewer: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
-  
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(
     DashboardMode.View,
   );
@@ -27,9 +26,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onEditClick={() => {
           setDashboardMode(DashboardMode.Edit);
         }}
-        onAddComponentClick={(componentType: DashboardComponentType) => {
-
-        }}
+        onAddComponentClick={(componentType: DashboardComponentType) => {}}
       />
       <DashboardCanvas />
     </div>
