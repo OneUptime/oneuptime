@@ -1,4 +1,3 @@
-import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -18,18 +17,12 @@ export interface ComponentProps {
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const defaultWidthInDashbordUnits: number =
-    DefaultDashboardSize.widthInDashboardUnits;
-  const totalWidth: number = defaultWidthInDashbordUnits * 5.94; // 5 rem is the dashboard unit width, and 0.94 is margin between those units.
-
+  
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   return (
     <div
       className={`m-1.5  p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
-      style={{
-        width: `${totalWidth}rem`,
-      }}
     >
       <div className="w-full flex justify-between">
         <div className="text-md">

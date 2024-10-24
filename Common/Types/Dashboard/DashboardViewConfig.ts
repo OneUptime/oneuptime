@@ -5,5 +5,4 @@ export default interface DashboardViewConfig {
   _type: ObjectType.DashboardViewConfig;
   components: Array<DashboardBaseComponent>;
   heightInDashboardUnits: number;
-  widthInDashboardUnits: number;
 }

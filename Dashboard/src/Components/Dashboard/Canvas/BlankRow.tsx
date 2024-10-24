@@ -7,22 +7,23 @@ export interface ComponentProps {
   rowNumber: number;
   onDrop: (top: number, left: number) => void;
   dashboardViewConfig: DashboardViewConfig;
+  isEditMode: boolean;
 }
 
 const BlankRowElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const defaultRowLength: number =
-    props.dashboardViewConfig.widthInDashboardUnits ||
     DefaultDashboardSize.widthInDashboardUnits;
 
   return (
-    <div className="flex">
+    <>
       {Array.from(Array(defaultRowLength).keys()).map(
         (_: number, index: number) => {
           return (
             <DashboardUnitElement
               key={index}
+              isEditMode={props.isEditMode}
               onDrop={() => {
                 props.onDrop(props.rowNumber, index);
               }}
@@ -30,7 +31,7 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
           );
         },
       )}
-    </div>
+    </>
   );
 };
 

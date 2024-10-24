@@ -2,14 +2,22 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   onDrop: () => void;
+  isEditMode: boolean;
 }
 
 const DashboardUnitElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+
+  let className: string = "m-2 h-20 w-20 min-w-20 min-h-20 ";
+
+  if (props.isEditMode) {
+    className += "border-2 border-gray-100 rounded hover:border-gray-300 hover:bg-gray-100 cursor-pointer";
+  }
+
   return (
     <div
-      className="m-2 h-20 w-20 min-w-20 min-h-20 border-2 border-gray-100 rounded hover:border-gray-300 hover:bg-gray-100"
+      className={className}
       onClick={props.onDrop}
     ></div>
   );

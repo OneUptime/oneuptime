@@ -8,7 +8,6 @@ export default class DashboardViewConfigUtil {
     return {
       _type: ObjectType.DashboardViewConfig,
       components: [],
-      widthInDashboardUnits: DashboardSize.widthInDashboardUnits,
       heightInDashboardUnits: DashboardSize.heightInDashboardUnits,
     };
   }

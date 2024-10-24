@@ -22,7 +22,7 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
+import DefaultDashboardSize, { TotalWidthOfDashboardInRem } from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {
@@ -41,7 +41,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       _type: ObjectType.DashboardViewConfig,
       components: [],
       heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
-      widthInDashboardUnits: DefaultDashboardSize.widthInDashboardUnits,
     });
 
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +88,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
+    <div style={{
+      width: TotalWidthOfDashboardInRem + "rem",
+    }}>
       <DashboardToolbar
         dashboardMode={dashboardMode}
         onSaveClick={() => {
@@ -131,12 +132,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newDashboardConfig);
         }}
       />
+
       <DashboardCanvas
         dashboardViewConfig={dashboardViewConfig}
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
           setDashboardViewConfig(newConfig);
         }}
+        isEditMode={dashboardMode === DashboardMode.Edit}
       />
+
     </div>
   );
 };
