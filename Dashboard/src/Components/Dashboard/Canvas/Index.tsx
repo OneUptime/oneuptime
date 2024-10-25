@@ -4,6 +4,7 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import BlankDashboardUnitElement from "./DashboardUnit";
+import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -61,10 +62,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
     for (let i = 0; i < canvasHeight; i++) {
       for (let j = 0; j < canvasWidth; j++) {
+
         const component: DashboardBaseComponent | null | undefined = grid[i]![j];
+
         if (component && !renderedComponentsIds.includes(component.componentId.toString())) {
           renderedComponents.push(renderComponent(component));
-          renderedComponentsIds.push(component.id);
+          renderedComponentsIds.push(component.componentId.toString());
         }
 
         if (!component) {
@@ -73,18 +76,28 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             onDrop={() => { }}
             isEditMode={props.isEditMode}
             key={`blank-${i}-${j}`} />)
-            ;
+            
         }
       }
     }
+
+    // remove nulls from the renderedComponents array
+
+    const finalRenderedComponents: Array<ReactElement> = renderedComponents.filter(
+      (component: ReactElement | null): component is ReactElement => component !== null,
+    );
+
+    const width: number =  DefaultDashboardSize.widthInDashboardUnits; 
+
+    return <div className={`grid grid-cols-${width}`}>
+      {finalRenderedComponents}
+    </div>
 
   }
 
 
   const renderComponent = (component: DashboardBaseComponent): ReactElement => {
-
-    return <DashboardBasec
-
+    return <DashboardBaseComponentElement isEditMode={props.isEditMode} component={component} key={component.componentId.toString()} />
   };
 
   if (!props.dashboardViewConfig || props.dashboardViewConfig.components.length === 0) {

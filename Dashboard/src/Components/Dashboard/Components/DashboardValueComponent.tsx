@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import DashboardTextComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
+import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 
 export interface ComponentProps {
-    component: DashboardTextComponent;
+    component: DashboardValueComponent;
     isEditMode: boolean
 }
 

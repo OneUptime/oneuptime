@@ -11,6 +11,7 @@ import DashboardTextComponent from './DashboardTextComponent';
 export interface ComponentProps {
     component: DashboardBaseComponent
     isEditMode: boolean
+    key: string
 }
 
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
@@ -26,7 +27,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     return (
         <div className={
             className
-        }>
+        } key={props.key}>
             {props.component._type === ObjectType.DashboardTextComponent && <DashboardTextComponent isEditMode={props.isEditMode} component={props.component as DashboardTextComponentType} />}
             {props.component._type === ObjectType.DashboardChartComponent && <DashboardChartComponent isEditMode={props.isEditMode} component={props.component as DashboardChartComponentType} />}
             {props.component._type === ObjectType.DashboardValueComponent && <DashboardValueComponent isEditMode={props.isEditMode} component={props.component as DashboardValueComponentType} />}
