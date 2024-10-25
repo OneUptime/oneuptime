@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
-import DashboardUnitElement from "./DashboardUnit";
+import BlankDashboardUnitElement from "./DashboardUnit";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 
 export interface ComponentProps {
@@ -21,7 +21,7 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
       {Array.from(Array(defaultRowLength).keys()).map(
         (_: number, index: number) => {
           return (
-            <DashboardUnitElement
+            <BlankDashboardUnitElement
               key={index}
               isEditMode={props.isEditMode}
               onDrop={() => {

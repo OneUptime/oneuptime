@@ -1,4 +1,4 @@
-import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardchartComponent";
+import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardChartComponenta";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";

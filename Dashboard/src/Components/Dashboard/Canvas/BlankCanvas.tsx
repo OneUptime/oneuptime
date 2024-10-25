@@ -10,10 +10,10 @@ export interface ComponentProps {
 }
 
 const BlankCanvasElement: FunctionComponent<ComponentProps> = (
-  porps: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
   const height: number =
-    porps.dashboardViewConfig.heightInDashboardUnits ||
+  props.dashboardViewConfig.heightInDashboardUnits ||
     DefaultDashboardSize.heightInDashboardUnits;
 
 
@@ -26,12 +26,12 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
       {Array.from(Array(height).keys()).map((_: number, index: number) => {
         return (
           <BlankRowElement
-            dashboardViewConfig={porps.dashboardViewConfig}
+            dashboardViewConfig={props.dashboardViewConfig}
             key={index}
-            isEditMode={porps.isEditMode}
+            isEditMode={props.isEditMode}
             rowNumber={index}
             onDrop={(top: number, left: number) => {
-              porps.onDrop(top, left);
+              props.onDrop(top, left);
             }}
           />
         );
