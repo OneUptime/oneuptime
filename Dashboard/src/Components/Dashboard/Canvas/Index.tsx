@@ -107,12 +107,21 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const [selectedComponentId, setSelectedComponentId] = React.useState<string | null>(
+    null,
+  );
+
   const renderComponent = (component: DashboardBaseComponent): ReactElement => {
     return (
       <DashboardBaseComponentElement
         isEditMode={props.isEditMode}
         component={component}
         key={component.componentId.toString()}
+        isSelected={selectedComponentId === component.componentId.toString()}
+        onClick={() => {
+          // component is selected
+          setSelectedComponentId(component.componentId.toString());
+        }}
       />
     );
   };

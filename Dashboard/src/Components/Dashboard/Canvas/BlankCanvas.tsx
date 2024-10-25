@@ -18,13 +18,18 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   const width: number = DefaultDashboardSize.widthInDashboardUnits;
 
+  if(!props.isEditMode && props.dashboardViewConfig.components.length === 0) {
+    return <div className="rounded p-10 border-2 border-gray-100 text-sm text-gray-400 text-center">
+      No components added to this dashboard. Please add one to get started.
+      </div>;
+  }
+
   // have a grid with width cols and height rows
   return (
     <div className={`grid grid-cols-${width}`}>
       {Array.from(Array(height).keys()).map((_: number, index: number) => {
         return (
           <BlankRowElement
-            dashboardViewConfig={props.dashboardViewConfig}
             key={index}
             isEditMode={props.isEditMode}
             rowNumber={index}
