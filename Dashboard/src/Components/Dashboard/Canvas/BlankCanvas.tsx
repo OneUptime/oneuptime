@@ -13,14 +13,12 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const height: number =
-  props.dashboardViewConfig.heightInDashboardUnits ||
+    props.dashboardViewConfig.heightInDashboardUnits ||
     DefaultDashboardSize.heightInDashboardUnits;
 
+  const width: number = DefaultDashboardSize.widthInDashboardUnits;
 
-    const width: number =  DefaultDashboardSize.widthInDashboardUnits; 
-
-
-    // have a grid with width cols and height rows
+  // have a grid with width cols and height rows
   return (
     <div className={`grid grid-cols-${width}`}>
       {Array.from(Array(height).keys()).map((_: number, index: number) => {

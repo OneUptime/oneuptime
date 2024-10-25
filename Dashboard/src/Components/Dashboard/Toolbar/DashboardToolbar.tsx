@@ -17,7 +17,6 @@ export interface ComponentProps {
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   return (

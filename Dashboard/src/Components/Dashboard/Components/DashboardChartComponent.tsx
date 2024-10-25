@@ -1,28 +1,16 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
+import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 
-export interface ComponentProps {
-    component: DashboardChartComponent;
-    isEditMode: boolean
+export interface ComponentProps extends DashboardBaseComponentProps {
+  component: DashboardChartComponent;
 }
 
-const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
+  _props: ComponentProps,
 ): ReactElement => {
 
-    const widthOfComponent: number = props.component.widthInDashboardUnits;
-    const heightOfComponent: number = props.component.heightInDashboardUnits;
-
-    let className = `col-span-${widthOfComponent} row-span-${heightOfComponent}`;
-
-
-    return (
-        <div className={
-            className
-        }>
-            Text Component
-        </div>
-    );
+  return <div>Chart Component</div>;
 };
 
-export default DashboardTextComponentElement;
+export default DashboardChartComponentElement;

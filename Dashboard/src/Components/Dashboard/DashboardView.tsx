@@ -22,7 +22,9 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize, { TotalWidthOfDashboardInRem } from "Common/Types/Dashboard/DashboardSize";
+import DefaultDashboardSize, {
+  TotalWidthOfDashboardInRem,
+} from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {
@@ -46,31 +48,32 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const fetchDashboardViewConfig: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const dashboard: Dashboard | null = await ModelAPI.getItem({
-        modelType: Dashboard,
-        id: props.dashboardId,
-        select: {
-          dashboardViewConfig: true,
-          name: true,
-          description: true,
-        },
-      });
+  const fetchDashboardViewConfig: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const dashboard: Dashboard | null = await ModelAPI.getItem({
+          modelType: Dashboard,
+          id: props.dashboardId,
+          select: {
+            dashboardViewConfig: true,
+            name: true,
+            description: true,
+          },
+        });
 
-      if (!dashboard) {
-        setError("Dashboard not found");
-        return;
+        if (!dashboard) {
+          setError("Dashboard not found");
+          return;
+        }
+
+        setDashboardViewConfig(dashboard.dashboardViewConfig!);
+      } catch (err) {
+        setError(API.getFriendlyErrorMessage(err as Error));
       }
 
-      setDashboardViewConfig(dashboard.dashboardViewConfig!);
-    } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Error));
-    }
-
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    };
 
   useEffect(() => {
     // Fetch the dashboard view config from the server
@@ -88,9 +91,11 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div style={{
-      width: TotalWidthOfDashboardInRem + "rem",
-    }}>
+    <div
+      style={{
+        width: TotalWidthOfDashboardInRem + "rem",
+      }}
+    >
       <DashboardToolbar
         dashboardMode={dashboardMode}
         onSaveClick={() => {
@@ -140,7 +145,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         isEditMode={dashboardMode === DashboardMode.Edit}
       />
-
     </div>
   );
 };
