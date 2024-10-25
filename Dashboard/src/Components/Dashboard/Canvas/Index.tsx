@@ -82,9 +82,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           // render a blank unit
           renderedComponents.push(
             <BlankDashboardUnitElement
-              onDrop={() => {}}
               isEditMode={props.isEditMode}
               key={`blank-${i}-${j}`}
+              onClick={() => {
+                // unselect the component
+                setSelectedComponentId(null);
+              }}
             />,
           );
         }
@@ -107,9 +110,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const [selectedComponentId, setSelectedComponentId] = React.useState<string | null>(
-    null,
-  );
+  const [selectedComponentId, setSelectedComponentId] = React.useState<
+    string | null
+  >(null);
 
   const renderComponent = (component: DashboardBaseComponent): ReactElement => {
     return (
@@ -133,7 +136,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return (
       <BlankCanvasElement
         isEditMode={props.isEditMode}
-        onDrop={() => {}}
+        onClick={() => {}}
         dashboardViewConfig={props.dashboardViewConfig}
       />
     );

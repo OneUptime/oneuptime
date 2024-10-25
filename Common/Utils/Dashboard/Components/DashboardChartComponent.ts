@@ -8,8 +8,8 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
   public static override getDefaultComponent(): DashboardChartComponent {
     return {
       _type: ObjectType.DashboardChartComponent,
-      widthInDashboardUnits: 3,
-      heightInDashboardUnits: 1,
+      widthInDashboardUnits: 8,
+      heightInDashboardUnits: 6,
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),

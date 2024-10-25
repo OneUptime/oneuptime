@@ -7,6 +7,7 @@ import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import { DashboardRemConversionFactor } from "Common/Types/Dashboard/DashboardSize";
 
 export interface DashboardBaseComponentProps {
   component: DashboardBaseComponent;
@@ -14,7 +15,6 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
 }
-
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   onClick: () => void;
@@ -26,24 +26,88 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const widthOfComponent: number = props.component.widthInDashboardUnits;
   const heightOfComponent: number = props.component.heightInDashboardUnits;
 
-  let className = `col-span-${widthOfComponent} row-span-${heightOfComponent}`;
+  let className = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} border border-solid border-gray-300 p-2`;
 
-  if (props.isSelected) {
-    className += "border-2 border-indigo-300";
+  if (props.isEditMode) {
+    className += "  cursor-pointer";
   }
 
+  if (props.isSelected) {
+    className += " border-2 border-indigo-300";
+  }
+
+  const getMoveElement = (): ReactElement => {
+    // if not selected, then return null
+
+    if (!props.isSelected) {
+      return <></>;
+    }
+
+    return (
+      <div
+        style={{
+          top: "-9px",
+          left: "-9px",
+        }}
+        className="move-element cursor-move absolute w-4 h-4 bg-indigo-400 rounded-full cursor-pointer"
+      ></div>
+    );
+  };
+
+  const getResizeWidthElement = (): ReactElement => {
+    if (!props.isSelected) {
+      return <></>;
+    }
+
+    return (
+      <div
+        style={{
+          top: "calc(50% - 20px)",
+          right: "-5px",
+        }}
+        className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-indigo-400 rounded-full cursor-pointer"
+      ></div>
+    );
+  };
+
+  const getResizeHeightElement = (): ReactElement => {
+    if (!props.isSelected) {
+      return <></>;
+    }
+
+    return (
+      <div
+        style={{
+          bottom: "-5px",
+          left: "calc(50% - 20px)",
+        }}
+        className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-indigo-400 rounded-full cursor-pointer"
+      ></div>
+    );
+  };
+
+  const height: number = props.component.heightInDashboardUnits;
+  const heightInRem: number = height * DashboardRemConversionFactor;
 
   return (
-    <div className={className} key={props.key} onClick={() => {
-      props.onClick();
-    }}>
+    <div
+      className={className}
+      key={props.key}
+      onClick={() => {
+        props.onClick();
+      }}
+      style={{
+        height: `${heightInRem}rem`,
+      }}
+    >
+      {getMoveElement()}
+
       {props.component._type === ObjectType.DashboardTextComponent && (
         <DashboardTextComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={props.component as DashboardTextComponentType}
-
         />
       )}
       {props.component._type === ObjectType.DashboardChartComponent && (
@@ -62,6 +126,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           component={props.component as DashboardValueComponentType}
         />
       )}
+
+      {getResizeWidthElement()}
+      {getResizeHeightElement()}
     </div>
   );
 };

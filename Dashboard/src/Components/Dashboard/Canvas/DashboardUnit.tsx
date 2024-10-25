@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  onDrop: () => void;
   isEditMode: boolean;
+  onClick: () => void;
 }
 
 const DashboardUnitElement: FunctionComponent<ComponentProps> = (
@@ -15,7 +15,14 @@ const DashboardUnitElement: FunctionComponent<ComponentProps> = (
       "border-2 border-gray-100 rounded hover:border-gray-300 hover:bg-gray-100 cursor-pointer";
   }
 
-  return <div className={className} onClick={props.onDrop}></div>;
+  return (
+    <div
+      className={className}
+      onClick={() => {
+        props.onClick();
+      }}
+    ></div>
+  );
 };
 
 export default DashboardUnitElement;

@@ -24,6 +24,12 @@ const DashboardView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Dashboards/View/Index");
   });
 
+const DashboardViewOverview: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Dashboards/View/Overview");
+});
+
 const DashboardViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -58,6 +64,18 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               <DashboardView
                 {...props}
                 pageRoute={RouteMap[PageMap.DASHBOARD_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_OVERVIEW)}
+          element={
+            <Suspense fallback={Loader}>
+              <DashboardViewOverview
+                {...props}
+                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_OVERVIEW] as Route}
               />
             </Suspense>
           }

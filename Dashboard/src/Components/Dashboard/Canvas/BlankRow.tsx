@@ -4,7 +4,7 @@ import BlankDashboardUnitElement from "./DashboardUnit";
 
 export interface ComponentProps {
   rowNumber: number;
-  onDrop: (top: number, left: number) => void;
+  onClick: (top: number, left: number) => void;
   isEditMode: boolean;
 }
 
@@ -21,8 +21,8 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
             <BlankDashboardUnitElement
               key={index}
               isEditMode={props.isEditMode}
-              onDrop={() => {
-                props.onDrop(props.rowNumber, index);
+              onClick={() => {
+                props.onClick(props.rowNumber, index);
               }}
             />
           );

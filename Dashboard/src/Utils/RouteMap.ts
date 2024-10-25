@@ -102,6 +102,7 @@ export const TelemetryRoutePath: Dictionary<string> = {
 
 export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
   [PageMap.DASHBOARD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -709,6 +710,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARD_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_OVERVIEW]
     }`,
   ),
 

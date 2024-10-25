@@ -9,7 +9,9 @@ const DefaultDashboardSize: DashboardSize = {
 };
 // 5 rem is the dashboard unit width, and 0.94 is margin between those units.
 
+export const DashboardRemConversionFactor: number = 5.94;
+
 export const TotalWidthOfDashboardInRem: number =
-  DefaultDashboardSize.widthInDashboardUnits * 5.94;
+  DefaultDashboardSize.widthInDashboardUnits * DashboardRemConversionFactor;
 
 export default DefaultDashboardSize;

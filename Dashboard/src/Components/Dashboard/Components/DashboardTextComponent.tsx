@@ -9,8 +9,6 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
-  
-
   return <div>Text Component</div>;
 };
 

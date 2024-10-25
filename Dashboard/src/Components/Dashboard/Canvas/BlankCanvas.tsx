@@ -5,7 +5,7 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
-  onDrop: (top: number, left: number) => void;
+  onClick: (top: number, left: number) => void;
   isEditMode: boolean;
 }
 
@@ -18,10 +18,12 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   const width: number = DefaultDashboardSize.widthInDashboardUnits;
 
-  if(!props.isEditMode && props.dashboardViewConfig.components.length === 0) {
-    return <div className="rounded p-10 border-2 border-gray-100 text-sm text-gray-400 text-center">
-      No components added to this dashboard. Please add one to get started.
-      </div>;
+  if (!props.isEditMode && props.dashboardViewConfig.components.length === 0) {
+    return (
+      <div className="rounded p-10 border-2 border-gray-100 text-sm text-gray-400 text-center">
+        No components added to this dashboard. Please add one to get started.
+      </div>
+    );
   }
 
   // have a grid with width cols and height rows
@@ -33,8 +35,8 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
             key={index}
             isEditMode={props.isEditMode}
             rowNumber={index}
-            onDrop={(top: number, left: number) => {
-              props.onDrop(top, left);
+            onClick={(top: number, left: number) => {
+              props.onClick(top, left);
             }}
           />
         );
