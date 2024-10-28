@@ -52,13 +52,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           left: "-9px",
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-indigo-400 rounded-full cursor-pointer"
-        onDragStart={(event: React.DragEvent<HTMLDivElement>) => {
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {
 
 
         }}
-        onDragEnd={(event: React.DragEvent<HTMLDivElement>) => {
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {
 
-          
+
         }}
       >
 
