@@ -43,10 +43,16 @@ const App: () => JSX.Element = () => {
   const [isPreview, setIsPreview] = useState<boolean>(false);
   const [enableEmailSubscribers, setenableEmailSubscribers] =
     useState<boolean>(true);
-  const [
+  
+    const [
     allowSubscribersToChooseResources,
     setAllowSubscribersToChooseResources,
   ] = useState<boolean>(false);
+
+
+  const [allowSubscriberToChooseEventTypes, setAllowSubscriberToChooseEventTypes] =
+    useState<boolean>(false);
+
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
@@ -130,7 +136,14 @@ const App: () => JSX.Element = () => {
             "statusPage.allowSubscribersToChooseResources",
           ) as boolean;
 
+          const allowSubscribersToChooseEventTypes: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.allowSubscribersToChooseEventTypes"
+          ) as boolean;
+
         setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
+        setAllowSubscriberToChooseEventTypes(allowSubscribersToChooseEventTypes);
 
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
@@ -310,6 +323,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               onLoadComplete={() => {
                 onPageLoadComplete();
               }}
@@ -330,6 +346,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -346,6 +365,9 @@ const App: () => JSX.Element = () => {
               }}
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
+              }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
               }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
@@ -378,6 +400,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -395,6 +420,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -408,6 +436,9 @@ const App: () => JSX.Element = () => {
               onLoadComplete={() => {
                 onPageLoadComplete();
               }}
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route}
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
