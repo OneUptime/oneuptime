@@ -319,6 +319,7 @@ export class Service extends DatabaseService<Model> {
     statusPage: StatusPage;
     eventType: StatusPageEventType;
   }): boolean {
+
     let shouldSendNotification: boolean = true; // default to true.
 
     if (data.subscriber.isUnsubscribed) {
@@ -341,7 +342,7 @@ export class Service extends DatabaseService<Model> {
       let shouldSendNotificationForResource: boolean = false;
 
       if (subscriberResourceIds.length === 0) {
-        shouldSendNotificationForResource = true;
+        shouldSendNotificationForResource = false;
       } else {
         for (const resource of data.statusPageResources) {
           if (
