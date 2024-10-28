@@ -118,14 +118,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
       ></NavBarItem>
 
-      <NavBarItem
+      {/* <NavBarItem
         title="Dashboards"
         activeRoute={RouteMap[PageMap.DASHBOARDS]}
         icon={IconProp.Window}
         route={RouteUtil.populateRouteParams(
           RouteMap[PageMap.DASHBOARDS] as Route,
         )}
-      ></NavBarItem>
+      ></NavBarItem> */}
 
       <NavBarItem
         title="More"
