@@ -319,7 +319,6 @@ export class Service extends DatabaseService<Model> {
     statusPage: StatusPage;
     eventType: StatusPageEventType;
   }): boolean {
-
     let shouldSendNotification: boolean = true; // default to true.
 
     if (data.subscriber.isUnsubscribed) {
