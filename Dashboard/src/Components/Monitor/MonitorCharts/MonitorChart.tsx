@@ -257,6 +257,8 @@ export class MonitorCharts {
       return "CPU Usage in % for this server.";
     } else if (data.checkOn === CheckOn.IsOnline) {
       return "Online or Offline Monitor Status. 1 is Online, 0 is Offline.";
+    } else if (data.checkOn === CheckOn.ExecutionTime) {
+      return "Execution Time in ms for this monitor.";
     }
 
     return "";
@@ -355,6 +357,21 @@ export class MonitorCharts {
           precision: YAxisPrecision.TwoDecimals,
           formatter: (value: number) => {
             return `${value}%`;
+          },
+        },
+      };
+    } else if(
+      data.checkOn === CheckOn.ExecutionTime
+    ){
+      return {
+        legend: "Execution Time (in ms)",
+        options: {
+          type: YAxisType.Number,
+          min: 0,
+          max: "auto",
+          precision: YAxisPrecision.NoDecimals,
+          formatter: (value: number) => {
+            return `${value} ms`;
           },
         },
       };
