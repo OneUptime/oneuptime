@@ -129,6 +129,16 @@ const StatusPageDelete: FunctionComponent<
             },
             {
               field: {
+                allowSubscribersToChooseEventTypes: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Allow Subscribers to Choose Event Types",
+              description:
+                "Can subscribers choose which event types they want to subscribe to (like Incidents, Announcements or Scheduled Events)?",
+
+            },
+            {
+              field: {
                 subscriberTimezones: true,
               },
               fieldType: FieldType.Element,

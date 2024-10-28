@@ -158,6 +158,7 @@ RunCron(
 
           for (const subscriber of subscribers) {
             try {
+              
               if (!subscriber._id) {
                 continue;
               }
