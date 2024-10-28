@@ -121,6 +121,34 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
   }
 
+  if (props.allowSubscribersToChooseEventTypes) {
+    fields.push({
+      field: {
+        isSubscribedToAllEventTypes: true,
+      },
+      title: "Subscribe to All Event Types",
+      description:
+        "Select this option if you want to subscribe to all event types.",
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
+
+    fields.push({
+      field: {
+        statusPageEventTypes: true,
+      },
+      title: "Select Event Types to Subscribe",
+      description: "Please select the event types you want to subscribe to.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllEventTypes;
+      },
+    });
+  }
+
   return (
     <Page
       title={"Subscribe"}

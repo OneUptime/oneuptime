@@ -73,6 +73,7 @@ import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/Sta
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -250,6 +251,7 @@ export default class StatusPageAPI extends BaseAPI<
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             allowSubscribersToChooseResources: true,
+            allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
             coverImageFile: {
               file: true,
@@ -1750,6 +1752,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableEmailSubscribers: true,
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
       },
       props: {
         isRoot: true,
@@ -1838,11 +1841,24 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
+    if (
+      req.body.data["statusPageEventTypes"] &&
+      !statusPage.allowSubscribersToChooseEventTypes
+    ) {
+      throw new BadDataException(
+        "Subscribers are not allowed to choose event types for this status page.",
+      );
+    }
+
     statusPageSubscriber.statusPageId = objectId;
     statusPageSubscriber.sendYouHaveSubscribedMessage = true;
     statusPageSubscriber.projectId = statusPage.projectId!;
     statusPageSubscriber.isSubscribedToAllResources = Boolean(
       req.body.data["isSubscribedToAllResources"],
+    );
+
+    statusPageSubscriber.isSubscribedToAllEventTypes = Boolean(
+      req.body.data["isSubscribedToAllEventTypes"],
     );
 
     if (
@@ -1852,6 +1868,15 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber.statusPageResources = req.body.data[
         "statusPageResources"
       ] as Array<StatusPageResource>;
+    }
+
+    if (
+      req.body.data["statusPageEventTypes"] &&
+      req.body.data["statusPageEventTypes"].length > 0
+    ) {
+      statusPageSubscriber.statusPageEventTypes = req.body.data[
+        "statusPageEventTypes"
+      ] as Array<StatusPageEventType>;
     }
 
     if (isUpdate) {

@@ -29,6 +29,7 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -195,6 +196,7 @@ RunCron(
               subscriber: subscriber,
               statusPageResources: statusPageToResources[statuspage._id!] || [],
               statusPage: statuspage,
+              eventType: StatusPageEventType.ScheduledEvent,
             });
 
           if (!shouldNotifySubscriber) {

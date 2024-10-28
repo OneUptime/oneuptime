@@ -699,12 +699,7 @@ export class Service extends DatabaseService<StatusPage> {
           continue;
         }
 
-        const shouldNotifySubscriber: boolean =
-          StatusPageSubscriberService.shouldSendNotification({
-            subscriber: subscriber,
-            statusPageResources: [],
-            statusPage: statuspage,
-          });
+        const shouldNotifySubscriber: boolean = !subscriber.isUnsubscribed;
 
         if (!shouldNotifySubscriber) {
           continue;

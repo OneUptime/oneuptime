@@ -22,6 +22,7 @@ import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 
 RunCron(
   "Announcement:SendNotificationToSubscribers",
@@ -106,6 +107,18 @@ RunCron(
           for (const subscriber of subscribers) {
             try {
               if (!subscriber._id) {
+                continue;
+              }
+
+              const shouldNotifySubscriber: boolean =
+                StatusPageSubscriberService.shouldSendNotification({
+                  subscriber: subscriber,
+                  statusPageResources: [], // this is an announcement so we dont care about resources
+                  statusPage: statuspage,
+                  eventType: StatusPageEventType.Announcement,
+                });
+
+              if (!shouldNotifySubscriber) {
                 continue;
               }
 

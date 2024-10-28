@@ -9,8 +9,15 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import DropdownUtil from "./Dropdown";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import { DropdownOption } from "../Components/Dropdown/Dropdown";
 
 export default class StatusPageUtil {
+  public static getDropdownPropsBasedOnEventTypes(): Array<DropdownOption> {
+    return DropdownUtil.getDropdownOptionsFromEnum(StatusPageEventType);
+  }
+
   public static async getCategoryCheckboxPropsBasedOnResources(
     statusPageId: ObjectID,
     overrideRequestUrl?: URL,
