@@ -5,6 +5,7 @@ import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import BlankDashboardUnitElement from "./DashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -15,7 +16,7 @@ export interface ComponentProps {
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const renderComponents = (): ReactElement => {
+  const renderComponents: GetReactElementFunction = (): ReactElement => {
     const canvasHeight: number =
       props.dashboardViewConfig.heightInDashboardUnits ||
       DefaultDashboardSize.heightInDashboardUnits;
@@ -29,7 +30,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     const grid: Array<Array<DashboardBaseComponent | null>> = [];
 
     // Fill the grid with null initially
-    for (let row = 0; row < canvasHeight; row++) {
+    for (let row: number = 0; row < canvasHeight; row++) {
       grid[row] = new Array(canvasWidth).fill(null);
     }
 
@@ -43,7 +44,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       } = component;
 
       for (
-        let i = topInDashboardUnits;
+        let i: number = topInDashboardUnits;
         i < topInDashboardUnits + heightInDashboardUnits;
         i++
       ) {
@@ -52,7 +53,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }
 
         for (
-          let j = leftInDashboardUnits;
+          let j: number = leftInDashboardUnits;
           j < leftInDashboardUnits + widthInDashboardUnits;
           j++
         ) {
@@ -65,8 +66,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
     const renderedComponents: Array<ReactElement | null> = [];
 
-    for (let i = 0; i < canvasHeight; i++) {
-      for (let j = 0; j < canvasWidth; j++) {
+    for (let i: number = 0; i < canvasHeight; i++) {
+      for (let j: number = 0; j < canvasWidth; j++) {
         const component: DashboardBaseComponent | null | undefined =
           grid[i]![j];
 
@@ -114,7 +115,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     string | null
   >(null);
 
-  const renderComponent = (component: DashboardBaseComponent): ReactElement => {
+  type RenderComponentFunction = (
+    component: DashboardBaseComponent,
+  ) => ReactElement;
+
+  const renderComponent: RenderComponentFunction = (
+    component: DashboardBaseComponent,
+  ): ReactElement => {
     return (
       <DashboardBaseComponentElement
         isEditMode={props.isEditMode}
@@ -124,6 +131,24 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         onClick={() => {
           // component is selected
           setSelectedComponentId(component.componentId.toString());
+        }}
+        onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
+          const updatedComponents: Array<DashboardBaseComponent> = props.dashboardViewConfig.components.map(
+            (component: DashboardBaseComponent) => {
+              if (component.componentId.toString() === updatedComponent.componentId.toString()) {
+                return updatedComponent;
+              }
+
+              return component;
+            },
+          );
+
+          const updatedDashboardViewConfig: DashboardViewConfig = {
+            ...props.dashboardViewConfig,
+            components: updatedComponents,
+          };
+
+          props.onDashboardViewConfigChange(updatedDashboardViewConfig);
         }}
       />
     );

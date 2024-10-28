@@ -8,12 +8,14 @@ import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
 import { DashboardRemConversionFactor } from "Common/Types/Dashboard/DashboardSize";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface DashboardBaseComponentProps {
   component: DashboardBaseComponent;
   isEditMode: boolean;
   isSelected: boolean;
   key: string;
+  onComponentUpdate: (component: DashboardBaseComponent) => void;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -26,7 +28,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const widthOfComponent: number = props.component.widthInDashboardUnits;
   const heightOfComponent: number = props.component.heightInDashboardUnits;
 
-  let className = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} border border-solid border-gray-300 p-2`;
+  let className: string = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} border border-solid border-gray-300 p-2`;
 
   if (props.isEditMode) {
     className += "  cursor-pointer";
@@ -36,7 +38,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     className += " border-2 border-indigo-300";
   }
 
-  const getMoveElement = (): ReactElement => {
+  const getMoveElement: GetReactElementFunction = (): ReactElement => {
     // if not selected, then return null
 
     if (!props.isSelected) {
@@ -50,11 +52,21 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           left: "-9px",
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-indigo-400 rounded-full cursor-pointer"
-      ></div>
+        onDragStart={(event: React.DragEvent<HTMLDivElement>) => {
+
+
+        }}
+        onDragEnd={(event: React.DragEvent<HTMLDivElement>) => {
+
+          
+        }}
+      >
+
+      </div>
     );
   };
 
-  const getResizeWidthElement = (): ReactElement => {
+  const getResizeWidthElement: GetReactElementFunction = (): ReactElement => {
     if (!props.isSelected) {
       return <></>;
     }
@@ -70,7 +82,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const getResizeHeightElement = (): ReactElement => {
+  const getResizeHeightElement: GetReactElementFunction = (): ReactElement => {
     if (!props.isSelected) {
       return <></>;
     }
@@ -99,6 +111,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       style={{
         height: `${heightInRem}rem`,
       }}
+      
     >
       {getMoveElement()}
 

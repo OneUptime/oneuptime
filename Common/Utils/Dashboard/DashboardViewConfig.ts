@@ -27,10 +27,14 @@ export default class DashboardViewConfigUtil {
 
     // find the last row that has the component.
 
-    let lastRowThatHasComponent: number = 0;
+    let lastRowThatHasComponent: number = -1;
 
     for (const dashboardComponent of allComponentsFromDashboard) {
-      if (dashboardComponent.topInDashboardUnits < componentTopPosition) {
+      if (
+        componentTopPosition <
+        dashboardComponent.topInDashboardUnits +
+          dashboardComponent.heightInDashboardUnits
+      ) {
         lastRowThatHasComponent = componentTopPosition;
       }
     }
