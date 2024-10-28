@@ -50,9 +50,9 @@ router.post(
 
       const dbLogs: Array<Log> = [];
 
-      const logItems: Array<JSONObject | string> = req.body as Array<
-        JSONObject | string
-      >;
+      let logItems: Array<JSONObject | string> | JSONObject = req.body as
+        | Array<JSONObject | string>
+        | JSONObject;
 
       let oneuptimeServiceName: string | string[] | undefined =
         req.headers["x-oneuptime-service-name"];
@@ -69,6 +69,20 @@ router.post(
         projectId: (req as TelemetryRequest).projectId,
       });
 
+      if (
+        logItems &&
+        typeof logItems === "object" &&
+        (logItems as JSONObject)["json"]
+      ) {
+        logItems = (logItems as JSONObject)["json"] as
+          | Array<JSONObject | string>
+          | JSONObject;
+      }
+
+      if (!Array.isArray(logItems)) {
+        logItems = [logItems];
+      }
+
       for (let logItem of logItems) {
         const dbLog: Log = new Log();
 
@@ -80,6 +94,15 @@ router.post(
         dbLog.time = currentTimeAndDate;
 
         dbLog.severityText = LogSeverity.Unspecified;
+
+        if (typeof logItem === "string") {
+          // check if its parseable to json
+          try {
+            logItem = JSON.parse(logItem);
+          } catch (err) {
+            // do nothing
+          }
+        }
 
         if (typeof logItem !== "string") {
           logItem = JSON.stringify(logItem);

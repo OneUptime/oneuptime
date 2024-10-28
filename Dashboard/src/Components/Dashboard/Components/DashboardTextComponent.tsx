@@ -6,9 +6,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTextComponent;
 }
 
-const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
-  _props: ComponentProps,
-): ReactElement => {
+const DashboardTextComponentElement: FunctionComponent = (): ReactElement => {
   return <div>Text Component</div>;
 };
 

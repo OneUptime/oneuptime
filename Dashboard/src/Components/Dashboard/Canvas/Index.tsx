@@ -133,15 +133,19 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           setSelectedComponentId(component.componentId.toString());
         }}
         onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
-          const updatedComponents: Array<DashboardBaseComponent> = props.dashboardViewConfig.components.map(
-            (component: DashboardBaseComponent) => {
-              if (component.componentId.toString() === updatedComponent.componentId.toString()) {
-                return updatedComponent;
-              }
+          const updatedComponents: Array<DashboardBaseComponent> =
+            props.dashboardViewConfig.components.map(
+              (component: DashboardBaseComponent) => {
+                if (
+                  component.componentId.toString() ===
+                  updatedComponent.componentId.toString()
+                ) {
+                  return updatedComponent;
+                }
 
-              return component;
-            },
-          );
+                return component;
+              },
+            );
 
           const updatedDashboardViewConfig: DashboardViewConfig = {
             ...props.dashboardViewConfig,

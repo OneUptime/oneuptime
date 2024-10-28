@@ -17,6 +17,10 @@ export default class Markdown {
     markdown: string,
     contentType: MarkdownContentType,
   ): Promise<string> {
+    // convert tags > and < to &gt; and &lt;
+    markdown = markdown.replace(/</g, "&lt;");
+    markdown = markdown.replace(/>/g, "&gt;");
+
     let renderer: Renderer | null = null;
 
     if (contentType === MarkdownContentType.Blog) {
