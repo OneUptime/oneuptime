@@ -29,6 +29,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 
 RunCron(
   "IncidentPublicNote:SendNotificationToSubscribers",
@@ -184,6 +185,7 @@ RunCron(
               subscriber: subscriber,
               statusPageResources: statusPageToResources[statuspage._id!] || [],
               statusPage: statuspage,
+              eventType: StatusPageEventType.Incident,
             });
 
           if (!shouldNotifySubscriber) {

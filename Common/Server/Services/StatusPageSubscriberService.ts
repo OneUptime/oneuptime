@@ -28,6 +28,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import Model from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import PositiveNumber from "../../Types/PositiveNumber";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -305,6 +306,8 @@ export class Service extends DatabaseService<Model> {
         subscriberWebhook: true,
         isSubscribedToAllResources: true,
         statusPageResources: true,
+        isSubscribedToAllEventTypes: true,
+        statusPageEventTypes: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -325,33 +328,66 @@ export class Service extends DatabaseService<Model> {
     subscriber: Model;
     statusPageResources: Array<StatusPageResource>;
     statusPage: StatusPage;
+    eventType: StatusPageEventType;
   }): boolean {
+    let shouldSendNotification: boolean = true; // default to true.
+
     if (data.subscriber.isUnsubscribed) {
-      return false;
+      shouldSendNotification = false;
+      return shouldSendNotification;
     }
 
-    if (!data.statusPage.allowSubscribersToChooseResources) {
-      return true;
-    }
+    if (
+      data.statusPage.allowSubscribersToChooseResources &&
+      !data.subscriber.isSubscribedToAllResources
+    ) {
+      const subscriberResourceIds: Array<string> =
+        data.subscriber.statusPageResources?.map(
+          (resource: StatusPageResource) => {
+            return resource.id?.toString() as string;
+          },
+        ) || [];
 
-    if (data.subscriber.isSubscribedToAllResources) {
-      return true;
-    }
+      let shouldSendNotificationForResource: boolean = false;
 
-    const subscriberResourceIds: Array<string> =
-      data.subscriber.statusPageResources?.map(
-        (resource: StatusPageResource) => {
-          return resource.id?.toString() as string;
-        },
-      ) || [];
+      if (subscriberResourceIds.length === 0) {
+        shouldSendNotificationForResource = true;
+      } else {
+        for (const resource of data.statusPageResources) {
+          if (
+            subscriberResourceIds.includes(resource.id?.toString() as string)
+          ) {
+            shouldSendNotificationForResource = true;
+          }
+        }
+      }
 
-    for (const resource of data.statusPageResources) {
-      if (subscriberResourceIds.includes(resource.id?.toString() as string)) {
-        return true;
+      if (!shouldSendNotificationForResource) {
+        shouldSendNotification = false;
       }
     }
 
-    return false;
+    // now do for event types
+
+    if (
+      data.statusPage.allowSubscribersToChooseEventTypes &&
+      !data.subscriber.isSubscribedToAllEventTypes
+    ) {
+      const subscriberEventTypes: Array<StatusPageEventType> =
+        data.subscriber.statusPageEventTypes || [];
+
+      let shouldSendNotificationForEventType: boolean = false;
+
+      if (subscriberEventTypes.includes(data.eventType)) {
+        shouldSendNotificationForEventType = true;
+      }
+
+      if (!shouldSendNotificationForEventType) {
+        shouldSendNotification = false;
+      }
+    }
+
+    return shouldSendNotification;
   }
 
   public async getStatusPagesToSendNotification(
@@ -375,6 +411,7 @@ export class Service extends DatabaseService<Model> {
         isPublicStatusPage: true,
         logoFileId: true,
         allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
         smtpConfig: {
           _id: true,
           hostname: true,

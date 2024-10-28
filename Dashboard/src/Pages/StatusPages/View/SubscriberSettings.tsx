@@ -135,7 +135,6 @@ const StatusPageDelete: FunctionComponent<
               title: "Allow Subscribers to Choose Event Types",
               description:
                 "Can subscribers choose which event types they want to subscribe to (like Incidents, Announcements or Scheduled Events)?",
-
             },
             {
               field: {

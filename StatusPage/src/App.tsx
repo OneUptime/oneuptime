@@ -43,15 +43,16 @@ const App: () => JSX.Element = () => {
   const [isPreview, setIsPreview] = useState<boolean>(false);
   const [enableEmailSubscribers, setenableEmailSubscribers] =
     useState<boolean>(true);
-  
-    const [
+
+  const [
     allowSubscribersToChooseResources,
     setAllowSubscribersToChooseResources,
   ] = useState<boolean>(false);
 
-
-  const [allowSubscriberToChooseEventTypes, setAllowSubscriberToChooseEventTypes] =
-    useState<boolean>(false);
+  const [
+    allowSubscriberToChooseEventTypes,
+    setAllowSubscriberToChooseEventTypes,
+  ] = useState<boolean>(false);
 
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
@@ -136,14 +137,16 @@ const App: () => JSX.Element = () => {
             "statusPage.allowSubscribersToChooseResources",
           ) as boolean;
 
-          const allowSubscribersToChooseEventTypes: boolean =
+        const allowSubscribersToChooseEventTypes: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
-            "statusPage.allowSubscribersToChooseEventTypes"
+            "statusPage.allowSubscribersToChooseEventTypes",
           ) as boolean;
 
         setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
-        setAllowSubscriberToChooseEventTypes(allowSubscribersToChooseEventTypes);
+        setAllowSubscriberToChooseEventTypes(
+          allowSubscribersToChooseEventTypes,
+        );
 
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
