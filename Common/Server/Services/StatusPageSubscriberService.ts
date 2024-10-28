@@ -154,17 +154,6 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
-    if (statuspage && !statuspage.allowSubscribersToChooseResources) {
-      data.data.isSubscribedToAllResources = true;
-    } else if (
-      !data.data.statusPageResources ||
-      data.data.statusPageResources.length === 0
-    ) {
-      if (!data.data.isSubscribedToAllResources) {
-        throw new BadDataException("Select resources to subscribe to.");
-      }
-    }
-
     if (!statuspage || !statuspage.projectId) {
       throw new BadDataException("Status Page not found");
     }
@@ -339,7 +328,8 @@ export class Service extends DatabaseService<Model> {
 
     if (
       data.statusPage.allowSubscribersToChooseResources &&
-      !data.subscriber.isSubscribedToAllResources
+      !data.subscriber.isSubscribedToAllResources &&
+      data.eventType !== StatusPageEventType.Announcement // announcements dont have resources
     ) {
       const subscriberResourceIds: Array<string> =
         data.subscriber.statusPageResources?.map(

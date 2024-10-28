@@ -46,6 +46,7 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -165,6 +166,7 @@ export class Service extends DatabaseService<Model> {
               subscriber: subscriber,
               statusPageResources: statusPageToResources[statuspage._id!] || [],
               statusPage: statuspage,
+              eventType: StatusPageEventType.ScheduledEvent,
             });
 
           if (!shouldNotifySubscriber) {

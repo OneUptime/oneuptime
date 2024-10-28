@@ -37,6 +37,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     allowSubscribersToChooseResources,
     setAllowSubscribersToChooseResources,
   ] = React.useState<boolean>(false);
+
+  const [
+    allowSubscribersToChooseEventTypes,
+    setAllowSubscribersToChooseEventTypes,
+  ] = React.useState<boolean>(false);
+
   const [isSMSSubscribersEnabled, setIsSMSSubscribersEnabled] =
     React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -66,6 +72,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         id: modelId,
         select: {
           allowSubscribersToChooseResources: true,
+          allowSubscribersToChooseEventTypes: true,
           enableSmsSubscribers: true,
         },
       });
@@ -75,6 +82,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           statusPage.allowSubscribersToChooseResources,
         );
         await fetchCheckboxOptionsAndCategories();
+      }
+
+      if (statusPage && statusPage.allowSubscribersToChooseEventTypes) {
+        setAllowSubscribersToChooseEventTypes(
+          statusPage.allowSubscribersToChooseEventTypes,
+        );
       }
 
       if (statusPage && statusPage.enableSmsSubscribers) {
@@ -161,6 +174,34 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
         showIf: (model: FormValues<StatusPageSubscriber>) => {
           return !model || !model.isSubscribedToAllResources;
+        },
+      });
+    }
+
+    if (allowSubscribersToChooseEventTypes) {
+      formFields.push({
+        field: {
+          isSubscribedToAllEventTypes: true,
+        },
+        title: "Subscribe to All Event Types",
+        description:
+          "Select this option if you want to subscribe to all event types.",
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        defaultValue: true,
+      });
+
+      formFields.push({
+        field: {
+          statusPageEventTypes: true,
+        },
+        title: "Select Event Types to Subscribe",
+        description: "Please select the event types you want to subscribe to.",
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        required: false,
+        dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+        showIf: (model: FormValues<StatusPageSubscriber>) => {
+          return !model || !model.isSubscribedToAllEventTypes;
         },
       });
     }
