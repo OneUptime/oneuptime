@@ -32,6 +32,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 
 @EnableDocumentation()
 @EnableWorkflow({
@@ -550,6 +551,40 @@ export default class StatusPageSubscriber extends BaseModel {
     ],
   })
   @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Subscribed to All Event Types",
+    description:
+      "Is Subscriber Subscribed to All Event Types (like Incidents, Scheduled Events, Announcements) on this status page?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public isSubscribedToAllEventTypes?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
     modelType: StatusPageResource,
@@ -575,4 +610,39 @@ export default class StatusPageSubscriber extends BaseModel {
     },
   })
   public statusPageResources?: Array<StatusPageResource> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Subscribed to Event Types",
+    description:
+      "Which event types is the subscriber subscribed to (like Incidents, Scheduled Events, Announcements)",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    default: [],
+  })
+  public statusPageEventTypes?: Array<StatusPageEventType> = undefined;
 }
