@@ -653,13 +653,18 @@ export default class MonitorResourceUtil {
       }
     }
 
-    if ((data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse?.executionTimeInMS) {
+    if (
+      (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
+        ?.executionTimeInMS
+    ) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
       monitorMetricsByMinute.monitorId = data.monitorId;
       monitorMetricsByMinute.projectId = data.projectId;
       monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
-      monitorMetricsByMinute.metricValue = (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse?.executionTimeInMS
+      monitorMetricsByMinute.metricValue = (
+        data.dataToProcess as ProbeMonitorResponse
+      ).customCodeMonitorResponse?.executionTimeInMS;
       monitorMetricsByMinute.miscData = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse

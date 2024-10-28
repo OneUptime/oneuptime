@@ -360,9 +360,7 @@ export class MonitorCharts {
           },
         },
       };
-    } else if(
-      data.checkOn === CheckOn.ExecutionTime
-    ){
+    } else if (data.checkOn === CheckOn.ExecutionTime) {
       return {
         legend: "Execution Time (in ms)",
         options: {
