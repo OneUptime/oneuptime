@@ -48,7 +48,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
-    const [probes, setProbes] = React.useState<Array<Probe>>([]);
+  const [probes, setProbes] = React.useState<Array<Probe>>([]);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();

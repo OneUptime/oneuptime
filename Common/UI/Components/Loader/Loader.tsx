@@ -13,18 +13,20 @@ export interface ComponentProps {
   size?: undefined | number;
   color?: undefined | Color;
   loaderType?: undefined | LoaderType;
+  className?: string;
 }
 
 const Loader: FunctionComponent<ComponentProps> = ({
   size = 50,
   color = VeryLightGray,
   loaderType = LoaderType.Bar,
+  className = "",
 }: ComponentProps) => {
   if (loaderType === LoaderType.Bar) {
     return (
       <div
-        role="bar-loader mt-1"
-        className="justify-center"
+        role={`bar-loader mt-1 ${className}`}
+        className="flex justify-center"
         data-testid="loader"
       >
         <BarLoader height={4} width={size} color={color.toString()} />

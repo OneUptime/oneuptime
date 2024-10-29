@@ -105,7 +105,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
         attempts++;
 
-        if (attempts > 10) {
+        if (attempts > 10 && !result?.monitorStepProbeResponse) {
           clearInterval(interval);
           setIsLoading(false);
           setError(
@@ -119,13 +119,10 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
     }
   };
 
-  
-
   return (
     <div>
       <div className="-ml-3">
         <Button
-
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}
           title="Test Monitor"
@@ -191,15 +188,21 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
         >
           <div>
             {error && <ErrorMessage error={error} />}
-            {isLoading && <div className="w-full text-center min-h-24 flex justify-center">
-              <Loader loaderType={LoaderType.Bar} size={200} />
+            {isLoading && (
+              <div className="w-full text-center mt-5 mb-5">
+                <Loader
+                  className="m-auto"
+                  loaderType={LoaderType.Bar}
+                  size={200}
+                />
 
-              <div className="text-xs text-gray-500 text-center mt-3">
-                Running Monitor Test. This usually takes a minute or two to
-                complete.
+                <div className="text-xs text-gray-500 text-center mt-3">
+                  Running monitor test on a probe. This usually takes a minute
+                  or two to complete because we need to notify the probe to run
+                  the test.
+                </div>
               </div>
-
-            </div>}
+            )}
             {monitorStepProbeResponse && (
               <div className="mt-3">
                 <SummaryInfo
