@@ -440,5 +440,38 @@ export default class MonitorTest extends BaseModel {
     nullable: true,
     unique: false,
   })
-  public lastMonitoringLog?: MonitorStepProbeResponse = undefined;
+  public monitorStepProbeResponse?: MonitorStepProbeResponse = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: true,
+    type: TableColumnType.Boolean,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    unique: false,
+    default: true,
+  })
+  public isInQueue?: boolean = undefined;
 }

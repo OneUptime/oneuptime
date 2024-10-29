@@ -1,0 +1,198 @@
+import React, { FunctionComponent, ReactElement, useState } from "react";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Modal from "Common/UI/Components/Modal/Modal";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import { JSONObject } from "Common/Types/JSON";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ObjectID from "Common/Types/ObjectID";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import API from "Common/UI/Utils/API/API";
+import ButtonType from "Common/UI/Components/Button/ButtonTypes";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import SummaryInfo from "../../Monitor/SummaryView/SummaryInfo";
+
+export interface ComponentProps {
+  monitorSteps: MonitorSteps;
+  monitorType: MonitorType;
+  probes: Array<Probe>;
+}
+
+const MonitorTestForm: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  // only show this monitor if this monitor is probeable.
+
+  const isProbeable: boolean = MonitorTypeHelper.isProbableMonitor(
+    props.monitorType,
+  );
+
+  if (!isProbeable) {
+    return <></>;
+  }
+
+  const [showTestModal, setShowTestModal] = useState<boolean>(false);
+  const [showResultModal, setShowResultModal] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [monitorStepProbeResponse, setMonitorStepProbeResponse] =
+    useState<MonitorStepProbeResponse | null>(null);
+
+  type ProcessResultFunction = (probeId: ObjectID) => Promise<void>;
+  const processResult: ProcessResultFunction = async (
+    probeId: ObjectID,
+  ): Promise<void> => {
+    try {
+      setShowTestModal(false);
+      setShowResultModal(true);
+
+      // now we need to run the probe and get the result.
+
+      // save the monitor step to the database.
+      const monitorTestObj: MonitorTest = new MonitorTest();
+      monitorTestObj.monitorSteps = props.monitorSteps;
+      monitorTestObj.probeId = probeId;
+      monitorTestObj.monitorType = props.monitorType;
+
+      // save the monitor test to the database.
+
+      const monitorTest: HTTPResponse<MonitorTest> = (await ModelAPI.create({
+        model: monitorTestObj,
+        modelType: MonitorTest,
+      })) as HTTPResponse<MonitorTest>;
+
+      // now we need to fetch the result of this result every 15 seconds.
+
+      const monitorTestId: ObjectID = monitorTest.data.id!;
+
+      let attempts: number = 0;
+
+      const interval: NodeJS.Timer = setInterval(async () => {
+        const result: MonitorTest | null = (await ModelAPI.getItem({
+          modelType: MonitorTest,
+          id: monitorTestId,
+          select: {
+            monitorStepProbeResponse: true,
+          },
+        })) as MonitorTest | null;
+
+        if (result?.monitorStepProbeResponse) {
+          //set the response and clear the interval.
+
+          setMonitorStepProbeResponse(result.monitorStepProbeResponse);
+          clearInterval(interval);
+          setIsLoading(false);
+          setError(null);
+        }
+
+        // if we have tried 10 times, then we should stop trying.
+
+        attempts++;
+
+        if (attempts > 10) {
+          clearInterval(interval);
+          setIsLoading(false);
+          setError(
+            "Monitor Test took too long to complete. Please try again later.",
+          );
+        }
+      }, 15000); // 15 seconds.
+    } catch (err) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
+  return (
+    <div>
+      <Button
+        buttonStyle={ButtonStyleType.NORMAL}
+        buttonSize={ButtonSize.Small}
+        title="Test"
+        icon={IconProp.Play}
+        onClick={() => {
+          setShowTestModal(true);
+        }}
+      />
+
+      {showTestModal && (
+        <BasicFormModal
+          title={"Test Monitor"}
+          onClose={() => {
+            return setShowTestModal(false);
+          }}
+          onSubmit={async (data: JSONObject) => {
+            await processResult(data["probe"] as ObjectID);
+          }}
+          formProps={{
+            initialValues: {},
+            fields: [
+              {
+                field: {
+                  probe: true,
+                },
+                title: "Select Probe",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
+                  {
+                    array: props.probes,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                ),
+                required: true,
+                placeholder: "",
+              },
+            ],
+          }}
+        />
+      )}
+
+      {showResultModal && (
+        <Modal
+          title="Monitor Test Result"
+          submitButtonText="Close"
+          submitButtonType={ButtonType.Button}
+          onSubmit={() => {
+            setShowResultModal(false);
+          }}
+        >
+          <div>
+            {error && <ErrorMessage error={error} />}
+            {isLoading && <Loader loaderType={LoaderType.Bar} />}
+            {isLoading && (
+              <div>
+                Running Monitor Test. This usually takes a minute or two to
+                complete.
+              </div>
+            )}
+            {monitorStepProbeResponse && (
+              <div>
+                <SummaryInfo
+                  monitorType={props.monitorType}
+                  probeMonitorResponses={Object.values(
+                    monitorStepProbeResponse,
+                  )}
+                />
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default MonitorTestForm;

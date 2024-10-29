@@ -25,6 +25,8 @@ import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
+import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -252,6 +254,63 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         probeApiIngestResponse: probeApiIngestResponse,
       } as any);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/probe/response/monitor-test-ingest/:testId",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
+        req.body["probeMonitorResponse"],
+      ) as any;
+
+      const testId: ObjectID = new ObjectID(req.params["testId"] as string);
+
+      if (!testId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("TestId not found"),
+        );
+      }
+
+      if (!probeResponse) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("ProbeMonitorResponse not found"),
+        );
+      }
+
+      // save the probe response to the monitor test.
+
+      await MonitorTestService.updateOneById({
+        id: testId,
+        data: {
+          monitorStepProbeResponse: {
+            [probeResponse.monitorStepId.toString()]: {
+              ...JSON.parse(JSON.stringify(probeResponse)),
+              monitoredAt: OneUptimeDate.getCurrentDate(),
+            },
+          } as any,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // send success response.
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }

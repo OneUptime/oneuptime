@@ -56,6 +56,9 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import MonitorTestForm from "./MonitorTest";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import Probe from "Common/Models/DatabaseModels/Probe";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -66,6 +69,8 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
   monitorType: MonitorType;
+  allMonitorSteps: MonitorSteps;
+  probes: Array<Probe>;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -701,6 +706,16 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       )}
+
+      {/** Monitor Test Form */}
+
+      <MonitorTestForm
+        monitorSteps={props.allMonitorSteps}
+        monitorType={props.monitorType}
+        probes={props.probes}
+      />
+
+      {/** Monitoring Critera Form */}
 
       <div className="mt-5">
         {props.monitorType !== MonitorType.IncomingRequest && (

@@ -30,8 +30,58 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ObjectID from "Common/Types/ObjectID";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 
 export default class MonitorUtil {
+  public static async probeMonitorTest(
+    monitorTest: MonitorTest,
+  ): Promise<Array<ProbeMonitorResponse | null>> {
+    const results: Array<ProbeMonitorResponse | null> = [];
+
+    if (
+      !monitorTest.monitorSteps ||
+      monitorTest.monitorSteps.data?.monitorStepsInstanceArray.length === 0
+    ) {
+      logger.debug("No monitor steps found");
+      return [];
+    }
+
+    for (const monitorStep of monitorTest.monitorSteps.data
+      ?.monitorStepsInstanceArray || []) {
+      if (!monitorStep) {
+        continue;
+      }
+
+      const result: ProbeMonitorResponse | null = await this.probeMonitorStep({
+        monitorType: monitorTest.monitorType!,
+        monitorId: monitorTest.id!,
+        monitorStep: monitorStep,
+      });
+
+      if (result) {
+        // report this back to Probe API.
+
+        await API.fetch<JSONObject>(
+          HTTPMethod.POST,
+          URL.fromString(INGESTOR_URL.toString()).addRoute(
+            "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
+          ),
+          {
+            ...ProbeAPIRequest.getDefaultRequestBody(),
+            probeMonitorResponse: result as any,
+          },
+          {},
+          {},
+        );
+      }
+
+      results.push(result);
+    }
+
+    return results;
+  }
+
   public static async probeMonitor(
     monitor: Monitor,
   ): Promise<Array<ProbeMonitorResponse | null>> {
@@ -51,10 +101,11 @@ export default class MonitorUtil {
         continue;
       }
 
-      const result: ProbeMonitorResponse | null = await this.probeMonitorStep(
-        monitorStep,
-        monitor,
-      );
+      const result: ProbeMonitorResponse | null = await this.probeMonitorStep({
+        monitorType: monitor.monitorType!,
+        monitorId: monitor.id!,
+        monitorStep: monitorStep,
+      });
 
       if (result) {
         // report this back to Probe API.
@@ -117,13 +168,18 @@ export default class MonitorUtil {
     return true;
   }
 
-  public static async probeMonitorStep(
-    monitorStep: MonitorStep,
-    monitor: Monitor,
-  ): Promise<ProbeMonitorResponse | null> {
+  public static async probeMonitorStep(data: {
+    monitorStep: MonitorStep;
+    monitorType: MonitorType;
+    monitorId: ObjectID;
+  }): Promise<ProbeMonitorResponse | null> {
+    const monitorStep: MonitorStep = data.monitorStep;
+    const monitorType: MonitorType = data.monitorType;
+    const monitorId: ObjectID = data.monitorId;
+
     const result: ProbeMonitorResponse = {
       monitorStepId: monitorStep.id,
-      monitorId: monitor.id!,
+      monitorId: monitorId!,
       probeId: ProbeUtil.getProbeId(),
       failureCause: "",
       monitoredAt: OneUptimeDate.getCurrentDate(),
@@ -133,10 +189,7 @@ export default class MonitorUtil {
       return result;
     }
 
-    if (
-      monitor.monitorType === MonitorType.Ping ||
-      monitor.monitorType === MonitorType.IP
-    ) {
+    if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
       }
@@ -151,7 +204,7 @@ export default class MonitorUtil {
           new Port(80), // use port 80 by default.
           {
             retry: 10,
-            monitorId: monitor.id!,
+            monitorId: monitorId,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
         );
@@ -168,7 +221,7 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           {
             retry: 10,
-            monitorId: monitor.id!,
+            monitorId: monitorId,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
         );
@@ -183,7 +236,7 @@ export default class MonitorUtil {
       }
     }
 
-    if (monitor.monitorType === MonitorType.Port) {
+    if (monitorType === MonitorType.Port) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
       }
@@ -205,7 +258,7 @@ export default class MonitorUtil {
         monitorStep.data.monitorDestinationPort,
         {
           retry: 10,
-          monitorId: monitor.id!,
+          monitorId: monitorId,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
@@ -219,7 +272,7 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
     }
 
-    if (monitor.monitorType === MonitorType.SyntheticMonitor) {
+    if (monitorType === MonitorType.SyntheticMonitor) {
       if (!monitorStep.data?.customCode) {
         result.failureCause =
           "Code not specified. Please add playwright script.";
@@ -229,7 +282,7 @@ export default class MonitorUtil {
       const response: Array<SyntheticMonitorResponse> | null =
         await SyntheticMonitor.execute({
           script: monitorStep.data.customCode,
-          monitorId: monitor.id!,
+          monitorId: monitorId,
           screenSizeTypes: monitorStep.data
             .screenSizeTypes as Array<ScreenSizeType>,
           browserTypes: monitorStep.data.browserTypes as Array<BrowserType>,
@@ -242,7 +295,7 @@ export default class MonitorUtil {
       result.syntheticMonitorResponse = response;
     }
 
-    if (monitor.monitorType === MonitorType.CustomJavaScriptCode) {
+    if (monitorType === MonitorType.CustomJavaScriptCode) {
       if (!monitorStep.data?.customCode) {
         result.failureCause =
           "Code not specified. Please add playwright script.";
@@ -252,7 +305,7 @@ export default class MonitorUtil {
       const response: CustomCodeMonitorResponse | null =
         await CustomCodeMonitor.execute({
           script: monitorStep.data.customCode,
-          monitorId: monitor.id!,
+          monitorId: monitorId,
         });
 
       if (!response) {
@@ -262,7 +315,7 @@ export default class MonitorUtil {
       result.customCodeMonitorResponse = response;
     }
 
-    if (monitor.monitorType === MonitorType.SSLCertificate) {
+    if (monitorType === MonitorType.SSLCertificate) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
       }
@@ -281,7 +334,7 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination as URL,
         {
           retry: 10,
-          monitorId: monitor.id!,
+          monitorId: monitorId,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
       );
@@ -297,7 +350,7 @@ export default class MonitorUtil {
       };
     }
 
-    if (monitor.monitorType === MonitorType.Website) {
+    if (monitorType === MonitorType.Website) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
       }
@@ -308,7 +361,7 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination as URL,
         {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
-          monitorId: monitor.id!,
+          monitorId: monitorId,
           retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
@@ -327,7 +380,7 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
     }
 
-    if (monitor.monitorType === MonitorType.API) {
+    if (monitorType === MonitorType.API) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
       }
@@ -349,7 +402,7 @@ export default class MonitorUtil {
         {
           requestHeaders: monitorStep.data?.requestHeaders || {},
           requestBody: requestBody || undefined,
-          monitorId: monitor.id!,
+          monitorId: monitorId,
           requestType: monitorStep.data?.requestType || HTTPMethod.GET,
           retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds

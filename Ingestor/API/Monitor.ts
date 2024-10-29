@@ -31,6 +31,8 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import MonitorTestService from "Common/Server/Services/MonitorTestService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -445,6 +447,139 @@ router.post(
         monitorsWithSecretPopulated,
         new PositiveNumber(monitorsWithSecretPopulated.length),
         Monitor,
+      );
+    } catch (err) {
+      try {
+        if (mutex) {
+          await Semaphore.release(mutex);
+        }
+      } catch (err) {
+        logger.error(err);
+      }
+
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/monitor-test/list",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    let mutex: SemaphoreMutex | null = null;
+
+    logger.debug("Monitor list API called");
+
+    try {
+      const data: JSONObject = req.body;
+      const limit: number = (data["limit"] as number) || 100;
+
+      logger.debug("Monitor list API called with limit: " + limit);
+      logger.debug("Data:");
+      logger.debug(data);
+
+      if (
+        !(req as ProbeExpressRequest).probe ||
+        !(req as ProbeExpressRequest).probe?.id
+      ) {
+        logger.error("Probe not found");
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
+
+      if (!probeId) {
+        logger.error("Probe not found");
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      try {
+        mutex = await Semaphore.lock({
+          key: probeId.toString(),
+          namespace: "MonitorAPI.monitor-test-list",
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+
+      //get list of monitors to be monitored
+
+      logger.debug("Fetching monitor list");
+
+      const monitorTests: Array<MonitorTest> = await MonitorTestService.findBy({
+        query: {
+          monitorStepProbeResponse: QueryHelper.isNull(),
+          probeId: probeId,
+          isInQueue: true, // only get the tests which are in queue
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: limit,
+        select: {
+          monitorType: true,
+          monitorSteps: true,
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug("Fetched monitor tests");
+      logger.debug(monitorTests);
+
+      // update the lastMonitoredAt field of the monitors
+
+      const updatePromises: Array<Promise<void>> = [];
+
+      for (const monitorTest of monitorTests) {
+        updatePromises.push(
+          MonitorTestService.updateOneById({
+            id: monitorTest.id!,
+            data: {
+              isInQueue: false, // in progress now
+            },
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
+
+      await Promise.all(updatePromises);
+
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+
+      logger.debug("Sending response");
+
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        monitorTests,
+        new PositiveNumber(monitorTests.length),
+        MonitorTest,
       );
     } catch (err) {
       try {
