@@ -121,7 +121,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="-ml-3">
+      <div className="-ml-3 mt-5 mb-2">
         <Button
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}
@@ -189,7 +189,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
           <div>
             {error && <ErrorMessage error={error} />}
             {isLoading && (
-              <div className="w-full text-center mt-5 mb-5">
+              <div className="w-full text-center mt-10 mb-10">
                 <Loader
                   className="m-auto"
                   loaderType={LoaderType.Bar}
