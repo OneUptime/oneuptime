@@ -8,7 +8,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
-import Modal from "Common/UI/Components/Modal/Modal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { JSONObject } from "Common/Types/JSON";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -56,6 +56,8 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
     probeId: ObjectID,
   ): Promise<void> => {
     try {
+      setError(null);
+      setIsLoading(true);
       setShowTestModal(false);
       setShowResultModal(true);
 
@@ -66,6 +68,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
       monitorTestObj.monitorSteps = props.monitorSteps;
       monitorTestObj.probeId = probeId;
       monitorTestObj.monitorType = props.monitorType;
+      monitorTestObj.isInQueue = true;
 
       // save the monitor test to the database.
 
@@ -112,30 +115,41 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
       }, 15000); // 15 seconds.
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
+      setIsLoading(false);
     }
   };
 
   return (
     <div>
+      <div className="-ml-3">
       <Button
+      
         buttonStyle={ButtonStyleType.NORMAL}
         buttonSize={ButtonSize.Small}
-        title="Test"
+        title="Test Monitor"
         icon={IconProp.Play}
         onClick={() => {
+          // flush all the previous results.
+          setMonitorStepProbeResponse(null);
+          setError(null);
+          setIsLoading(false);
           setShowTestModal(true);
         }}
       />
+      </div>
 
       {showTestModal && (
         <BasicFormModal
           title={"Test Monitor"}
+          description="Run a test on this monitor to see if it is working correctly."
           onClose={() => {
             return setShowTestModal(false);
           }}
           onSubmit={async (data: JSONObject) => {
             await processResult(data["probe"] as ObjectID);
           }}
+          submitButtonText="Run Test"
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
           formProps={{
             initialValues: {},
             fields: [
@@ -144,6 +158,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
                   probe: true,
                 },
                 title: "Select Probe",
+                description: "Select the probe you want to run the test on.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
                   {
@@ -165,9 +180,11 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
           title="Monitor Test Result"
           submitButtonText="Close"
           submitButtonType={ButtonType.Button}
+          submitButtonStyleType={ButtonStyleType.OUTLINE}
           onSubmit={() => {
             setShowResultModal(false);
           }}
+          modalWidth={ModalWidth.Large}
         >
           <div>
             {error && <ErrorMessage error={error} />}

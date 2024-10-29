@@ -1,6 +1,7 @@
 import { PROBE_MONITORING_WORKERS } from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
+import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
@@ -41,6 +42,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       await Register.reportIfOffline();
     } catch (err) {
       logger.error("Register probe failed");
+      logger.error(err);
+      throw err;
+    }
+
+    // add test job
+
+    try {
+      new FetchMonitorTest("Monitor Test Fetcher").run();
+    } catch (err) {
+      logger.error("Monitor Test Fetcher failed");
       logger.error(err);
       throw err;
     }

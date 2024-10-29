@@ -22,6 +22,7 @@ import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
 import UserTwoFactorAuthAPI from "Common/Server/API/UserTwoFactorAuthAPI";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -111,6 +112,9 @@ import IncidentSeverityService, {
 import IncidentStateService, {
   Service as IncidentStateServiceType,
 } from "Common/Server/Services/IncidentStateService";
+import MonitorTestService, {
+  Service as MonitorTestServiceType,
+} from "Common/Server/Services/MonitorTestService";
 import IncidentStateTimelineService, {
   Service as IncidentStateTimelineServiceType,
 } from "Common/Server/Services/IncidentStateTimelineService";
@@ -515,6 +519,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorTest, MonitorTestServiceType>(
+        MonitorTest,
+        MonitorTestService,
       ).getRouter(),
     );
 

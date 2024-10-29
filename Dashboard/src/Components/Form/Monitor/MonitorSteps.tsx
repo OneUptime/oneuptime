@@ -21,6 +21,8 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -45,6 +47,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
+
+    const [probes, setProbes] = React.useState<Array<Probe>>([]);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
@@ -185,6 +189,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           }),
         );
       }
+
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+      setProbes(probes);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -220,12 +227,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           return (
             <MonitorStepElement
               monitorType={props.monitorType}
+              allMonitorSteps={monitorSteps}
               key={index}
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               initialValue={i}
+              probes={probes}
               // onDelete={() => {
               //     // remove the criteria filter
               // const index: number | undefined =
