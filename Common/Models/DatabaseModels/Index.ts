@@ -154,6 +154,8 @@ import AlertNoteTemplate from "./AlertNoteTemplate";
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 
+import MonitorTest from "./MonitorTest";
+
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [
@@ -331,6 +333,8 @@ const AllModelTypes: Array<{
 
   // Dashboards
   Dashboard,
+
+  MonitorTest,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
