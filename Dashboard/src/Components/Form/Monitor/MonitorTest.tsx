@@ -119,23 +119,25 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  
+
   return (
     <div>
       <div className="-ml-3">
-      <Button
-      
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Small}
-        title="Test Monitor"
-        icon={IconProp.Play}
-        onClick={() => {
-          // flush all the previous results.
-          setMonitorStepProbeResponse(null);
-          setError(null);
-          setIsLoading(false);
-          setShowTestModal(true);
-        }}
-      />
+        <Button
+
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Small}
+          title="Test Monitor"
+          icon={IconProp.Play}
+          onClick={() => {
+            // flush all the previous results.
+            setMonitorStepProbeResponse(null);
+            setError(null);
+            setIsLoading(false);
+            setShowTestModal(true);
+          }}
+        />
       </div>
 
       {showTestModal && (
@@ -178,9 +180,10 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
       {showResultModal && (
         <Modal
           title="Monitor Test Result"
+          description="The result of the monitor test will be shown below."
           submitButtonText="Close"
           submitButtonType={ButtonType.Button}
-          submitButtonStyleType={ButtonStyleType.OUTLINE}
+          submitButtonStyleType={ButtonStyleType.NORMAL}
           onSubmit={() => {
             setShowResultModal(false);
           }}
@@ -188,15 +191,17 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
         >
           <div>
             {error && <ErrorMessage error={error} />}
-            {isLoading && <Loader loaderType={LoaderType.Bar} />}
-            {isLoading && (
-              <div>
+            {isLoading && <div className="w-full text-center min-h-24 flex justify-center">
+              <Loader loaderType={LoaderType.Bar} size={200} />
+
+              <div className="text-xs text-gray-500 text-center mt-3">
                 Running Monitor Test. This usually takes a minute or two to
                 complete.
               </div>
-            )}
+
+            </div>}
             {monitorStepProbeResponse && (
-              <div>
+              <div className="mt-3">
                 <SummaryInfo
                   monitorType={props.monitorType}
                   probeMonitorResponses={Object.values(
