@@ -89,9 +89,11 @@ export class MonitorCharts {
     miscData: MonitorMetricsMiscData | undefined;
     probes: Array<Probe>;
   }): string {
+    let seriesName: string = data.checkOn;
+
     if (data.miscData) {
       if (data.miscData.diskPath) {
-        return data.miscData.diskPath;
+        seriesName = data.miscData.diskPath;
       }
 
       if (data.miscData.probeId) {
@@ -100,12 +102,20 @@ export class MonitorCharts {
         });
 
         if (probe) {
-          return probe.name || "Probe";
+          seriesName = probe.name || "Probe";
         }
+      }
+
+      if (data.miscData.browserType) {
+        seriesName += " " + data.miscData.browserType;
+      }
+
+      if (data.miscData.screenSizeType) {
+        seriesName += " (" + data.miscData.screenSizeType + ")";
       }
     }
 
-    return data.checkOn;
+    return seriesName;
   }
 
   public static getChartData(data: {

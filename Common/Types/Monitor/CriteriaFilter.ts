@@ -166,7 +166,10 @@ export class CriteriaFilterUtil {
         CheckOn.CPUUsagePercent,
         CheckOn.MemoryUsagePercent,
       ];
-    } else if (monitorType === MonitorType.CustomJavaScriptCode) {
+    } else if (
+      monitorType === MonitorType.CustomJavaScriptCode ||
+      monitorType === MonitorType.SyntheticMonitor
+    ) {
       return [CheckOn.ExecutionTime];
     }
     return [];

@@ -674,6 +674,36 @@ export default class MonitorResourceUtil {
       itemsToSave.push(monitorMetricsByMinute);
     }
 
+    if (
+      (data.dataToProcess as ProbeMonitorResponse) &&
+      (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse &&
+      (
+        (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse ||
+        []
+      ).length > 0
+    ) {
+      for (const syntheticMonitorResponse of (
+        data.dataToProcess as ProbeMonitorResponse
+      ).syntheticMonitorResponse || []) {
+        const monitorMetricsByMinute: MonitorMetricsByMinute =
+          new MonitorMetricsByMinute();
+        monitorMetricsByMinute.monitorId = data.monitorId;
+        monitorMetricsByMinute.projectId = data.projectId;
+        monitorMetricsByMinute.metricType = CheckOn.ExecutionTime;
+        monitorMetricsByMinute.metricValue =
+          syntheticMonitorResponse.executionTimeInMS;
+        monitorMetricsByMinute.miscData = {
+          probeId: (
+            data.dataToProcess as ProbeMonitorResponse
+          ).probeId.toString(),
+          browserType: syntheticMonitorResponse.browserType,
+          screenSizeType: syntheticMonitorResponse.screenSizeType,
+        };
+
+        itemsToSave.push(monitorMetricsByMinute);
+      }
+    }
+
     if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
       const monitorMetricsByMinute: MonitorMetricsByMinute =
         new MonitorMetricsByMinute();
