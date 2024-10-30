@@ -29,6 +29,7 @@ export interface ComponentProps {
   monitorSteps: MonitorSteps;
   monitorType: MonitorType;
   probes: Array<Probe>;
+  buttonSize: ButtonSize;
 }
 
 const MonitorTestForm: FunctionComponent<ComponentProps> = (
@@ -121,10 +122,10 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="-ml-3 mt-5 mb-2">
+      <div className="-ml-3 mr-2">
         <Button
           buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
+          buttonSize={props.buttonSize}
           title="Test Monitor"
           icon={IconProp.Play}
           onClick={() => {

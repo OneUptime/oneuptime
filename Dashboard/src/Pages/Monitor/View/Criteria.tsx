@@ -30,6 +30,10 @@ import React, {
   useState,
 } from "react";
 import { useAsyncEffect } from "use-async-effect";
+import MonitorTestForm from "../../../Components/Form/Monitor/MonitorTest";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
+import { ButtonSize } from "Common/UI/Components/Button/Button";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
@@ -39,6 +43,8 @@ const MonitorCriteria: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
+
+  const [probes, setProbes] = useState<Array<Probe>>([]);
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
@@ -60,6 +66,10 @@ const MonitorCriteria: FunctionComponent<
         return;
       }
 
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+
+      setProbes(probes);
+
       setMonitorType(item.monitorType);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -70,6 +80,10 @@ const MonitorCriteria: FunctionComponent<
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+
+  const [monitorSteps, setMonitorSteps] = useState<
+    MonitorStepsType | undefined
+  >(undefined);
 
   useAsyncEffect(async () => {
     // fetch the model
@@ -108,6 +122,16 @@ const MonitorCriteria: FunctionComponent<
         cardProps={{
           title: "Monitoring Criteria",
           description: "Here is the criteria we use to monitor this resource.",
+          rightElement: monitorSteps ? (
+            <MonitorTestForm
+              buttonSize={ButtonSize.Normal}
+              monitorSteps={monitorSteps}
+              monitorType={monitorType}
+              probes={probes}
+            />
+          ) : (
+            <></>
+          ),
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
@@ -143,10 +167,18 @@ const MonitorCriteria: FunctionComponent<
             },
           },
         ]}
+        onSaveSuccess={async (item: Monitor) => {
+          setMonitorSteps(item.monitorSteps);
+        }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: Monitor,
           id: "model-detail-monitors",
+          onItemLoaded: (monitor: Monitor) => {
+            if (!monitorSteps) {
+              setMonitorSteps(monitor.monitorSteps);
+            }
+          },
           fields: [
             {
               field: {

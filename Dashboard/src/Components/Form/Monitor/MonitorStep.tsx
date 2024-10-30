@@ -15,7 +15,10 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CheckBoxList, {
   CategoryCheckboxValue,
   enumToCategoryCheckboxOption,
@@ -708,12 +711,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       )}
 
       {/** Monitor Test Form */}
-
-      <MonitorTestForm
-        monitorSteps={props.allMonitorSteps}
-        monitorType={props.monitorType}
-        probes={props.probes}
-      />
+      <div className="mt-5 mb-2">
+        <MonitorTestForm
+          monitorSteps={props.allMonitorSteps}
+          monitorType={props.monitorType}
+          probes={props.probes}
+          buttonSize={ButtonSize.Small}
+        />
+      </div>
 
       {/** Monitoring Critera Form */}
 
