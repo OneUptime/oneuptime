@@ -13,6 +13,9 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       leftInDashboardUnits: 0,
       text: "Hello, World!",
       componentId: ObjectID.generate(),
+      isBold: false,
+      isItalic: false,
+      isUnderline: false,
     };
   }
 }

@@ -5,6 +5,7 @@ import ButtonType from "./ButtonTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Tooltip from "../Tooltip/Tooltip";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export enum ButtonStyleType {
   PRIMARY,
@@ -67,7 +68,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   buttonSize = ButtonSize.Normal,
   dataTestId,
   className,
-  tooltip
+  tooltip,
 }: ComponentProps): ReactElement => {
   useEffect(() => {
     // componentDidMount
@@ -230,52 +231,50 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass += ` ` + className;
   }
 
-  const getButton = () =>  (
-    <button
-      style={style}
-      id={id}
-      onClick={() => {
-        if (onClick) {
-          onClick();
-        }
-      }}
-      data-testid={dataTestId}
-      type={type}
-      disabled={disabled || isLoading}
-      className={buttonStyleCssClass}
-    >
-      {isLoading && buttonStyle !== ButtonStyleType.ICON && (
-        <Icon icon={IconProp.Spinner} className={loadingIconClassName} />
-      )}
+  const getButton: GetReactElementFunction = (): ReactElement => {
+    return (
+      <button
+        style={style}
+        id={id}
+        onClick={() => {
+          if (onClick) {
+            onClick();
+          }
+        }}
+        data-testid={dataTestId}
+        type={type}
+        disabled={disabled || isLoading}
+        className={buttonStyleCssClass}
+      >
+        {isLoading && buttonStyle !== ButtonStyleType.ICON && (
+          <Icon icon={IconProp.Spinner} className={loadingIconClassName} />
+        )}
 
-      {!isLoading && icon && (
-        <Icon
-          icon={icon}
-          className={iconClassName}
-          size={iconSize || undefined}
-        />
-      )}
+        {!isLoading && icon && (
+          <Icon
+            icon={icon}
+            className={iconClassName}
+            size={iconSize || undefined}
+          />
+        )}
 
-      {title && buttonStyle !== ButtonStyleType.ICON ? title : ``}
+        {title && buttonStyle !== ButtonStyleType.ICON ? title : ``}
 
-      {shortcutKey && (
-        <div className="ml-2">
-          <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
-            {shortcutKey}
-          </kbd>
-        </div>
-      )}
-    </button>
-  );
+        {shortcutKey && (
+          <div className="ml-2">
+            <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
+              {shortcutKey}
+            </kbd>
+          </div>
+        )}
+      </button>
+    );
+  };
 
-
-  if(tooltip){
-    return <Tooltip text={tooltip}>
-      {getButton()}
-    </Tooltip>
-  }else{
-    return getButton();
+  if (tooltip) {
+    return <Tooltip text={tooltip}>{getButton()}</Tooltip>;
   }
+  return getButton();
 };
 
 export default Button;

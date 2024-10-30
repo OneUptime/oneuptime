@@ -7,8 +7,17 @@ import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
-import { DahboardHeightUnitInRem, DashboardSpaceBetweenUnitsInRem, DashboardWidthUnitInRem } from "Common/Types/Dashboard/DashboardSize";
+import {
+  DahboardHeightUnitInRem,
+  DashboardSpaceBetweenUnitsInRem,
+  DashboardWidthUnitInRem,
+} from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+
+export interface DashboardCommonComponentProps
+  extends DashboardBaseComponentProps {
+  editToolbarComponentElements: (elements: Array<ReactElement>) => ReactElement;
+}
 
 export interface DashboardBaseComponentProps {
   component: DashboardBaseComponent;
@@ -16,7 +25,6 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
-  editComponentToolbarElements: Array<ReactElement>;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -91,30 +99,41 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type GetEditComponentToolbarFunction = (
+    editToolbarComponentElements: Array<ReactElement>,
+  ) => ReactElement;
 
-  const getEditComponentToolbar: GetReactElementFunction = (): ReactElement => { 
+  const getEditComponentToolbar: GetEditComponentToolbarFunction = (
+    editToolbarComponentElements: Array<ReactElement>,
+  ): ReactElement => {
     if (!props.isEditMode || !props.isSelected) {
       return <></>;
     }
 
     return (
-      <div className="absolute top-0 right-0 bg-white shadow-md rounded">
-        {props.editComponentToolbarElements.map((element: ReactElement, index: number) => {
-          return (
-            <div key={index} className="inline-block">
-              {element}
-            </div>
-          );
-        })}
+      <div className="absolute top-0 right-1/2 bg-white shadow-md rounded border-2 border-gray-100 p-3">
+        {editToolbarComponentElements.map(
+          (element: ReactElement, index: number) => {
+            return (
+              <div key={index} className="inline-block">
+                {element}
+              </div>
+            );
+          },
+        )}
       </div>
     );
-   };
+  };
 
   const height: number = props.component.heightInDashboardUnits;
-  const heightInRem: number = height * DahboardHeightUnitInRem + ((height - 1) * DashboardSpaceBetweenUnitsInRem);
+  const heightInRem: number =
+    height * DahboardHeightUnitInRem +
+    (height - 1) * DashboardSpaceBetweenUnitsInRem;
 
   const width: number = props.component.widthInDashboardUnits;
-  const widthInRem: number = width * DashboardWidthUnitInRem + ((width - 1) * DashboardSpaceBetweenUnitsInRem);;
+  const widthInRem: number =
+    width * DashboardWidthUnitInRem +
+    (width - 1) * DashboardSpaceBetweenUnitsInRem;
 
   return (
     <div
@@ -130,14 +149,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     >
       {getMoveElement()}
 
-      {getEditComponentToolbar()}
-
       {props.component._type === ObjectType.DashboardTextComponent && (
         <DashboardTextComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={props.component as DashboardTextComponentType}
+          editToolbarComponentElements={getEditComponentToolbar}
         />
       )}
       {props.component._type === ObjectType.DashboardChartComponent && (
@@ -146,6 +164,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={props.component as DashboardChartComponentType}
+          editToolbarComponentElements={getEditComponentToolbar}
         />
       )}
       {props.component._type === ObjectType.DashboardValueComponent && (
@@ -154,6 +173,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={props.component as DashboardValueComponentType}
+          editToolbarComponentElements={getEditComponentToolbar}
         />
       )}
 

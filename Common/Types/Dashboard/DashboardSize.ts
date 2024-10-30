@@ -13,7 +13,7 @@ export const DashboardRemConversionFactor: number = 5.94;
 
 export const DahboardHeightUnitInRem: number = 5;
 
-export const DashboardWidthUnitInRem: number = 5; 
+export const DashboardWidthUnitInRem: number = 5;
 
 export const DashboardSpaceBetweenUnitsInRem: number = 0.94;
 

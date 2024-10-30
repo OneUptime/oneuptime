@@ -31,11 +31,14 @@ export default class DashboardViewConfigUtil {
     for (const dashboardComponent of allComponentsFromDashboard) {
       if (
         lastRowThatHasComponent <
-        (dashboardComponent.topInDashboardUnits +
-          dashboardComponent.heightInDashboardUnits -1)
+        dashboardComponent.topInDashboardUnits +
+          dashboardComponent.heightInDashboardUnits -
+          1
       ) {
-        lastRowThatHasComponent = dashboardComponent.topInDashboardUnits +
-        dashboardComponent.heightInDashboardUnits -1;
+        lastRowThatHasComponent =
+          dashboardComponent.topInDashboardUnits +
+          dashboardComponent.heightInDashboardUnits -
+          1;
       }
     }
 

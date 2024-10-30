@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
-import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import { DashboardCommonComponentProps } from "./DashboardBaseComponent";
 
-export interface ComponentProps extends DashboardBaseComponentProps {
+export interface ComponentProps extends DashboardCommonComponentProps {
   component: DashboardValueComponent;
 }
 
