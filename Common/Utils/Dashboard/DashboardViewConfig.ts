@@ -23,7 +23,6 @@ export default class DashboardViewConfigUtil {
       data.dashboardViewConfig.components;
 
     let componentTopPosition: number = 0;
-    let componentLeftPosition: number = 0;
 
     // find the last row that has the component.
 
@@ -31,11 +30,12 @@ export default class DashboardViewConfigUtil {
 
     for (const dashboardComponent of allComponentsFromDashboard) {
       if (
-        componentTopPosition <
-        dashboardComponent.topInDashboardUnits +
-          dashboardComponent.heightInDashboardUnits
+        lastRowThatHasComponent <
+        (dashboardComponent.topInDashboardUnits +
+          dashboardComponent.heightInDashboardUnits -1)
       ) {
-        lastRowThatHasComponent = componentTopPosition;
+        lastRowThatHasComponent = dashboardComponent.topInDashboardUnits +
+        dashboardComponent.heightInDashboardUnits -1;
       }
     }
 
@@ -51,13 +51,10 @@ export default class DashboardViewConfigUtil {
         componentTopPosition + heightOfComponent;
     }
 
-    // left position of the component is always 0.
-    componentLeftPosition = 0;
-
     const newComponent: DashboardBaseComponent = {
       ...data.component,
       topInDashboardUnits: componentTopPosition,
-      leftInDashboardUnits: componentLeftPosition,
+      leftInDashboardUnits: 0,
     };
 
     // Add the new component to the dashboard configuration

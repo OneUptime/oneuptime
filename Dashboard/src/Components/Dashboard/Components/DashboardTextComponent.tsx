@@ -9,7 +9,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return <div>Text Component {props.component.componentId.toString()}</div>;
+  return <div className="truncate">Text Component {props.component.componentId.toString()}</div>;
 };
 
 export default DashboardTextComponentElement;

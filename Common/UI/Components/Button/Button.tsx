@@ -4,6 +4,7 @@ import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import Tooltip from "../Tooltip/Tooltip";
 
 export enum ButtonStyleType {
   PRIMARY,
@@ -48,6 +49,7 @@ export interface ComponentProps {
   buttonSize?: ButtonSize | undefined;
   dataTestId?: string;
   className?: string | undefined;
+  tooltip?: string | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -65,6 +67,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   buttonSize = ButtonSize.Normal,
   dataTestId,
   className,
+  tooltip
 }: ComponentProps): ReactElement => {
   useEffect(() => {
     // componentDidMount
@@ -227,7 +230,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass += ` ` + className;
   }
 
-  return (
+  const getButton = () =>  (
     <button
       style={style}
       id={id}
@@ -264,6 +267,15 @@ const Button: FunctionComponent<ComponentProps> = ({
       )}
     </button>
   );
+
+
+  if(tooltip){
+    return <Tooltip text={tooltip}>
+      {getButton()}
+    </Tooltip>
+  }else{
+    return getButton();
+  }
 };
 
 export default Button;

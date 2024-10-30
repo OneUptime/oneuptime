@@ -10,8 +10,11 @@ export interface ComponentProps {
   onEditClick: () => void;
   onSaveClick: () => void;
   onCancelEditClick: () => void;
+  onFullScreenClick: () => void;
+  onCollapseScreenClick: () => void;
   dashboardMode: DashboardMode;
   onAddComponentClick: (type: DashboardComponentType) => void;
+  isFullScreen: boolean;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -24,7 +27,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       className={`mt-1.5 mb-1.5 p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
     >
       <div className="w-full flex justify-between">
-        <div className="text-md">
+        <div className="text-md font-medium mt-2">
           {/* Name Component */}
           Dashboard Name
         </div>
@@ -54,14 +57,34 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
+          {!isEditMode && !props.isFullScreen && (
+            <Button
+              icon={IconProp.Expand}
+              buttonStyle={ButtonStyleType.ICON}
+              onClick={props.onFullScreenClick}
+              tooltip="Full Screen"
+            />
+          )}
+
+          {!isEditMode && props.isFullScreen && (
+            <Button
+              icon={IconProp.Collapse}
+              buttonStyle={ButtonStyleType.ICON}
+              onClick={props.onCollapseScreenClick}
+              tooltip="Collapse Screen"
+            />
+          )}
+
           {!isEditMode && (
             <Button
               icon={IconProp.Pencil}
               title="Edit"
-              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonStyle={ButtonStyleType.ICON}
               onClick={props.onEditClick}
+              tooltip="Edit"
             />
           )}
+
           {isEditMode && (
             <Button
               icon={IconProp.Check}

@@ -7,7 +7,7 @@ import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
-import { DashboardRemConversionFactor } from "Common/Types/Dashboard/DashboardSize";
+import { DahboardHeightUnitInRem, DashboardSpaceBetweenUnitsInRem, DashboardWidthUnitInRem } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface DashboardBaseComponentProps {
@@ -16,6 +16,7 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
+  editComponentToolbarElements: Array<ReactElement>;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -35,7 +36,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (props.isSelected) {
-    className += " border-2 border-indigo-300";
+    className += " border-2 border-blue-300";
   }
 
   const getMoveElement: GetReactElementFunction = (): ReactElement => {
@@ -51,7 +52,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           top: "-9px",
           left: "-9px",
         }}
-        className="move-element cursor-move absolute w-4 h-4 bg-indigo-400 rounded-full cursor-pointer"
+        className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
         onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
         onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
@@ -69,7 +70,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           top: "calc(50% - 20px)",
           right: "-5px",
         }}
-        className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-indigo-400 rounded-full cursor-pointer"
+        className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
     );
   };
@@ -85,13 +86,35 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           bottom: "-5px",
           left: "calc(50% - 20px)",
         }}
-        className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-indigo-400 rounded-full cursor-pointer"
+        className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
     );
   };
 
+
+  const getEditComponentToolbar: GetReactElementFunction = (): ReactElement => { 
+    if (!props.isEditMode || !props.isSelected) {
+      return <></>;
+    }
+
+    return (
+      <div className="absolute top-0 right-0 bg-white shadow-md rounded">
+        {props.editComponentToolbarElements.map((element: ReactElement, index: number) => {
+          return (
+            <div key={index} className="inline-block">
+              {element}
+            </div>
+          );
+        })}
+      </div>
+    );
+   };
+
   const height: number = props.component.heightInDashboardUnits;
-  const heightInRem: number = height * DashboardRemConversionFactor;
+  const heightInRem: number = height * DahboardHeightUnitInRem + ((height - 1) * DashboardSpaceBetweenUnitsInRem);
+
+  const width: number = props.component.widthInDashboardUnits;
+  const widthInRem: number = width * DashboardWidthUnitInRem + ((width - 1) * DashboardSpaceBetweenUnitsInRem);;
 
   return (
     <div
@@ -102,9 +125,12 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }}
       style={{
         height: `${heightInRem}rem`,
+        width: `${widthInRem}rem`,
       }}
     >
       {getMoveElement()}
+
+      {getEditComponentToolbar()}
 
       {props.component._type === ObjectType.DashboardTextComponent && (
         <DashboardTextComponent

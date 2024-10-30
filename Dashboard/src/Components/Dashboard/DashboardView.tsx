@@ -47,6 +47,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -98,6 +99,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     >
       <DashboardToolbar
         dashboardMode={dashboardMode}
+        onFullScreenClick={() => {
+          setIsFullScreen(true);
+        }}
+        onCollapseScreenClick={() => {
+          setIsFullScreen(false);
+        }}
+        isFullScreen={isFullScreen}
         onSaveClick={() => {
           setDashboardMode(DashboardMode.View);
         }}

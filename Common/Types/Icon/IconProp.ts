@@ -16,6 +16,8 @@ enum IconProp {
   CursorArrowRays = "CursorArrowRays",
   ArrowUpDown = "ArrowUpDown",
   Cube = "Cube",
+  Expand = "Expand",
+  Collapse = "Collapse",
   Unarchive = "Unarchive",
   CPUChip = "CPUChip",
   Swatch = "Swatch",
