@@ -7,6 +7,7 @@ export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
   onClick: (top: number, left: number) => void;
   isEditMode: boolean;
+  totalCurrentDashboardWidthInPx: number;
 }
 
 const BlankCanvasElement: FunctionComponent<ComponentProps> = (
@@ -20,7 +21,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   if (!props.isEditMode && props.dashboardViewConfig.components.length === 0) {
     return (
-      <div className="rounded p-10 border-2 border-gray-100 text-sm text-gray-400 text-center">
+      <div className="ml-1 mr-1 rounded p-10 border-2 border-gray-100 text-sm text-gray-400 text-center pt-24 pb-24">
         No components added to this dashboard. Please add one to get started.
       </div>
     );
@@ -33,6 +34,9 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
         return (
           <BlankRowElement
             key={index}
+            totalCurrentDashboardWidthInPx={
+              props.totalCurrentDashboardWidthInPx
+            }
             isEditMode={props.isEditMode}
             rowNumber={index}
             onClick={(top: number, left: number) => {

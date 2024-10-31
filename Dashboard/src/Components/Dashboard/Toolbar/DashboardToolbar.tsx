@@ -24,7 +24,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`mt-1.5 mb-1.5 p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
+      className={`mt-1.5 mb-1.5 ml-1 mr-1 p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
     >
       <div className="w-full flex justify-between">
         <div className="text-md font-medium mt-2">

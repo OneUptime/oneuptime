@@ -11,6 +11,7 @@ export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
   onDashboardViewConfigChange: (newConfig: DashboardViewConfig) => void;
   isEditMode: boolean;
+  currentTotalDashboardWidthInPx: number;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -83,6 +84,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           // render a blank unit
           renderedComponents.push(
             <BlankDashboardUnitElement
+              currentTotalDashboardWidthInPx={
+                props.currentTotalDashboardWidthInPx
+              }
               isEditMode={props.isEditMode}
               key={`blank-${i}-${j}`}
               onClick={() => {
@@ -125,6 +129,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return (
       <DashboardBaseComponentElement
         isEditMode={props.isEditMode}
+        totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         component={component}
         key={component.componentId.toString()}
         isSelected={selectedComponentId === component.componentId.toString()}
@@ -164,6 +169,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <BlankCanvasElement
+        totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         isEditMode={props.isEditMode}
         onClick={() => {}}
         dashboardViewConfig={props.dashboardViewConfig}

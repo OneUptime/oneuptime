@@ -1,14 +1,25 @@
+import {
+  GetDashboardUnitHeightInPx,
+  MarginForEachUnitInPx,
+} from "Common/Types/Dashboard/DashboardSize";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   isEditMode: boolean;
   onClick: () => void;
+  currentTotalDashboardWidthInPx: number;
 }
 
 const DashboardUnitElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let className: string = "m-2 h-20 w-20 min-w-20 min-h-20 ";
+  const heightOfUnitInPx: number = GetDashboardUnitHeightInPx(
+    props.currentTotalDashboardWidthInPx,
+  );
+
+  const widthOfUnitInPx: number = heightOfUnitInPx; // its a square
+
+  let className: string = "";
 
   if (props.isEditMode) {
     className +=
@@ -20,6 +31,11 @@ const DashboardUnitElement: FunctionComponent<ComponentProps> = (
       className={className}
       onClick={() => {
         props.onClick();
+      }}
+      style={{
+        width: widthOfUnitInPx + "px",
+        height: heightOfUnitInPx + "px",
+        margin: MarginForEachUnitInPx + "px",
       }}
     ></div>
   );

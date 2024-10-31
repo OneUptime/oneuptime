@@ -7,8 +7,8 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
   public static override getDefaultComponent(): DashboardTextComponent {
     return {
       _type: ObjectType.DashboardTextComponent,
-      widthInDashboardUnits: 12,
-      heightInDashboardUnits: 1,
+      widthInDashboardUnits: 6,
+      heightInDashboardUnits: 3,
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       text: "Hello, World!",

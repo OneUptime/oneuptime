@@ -7,11 +7,7 @@ import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
-import {
-  DahboardHeightUnitInRem,
-  DashboardSpaceBetweenUnitsInRem,
-  DashboardWidthUnitInRem,
-} from "Common/Types/Dashboard/DashboardSize";
+import { GetDashboardComponentHeightInDashboardUnits, GetDashboardComponentWidthInDashboardUnits, GetDashboardUnitHeightInPx, GetDashboardUnitWidthInPx, MarginForEachUnitInPx } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface DashboardCommonComponentProps
@@ -25,6 +21,7 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
+  totalCurrentDashboardWidthInPx: number;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -37,61 +34,99 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const widthOfComponent: number = props.component.widthInDashboardUnits;
   const heightOfComponent: number = props.component.heightInDashboardUnits;
 
-  let className: string = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} p-2`;
+  let className: string = `relative rounded-md col-span-${widthOfComponent} row-span-${heightOfComponent} p-2 bg-white border-2 border-solid border-gray-100`;
 
   if (props.isEditMode) {
-    className += "  cursor-pointer border border-solid border-gray-300 ";
+    className += "  cursor-pointer";
   }
 
   if (props.isSelected && props.isEditMode) {
     className += " border-2 border-blue-300";
   }
 
-  const dashbordComponentRef = React.useRef<HTMLDivElement>(null);
+  const dashboardComponentRef: React.RefObject<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
 
+  type MoveComponentTypeFunction = (
+    moveLeftOffset: number,
+    moveTopOffset: number,
+  ) => (mouseEvent: MouseEvent) => void;
 
-  type MoveComponentTypeFunction = (moveLeftOffset: number, moveTopOffset: number) => (mouseEvent: MouseEvent) => void;
-
-  const moveComponent: MoveComponentTypeFunction = (moveLeftOffset: number, moveTopOffset: number): (mouseEvent: MouseEvent) => void => {
-
+  const moveComponent: MoveComponentTypeFunction = (
+    moveLeftOffset: number,
+    moveTopOffset: number,
+  ): ((mouseEvent: MouseEvent) => void) => {
     return (event: MouseEvent) => {
-
-      if (dashbordComponentRef.current === null) {
+      if (dashboardComponentRef.current === null) {
         return;
       }
 
-      dashbordComponentRef.current.style.left = event.clientX - moveLeftOffset + 'px';
-      dashbordComponentRef.current.style.top = event.clientY - moveTopOffset + 'px';
-    }
-
-  }
+      dashboardComponentRef.current.style.left =
+        event.clientX - moveLeftOffset + "px";
+      dashboardComponentRef.current.style.top =
+        event.clientY - moveTopOffset + "px";
+    };
+  };
 
   let moveFunction: Function | undefined = undefined;
 
-
   const resizeWidth: (event: MouseEvent) => void = (event: MouseEvent) => {
-    if (dashbordComponentRef.current === null) {
+    if (dashboardComponentRef.current === null) {
       return;
     }
-    dashbordComponentRef.current.style.width = event.pageX - dashbordComponentRef.current.getBoundingClientRect().left + 'px'
-  }
 
+     let newDashboardWidthInPx: number=
+      event.pageX -
+      dashboardComponentRef.current.getBoundingClientRect().left; 
+
+
+      if(GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) > newDashboardWidthInPx) {
+        newDashboardWidthInPx = GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx);
+      }
+
+      // get this in dashboard units., 
+      const widthInDashboardUnits: number = GetDashboardComponentWidthInDashboardUnits(props.totalCurrentDashboardWidthInPx, newDashboardWidthInPx);
+
+      // update the component
+      const newComponentProps: DashboardBaseComponent = {
+        ...props.component,
+        widthInDashboardUnits: widthInDashboardUnits,
+      };
+
+      props.onComponentUpdate(newComponentProps);
+  };
 
   const resizeHeight: (event: MouseEvent) => void = (event: MouseEvent) => {
-    if (dashbordComponentRef.current === null) {
+    if (dashboardComponentRef.current === null) {
       return;
     }
-    dashbordComponentRef.current.style.height = event.pageY - dashbordComponentRef.current.getBoundingClientRect().top + 'px'
-  }
+
+    let newDashboardHeightInPx: number = event.pageY - dashboardComponentRef.current.getBoundingClientRect().top;
+
+    if(GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) > newDashboardHeightInPx) {
+      newDashboardHeightInPx = GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx)
+    }
+
+    // get this in dashboard units
+    const heightInDashboardUnits: number = GetDashboardComponentHeightInDashboardUnits(props.totalCurrentDashboardWidthInPx, newDashboardHeightInPx);
+
+    // update the component
+    const newComponentProps: DashboardBaseComponent = {
+      ...props.component,
+      heightInDashboardUnits: heightInDashboardUnits,
+    };
+
+    props.onComponentUpdate(newComponentProps);
+  };
 
   const stopResizeAndMove: () => void = () => {
-    window.removeEventListener('mousemove', resizeHeight);
-    window.removeEventListener('mousemove', resizeWidth);
+    window.removeEventListener("mousemove", resizeHeight);
+    window.removeEventListener("mousemove", resizeWidth);
     if (moveFunction) {
-      window.removeEventListener('mousemove', moveFunction as any);
+      window.removeEventListener("mousemove", moveFunction as any);
+      moveFunction = undefined;
     }
-    window.removeEventListener('mouseup', stopResizeAndMove);
-  }
+    window.removeEventListener("mouseup", stopResizeAndMove);
+  };
 
   const getResizeWidthElement: GetReactElementFunction = (): ReactElement => {
     if (!props.isSelected || !props.isEditMode) {
@@ -106,14 +141,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         }}
         onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
           event.preventDefault();
-          window.addEventListener('mousemove', resizeWidth);
-          window.addEventListener('mouseup', stopResizeAndMove);
+          window.addEventListener("mousemove", resizeWidth);
+          window.addEventListener("mouseup", stopResizeAndMove);
         }}
         className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
     );
   };
-
 
   const getMoveElement: GetReactElementFunction = (): ReactElement => {
     // if not selected, then return null
@@ -131,15 +165,24 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
           event.preventDefault();
 
-          const leftOffset: number = (dashbordComponentRef.current ? dashbordComponentRef.current?.getBoundingClientRect()?.left : 0);
-          const topOffset: number = (dashbordComponentRef.current ? dashbordComponentRef.current.getBoundingClientRect().top : 0);
+          const leftOffset: number = dashboardComponentRef.current
+            ? dashboardComponentRef.current?.getBoundingClientRect()?.left
+            : 0;
+          const topOffset: number = dashboardComponentRef.current
+            ? dashboardComponentRef.current.getBoundingClientRect().top
+            : 0;
 
-          window.addEventListener('mousemove', moveComponent(leftOffset, topOffset));
-          window.addEventListener('mouseup', stopResizeAndMove);
+            moveFunction = moveComponent(leftOffset, topOffset); 
+
+          window.addEventListener(
+            "mousemove",
+            moveFunction as any,
+          );
+          window.addEventListener("mouseup", stopResizeAndMove);
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
     );
   };
@@ -157,8 +200,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         }}
         onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
           event.preventDefault();
-          window.addEventListener('mousemove', resizeHeight);
-          window.addEventListener('mouseup', stopResizeAndMove);
+          window.addEventListener("mousemove", resizeHeight);
+          window.addEventListener("mouseup", stopResizeAndMove);
         }}
         className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
@@ -191,16 +234,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const height: number = props.component.heightInDashboardUnits;
-  const heightInRem: number =
-    height * DahboardHeightUnitInRem +
-    (height - 1) * DashboardSpaceBetweenUnitsInRem;
-
-  const width: number = props.component.widthInDashboardUnits;
-  const widthInRem: number =
-    width * DashboardWidthUnitInRem +
-    (width - 1) * DashboardSpaceBetweenUnitsInRem;
-
   return (
     <div
       className={className}
@@ -209,10 +242,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         props.onClick();
       }}
       style={{
-        height: `${heightInRem}rem`,
-        width: `${widthInRem}rem`,
+        margin: `${MarginForEachUnitInPx}px`,
       }}
-      ref={dashbordComponentRef}
+      ref={dashboardComponentRef}
     >
       {getMoveElement()}
 

@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardToolbar from "./Toolbar/DashboardToolbar";
@@ -22,9 +23,7 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
-import DefaultDashboardSize, {
-  TotalWidthOfDashboardInRem,
-} from "Common/Types/Dashboard/DashboardSize";
+import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {
@@ -37,6 +36,29 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(
     DashboardMode.View,
   );
+
+  // ref for dashboard div.
+
+  const dashboardViewRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(
+    dashboardViewRef.current?.offsetWidth || 0,
+  );
+
+  useEffect(() => {
+    setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
+
+    const handleResize = (): void => {
+      setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const [dashboardViewConfig, setDashboardViewConfig] =
     useState<DashboardViewConfig>({
@@ -93,8 +115,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      ref={dashboardViewRef}
+      className="w-full"
       style={{
-        width: TotalWidthOfDashboardInRem + "rem",
+        minWidth: "1000px",
       }}
     >
       <DashboardToolbar
@@ -152,6 +176,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newConfig);
         }}
         isEditMode={dashboardMode === DashboardMode.Edit}
+        currentTotalDashboardWidthInPx={dashboardTotalWidth}
       />
     </div>
   );
