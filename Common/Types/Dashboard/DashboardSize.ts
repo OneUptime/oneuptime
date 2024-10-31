@@ -26,7 +26,6 @@ export const GetDashboardUnitWidthInPx: GetDashboardUnitWidthInPxFunction = (
   );
 };
 
-
 type GetDashboardUnitHeightInPxFunction = (
   currentTotalDashboardWidthInPx: number,
 ) => number;
@@ -42,62 +41,69 @@ type GetHeightOfDashboardComponentFunction = (
   totalCurrentDashboardWidthInPx: number,
 ) => number;
 
-export const GetHeightOfDashboardComponent: GetHeightOfDashboardComponentFunction = (
-  heightInDashboardUnits: number,
-  totalCurrentDashboardWidthInPx: number,
-): number => {
-  return (
-    heightInDashboardUnits *
-      GetDashboardUnitHeightInPx(totalCurrentDashboardWidthInPx) +
-    (heightInDashboardUnits - 1) * SpaceBetweenUnitsInPx
-  );
-};
+export const GetHeightOfDashboardComponent: GetHeightOfDashboardComponentFunction =
+  (
+    heightInDashboardUnits: number,
+    totalCurrentDashboardWidthInPx: number,
+  ): number => {
+    return (
+      heightInDashboardUnits *
+        GetDashboardUnitHeightInPx(totalCurrentDashboardWidthInPx) +
+      (heightInDashboardUnits - 1) * SpaceBetweenUnitsInPx
+    );
+  };
 
 type GetWidthOfDashboardComponentFunction = (
   widthInDashboardUnits: number,
   totalCurrentDashboardWidthInPx: number,
 ) => number;
 
-export const GetWidthOfDashboardComponent: GetWidthOfDashboardComponentFunction = (
-  widthInDashboardUnits: number,
-  totalCurrentDashboardWidthInPx: number,
-): number => {
-  return (
-    widthInDashboardUnits *
-      GetDashboardUnitWidthInPx(totalCurrentDashboardWidthInPx) +
-    (widthInDashboardUnits - 1) * SpaceBetweenUnitsInPx
-  );
-};
+export const GetWidthOfDashboardComponent: GetWidthOfDashboardComponentFunction =
+  (
+    widthInDashboardUnits: number,
+    totalCurrentDashboardWidthInPx: number,
+  ): number => {
+    return (
+      widthInDashboardUnits *
+        GetDashboardUnitWidthInPx(totalCurrentDashboardWidthInPx) +
+      (widthInDashboardUnits - 1) * SpaceBetweenUnitsInPx
+    );
+  };
 
 type GetDashboardComponentWidthInDashboardUnitsFunction = (
   currentTotalDashboardWidthInPx: number,
   componentWidthInPx: number,
 ) => number;
 
-export const GetDashboardComponentWidthInDashboardUnits: GetDashboardComponentWidthInDashboardUnitsFunction = (
-  currentTotalDashboardWidthInPx: number,
-  componentWidthInPx: number,
-): number => {
-  return Math.floor(
-    (componentWidthInPx + (DefaultDashboardSize.widthInDashboardUnits - 1) * SpaceBetweenUnitsInPx) /
-      GetDashboardUnitWidthInPx(currentTotalDashboardWidthInPx),
-  );
-}
-
+export const GetDashboardComponentWidthInDashboardUnits: GetDashboardComponentWidthInDashboardUnitsFunction =
+  (
+    currentTotalDashboardWidthInPx: number,
+    componentWidthInPx: number,
+  ): number => {
+    return Math.floor(
+      (componentWidthInPx +
+        (DefaultDashboardSize.widthInDashboardUnits - 1) *
+          SpaceBetweenUnitsInPx) /
+        GetDashboardUnitWidthInPx(currentTotalDashboardWidthInPx),
+    );
+  };
 
 type GetDashboardComponentHeightInDashboardUnitsFunction = (
   currentTotalDashboardWidthInPx: number,
   componentHeightInPx: number,
 ) => number;
 
-export const GetDashboardComponentHeightInDashboardUnits: GetDashboardComponentHeightInDashboardUnitsFunction = (
-  currentTotalDashboardWidthInPx: number,
-  componentHeightInPx: number,
-): number => {
-  return Math.floor(
-    (componentHeightInPx + (DefaultDashboardSize.heightInDashboardUnits - 1) * SpaceBetweenUnitsInPx) /
-      GetDashboardUnitHeightInPx(currentTotalDashboardWidthInPx),
-  );
-}
+export const GetDashboardComponentHeightInDashboardUnits: GetDashboardComponentHeightInDashboardUnitsFunction =
+  (
+    currentTotalDashboardWidthInPx: number,
+    componentHeightInPx: number,
+  ): number => {
+    return Math.floor(
+      (componentHeightInPx +
+        (DefaultDashboardSize.heightInDashboardUnits - 1) *
+          SpaceBetweenUnitsInPx) /
+        GetDashboardUnitHeightInPx(currentTotalDashboardWidthInPx),
+    );
+  };
 
 export default DefaultDashboardSize;

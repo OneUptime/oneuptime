@@ -24,7 +24,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -49,7 +49,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
 
-    const handleResize = (): void => {
+    const handleResize: VoidFunction = (): void => {
       setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
     };
 
