@@ -37,38 +37,64 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const widthOfComponent: number = props.component.widthInDashboardUnits;
   const heightOfComponent: number = props.component.heightInDashboardUnits;
 
-  let className: string = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} border border-solid border-gray-300 p-2`;
+  let className: string = `relative rounded m-2 col-span-${widthOfComponent} row-span-${heightOfComponent} p-2`;
 
   if (props.isEditMode) {
-    className += "  cursor-pointer";
+    className += "  cursor-pointer border border-solid border-gray-300 ";
   }
 
-  if (props.isSelected) {
+  if (props.isSelected && props.isEditMode) {
     className += " border-2 border-blue-300";
   }
 
-  const getMoveElement: GetReactElementFunction = (): ReactElement => {
-    // if not selected, then return null
+  const dashbordComponentRef = React.useRef<HTMLDivElement>(null);
 
-    if (!props.isSelected) {
-      return <></>;
+
+  type MoveComponentTypeFunction = (moveLeftOffset: number, moveTopOffset: number) => (mouseEvent: MouseEvent) => void;
+
+  const moveComponent: MoveComponentTypeFunction = (moveLeftOffset: number, moveTopOffset: number): (mouseEvent: MouseEvent) => void => {
+
+    return (event: MouseEvent) => {
+
+      if (dashbordComponentRef.current === null) {
+        return;
+      }
+
+      dashbordComponentRef.current.style.left = event.clientX - moveLeftOffset + 'px';
+      dashbordComponentRef.current.style.top = event.clientY - moveTopOffset + 'px';
     }
 
-    return (
-      <div
-        style={{
-          top: "-9px",
-          left: "-9px",
-        }}
-        className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
-      ></div>
-    );
-  };
+  }
+
+  let moveFunction: Function | undefined = undefined;
+
+
+  const resizeWidth: (event: MouseEvent) => void = (event: MouseEvent) => {
+    if (dashbordComponentRef.current === null) {
+      return;
+    }
+    dashbordComponentRef.current.style.width = event.pageX - dashbordComponentRef.current.getBoundingClientRect().left + 'px'
+  }
+
+
+  const resizeHeight: (event: MouseEvent) => void = (event: MouseEvent) => {
+    if (dashbordComponentRef.current === null) {
+      return;
+    }
+    dashbordComponentRef.current.style.height = event.pageY - dashbordComponentRef.current.getBoundingClientRect().top + 'px'
+  }
+
+  const stopResizeAndMove: () => void = () => {
+    window.removeEventListener('mousemove', resizeHeight);
+    window.removeEventListener('mousemove', resizeWidth);
+    if (moveFunction) {
+      window.removeEventListener('mousemove', moveFunction as any);
+    }
+    window.removeEventListener('mouseup', stopResizeAndMove);
+  }
 
   const getResizeWidthElement: GetReactElementFunction = (): ReactElement => {
-    if (!props.isSelected) {
+    if (!props.isSelected || !props.isEditMode) {
       return <></>;
     }
 
@@ -78,13 +104,48 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           top: "calc(50% - 20px)",
           right: "-5px",
         }}
+        onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+          event.preventDefault();
+          window.addEventListener('mousemove', resizeWidth);
+          window.addEventListener('mouseup', stopResizeAndMove);
+        }}
         className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
     );
   };
 
+
+  const getMoveElement: GetReactElementFunction = (): ReactElement => {
+    // if not selected, then return null
+
+    if (!props.isSelected || !props.isEditMode) {
+      return <></>;
+    }
+
+    return (
+      <div
+        style={{
+          top: "-9px",
+          left: "-9px",
+        }}
+        onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+          event.preventDefault();
+
+          const leftOffset: number = (dashbordComponentRef.current ? dashbordComponentRef.current?.getBoundingClientRect()?.left : 0);
+          const topOffset: number = (dashbordComponentRef.current ? dashbordComponentRef.current.getBoundingClientRect().top : 0);
+
+          window.addEventListener('mousemove', moveComponent(leftOffset, topOffset));
+          window.addEventListener('mouseup', stopResizeAndMove);
+        }}
+        className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
+      ></div>
+    );
+  };
+
   const getResizeHeightElement: GetReactElementFunction = (): ReactElement => {
-    if (!props.isSelected) {
+    if (!props.isSelected || !props.isEditMode) {
       return <></>;
     }
 
@@ -93,6 +154,11 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         style={{
           bottom: "-5px",
           left: "calc(50% - 20px)",
+        }}
+        onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+          event.preventDefault();
+          window.addEventListener('mousemove', resizeHeight);
+          window.addEventListener('mouseup', stopResizeAndMove);
         }}
         className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
       ></div>
@@ -111,7 +177,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="absolute top-0 right-1/2 bg-white shadow-md rounded border-2 border-gray-100 p-3">
+      <div className="absolute -top-5 right-1/2 bg-white shadow-md rounded-md pt-0.5 pr-0.5 pl-0.5 border border-gray-50 -pb-1">
         {editToolbarComponentElements.map(
           (element: ReactElement, index: number) => {
             return (
@@ -146,6 +212,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         height: `${heightInRem}rem`,
         width: `${widthInRem}rem`,
       }}
+      ref={dashbordComponentRef}
     >
       {getMoveElement()}
 
