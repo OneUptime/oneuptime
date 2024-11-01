@@ -81,14 +81,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    let newDashboardWidthInPx: number =
+    let newDashboardComponentwidthInPx: number =
       event.pageX - dashboardComponentRef.current.getBoundingClientRect().left;
 
     if (
       GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) >
-      newDashboardWidthInPx
+      newDashboardComponentwidthInPx
     ) {
-      newDashboardWidthInPx = GetDashboardUnitWidthInPx(
+      newDashboardComponentwidthInPx = GetDashboardUnitWidthInPx(
         props.totalCurrentDashboardWidthInPx,
       );
     }
@@ -97,7 +97,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const widthInDashboardUnits: number =
       GetDashboardComponentWidthInDashboardUnits(
         props.totalCurrentDashboardWidthInPx,
-        newDashboardWidthInPx,
+        newDashboardComponentwidthInPx,
       );
 
     // update the component
@@ -114,14 +114,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    let newDashboardHeightInPx: number =
+    let newDashboardComponentHeightInPx: number =
       event.pageY - dashboardComponentRef.current.getBoundingClientRect().top;
 
     if (
       GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) >
-      newDashboardHeightInPx
+      newDashboardComponentHeightInPx
     ) {
-      newDashboardHeightInPx = GetDashboardUnitHeightInPx(
+      newDashboardComponentHeightInPx = GetDashboardUnitHeightInPx(
         props.totalCurrentDashboardWidthInPx,
       );
     }
@@ -130,7 +130,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const heightInDashboardUnits: number =
       GetDashboardComponentHeightInDashboardUnits(
         props.totalCurrentDashboardWidthInPx,
-        newDashboardHeightInPx,
+        newDashboardComponentHeightInPx,
       );
 
     // update the component
