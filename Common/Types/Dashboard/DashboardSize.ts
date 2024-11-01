@@ -80,12 +80,18 @@ export const GetDashboardComponentWidthInDashboardUnits: GetDashboardComponentWi
     currentTotalDashboardWidthInPx: number,
     componentWidthInPx: number,
   ): number => {
-    return Math.floor(
-      (componentWidthInPx +
-        (DefaultDashboardSize.widthInDashboardUnits - 1) *
-          SpaceBetweenUnitsInPx) /
-        GetDashboardUnitWidthInPx(currentTotalDashboardWidthInPx),
-    );
+    const eachUnitSizeInPx: number =
+      currentTotalDashboardWidthInPx /
+      DefaultDashboardSize.widthInDashboardUnits; // each square is these many pixels
+
+    // now check how many squares can fit in the component width
+    const units: number = Math.ceil(componentWidthInPx / eachUnitSizeInPx);
+
+    if (units < 1) {
+      return 1;
+    }
+
+    return units;
   };
 
 type GetDashboardComponentHeightInDashboardUnitsFunction = (
@@ -98,12 +104,18 @@ export const GetDashboardComponentHeightInDashboardUnits: GetDashboardComponentH
     currentTotalDashboardWidthInPx: number,
     componentHeightInPx: number,
   ): number => {
-    return Math.floor(
-      (componentHeightInPx +
-        (DefaultDashboardSize.heightInDashboardUnits - 1) *
-          SpaceBetweenUnitsInPx) /
-        GetDashboardUnitHeightInPx(currentTotalDashboardWidthInPx),
-    );
+    const eachUnitSizeInPx: number =
+      currentTotalDashboardWidthInPx /
+      DefaultDashboardSize.widthInDashboardUnits; // each square is these many pixels
+
+    // now check how many squares can fit in the component height
+    const units: number = Math.ceil(componentHeightInPx / eachUnitSizeInPx);
+
+    if (units < 1) {
+      return 1;
+    }
+
+    return units;
   };
 
 export default DefaultDashboardSize;

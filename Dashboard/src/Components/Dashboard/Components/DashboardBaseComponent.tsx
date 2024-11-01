@@ -13,6 +13,7 @@ import {
   GetDashboardUnitHeightInPx,
   GetDashboardUnitWidthInPx,
   MarginForEachUnitInPx,
+  SpaceBetweenUnitsInPx,
 } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
@@ -82,8 +83,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     let newDashboardComponentwidthInPx: number =
-      event.pageX - dashboardComponentRef.current.getBoundingClientRect().left;
-
+      event.clientX -
+      (window.scrollX +
+        dashboardComponentRef.current.getBoundingClientRect().left);
     if (
       GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) >
       newDashboardComponentwidthInPx
@@ -115,7 +117,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     let newDashboardComponentHeightInPx: number =
-      event.pageY - dashboardComponentRef.current.getBoundingClientRect().top;
+      event.clientY -
+      (window.scrollY +
+        dashboardComponentRef.current.getBoundingClientRect().top);
 
     if (
       GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) >
@@ -186,6 +190,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           top: "-9px",
           left: "-9px",
         }}
+        key={props.key}
         onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
           event.preventDefault();
 
@@ -264,6 +269,16 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }}
       style={{
         margin: `${MarginForEachUnitInPx}px`,
+        height: `${
+          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+            heightOfComponent +
+          SpaceBetweenUnitsInPx * (heightOfComponent - 1)
+        }px`,
+        width: `${
+          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+            widthOfComponent +
+          (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
+        }px`,
       }}
       ref={dashboardComponentRef}
     >
