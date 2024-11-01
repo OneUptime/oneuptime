@@ -151,7 +151,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     let newDashboardComponentwidthInPx: number =
-      event.clientX -
+      event.pageX -
       (window.scrollX +
         dashboardComponentRef.current.getBoundingClientRect().left);
     if (
@@ -185,7 +185,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     let newDashboardComponentHeightInPx: number =
-      event.clientY -
+      event.pageY -
       (window.scrollY +
         dashboardComponentRef.current.getBoundingClientRect().top);
 
