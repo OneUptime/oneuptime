@@ -73,27 +73,35 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const newMoveToTop: number = mouseEvent.pageY;
     const newMoveToLeft: number = mouseEvent.pageX;
 
-    const oldTopDashboardUnits: number = props.component.topInDashboardUnits + 1;
-    const oldLeftDashboardUnits: number = props.component.leftInDashboardUnits + 1;
+    const deltaXInPx: number = newMoveToLeft - dashboardComponentOldLeftInPx;
+    const deltaYInPx: number = newMoveToTop - dashboardComponentOldTopInPx;
 
-    // calculare new top and new left.
-    let newTopInDashboardUnits: number = Math.floor(
-      (newMoveToTop * oldTopDashboardUnits) / dashboardComponentOldTopInPx,
-    ) - 1;
-    let newLeftInDashboardUnits: number = Math.floor(
-      (newMoveToLeft * oldLeftDashboardUnits) / dashboardComponentOldLeftInPx,
-    ) - 1;
+    const eachDashboardUnitInPx: number = GetDashboardUnitWidthInPx(
+      props.totalCurrentDashboardWidthInPx,
+    );
 
-    // check if the new top and left are within the bounds of the dashboard
+    const deltaXInDashboardUnits: number = Math.round(
+      deltaXInPx / eachDashboardUnitInPx,
+    );
+    const deltaYInDashboardUnits: number = Math.round(
+      deltaYInPx / eachDashboardUnitInPx,
+    );
+
+    let newTopInDashboardUnits: number =
+      props.component.topInDashboardUnits + deltaYInDashboardUnits;
+    let newLeftInDashboardUnits: number =
+      props.component.leftInDashboardUnits + deltaXInDashboardUnits;
+
+    // now make sure these are within the bounds of the dashboard inch component width and height in dashbosrd units
 
     const dahsboardTotalWidthInDashboardUnits: number =
       DefaultDashboardSize.widthInDashboardUnits; // width does not change
-
     const dashboardTotalHeightInDashboardUnits: number =
       props.dashboardViewConfig.heightInDashboardUnits;
 
     const heightOfTheComponntInDashboardUnits: number =
       props.component.heightInDashboardUnits;
+
     const widthOfTheComponentInDashboardUnits: number =
       props.component.widthInDashboardUnits;
 
@@ -117,12 +125,13 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         widthOfTheComponentInDashboardUnits;
     }
 
+    // make sure they are not negative
 
-    if(newTopInDashboardUnits < 0) {
+    if (newTopInDashboardUnits < 0) {
       newTopInDashboardUnits = 0;
     }
 
-    if(newLeftInDashboardUnits < 0) {
+    if (newLeftInDashboardUnits < 0) {
       newLeftInDashboardUnits = 0;
     }
 
