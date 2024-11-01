@@ -17,6 +17,9 @@ export interface ComponentProps {
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
+
   const renderComponents: GetReactElementFunction = (): ReactElement => {
     const canvasHeight: number =
       props.dashboardViewConfig.heightInDashboardUnits ||
@@ -111,7 +114,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     const width: number = DefaultDashboardSize.widthInDashboardUnits;
 
     return (
-      <div className={`grid grid-cols-${width}`}>{finalRenderedComponents}</div>
+      <div ref={dashboardCanvasRef} className={`grid grid-cols-${width}`}>
+        {finalRenderedComponents}
+      </div>
     );
   };
 
@@ -128,7 +133,14 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     return (
       <DashboardBaseComponentElement
+        dashboardViewConfig={props.dashboardViewConfig}
         isEditMode={props.isEditMode}
+        dashboardCanvasHeightInPx={
+          dashboardCanvasRef.current?.clientHeight || 0
+        }
+        dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
+        dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
+        dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         component={component}
         key={component.componentId.toString()}

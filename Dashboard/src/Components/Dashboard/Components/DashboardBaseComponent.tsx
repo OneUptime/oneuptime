@@ -7,7 +7,7 @@ import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
-import {
+import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
   GetDashboardUnitHeightInPx,
@@ -16,6 +16,7 @@ import {
   SpaceBetweenUnitsInPx,
 } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 
 export interface DashboardCommonComponentProps
   extends DashboardBaseComponentProps {
@@ -29,6 +30,11 @@ export interface DashboardBaseComponentProps {
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
   totalCurrentDashboardWidthInPx: number;
+  dashboardCanvasTopInPx: number;
+  dashboardCanvasLeftInPx: number;
+  dashboardCanvasWidthInPx: number;
+  dashboardCanvasHeightInPx: number;
+  dashboardViewConfig: DashboardViewConfig;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -54,28 +60,72 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const dashboardComponentRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
 
-  type MoveComponentTypeFunction = (
-    moveLeftOffset: number,
-    moveTopOffset: number,
-  ) => (mouseEvent: MouseEvent) => void;
+  type MoveComponentFunction = (mouseEvent: MouseEvent) => void;
 
-  const moveComponent: MoveComponentTypeFunction = (
-    moveLeftOffset: number,
-    moveTopOffset: number,
-  ): ((mouseEvent: MouseEvent) => void) => {
-    return (event: MouseEvent) => {
-      if (dashboardComponentRef.current === null) {
-        return;
-      }
+  const moveComponent: MoveComponentFunction = (
+    mouseEvent: MouseEvent,
+  ): void => {
+    const dashboardComponentOldTopInPx: number =
+      dashboardComponentRef.current?.getBoundingClientRect().top || 0;
+    const dashboardComponentOldLeftInPx: number =
+      dashboardComponentRef.current?.getBoundingClientRect().left || 0;
 
-      dashboardComponentRef.current.style.left =
-        event.clientX - moveLeftOffset + "px";
-      dashboardComponentRef.current.style.top =
-        event.clientY - moveTopOffset + "px";
+    const newMoveToTop: number = mouseEvent.pageY;
+    const newMoveToLeft: number = mouseEvent.pageX;
+
+    const oldTopDashboardUnits: number = props.component.topInDashboardUnits;
+    const oldLeftDashboardUnits: number = props.component.leftInDashboardUnits;
+
+    // calculare new top and new left.
+    let newTopInDashboardUnits: number = Math.floor(
+      (newMoveToTop * oldTopDashboardUnits) / dashboardComponentOldTopInPx,
+    );
+    let newLeftInDashboardUnits: number = Math.floor(
+      (newMoveToLeft * oldLeftDashboardUnits) / dashboardComponentOldLeftInPx,
+    );
+
+    // check if the new top and left are within the bounds of the dashboard
+
+    const dahsboardTotalWidthInDashboardUnits: number =
+      DefaultDashboardSize.widthInDashboardUnits; // width does not change
+
+    const dashboardTotalHeightInDashboardUnits: number =
+      props.dashboardViewConfig.heightInDashboardUnits;
+
+    const heightOfTheComponntInDashboardUnits: number =
+      props.component.heightInDashboardUnits;
+    const widthOfTheComponentInDashboardUnits: number =
+      props.component.widthInDashboardUnits;
+
+    // if it goes outside the bounds then max it out to the bounds
+
+    if (
+      newTopInDashboardUnits + heightOfTheComponntInDashboardUnits >
+      dashboardTotalHeightInDashboardUnits
+    ) {
+      newTopInDashboardUnits =
+        dashboardTotalHeightInDashboardUnits -
+        heightOfTheComponntInDashboardUnits;
+    }
+
+    if (
+      newLeftInDashboardUnits + widthOfTheComponentInDashboardUnits >
+      dahsboardTotalWidthInDashboardUnits
+    ) {
+      newLeftInDashboardUnits =
+        dahsboardTotalWidthInDashboardUnits -
+        widthOfTheComponentInDashboardUnits;
+    }
+
+    // update the component
+    const newComponentProps: DashboardBaseComponent = {
+      ...props.component,
+      topInDashboardUnits: newTopInDashboardUnits,
+      leftInDashboardUnits: newLeftInDashboardUnits,
     };
-  };
 
-  let moveFunction: ((event: MouseEvent) => void) | undefined = undefined;
+    props.onComponentUpdate(newComponentProps);
+  };
 
   const resizeWidth: (event: MouseEvent) => void = (event: MouseEvent) => {
     if (dashboardComponentRef.current === null) {
@@ -149,10 +199,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const stopResizeAndMove: () => void = () => {
     window.removeEventListener("mousemove", resizeHeight);
     window.removeEventListener("mousemove", resizeWidth);
-    if (moveFunction) {
-      window.removeEventListener("mousemove", moveFunction);
-      moveFunction = undefined;
-    }
+    window.removeEventListener("mousemove", moveComponent);
     window.removeEventListener("mouseup", stopResizeAndMove);
   };
 
@@ -194,16 +241,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         onMouseDown={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
           event.preventDefault();
 
-          const leftOffset: number = dashboardComponentRef.current
-            ? dashboardComponentRef.current?.getBoundingClientRect()?.left
-            : 0;
-          const topOffset: number = dashboardComponentRef.current
-            ? dashboardComponentRef.current.getBoundingClientRect().top
-            : 0;
-
-          moveFunction = moveComponent(leftOffset, topOffset);
-
-          window.addEventListener("mousemove", moveFunction as any);
+          window.addEventListener("mousemove", moveComponent);
           window.addEventListener("mouseup", stopResizeAndMove);
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
