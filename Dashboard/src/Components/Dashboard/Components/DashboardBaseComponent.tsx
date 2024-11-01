@@ -73,16 +73,16 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const newMoveToTop: number = mouseEvent.pageY;
     const newMoveToLeft: number = mouseEvent.pageX;
 
-    const oldTopDashboardUnits: number = props.component.topInDashboardUnits;
-    const oldLeftDashboardUnits: number = props.component.leftInDashboardUnits;
+    const oldTopDashboardUnits: number = props.component.topInDashboardUnits + 1;
+    const oldLeftDashboardUnits: number = props.component.leftInDashboardUnits + 1;
 
     // calculare new top and new left.
     let newTopInDashboardUnits: number = Math.floor(
       (newMoveToTop * oldTopDashboardUnits) / dashboardComponentOldTopInPx,
-    );
+    ) - 1;
     let newLeftInDashboardUnits: number = Math.floor(
       (newMoveToLeft * oldLeftDashboardUnits) / dashboardComponentOldLeftInPx,
-    );
+    ) - 1;
 
     // check if the new top and left are within the bounds of the dashboard
 
@@ -115,6 +115,15 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       newLeftInDashboardUnits =
         dahsboardTotalWidthInDashboardUnits -
         widthOfTheComponentInDashboardUnits;
+    }
+
+
+    if(newTopInDashboardUnits < 0) {
+      newTopInDashboardUnits = 0;
+    }
+
+    if(newLeftInDashboardUnits < 0) {
+      newLeftInDashboardUnits = 0;
     }
 
     // update the component
