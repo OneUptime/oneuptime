@@ -90,7 +90,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        setDashboardViewConfig(dashboard.dashboardViewConfig!);
+        setDashboardViewConfig(dashboard.dashboardViewConfig || DashboardViewConfigUtil.createDefaultDashboardViewConfig());
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
       }
