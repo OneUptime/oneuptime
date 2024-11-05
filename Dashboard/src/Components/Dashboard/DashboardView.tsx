@@ -173,7 +173,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       <DashboardCanvas
         dashboardViewConfig={dashboardViewConfig}
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
-          setDashboardViewConfig(newConfig);
+          setDashboardViewConfig(JSON.parse(JSON.stringify(newConfig)));
         }}
         isEditMode={dashboardMode === DashboardMode.Edit}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}

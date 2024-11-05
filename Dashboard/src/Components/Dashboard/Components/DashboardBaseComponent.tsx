@@ -17,6 +17,7 @@ import DefaultDashboardSize, {
 } from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface DashboardCommonComponentProps
   extends DashboardBaseComponentProps {
@@ -24,7 +25,7 @@ export interface DashboardCommonComponentProps
 }
 
 export interface DashboardBaseComponentProps {
-  component: DashboardBaseComponent;
+  componentId: ObjectID;
   isEditMode: boolean;
   isSelected: boolean;
   key: string;
@@ -44,8 +45,13 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const widthOfComponent: number = props.component.widthInDashboardUnits;
-  const heightOfComponent: number = props.component.heightInDashboardUnits;
+
+  const component: DashboardBaseComponent = props.dashboardViewConfig.components.find(
+    (component: DashboardBaseComponent) => component.componentId.toString() === props.componentId.toString(),
+  ) as DashboardBaseComponent;
+
+  const widthOfComponent: number = component.widthInDashboardUnits;
+  const heightOfComponent: number = component.heightInDashboardUnits;
 
   let className: string = `relative rounded-md col-span-${widthOfComponent} row-span-${heightOfComponent} p-2 bg-white border-2 border-solid border-gray-100`;
 
@@ -88,9 +94,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
 
     let newTopInDashboardUnits: number =
-      props.component.topInDashboardUnits + deltaYInDashboardUnits;
+      component.topInDashboardUnits + deltaYInDashboardUnits;
     let newLeftInDashboardUnits: number =
-      props.component.leftInDashboardUnits + deltaXInDashboardUnits;
+      component.leftInDashboardUnits + deltaXInDashboardUnits;
 
     // now make sure these are within the bounds of the dashboard inch component width and height in dashbosrd units
 
@@ -100,10 +106,10 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       props.dashboardViewConfig.heightInDashboardUnits;
 
     const heightOfTheComponntInDashboardUnits: number =
-      props.component.heightInDashboardUnits;
+      component.heightInDashboardUnits;
 
     const widthOfTheComponentInDashboardUnits: number =
-      props.component.widthInDashboardUnits;
+      component.widthInDashboardUnits;
 
     // if it goes outside the bounds then max it out to the bounds
 
@@ -137,7 +143,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
     // update the component
     const newComponentProps: DashboardBaseComponent = {
-      ...props.component,
+      ...component,
       topInDashboardUnits: newTopInDashboardUnits,
       leftInDashboardUnits: newLeftInDashboardUnits,
     };
@@ -172,7 +178,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
     // update the component
     const newComponentProps: DashboardBaseComponent = {
-      ...props.component,
+      ...component,
       widthInDashboardUnits: widthInDashboardUnits,
     };
 
@@ -207,7 +213,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
     // update the component
     const newComponentProps: DashboardBaseComponent = {
-      ...props.component,
+      ...component,
       heightInDashboardUnits: heightInDashboardUnits,
     };
 
@@ -261,6 +267,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
           window.addEventListener("mousemove", moveComponent);
           window.addEventListener("mouseup", stopResizeAndMove);
+        }}
+        onMouseUp={() => {
+          stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
         onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
@@ -340,30 +349,30 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     >
       {getMoveElement()}
 
-      {props.component._type === ObjectType.DashboardTextComponent && (
+      {component._type === ObjectType.DashboardTextComponent && (
         <DashboardTextComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
-          component={props.component as DashboardTextComponentType}
+          component={component as DashboardTextComponentType}
           editToolbarComponentElements={getEditComponentToolbar}
         />
       )}
-      {props.component._type === ObjectType.DashboardChartComponent && (
+      {component._type === ObjectType.DashboardChartComponent && (
         <DashboardChartComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
-          component={props.component as DashboardChartComponentType}
+          component={component as DashboardChartComponentType}
           editToolbarComponentElements={getEditComponentToolbar}
         />
       )}
-      {props.component._type === ObjectType.DashboardValueComponent && (
+      {component._type === ObjectType.DashboardValueComponent && (
         <DashboardValueComponent
           {...props}
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
-          component={props.component as DashboardValueComponentType}
+          component={component as DashboardValueComponentType}
           editToolbarComponentElements={getEditComponentToolbar}
         />
       )}

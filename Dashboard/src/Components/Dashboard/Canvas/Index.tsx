@@ -6,6 +6,7 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import BlankDashboardUnitElement from "./DashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -79,7 +80,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           component &&
           !renderedComponentsIds.includes(component.componentId.toString())
         ) {
-          renderedComponents.push(renderComponent(component));
+          renderedComponents.push(renderComponent(component.componentId));
           renderedComponentsIds.push(component.componentId.toString());
         }
 
@@ -125,11 +126,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   >(null);
 
   type RenderComponentFunction = (
-    component: DashboardBaseComponent,
+    componentId: ObjectID,
   ) => ReactElement;
 
   const renderComponent: RenderComponentFunction = (
-    component: DashboardBaseComponent,
+    componentId: ObjectID,
   ): ReactElement => {
     return (
       <DashboardBaseComponentElement
@@ -142,12 +143,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
         dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
-        component={component}
-        key={component.componentId.toString()}
-        isSelected={selectedComponentId === component.componentId.toString()}
+        componentId={componentId}
+        key={componentId.toString()}
+        isSelected={selectedComponentId === componentId.toString()}
         onClick={() => {
           // component is selected
-          setSelectedComponentId(component.componentId.toString());
+          setSelectedComponentId(componentId.toString());
         }}
         onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
           const updatedComponents: Array<DashboardBaseComponent> =
@@ -157,7 +158,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                   component.componentId.toString() ===
                   updatedComponent.componentId.toString()
                 ) {
-                  return updatedComponent;
+                  return {...updatedComponent};
                 }
 
                 return component;
@@ -166,7 +167,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
           const updatedDashboardViewConfig: DashboardViewConfig = {
             ...props.dashboardViewConfig,
-            components: updatedComponents,
+            components: [...updatedComponents],
           };
 
           props.onDashboardViewConfigChange(updatedDashboardViewConfig);
