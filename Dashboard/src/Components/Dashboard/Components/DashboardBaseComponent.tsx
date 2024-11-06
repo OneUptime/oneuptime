@@ -45,10 +45,14 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-  const component: DashboardBaseComponent = props.dashboardViewConfig.components.find(
-    (component: DashboardBaseComponent) => component.componentId.toString() === props.componentId.toString(),
-  ) as DashboardBaseComponent;
+  const component: DashboardBaseComponent =
+    props.dashboardViewConfig.components.find(
+      (component: DashboardBaseComponent) => {
+        return (
+          component.componentId.toString() === props.componentId.toString()
+        );
+      },
+    ) as DashboardBaseComponent;
 
   const widthOfComponent: number = component.widthInDashboardUnits;
   const heightOfComponent: number = component.heightInDashboardUnits;
@@ -69,19 +73,19 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const dashboardComponentRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
 
-
   const refreshTopAndLeftInPx: () => void = () => {
     if (dashboardComponentRef.current === null) {
       return;
     }
 
-    const topInPx: number = dashboardComponentRef.current.getBoundingClientRect().top;
-    const leftInPx: number = dashboardComponentRef.current.getBoundingClientRect().left;
+    const topInPx: number =
+      dashboardComponentRef.current.getBoundingClientRect().top;
+    const leftInPx: number =
+      dashboardComponentRef.current.getBoundingClientRect().left;
 
     setTopInPx(topInPx);
     setLeftInPx(leftInPx);
   };
-
 
   useEffect(() => {
     refreshTopAndLeftInPx();
@@ -93,8 +97,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     mouseEvent: MouseEvent,
   ): void => {
     const dashboardComponentOldTopInPx: number = topInPx;
-    const dashboardComponentOldLeftInPx: number =
-      leftInPx;
+    const dashboardComponentOldLeftInPx: number = leftInPx;
 
     const newMoveToTop: number = mouseEvent.pageY;
     const newMoveToLeft: number = mouseEvent.pageX;
@@ -292,8 +295,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
     );
   };
@@ -354,14 +357,16 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }}
       style={{
         margin: `${MarginForEachUnitInPx}px`,
-        height: `${GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-          heightOfComponent +
+        height: `${
+          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+            heightOfComponent +
           SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-          }px`,
-        width: `${GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-          widthOfComponent +
+        }px`,
+        width: `${
+          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+            widthOfComponent +
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-          }px`,
+        }px`,
       }}
       ref={dashboardComponentRef}
     >

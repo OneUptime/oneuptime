@@ -8,7 +8,6 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
-import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
@@ -47,6 +46,7 @@ RunCron(
           incidentId: true,
           incidentState: {
             name: true,
+            isResolvedState: true,
           },
         },
       });
@@ -129,6 +129,13 @@ RunCron(
         continue;
       }
 
+      const resourcesAffected: string =
+        incident
+          .monitors!.map((monitor: Monitor) => {
+            return monitor.name!;
+          })
+          .join(", ") || "";
+
       for (const user of owners) {
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
@@ -138,12 +145,7 @@ RunCron(
             incident.description! || "",
             MarkdownContentType.Email,
           ),
-          resourcesAffected:
-            incident
-              .monitors!.map((monitor: Monitor) => {
-                return monitor.name!;
-              })
-              .join(", ") || "None",
+          resourcesAffected: resourcesAffected || "None",
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: incidentStateTimeline.createdAt!,
@@ -162,12 +164,20 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
+        let subjectLine: string = `[Incident] ${incident.title!}`;
+
+        if (incidentState.isResolvedState) {
+          if (resourcesAffected) {
+            subjectLine = `[Incident] Incident on ${resourcesAffected} is resolved`;
+          } else {
+            subjectLine = `[Incident] Incident is resolved`;
+          }
+        }
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerStateChanged,
           vars: vars,
-          subject: `[Incident ${Text.uppercaseFirstLetter(
-            incidentState!.name!,
-          )}] ${incident.title!}`,
+          subject: subjectLine,
         };
 
         const sms: SMSMessage = {

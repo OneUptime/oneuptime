@@ -125,9 +125,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     string | null
   >(null);
 
-  type RenderComponentFunction = (
-    componentId: ObjectID,
-  ) => ReactElement;
+  type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
   const renderComponent: RenderComponentFunction = (
     componentId: ObjectID,
@@ -158,7 +156,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                   component.componentId.toString() ===
                   updatedComponent.componentId.toString()
                 ) {
-                  return {...updatedComponent};
+                  return { ...updatedComponent };
                 }
 
                 return component;
