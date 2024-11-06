@@ -156,9 +156,6 @@ import MonitorGroupOwnerUserService, {
 import MonitorGroupResourceService, {
   Service as MonitorGroupResourceServiceType,
 } from "Common/Server/Services/MonitorGroupResourceService";
-import MonitorMetricsByMinuteService, {
-  MonitorMetricsByMinuteService as MonitorMetricsByMinuteServiceType,
-} from "Common/Server/Services/MonitorMetricsByMinuteService";
 import MonitorOwnerTeamService, {
   Service as MonitorOwnerTeamServiceType,
 } from "Common/Server/Services/MonitorOwnerTeamService";
@@ -376,7 +373,6 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
-import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
 import Span from "Common/Models/AnalyticsModels/Span";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
@@ -671,14 +667,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         Metric,
         MetricService,
       ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<
-        MonitorMetricsByMinute,
-        MonitorMetricsByMinuteServiceType
-      >(MonitorMetricsByMinute, MonitorMetricsByMinuteService).getRouter(),
     );
 
     app.use(
