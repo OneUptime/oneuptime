@@ -52,6 +52,7 @@ import Metric, {
   MetricPointType,
 } from "../../../Models/AnalyticsModels/Metric";
 import MetricService from "../../Services/MetricService";
+import MonitorMetricType from "./MonitorMetricTypes";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -598,8 +599,8 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
-        monitorMetric.name = CheckOn.IsOnline;
-        monitorMetric.description = CheckOn.IsOnline;
+        monitorMetric.name = MonitorMetricType.IsOnline;
+        monitorMetric.description = CheckOn.IsOnline + " status for monitor";
         monitorMetric.value = isOnline ? 1 : 0;
         monitorMetric.unit = CheckOn.IsOnline;
         monitorMetric.attributes = {
@@ -627,8 +628,8 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
-        monitorMetric.name = CheckOn.CPUUsagePercent;
-        monitorMetric.description = CheckOn.CPUUsagePercent;
+        monitorMetric.name = MonitorMetricType.CPUUsagePercent;
+        monitorMetric.description = CheckOn.CPUUsagePercent + " of Server/VM";
         monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
         monitorMetric.unit = "Percent";
         monitorMetric.attributes = {
@@ -648,8 +649,9 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
-        monitorMetric.name = CheckOn.MemoryUsagePercent;
-        monitorMetric.description = CheckOn.MemoryUsagePercent;
+        monitorMetric.name = MonitorMetricType.MemoryUsagePercent;
+        monitorMetric.description =
+          CheckOn.MemoryUsagePercent + " of Server/VM";
         monitorMetric.value = basicMetrics.memoryMetrics.percentUsed;
         monitorMetric.unit = "Percent";
         monitorMetric.attributes = {
@@ -670,8 +672,9 @@ export default class MonitorResourceUtil {
 
           monitorMetric.projectId = data.projectId;
           monitorMetric.serviceId = data.monitorId;
-          monitorMetric.name = CheckOn.DiskUsagePercent;
-          monitorMetric.description = CheckOn.DiskUsagePercent;
+          monitorMetric.name = MonitorMetricType.DiskUsagePercent;
+          monitorMetric.description =
+            CheckOn.DiskUsagePercent + " of Server/VM";
           monitorMetric.value = diskMetric.percentUsed;
           monitorMetric.unit = "Percent";
           monitorMetric.attributes = {
@@ -697,8 +700,8 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
-      monitorMetric.name = CheckOn.ExecutionTime;
-      monitorMetric.description = CheckOn.ExecutionTime;
+      monitorMetric.name = MonitorMetricType.ExecutionTime;
+      monitorMetric.description = CheckOn.ExecutionTime + " of this monitor";
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).customCodeMonitorResponse?.executionTimeInMS;
@@ -733,8 +736,8 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
-        monitorMetric.name = CheckOn.ExecutionTime;
-        monitorMetric.description = CheckOn.ExecutionTime;
+        monitorMetric.name = MonitorMetricType.ExecutionTime;
+        monitorMetric.description = CheckOn.ExecutionTime + " of this monitor";
         monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
         monitorMetric.unit = "ms";
         monitorMetric.attributes = {
@@ -760,8 +763,8 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
-      monitorMetric.name = CheckOn.ResponseTime;
-      monitorMetric.description = CheckOn.ResponseTime;
+      monitorMetric.name = MonitorMetricType.ResponseTime;
+      monitorMetric.description = CheckOn.ResponseTime + " of this monitor";
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).responseTimeInMs;
@@ -786,8 +789,8 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
-      monitorMetric.name = CheckOn.IsOnline;
-      monitorMetric.description = CheckOn.IsOnline;
+      monitorMetric.name = MonitorMetricType.IsOnline;
+      monitorMetric.description = CheckOn.IsOnline + " status for monitor";
       monitorMetric.value = (data.dataToProcess as ProbeMonitorResponse)
         .isOnline
         ? 1
@@ -813,8 +816,9 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
-      monitorMetric.name = CheckOn.ResponseStatusCode;
-      monitorMetric.description = CheckOn.ResponseStatusCode;
+      monitorMetric.name = MonitorMetricType.ResponseStatusCode;
+      monitorMetric.description =
+        CheckOn.ResponseStatusCode + " for this monitor";
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).responseCode;
