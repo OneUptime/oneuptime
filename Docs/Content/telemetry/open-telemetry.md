@@ -55,7 +55,10 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.oneuptime.com
 export OTEL_SERVICE_NAME=my-service
 ```
 
-If you're self-hosting oneuptime, this can be changed to your self hosted OpenTelemetry collector endpoint (eg: `http(s)://<your-oneuptime-host>/otlp`)
+
+**Self Hosted OneUptime**
+
+If you're self-hosting oneuptime, this can be changed to your self hosted OpenTelemetry collector endpoint (eg: `http(s)://YOUR-ONEUPTIME-HOST/otlp`)
 
 Once you run your application, you should see the logs in the OneUptime telemetry service page. Please contact support@oneuptime.com if you need any help.
 

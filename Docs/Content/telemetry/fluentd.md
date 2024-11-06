@@ -109,7 +109,7 @@ An example of full configuration file is shown below:
 </match>
 ```
 
-**If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `endpoint_url` with the URL of your OneUptime instance. `http(s)://<YOUR_HOST>/fluentd/logs`
+**If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `endpoint_url` with the URL of your OneUptime instance. `http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`
 
 ## Usage
 
