@@ -78,10 +78,11 @@ export default class Metric extends AnalyticsBaseModel {
           },
         }),
 
+        // this can also be the monitor id or the telemetry service id.
         new AnalyticsTableColumn({
           key: "serviceId",
           title: "Service ID",
-          description: "ID of the Service which created the log",
+          description: "ID of the Service which created the Metric",
           required: true,
           type: TableColumnType.ObjectID,
           accessControl: {
