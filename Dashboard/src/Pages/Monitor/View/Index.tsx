@@ -53,7 +53,6 @@ import PageMap from "../../../Utils/PageMap";
 import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import MonitorMetricsElement from "../../../Components/Monitor/MonitorMetrics";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -545,8 +544,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
         }}
       />
-
-      <MonitorMetricsElement monitorId={modelId} monitorType={monitorType!} />
 
       {monitor?.monitorType === MonitorType.Logs &&
         monitor.monitorSteps &&

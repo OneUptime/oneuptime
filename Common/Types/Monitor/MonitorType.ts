@@ -204,4 +204,22 @@ export class MonitorTypeHelper {
   public static doesMonitorTypeHaveCriteria(monitorType: MonitorType): boolean {
     return monitorType !== MonitorType.Manual;
   }
+
+  public static doesMonitorTypeHaveMetrics(monitorType: MonitorType): boolean {
+    if (
+      monitorType === MonitorType.Website ||
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.IP ||
+      monitorType === MonitorType.Ping ||
+      monitorType === MonitorType.Port ||
+      monitorType === MonitorType.Server ||
+      monitorType === MonitorType.SSLCertificate ||
+      monitorType === MonitorType.SyntheticMonitor ||
+      monitorType === MonitorType.CustomJavaScriptCode
+    ) {
+      return true;
+    }
+
+    return false;
+  }
 }

@@ -1,6 +1,10 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -9,17 +13,65 @@ import { MetricQueryConfigData } from "../Metrics/MetricQueryConfig";
 import DashboardNavigation from "../../Utils/Navigation";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import API from "Common/UI/Utils/API/API";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 export interface ComponentProps {
   monitorId: ObjectID;
-  monitorType: MonitorType;
 }
 
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [monitorType, setMonitorType] = useState<MonitorType>(
+    MonitorType.Manual, // unknown monitor type.
+  );
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [error, setError] = useState<string>("");
+
+  const fetchMonitor: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+
+    try {
+      const item: Monitor | null = await ModelAPI.getItem({
+        modelType: Monitor,
+        id: props.monitorId,
+        select: {
+          monitorType: true,
+        },
+      });
+
+      setMonitorType(item?.monitorType || MonitorType.Manual);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchMonitor().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
   const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
-    MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(props.monitorType);
+    MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
 
   if (monitorMetricTypesByMonitor.length === 0) {
     return <></>;
@@ -75,6 +127,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
           queryConfigs: getQueryConfigByMonitorMetricTypes(),
           formulaConfigs: [],
         }}
+        hideQueryElements={true}
       />
     </div>
   );

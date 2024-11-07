@@ -36,6 +36,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+
+        {MonitorTypeHelper.doesMonitorTypeHaveMetrics(props.monitorType) ? (
+          <SideMenuItem
+            link={{
+              title: "Metrics",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Graph}
+          />
+        ) : (
+          <></>
+        )}
+
         <SideMenuItem
           link={{
             title: "Owners",
@@ -46,6 +62,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
+
         {MonitorTypeHelper.doesMonitorTypeHaveCriteria(props.monitorType) ? (
           <SideMenuItem
             link={{

@@ -53,6 +53,7 @@ import Metric, {
 } from "../../../Models/AnalyticsModels/Metric";
 import MetricService from "../../Services/MetricService";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import TelemetryUtil from "../Telemetry/Telemetry";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -843,6 +844,22 @@ export default class MonitorResourceUtil {
       props: {
         isRoot: true,
       },
+    });
+
+    // index attributes.
+    TelemetryUtil.indexAttributes({
+      attributes: [
+        "monitorId",
+        "projectId",
+        "probeId",
+        "browserType",
+        "screenSizeType",
+        "diskPath",
+      ],
+      projectId: data.projectId,
+      telemetryType: TelemetryType.Metric,
+    }).catch((err: Error) => {
+      logger.error(err);
     });
   }
 

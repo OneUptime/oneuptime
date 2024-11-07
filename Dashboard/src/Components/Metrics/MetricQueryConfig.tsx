@@ -7,6 +7,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 
 export interface MetricQueryConfigData {
   metricAliasData: MetricAliasData;
@@ -16,7 +17,7 @@ export interface MetricQueryConfigData {
 export interface ComponentProps {
   data: MetricQueryConfigData;
   onDataChanged: (data: MetricQueryConfigData) => void;
-  metricNames: string[];
+  metricNameAndUnits: Array<MetricNameAndUnit>;
   telemetryAttributes: string[];
   onRemove: () => void;
 }
@@ -48,7 +49,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onDataChanged={(data: MetricQueryData) => {
               props.onDataChanged({ ...props.data, metricQueryData: data });
             }}
-            metricNames={props.metricNames}
+            metricNameAndUnits={props.metricNameAndUnits}
             telemetryAttributes={props.telemetryAttributes}
           />
         )}

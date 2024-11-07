@@ -22,6 +22,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MONITOR_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.MONITOR_VIEW_CRITERIA]: `${RouteParams.ModelID}/criteria`,
+  [PageMap.MONITOR_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.MONITOR_VIEW_PROBES]: `${RouteParams.ModelID}/probes`,
   [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
@@ -377,6 +378,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW_CRITERIA]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_CRITERIA]
+    }`,
+  ),
+
+  [PageMap.MONITOR_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_METRICS]
     }`,
   ),
 

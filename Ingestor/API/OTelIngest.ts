@@ -38,6 +38,7 @@ import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import ExceptionUtil from "../Utils/Exception";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 
 // Load proto file for OTel
 
@@ -181,7 +182,7 @@ router.post(
                 ] as JSONArray
               ).length > 0
             ) {
-              attributesObject["resource"] = OTelIngestService.getAttributes({
+              attributesObject["resource"] = TelemetryUtil.getAttributes({
                 items: (resourceSpan["resource"] as JSONObject)[
                   "attributes"
                 ] as JSONArray,
@@ -201,7 +202,7 @@ router.post(
 
             dbSpan.attributes = {
               ...attributesObject,
-              ...OTelIngestService.getAttributes({
+              ...TelemetryUtil.getAttributes({
                 items: span["attributes"] as JSONArray,
                 telemetryServiceName: serviceName,
                 telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
@@ -284,13 +285,14 @@ router.post(
                 const eventTime: Date =
                   OneUptimeDate.fromUnixNano(eventTimeUnixNano);
 
-                const eventAttributes: JSONObject =
-                  OTelIngestService.getAttributes({
+                const eventAttributes: JSONObject = TelemetryUtil.getAttributes(
+                  {
                     items: event["attributes"] as JSONArray,
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
                       serviceDictionary[serviceName]!.serviceId!,
-                  });
+                  },
+                );
 
                 dbSpan.events.push({
                   time: eventTime,
@@ -352,7 +354,7 @@ router.post(
                 dbSpan.links.push({
                   traceId: Text.convertBase64ToHex(link["traceId"] as string),
                   spanId: Text.convertBase64ToHex(link["spanId"] as string),
-                  attributes: OTelIngestService.getAttributes({
+                  attributes: TelemetryUtil.getAttributes({
                     items: link["attributes"] as JSONArray,
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
@@ -388,7 +390,7 @@ router.post(
         },
       });
 
-      OTelIngestService.indexAttributes({
+      TelemetryUtil.indexAttributes({
         attributes: ArrayUtil.removeDuplicates(attributes),
         projectId: (req as TelemetryRequest).projectId,
         telemetryType: TelemetryType.Trace,
@@ -502,7 +504,7 @@ router.post(
               metric["attributes"].length > 0
             ) {
               attributesObject = {
-                ...OTelIngestService.getAttributes({
+                ...TelemetryUtil.getAttributes({
                   items: metric["attributes"] as JSONArray,
                   telemetryServiceName: serviceName,
                   telemetryServiceId:
@@ -525,7 +527,7 @@ router.post(
             ) {
               attributesObject = {
                 ...attributesObject,
-                resource: OTelIngestService.getAttributes({
+                resource: TelemetryUtil.getAttributes({
                   items: (resourceMetric["resource"] as JSONObject)[
                     "attributes"
                   ] as JSONArray,
@@ -665,7 +667,7 @@ router.post(
         },
       });
 
-      OTelIngestService.indexAttributes({
+      TelemetryUtil.indexAttributes({
         attributes: ArrayUtil.removeDuplicates(attributes),
         projectId: (req as TelemetryRequest).projectId,
         telemetryType: TelemetryType.Metric,
@@ -781,7 +783,7 @@ router.post(
             ) {
               attributesObject = {
                 ...attributesObject,
-                resource: OTelIngestService.getAttributes({
+                resource: TelemetryUtil.getAttributes({
                   items: (resourceLog["resource"] as JSONObject)[
                     "attributes"
                   ] as JSONArray,
@@ -804,7 +806,7 @@ router.post(
 
             dbLog.attributes = {
               ...attributesObject,
-              ...OTelIngestService.getAttributes({
+              ...TelemetryUtil.getAttributes({
                 items: log["attributes"] as JSONArray,
                 telemetryServiceName: serviceName,
                 telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
@@ -890,7 +892,7 @@ router.post(
         },
       });
 
-      OTelIngestService.indexAttributes({
+      TelemetryUtil.indexAttributes({
         attributes: ArrayUtil.removeDuplicates(attributes),
         projectId: (req as TelemetryRequest).projectId,
         telemetryType: TelemetryType.Log,

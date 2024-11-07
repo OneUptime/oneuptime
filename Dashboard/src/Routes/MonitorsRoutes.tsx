@@ -20,6 +20,12 @@ const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Monitor/Monitors");
   });
 
+const MonitorViewMetrics: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/View/Metrics");
+});
+
 const MonitorprobeDisconnected: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -212,6 +218,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorViewCriteria
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_METRICS)}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorViewMetrics
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route}
               />
             </Suspense>
           }

@@ -6,6 +6,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
+import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 
 export interface MetricQueryData {
   filterData: FilterData<MetricsQuery>;
@@ -14,7 +15,7 @@ export interface MetricQueryData {
 export interface ComponentProps {
   data: MetricQueryData;
   onDataChanged: (filterData: MetricQueryData) => void;
-  metricNames: string[];
+  metricNameAndUnits: Array<MetricNameAndUnit>;
   telemetryAttributes: string[];
 }
 
@@ -39,7 +40,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               title: "Metric Name",
               type: FieldType.Dropdown,
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
-                props.metricNames,
+                props.metricNameAndUnits.map((metricNameAndUnits: MetricNameAndUnit) => {
+                  return metricNameAndUnits.metricName;
+                }), // metricNameAndUnit is an array of MetricNameAndUnit
               ),
             },
             {
