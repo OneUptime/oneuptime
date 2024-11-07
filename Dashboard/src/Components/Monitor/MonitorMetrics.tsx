@@ -31,8 +31,8 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
 
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
-
-  type GetQueryConfigByMonitorMetricTypesFunction = () => Array<MetricQueryConfigData>;
+  type GetQueryConfigByMonitorMetricTypesFunction =
+    () => Array<MetricQueryConfigData>;
 
   const getQueryConfigByMonitorMetricTypes: GetQueryConfigByMonitorMetricTypesFunction =
     (): Array<MetricQueryConfigData> => {
