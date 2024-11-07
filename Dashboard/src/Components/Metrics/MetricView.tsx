@@ -61,6 +61,8 @@ export interface MetricViewData {
 
 export interface ComponentProps {
   data: MetricViewData;
+  showConfigElements?: boolean;
+  title?: string;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (

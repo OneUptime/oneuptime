@@ -437,10 +437,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const columns: Columns = this.model.getTableColumns();
 
     for (const columnName of columns.columns) {
-      if (this.model.isEntityColumn(columnName)) {
-        const tableColumnMetadata: TableColumnMetadata =
-          this.model.getTableColumnMetadata(columnName);
+      const tableColumnMetadata: TableColumnMetadata =
+        this.model.getTableColumnMetadata(columnName);
 
+      if (this.model.isEntityColumn(columnName)) {
         const columnValue: JSONValue = (data as any)[columnName];
 
         if (
@@ -506,6 +506,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
           (data as any)[columnName] = columnValue.toString();
         }
+      }
+
+      // if its a Date column and if date is null then set it to null.
+      if (
+        (data as any)[columnName] === "" &&
+        tableColumnMetadata.type === TableColumnType.Date
+      ) {
+        (data as any)[columnName] = null;
       }
     }
 

@@ -1,7 +1,31 @@
+import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 
 class MonitorMetricTypeUtil {
+  public static getMonitorMeticTypeByCheckOn(
+    checkOn: CheckOn,
+  ): MonitorMetricType {
+    switch (checkOn) {
+      case CheckOn.ResponseTime:
+        return MonitorMetricType.ResponseTime;
+      case CheckOn.ResponseStatusCode:
+        return MonitorMetricType.ResponseStatusCode;
+      case CheckOn.IsOnline:
+        return MonitorMetricType.IsOnline;
+      case CheckOn.DiskUsagePercent:
+        return MonitorMetricType.DiskUsagePercent;
+      case CheckOn.CPUUsagePercent:
+        return MonitorMetricType.CPUUsagePercent;
+      case CheckOn.MemoryUsagePercent:
+        return MonitorMetricType.MemoryUsagePercent;
+      case CheckOn.ExecutionTime:
+        return MonitorMetricType.ExecutionTime;
+      default:
+        throw new Error("Invalid CheckOn value");
+    }
+  }
+
   public static getMonitorMetricTypesByMonitorType(
     monitorType: MonitorType,
   ): Array<MonitorMetricType> {

@@ -8,6 +8,7 @@ import MetricView from "../Metrics/MetricView";
 import { MetricQueryConfigData } from "../Metrics/MetricQueryConfig";
 import DashboardNavigation from "../../Utils/Navigation";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -17,7 +18,7 @@ export interface ComponentProps {
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const monitorMetricTypesByMonitor =
+  const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
     MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(props.monitorType);
 
   if (monitorMetricTypesByMonitor.length === 0) {
@@ -30,7 +31,10 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
 
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
-  const getQueryConfigByMonitorMetricTypes =
+
+  type GetQueryConfigByMonitorMetricTypesFunction = () => Array<MetricQueryConfigData>;
+
+  const getQueryConfigByMonitorMetricTypes: GetQueryConfigByMonitorMetricTypesFunction =
     (): Array<MetricQueryConfigData> => {
       const queries: Array<MetricQueryConfigData> = [];
 

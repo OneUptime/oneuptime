@@ -52,7 +52,7 @@ import Metric, {
   MetricPointType,
 } from "../../../Models/AnalyticsModels/Metric";
 import MetricService from "../../Services/MetricService";
-import MonitorMetricType from "./MonitorMetricTypes";
+import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(

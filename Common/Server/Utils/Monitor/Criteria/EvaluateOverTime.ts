@@ -1,4 +1,3 @@
-import MonitorMetricsByMinuteService from "../../../Services/MonitorMetricsByMinuteService";
 import Query from "../../../Types/AnalyticsDatabase/Query";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -10,7 +9,9 @@ import {
   EvaluateOverTimeType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import ObjectID from "Common/Types/ObjectID";
-import MonitorMetricsByMinute from "Common/Models/AnalyticsModels/MonitorMetricsByMinute";
+import Metric from "../../../../Models/AnalyticsModels/Metric";
+import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
+import MetricService from "../../../Services/MetricService";
 
 export default class EvaluateOverTime {
   public static async getValueOverTime(data: {
@@ -27,36 +28,35 @@ export default class EvaluateOverTime {
 
     // TODO: Query over miscData
 
-    const query: Query<MonitorMetricsByMinute> = {
+    const query: Query<Metric> = {
       createdAt: new GreaterThanOrEqual(lastMinutesDate),
-      monitorId: data.monitorId,
-      metricType: data.metricType,
+      serviceId: data.monitorId,
+      name: MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(data.metricType),
     };
 
     if (data.miscData) {
-      query.miscData = data.miscData;
+      query.attributes = data.miscData;
     }
 
-    const monitorMetricsItems: Array<MonitorMetricsByMinute> =
-      await MonitorMetricsByMinuteService.findBy({
-        query: query,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          metricValue: true,
-        },
-      });
+    const monitorMetricsItems: Array<Metric> = await MetricService.findBy({
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        value: true,
+      },
+    });
 
     const values: Array<number | boolean> = monitorMetricsItems
-      .map((item: MonitorMetricsByMinute) => {
+      .map((item: Metric) => {
         if (data.metricType === CheckOn.IsOnline) {
-          return item.metricValue === 1;
+          return item.value === 1;
         }
 
-        return item.metricValue;
+        return item.value;
       })
       .filter((value: number | boolean | undefined) => {
         return value !== undefined;
