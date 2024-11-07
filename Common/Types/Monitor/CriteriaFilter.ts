@@ -138,5 +138,4 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsOnline
     );
   }
-
 }

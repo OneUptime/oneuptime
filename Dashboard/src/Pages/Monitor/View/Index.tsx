@@ -12,7 +12,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
@@ -54,6 +53,7 @@ import PageMap from "../../../Utils/PageMap";
 import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import MonitorMetricsElement from "../../../Components/Monitor/MonitorMetrics";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -75,9 +75,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
-
-  const [shouldFetchMonitorMetrics, setShouldFetchMonitorMetrics] =
-    useState<boolean>(false);
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
 
@@ -213,11 +210,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setError(`Monitor not found`);
         return;
       }
-
-      const shouldFetchMonitorMetrics: boolean = MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType!).length > 0;
-
-      setShouldFetchMonitorMetrics(shouldFetchMonitorMetrics);
-
 
       setMonitorType(item.monitorType);
       setCurrentMonitorStatus(item.currentMonitorStatus);
@@ -554,6 +546,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
+      <MonitorMetricsElement monitorId={modelId} monitorType={monitorType!} />
+
       {monitor?.monitorType === MonitorType.Logs &&
         monitor.monitorSteps &&
         monitor.monitorSteps.data?.monitorStepsInstanceArray &&
@@ -590,7 +584,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
           />
         )}
-
     </Fragment>
   );
 };

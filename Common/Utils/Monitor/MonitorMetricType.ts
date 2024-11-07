@@ -2,88 +2,93 @@ import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 
 class MonitorMetricTypeUtil {
-    public static getMonitorMetricTypesByMonitorType(monitorType: MonitorType): Array<MonitorMetricType> {
-        if(monitorType === MonitorType.API || monitorType === MonitorType.Website) {
-            return [
-                MonitorMetricType.ResponseTime,
-                MonitorMetricType.ResponseStatusCode,
-                MonitorMetricType.IsOnline,
-            ];
-        }
-
-        if(monitorType === MonitorType.Server) {
-            return [
-                MonitorMetricType.DiskUsagePercent,
-                MonitorMetricType.CPUUsagePercent,
-                MonitorMetricType.MemoryUsagePercent,
-                MonitorMetricType.IsOnline,
-            ];
-        }
-
-        if(monitorType === MonitorType.CustomJavaScriptCode){
-            return [
-                MonitorMetricType.ExecutionTime,
-            ];
-        }
-
-        if(monitorType === MonitorType.SyntheticMonitor){
-            return [
-                MonitorMetricType.ExecutionTime,
-            ];
-        }
-
-        if(monitorType === MonitorType.Ping || monitorType === MonitorType.IP || monitorType === MonitorType.Port){
-            return [
-                MonitorMetricType.ResponseTime,
-                MonitorMetricType.IsOnline,
-            ];
-        }
-        
-
-        return [];
+  public static getMonitorMetricTypesByMonitorType(
+    monitorType: MonitorType,
+  ): Array<MonitorMetricType> {
+    if (
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.Website
+    ) {
+      return [
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.ResponseStatusCode,
+        MonitorMetricType.IsOnline,
+      ];
     }
 
-    public static getTitleByMonitorMetricType(monitorMetricType: MonitorMetricType): string {
-        switch(monitorMetricType) {
-            case MonitorMetricType.ResponseTime:
-                return "Response Time";
-            case MonitorMetricType.ResponseStatusCode:
-                return "Response Status Code";
-            case MonitorMetricType.IsOnline:
-                return "Is Online";
-            case MonitorMetricType.DiskUsagePercent:
-                return "Disk Usage Percent";
-            case MonitorMetricType.CPUUsagePercent:
-                return "CPU Usage Percent";
-            case MonitorMetricType.MemoryUsagePercent:
-                return "Memory Usage Percent";
-            case MonitorMetricType.ExecutionTime:
-                return "Execution Time";
-            default:
-                return "";
-        }
+    if (monitorType === MonitorType.Server) {
+      return [
+        MonitorMetricType.DiskUsagePercent,
+        MonitorMetricType.CPUUsagePercent,
+        MonitorMetricType.MemoryUsagePercent,
+        MonitorMetricType.IsOnline,
+      ];
     }
 
-    public static getDescriptionByMonitorMetricType(monitorMetricType: MonitorMetricType): string {
-        switch(monitorMetricType) {
-            case MonitorMetricType.ResponseTime:
-                return "Response time is the time taken for a server to respond to a request. It is the sum of the time spent waiting to establish the connection, the time spent waiting for the request to be processed, and the time spent waiting for the response to be sent.";
-            case MonitorMetricType.ResponseStatusCode:
-                return "Response status code is a server response code that indicates the status of the server's response to a client's request. It is a three-digit code that is returned by a server in response to a client's request.";
-            case MonitorMetricType.IsOnline:
-                return "Is online is a metric that indicates whether a server is online or offline. It is a boolean value that is returned by a server in response to a client's request.";
-            case MonitorMetricType.DiskUsagePercent:
-                return "Disk usage percent is the percentage of disk space that is currently being used on a server. It is a measure of how much disk space is being used by the server's files and data.";
-            case MonitorMetricType.CPUUsagePercent:
-                return "CPU usage percent is the percentage of CPU capacity that is currently being used on a server. It is a measure of how much of the server's processing power is being used.";
-            case MonitorMetricType.MemoryUsagePercent:
-                return "Memory usage percent is the percentage of memory that is currently being used on a server. It is a measure of how much of the server's memory is being used.";
-            case MonitorMetricType.ExecutionTime:
-                return "Execution time is the time taken for a custom JavaScript code or a synthetic monitor to execute."
-            default:
-                return "";
-        }
+    if (monitorType === MonitorType.CustomJavaScriptCode) {
+      return [MonitorMetricType.ExecutionTime];
     }
+
+    if (monitorType === MonitorType.SyntheticMonitor) {
+      return [MonitorMetricType.ExecutionTime];
+    }
+
+    if (
+      monitorType === MonitorType.Ping ||
+      monitorType === MonitorType.IP ||
+      monitorType === MonitorType.Port
+    ) {
+      return [MonitorMetricType.ResponseTime, MonitorMetricType.IsOnline];
+    }
+
+    return [];
+  }
+
+  public static getTitleByMonitorMetricType(
+    monitorMetricType: MonitorMetricType,
+  ): string {
+    switch (monitorMetricType) {
+      case MonitorMetricType.ResponseTime:
+        return "Response Time";
+      case MonitorMetricType.ResponseStatusCode:
+        return "Response Status Code";
+      case MonitorMetricType.IsOnline:
+        return "Is Online";
+      case MonitorMetricType.DiskUsagePercent:
+        return "Disk Usage Percent";
+      case MonitorMetricType.CPUUsagePercent:
+        return "CPU Usage Percent";
+      case MonitorMetricType.MemoryUsagePercent:
+        return "Memory Usage Percent";
+      case MonitorMetricType.ExecutionTime:
+        return "Execution Time";
+      default:
+        return "";
+    }
+  }
+
+  public static getDescriptionByMonitorMetricType(
+    monitorMetricType: MonitorMetricType,
+  ): string {
+    switch (monitorMetricType) {
+      case MonitorMetricType.ResponseTime:
+        return "Response time is the time taken for a server to respond to a request. It is the sum of the time spent waiting to establish the connection, the time spent waiting for the request to be processed, and the time spent waiting for the response to be sent.";
+      case MonitorMetricType.ResponseStatusCode:
+        return "Response status code is a server response code that indicates the status of the server's response to a client's request. It is a three-digit code that is returned by a server in response to a client's request.";
+      case MonitorMetricType.IsOnline:
+        return "Is online is a metric that indicates whether a server is online or offline. It is a boolean value that is returned by a server in response to a client's request.";
+      case MonitorMetricType.DiskUsagePercent:
+        return "Disk usage percent is the percentage of disk space that is currently being used on a server. It is a measure of how much disk space is being used by the server's files and data.";
+      case MonitorMetricType.CPUUsagePercent:
+        return "CPU usage percent is the percentage of CPU capacity that is currently being used on a server. It is a measure of how much of the server's processing power is being used.";
+      case MonitorMetricType.MemoryUsagePercent:
+        return "Memory usage percent is the percentage of memory that is currently being used on a server. It is a measure of how much of the server's memory is being used.";
+      case MonitorMetricType.ExecutionTime:
+        return "Execution time is the time taken for a custom JavaScript code or a synthetic monitor to execute.";
+      default:
+        return "";
+    }
+  }
 }
 
 export default MonitorMetricTypeUtil;
