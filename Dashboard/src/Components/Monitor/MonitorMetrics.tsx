@@ -11,7 +11,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricView from "../Metrics/MetricView";
 import { MetricQueryConfigData } from "../Metrics/MetricQueryConfig";
 import DashboardNavigation from "../../Utils/Navigation";
-import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import API from "Common/UI/Utils/API/API";
@@ -110,9 +109,10 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 monitorId: props.monitorId.toString(),
                 projectId: DashboardNavigation.getProjectId()?.toString() || "",
               },
-              aggegationType: MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
-                monitorMetricType,
-              ),
+              aggegationType:
+                MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+                  monitorMetricType,
+                ),
             },
           },
         });

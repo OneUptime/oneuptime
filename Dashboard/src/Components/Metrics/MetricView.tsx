@@ -234,17 +234,20 @@ const MetricView: FunctionComponent<ComponentProps> = (
           },
           yAxis: {
             // legend is the unit of the metric
-            legend:
-              metricNamesAndUnits.find((m: MetricNameAndUnit) => {
-                return (
-                  m.metricName ===
-                  queryConfig.metricQueryData.filterData.metricName
-                );
-              })?.unit || "",
+            legend: "",
+
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                return `${value}`;
+                const metricNameAndUnit: MetricNameAndUnit | undefined =
+                  metricNamesAndUnits.find((m: MetricNameAndUnit) => {
+                    return (
+                      m.metricName ===
+                      queryConfig.metricQueryData.filterData.metricName
+                    );
+                  });
+
+                return `${value} ${metricNameAndUnit?.unit || ""}`;
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",
@@ -291,6 +294,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
         },
         groupBy: {
           name: true,
+          unit: true,
         },
       });
 
@@ -444,7 +448,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   });
 
                   // if hideQueryElements is true then we should fetch the results immediately because apply button is hidden
-                  if (props.hideQueryElements) {
+                  if (
+                    props.hideQueryElements &&
+                    startAndEndDate &&
+                    startAndEndDate.startValue &&
+                    startAndEndDate.endValue
+                  ) {
                     fetchAggregatedResults().catch((err: Error) => {
                       setMetricResultsError(
                         API.getFriendlyErrorMessage(err as Error),

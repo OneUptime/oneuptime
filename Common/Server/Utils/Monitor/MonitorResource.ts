@@ -603,7 +603,7 @@ export default class MonitorResourceUtil {
         monitorMetric.name = MonitorMetricType.IsOnline;
         monitorMetric.description = CheckOn.IsOnline + " status for monitor";
         monitorMetric.value = isOnline ? 1 : 0;
-        monitorMetric.unit = CheckOn.IsOnline;
+        monitorMetric.unit = "";
         monitorMetric.attributes = {
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
@@ -632,7 +632,7 @@ export default class MonitorResourceUtil {
         monitorMetric.name = MonitorMetricType.CPUUsagePercent;
         monitorMetric.description = CheckOn.CPUUsagePercent + " of Server/VM";
         monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
-        monitorMetric.unit = "Percent";
+        monitorMetric.unit = "%";
         monitorMetric.attributes = {
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
@@ -654,7 +654,7 @@ export default class MonitorResourceUtil {
         monitorMetric.description =
           CheckOn.MemoryUsagePercent + " of Server/VM";
         monitorMetric.value = basicMetrics.memoryMetrics.percentUsed;
-        monitorMetric.unit = "Percent";
+        monitorMetric.unit = "%";
         monitorMetric.attributes = {
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
@@ -677,7 +677,7 @@ export default class MonitorResourceUtil {
           monitorMetric.description =
             CheckOn.DiskUsagePercent + " of Server/VM";
           monitorMetric.value = diskMetric.percentUsed;
-          monitorMetric.unit = "Percent";
+          monitorMetric.unit = "%";
           monitorMetric.attributes = {
             monitorId: data.monitorId.toString(),
             projectId: data.projectId.toString(),
@@ -796,7 +796,7 @@ export default class MonitorResourceUtil {
         .isOnline
         ? 1
         : 0;
-      monitorMetric.unit = CheckOn.IsOnline;
+      monitorMetric.unit = "";
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
@@ -823,7 +823,7 @@ export default class MonitorResourceUtil {
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).responseCode;
-      monitorMetric.unit = CheckOn.ResponseStatusCode;
+      monitorMetric.unit = "Status Code";
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),

@@ -4,11 +4,9 @@ import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 
 class MonitorMetricTypeUtil {
-
-
   public static getAggregationTypeByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
-  ): AggregationType { 
+  ): AggregationType {
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
         return AggregationType.Avg;
@@ -60,18 +58,19 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.Website
     ) {
       return [
+        MonitorMetricType.IsOnline,
         MonitorMetricType.ResponseTime,
         MonitorMetricType.ResponseStatusCode,
-        MonitorMetricType.IsOnline,
       ];
     }
 
     if (monitorType === MonitorType.Server) {
       return [
+        MonitorMetricType.IsOnline,
         MonitorMetricType.DiskUsagePercent,
         MonitorMetricType.CPUUsagePercent,
         MonitorMetricType.MemoryUsagePercent,
-        MonitorMetricType.IsOnline,
+        
       ];
     }
 
@@ -88,7 +87,7 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.IP ||
       monitorType === MonitorType.Port
     ) {
-      return [MonitorMetricType.ResponseTime, MonitorMetricType.IsOnline];
+      return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime ];
     }
 
     return [];
