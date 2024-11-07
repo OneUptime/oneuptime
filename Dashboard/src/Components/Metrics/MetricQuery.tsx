@@ -40,9 +40,11 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               title: "Metric Name",
               type: FieldType.Dropdown,
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
-                props.metricNameAndUnits.map((metricNameAndUnits: MetricNameAndUnit) => {
-                  return metricNameAndUnits.metricName;
-                }), // metricNameAndUnit is an array of MetricNameAndUnit
+                props.metricNameAndUnits.map(
+                  (metricNameAndUnits: MetricNameAndUnit) => {
+                    return metricNameAndUnits.metricName;
+                  },
+                ), // metricNameAndUnit is an array of MetricNameAndUnit
               ),
             },
             {
