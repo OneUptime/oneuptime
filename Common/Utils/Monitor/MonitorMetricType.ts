@@ -1,8 +1,34 @@
+import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 
 class MonitorMetricTypeUtil {
+
+
+  public static getAggregationTypeByMonitorMetricType(
+    monitorMetricType: MonitorMetricType,
+  ): AggregationType { 
+    switch (monitorMetricType) {
+      case MonitorMetricType.ResponseTime:
+        return AggregationType.Avg;
+      case MonitorMetricType.ResponseStatusCode:
+        return AggregationType.Max;
+      case MonitorMetricType.IsOnline:
+        return AggregationType.Min;
+      case MonitorMetricType.DiskUsagePercent:
+        return AggregationType.Max;
+      case MonitorMetricType.CPUUsagePercent:
+        return AggregationType.Avg;
+      case MonitorMetricType.MemoryUsagePercent:
+        return AggregationType.Avg;
+      case MonitorMetricType.ExecutionTime:
+        return AggregationType.Avg;
+      default:
+        throw new Error("Invalid MonitorMetricType value");
+    }
+  }
+
   public static getMonitorMeticTypeByCheckOn(
     checkOn: CheckOn,
   ): MonitorMetricType {

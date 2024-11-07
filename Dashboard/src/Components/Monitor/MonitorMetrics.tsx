@@ -110,7 +110,9 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 monitorId: props.monitorId.toString(),
                 projectId: DashboardNavigation.getProjectId()?.toString() || "",
               },
-              aggegationType: AggregationType.Avg,
+              aggegationType: MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+                monitorMetricType,
+              ),
             },
           },
         });
