@@ -19,6 +19,11 @@ export enum MetricPointType {
   ExponentialHistogram = "ExponentialHistogram",
 }
 
+export enum ServiceType {
+  OpenTelemetry = "OpenTelemetry",
+  Monitor = "Monitor",
+}
+
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     super({
@@ -85,6 +90,30 @@ export default class Metric extends AnalyticsBaseModel {
           description: "ID of the Service which created the Metric",
           required: true,
           type: TableColumnType.ObjectID,
+          accessControl: {
+            read: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.ReadTelemetryServiceLog,
+            ],
+            create: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.CreateTelemetryServiceLog,
+            ],
+            update: [],
+          },
+        }),
+
+        // this can also be the monitor id or the telemetry service id.
+        new AnalyticsTableColumn({
+          key: "serviceType",
+          title: "Service Type",
+          description: "Type of the service that this telemetry belongs to",
+          required: false,
+          type: TableColumnType.Text,
           accessControl: {
             read: [
               Permission.ProjectOwner,
@@ -540,6 +569,10 @@ export default class Metric extends AnalyticsBaseModel {
     return this.getColumnValue("serviceId") as ObjectID | undefined;
   }
 
+  public get serviceType(): ServiceType | undefined {
+    return this.getColumnValue("serviceType") as ServiceType | undefined;
+  }
+
   public get name(): string | undefined {
     return this.getColumnValue("name") as string | undefined;
   }
@@ -594,6 +627,10 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set serviceId(v: ObjectID | undefined) {
     this.setColumnValue("serviceId", v);
+  }
+
+  public set serviceType(v: ServiceType | undefined) {
+    this.setColumnValue("serviceType", v);
   }
 
   public get time(): Date | undefined {

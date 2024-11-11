@@ -22,8 +22,6 @@ import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
-// Monitor Metrics
-import "./Jobs/MonitorMetrics/MonitorMetricsByMinute";
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
@@ -86,6 +84,9 @@ import "./Jobs/CopilotActions/MoveThemBackToQueueIfProcessingForLongtime";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+
+//Metric Jobs.
+import "./Jobs/Metrics/DeleteMonitorMetricsOlderThanXDays";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";

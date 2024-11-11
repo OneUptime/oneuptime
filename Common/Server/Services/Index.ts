@@ -41,7 +41,6 @@ import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
 import MonitorGroupOwnerUserService from "./MonitorGroupOwnerUserService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorGroupService from "./MonitorGroupService";
-import MonitorMetricsByMinuteService from "./MonitorMetricsByMinuteService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
@@ -316,7 +315,6 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
-  MonitorMetricsByMinuteService,
   TelemetryAttributeService,
   ExceptionInstanceService,
 ];

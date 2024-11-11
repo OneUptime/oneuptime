@@ -26,7 +26,10 @@ import Express, {
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
-import Metric, { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
+import Metric, {
+  MetricPointType,
+  ServiceType,
+} from "Common/Models/AnalyticsModels/Metric";
 import Span, {
   SpanEventType,
   SpanKind,
@@ -488,6 +491,8 @@ router.post(
 
             dbMetric.projectId = (req as TelemetryRequest).projectId;
             dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
+
+            dbMetric.serviceType = ServiceType.OpenTelemetry; // OpenTelemetry
 
             dbMetric.name = metricName;
             dbMetric.description = metricDescription;

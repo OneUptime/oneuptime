@@ -50,6 +50,7 @@ import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import Metric, {
   MetricPointType,
+  ServiceType,
 } from "../../../Models/AnalyticsModels/Metric";
 import MetricService from "../../Services/MetricService";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
@@ -600,6 +601,7 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
+        monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.IsOnline;
         monitorMetric.description = CheckOn.IsOnline + " status for monitor";
         monitorMetric.value = isOnline ? 1 : 0;
@@ -629,6 +631,7 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
+        monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.CPUUsagePercent;
         monitorMetric.description = CheckOn.CPUUsagePercent + " of Server/VM";
         monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
@@ -650,6 +653,7 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
+        monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.MemoryUsagePercent;
         monitorMetric.description =
           CheckOn.MemoryUsagePercent + " of Server/VM";
@@ -673,6 +677,7 @@ export default class MonitorResourceUtil {
 
           monitorMetric.projectId = data.projectId;
           monitorMetric.serviceId = data.monitorId;
+          monitorMetric.serviceType = ServiceType.Monitor;
           monitorMetric.name = MonitorMetricType.DiskUsagePercent;
           monitorMetric.description =
             CheckOn.DiskUsagePercent + " of Server/VM";
@@ -701,6 +706,7 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
+      monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ExecutionTime;
       monitorMetric.description = CheckOn.ExecutionTime + " of this monitor";
       monitorMetric.value = (
@@ -737,6 +743,7 @@ export default class MonitorResourceUtil {
 
         monitorMetric.projectId = data.projectId;
         monitorMetric.serviceId = data.monitorId;
+        monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.ExecutionTime;
         monitorMetric.description = CheckOn.ExecutionTime + " of this monitor";
         monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
@@ -764,6 +771,7 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
+      monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ResponseTime;
       monitorMetric.description = CheckOn.ResponseTime + " of this monitor";
       monitorMetric.value = (
@@ -790,6 +798,7 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
+      monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.IsOnline;
       monitorMetric.description = CheckOn.IsOnline + " status for monitor";
       monitorMetric.value = (data.dataToProcess as ProbeMonitorResponse)
@@ -817,6 +826,7 @@ export default class MonitorResourceUtil {
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
+      monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ResponseStatusCode;
       monitorMetric.description =
         CheckOn.ResponseStatusCode + " for this monitor";
