@@ -16,7 +16,7 @@ export interface ComponentProps {
 }
 
 export interface LineInternalProps extends ComponentProps {
-  syncId: string;
+  syncid: string;
 }
 
 const LineChartElement: FunctionComponent<LineInternalProps> = (
@@ -64,7 +64,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       showTooltip={true}
       connectNulls={true}
       curve={props.curve}
-      syncId={props.sync ? props.syncId : undefined}
+      syncid={props.sync ? props.syncid : undefined}
       yAxisWidth={60}
     />
   );

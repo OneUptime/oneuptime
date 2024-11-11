@@ -5,7 +5,10 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MetricQueryConfig, { ChartSeries, MetricQueryConfigData } from "./MetricQueryConfig";
+import MetricQueryConfig, {
+  ChartSeries,
+  MetricQueryConfigData,
+} from "./MetricQueryConfig";
 import MetricGraphConfig, {
   MetricFormulaConfigData,
 } from "./MetricFormulaConfig";
@@ -199,12 +202,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
         xAxisAggregationType = XAxisAggregateType.Average;
       }
 
-      let chartSeries: Array<SeriesPoint> = [
-
-      ];
+      const chartSeries: Array<SeriesPoint> = [];
 
       if (queryConfig.getSeries) {
-
         for (const item of metricResults[index]!.data) {
           const series: ChartSeries = queryConfig.getSeries(item);
           const seriesName: string = series.title;
@@ -213,27 +213,30 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
           // if it does not exist then create a new series and add the data to it
 
-          const existingSeries: SeriesPoint | undefined = chartSeries.find((s: SeriesPoint) => {
-            return s.seriesName === seriesName;
-          });
+          const existingSeries: SeriesPoint | undefined = chartSeries.find(
+            (s: SeriesPoint) => {
+              return s.seriesName === seriesName;
+            },
+          );
 
           if (existingSeries) {
             existingSeries.data.push({
               x: OneUptimeDate.fromString(item.timestamp),
-              y: item.value
+              y: item.value,
             });
           } else {
             const newSeries: SeriesPoint = {
               seriesName: seriesName,
-              data: [{
-                x: OneUptimeDate.fromString(item.timestamp),
-                y: item.value
-              }]
+              data: [
+                {
+                  x: OneUptimeDate.fromString(item.timestamp),
+                  y: item.value,
+                },
+              ],
             };
 
             chartSeries.push(newSeries);
           }
-
         }
       } else {
         chartSeries.push({
@@ -241,14 +244,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
             queryConfig.metricAliasData.title ||
             queryConfig.metricQueryData.filterData.metricName?.toString() ||
             "",
-          data: metricResults[index]!.data.map(
-            (result: AggregatedModel) => {
-              return {
-                x: OneUptimeDate.fromString(result.timestamp),
-                y: result.value,
-              };
-            },
-          ),
+          data: metricResults[index]!.data.map((result: AggregatedModel) => {
+            return {
+              x: OneUptimeDate.fromString(result.timestamp),
+              y: result.value,
+            };
+          }),
         });
       }
 
@@ -365,14 +366,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
       const metricAttributesResponse:
         | HTTPResponse<JSONObject>
         | HTTPErrorResponse = await API.post(
-          URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/metrics/get-attributes",
-          ),
-          {},
-          {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        );
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/metrics/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
 
       if (metricAttributesResponse instanceof HTTPErrorResponse) {
         throw metricAttributesResponse;
@@ -421,7 +422,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 OneUptimeDate.getCurrentDate(),
               limit: LIMIT_PER_PROJECT,
               skip: 0,
-              groupBy: queryConfig.metricQueryData.groupBy
+              groupBy: queryConfig.metricQueryData.groupBy,
             },
           });
 

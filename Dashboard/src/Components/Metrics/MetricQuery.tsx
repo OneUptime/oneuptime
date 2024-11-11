@@ -12,7 +12,7 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 
 export interface MetricQueryData {
   filterData: FilterData<MetricsQuery>;
-  groupBy?: GroupBy<Metric> | undefined; 
+  groupBy?: GroupBy<Metric> | undefined;
 }
 
 export interface ComponentProps {

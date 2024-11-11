@@ -47,7 +47,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {chart.description}
                   </p>
                 )}
-                <LineChart key={index} {...chart.props} syncId={syncId} />
+                <LineChart key={index} {...chart.props} syncid={syncId} />
               </div>
             );
           default:

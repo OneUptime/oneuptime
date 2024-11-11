@@ -9,16 +9,26 @@ import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricView from "../Metrics/MetricView";
-import { MetricQueryConfigData } from "../Metrics/MetricQueryConfig";
+import {
+  ChartSeries,
+  MetricQueryConfigData,
+} from "../Metrics/MetricQueryConfig";
 import DashboardNavigation from "../../Utils/Navigation";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import API from "Common/UI/Utils/API/API";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ProbeUtil from "../../Utils/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -35,6 +45,8 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = useState<string>("");
 
+  const [probes, setProbes] = useState<Array<Probe>>([]);
+
   const fetchMonitor: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
@@ -47,7 +59,16 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
         },
       });
 
-      setMonitorType(item?.monitorType || MonitorType.Manual);
+      const monitorType: MonitorType = item?.monitorType || MonitorType.Manual;
+
+      setMonitorType(monitorType);
+
+      const isProbeableMonitor: boolean =
+        MonitorTypeHelper.isProbableMonitor(monitorType);
+
+      if (isProbeableMonitor) {
+        setProbes(await ProbeUtil.getAllProbes());
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -89,6 +110,10 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     (): Array<MetricQueryConfigData> => {
       const queries: Array<MetricQueryConfigData> = [];
 
+      if (!monitorType) {
+        return [];
+      }
+
       for (const monitorMetricType of monitorMetricTypesByMonitor) {
         queries.push({
           metricAliasData: {
@@ -113,18 +138,134 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
                   monitorMetricType,
                 ),
-
             },
             groupBy: {
-              attributes: true
-            }
-            
+              attributes: true,
+            },
           },
-          getSeries: (data) => {
+          getSeries: (data: AggregateModel): ChartSeries => {
+            const isProbeableMonitor: boolean =
+              MonitorTypeHelper.isProbableMonitor(monitorType);
+
+            if (!data) {
+              return {
+                title:
+                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                    monitorMetricType,
+                  ),
+              };
+            }
+
+            if (isProbeableMonitor) {
+              let attributes: JSONObject = data["attributes"] as JSONObject;
+
+              if (!attributes) {
+                return {
+                  title:
+                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                      monitorMetricType,
+                    ),
+                };
+              }
+
+              // if attributes is typeof string then parse it to JSON
+
+              if (typeof attributes === "string") {
+                try {
+                  attributes = JSONFunctions.parseJSONObject(attributes);
+                } catch (err) {
+                  return {
+                    title:
+                      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                        monitorMetricType,
+                      ),
+                  };
+                }
+              }
+
+              const probeId: ObjectID = new ObjectID(
+                ((attributes as JSONObject)["probeId"] as string)?.toString(),
+              );
+
+              if (!probeId) {
+                return {
+                  title:
+                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                      monitorMetricType,
+                    ),
+                };
+              }
+
+              const probe: Probe | undefined = probes.find((probe: Probe) => {
+                return probe.id?.toString() === probeId.toString();
+              });
+
+              if (probe) {
+                return {
+                  title:
+                    probe.name?.toString() ||
+                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                      monitorMetricType,
+                    ),
+                };
+              }
+
+              return {
+                title:
+                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                    monitorMetricType,
+                  ),
+              };
+            }
+
+            if (monitorType === MonitorType.Server) {
+              let attributes: JSONObject = data["attributes"] as JSONObject;
+
+              if (!attributes) {
+                return {
+                  title:
+                    MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                      monitorMetricType,
+                    ),
+                };
+              }
+
+              // if attributes is typeof string then parse it to JSON
+
+              if (typeof attributes === "string") {
+                try {
+                  attributes = JSONFunctions.parseJSONObject(attributes);
+                } catch (err) {
+                  return {
+                    title:
+                      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                        monitorMetricType,
+                      ),
+                  };
+                }
+              }
+
+              if (attributes["diskPath"]) {
+                return {
+                  title: attributes["diskPath"].toString(),
+                };
+              }
+
+              return {
+                title:
+                  MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                    monitorMetricType,
+                  ),
+              };
+            }
+
             return {
-              title: data.attributes.monitorId,
+              title:
+                MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                  monitorMetricType,
+                ),
             };
-          }
+          },
         });
       }
 

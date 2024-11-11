@@ -10,7 +10,7 @@ import Button, {
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 
-export interface ChartSeries { 
+export interface ChartSeries {
   title: string;
 }
 
