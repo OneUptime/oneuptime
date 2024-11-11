@@ -22,7 +22,6 @@ import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
-
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
