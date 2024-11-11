@@ -70,7 +70,6 @@ class MonitorMetricTypeUtil {
         MonitorMetricType.DiskUsagePercent,
         MonitorMetricType.CPUUsagePercent,
         MonitorMetricType.MemoryUsagePercent,
-        
       ];
     }
 
@@ -87,7 +86,7 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.IP ||
       monitorType === MonitorType.Port
     ) {
-      return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime ];
+      return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
     }
 
     return [];
