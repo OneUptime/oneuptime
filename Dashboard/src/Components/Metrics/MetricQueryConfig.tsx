@@ -8,10 +8,16 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+
+export interface ChartSeries { 
+  title: string;
+}
 
 export interface MetricQueryConfigData {
   metricAliasData: MetricAliasData;
   metricQueryData: MetricQueryData;
+  getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
 }
 
 export interface ComponentProps {

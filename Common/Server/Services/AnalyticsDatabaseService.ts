@@ -57,14 +57,14 @@ import ModelEventType from "../../Types/Realtime/ModelEventType";
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
 > extends BaseService {
-  public modelType!: { new (): TBaseModel };
+  public modelType!: { new(): TBaseModel };
   public database!: ClickhouseDatabase;
   public model!: TBaseModel;
   public databaseClient!: ClickhouseClient;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     database?: ClickhouseDatabase | undefined;
   }) {
     super();
@@ -240,6 +240,8 @@ export default class AnalyticsDatabaseService<
         columns: Array<string>;
       } = this.toAggregateStatement(aggregateBy);
 
+      debugger;
+
       const dbResult: ExecResult<Stream> = await this.execute(
         findStatement.statement,
       );
@@ -259,24 +261,30 @@ export default class AnalyticsDatabaseService<
 
       // convert date column from string to date.
 
+      const groupByColumnName: keyof TBaseModel | undefined = aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0 ? Object.keys(aggregateBy.groupBy)[0] as keyof TBaseModel : undefined;
+
       for (const item of items) {
         if (
           !(item as JSONObject)[
-            aggregateBy.aggregationTimestampColumnName as string
+          aggregateBy.aggregationTimestampColumnName as string
           ]
         ) {
           continue;
         }
 
+      
         const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
-              aggregateBy.aggregationTimestampColumnName as string
+            aggregateBy.aggregationTimestampColumnName as string
             ] as string,
           ),
           value: (item as JSONObject)[
             aggregateBy.aggregateColumnName as string
           ] as number,
+          [groupByColumnName as string]: (item as JSONObject)[
+            groupByColumnName as string
+          ],
         };
 
         aggregatedItems.push(aggregatedModel);
@@ -457,7 +465,7 @@ export default class AnalyticsDatabaseService<
                 count()
             FROM ${databaseName}.${this.model.tableName}
             WHERE TRUE `.append(whereStatement);
-    
+
 
     if (countBy.groupBy && Object.keys(countBy.groupBy).length > 0) {
       statement.append(
@@ -519,9 +527,11 @@ export default class AnalyticsDatabaseService<
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
     statement.append(SQL` WHERE TRUE `).append(whereStatement);
 
-   
-      statement.append(SQL` GROUP BY `).append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
-   
+    statement.append(SQL` GROUP BY `).append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+
+    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      statement.append(SQL` , `).append(this.statementGenerator.toGroupByStatement(aggregateBy.groupBy));
+    }
 
     statement.append(SQL` ORDER BY `).append(sortStatement);
 
@@ -538,7 +548,7 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
-    
+
 
     logger.debug(`${this.model.tableName} Aggregate Statement`);
     logger.debug(statement);
@@ -604,7 +614,7 @@ export default class AnalyticsDatabaseService<
     }}
         `);
 
-    
+
 
     logger.debug(`${this.model.tableName} Find Statement`);
     logger.debug(statement);
@@ -626,7 +636,7 @@ export default class AnalyticsDatabaseService<
     const statement: Statement = SQL`
             ALTER TABLE ${databaseName}.${this.model.tableName}
             DELETE WHERE TRUE `.append(whereStatement);
-    
+
 
     logger.debug(`${this.model.tableName} Delete Statement`);
     logger.debug(statement);

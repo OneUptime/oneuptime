@@ -7,9 +7,12 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
+import GroupBy from "Common/UI/Utils/BaseDatabase/GroupBy";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 
 export interface MetricQueryData {
   filterData: FilterData<MetricsQuery>;
+  groupBy?: GroupBy<Metric> | undefined; 
 }
 
 export interface ComponentProps {
@@ -31,6 +34,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           filterData={props.data.filterData}
           onFilterChanged={(filterData: Query<MetricsQuery>) => {
             props.onDataChanged({
+              ...props.data,
               filterData,
             });
           }}

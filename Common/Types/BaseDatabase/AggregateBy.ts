@@ -1,3 +1,4 @@
+import GroupBy from "../../Server/Types/Database/GroupBy";
 import GenericObject from "../GenericObject";
 import AggregationType from "./AggregationType";
 import Query from "./Query";
@@ -14,4 +15,5 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
   limit: number;
   skip: number;
   sort?: Sort<TBaseModel> | undefined;
+  groupBy?: GroupBy<TBaseModel> | undefined;
 }

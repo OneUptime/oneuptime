@@ -548,11 +548,24 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,
     );
 
+
+    const columns: Array<string> = [
+      aggregateBy.aggregateColumnName.toString(),
+      aggregateBy.aggregationTimestampColumnName.toString(),
+    ];
+
+    if(aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      const groupByStatement: Statement = this.toGroupByStatement(aggregateBy.groupBy);
+      selectStatement.append(SQL`, `).append(groupByStatement);
+
+      // add to columns. 
+      for (const key in aggregateBy.groupBy) {
+        columns.push(key);
+      }
+    }
+
     return {
-      columns: [
-        aggregateBy.aggregateColumnName.toString(),
-        aggregateBy.aggregationTimestampColumnName.toString(),
-      ],
+      columns: columns,
       statement: selectStatement,
     };
   }

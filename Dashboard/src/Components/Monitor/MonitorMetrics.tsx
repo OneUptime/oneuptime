@@ -113,8 +113,18 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
                   monitorMetricType,
                 ),
+
             },
+            groupBy: {
+              attributes: true
+            }
+            
           },
+          getSeries: (data) => {
+            return {
+              title: data.attributes.monitorId,
+            };
+          }
         });
       }
 

@@ -291,6 +291,18 @@ export default class BaseAnalyticsAPI<
       ) as any;
     }
 
+    let groupBy: GroupBy<AnalyticsDataModel> | null = req.body["groupBy"] || null;
+
+    if(groupBy && Object.keys(groupBy).length > 0) {
+      groupBy = JSONFunctions.deserialize(
+        groupBy as JSONObject,
+      ) as any;
+    }
+
+    if(groupBy && Object.keys(groupBy).length === 0) {
+      groupBy = null;
+    }
+
     if (!aggregateBy) {
       throw new BadRequestException("AggregateBy is required");
     }
