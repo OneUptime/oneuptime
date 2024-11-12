@@ -129,10 +129,6 @@ export default class MonitorIncident {
           continue;
         }
 
-        // create incident here.
-
-        debugger;
-
         logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
 
         const incident: Incident = new Incident();
