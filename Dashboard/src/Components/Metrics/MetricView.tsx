@@ -396,6 +396,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
     async (): Promise<void> => {
       setIsMetricResultsLoading(true);
 
+      if (
+        !metricViewData.startAndEndDate?.startValue ||
+        !metricViewData.startAndEndDate?.endValue
+      ) {
+        setIsMetricResultsLoading(false);
+        return;
+      }
+
       const results: Array<AggregatedResult> = [];
       try {
         for (const queryConfig of metricViewData.queryConfigs) {
