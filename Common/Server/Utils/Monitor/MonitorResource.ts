@@ -143,8 +143,7 @@ export default class MonitorResourceUtil {
 
     // get last log. We do this because there are many monitoring steps and we need to store those.
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - monitor type ${
-        monitor.monitorType
+      `${dataToProcess.monitorId.toString()} - monitor type ${monitor.monitorType
       }`,
     );
 
@@ -310,7 +309,7 @@ export default class MonitorResourceUtil {
           if (incidentTemplate.autoResolveIncident) {
             if (
               !autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-                criteriaInstance.data.id.toString()
+              criteriaInstance.data.id.toString()
               ]
             ) {
               autoResolveCriteriaInstanceIdIncidentIdsDictionary[
@@ -346,7 +345,7 @@ export default class MonitorResourceUtil {
           if (alertTemplate.autoResolveAlert) {
             if (
               !autoResolveCriteriaInstanceIdAlertIdsDictionary[
-                criteriaInstance.data.id.toString()
+              criteriaInstance.data.id.toString()
               ]
             ) {
               autoResolveCriteriaInstanceIdAlertIdsDictionary[
@@ -416,13 +415,11 @@ export default class MonitorResourceUtil {
 
     if (response.criteriaMetId && response.rootCause) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Criteria met: ${
-          response.criteriaMetId
+        `${dataToProcess.monitorId.toString()} - Criteria met: ${response.criteriaMetId
         }`,
       );
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Root cause: ${
-          response.rootCause
+        `${dataToProcess.monitorId.toString()} - Root cause: ${response.rootCause
         }`,
       );
 
@@ -483,7 +480,7 @@ export default class MonitorResourceUtil {
       !response.criteriaMetId &&
       monitorSteps.data.defaultMonitorStatusId &&
       monitor.currentMonitorStatusId?.toString() !==
-        monitorSteps.data.defaultMonitorStatusId.toString()
+      monitorSteps.data.defaultMonitorStatusId.toString()
     ) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
@@ -520,7 +517,7 @@ export default class MonitorResourceUtil {
         lastMonitorStatusTimeline &&
         lastMonitorStatusTimeline.monitorStatusId &&
         lastMonitorStatusTimeline.monitorStatusId.toString() ===
-          monitorSteps.data.defaultMonitorStatusId.toString()
+        monitorSteps.data.defaultMonitorStatusId.toString()
       ) {
         // status is same as last status. do not create new status timeline.
         // do nothing! status is same as last status.
@@ -957,6 +954,7 @@ export default class MonitorResourceUtil {
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
   }): Promise<string | null> {
+    
     // returns root cause if any. Otherwise criteria is not met.
     let finalResult: string | null = "All filters met. ";
 
@@ -1019,10 +1017,14 @@ export default class MonitorResourceUtil {
                 .responseBody as string,
             });
 
-          finalResult += `
+          if (screenshotInBase64) {
+
+            finalResult += `
           **Screenshot**:
+
           ![Screenshot](data:image/png;base64,${screenshotInBase64});
           `;
+          }
         }
       }
     }
