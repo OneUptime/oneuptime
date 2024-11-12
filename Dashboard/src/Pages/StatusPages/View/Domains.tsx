@@ -303,7 +303,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
                 return (
                   <span>
-                    Certificate Provisioned. We will automatiucally renew this
+                    Certificate Provisioned. We will automatically renew this
                     certificate. No action required.{" "}
                   </span>
                 );
