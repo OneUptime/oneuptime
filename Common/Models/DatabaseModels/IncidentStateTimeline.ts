@@ -507,7 +507,6 @@ export default class IncidentStateTimeline extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Markdown,
     required: false,
