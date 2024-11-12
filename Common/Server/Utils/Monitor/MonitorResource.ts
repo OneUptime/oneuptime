@@ -55,6 +55,8 @@ import Metric, {
 import MetricService from "../../Services/MetricService";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import TelemetryUtil from "../Telemetry/Telemetry";
+import HTML from "../../../Types/Html";
+import BrowserUtil from "../Browser";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -998,6 +1000,30 @@ export default class MonitorResourceUtil {
         finalResult += `
 
         - ${rootCause}`; // in markdown format.
+      }
+    }
+
+    if (finalResult) {
+      if ((input.dataToProcess as ProbeMonitorResponse).responseBody) {
+        if (
+          HTML.isHtml(
+            (
+              (input.dataToProcess as ProbeMonitorResponse)
+                .responseBody as string
+            )?.toString(),
+          )
+        ) {
+          const screenshotInBase64: string | null =
+            await BrowserUtil.convertHtmlToBase64Screenshot({
+              html: (input.dataToProcess as ProbeMonitorResponse)
+                .responseBody as string,
+            });
+
+          finalResult += `
+          **Screenshot**:
+          ![Screenshot](data:image/png;base64,${screenshotInBase64});
+          `;
+        }
       }
     }
 

@@ -1,5 +1,4 @@
 import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
@@ -7,8 +6,7 @@ import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/Syn
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
-import { Browser, Page, chromium, firefox } from "playwright";
-import LocalFile from "Common/Server/Utils/LocalFile";
+import BrowserUtil, { Browser, Page } from "Common/Server/Utils/Browser";
 
 export interface SyntheticMonitorOptions {
   monitorId?: ObjectID | undefined;
@@ -82,7 +80,7 @@ export default class SyntheticMonitor {
       try {
         const startTime: [number, number] = process.hrtime();
 
-        pageAndBrowser = await SyntheticMonitor.getPageByBrowserType({
+        pageAndBrowser = await BrowserUtil.getPageByBrowserType({
           browserType: options.browserType,
           screenSizeType: options.screenSizeType,
         });
@@ -154,153 +152,5 @@ export default class SyntheticMonitor {
     }
 
     return scriptResult;
-  }
-
-  private static getViewportHeightAndWidth(options: {
-    screenSizeType: ScreenSizeType;
-  }): {
-    height: number;
-    width: number;
-  } {
-    let viewPortHeight: number = 0;
-    let viewPortWidth: number = 0;
-
-    switch (options.screenSizeType) {
-      case ScreenSizeType.Desktop:
-        viewPortHeight = 1080;
-        viewPortWidth = 1920;
-        break;
-      case ScreenSizeType.Mobile:
-        viewPortHeight = 640;
-        viewPortWidth = 360;
-        break;
-      case ScreenSizeType.Tablet:
-        viewPortHeight = 768;
-        viewPortWidth = 1024;
-        break;
-      default:
-        viewPortHeight = 1080;
-        viewPortWidth = 1920;
-        break;
-    }
-
-    return { height: viewPortHeight, width: viewPortWidth };
-  }
-
-  public static async getChromeExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
-    );
-    if (!doesDirectoryExist) {
-      throw new BadDataException("Chrome executable path not found.");
-    }
-
-    // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
-
-    if (directories.length === 0) {
-      throw new BadDataException("Chrome executable path not found.");
-    }
-
-    const chromeInstallationName: string | undefined = directories.find(
-      (directory: string) => {
-        return directory.includes("chromium");
-      },
-    );
-
-    if (!chromeInstallationName) {
-      throw new BadDataException("Chrome executable path not found.");
-    }
-
-    return `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`;
-  }
-
-  public static async getFirefoxExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
-    );
-    if (!doesDirectoryExist) {
-      throw new BadDataException("Firefox executable path not found.");
-    }
-
-    // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
-
-    if (directories.length === 0) {
-      throw new BadDataException("Firefox executable path not found.");
-    }
-
-    const firefoxInstallationName: string | undefined = directories.find(
-      (directory: string) => {
-        return directory.includes("firefox");
-      },
-    );
-
-    if (!firefoxInstallationName) {
-      throw new BadDataException("Firefox executable path not found.");
-    }
-
-    return `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox/firefox`;
-  }
-
-  private static async getPageByBrowserType(data: {
-    browserType: BrowserType;
-    screenSizeType: ScreenSizeType;
-  }): Promise<{
-    page: Page;
-    browser: Browser;
-  }> {
-    const viewport: {
-      height: number;
-      width: number;
-    } = SyntheticMonitor.getViewportHeightAndWidth({
-      screenSizeType: data.screenSizeType,
-    });
-
-    let page: Page | null = null;
-    let browser: Browser | null = null;
-
-    if (data.browserType === BrowserType.Chromium) {
-      browser = await chromium.launch({
-        executablePath: await this.getChromeExecutablePath(),
-      });
-      page = await browser.newPage();
-    }
-
-    if (data.browserType === BrowserType.Firefox) {
-      browser = await firefox.launch({
-        executablePath: await this.getFirefoxExecutablePath(),
-      });
-      page = await browser.newPage();
-    }
-
-    // if (data.browserType === BrowserType.Webkit) {
-    //     browser = await webkit.launch();
-    //     page = await browser.newPage();
-    // }
-
-    await page?.setViewportSize({
-      width: viewport.width,
-      height: viewport.height,
-    });
-
-    if (!browser) {
-      throw new BadDataException("Invalid Browser Type.");
-    }
-
-    if (!page) {
-      // close the browser if page is not created
-      await browser.close();
-      throw new BadDataException("Invalid Browser Type.");
-    }
-
-    return {
-      page: page,
-      browser: browser,
-    };
   }
 }

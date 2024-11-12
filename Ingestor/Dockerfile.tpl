@@ -1,9 +1,9 @@
 #
-# OneUptime-ingestor Dockerfile
+# OneUptime-Ingestor Dockerfile
 #
 
 # Pull base image nodejs image.
-FROM public.ecr.aws/docker/library/node:21.7.3-alpine3.18
+FROM public.ecr.aws/docker/library/node:22.9
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -11,30 +11,40 @@ RUN npm config set fetch-retry-mintimeout 100000
 RUN npm config set fetch-retry-maxtimeout 600000
 
 
-
 ARG GIT_SHA
 ARG APP_VERSION
 
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
+ENV NODE_OPTIONS="--use-openssl-ca"
+
+## Add Intermediate Certs 
+COPY ./SslCertificates /usr/local/share/ca-certificates
+RUN update-ca-certificates
 
 
 # IF APP_VERSION is not set, set it to 1.0.0
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 
-# Install bash. 
-RUN apk add bash && apk add curl
+RUN apt-get update
 
+# Install bash. 
+RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
 
 # Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+RUN apt-get update && apt-get install -y .gyp python3 make g++
+
+# Install playwright dependencies
+RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install iputils
+RUN apt-get install net-tools -y
 
-RUN mkdir /usr/src
+RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
@@ -45,23 +55,15 @@ COPY ./Common /usr/src/Common
 
 
 
-
-
-
-
-
-
-
-
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
+RUN npx playwright install --with-deps
+
 # Install app dependencies
 COPY ./Ingestor/package*.json /usr/src/app/
 RUN npm install
-
-ENV NODE_OPTIONS="--max-old-space-size=8192"
 
 # Expose ports.
 #   - 3400: OneUptime-ingestor
