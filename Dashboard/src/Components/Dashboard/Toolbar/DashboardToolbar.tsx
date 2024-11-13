@@ -36,18 +36,21 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             <MoreMenu menuIcon={IconProp.Add} text="Add Component">
               <MoreMenuItem
                 text={"Add Chart"}
+                key={"add-chart"}
                 onClick={() => {
                   props.onAddComponentClick(DashboardComponentType.Chart);
                 }}
               />
               <MoreMenuItem
                 text={"Add Value"}
+                key={"add-value"}
                 onClick={() => {
                   props.onAddComponentClick(DashboardComponentType.Value);
                 }}
               />
               <MoreMenuItem
                 text={"Add Text"}
+                key={"add-text"}
                 onClick={() => {
                   props.onAddComponentClick(DashboardComponentType.Text);
                 }}

@@ -64,16 +64,14 @@ export default class MonitorResourceUtil {
   ): Promise<ProbeApiIngestResponse> {
     let mutex: SemaphoreMutex | null = null;
 
-    debugger;
-
-    // try {
-    //   mutex = await Semaphore.lock({
-    //     key: dataToProcess.monitorId.toString(),
-    //     namespace: "MonitorResourceUtil.monitorResource",
-    //   });
-    // } catch (err) {
-    //   logger.error(err);
-    // }
+    try {
+      mutex = await Semaphore.lock({
+        key: dataToProcess.monitorId.toString(),
+        namespace: "MonitorResourceUtil.monitorResource",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
 
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
@@ -459,8 +457,6 @@ export default class MonitorResourceUtil {
           telemetryQuery: telemetryQuery,
         },
       });
-
-      debugger;
 
       await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
         monitor: monitor,
@@ -1025,9 +1021,10 @@ export default class MonitorResourceUtil {
 
           if (screenshotInBase64) {
             finalResult += `
-          **Screenshot**:
 
-          ![Screenshot](data:image/png;base64,${screenshotInBase64});
+**Screenshot**:
+
+![Screenshot](data:image/png;base64,${screenshotInBase64});
           `;
           }
         }

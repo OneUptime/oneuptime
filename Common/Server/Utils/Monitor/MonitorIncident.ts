@@ -85,8 +85,6 @@ export default class MonitorIncident {
     };
   }): Promise<void> {
 
-    debugger; 
-    
     // check open incidents
     logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
     // check active incidents and if there are open incidents, do not cretae anothr incident.
@@ -133,8 +131,6 @@ export default class MonitorIncident {
         }
 
         logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
-
-        debugger;
 
         const incident: Incident = new Incident();
 
