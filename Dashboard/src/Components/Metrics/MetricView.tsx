@@ -74,14 +74,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [xAxisType, setXAxisType] = useState<XAxisType>(XAxisType.Time);
 
-  const [chartStartDate, setChartStartDate] = useState<Date>(
-    OneUptimeDate.getCurrentDate(),
-  );
-
-  const [chartEndDate, setChartEndDate] = useState<Date>(
-    OneUptimeDate.getCurrentDate(),
-  );
-
   const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
     Text.getLetterFromAByNumber(props.data.queryConfigs.length),
   );
@@ -151,7 +143,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
     loadAllMetricsTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
+
+    setCharts(getCharts());
   }, []);
+
+  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
+    [],
+  );
 
   type GetChartsFunction = () => Array<Chart>;
 
@@ -159,6 +157,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
     const charts: Array<Chart> = [];
 
     let index: number = 0;
+
+    if (!metricResults) {
+      return [];
+    }
 
     for (const queryConfig of metricViewData.queryConfigs) {
       if (!metricResults[index]) {
@@ -267,8 +269,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
             legend: "Time",
             options: {
               type: xAxisType,
-              max: chartEndDate,
-              min: chartStartDate,
+              max:
+                metricViewData.startAndEndDate?.endValue ||
+                OneUptimeDate.getCurrentDate(),
+              min:
+                metricViewData.startAndEndDate?.startValue ||
+                OneUptimeDate.addRemoveHours(
+                  OneUptimeDate.getCurrentDate(),
+                  -1,
+                ),
               aggregateType: xAxisAggregationType,
             },
           },
@@ -307,9 +316,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
     return charts;
   };
 
-  const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
-    [],
-  );
+  const [charts, setCharts] = useState<Array<Chart>>(getCharts());
+
+  useEffect(() => {
+    setCharts(getCharts());
+  }, [metricViewData, metricResults]);
+
   const [isMetricResultsLoading, setIsMetricResultsLoading] =
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
@@ -449,9 +461,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         setMetricResults(results);
         setXAxisType(getChartXAxisType());
-        setChartStartDate(metricViewData.startAndEndDate?.startValue as Date);
-        setChartEndDate(metricViewData.startAndEndDate?.endValue as Date);
-
         setMetricResultsError("");
       } catch (err: unknown) {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
@@ -640,7 +649,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {!isMetricResultsLoading && !metricResultsError && (
         <div className="grid grid-cols-1 gap-4">
           {/** charts */}
-          <ChartGroup charts={getCharts()} />
+          <ChartGroup charts={charts} />
         </div>
       )}
     </Fragment>

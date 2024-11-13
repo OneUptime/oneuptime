@@ -18,16 +18,16 @@ export class AggregateUtil {
     if (diff <= 1000 * 60 * 60 * 3) {
       // if less than 3 hours, then get minute precision
       return AggregationInterval.Minute;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 3) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 7) {
       // 3 days
       return AggregationInterval.Hour;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 7 * 3) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 7 * 6) {
       // 3 weeks
       return AggregationInterval.Day;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 30 * 3) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 30 * 6) {
       // 3 months
       return AggregationInterval.Week;
-    } else if (diff <= 1000 * 60 * 60 * 24 * 365 * 3) {
+    } else if (diff <= 1000 * 60 * 60 * 24 * 365 * 6) {
       // 3 years
       return AggregationInterval.Month;
     }
