@@ -29,6 +29,7 @@ export default class WebsiteMonitor {
     url: URL,
     options: {
       retry?: number | undefined;
+      isHeadRequest?: boolean | undefined;
       currentRetryCount?: number | undefined;
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
@@ -44,7 +45,11 @@ export default class WebsiteMonitor {
       options.currentRetryCount = 1;
     }
 
-    const requestType: HTTPMethod = HTTPMethod.GET;
+    let requestType: HTTPMethod = HTTPMethod.GET;
+
+    if (options.isHeadRequest) {
+      requestType = HTTPMethod.HEAD;
+    }
 
     try {
       logger.debug(
@@ -53,12 +58,25 @@ export default class WebsiteMonitor {
         }`,
       );
 
-      const startTime: [number, number] = process.hrtime();
-      const result: WebsiteResponse = await WebsiteRequest.fetch(url, {
-        isHeadRequest: false,
+      let startTime: [number, number] = process.hrtime();
+      let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
+        isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
         doNotFollowRedirects: options.doNotFollowRedirects || false,
       });
+
+      if (
+        result.responseStatusCode >= 400 &&
+        result.responseStatusCode < 600 &&
+        requestType === HTTPMethod.HEAD
+      ) {
+        startTime = process.hrtime();
+        result = await WebsiteRequest.fetch(url, {
+          isHeadRequest: false,
+          timeout: options.timeout?.toNumber() || 5000,
+          doNotFollowRedirects: options.doNotFollowRedirects || false,
+        });
+      }
 
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMS: PositiveNumber = new PositiveNumber(

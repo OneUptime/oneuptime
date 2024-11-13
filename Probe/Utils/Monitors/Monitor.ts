@@ -360,6 +360,7 @@ export default class MonitorUtil {
       const response: ProbeWebsiteResponse | null = await WebsiteMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
+          isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitorId,
           retry: 10,
           timeout: new PositiveNumber(60000), // 60 seconds
