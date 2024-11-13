@@ -22,6 +22,7 @@
     "Common": "file:../Common",
     "ejs": "^3.1.10",
     "ping": "^0.4.4",
+    "playwright": "^1.48.2",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
