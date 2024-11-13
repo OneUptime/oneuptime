@@ -30,7 +30,6 @@ export default class BrowserUtil {
 
       const page: Page = pageAndBrowser.page;
       const browser: Browser = pageAndBrowser.browser;
-
       await page.setContent(html);
       const screenshot: Buffer = await page.screenshot({ type: "png" });
 
