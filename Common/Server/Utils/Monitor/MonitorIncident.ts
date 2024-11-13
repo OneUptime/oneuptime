@@ -84,7 +84,6 @@ export default class MonitorIncident {
       telemetryQuery?: TelemetryQuery | undefined;
     };
   }): Promise<void> {
-
     // check open incidents
     logger.debug(`${input.monitor.id?.toString()} - Check open incidents.`);
     // check active incidents and if there are open incidents, do not cretae anothr incident.
