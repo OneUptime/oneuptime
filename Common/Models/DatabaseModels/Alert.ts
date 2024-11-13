@@ -801,7 +801,6 @@ export default class Alert extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Markdown,
     required: false,

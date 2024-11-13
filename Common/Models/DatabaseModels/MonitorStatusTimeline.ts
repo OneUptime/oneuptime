@@ -455,7 +455,6 @@ export default class MonitorStatusTimeline extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Markdown,
     required: false,

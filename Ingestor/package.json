@@ -16,7 +16,6 @@
     "license": "Apache-2.0",
     "dependencies": {
         "Common": "file:../Common",
-    
         "ejs": "^3.1.10",
         "protobufjs": "^7.3.2",
         "ts-node": "^10.9.1"

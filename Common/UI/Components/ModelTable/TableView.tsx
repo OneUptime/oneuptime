@@ -199,6 +199,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
       elements.push(
         <MoreMenuItem
+          key={"save-new-view"}
           text="Save as New View"
           className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 font-medium -mt-2"
           icon={IconProp.Add}

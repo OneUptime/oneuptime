@@ -855,7 +855,6 @@ export default class Incident extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     type: TableColumnType.Markdown,
     required: false,

@@ -544,6 +544,9 @@ export default class CompareCriteria {
       case FilterType.NotEqualTo:
         message += ` not equal to ${data.threshold}. `;
         break;
+      case FilterType.EqualTo:
+        message += ` equal to ${data.threshold}. `;
+        break;
       case FilterType.Contains:
         message += ` contains ${data.threshold}. `;
         break;

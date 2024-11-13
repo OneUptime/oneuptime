@@ -9,6 +9,7 @@ export interface ComponentProps {
   rightElement?: Array<ReactElement> | ReactElement | undefined;
   className?: string | undefined;
   iconClassName?: string | undefined;
+  key: string | number;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -16,6 +17,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <a
+      key={props.key}
       className={`cursor-pointer group flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 ${props.className}`}
       role="menuitem"
       onClick={() => {
