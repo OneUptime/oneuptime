@@ -30,7 +30,9 @@ export default class BrowserUtil {
 
       const page: Page = pageAndBrowser.page;
       const browser: Browser = pageAndBrowser.browser;
-      await page.setContent(html);
+      await page.setContent(html, {
+        waitUntil: "domcontentloaded",
+      });
       const screenshot: Buffer = await page.screenshot({ type: "png" });
 
       await browser.close();
