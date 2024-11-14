@@ -2,12 +2,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Input from "Common/UI/Components/Input/Input";
 import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 
-export interface MetricAliasData {
-  metricVariable: string;
-  title: string;
-  description: string;
-}
+
 
 export interface ComponentProps {
   data: MetricAliasData;

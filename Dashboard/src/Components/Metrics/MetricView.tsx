@@ -5,13 +5,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MetricQueryConfig, {
-  ChartSeries,
-  MetricQueryConfigData,
-} from "./MetricQueryConfig";
-import MetricGraphConfig, {
-  MetricFormulaConfigData,
-} from "./MetricFormulaConfig";
+import MetricQueryConfig from "./MetricQueryConfig";
+import MetricGraphConfig from "./MetricFormulaConfig";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -57,10 +52,13 @@ import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxi
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import MetricQueryConfigData, { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 
-export interface MetricViewData {
-  queryConfigs: Array<MetricQueryConfigData>;
-  formulaConfigs: Array<MetricFormulaConfigData>;
+
+
+export interface MetricViewData extends MetricsViewConfig {
   startAndEndDate: InBetween<Date> | null;
 }
 

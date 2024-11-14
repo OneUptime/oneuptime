@@ -36,6 +36,8 @@ export interface DashboardBaseComponentProps {
   dashboardCanvasWidthInPx: number;
   dashboardCanvasHeightInPx: number;
   dashboardViewConfig: DashboardViewConfig;
+  onSidePanelOpen: () => void;
+  onSidePanelClose: () => void;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
@@ -13,6 +13,7 @@ export interface ComponentProps {
   onDashboardViewConfigChange: (newConfig: DashboardViewConfig) => void;
   isEditMode: boolean;
   currentTotalDashboardWidthInPx: number;
+  onSidePanelOpenClose: (isOpen: boolean) => void;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -20,6 +21,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
+
+
+  const [isSidePanelOpen, setIsSidePanelOpen] = React.useState<boolean>(false);
+
+  useEffect(() => {
+    props.onSidePanelOpenClose(isSidePanelOpen);
+  }, [isSidePanelOpen]);
 
   const renderComponents: GetReactElementFunction = (): ReactElement => {
     const canvasHeight: number =
@@ -143,6 +151,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         componentId={componentId}
         key={componentId.toString()}
+        onSidePanelClose={() => {
+          setIsSidePanelOpen(false);
+        }}
+        onSidePanelOpen={() => {
+          setIsSidePanelOpen(true);
+        }}
         isSelected={selectedComponentId === componentId.toString()}
         onClick={() => {
           // component is selected
@@ -182,7 +196,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       <BlankCanvasElement
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         isEditMode={props.isEditMode}
-        onClick={() => {}}
+        onClick={() => { }}
         dashboardViewConfig={props.dashboardViewConfig}
       />
     );

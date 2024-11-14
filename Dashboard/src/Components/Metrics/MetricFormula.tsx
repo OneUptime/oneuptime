@@ -1,10 +1,8 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Input from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
 
-export interface MetricFormulaData {
-  metricFormula: string;
-}
 
 export interface ComponentProps {
   data: MetricFormulaData;

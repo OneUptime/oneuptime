@@ -1,6 +1,7 @@
 import { ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
 
+
 export default interface DashboardBaseComponent {
   _type: ObjectType;
   componentId: ObjectID;

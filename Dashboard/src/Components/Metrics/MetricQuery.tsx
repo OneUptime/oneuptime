@@ -10,10 +10,7 @@ import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import GroupBy from "Common/UI/Utils/BaseDatabase/GroupBy";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 
-export interface MetricQueryData {
-  filterData: FilterData<MetricsQuery>;
-  groupBy?: GroupBy<Metric> | undefined;
-}
+
 
 export interface ComponentProps {
   data: MetricQueryData;
