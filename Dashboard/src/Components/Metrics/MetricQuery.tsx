@@ -1,5 +1,4 @@
 import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
-import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -7,8 +6,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
-import GroupBy from "Common/UI/Utils/BaseDatabase/GroupBy";
-import Metric from "Common/Models/AnalyticsModels/Metric";
+import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 
 
 

@@ -1,9 +1,9 @@
-import { ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
+import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 
 export default interface DashboardTextComponent extends BaseComponent {
-  _type: ObjectType.DashboardTextComponent;
+  componentType: DashboardComponentType.Text;
   componentId: ObjectID;
   arguments: {
     text: string;

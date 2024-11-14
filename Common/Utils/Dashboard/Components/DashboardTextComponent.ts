@@ -12,11 +12,13 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       heightInDashboardUnits: 1,
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
-      text: "Hello, World!",
+      arguments: {
+        text: "Hello, World!",
+        isBold: false,
+        isItalic: false,
+        isUnderline: false
+      },
       componentId: ObjectID.generate(),
-      isBold: false,
-      isItalic: false,
-      isUnderline: false,
       minHeightInDashboardUnits: 1,
       minWidthInDashboardUnits: 3
     };
@@ -30,7 +32,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       description: "The text to display",
       required: true,
       type: ComponentInputType.LongText,
-      key: "text",
+      id: "text",
       placeholder: "Hello, World!"
     });
 
@@ -39,7 +41,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       description: "Whether the text should be bold",
       required: false,
       type: ComponentInputType.Boolean,
-      key: "isBold",
+      id: "isBold",
       placeholder: "false"
     });
 
@@ -48,7 +50,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       description: "Whether the text should be italic",
       required: false,
       type: ComponentInputType.Boolean,
-      key: "isItalic",
+      id: "isItalic",
       placeholder: "false"
     });
 
@@ -57,7 +59,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       description: "Whether the text should be underlined",
       required: false,
       type: ComponentInputType.Boolean,
-      key: "isUnderline",
+      id: "isUnderline",
       placeholder: "false"
     });
 

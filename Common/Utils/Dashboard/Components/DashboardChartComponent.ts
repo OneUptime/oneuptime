@@ -2,7 +2,6 @@ import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponent
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
-import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 import { ComponentArgument, ComponentInputType } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 
 export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
@@ -14,9 +13,9 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),
-      chartType: DashboardChartType.Line,
       minHeightInDashboardUnits: 3,
-      minWidthInDashboardUnits: 6
+      minWidthInDashboardUnits: 6,
+      arguments: {}
     };
   }
 
@@ -28,7 +27,7 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       description: "Please select the metrics to display on the chart",
       required: true,
       type: ComponentInputType.MetricsEditor,
-      key: "metricsViewConfig"
+      id: "metricsViewConfig"
     });
 
     return componentArguments;

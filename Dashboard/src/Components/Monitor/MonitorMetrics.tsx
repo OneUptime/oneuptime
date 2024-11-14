@@ -9,10 +9,6 @@ import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricView from "../Metrics/MetricView";
-import {
-  ChartSeries,
-  MetricQueryConfigData,
-} from "../Metrics/MetricQueryConfig";
 import DashboardNavigation from "../../Utils/Navigation";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorType, {
@@ -29,6 +25,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import MetricQueryConfigData, { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
 
 export interface ComponentProps {
   monitorId: ObjectID;

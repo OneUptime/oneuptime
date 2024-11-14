@@ -8,6 +8,7 @@ export enum ComponentInputType {
     Number = "Number",
     Decimal = "Decimal",
     MetricsEditor = "MetricsEditor",
+    LongText = "Long Text",
 }
 
 
@@ -16,7 +17,7 @@ export interface ComponentArgument<T extends DashboardBaseComponent> {
     description: string;
     required: boolean;
     type: ComponentInputType;
-    id: keyof T;
+    id: keyof T["arguments"];
     isAdvanced?: boolean | undefined;
     placeholder?: string | undefined;
 }

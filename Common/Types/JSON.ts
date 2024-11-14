@@ -65,12 +65,8 @@ export enum ObjectType {
   IsNull = "IsNull",
   Includes = "Includes",
 
-  // Dashboard Components.
-
+  DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
-  DashboardTextComponent = "DashboardTextComponent",
-  DashboardValueComponent = "DashboardValueComponent",
-  DashboardChartComponent = "DashboardChartComponent",
 }
 
 export type JSONValue =

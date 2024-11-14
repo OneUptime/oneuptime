@@ -43,6 +43,12 @@ export default class ComponentInputTypeToFormFieldType {
           };
         }
 
+        if(componentInputType === ComponentInputType.LongText) {
+          return {
+            fieldType: FormFieldSchemaType.LongText,
+          };
+        }
+
         return {
           fieldType: FormFieldSchemaType.Text,
           dropdownOptions: [],

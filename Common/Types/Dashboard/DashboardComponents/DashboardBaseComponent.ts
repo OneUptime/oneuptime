@@ -1,11 +1,13 @@
 import GenericObject from "../../GenericObject";
 import { ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
+import DashboardComponentType from "../DashboardComponentType";
 
 
 export default interface DashboardBaseComponent {
-  _type: ObjectType;
+  _type: ObjectType.DashboardComponent;
   componentId: ObjectID;
+  componentType: DashboardComponentType;
   topInDashboardUnits: number;
   leftInDashboardUnits: number;
   widthInDashboardUnits: number;

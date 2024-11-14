@@ -15,6 +15,7 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 1,
       minWidthInDashboardUnits: 1,
+      arguments: {}
     };
   }
 
@@ -26,7 +27,7 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       description: "Please select the metrics to display on the chart",
       required: true,
       type: ComponentInputType.MetricsEditor,
-      key: "metricsViewConfig"
+      id: "metricsViewConfig"
     });
 
     return componentArguments;

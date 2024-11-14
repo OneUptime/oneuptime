@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import MetricAlias, { MetricAliasData } from "./MetricAlias";
-import MetricQuery, { MetricQueryData } from "./MetricQuery";
+import MetricAlias from "./MetricAlias";
+import MetricQuery from "./MetricQuery";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Card from "Common/UI/Components/Card/Card";
 import Button, {
@@ -9,6 +9,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
+import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 
 
 
