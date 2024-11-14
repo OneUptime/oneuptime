@@ -193,11 +193,17 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     // get this in dashboard units.,
-    const widthInDashboardUnits: number =
+    let widthInDashboardUnits: number =
       GetDashboardComponentWidthInDashboardUnits(
         props.totalCurrentDashboardWidthInPx,
         newDashboardComponentwidthInPx,
       );
+
+    // if this width is less than the min width then set it to min width
+
+    if (widthInDashboardUnits < component.minWidthInDashboardUnits) {
+      widthInDashboardUnits = component.minWidthInDashboardUnits;
+    }
 
     // update the component
     const newComponentProps: DashboardBaseComponent = {
@@ -228,11 +234,17 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     // get this in dashboard units
-    const heightInDashboardUnits: number =
+    let heightInDashboardUnits: number =
       GetDashboardComponentHeightInDashboardUnits(
         props.totalCurrentDashboardWidthInPx,
         newDashboardComponentHeightInPx,
       );
+
+    // if this height is less tan the min height then set it to min height
+
+    if (heightInDashboardUnits < component.minHeightInDashboardUnits) {
+      heightInDashboardUnits = component.minHeightInDashboardUnits;
+    }
 
     // update the component
     const newComponentProps: DashboardBaseComponent = {
@@ -255,6 +267,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    let resizeCursorIcon: string = "cursor-ew-resize";
+
+    // if already at min width then change icon to e-resize
+
+    if (component.widthInDashboardUnits <= component.minWidthInDashboardUnits) {
+      resizeCursorIcon = "cursor-e-resize";
+    }
+
     return (
       <div
         style={{
@@ -266,7 +286,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           window.addEventListener("mousemove", resizeWidth);
           window.addEventListener("mouseup", stopResizeAndMove);
         }}
-        className="resize-width-element cursor-ew-resize absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
+        className={`resize-width-element ${resizeCursorIcon} absolute right-0 w-2 h-12 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer`}
       ></div>
     );
   };
@@ -295,8 +315,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
       ></div>
     );
   };
@@ -304,6 +324,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const getResizeHeightElement: GetReactElementFunction = (): ReactElement => {
     if (!props.isSelected || !props.isEditMode) {
       return <></>;
+    }
+
+    let resizeCursorIcon: string = "cursor-ns-resize";
+  
+    // if already at min height then change icon to s-resize
+
+    if (component.heightInDashboardUnits <= component.minHeightInDashboardUnits) {
+      resizeCursorIcon = "cursor-s-resize";
     }
 
     return (
@@ -317,7 +345,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           window.addEventListener("mousemove", resizeHeight);
           window.addEventListener("mouseup", stopResizeAndMove);
         }}
-        className="resize-height-element cursor-ns-resize absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
+        className={`resize-height-element ${resizeCursorIcon} absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer`}
       ></div>
     );
   };
@@ -357,16 +385,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }}
       style={{
         margin: `${MarginForEachUnitInPx}px`,
-        height: `${
-          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-            heightOfComponent +
+        height: `${GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+          heightOfComponent +
           SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-        }px`,
-        width: `${
-          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-            widthOfComponent +
+          }px`,
+        width: `${GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+          widthOfComponent +
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-        }px`,
+          }px`,
       }}
       ref={dashboardComponentRef}
     >

@@ -12,6 +12,8 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),
+      minHeightInDashboardUnits: 1,
+      minWidthInDashboardUnits: 1
     };
   }
 }

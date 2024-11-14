@@ -16,6 +16,8 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       isBold: false,
       isItalic: false,
       isUnderline: false,
+      minHeightInDashboardUnits: 1,
+      minWidthInDashboardUnits: 3
     };
   }
 }

@@ -8,4 +8,6 @@ export default interface DashboardBaseComponent {
   leftInDashboardUnits: number;
   widthInDashboardUnits: number;
   heightInDashboardUnits: number;
+  minWidthInDashboardUnits: number;
+  minHeightInDashboardUnits: number;
 }

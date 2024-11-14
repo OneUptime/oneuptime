@@ -14,6 +14,8 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),
       chartType: DashboardChartType.Line,
+      minHeightInDashboardUnits: 3,
+      minWidthInDashboardUnits: 6
     };
   }
 }
