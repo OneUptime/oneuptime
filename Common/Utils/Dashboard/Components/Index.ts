@@ -8,7 +8,7 @@ import DashboardValueComponentUtil from "./DashboardValueComponent";
 
 
 
-export class DashboardComponentsUtil { 
+export default class DashboardComponentsUtil { 
     public static getComponentSettingsArguments(dashboardComponentType: ObjectType): Array<ComponentArgument<DashboardBaseComponent>> { 
 
         if(dashboardComponentType === ObjectType.DashboardChartComponent) {

@@ -1,27 +1,20 @@
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
-import Button, { ButtonStyleType } from "../Button/Button";
-import BasicForm from "../Forms/BasicForm";
-import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import FormValues from "../Forms/Types/FormValues";
-import ConfirmModal from "../Modal/ConfirmModal";
-import SideOver from "../SideOver/SideOver";
-import ArgumentsForm from "./ArgumentsForm";
-import ComponentPortViewer from "./ComponentPortViewer";
-import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
-import DocumentationViewer from "./DocumentationViewer";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { NodeDataProp } from "Common/Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Divider from "Common/UI/Components/Divider/Divider";
+import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import SideOver from "Common/UI/Components/SideOver/SideOver";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ArgumentsForm from "./ArgumentsForm";
 
 export interface ComponentProps {
   title: string;
   description: string;
   onClose: () => void;
-  onDashboardViewConfigChange: (dashboardViewConfig: DashboardViewConfig) => void;
+  onComponentUpdate: (component: DashboardBaseComponent) => void;
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
 }
@@ -29,12 +22,15 @@ export interface ComponentProps {
 const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  
-  const component
+
+  const component: DashboardBaseComponent = props.dashboardViewConfig.components.find(
+    (component) => component.componentId.toString() === props.componentId.toString()
+  ) as DashboardBaseComponent;
 
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
   >({});
+
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
 
@@ -44,11 +40,20 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       description={props.description}
       onClose={props.onClose}
       onSubmit={() => {
-        return component && props.onSave(component);
+
+        // check if there are any form validation errors
+
+        if (Object.values(hasFormValidationErrors).includes(true)) {
+          return;
+        }
+
+        props.onComponentUpdate(component);
+
+        props.onClose();
       }}
       leftFooterElement={
         <Button
-          title={`Delete ${component.metadata.componentType}`}
+          title={`Delete`}
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           onClick={() => {
@@ -67,42 +72,27 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
             }}
             submitButtonText={"Delete"}
             onSubmit={() => {
-
-              // remove this compoennt from the dashboardViewConfig
-              const newComponents = props.dashboardViewConfig.components.filter(
-                (component) => component.componentId.toString() !== props.componentId.toString()
-              );
-
-
-              const updatedDashboardViewConfig: DashboardViewConfig = {
-                ...props.dashboardViewConfig,
-                components: [...newComponents],
-              };
-
-              props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+              props.onComponentUpdate(component);
               setShowDeleteConfirmation(false);
               props.onClose();
             }}
             submitButtonType={ButtonStyleType.DANGER}
           />
         )}
-        
+
 
         <Divider />
 
         <ArgumentsForm
-          graphComponents={props.graphComponents}
-          workflowId={props.workflowId}
           component={component}
-          onFormChange={(component: NodeDataProp) => {
-            setComponent({ ...component });
-          }}
-          onHasFormValidationErrors={(value: Dictionary<boolean>) => {
-            setHasFormValidationErrors({
-              ...hasFormValidationErrors,
-              ...value,
-            });
-          }}
+          onHasFormValidationErrors={(values: Dictionary<boolean>) => {
+            setHasFormValidationErrors(values);
+          }
+          }
+          onFormChange={
+            (component: DashboardBaseComponent) => {
+              props.onComponentUpdate(component);
+            }}
         />
 
       </>

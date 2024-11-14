@@ -1,3 +1,4 @@
+import GenericObject from "../../GenericObject";
 import { ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
 
@@ -11,4 +12,5 @@ export default interface DashboardBaseComponent {
   heightInDashboardUnits: number;
   minWidthInDashboardUnits: number;
   minHeightInDashboardUnits: number;
+  arguments?: GenericObject | undefined;
 }

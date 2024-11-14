@@ -5,8 +5,11 @@ import BaseComponent from "./DashboardBaseComponent";
 export default interface DashboardTextComponent extends BaseComponent {
   _type: ObjectType.DashboardTextComponent;
   componentId: ObjectID;
-  text: string;
-  isBold: boolean;
-  isItalic: boolean;
-  isUnderline: boolean;
+  arguments: {
+    text: string;
+    isBold: boolean;
+    isItalic: boolean;
+    isUnderline: boolean;
+  }
+
 }

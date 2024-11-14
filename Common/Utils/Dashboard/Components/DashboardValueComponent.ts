@@ -1,3 +1,4 @@
+import { ComponentArgument, ComponentInputType } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardValueComponent from "../../../Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -13,7 +14,21 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 1,
-      minWidthInDashboardUnits: 1
+      minWidthInDashboardUnits: 1,
     };
   }
+
+  public static override getComponentConfigArguments(): Array<ComponentArgument<DashboardValueComponent>> {
+    const componentArguments: Array<ComponentArgument<DashboardValueComponent>> = []; 
+
+    componentArguments.push({
+      name: "Metrics",
+      description: "Please select the metrics to display on the chart",
+      required: true,
+      type: ComponentInputType.MetricsEditor,
+      key: "metricsViewConfig"
+    });
+
+    return componentArguments;
+  } 
 }

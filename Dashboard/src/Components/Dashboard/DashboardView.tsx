@@ -37,8 +37,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     DashboardMode.View,
   );
 
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(false);
-
   // ref for dashboard div.
 
   const dashboardViewRef: React.RefObject<HTMLDivElement> =
@@ -118,7 +116,11 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
-  const sideBarWidth: number = isSidePanelOpen ? 300 : 0;
+  
+
+  const isEditMode: boolean = dashboardMode === DashboardMode.Edit; 
+
+  const sideBarWidth: number = isEditMode ? 300 : 0;
 
   return (
     <div
@@ -182,10 +184,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
           setDashboardViewConfig(JSON.parse(JSON.stringify(newConfig)));
         }}
-        onSidePanelOpenClose={(isOpen: boolean) => {
-          setIsSidePanelOpen(isOpen);
-        }}
-        isEditMode={dashboardMode === DashboardMode.Edit}
+        isEditMode={isEditMode}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}
       />
     </div>

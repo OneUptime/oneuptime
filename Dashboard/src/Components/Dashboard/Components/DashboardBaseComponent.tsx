@@ -18,11 +18,7 @@ import DefaultDashboardSize, {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
-
-export interface DashboardCommonComponentProps
-  extends DashboardBaseComponentProps {
-  editToolbarComponentElements: (elements: Array<ReactElement>) => ReactElement;
-}
+import ComponentSettingsSideOver from "../Canvas/ComponentSettingsSideOver";
 
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
@@ -36,8 +32,7 @@ export interface DashboardBaseComponentProps {
   dashboardCanvasWidthInPx: number;
   dashboardCanvasHeightInPx: number;
   dashboardViewConfig: DashboardViewConfig;
-  onSidePanelOpen: () => void;
-  onSidePanelClose: () => void;
+  onUnselectComponent: () => void;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -329,7 +324,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     let resizeCursorIcon: string = "cursor-ns-resize";
-  
+
     // if already at min height then change icon to s-resize
 
     if (component.heightInDashboardUnits <= component.minHeightInDashboardUnits) {
@@ -349,32 +344,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         }}
         className={`resize-height-element ${resizeCursorIcon} absolute bottom-0 left-0 w-12 h-2 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer`}
       ></div>
-    );
-  };
-
-  type GetEditComponentToolbarFunction = (
-    editToolbarComponentElements: Array<ReactElement>,
-  ) => ReactElement;
-
-  const getEditComponentToolbar: GetEditComponentToolbarFunction = (
-    editToolbarComponentElements: Array<ReactElement>,
-  ): ReactElement => {
-    if (!props.isEditMode || !props.isSelected) {
-      return <></>;
-    }
-
-    return (
-      <div className="absolute -top-5 right-1/2 bg-white shadow-md rounded-md pt-0.5 pr-0.5 pl-0.5 border border-gray-50 -pb-1">
-        {editToolbarComponentElements.map(
-          (element: ReactElement, index: number) => {
-            return (
-              <div key={index} className="inline-block">
-                {element}
-              </div>
-            );
-          },
-        )}
-      </div>
     );
   };
 
@@ -406,7 +375,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={component as DashboardTextComponentType}
-          editToolbarComponentElements={getEditComponentToolbar}
+          
         />
       )}
       {component._type === ObjectType.DashboardChartComponent && (
@@ -415,7 +384,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={component as DashboardChartComponentType}
-          editToolbarComponentElements={getEditComponentToolbar}
+          
         />
       )}
       {component._type === ObjectType.DashboardValueComponent && (
@@ -424,12 +393,26 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={component as DashboardValueComponentType}
-          editToolbarComponentElements={getEditComponentToolbar}
+          
         />
       )}
 
       {getResizeWidthElement()}
       {getResizeHeightElement()}
+
+      {props.isSelected && props.isEditMode && <ComponentSettingsSideOver
+        title="Component Settings"
+        description="Edit the settings of this component"
+        dashboardViewConfig={props.dashboardViewConfig}
+        onClose={() => {
+          // unselect this component. 
+          props.onUnselectComponent();
+        }}
+        componentId={props.componentId}
+        onComponentUpdate={(component: DashboardBaseComponent) => {
+          props.onComponentUpdate(component);
+        }}
+      />}
     </div>
   );
 };
