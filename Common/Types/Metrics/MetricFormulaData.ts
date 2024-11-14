@@ -1,3 +1,3 @@
 export default interface MetricFormulaData {
-    metricFormula: string;
-  }
+  metricFormula: string;
+}

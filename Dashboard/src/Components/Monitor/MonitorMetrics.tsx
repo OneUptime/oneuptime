@@ -25,7 +25,9 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import MetricQueryConfigData, { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  ChartSeries,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 
 export interface ComponentProps {
   monitorId: ObjectID;

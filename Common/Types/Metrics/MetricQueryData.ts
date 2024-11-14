@@ -4,6 +4,6 @@ import GroupBy from "../../UI/Utils/BaseDatabase/GroupBy";
 import MetricsQuery from "./MetricsQuery";
 
 export default interface MetricQueryData {
-    filterData: FilterData<MetricsQuery>;
-    groupBy?: GroupBy<Metric> | undefined;
-  }
+  filterData: FilterData<MetricsQuery>;
+  groupBy?: GroupBy<Metric> | undefined;
+}

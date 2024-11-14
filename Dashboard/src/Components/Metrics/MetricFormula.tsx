@@ -3,7 +3,6 @@ import Input from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
 
-
 export interface ComponentProps {
   data: MetricFormulaData;
   onDataChanged: (data: MetricFormulaData) => void;

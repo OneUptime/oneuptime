@@ -116,9 +116,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
-  
-
-  const isEditMode: boolean = dashboardMode === DashboardMode.Edit; 
+  const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 
   const sideBarWidth: number = isEditMode ? 300 : 0;
 
@@ -127,7 +125,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       ref={dashboardViewRef}
       style={{
         minWidth: "1000px",
-        width: `calc(100% - ${sideBarWidth}px)`, 
+        width: `calc(100% - ${sideBarWidth}px)`,
       }}
     >
       <DashboardToolbar

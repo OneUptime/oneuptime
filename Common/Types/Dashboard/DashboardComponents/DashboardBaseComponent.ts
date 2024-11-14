@@ -3,7 +3,6 @@ import { ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
 
-
 export default interface DashboardBaseComponent {
   _type: ObjectType.DashboardComponent;
   componentId: ObjectID;

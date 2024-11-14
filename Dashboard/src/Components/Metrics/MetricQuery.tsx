@@ -8,8 +8,6 @@ import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 
-
-
 export interface ComponentProps {
   data: MetricQueryData;
   onDataChanged: (filterData: MetricQueryData) => void;

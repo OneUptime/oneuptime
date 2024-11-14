@@ -8,5 +8,5 @@ export default interface DashboardChartComponent extends BaseComponent {
   componentId: ObjectID;
   arguments: {
     metricsViewConfig?: MetricsViewConfig | undefined;
-  }
+  };
 }

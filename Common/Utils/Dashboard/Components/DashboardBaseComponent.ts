@@ -7,7 +7,7 @@ export default class DashboardBaseComponentUtil {
     throw new NotImplementedException();
   }
 
-  public static getComponentConfigArguments(): Array<ComponentArgument<any>> { 
+  public static getComponentConfigArguments(): Array<ComponentArgument<any>> {
     return [];
   }
 }

@@ -211,8 +211,8 @@ RunCron(
             const sms: SMS = {
               message: `
                             Incident ${Text.uppercaseFirstLetter(
-                incidentStateTimeline.incidentState.name,
-              )} - ${statusPageName}
+                              incidentStateTimeline.incidentState.name,
+                            )} - ${statusPageName}
 
                             To view this incident, visit ${statusPageURL}
 
@@ -232,14 +232,14 @@ RunCron(
             });
           }
 
+          let emailTitle: string = `Incident `;
 
-          let emailTitle = `Incident `;
-
-          const resourcesAffected = statusPageToResources[statuspage._id!]
-            ?.map((r: StatusPageResource) => {
-              return r.displayName;
-            })
-            .join(", ") || '';
+          const resourcesAffected: string =
+            statusPageToResources[statuspage._id!]
+              ?.map((r: StatusPageResource) => {
+                return r.displayName;
+              })
+              .join(", ") || "";
 
           if (resourcesAffected) {
             emailTitle += `on ${resourcesAffected} `;
@@ -255,20 +255,19 @@ RunCron(
                 toEmail: subscriber.subscriberEmail,
                 templateType: EmailTemplateType.SubscriberIncidentStateChanged,
                 vars: {
-                  emailTitle: `Incident on `,
+                  emailTitle: emailTitle,
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
                   logoUrl: statuspage.logoFileId
                     ? new URL(httpProtocol, host)
-                      .addRoute(FileRoute)
-                      .addRoute("/image/" + statuspage.logoFileId)
-                      .toString()
+                        .addRoute(FileRoute)
+                        .addRoute("/image/" + statuspage.logoFileId)
+                        .toString()
                     : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
-                  resourcesAffected:
-                    resourcesAffected || "None",
+                  resourcesAffected: resourcesAffected || "None",
                   incidentSeverity: incident.incidentSeverity?.name || " - ",
                   incidentTitle: incident.title || "",
                   incidentDescription: incident.description || "",

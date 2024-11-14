@@ -4,8 +4,6 @@ import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 
-
-
 export interface ComponentProps {
   data: MetricAliasData;
   isFormula: boolean;

@@ -12,8 +12,6 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 
-
-
 export interface ComponentProps {
   data: MetricQueryConfigData;
   onDataChanged: (data: MetricQueryConfigData) => void;

@@ -3,7 +3,6 @@ import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponen
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import { ObjectType } from "Common/Types/JSON";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
@@ -19,6 +18,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "../Canvas/ComponentSettingsSideOver";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
@@ -312,8 +312,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
     );
   };
@@ -327,7 +327,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
     // if already at min height then change icon to s-resize
 
-    if (component.heightInDashboardUnits <= component.minHeightInDashboardUnits) {
+    if (
+      component.heightInDashboardUnits <= component.minHeightInDashboardUnits
+    ) {
       resizeCursorIcon = "cursor-s-resize";
     }
 
@@ -356,63 +358,64 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       }}
       style={{
         margin: `${MarginForEachUnitInPx}px`,
-        height: `${GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-          heightOfComponent +
+        height: `${
+          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+            heightOfComponent +
           SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-          }px`,
-        width: `${GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-          widthOfComponent +
+        }px`,
+        width: `${
+          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+            widthOfComponent +
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-          }px`,
+        }px`,
       }}
       ref={dashboardComponentRef}
     >
       {getMoveElement()}
 
-      {component._type === ObjectType.DashboardTextComponent && (
+      {component.componentType === DashboardComponentType.Text && (
         <DashboardTextComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={component as DashboardTextComponentType}
-          
         />
       )}
-      {component._type === ObjectType.DashboardChartComponent && (
+      {component.componentType === DashboardComponentType.Chart && (
         <DashboardChartComponent
           {...props}
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={component as DashboardChartComponentType}
-          
         />
       )}
-      {component._type === ObjectType.DashboardValueComponent && (
+      {component.componentType === DashboardComponentType.Value && (
         <DashboardValueComponent
           {...props}
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={component as DashboardValueComponentType}
-          
         />
       )}
 
       {getResizeWidthElement()}
       {getResizeHeightElement()}
 
-      {props.isSelected && props.isEditMode && <ComponentSettingsSideOver
-        title="Component Settings"
-        description="Edit the settings of this component"
-        dashboardViewConfig={props.dashboardViewConfig}
-        onClose={() => {
-          // unselect this component. 
-          props.onUnselectComponent();
-        }}
-        componentId={props.componentId}
-        onComponentUpdate={(component: DashboardBaseComponent) => {
-          props.onComponentUpdate(component);
-        }}
-      />}
+      {props.isSelected && props.isEditMode && (
+        <ComponentSettingsSideOver
+          title="Component Settings"
+          description="Edit the settings of this component"
+          dashboardViewConfig={props.dashboardViewConfig}
+          onClose={() => {
+            // unselect this component.
+            props.onUnselectComponent();
+          }}
+          componentId={props.componentId}
+          onComponentUpdate={(component: DashboardBaseComponent) => {
+            props.onComponentUpdate(component);
+          }}
+        />
+      )}
     </div>
   );
 };

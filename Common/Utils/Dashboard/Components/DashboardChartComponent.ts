@@ -2,12 +2,17 @@ import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponent
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
-import { ComponentArgument, ComponentInputType } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import {
+  ComponentArgument,
+  ComponentInputType,
+} from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 
 export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardChartComponent {
     return {
-      _type: ObjectType.DashboardChartComponent,
+      _type: ObjectType.DashboardComponent,
+      componentType: DashboardComponentType.Chart,
       widthInDashboardUnits: 12,
       heightInDashboardUnits: 6,
       topInDashboardUnits: 0,
@@ -15,21 +20,25 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 6,
-      arguments: {}
+      arguments: {},
     };
   }
 
-  public static override getComponentConfigArguments(): Array<ComponentArgument<DashboardChartComponent>> {
-    const componentArguments: Array<ComponentArgument<DashboardChartComponent>> = []; 
+  public static override getComponentConfigArguments(): Array<
+    ComponentArgument<DashboardChartComponent>
+  > {
+    const componentArguments: Array<
+      ComponentArgument<DashboardChartComponent>
+    > = [];
 
     componentArguments.push({
       name: "Metrics",
       description: "Please select the metrics to display on the chart",
       required: true,
       type: ComponentInputType.MetricsEditor,
-      id: "metricsViewConfig"
+      id: "metricsViewConfig",
     });
 
     return componentArguments;
-  } 
+  }
 }

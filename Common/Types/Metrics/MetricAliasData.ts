@@ -1,5 +1,5 @@
 export default interface MetricAliasData {
-    metricVariable: string;
-    title: string;
-    description: string;
-  }
+  metricVariable: string;
+  title: string;
+  description: string;
+}

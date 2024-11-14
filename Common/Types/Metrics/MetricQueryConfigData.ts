@@ -3,11 +3,11 @@ import MetricAliasData from "./MetricAliasData";
 import MetricQueryData from "./MetricQueryData";
 
 export interface ChartSeries {
-    title: string;
+  title: string;
 }
 
 export default interface MetricQueryConfigData {
-    metricAliasData: MetricAliasData;
-    metricQueryData: MetricQueryData;
-    getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
+  metricAliasData: MetricAliasData;
+  metricQueryData: MetricQueryData;
+  getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
 }

@@ -127,13 +127,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
   type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
-
-  
-
   const renderComponent: RenderComponentFunction = (
     componentId: ObjectID,
   ): ReactElement => {
-
     const isSelected: boolean = selectedComponentId === componentId.toString();
 
     return (
@@ -191,7 +187,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       <BlankCanvasElement
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         isEditMode={props.isEditMode}
-        onClick={() => { }}
+        onClick={() => {}}
         dashboardViewConfig={props.dashboardViewConfig}
       />
     );

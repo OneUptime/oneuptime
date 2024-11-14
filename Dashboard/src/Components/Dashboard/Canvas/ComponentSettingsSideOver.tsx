@@ -22,10 +22,14 @@ export interface ComponentProps {
 const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-  const component: DashboardBaseComponent = props.dashboardViewConfig.components.find(
-    (component) => component.componentId.toString() === props.componentId.toString()
-  ) as DashboardBaseComponent;
+  const component: DashboardBaseComponent =
+    props.dashboardViewConfig.components.find(
+      (component: DashboardBaseComponent) => {
+        return (
+          component.componentId.toString() === props.componentId.toString()
+        );
+      },
+    ) as DashboardBaseComponent;
 
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
@@ -40,7 +44,6 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       description={props.description}
       onClose={props.onClose}
       onSubmit={() => {
-
         // check if there are any form validation errors
 
         if (Object.values(hasFormValidationErrors).includes(true)) {
@@ -80,21 +83,17 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
           />
         )}
 
-
         <Divider />
 
         <ArgumentsForm
           component={component}
           onHasFormValidationErrors={(values: Dictionary<boolean>) => {
             setHasFormValidationErrors(values);
-          }
-          }
-          onFormChange={
-            (component: DashboardBaseComponent) => {
-              props.onComponentUpdate(component);
-            }}
+          }}
+          onFormChange={(component: DashboardBaseComponent) => {
+            props.onComponentUpdate(component);
+          }}
         />
-
       </>
     </SideOver>
   );

@@ -11,7 +11,6 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
 
-
 export interface ComponentProps {
   data: MetricFormulaConfigData;
   onDataChanged: (data: MetricFormulaConfigData) => void;

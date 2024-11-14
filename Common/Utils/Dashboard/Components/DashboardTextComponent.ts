@@ -1,5 +1,9 @@
-import { ComponentArgument, ComponentInputType } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import {
+  ComponentArgument,
+  ComponentInputType,
+} from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardTextComponent from "../../../Types/Dashboard/DashboardComponents/DashboardTextComponent";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
@@ -7,7 +11,8 @@ import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 export default class DashboardTextComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardTextComponent {
     return {
-      _type: ObjectType.DashboardTextComponent,
+      _type: ObjectType.DashboardComponent,
+      componentType: DashboardComponentType.Text,
       widthInDashboardUnits: 6,
       heightInDashboardUnits: 1,
       topInDashboardUnits: 0,
@@ -16,16 +21,19 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
         text: "Hello, World!",
         isBold: false,
         isItalic: false,
-        isUnderline: false
+        isUnderline: false,
       },
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 1,
-      minWidthInDashboardUnits: 3
+      minWidthInDashboardUnits: 3,
     };
   }
 
-  public static override getComponentConfigArguments(): Array<ComponentArgument<DashboardTextComponent>> {
-    const componentArguments: Array<ComponentArgument<DashboardTextComponent>> = []; 
+  public static override getComponentConfigArguments(): Array<
+    ComponentArgument<DashboardTextComponent>
+  > {
+    const componentArguments: Array<ComponentArgument<DashboardTextComponent>> =
+      [];
 
     componentArguments.push({
       name: "Text",
@@ -33,7 +41,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       required: true,
       type: ComponentInputType.LongText,
       id: "text",
-      placeholder: "Hello, World!"
+      placeholder: "Hello, World!",
     });
 
     componentArguments.push({
@@ -42,7 +50,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       required: false,
       type: ComponentInputType.Boolean,
       id: "isBold",
-      placeholder: "false"
+      placeholder: "false",
     });
 
     componentArguments.push({
@@ -51,7 +59,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       required: false,
       type: ComponentInputType.Boolean,
       id: "isItalic",
-      placeholder: "false"
+      placeholder: "false",
     });
 
     componentArguments.push({
@@ -60,9 +68,9 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       required: false,
       type: ComponentInputType.Boolean,
       id: "isUnderline",
-      placeholder: "false"
+      placeholder: "false",
     });
 
     return componentArguments;
-  } 
+  }
 }
