@@ -60,6 +60,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  const [selectedComponentId, setSelectedComponentId] =
+    useState<ObjectID | null>(null);
+
   const [dashboardViewConfig, setDashboardViewConfig] =
     useState<DashboardViewConfig>({
       _type: ObjectType.DashboardViewConfig,
@@ -118,7 +121,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 
-  const sideBarWidth: number = isEditMode ? 300 : 0;
+  const sideBarWidth: number = isEditMode && selectedComponentId ? 550 : 0;
 
   return (
     <div
@@ -181,6 +184,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboardViewConfig={dashboardViewConfig}
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
           setDashboardViewConfig(JSON.parse(JSON.stringify(newConfig)));
+        }}
+        onComponentSelected={(componentId: ObjectID) => {
+          // Do nothing
+          setSelectedComponentId(componentId);
+        }}
+        onComponentUnselected={() => {
+          setSelectedComponentId(null);
         }}
         isEditMode={isEditMode}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
@@ -13,6 +13,8 @@ export interface ComponentProps {
   onDashboardViewConfigChange: (newConfig: DashboardViewConfig) => void;
   isEditMode: boolean;
   currentTotalDashboardWidthInPx: number;
+  onComponentSelected: (componentId: ObjectID) => void;
+  onComponentUnselected: () => void;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -124,6 +126,14 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const [selectedComponentId, setSelectedComponentId] = React.useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    if (selectedComponentId) {
+      props.onComponentSelected(new ObjectID(selectedComponentId));
+    } else {
+      props.onComponentUnselected();
+    }
+  }, [selectedComponentId]);
 
   type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
