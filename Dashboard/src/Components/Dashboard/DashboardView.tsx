@@ -54,22 +54,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
   };
 
-  const saveDashboardViewConfig: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsSaving(true);
-      await ModelAPI.updateById({
-        modelType: Dashboard,
-        id: props.dashboardId,
-        data: {
-          dashboardViewConfig: dashboardViewConfig,
-        },
-      });
-    } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Error));
-    }
+  const saveDashboardViewConfig: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsSaving(true);
+        await ModelAPI.updateById({
+          modelType: Dashboard,
+          id: props.dashboardId,
+          data: {
+            dashboardViewConfig: dashboardViewConfig,
+          },
+        });
+      } catch (err) {
+        setError(API.getFriendlyErrorMessage(err as Error));
+      }
 
-    setIsSaving(false);
-  }
+      setIsSaving(false);
+    };
 
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -118,7 +119,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           dashboard.dashboardViewConfig ||
             DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
         );
-        setDashboardName(dashboard.name || 'Untitled Dashboard');
+        setDashboardName(dashboard.name || "Untitled Dashboard");
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
       }

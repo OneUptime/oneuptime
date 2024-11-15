@@ -33,88 +33,88 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           {/* Name Component */}
           {props.dashboardName}
         </div>
-        {!props.isSaving && <div className="flex">
-          {isEditMode ? (
-            <MoreMenu menuIcon={IconProp.Add} text="Add Component">
-              <MoreMenuItem
-                text={"Add Chart"}
-                key={"add-chart"}
-                onClick={() => {
-                  props.onAddComponentClick(DashboardComponentType.Chart);
-                }}
+        {!props.isSaving && (
+          <div className="flex">
+            {isEditMode ? (
+              <MoreMenu menuIcon={IconProp.Add} text="Add Component">
+                <MoreMenuItem
+                  text={"Add Chart"}
+                  key={"add-chart"}
+                  onClick={() => {
+                    props.onAddComponentClick(DashboardComponentType.Chart);
+                  }}
+                />
+                <MoreMenuItem
+                  text={"Add Value"}
+                  key={"add-value"}
+                  onClick={() => {
+                    props.onAddComponentClick(DashboardComponentType.Value);
+                  }}
+                />
+                <MoreMenuItem
+                  text={"Add Text"}
+                  key={"add-text"}
+                  onClick={() => {
+                    props.onAddComponentClick(DashboardComponentType.Text);
+                  }}
+                />
+              </MoreMenu>
+            ) : (
+              <></>
+            )}
+
+            {!isEditMode && !props.isFullScreen && (
+              <Button
+                icon={IconProp.Expand}
+                buttonStyle={ButtonStyleType.ICON}
+                onClick={props.onFullScreenClick}
+                tooltip="Full Screen"
               />
-              <MoreMenuItem
-                text={"Add Value"}
-                key={"add-value"}
-                onClick={() => {
-                  props.onAddComponentClick(DashboardComponentType.Value);
-                }}
+            )}
+
+            {!isEditMode && props.isFullScreen && (
+              <Button
+                icon={IconProp.Collapse}
+                buttonStyle={ButtonStyleType.ICON}
+                onClick={props.onCollapseScreenClick}
+                tooltip="Collapse Screen"
               />
-              <MoreMenuItem
-                text={"Add Text"}
-                key={"add-text"}
-                onClick={() => {
-                  props.onAddComponentClick(DashboardComponentType.Text);
-                }}
+            )}
+
+            {!isEditMode && (
+              <Button
+                icon={IconProp.Pencil}
+                title="Edit"
+                buttonStyle={ButtonStyleType.ICON}
+                onClick={props.onEditClick}
+                tooltip="Edit"
               />
-            </MoreMenu>
-          ) : (
-            <></>
-          )}
+            )}
 
-          {!isEditMode && !props.isFullScreen && (
-            <Button
-              icon={IconProp.Expand}
-              buttonStyle={ButtonStyleType.ICON}
-              onClick={props.onFullScreenClick}
-              tooltip="Full Screen"
-            />
-          )}
-
-          {!isEditMode && props.isFullScreen && (
-            <Button
-              icon={IconProp.Collapse}
-              buttonStyle={ButtonStyleType.ICON}
-              onClick={props.onCollapseScreenClick}
-              tooltip="Collapse Screen"
-            />
-          )}
-
-          {!isEditMode && (
-            <Button
-              icon={IconProp.Pencil}
-              title="Edit"
-              buttonStyle={ButtonStyleType.ICON}
-              onClick={props.onEditClick}
-              tooltip="Edit"
-            />
-          )}
-
-          {isEditMode && (
-            <Button
-              icon={IconProp.Check}
-              title="Save"
-              buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
-              onClick={props.onSaveClick}
-            />
-          )}
-          {isEditMode && (
-            <Button
-              icon={IconProp.Close}
-              title="Cancel"
-              buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-              onClick={props.onCancelEditClick}
-            />
-          )}
-        </div>}
-        {
-          props.isSaving && (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
-              <div className="ml-2">Saving...</div>
-            </div>
-          )
-        }
+            {isEditMode && (
+              <Button
+                icon={IconProp.Check}
+                title="Save"
+                buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                onClick={props.onSaveClick}
+              />
+            )}
+            {isEditMode && (
+              <Button
+                icon={IconProp.Close}
+                title="Cancel"
+                buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                onClick={props.onCancelEditClick}
+              />
+            )}
+          </div>
+        )}
+        {props.isSaving && (
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+            <div className="ml-2">Saving...</div>
+          </div>
+        )}
       </div>
     </div>
   );
