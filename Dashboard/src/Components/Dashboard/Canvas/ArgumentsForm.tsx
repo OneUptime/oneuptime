@@ -18,7 +18,7 @@ import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentTyp
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
-  onHasFormValidationErrors: (values: Dictionary<boolean>) => void;
+  onHasFormValidationErrors?: ((values: Dictionary<boolean>) => void) | undefined;
   onFormChange: (component: DashboardBaseComponent) => void;
 }
 
@@ -34,7 +34,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   useEffect(() => {
+    if(props.onHasFormValidationErrors) {
     props.onHasFormValidationErrors(hasFormValidationErrors);
+    }
   }, [hasFormValidationErrors]);
 
   useEffect(() => {

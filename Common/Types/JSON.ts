@@ -27,6 +27,7 @@ import PositiveNumber from "./PositiveNumber";
 import StartAndEndTime from "./Time/StartAndEndTime";
 import Version from "./Version";
 import { BaseEntity } from "typeorm";
+import DashboardViewConfig from "./Dashboard/DashboardViewConfig";
 
 export enum ObjectType {
   ObjectID = "ObjectID",
@@ -144,7 +145,8 @@ export type JSONValue =
   | StartAndEndTime
   | Array<StartAndEndTime>
   | Includes
-  | Array<Includes>;
+  | Array<Includes>
+  | DashboardViewConfig;
 
 export interface JSONObject {
   [x: string]: JSONValue;

@@ -15,6 +15,8 @@ export interface ComponentProps {
   dashboardMode: DashboardMode;
   onAddComponentClick: (type: DashboardComponentType) => void;
   isFullScreen: boolean;
+  isSaving: boolean;
+  dashboardName: string;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -29,9 +31,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       <div className="w-full flex justify-between">
         <div className="text-md font-medium mt-2">
           {/* Name Component */}
-          Dashboard Name
+          {props.dashboardName}
         </div>
-        <div className="flex">
+        {!props.isSaving && <div className="flex">
           {isEditMode ? (
             <MoreMenu menuIcon={IconProp.Add} text="Add Component">
               <MoreMenuItem
@@ -104,7 +106,15 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
               onClick={props.onCancelEditClick}
             />
           )}
-        </div>
+        </div>}
+        {
+          props.isSaving && (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+              <div className="ml-2">Saving...</div>
+            </div>
+          )
+        }
       </div>
     </div>
   );

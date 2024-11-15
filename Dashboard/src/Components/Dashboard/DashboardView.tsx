@@ -37,6 +37,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     DashboardMode.View,
   );
 
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
   // ref for dashboard div.
 
   const dashboardViewRef: React.RefObject<HTMLDivElement> =
@@ -46,9 +48,28 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     dashboardViewRef.current?.offsetWidth || 0,
   );
 
+  const [dashboardName, setDashboardName] = useState<string>("");
+
   const handleResize: VoidFunction = (): void => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
   };
+
+  const saveDashboardViewConfig: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsSaving(true);
+      await ModelAPI.updateById({
+        modelType: Dashboard,
+        id: props.dashboardId,
+        data: {
+          dashboardViewConfig: dashboardViewConfig,
+        },
+      });
+    } catch (err) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsSaving(false);
+  }
 
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
@@ -97,6 +118,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           dashboard.dashboardViewConfig ||
             DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
         );
+        setDashboardName(dashboard.name || 'Untitled Dashboard');
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
       }
@@ -143,8 +165,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onCollapseScreenClick={() => {
           setIsFullScreen(false);
         }}
+        dashboardName={dashboardName}
         isFullScreen={isFullScreen}
+        isSaving={isSaving}
         onSaveClick={() => {
+          saveDashboardViewConfig().catch((err: Error) => {
+            setError(API.getFriendlyErrorMessage(err));
+          });
           setDashboardMode(DashboardMode.View);
         }}
         onCancelEditClick={() => {

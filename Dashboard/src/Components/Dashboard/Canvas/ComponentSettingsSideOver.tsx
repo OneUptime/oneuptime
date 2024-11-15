@@ -1,5 +1,4 @@
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
-import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -32,9 +31,9 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       },
     ) as DashboardBaseComponent;
 
-  const [_hasFormValidationErrors, setHasFormValidationErrors] = useState<
-    Dictionary<boolean>
-  >({});
+  // const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
+  //   Dictionary<boolean>
+  // >({});
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
@@ -80,9 +79,9 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
 
         <ArgumentsForm
           component={component}
-          onHasFormValidationErrors={(values: Dictionary<boolean>) => {
-            setHasFormValidationErrors(values);
-          }}
+          // onHasFormValidationErrors={(values: Dictionary<boolean>) => {
+          //   setHasFormValidationErrors(values);
+          // }}
           onFormChange={(component: DashboardBaseComponent) => {
             props.onComponentUpdate(component);
           }}
