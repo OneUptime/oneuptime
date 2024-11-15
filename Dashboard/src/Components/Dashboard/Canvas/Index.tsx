@@ -123,13 +123,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   };
 
-
   type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
   const renderComponent: RenderComponentFunction = (
     componentId: ObjectID,
   ): ReactElement => {
-    const isSelected: boolean = props.selectedComponentId?.toString() === componentId.toString();
+    const isSelected: boolean =
+      props.selectedComponentId?.toString() === componentId.toString();
 
     return (
       <DashboardBaseComponentElement
@@ -145,7 +145,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         componentId={componentId}
         key={componentId.toString()}
         onUnselectComponent={() => {
-         
           props.onComponentUnselected();
         }}
         onComponentDelete={(component: DashboardBaseComponent) => {

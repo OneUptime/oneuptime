@@ -43,7 +43,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
     <SideOver
       title={props.title}
       description={props.description}
-      onClose={()=>{
+      onClose={() => {
         props.onComponentUpdate(component);
         props.onClose();
       }}

@@ -53,16 +53,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
 
-  
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
-
-
-
 
   const [selectedComponentId, setSelectedComponentId] =
     useState<ObjectID | null>(null);
@@ -114,8 +110,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
-
- 
 
   const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 

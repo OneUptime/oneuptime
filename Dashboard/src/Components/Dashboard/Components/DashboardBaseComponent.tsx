@@ -203,8 +203,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       widthInDashboardUnits = component.minWidthInDashboardUnits;
     }
 
-    // if its more than the max width of dashboard. 
-    if(widthInDashboardUnits > DefaultDashboardSize.widthInDashboardUnits){
+    // if its more than the max width of dashboard.
+    if (widthInDashboardUnits > DefaultDashboardSize.widthInDashboardUnits) {
       widthInDashboardUnits = DefaultDashboardSize.widthInDashboardUnits;
     }
 
@@ -318,8 +318,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
       ></div>
     );
   };
@@ -365,14 +365,16 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         }}
         style={{
           margin: `${MarginForEachUnitInPx}px`,
-          height: `${GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-            heightOfComponent +
+          height: `${
+            GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+              heightOfComponent +
             SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-            }px`,
-          width: `${GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-            widthOfComponent +
+          }px`,
+          width: `${
+            GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+              widthOfComponent +
             (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-            }px`,
+          }px`,
         }}
         ref={dashboardComponentRef}
       >
@@ -405,8 +407,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
 
         {getResizeWidthElement()}
         {getResizeHeightElement()}
-
-
       </div>
 
       {props.isSelected && props.isEditMode && (
