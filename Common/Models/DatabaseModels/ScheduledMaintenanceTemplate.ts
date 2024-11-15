@@ -789,7 +789,12 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceNoteTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: false,
@@ -816,7 +821,12 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceNoteTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: false,
@@ -845,7 +855,12 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceNoteTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -873,7 +888,12 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceNoteTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -902,7 +922,12 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceNoteTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
