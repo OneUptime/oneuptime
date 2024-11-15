@@ -203,6 +203,11 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       widthInDashboardUnits = component.minWidthInDashboardUnits;
     }
 
+    // if its more than the max width of dashboard. 
+    if(widthInDashboardUnits > DefaultDashboardSize.widthInDashboardUnits){
+      widthInDashboardUnits = DefaultDashboardSize.widthInDashboardUnits;
+    }
+
     // update the component
     const newComponentProps: DashboardBaseComponent = {
       ...component,

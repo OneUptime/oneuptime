@@ -41,11 +41,11 @@ const SideOver: FunctionComponent<ComponentProps> = (
       role="dialog"
       aria-modal="true"
     >
-      <div className="fixed inset-0"></div>
+      <div className="inset-0"></div>
 
-      <div className="fixed inset-0 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
+      <div className="inset-0 overflow-hidden">
+        <div className="inset-0 overflow-hidden">
+          <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
             <div className={`pointer-events-auto w-screen ${widthClass}`}>
               <div className="flex h-full flex-col bg-white shadow-xl">
                 <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">

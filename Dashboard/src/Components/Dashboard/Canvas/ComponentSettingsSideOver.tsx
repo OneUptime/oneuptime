@@ -32,7 +32,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       },
     ) as DashboardBaseComponent;
 
-  const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
+  const [_hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
   >({});
 
@@ -44,17 +44,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       onClose={()=>{
-        props.onClose();
-      }}
-      onSubmit={() => {
-        // check if there are any form validation errors
-
-        if (Object.values(hasFormValidationErrors).includes(true)) {
-          return;
-        }
-
         props.onComponentUpdate(component);
-
         props.onClose();
       }}
       leftFooterElement={
