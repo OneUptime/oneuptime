@@ -3,10 +3,11 @@ import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import BlankDashboardUnitElement from "./DashboardUnit";
+import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -95,10 +96,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
                 props.currentTotalDashboardWidthInPx
               }
               isEditMode={props.isEditMode}
-              key={`blank-${i}-${j}`}
+              key={`blank-unit-${i}-${j}`}
               onClick={() => {
                 props.onComponentUnselected();
               }}
+              id={`blank-unit-${i}-${j}`}
             />,
           );
         }
@@ -125,6 +127,35 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 
   type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
+  type UpdateComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ) => void;
+
+  const updateComponent: UpdateComponentFunction = (
+    updatedComponent: DashboardBaseComponent,
+  ): void => {
+    const updatedComponents: Array<DashboardBaseComponent> =
+      props.dashboardViewConfig.components.map(
+        (component: DashboardBaseComponent) => {
+          if (
+            component.componentId.toString() ===
+            updatedComponent.componentId.toString()
+          ) {
+            return { ...updatedComponent };
+          }
+
+          return component;
+        },
+      );
+
+    const updatedDashboardViewConfig: DashboardViewConfig = {
+      ...props.dashboardViewConfig,
+      components: [...updatedComponents],
+    };
+
+    props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+  };
+
   const renderComponent: RenderComponentFunction = (
     componentId: ObjectID,
   ): ReactElement => {
@@ -144,52 +175,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
         componentId={componentId}
         key={componentId.toString()}
-        onUnselectComponent={() => {
-          props.onComponentUnselected();
-        }}
-        onComponentDelete={(component: DashboardBaseComponent) => {
-          const updatedComponents: Array<DashboardBaseComponent> =
-            props.dashboardViewConfig.components.filter(
-              (c: DashboardBaseComponent) => {
-                return (
-                  c.componentId.toString() !== component.componentId.toString()
-                );
-              },
-            );
-
-          const updatedDashboardViewConfig: DashboardViewConfig = {
-            ...props.dashboardViewConfig,
-            components: [...updatedComponents],
-          };
-
-          props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+        onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
+          updateComponent(updatedComponent);
         }}
         isSelected={isSelected}
         onClick={() => {
           // component is selected
           props.onComponentSelected(componentId);
-        }}
-        onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
-          const updatedComponents: Array<DashboardBaseComponent> =
-            props.dashboardViewConfig.components.map(
-              (component: DashboardBaseComponent) => {
-                if (
-                  component.componentId.toString() ===
-                  updatedComponent.componentId.toString()
-                ) {
-                  return { ...updatedComponent };
-                }
-
-                return component;
-              },
-            );
-
-          const updatedDashboardViewConfig: DashboardViewConfig = {
-            ...props.dashboardViewConfig,
-            components: [...updatedComponents],
-          };
-
-          props.onDashboardViewConfigChange(updatedDashboardViewConfig);
         }}
       />
     );
@@ -209,7 +201,44 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return renderComponents();
+  return (
+    <div>
+      {renderComponents()}
+      {props.selectedComponentId && props.isEditMode && (
+        <ComponentSettingsSideOver
+          title="Component Settings"
+          description="Edit the settings of this component"
+          dashboardViewConfig={props.dashboardViewConfig}
+          onClose={() => {
+            // unselect this component.
+            props.onComponentUnselected();
+          }}
+          onComponentDelete={() => {
+            const updatedComponents: Array<DashboardBaseComponent> =
+              props.dashboardViewConfig.components.filter(
+                (c: DashboardBaseComponent) => {
+                  return (
+                    c.componentId.toString() !==
+                    props.selectedComponentId?.toString()
+                  );
+                },
+              );
+
+            const updatedDashboardViewConfig: DashboardViewConfig = {
+              ...props.dashboardViewConfig,
+              components: [...updatedComponents],
+            };
+
+            props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+          }}
+          componentId={props.selectedComponentId}
+          onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
+            updateComponent(updatedComponent);
+          }}
+        />
+      )}
+    </div>
+  );
 };
 
 export default DashboardCanvas;

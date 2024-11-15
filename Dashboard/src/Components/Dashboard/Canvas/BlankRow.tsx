@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
-import BlankDashboardUnitElement from "./DashboardUnit";
+import BlankDashboardUnitElement from "./BlankDashboardUnit";
 
 export interface ComponentProps {
   rowNumber: number;
@@ -23,11 +23,12 @@ const BlankRowElement: FunctionComponent<ComponentProps> = (
               currentTotalDashboardWidthInPx={
                 props.totalCurrentDashboardWidthInPx
               }
-              key={index}
+              key={props.rowNumber + "-" + index}
               isEditMode={props.isEditMode}
               onClick={() => {
                 props.onClick(props.rowNumber, index);
               }}
+              id={`blank-unit-${props.rowNumber}-${index}`}
             />
           );
         },

@@ -17,7 +17,6 @@ import DefaultDashboardSize, {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsSideOver from "../Canvas/ComponentSettingsSideOver";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 
 export interface DashboardBaseComponentProps {
@@ -26,14 +25,12 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
-  onComponentDelete: (component: DashboardBaseComponent) => void;
   totalCurrentDashboardWidthInPx: number;
   dashboardCanvasTopInPx: number;
   dashboardCanvasLeftInPx: number;
   dashboardCanvasWidthInPx: number;
   dashboardCanvasHeightInPx: number;
   dashboardViewConfig: DashboardViewConfig;
-  onUnselectComponent: () => void;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -356,79 +353,55 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <>
-      <div
-        className={className}
-        key={props.key}
-        onClick={() => {
-          props.onClick();
-        }}
-        style={{
-          margin: `${MarginForEachUnitInPx}px`,
-          height: `${
-            GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
-              heightOfComponent +
-            SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-          }px`,
-          width: `${
-            GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
-              widthOfComponent +
-            (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-          }px`,
-        }}
-        ref={dashboardComponentRef}
-      >
-        {getMoveElement()}
+    <div
+      className={className}
+      style={{
+        margin: `${MarginForEachUnitInPx}px`,
+        height: `${
+          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+            heightOfComponent +
+          SpaceBetweenUnitsInPx * (heightOfComponent - 1)
+        }px`,
+        width: `${
+          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+            widthOfComponent +
+          (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
+        }px`,
+      }}
+      key={props.key}
+      ref={dashboardComponentRef}
+      onClick={props.onClick}
+    >
+      {getMoveElement()}
 
-        {component.componentType === DashboardComponentType.Text && (
-          <DashboardTextComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTextComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Chart && (
-          <DashboardChartComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardChartComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Value && (
-          <DashboardValueComponent
-            {...props}
-            isSelected={props.isSelected}
-            isEditMode={props.isEditMode}
-            component={component as DashboardValueComponentType}
-          />
-        )}
-
-        {getResizeWidthElement()}
-        {getResizeHeightElement()}
-      </div>
-
-      {props.isSelected && props.isEditMode && (
-        <ComponentSettingsSideOver
-          title="Component Settings"
-          description="Edit the settings of this component"
-          dashboardViewConfig={props.dashboardViewConfig}
-          onClose={() => {
-            // unselect this component.
-            props.onUnselectComponent();
-          }}
-          onComponentDelete={() => {
-            // delete this component
-            props.onComponentDelete(component);
-          }}
-          componentId={props.componentId}
-          onComponentUpdate={(component: DashboardBaseComponent) => {
-            props.onComponentUpdate(component);
-          }}
+      {component.componentType === DashboardComponentType.Text && (
+        <DashboardTextComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardTextComponentType}
         />
       )}
-    </>
+      {component.componentType === DashboardComponentType.Chart && (
+        <DashboardChartComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardChartComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Value && (
+        <DashboardValueComponent
+          {...props}
+          isSelected={props.isSelected}
+          isEditMode={props.isEditMode}
+          component={component as DashboardValueComponentType}
+        />
+      )}
+
+      {getResizeWidthElement()}
+      {getResizeHeightElement()}
+    </div>
   );
 };
 

@@ -8,9 +8,10 @@ export interface ComponentProps {
   isEditMode: boolean;
   onClick: () => void;
   currentTotalDashboardWidthInPx: number;
+  id: string;
 }
 
-const DashboardUnitElement: FunctionComponent<ComponentProps> = (
+const BlankDashboardUnitElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const heightOfUnitInPx: number = GetDashboardUnitHeightInPx(
@@ -28,6 +29,7 @@ const DashboardUnitElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      id={props.id}
       className={className}
       onClick={() => {
         props.onClick();
@@ -41,4 +43,4 @@ const DashboardUnitElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardUnitElement;
+export default BlankDashboardUnitElement;
