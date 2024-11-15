@@ -46,19 +46,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     dashboardViewRef.current?.offsetWidth || 0,
   );
 
+  const handleResize: VoidFunction = (): void => {
+    setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
+  };
+
   useEffect(() => {
     setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
 
-    const handleResize: VoidFunction = (): void => {
-      setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
-    };
-
+  
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+
+
 
   const [selectedComponentId, setSelectedComponentId] =
     useState<ObjectID | null>(null);
@@ -111,6 +115,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
+ 
+
+  const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
+
+  const sideBarWidth: number = isEditMode && selectedComponentId ? 650 : 0;
+
+  useEffect(() => {
+    handleResize();
+  }, [dashboardMode, selectedComponentId]);
+
   if (error) {
     return <ErrorMessage error={error} />;
   }
@@ -118,10 +132,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
-
-  const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
-
-  const sideBarWidth: number = isEditMode && selectedComponentId ? 550 : 0;
 
   return (
     <div
@@ -192,6 +202,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onComponentUnselected={() => {
           setSelectedComponentId(null);
         }}
+        selectedComponentId={selectedComponentId}
         isEditMode={isEditMode}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}
       />

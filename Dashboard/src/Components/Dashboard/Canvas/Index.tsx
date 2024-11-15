@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
@@ -15,6 +15,7 @@ export interface ComponentProps {
   currentTotalDashboardWidthInPx: number;
   onComponentSelected: (componentId: ObjectID) => void;
   onComponentUnselected: () => void;
+  selectedComponentId: ObjectID | null;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -96,8 +97,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
               isEditMode={props.isEditMode}
               key={`blank-${i}-${j}`}
               onClick={() => {
-                // unselect the component
-                setSelectedComponentId(null);
+                props.onComponentUnselected();
               }}
             />,
           );
@@ -123,24 +123,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const [selectedComponentId, setSelectedComponentId] = React.useState<
-    string | null
-  >(null);
-
-  useEffect(() => {
-    if (selectedComponentId) {
-      props.onComponentSelected(new ObjectID(selectedComponentId));
-    } else {
-      props.onComponentUnselected();
-    }
-  }, [selectedComponentId]);
 
   type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
 
   const renderComponent: RenderComponentFunction = (
     componentId: ObjectID,
   ): ReactElement => {
-    const isSelected: boolean = selectedComponentId === componentId.toString();
+    const isSelected: boolean = props.selectedComponentId?.toString() === componentId.toString();
 
     return (
       <DashboardBaseComponentElement
@@ -156,12 +145,30 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         componentId={componentId}
         key={componentId.toString()}
         onUnselectComponent={() => {
-          setSelectedComponentId(null);
+         
+          props.onComponentUnselected();
+        }}
+        onComponentDelete={(component: DashboardBaseComponent) => {
+          const updatedComponents: Array<DashboardBaseComponent> =
+            props.dashboardViewConfig.components.filter(
+              (c: DashboardBaseComponent) => {
+                return (
+                  c.componentId.toString() !== component.componentId.toString()
+                );
+              },
+            );
+
+          const updatedDashboardViewConfig: DashboardViewConfig = {
+            ...props.dashboardViewConfig,
+            components: [...updatedComponents],
+          };
+
+          props.onDashboardViewConfigChange(updatedDashboardViewConfig);
         }}
         isSelected={isSelected}
         onClick={() => {
           // component is selected
-          setSelectedComponentId(componentId.toString());
+          props.onComponentSelected(componentId);
         }}
         onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
           const updatedComponents: Array<DashboardBaseComponent> =

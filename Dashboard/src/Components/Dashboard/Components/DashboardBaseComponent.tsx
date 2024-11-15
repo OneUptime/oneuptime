@@ -26,6 +26,7 @@ export interface DashboardBaseComponentProps {
   isSelected: boolean;
   key: string;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
+  onComponentDelete: (component: DashboardBaseComponent) => void;
   totalCurrentDashboardWidthInPx: number;
   dashboardCanvasTopInPx: number;
   dashboardCanvasLeftInPx: number;
@@ -312,8 +313,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           stopResizeAndMove();
         }}
         className="move-element cursor-move absolute w-4 h-4 bg-blue-300 hover:bg-blue-400 rounded-full cursor-pointer"
-        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => {}}
-        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => {}}
+        onDragStart={(_event: React.DragEvent<HTMLDivElement>) => { }}
+        onDragEnd={(_event: React.DragEvent<HTMLDivElement>) => { }}
       ></div>
     );
   };
@@ -350,56 +351,58 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div
-      className={className}
-      key={props.key}
-      onClick={() => {
-        props.onClick();
-      }}
-      style={{
-        margin: `${MarginForEachUnitInPx}px`,
-        height: `${
-          GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
+    <>
+      <div
+        className={className}
+        key={props.key}
+        onClick={() => {
+          props.onClick();
+        }}
+        style={{
+          margin: `${MarginForEachUnitInPx}px`,
+          height: `${GetDashboardUnitHeightInPx(props.totalCurrentDashboardWidthInPx) *
             heightOfComponent +
-          SpaceBetweenUnitsInPx * (heightOfComponent - 1)
-        }px`,
-        width: `${
-          GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
+            SpaceBetweenUnitsInPx * (heightOfComponent - 1)
+            }px`,
+          width: `${GetDashboardUnitWidthInPx(props.totalCurrentDashboardWidthInPx) *
             widthOfComponent +
-          (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
-        }px`,
-      }}
-      ref={dashboardComponentRef}
-    >
-      {getMoveElement()}
+            (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
+            }px`,
+        }}
+        ref={dashboardComponentRef}
+      >
+        {getMoveElement()}
 
-      {component.componentType === DashboardComponentType.Text && (
-        <DashboardTextComponent
-          {...props}
-          isEditMode={props.isEditMode}
-          isSelected={props.isSelected}
-          component={component as DashboardTextComponentType}
-        />
-      )}
-      {component.componentType === DashboardComponentType.Chart && (
-        <DashboardChartComponent
-          {...props}
-          isEditMode={props.isEditMode}
-          isSelected={props.isSelected}
-          component={component as DashboardChartComponentType}
-        />
-      )}
-      {component.componentType === DashboardComponentType.Value && (
-        <DashboardValueComponent
-          {...props}
-          isSelected={props.isSelected}
-          isEditMode={props.isEditMode}
-          component={component as DashboardValueComponentType}
-        />
-      )}
+        {component.componentType === DashboardComponentType.Text && (
+          <DashboardTextComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardTextComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Chart && (
+          <DashboardChartComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardChartComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Value && (
+          <DashboardValueComponent
+            {...props}
+            isSelected={props.isSelected}
+            isEditMode={props.isEditMode}
+            component={component as DashboardValueComponentType}
+          />
+        )}
 
-      {getResizeWidthElement()}
-      {getResizeHeightElement()}
+        {getResizeWidthElement()}
+        {getResizeHeightElement()}
+
+
+      </div>
 
       {props.isSelected && props.isEditMode && (
         <ComponentSettingsSideOver
@@ -410,13 +413,17 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             // unselect this component.
             props.onUnselectComponent();
           }}
+          onComponentDelete={() => {
+            // delete this component
+            props.onComponentDelete(component);
+          }}
           componentId={props.componentId}
           onComponentUpdate={(component: DashboardBaseComponent) => {
             props.onComponentUpdate(component);
           }}
         />
       )}
-    </div>
+    </>
   );
 };
 

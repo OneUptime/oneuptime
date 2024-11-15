@@ -15,6 +15,7 @@ export interface ComponentProps {
   description: string;
   onClose: () => void;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
+  onComponentDelete: (component: DashboardBaseComponent) => void;
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
 }
@@ -42,7 +43,9 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
     <SideOver
       title={props.title}
       description={props.description}
-      onClose={props.onClose}
+      onClose={()=>{
+        props.onClose();
+      }}
       onSubmit={() => {
         // check if there are any form validation errors
 
@@ -56,7 +59,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       }}
       leftFooterElement={
         <Button
-          title={`Delete`}
+          title={`Delete Component`}
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           onClick={() => {
@@ -75,7 +78,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
             }}
             submitButtonText={"Delete"}
             onSubmit={() => {
-              props.onComponentUpdate(component);
+              props.onComponentDelete(component);
               setShowDeleteConfirmation(false);
               props.onClose();
             }}
