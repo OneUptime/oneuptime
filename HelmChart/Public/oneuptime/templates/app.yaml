@@ -42,6 +42,8 @@ spec:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "app" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}
           # Liveness probe
+          {{- if $.Values.enableLivenessProbe }}
+          # Liveness probe
           livenessProbe:
             httpGet:
               path: /status/live
@@ -49,6 +51,8 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 30
+          {{- end }}
+          {{- if $.Values.enableReadinessProbe }}
           # Readyness Probe
           readinessProbe:
             httpGet:
@@ -57,6 +61,7 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 30
+          {{- end }}
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}

@@ -363,3 +363,7 @@ notifications:
   webhooks:
     # This is the webhook that will be called when a user is created or signs up.
     onCreateUser:
+
+
+enableLivenessProbe: true
+enableReadinessProbe: true

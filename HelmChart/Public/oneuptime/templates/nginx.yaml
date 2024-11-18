@@ -56,6 +56,8 @@ spec:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "nginx" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
           # Liveness probe
+          {{- if $.Values.enableLivenessProbe }}
+          # Liveness probe
           livenessProbe:
             httpGet:
               path: /status/live
@@ -63,6 +65,8 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 30
+          {{- end }}
+          {{- if $.Values.enableReadinessProbe }}
           # Readyness Probe
           readinessProbe:
             httpGet:
@@ -71,6 +75,7 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 30
+          {{- end }}
           volumeMounts:
             - name: status-page-certs
               mountPath: /etc/nginx/certs/StatusPageCerts
