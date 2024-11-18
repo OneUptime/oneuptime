@@ -38,6 +38,15 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Configuration",
+    links: [
+      {
+        title: "IP Addresses",
+        url: "/docs/configuration/ip-addresses",
+      },
+    ],
+  },
+  {
     title: "Monitor",
     links: [
       {
@@ -60,10 +69,7 @@ const DocsNav: NavGroup[] = [
   },
   {
     title: "Probe",
-    links: [
-      { title: "Custom Probes", url: "/docs/probe/custom-probe" },
-      { title: "IP Addresses", url: "/docs/probe/ip-address" },
-    ],
+    links: [{ title: "Custom Probes", url: "/docs/probe/custom-probe" }],
   },
   {
     title: "Telemetry",

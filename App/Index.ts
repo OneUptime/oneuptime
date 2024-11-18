@@ -31,12 +31,43 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       });
     };
 
+    const globalCacheCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of cache
+      return await InfrastructureStatus.checkStatus({
+        checkClickhouseStatus: false,
+        checkPostgresStatus: false,
+        checkRedisStatus: true,
+      });
+    };
+
+    const analyticsDatabaseCheck: PromiseVoidFunction =
+      async (): Promise<void> => {
+        // Check the status of analytics database
+        return await InfrastructureStatus.checkStatus({
+          checkClickhouseStatus: true,
+          checkPostgresStatus: false,
+          checkRedisStatus: false,
+        });
+      };
+
+    const databaseCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of database
+      return await InfrastructureStatus.checkStatus({
+        checkClickhouseStatus: false,
+        checkPostgresStatus: true,
+        checkRedisStatus: false,
+      });
+    };
+
     // Initialize the app with service name and status checks
     await App.init({
       appName: APP_NAME,
       statusOptions: {
         liveCheck: statusCheck,
         readyCheck: statusCheck,
+        globalCacheCheck: globalCacheCheck,
+        analyticsDatabaseCheck: analyticsDatabaseCheck,
+        databaseCheck: databaseCheck,
       },
     });
 

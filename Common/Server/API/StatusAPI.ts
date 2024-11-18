@@ -1,3 +1,4 @@
+import BadRequestException from "../../Types/Exception/BadRequestException";
 import LocalCache from "../Infrastructure/LocalCache";
 import Express, {
   ExpressRequest,
@@ -13,6 +14,9 @@ import ServerException from "Common/Types/Exception/ServerException";
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
   liveCheck: () => Promise<void>;
+  globalCacheCheck?: (() => Promise<void>) | undefined;
+  analyticsDatabaseCheck?: (() => Promise<void>) | undefined;
+  databaseCheck?: (() => Promise<void>) | undefined;
 }
 
 export default class StatusAPI {
@@ -118,6 +122,94 @@ export default class StatusAPI {
             e instanceof Exception
               ? e
               : new ServerException("Server is not ready"),
+          );
+        }
+      },
+    );
+
+    // Global cache check
+    router.get(
+      "/status/global-cache",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          logger.debug("Global cache check");
+          if (options.globalCacheCheck) {
+            await options.globalCacheCheck();
+          } else {
+            throw new BadRequestException("Global cache check not implemented");
+          }
+          logger.info("Global cache check: ok");
+
+          Response.sendJsonObjectResponse(req, res, {
+            status: "ok",
+          });
+        } catch (e) {
+          Response.sendErrorResponse(
+            req,
+            res,
+            e instanceof Exception
+              ? e
+              : new ServerException("Global cache is not ready"),
+          );
+        }
+      },
+    );
+
+    // Analytics database check
+    router.get(
+      "/status/analytics-database",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          logger.debug("Analytics database check");
+          if (options.analyticsDatabaseCheck) {
+            await options.analyticsDatabaseCheck();
+          } else {
+            throw new BadRequestException(
+              "Analytics database check not implemented",
+            );
+          }
+          logger.info("Analytics database check: ok");
+
+          Response.sendJsonObjectResponse(req, res, {
+            status: "ok",
+          });
+        } catch (e) {
+          Response.sendErrorResponse(
+            req,
+            res,
+            e instanceof Exception
+              ? e
+              : new ServerException("Analytics database is not ready"),
+          );
+        }
+      },
+    );
+
+    // Database check
+    router.get(
+      "/status/database",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          logger.debug("Database check");
+
+          if (options.databaseCheck) {
+            await options.databaseCheck();
+          } else {
+            throw new BadRequestException("Database check not implemented");
+          }
+
+          logger.info("Database check: ok");
+
+          Response.sendJsonObjectResponse(req, res, {
+            status: "ok",
+          });
+        } catch (e) {
+          Response.sendErrorResponse(
+            req,
+            res,
+            e instanceof Exception
+              ? e
+              : new ServerException("Database is not ready"),
           );
         }
       },
