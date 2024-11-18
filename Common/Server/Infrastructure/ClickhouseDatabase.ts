@@ -4,7 +4,8 @@ import {
   dataSourceOptions,
   testDataSourceOptions,
 } from "./ClickhouseConfig";
-import { ClickHouseClient, PingResult, createClient } from "@clickhouse/client";
+import { PingResult, createClient } from "@clickhouse/client";
+import { ClickHouseClient } from "@clickhouse/client";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import Sleep from "Common/Types/Sleep";
 

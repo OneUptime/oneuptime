@@ -776,7 +776,7 @@ export default class AnalyticsDatabaseService<
         : {
           query: statement, // TODO remove and only accept Statements
         },
-    );
+    ) as ExecResult<Stream>;
   }
 
   protected async onUpdateSuccess(
