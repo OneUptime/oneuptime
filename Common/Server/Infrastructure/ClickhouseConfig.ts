@@ -1,3 +1,4 @@
+import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/config";
 import {
   ClickHouseIsHostHttps,
   ClickhouseDatabase,
@@ -10,7 +11,6 @@ import {
   ClickhouseUsername,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
-import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/client";
 
 export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;
 

@@ -7,9 +7,8 @@ import {
 import { ClickHouseClient, PingResult, createClient } from "@clickhouse/client";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import Sleep from "Common/Types/Sleep";
-import Stream from "stream";
 
-export type ClickhouseClient = ClickHouseClient<Stream.Readable>;
+export type ClickhouseClient = ClickHouseClient;
 
 export default class ClickhouseDatabase {
   private dataSource!: ClickhouseClient | null;
