@@ -45,7 +45,7 @@
     },
     "dependencies": {
         "@bull-board/express": "^5.21.4",
-        "@clickhouse/client": "^0.2.10",
+        "@clickhouse/client": "^1.8.1",
         "@elastic/elasticsearch": "^8.12.1",
         "@monaco-editor/react": "^4.4.6",
         "@opentelemetry/api": "^1.9.0",
