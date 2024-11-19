@@ -72,6 +72,9 @@ clickhouse:
   service:
     ports:
       http: "8123"
+      tcp: "9000"
+      mysql: "9004"
+      postgresql: "9005"
   shards: 1
   replicaCount: 1
   terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
@@ -84,6 +87,12 @@ clickhouse:
   initdbScripts:
     db-init.sql: |
       CREATE DATABASE oneuptime;
+  # extraOverrides: |
+  #     <clickhouse>
+  #     <mysql_port></mysql_port>
+  #     <postgresql_port></postgresql_port>
+  #     </clickhouse>
+  
 
 redis:
   enabled: true
