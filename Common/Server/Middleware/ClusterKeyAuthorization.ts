@@ -16,6 +16,7 @@ export default class ClusterKeyAuthorization {
   }
 
   public static getClusterKey(): string {
+    // we encode uri component because a lot of people use special characters in their cluster key secret
     return encodeURIComponent(ONEUPTIME_SECRET.toString());
   }
 
