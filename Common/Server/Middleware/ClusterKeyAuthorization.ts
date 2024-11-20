@@ -12,8 +12,12 @@ import ObjectID from "Common/Types/ObjectID";
 export default class ClusterKeyAuthorization {
   public static getClusterKeyHeaders(): Dictionary<string> {
     return {
-      clusterkey: ONEUPTIME_SECRET.toString(),
+      clusterkey: this.getClusterKey(),
     };
+  }
+
+  public static getClusterKey(): string {
+    return encodeURIComponent(ONEUPTIME_SECRET.toString());
   }
 
   public static async isAuthorizedServiceMiddleware(
@@ -21,17 +25,17 @@ export default class ClusterKeyAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-    let clusterKey: ObjectID;
+    let clusterKey: string;
 
     if (req.params && req.params["clusterKey"]) {
-      clusterKey = new ObjectID(req.params["clusterKey"]);
+      clusterKey = req.params["clusterKey"];
     } else if (req.query && req.query["clusterKey"]) {
-      clusterKey = new ObjectID(req.query["clusterKey"] as string);
+      clusterKey = req.query["clusterKey"] as string;
     } else if (req.headers && req.headers["clusterkey"]) {
       // Header keys are automatically transformed to lowercase
-      clusterKey = new ObjectID(req.headers["clusterkey"] as string);
+      clusterKey = req.headers["clusterkey"] as string;
     } else if (req.body && req.body.clusterKey) {
-      clusterKey = new ObjectID(req.body.clusterKey);
+      clusterKey = req.body.clusterKey;
     } else {
       return Response.sendErrorResponse(
         req,
@@ -41,7 +45,7 @@ export default class ClusterKeyAuthorization {
     }
 
     const isAuthorized: boolean =
-      clusterKey.toString() === ONEUPTIME_SECRET.toString();
+      clusterKey.toString() === this.getClusterKey();
 
     if (!isAuthorized) {
       return Response.sendErrorResponse(
