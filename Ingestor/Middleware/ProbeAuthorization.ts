@@ -1,21 +1,14 @@
 import { ProbeExpressRequest } from "../Types/Request";
 import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ClusterKey as ONEUPTIME_SECRET } from "Common/Server/EnvironmentConfig";
 import ProbeService from "Common/Server/Services/ProbeService";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeAuthorization {
-  public static getClusterKeyHeaders(): Dictionary<string> {
-    return {
-      clusterkey: ONEUPTIME_SECRET.toString(),
-    };
-  }
 
   public static async isAuthorizedServiceMiddleware(
     req: ProbeExpressRequest,
