@@ -9,7 +9,6 @@ import Response from "Common/Server/Utils/Response";
 import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeAuthorization {
-
   public static async isAuthorizedServiceMiddleware(
     req: ProbeExpressRequest,
     res: ExpressResponse,
