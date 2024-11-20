@@ -11,7 +11,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 export default class ClusterKeyAuthorization {
   public static getClusterKeyHeaders(): Dictionary<string> {
     return {
-      clusterkey: this.getClusterKey(),
+      clusterkey: ClusterKeyAuthorization.getClusterKey(),
     };
   }
 
@@ -44,7 +44,7 @@ export default class ClusterKeyAuthorization {
     }
 
     const isAuthorized: boolean =
-      clusterKey.toString() === this.getClusterKey();
+      clusterKey.toString() === ClusterKeyAuthorization.getClusterKey();
 
     if (!isAuthorized) {
       return Response.sendErrorResponse(
