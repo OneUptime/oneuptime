@@ -7,7 +7,6 @@ import {
 import Response from "../Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
 
 export default class ClusterKeyAuthorization {
   public static getClusterKeyHeaders(): Dictionary<string> {
