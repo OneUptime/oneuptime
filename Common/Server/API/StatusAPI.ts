@@ -107,7 +107,7 @@ export default class StatusAPI {
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           logger.debug("Live check");
-          await options.readyCheck();
+          await options.liveCheck();
           logger.info("Live check: ok");
           stausLiveSuccess.add(1);
 
