@@ -32,6 +32,12 @@ deployment:
   replicaCount: 1
   probeIngest:
     replicaCount:
+  openTelemetryIngest: 
+    replicaCount:
+  fluentIngest:
+    replicaCount:
+  incomingRequestIngest:
+    replicaCount:
 
 metalLb:
   enabled: false

@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
-  {{- if $.Values.deployment.open-telemetry-ingest.replicaCount }}
-  replicas: {{ $.Values.deployment.open-telemetry-ingest.replicaCount }}
+  {{- if $.Values.deployment.openTelemetryIngest.replicaCount }}
+  replicas: {{ $.Values.deployment.openTelemetryIngest.replicaCount }}
   {{- else }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
@@ -100,12 +100,12 @@ spec:
 ---
 
 # OneUptime open-telemetry-ingest Service
-{{- $open-telemetry-ingestPorts := dict "port" $.Values.port.openTelemetryIngest -}}
-{{- $open-telemetry-ingestServiceArgs := dict "ServiceName" "open-telemetry-ingest" "Ports" $open-telemetry-ingestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $open-telemetry-ingestServiceArgs }}
+{{- $openTelemetryIngestPorts := dict "port" $.Values.port.openTelemetryIngest -}}
+{{- $openTelemetryIngestServiceArgs := dict "ServiceName" "open-telemetry-ingest" "Ports" $openTelemetryIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $openTelemetryIngestServiceArgs }}
 ---
 
 # OneUptime open-telemetry-ingest autoscaler
-{{- $open-telemetry-ingestAutoScalerArgs := dict "ServiceName" "open-telemetry-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $open-telemetry-ingestAutoScalerArgs }}
+{{- $openTelemetryIngestAutoScalerArgs := dict "ServiceName" "open-telemetry-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $openTelemetryIngestAutoScalerArgs }}
 ---

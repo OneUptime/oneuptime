@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "fluent-ingest"  }}
-  {{- if $.Values.deployment.fluent-ingest.replicaCount }}
-  replicas: {{ $.Values.deployment.fluent-ingest.replicaCount }}
+  {{- if $.Values.deployment.fluentIngest.replicaCount }}
+  replicas: {{ $.Values.deployment.fluentIngest.replicaCount }}
   {{- else }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
@@ -100,12 +100,12 @@ spec:
 ---
 
 # OneUptime fluent-ingest Service
-{{- $fluent-ingestPorts := dict "port" $.Values.port.fluentIngest -}}
-{{- $fluent-ingestServiceArgs := dict "ServiceName" "fluent-ingest" "Ports" $fluent-ingestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $fluent-ingestServiceArgs }}
+{{- $fluentIngestPorts := dict "port" $.Values.port.fluentIngest -}}
+{{- $fluentIngestServiceArgs := dict "ServiceName" "fluent-ingest" "Ports" $fluentIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $fluentIngestServiceArgs }}
 ---
 
 # OneUptime fluent-ingest autoscaler
-{{- $fluent-ingestAutoScalerArgs := dict "ServiceName" "fluent-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $fluent-ingestAutoScalerArgs }}
+{{- $fluentIngestAutoScalerArgs := dict "ServiceName" "fluent-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $fluentIngestAutoScalerArgs }}
 ---

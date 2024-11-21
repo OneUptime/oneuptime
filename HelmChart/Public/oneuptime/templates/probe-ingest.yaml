@@ -100,12 +100,12 @@ spec:
 ---
 
 # OneUptime probe-ingest Service
-{{- $probe-ingestPorts := dict "port" $.Values.port.probeIngest -}}
-{{- $probe-ingestServiceArgs := dict "ServiceName" "probe-ingest" "Ports" $probe-ingestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $probe-ingestServiceArgs }}
+{{- $probeIngestPorts := dict "port" $.Values.port.probeIngest -}}
+{{- $probeIngestServiceArgs := dict "ServiceName" "probe-ingest" "Ports" $probeIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeIngestServiceArgs }}
 ---
 
 # OneUptime probe-ingest autoscaler
-{{- $probe-ingestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $probe-ingestAutoScalerArgs }}
+{{- $probeIngestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $probeIngestAutoScalerArgs }}
 ---

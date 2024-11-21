@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "incoming-request-ingest"  }}
-  {{- if $.Values.deployment.incoming-request-ingest.replicaCount }}
-  replicas: {{ $.Values.deployment.incoming-request-ingest.replicaCount }}
+  {{- if $.Values.deployment.incomingRequestIngest.replicaCount }}
+  replicas: {{ $.Values.deployment.incomingRequestIngest.replicaCount }}
   {{- else }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
@@ -100,12 +100,12 @@ spec:
 ---
 
 # OneUptime incoming-request-ingest Service
-{{- $incoming-request-ingestPorts := dict "port" $.Values.port.incomingRequestIngest -}}
-{{- $incoming-request-ingestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incoming-request-ingestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $incoming-request-ingestServiceArgs }}
+{{- $incomingRequestIngestPorts := dict "port" $.Values.port.incomingRequestIngest -}}
+{{- $incomingRequestIngestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incomingRequestIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $incomingRequestIngestServiceArgs }}
 ---
 
 # OneUptime incoming-request-ingest autoscaler
-{{- $incoming-request-ingestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $incoming-request-ingestAutoScalerArgs }}
+{{- $incomingRequestIngestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $incomingRequestIngestAutoScalerArgs }}
 ---
