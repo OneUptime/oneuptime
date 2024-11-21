@@ -1,6 +1,6 @@
 import TelemetryIngest, {
   TelemetryRequest,
-} from "../Middleware/TelemetryIngest";
+} from "../../Ingestor/Middleware/TelemetryIngest";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -15,7 +15,7 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Log from "Common/Models/AnalyticsModels/Log";
 import LogSeverity from "Common/Types/Log/LogSeverity";
-import OTelIngestService from "../Service/OTelIngest";
+import OTelIngestService from "../../Ingestor/Service/OTelIngest";
 import ObjectID from "Common/Types/ObjectID";
 import JSONFunctions from "Common/Types/JSONFunctions";
 

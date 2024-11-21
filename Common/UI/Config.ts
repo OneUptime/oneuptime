@@ -15,6 +15,7 @@ import {
   StatusPageApiRoute,
   StatusPageRoute,
   WorkflowRoute,
+  FluentIngestRoute
 } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -67,6 +68,8 @@ export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INGESTOR_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
+export const FLUENT_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
+
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(HOST);
@@ -99,6 +102,12 @@ export const STATUS_PAGE_API_URL: URL = new URL(
   HTTP_PROTOCOL,
   STATUS_PAGE_HOSTNAME,
   StatusPageApiRoute,
+);
+
+export const FLUENT_INGEST_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  FLUENT_INGEST_HOSTNAME,
+  FluentIngestRoute,
 );
 
 export const IDENTITY_URL: URL = new URL(

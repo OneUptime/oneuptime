@@ -204,6 +204,7 @@ probes:
 port:
   app: 3002
   ingestor: 3400
+  fluentIngest: 3401
   testServer: 3800
   accounts: 3003
   statusPage: 3105

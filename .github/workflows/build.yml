@@ -255,6 +255,21 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Ingestor/Dockerfile .
 
+  docker-build-fluent-ingest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./FluentIngest/Dockerfile .
+
   docker-build-status-page:
     runs-on: ubuntu-latest
     env:

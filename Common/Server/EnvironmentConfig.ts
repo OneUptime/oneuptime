@@ -94,6 +94,13 @@ export const IngestorHostname: Hostname = Hostname.fromString(
   }`,
 );
 
+
+export const FluentIngestHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_FLUENT_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["FLUENT_INGEST_PORT"] || 80
+  }`,
+);
+
 export const IsolatedVMHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${
     process.env["ISOLATED_VM_PORT"] || 80

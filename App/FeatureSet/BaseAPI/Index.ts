@@ -10,7 +10,7 @@ import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
-import Ingestor from "Common/Server/API/ProbeAPI";
+import ProbeAPI from "Common/Server/API/ProbeAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 
@@ -1359,7 +1359,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new Ingestor().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

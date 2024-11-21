@@ -60,6 +60,8 @@ Usage:
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_FLUENT_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-fluent-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
@@ -77,6 +79,8 @@ Usage:
   value: {{ $.Values.port.app | squote }}
 - name: INGESTOR_PORT
   value: {{ $.Values.port.ingestor | squote }}
+- name: FLUENT_INGEST_PORT
+  value: {{ $.Values.port.fluentIngest | squote }}
 - name: PROBE_PORT
   value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT

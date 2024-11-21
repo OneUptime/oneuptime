@@ -13,7 +13,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Probe from "Common/Models/DatabaseModels/Probe";
 
-export default class Ingestor extends BaseAPI<Probe, ProbeServiceType> {
+export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
   public constructor() {
     super(Probe, ProbeService);
 

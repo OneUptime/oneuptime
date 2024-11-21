@@ -10,6 +10,10 @@ upstream ingestor {
     server ${SERVER_INGESTOR_HOSTNAME}:${INGESTOR_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
+upstream fluent-ingest {
+    server ${SERVER_FLUENT_INGEST_HOSTNAME}:${FLUENT_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+}
+
 upstream dashboard {
     server ${SERVER_DASHBOARD_HOSTNAME}:${DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -132,7 +136,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://ingestor/fluentd/v1/logs;
+        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
     }
 }
 
@@ -531,7 +535,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://ingestor/ingestor/fluentd/v1/logs;
+        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
     }
 
     location /ingestor {

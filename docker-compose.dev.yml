@@ -340,10 +340,7 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
-
             - /usr/src/Common/node_modules/
-
-            
         ports:
           - '9932:9229' # Debugging port.
         extends:
@@ -353,6 +350,24 @@ services:
             network: host
             context: .
             dockerfile: ./Ingestor/Dockerfile
+
+    fluent-ingest:
+        volumes:
+            - ./FluentIngest:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - /usr/src/Common/node_modules/
+        ports:
+          - '9937:9229' # Debugging port.
+        extends:
+            file: ./docker-compose.base.yml
+            service: fluent-ingest
+        build:
+            network: host
+            context: .
+            dockerfile: ./FluentIngest/Dockerfile
 
 
     # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.

@@ -28,6 +28,7 @@ x-common-variables: &common-variables
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
     SERVER_INGESTOR_HOSTNAME: ingestor
+    SERVER_FLUENT_INGEST_HOSTNAME: fluent-ingest
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
@@ -44,6 +45,7 @@ x-common-variables: &common-variables
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
     INGESTOR_PORT: ${INGESTOR_PORT}
+    FLUENT_INGEST_PORT: ${FLUENT_INGEST_PORT}
     PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
@@ -415,6 +417,19 @@ services:
             PORT: ${ISOLATED_VM_PORT}
             ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ISOLATED_VM}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    fluent-ingest:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${FLUENT_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_FLUENT_INGEST}
         logging:
             driver: "local"
             options:

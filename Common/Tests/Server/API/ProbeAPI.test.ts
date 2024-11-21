@@ -1,4 +1,4 @@
-import Ingestor from "../../../Server/API/ProbeAPI";
+import ProbeAPI from "../../../Server/API/ProbeAPI";
 import ProbeService from "../../../Server/Services/ProbeService";
 import {
   ExpressRequest,
@@ -37,13 +37,13 @@ jest.mock("../../../Server/Utils/Response", () => {
 
 jest.mock("../../../Server/Services/ProbeService");
 
-describe("Ingestor", () => {
+describe("ProbeAPI", () => {
   let mockRequest: ExpressRequest;
   let mockResponse: ExpressResponse;
   let nextFunction: NextFunction;
 
   beforeEach(() => {
-    new Ingestor();
+    new ProbeAPI();
     mockRequest = {} as ExpressRequest;
     mockResponse = {
       send: jest.fn(),
