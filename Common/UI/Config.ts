@@ -17,6 +17,7 @@ import {
   WorkflowRoute,
   FluentIngestRoute,
   IncomingRequestIngestRoute,
+  OpenTelemetryIngestRoute,
 } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -69,6 +70,9 @@ export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INGESTOR_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
+export const OPEN_TELEMETRY_INGEST_HOSTNAME: Hostname =
+  Hostname.fromString(HOST);
+
 export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
   Hostname.fromString(HOST);
 
@@ -106,6 +110,12 @@ export const STATUS_PAGE_API_URL: URL = new URL(
   HTTP_PROTOCOL,
   STATUS_PAGE_HOSTNAME,
   StatusPageApiRoute,
+);
+
+export const OPEN_TELEMETRY_INGEST_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  OPEN_TELEMETRY_INGEST_HOSTNAME,
+  OpenTelemetryIngestRoute,
 );
 
 export const FLUENT_INGEST_URL: URL = new URL(

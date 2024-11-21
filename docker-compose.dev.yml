@@ -351,6 +351,24 @@ services:
             context: .
             dockerfile: ./Ingestor/Dockerfile
 
+    open-telemetry-ingest:
+        volumes:
+            - ./OpenTelemetryIngest:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - /usr/src/Common/node_modules/
+        ports:
+          - '9938:9229' # Debugging port.
+        extends:
+            file: ./docker-compose.base.yml
+            service: open-telemetry-ingest
+        build:
+            network: host
+            context: .
+            dockerfile: ./OpenTelemetryIngest/Dockerfile
+
     incoming-request-ingest:
         volumes:
             - ./IncomingRequestIngest:/usr/src/app

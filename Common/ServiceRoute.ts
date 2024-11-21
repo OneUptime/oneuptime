@@ -28,6 +28,10 @@ export const AdminDashboardRoute: Route = new Route("/admin");
 
 export const IngestorRoute: Route = new Route("/ingestor");
 
+export const OpenTelemetryIngestRoute: Route = new Route(
+  "/open-telemetry-ingest",
+);
+
 export const IncomingRequestIngestRoute: Route = new Route(
   "/incoming-request-ingest",
 );

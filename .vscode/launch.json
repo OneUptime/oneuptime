@@ -191,9 +191,23 @@
         },
         {
             "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/OpenTelemetryIngest",
+            "name": "OpenTelemetryIngest: Debug with Docker",
+            "port": 9937,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/FluentIngest",
             "name": "Fluent Ingest: Debug with Docker",
-            "port": 9937,
+            "port": 9938,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

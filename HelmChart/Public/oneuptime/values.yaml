@@ -204,6 +204,7 @@ probes:
 port:
   app: 3002
   ingestor: 3400
+  openTelemetryIngest: 3403
   fluentIngest: 3401
   incomingRequestIngest: 3402
   testServer: 3800

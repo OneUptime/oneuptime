@@ -1,5 +1,5 @@
 #
-# OneUptime-Ingestor Dockerfile
+# OneUptime-OpenTelemetryIngest Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -62,19 +62,19 @@ WORKDIR /usr/src/app
 RUN npx playwright install --with-deps
 
 # Install app dependencies
-COPY ./Ingestor/package*.json /usr/src/app/
+COPY ./OpenTelemetryIngest/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3400: OneUptime-ingestor
-EXPOSE 3400
+#   - 3403: OneUptime-OpenTelemetryIngest
+EXPOSE 3403
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Ingestor /usr/src/app
+COPY ./OpenTelemetryIngest /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

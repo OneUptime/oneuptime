@@ -60,6 +60,8 @@ Usage:
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INGESTOR_HOSTNAME
   value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: OPEN_TELEMETRY_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-open-telemetry-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
   value: {{ $.Release.Name }}-incoming-request-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_FLUENT_INGEST_HOSTNAME
@@ -81,6 +83,8 @@ Usage:
   value: {{ $.Values.port.app | squote }}
 - name: INGESTOR_PORT
   value: {{ $.Values.port.ingestor | squote }}
+- name: OPEN_TELEMETRY_INGEST_PORT
+  value: {{ $.Values.port.openTelemetryIngest | squote }}
 - name: INCOMING_REQUEST_INGEST_PORT
   value: {{ $.Values.port.incomingRequestIngest | squote }}
 - name: FLUENT_INGEST_PORT

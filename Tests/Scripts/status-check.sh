@@ -51,6 +51,8 @@ bash $scriptDir/endpoint-status.sh "Admin Dashboard (Ready Check)" $HOST_TO_CHEC
 
 bash $scriptDir/endpoint-status.sh "Ingestor (Ready Check)" $HOST_TO_CHECK/ingestor/status/ready
 
+bash $scriptDir/endpoint-status.sh "OpenTelemetry Ingest (Ready Check)" $HOST_TO_CHECK/open-telemetry-ingest/status/ready
+
 bash $scriptDir/endpoint-status.sh "Ingestor (Status Check)" $HOST_TO_CHECK/ingestor/status
 
 echo "🚀 OneUptime is up! 🚀"

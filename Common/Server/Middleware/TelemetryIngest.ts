@@ -1,13 +1,13 @@
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
-import ObjectID from "Common/Types/ObjectID";
+import BadRequestException from "../../Types/Exception/BadRequestException";
+import ProductType from "../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../Types/ObjectID";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-} from "Common/Server/Utils/Express";
-import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
-import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+} from "../../Server/Utils/Express";
+import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID

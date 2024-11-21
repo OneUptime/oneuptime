@@ -1,9 +1,4 @@
-import IncomingRequestAPI from "../IncomingRequestIngest/API/IncomingRequest";
-import MonitorAPI from "./API/Monitor";
 import OTelIngestAPI from "./API/OTelIngest";
-import Ingestor from "./API/Probe";
-import RegisterAPI from "./API/Register";
-import ServerMonitorAPI from "./API/ServerMonitor";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -18,14 +13,9 @@ import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = "ingestor";
+const APP_NAME: string = "open-telemetry-ingest";
 
-app.use([`/${APP_NAME}`, "/"], RegisterAPI);
-app.use([`/${APP_NAME}`, "/"], MonitorAPI);
-app.use([`/${APP_NAME}`, "/"], Ingestor);
-app.use([`/${APP_NAME}`, "/"], IncomingRequestAPI);
 app.use([`/${APP_NAME}`, "/"], OTelIngestAPI);
-app.use([`/${APP_NAME}`, "/"], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {

@@ -112,6 +112,12 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ingestor
+
+    open-telemetry-ingest:
+        image:  oneuptime/open-telemetry-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: open-telemetry-ingest
     
     incoming-request-ingest: 
         image:  oneuptime/incoming-request-ingest:${APP_TAG}

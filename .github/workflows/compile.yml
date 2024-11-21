@@ -216,6 +216,19 @@ jobs:
       - run: cd Common && npm install
       - run: cd Ingestor && npm install && npm run compile && npm run dep-check
 
+  compile-open-telemetry-ingest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.3.0
+      - run: cd Common && npm install
+      - run: cd OpenTelemetryIngest && npm install && npm run compile && npm run dep-check
+
+
   compile-incoming-request-ingest: 
     runs-on: ubuntu-latest
     env:

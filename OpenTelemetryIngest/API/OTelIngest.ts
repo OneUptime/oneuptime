@@ -1,11 +1,11 @@
 import ArrayUtil from "Common/Utils/Array";
 import TelemetryIngest, {
   TelemetryRequest,
-} from "../Middleware/TelemetryIngest";
+} from "Common/Server/Middleware/TelemetryIngest";
 import OTelIngestService, {
   OtelAggregationTemporality,
   TelemetryServiceDataIngested,
-} from "../Service/OTelIngest";
+} from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
