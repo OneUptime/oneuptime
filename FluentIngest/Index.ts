@@ -1,4 +1,4 @@
-import FluentIngestAPI from "../FluentIngest/API/FluentIngest";
+import FluentIngestAPI from "./API/FluentIngest";
 
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
