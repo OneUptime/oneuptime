@@ -378,3 +378,9 @@ notifications:
 
 enableLivenessProbe: true
 enableReadinessProbe: true
+
+initialDelaySeconds: 60 # Initial delay for probes if startup probe is disabled
+startupProbes: # Startup probe configuration
+  enabled: true
+  periodSeconds: 10
+  failureThreshold: 18

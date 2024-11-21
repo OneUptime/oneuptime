@@ -41,13 +41,24 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "workflow" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "workflow"  }}
+          {{- if $.Values.startupProbes.enabled }}
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.workflow }}
+            periodSeconds: {{ $.Values.startupProbes.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbes.failureThreshold }}
+          {{- end }}
           {{- if $.Values.enableLivenessProbe }}
           # Liveness probe
           livenessProbe:
             httpGet:
               path: /status/live
               port: {{ $.Values.port.workflow }}
-            initialDelaySeconds: 60
+            {{- if not $.Values.startupProbes.enabled }}
+            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
+            {{- end }}
             periodSeconds: 10
             timeoutSeconds: 30
           {{- end }}
@@ -57,7 +68,9 @@ spec:
             httpGet:
               path: /status/ready
               port: {{ $.Values.port.workflow }}
-            initialDelaySeconds: 60
+            {{- if not $.Values.startupProbes.enabled }}
+            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
+            {{- end }}
             periodSeconds: 10
             timeoutSeconds: 30
           {{- end }}

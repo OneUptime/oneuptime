@@ -41,15 +41,26 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "api-reference" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "api-reference"  }}
+          {{- if $.Values.startupProbes.enabled }}
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.apiReference }}
+            periodSeconds: {{ $.Values.startupProbes.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbes.failureThreshold }}
+          {{- end }}
           {{- if $.Values.enableLivenessProbe }}
           # Liveness probe
           livenessProbe:
             httpGet:
               path: /status/live
               port: {{ $.Values.port.apiReference }}
-            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 30
+            {{- if not $.Values.startupProbes.enabled }}
+            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
+            {{- end }}
           {{- end }}
           {{- if $.Values.enableReadinessProbe }}
           # Readyness Probe
@@ -57,8 +68,10 @@ spec:
             httpGet:
               path: /status/ready
               port: {{ $.Values.port.apiReference }}
-            initialDelaySeconds: 60
             periodSeconds: 10
+            {{- if not $.Values.startupProbes.enabled }}
+            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
+            {{- end }}
             timeoutSeconds: 30
           {{- end }}
           {{- if $.Values.containerSecurityContext }}
