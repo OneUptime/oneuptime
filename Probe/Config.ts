@@ -18,7 +18,9 @@ if (
   !PROBE_INGEST_URL.toString().endsWith("probe-ingest") &&
   !PROBE_INGEST_URL.toString().endsWith("probe-ingest/")
 ) {
-  PROBE_INGEST_URL = URL.fromString(PROBE_INGEST_URL.addRoute("/probe-ingest").toString());
+  PROBE_INGEST_URL = URL.fromString(
+    PROBE_INGEST_URL.addRoute("/probe-ingest").toString(),
+  );
 }
 
 export const PROBE_NAME: string | null = process.env["PROBE_NAME"] || null;

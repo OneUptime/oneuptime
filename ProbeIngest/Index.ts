@@ -1,6 +1,4 @@
-import IncomingRequestAPI from "../IncomingRequestIngest/API/IncomingRequest";
 import MonitorAPI from "./API/Monitor";
-import OTelIngestAPI from "./API/OTelIngest";
 import ProbeIngest from "./API/Probe";
 import RegisterAPI from "./API/Register";
 import ServerMonitorAPI from "./API/ServerMonitor";
@@ -20,12 +18,11 @@ const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = "probe-ingest";
 
-app.use([`/${APP_NAME}`, "/"], RegisterAPI);
-app.use([`/${APP_NAME}`, "/"], MonitorAPI);
-app.use([`/${APP_NAME}`, "/"], ProbeIngest);
-app.use([`/${APP_NAME}`, "/"], IncomingRequestAPI);
-app.use([`/${APP_NAME}`, "/"], OTelIngestAPI);
-app.use([`/${APP_NAME}`, "/"], ServerMonitorAPI);
+// "/ingestor" is used here for backward compatibility because probes are already deployed with this path in client environments.
+app.use([`/${APP_NAME}`, "/ingestor", "/"], RegisterAPI);
+app.use([`/${APP_NAME}`, "/ingestor", "/"], MonitorAPI);
+app.use([`/${APP_NAME}`, "/ingestor", "/"], ProbeIngest);
+app.use([`/${APP_NAME}`, "/ingestor", "/"], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
