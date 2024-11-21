@@ -3,7 +3,11 @@ import { Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("check live and health check of the fluent ingest", () => {
-  test("check if fluent ingest status is ok", async ({ page }: { page: Page }) => {
+  test("check if fluent ingest status is ok", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/fluent-ingest/status")

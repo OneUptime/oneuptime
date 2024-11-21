@@ -1,4 +1,3 @@
-import { ProbeExpressRequest } from "../Types/Request";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,7 +16,7 @@ export interface TelemetryRequest extends ExpressRequest {
 
 export default class TelemetryIngest {
   public static async isAuthorizedServiceMiddleware(
-    req: ProbeExpressRequest,
+    req: ExpressRequest,
     _res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {

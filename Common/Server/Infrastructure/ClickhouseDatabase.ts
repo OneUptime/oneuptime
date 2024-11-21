@@ -100,7 +100,9 @@ export default class ClickhouseDatabase {
   public async checkConnnectionStatus(): Promise<boolean> {
     // Ping clickhouse to check if the connection is still alive
     try {
-      logger.debug("Checking Clickhouse Connection Status - pinging clickhouse");
+      logger.debug(
+        "Checking Clickhouse Connection Status - pinging clickhouse",
+      );
       const result: PingResult | undefined = await this.getDataSource()?.ping();
       logger.debug("Clickhouse Connection Status Result");
       logger.debug(result);

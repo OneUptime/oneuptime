@@ -100,7 +100,6 @@ export const IncomingRequestIngestHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-
 export const FluentIngestHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_FLUENT_INGEST_HOSTNAME"] || "localhost"}:${
     process.env["FLUENT_INGEST_PORT"] || 80

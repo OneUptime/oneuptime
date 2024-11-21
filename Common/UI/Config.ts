@@ -16,7 +16,7 @@ import {
   StatusPageRoute,
   WorkflowRoute,
   FluentIngestRoute,
-  IncomingRequestIngestRoute
+  IncomingRequestIngestRoute,
 } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -69,7 +69,8 @@ export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INGESTOR_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
+export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
+  Hostname.fromString(HOST);
 
 export const FLUENT_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
 

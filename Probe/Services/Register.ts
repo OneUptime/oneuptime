@@ -15,9 +15,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { ClusterKey, HasClusterKey } from "Common/Server/EnvironmentConfig";
+import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 export default class Register {
   public static async isPingMonitoringEnabled(): Promise<boolean> {
@@ -127,7 +128,7 @@ export default class Register {
           probeKey: PROBE_KEY,
           probeName: PROBE_NAME,
           probeDescription: PROBE_DESCRIPTION,
-          clusterKey: ClusterKey.toString(),
+          clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
       );
 
