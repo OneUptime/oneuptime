@@ -55,7 +55,7 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "nginx" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-          {{{- if $.Values.startupProbe.enabled }}
+          {{- if $.Values.startupProbe.enabled }}
           # Startup probe
           startupProbe:
             httpGet:
