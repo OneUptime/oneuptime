@@ -41,38 +41,34 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "workflow" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "workflow"  }}
-          {{- if $.Values.startupProbes.enabled }}
+          {{- if $.Values.startupProbe.enabled }}
           # Startup probe
           startupProbe:
             httpGet:
               path: /status/live
               port: {{ $.Values.port.workflow }}
-            periodSeconds: {{ $.Values.startupProbes.periodSeconds }}
-            failureThreshold: {{ $.Values.startupProbes.failureThreshold }}
+            periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
-          {{- if $.Values.enableLivenessProbe }}
+          {{- if $.Values.livenessProbe.enabled }}
           # Liveness probe
           livenessProbe:
             httpGet:
               path: /status/live
               port: {{ $.Values.port.workflow }}
-            {{- if not $.Values.startupProbes.enabled }}
-            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
-            {{- end }}
-            periodSeconds: 10
-            timeoutSeconds: 30
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
           {{- end }}
-          {{- if $.Values.enableReadinessProbe }}
+          {{- if $.Values.readinessProbe.enabled }}
           # Readyness Probe
           readinessProbe:
             httpGet:
               path: /status/ready
               port: {{ $.Values.port.workflow }}
-            {{- if not $.Values.startupProbes.enabled }}
-            initialDelaySeconds: {{ $.Values.initialDelaySeconds }}
-            {{- end }}
-            periodSeconds: 10
-            timeoutSeconds: 30
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}

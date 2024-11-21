@@ -376,11 +376,20 @@ notifications:
     onCreateUser:
 
 
-enableLivenessProbe: true
-enableReadinessProbe: true
 
-initialDelaySeconds: 60 # Initial delay for probes if startup probe is disabled
-startupProbes: # Startup probe configuration
+startupProbe: # Startup probe configuration
   enabled: true
   periodSeconds: 10
   failureThreshold: 18
+
+livenessProbe: # Liveness probe configuration
+  enabled: true
+  periodSeconds: 10
+  timeoutSeconds: 5
+  initialDelaySeconds: 10
+
+readinessProbe: # Readiness probe configuration
+  enabled: true
+  periodSeconds: 10
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
