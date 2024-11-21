@@ -6,7 +6,7 @@ test.describe("check live and health check of the app", () => {
   test("check if app status is ok", async ({ page }: { page: Page }) => {
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
-        .addRoute("/ingestor/status")
+        .addRoute("/probe-ingest/status")
         .toString()}`,
     );
     const content: string = await page.content();
@@ -16,7 +16,7 @@ test.describe("check live and health check of the app", () => {
   test("check if app is ready", async ({ page }: { page: Page }) => {
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
-        .addRoute("/ingestor/status/ready")
+        .addRoute("/probe-ingest/status/ready")
         .toString()}`,
     );
     const content: string = await page.content();
@@ -26,7 +26,7 @@ test.describe("check live and health check of the app", () => {
   test("check if app is live", async ({ page }: { page: Page }) => {
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
-        .addRoute("/ingestor/status/live")
+        .addRoute("/probe-ingest/status/live")
         .toString()}`,
     );
     const content: string = await page.content();

@@ -8,7 +8,7 @@ import {
   FileRoute,
   HomeRoute,
   IdentityRoute,
-  IngestorRoute,
+  ProbeIngestRoute,
   IntegrationRoute,
   NotificationRoute,
   RealtimeRoute,
@@ -68,7 +68,7 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const INGESTOR_HOSTNAME: Hostname = Hostname.fromString(HOST);
+export const PROBE_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const OPEN_TELEMETRY_INGEST_HOSTNAME: Hostname =
   Hostname.fromString(HOST);
@@ -142,10 +142,10 @@ export const WORKFLOW_URL: URL = new URL(
   WorkflowRoute,
 );
 
-export const INGESTOR_URL: URL = new URL(
+export const PROBE_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
-  INGESTOR_HOSTNAME,
-  IngestorRoute,
+  PROBE_INGEST_HOSTNAME,
+  ProbeIngestRoute,
 );
 
 export const INCOMING_REQUEST_INGEST_URL: URL = new URL(

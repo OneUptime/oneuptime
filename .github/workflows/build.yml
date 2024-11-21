@@ -240,7 +240,7 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Probe/Dockerfile .
 
-  docker-build-ingestor:
+  docker-build-probe-ingest:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -253,7 +253,7 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./Ingestor/Dockerfile .
+        run: sudo docker build -f ./ProbeIngest/Dockerfile .
 
   docker-build-open-telemetry-ingest:
     runs-on: ubuntu-latest

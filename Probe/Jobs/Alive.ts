@@ -1,4 +1,4 @@
-import { INGESTOR_URL } from "../Config";
+import { PROBE_INGEST_URL } from "../Config";
 import Register from "../Services/Register";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import URL from "Common/Types/API/URL";
@@ -33,7 +33,7 @@ BasicCron({
     logger.debug("Probe ID: " + probeId.toString());
 
     await API.post(
-      URL.fromString(INGESTOR_URL.toString()).addRoute("/alive"),
+      URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
       ProbeAPIRequest.getDefaultRequestBody(),
     );
   },

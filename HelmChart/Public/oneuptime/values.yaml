@@ -30,7 +30,7 @@ fluentdHost:
 deployment:
   # Default replica count for all deployments
   replicaCount: 1
-  ingestor:
+  probeIngest:
     replicaCount:
 
 metalLb:
@@ -203,7 +203,7 @@ probes:
 
 port:
   app: 3002
-  ingestor: 3400
+  probeIngest: 3400
   openTelemetryIngest: 3403
   fluentIngest: 3401
   incomingRequestIngest: 3402

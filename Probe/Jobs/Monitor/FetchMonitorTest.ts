@@ -1,4 +1,4 @@
-import { INGESTOR_URL, PROBE_MONITOR_FETCH_LIMIT } from "../../Config";
+import { PROBE_INGEST_URL, PROBE_MONITOR_FETCH_LIMIT } from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -49,7 +49,7 @@ export default class FetchMonitorTestAndProbe {
       logger.debug("Fetching monitor list");
 
       const monitorListUrl: URL = URL.fromString(
-        INGESTOR_URL.toString(),
+        PROBE_INGEST_URL.toString(),
       ).addRoute("/monitor-test/list");
 
       const result: HTTPResponse<JSONArray> | HTTPErrorResponse =

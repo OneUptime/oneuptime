@@ -1,5 +1,5 @@
 #
-# OneUptime-Ingestor Dockerfile
+# OneUptime-ProbeIngest Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -62,11 +62,11 @@ WORKDIR /usr/src/app
 RUN npx playwright install --with-deps
 
 # Install app dependencies
-COPY ./Ingestor/package*.json /usr/src/app/
+COPY ./ProbeIngest/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3400: OneUptime-ingestor
+#   - 3400: OneUptime-probe-ingest
 EXPOSE 3400
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -74,7 +74,7 @@ EXPOSE 3400
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Ingestor /usr/src/app
+COPY ./ProbeIngest /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app

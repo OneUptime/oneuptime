@@ -2,23 +2,23 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 
-if (!process.env["INGESTOR_URL"] && !process.env["ONEUPTIME_URL"]) {
-  logger.error("INGESTOR_URL or ONEUPTIME_URL is not set");
+if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
+  logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
   process.exit();
 }
 
-export let INGESTOR_URL: URL = URL.fromString(
+export let PROBE_INGEST_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"] ||
-    process.env["INGESTOR_URL"] ||
+    process.env["PROBE_INGEST_URL"] ||
     "https://oneuptime.com",
 );
 
 // If probe api does not have the path. Add it.
 if (
-  !INGESTOR_URL.toString().endsWith("ingestor") &&
-  !INGESTOR_URL.toString().endsWith("ingestor/")
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest") &&
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest/")
 ) {
-  INGESTOR_URL = URL.fromString(INGESTOR_URL.addRoute("/ingestor").toString());
+  PROBE_INGEST_URL = URL.fromString(PROBE_INGEST_URL.addRoute("/probe-ingest").toString());
 }
 
 export const PROBE_NAME: string | null = process.env["PROBE_NAME"] || null;

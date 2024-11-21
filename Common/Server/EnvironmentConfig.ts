@@ -88,9 +88,9 @@ export const AppApiHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const IngestorHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INGESTOR_HOSTNAME"] || "localhost"}:${
-    process.env["INGESTOR_PORT"] || 80
+export const ProbeIngestHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_PROBE_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["PROBE_INGEST_PORT"] || 80
   }`,
 );
 

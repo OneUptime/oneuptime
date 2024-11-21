@@ -107,11 +107,11 @@ services:
             file: ./docker-compose.base.yml
             service: probe-2
 
-    ingestor:
-        image:  oneuptime/ingestor:${APP_TAG}
+    probe-ingest:
+        image:  oneuptime/probe-ingest:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: ingestor
+            service: probe-ingest
 
     open-telemetry-ingest:
         image:  oneuptime/open-telemetry-ingest:${APP_TAG}

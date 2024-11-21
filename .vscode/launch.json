@@ -163,8 +163,8 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Ingestor",
-            "name": "Ingestor: Debug with Docker",
+            "localRoot": "${workspaceFolder}/ProbeIngest",
+            "name": "ProbeIngest: Debug with Docker",
             "port": 9932,
             "remoteRoot": "/usr/src/app",
             "request": "attach",

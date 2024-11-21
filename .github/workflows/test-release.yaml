@@ -599,7 +599,7 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
-  ingestor-docker-image-deploy:
+  probe-ingest-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     steps:
@@ -608,8 +608,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            oneuptime/ingestor
-            ghcr.io/oneuptime/ingestor
+            oneuptime/probe-ingest
+            ghcr.io/oneuptime/probe-ingest
           tags: |
             type=raw,value=test,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
@@ -632,7 +632,7 @@ jobs:
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
-      # Build and deploy ingestor.
+      # Build and deploy probe-ingest.
 
       - name: Login to Docker Hub 
         uses: docker/login-action@v2.2.0
@@ -650,7 +650,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
-          file: ./Ingestor/Dockerfile
+          file: ./ProbeIngest/Dockerfile
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
@@ -721,7 +721,7 @@ jobs:
             GIT_SHA=${{ github.sha }}
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
-  ingestor-docker-image-deploy:
+  probe-ingest-docker-image-deploy:
     needs: generate-build-number
     runs-on: ubuntu-latest
     steps:
@@ -730,8 +730,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            oneuptime/ingestor
-            ghcr.io/oneuptime/ingestor
+            oneuptime/probe-ingest
+            ghcr.io/oneuptime/probe-ingest
           tags: |
             type=raw,value=test,enable=true
             type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
@@ -754,7 +754,7 @@ jobs:
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
-      # Build and deploy ingestor.
+      # Build and deploy probe-ingest.
 
       - name: Login to Docker Hub 
         uses: docker/login-action@v2.2.0
@@ -772,7 +772,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
-          file: ./Ingestor/Dockerfile
+          file: ./ProbeIngest/Dockerfile
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
@@ -876,7 +876,7 @@ jobs:
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
-      # Build and deploy ingestor.
+      # Build and deploy probe-ingest.
 
       - name: Login to Docker Hub 
         uses: docker/login-action@v2.2.0
@@ -1587,7 +1587,7 @@ jobs:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [llm-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, ingestor-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, fluent-ingest-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [llm-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, probe-docker-image-deploy, haraka-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, fluent-ingest-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

@@ -26,7 +26,7 @@ export const ApiReferenceRoute: Route = new Route("/reference");
 
 export const AdminDashboardRoute: Route = new Route("/admin");
 
-export const IngestorRoute: Route = new Route("/ingestor");
+export const ProbeIngestRoute: Route = new Route("/probe-ingest");
 
 export const OpenTelemetryIngestRoute: Route = new Route(
   "/open-telemetry-ingest",

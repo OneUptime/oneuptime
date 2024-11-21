@@ -204,7 +204,7 @@ jobs:
       - run: cd Common && npm install
       - run: cd Probe && npm install && npm run compile && npm run dep-check
 
-  compile-ingestor:
+  compile-probe-ingest:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -214,7 +214,7 @@ jobs:
         with:
           node-version: 18.3.0
       - run: cd Common && npm install
-      - run: cd Ingestor && npm install && npm run compile && npm run dep-check
+      - run: cd ProbeIngest && npm install && npm run compile && npm run dep-check
 
   compile-open-telemetry-ingest:
     runs-on: ubuntu-latest

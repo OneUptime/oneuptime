@@ -46,7 +46,7 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      logger.debug("Fluent Ingestor API called");
+      logger.debug("Fluent ProbeIngest API called");
 
       const dbLogs: Array<Log> = [];
 

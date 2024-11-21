@@ -333,9 +333,9 @@ services:
             context: .
             dockerfile: ./IsolatedVM/Dockerfile
     
-    ingestor:
+    probe-ingest:
         volumes:
-            - ./Ingestor:/usr/src/app
+            - ./ProbeIngest:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -345,11 +345,11 @@ services:
           - '9932:9229' # Debugging port.
         extends:
             file: ./docker-compose.base.yml
-            service: ingestor
+            service: probe-ingest
         build:
             network: host
             context: .
-            dockerfile: ./Ingestor/Dockerfile
+            dockerfile: ./ProbeIngest/Dockerfile
 
     open-telemetry-ingest:
         volumes:

@@ -27,7 +27,7 @@ x-common-variables: &common-variables
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_INGESTOR_HOSTNAME: ingestor
+    SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
     SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME: open-telemetry-ingest
     SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
     SERVER_FLUENT_INGEST_HOSTNAME: fluent-ingest
@@ -46,7 +46,7 @@ x-common-variables: &common-variables
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
-    INGESTOR_PORT: ${INGESTOR_PORT}
+    PROBE_INGEST_PORT: ${PROBE_INGEST_PORT}
     OPEN_TELEMETRY_INGEST_PORT: ${OPEN_TELEMETRY_INGEST_PORT}
     INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
     FLUENT_INGEST_PORT: ${FLUENT_INGEST_PORT}
@@ -439,14 +439,14 @@ services:
             options:
                 max-size: "1000m"
 
-    ingestor:
+    probe-ingest:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${INGESTOR_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGESTOR}
+            PORT: ${PROBE_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
         logging:
             driver: "local"
             options:

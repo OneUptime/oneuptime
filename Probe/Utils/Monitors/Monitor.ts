@@ -1,4 +1,4 @@
-import { INGESTOR_URL } from "../../Config";
+import { PROBE_INGEST_URL } from "../../Config";
 import ProbeUtil from "../Probe";
 import ProbeAPIRequest from "../ProbeAPIRequest";
 import ApiMonitor, { APIResponse } from "./MonitorTypes/ApiMonitor";
@@ -64,7 +64,7 @@ export default class MonitorUtil {
 
         await API.fetch<JSONObject>(
           HTTPMethod.POST,
-          URL.fromString(INGESTOR_URL.toString()).addRoute(
+          URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
             "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
           ),
           {
@@ -112,7 +112,7 @@ export default class MonitorUtil {
 
         await API.fetch<JSONObject>(
           HTTPMethod.POST,
-          URL.fromString(INGESTOR_URL.toString()).addRoute(
+          URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
             "/probe/response/ingest",
           ),
           {

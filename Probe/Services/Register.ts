@@ -1,6 +1,6 @@
 import {
   HOSTNAME,
-  INGESTOR_URL,
+  PROBE_INGEST_URL,
   PROBE_DESCRIPTION,
   PROBE_ID,
   PROBE_KEY,
@@ -74,7 +74,7 @@ export default class Register {
 
       await API.fetch<JSONObject>(
         HTTPMethod.POST,
-        URL.fromString(INGESTOR_URL.toString()).addRoute(
+        URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
           "/probe/status-report/offline",
         ),
         {
@@ -116,7 +116,7 @@ export default class Register {
   private static async _registerProbe(): Promise<void> {
     if (HasClusterKey) {
       const probeRegistrationUrl: URL = URL.fromString(
-        INGESTOR_URL.toString(),
+        PROBE_INGEST_URL.toString(),
       ).addRoute("/register");
 
       logger.debug("Registering Probe...");
@@ -147,7 +147,7 @@ export default class Register {
       }
 
       await API.post(
-        URL.fromString(INGESTOR_URL.toString()).addRoute("/alive"),
+        URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
         {
           probeKey: PROBE_KEY.toString(),
           probeId: PROBE_ID.toString(),
