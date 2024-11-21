@@ -112,6 +112,12 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ingestor
+    
+    incoming-request-ingest: 
+        image:  oneuptime/incoming-request-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: incoming-request-ingest
 
     fluent-ingest: 
         image:  oneuptime/fluent-ingest:${APP_TAG}

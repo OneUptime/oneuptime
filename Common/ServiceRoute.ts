@@ -28,6 +28,8 @@ export const AdminDashboardRoute: Route = new Route("/admin");
 
 export const IngestorRoute: Route = new Route("/ingestor");
 
+export const IncomingRequestIngestRoute: Route = new Route("/incoming-request-ingest");
+
 export const FluentIngestRoute:  Route = new Route("/fluent-ingest");
 
 export const RealtimeRoute: Route = new Route("/realtime/socket");
