@@ -490,6 +490,31 @@ server {
         proxy_pass http://accounts;
     }
 
+     location /fluent-ingest {
+
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://fluent-ingest;
+    }
+
+
+    location /open-telemetry-ingest {
+
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://open-telemetry-ingest;
+    }
+
     location /otlp/ {
 
         # This is for nginx not to crash when service is not available. 
