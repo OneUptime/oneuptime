@@ -1,5 +1,4 @@
 import FluentIngestAPI from "./API/FluentIngest";
-
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -10,7 +9,6 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
-import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
