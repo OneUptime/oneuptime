@@ -134,6 +134,7 @@ export default class Register {
 
       if (result.isSuccess()) {
         logger.debug("Probe Registered");
+        logger.debug(result.data);
 
         const probeId: string = result.data["_id"] as string;
 

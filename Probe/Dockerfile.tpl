@@ -73,10 +73,6 @@ RUN npx playwright install --with-deps
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
-# Expose ports.
-#   - 3087: OneUptime-backend
-EXPOSE 3087
-
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]

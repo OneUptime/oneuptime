@@ -223,7 +223,6 @@ port:
   # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
   statusPageHttpsPort: 443
   haraka: 2525
-  probe: 3500
   otelCollectorGrpc: 4317
   otelCollectorHttp: 4318
   isolatedVM: 4572

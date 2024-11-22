@@ -91,8 +91,6 @@ Usage:
   value: {{ $.Values.port.incomingRequestIngest | squote }}
 - name: FLUENT_INGEST_PORT
   value: {{ $.Values.port.fluentIngest | squote }}
-- name: PROBE_PORT
-  value: {{ $.Values.port.probe | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
 - name: ACCOUNTS_PORT

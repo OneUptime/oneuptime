@@ -50,7 +50,6 @@ x-common-variables: &common-variables
     OPEN_TELEMETRY_INGEST_PORT: ${OPEN_TELEMETRY_INGEST_PORT}
     INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
     FLUENT_INGEST_PORT: ${FLUENT_INGEST_PORT}
-    PROBE_PORT: ${PROBE_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
     STATUS_PAGE_PORT: ${STATUS_PAGE_PORT}
@@ -351,12 +350,10 @@ services:
                 max-size: "1000m"
 
     probe-1:   
-        networks:
-          - oneuptime
         restart: always
+        network_mode: host
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
@@ -372,12 +369,10 @@ services:
                 max-size: "1000m"
 
     probe-2:   
-        networks:
-          - oneuptime
         restart: always
+        network_mode: host
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
