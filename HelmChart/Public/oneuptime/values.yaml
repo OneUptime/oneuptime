@@ -248,7 +248,8 @@ tolerations:
 nodeSelector:
 
 
-# This can be one of the following: DEBUG, INFO, WARN, ERROR
+# This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
+# Please do not set this to DEBUG in production. This is only for development / debugging purposes.
 logLevel: INFO
 
 # Enable cleanup cron jobs

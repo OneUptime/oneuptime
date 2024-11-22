@@ -18,6 +18,7 @@ export enum ConfigLogLevel {
   WARN = "WARN",
   ERROR = "ERROR",
   DEBUG = "DEBUG",
+  OFF = "OFF",
 }
 
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
