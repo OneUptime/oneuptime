@@ -394,11 +394,11 @@ startupProbe: # Startup probe configuration
 livenessProbe: # Liveness probe configuration
   enabled: true
   periodSeconds: 10
-  timeoutSeconds: 5
+  timeoutSeconds: 30
   initialDelaySeconds: 10
 
 readinessProbe: # Readiness probe configuration
   enabled: true
   periodSeconds: 10
   initialDelaySeconds: 10
-  timeoutSeconds: 5
+  timeoutSeconds: 30
