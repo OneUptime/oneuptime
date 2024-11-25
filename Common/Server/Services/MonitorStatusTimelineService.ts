@@ -97,6 +97,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         },
       });
 
+    if (!lastMonitorStatusTimeline) {
+      // since this is the first status, do not notify the owner.
+      createBy.data.isOwnerNotified = true;
+    }
+
     return {
       createBy,
       carryForward: {
