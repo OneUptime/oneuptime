@@ -221,14 +221,14 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "Exception Message",
     description: "Exception message that was thrown by the telemetry service",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public message?: string = undefined;
 
@@ -252,7 +252,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "Stack Trace",
     description:
@@ -260,7 +260,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public stackTrace?: string = undefined;
 
@@ -284,7 +284,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "Exception Type",
     description:
@@ -292,7 +292,7 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public exceptionType?: string = undefined;
 
