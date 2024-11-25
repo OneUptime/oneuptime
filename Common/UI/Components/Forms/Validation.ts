@@ -25,17 +25,15 @@ export default class Validation {
     if (content && field.validation) {
       if (field.validation.minLength) {
         if (content.trim().length < field.validation?.minLength) {
-          return `${field.title || name} cannot be less than ${
-            field.validation.minLength
-          } characters.`;
+          return `${field.title || name} cannot be less than ${field.validation.minLength
+            } characters.`;
         }
       }
 
       if (field.validation.maxLength) {
         if (content.trim().length > field.validation?.maxLength) {
-          return `${field.title || name} cannot be more than ${
-            field.validation.maxLength
-          } characters.`;
+          return `${field.title || name} cannot be more than ${field.validation.maxLength
+            } characters.`;
         }
       }
 
@@ -89,17 +87,15 @@ export default class Validation {
 
       if (field.validation.maxValue) {
         if (content > field.validation?.maxValue) {
-          return `${field.title || name} should not be more than ${
-            field.validation?.maxValue
-          }.`;
+          return `${field.title || name} should not be more than ${field.validation?.maxValue
+            }.`;
         }
       }
 
       if (field.validation.minValue) {
         if (content < field.validation?.minValue) {
-          return `${field.title || name} should not be less than ${
-            field.validation?.minValue
-          }.`;
+          return `${field.title || name} should not be less than ${field.validation?.minValue
+            }.`;
         }
       }
     }
@@ -139,11 +135,10 @@ export default class Validation {
       field.validation?.toMatchField &&
       entity[field.validation?.toMatchField] &&
       (entity[field.validation?.toMatchField] as string).toString().trim() !==
-        content.trim()
+      content.trim()
     ) {
-      return `${field.title} should match ${
-        field.validation?.toMatchField as string
-      }`;
+      return `${field.title} should match ${field.validation?.toMatchField as string
+        }`;
     }
     return null;
   }
@@ -250,6 +245,17 @@ export default class Validation {
       }
 
       const name: string = field.name;
+
+
+      // is this field visible? If not visible, skip validation.
+
+      if (field.showIf) {
+        const isVisible: boolean = field?.showIf(args.values);
+
+        if(!isVisible) {
+          continue;
+        }
+      }
 
       if (name in entries) {
         const content: string | undefined = (entries as JSONObject)[
