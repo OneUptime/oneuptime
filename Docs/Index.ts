@@ -21,7 +21,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         checkClickhouseStatus: false,
         checkPostgresStatus: false,
         checkRedisStatus: false,
-        retryCount: 3
+        retryCount: 3,
       });
     };
 

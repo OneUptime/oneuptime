@@ -42,7 +42,6 @@ export default class InfrastructureStatus {
     }
   }
 
-
   public static async checkStatusWithRetry(data: {
     retryCount: number;
     checkRedisStatus: boolean;

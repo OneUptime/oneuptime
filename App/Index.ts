@@ -38,7 +38,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         checkClickhouseStatus: false,
         checkPostgresStatus: false,
         checkRedisStatus: true,
-        retryCount: 3
+        retryCount: 3,
       });
     };
 
@@ -49,7 +49,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           checkClickhouseStatus: true,
           checkPostgresStatus: false,
           checkRedisStatus: false,
-          retryCount: 3
+          retryCount: 3,
         });
       };
 
@@ -59,7 +59,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         checkClickhouseStatus: false,
         checkPostgresStatus: true,
         checkRedisStatus: false,
-        retryCount: 3
+        retryCount: 3,
       });
     };
 
