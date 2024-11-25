@@ -273,6 +273,22 @@ export default class AnalyticsDatabaseService<
           continue;
         }
 
+        // if value is of type string then convert it to number. 
+
+        if (
+          typeof (item as JSONObject)[
+            aggregateBy.aggregateColumnName as string
+          ] === Typeof.String
+        ) {
+          (item as JSONObject)[
+            aggregateBy.aggregateColumnName as string
+          ] = Number.parseFloat(
+            (item as JSONObject)[
+              aggregateBy.aggregateColumnName as string
+            ] as string,
+          );
+        }
+
         const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
