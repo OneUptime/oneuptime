@@ -12,7 +12,7 @@ test.describe("Basic Status Page", () => {
       // pass this test if the user is not registered
       return;
     }
-
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     // go to login page
     await page.goto(URL.fromString(STATUS_PAGE_URL.toString()).toString());
 

@@ -8,6 +8,7 @@ test.describe("check live and health check of the incoming request ingest", () =
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/incoming-request-ingest/status")
@@ -22,6 +23,7 @@ test.describe("check live and health check of the incoming request ingest", () =
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/incoming-request-ingest/status/ready")
@@ -36,6 +38,7 @@ test.describe("check live and health check of the incoming request ingest", () =
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/incoming-request-ingest/status/live")

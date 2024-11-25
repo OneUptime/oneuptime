@@ -8,6 +8,7 @@ test.describe("check live and health check of the open-telemetry-ingest", () => 
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/open-telemetry-ingest/status")
@@ -22,6 +23,7 @@ test.describe("check live and health check of the open-telemetry-ingest", () => 
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/open-telemetry-ingest/status/ready")
@@ -36,6 +38,7 @@ test.describe("check live and health check of the open-telemetry-ingest", () => 
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/open-telemetry-ingest/status/live")

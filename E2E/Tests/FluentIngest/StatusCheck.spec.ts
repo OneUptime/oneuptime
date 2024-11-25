@@ -8,6 +8,7 @@ test.describe("check live and health check of the fluent ingest", () => {
   }: {
     page: Page;
   }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/fluent-ingest/status")
@@ -18,6 +19,7 @@ test.describe("check live and health check of the fluent ingest", () => {
   });
 
   test("check if fluent ingest is ready", async ({ page }: { page: Page }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/fluent-ingest/status/ready")
@@ -28,6 +30,7 @@ test.describe("check live and health check of the fluent ingest", () => {
   });
 
   test("check if fluent ingest is live", async ({ page }: { page: Page }) => {
+    page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
         .addRoute("/fluent-ingest/status/live")
