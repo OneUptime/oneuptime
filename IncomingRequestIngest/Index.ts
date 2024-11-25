@@ -20,10 +20,11 @@ app.use([`/${APP_NAME}`, "/"], IncomingRequestAPI);
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
         checkRedisStatus: true,
+        retryCount: 3
       });
     };
 

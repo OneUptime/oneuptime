@@ -24,38 +24,42 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
         checkRedisStatus: true,
+        retryCount: 3,
       });
     };
 
     const globalCacheCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of cache
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: false,
         checkPostgresStatus: false,
         checkRedisStatus: true,
+        retryCount: 3
       });
     };
 
     const analyticsDatabaseCheck: PromiseVoidFunction =
       async (): Promise<void> => {
         // Check the status of analytics database
-        return await InfrastructureStatus.checkStatus({
+        return await InfrastructureStatus.checkStatusWithRetry({
           checkClickhouseStatus: true,
           checkPostgresStatus: false,
           checkRedisStatus: false,
+          retryCount: 3
         });
       };
 
     const databaseCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of database
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: false,
         checkPostgresStatus: true,
         checkRedisStatus: false,
+        retryCount: 3
       });
     };
 

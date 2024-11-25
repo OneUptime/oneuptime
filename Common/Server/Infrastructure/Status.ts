@@ -1,4 +1,5 @@
 // This class checks the status of all the datasources.
+import Sleep from "../../Types/Sleep";
 import logger from "../Utils/Logger";
 import { ClickhouseAppInstance } from "./ClickhouseDatabase";
 import PostgresAppInstance from "./PostgresDatabase";
@@ -38,6 +39,32 @@ export default class InfrastructureStatus {
         throw new DatabaseNotConnectedException("Clickhouse is not connected");
       }
       logger.debug("Clickhouse is connected");
+    }
+  }
+
+
+  public static async checkStatusWithRetry(data: {
+    retryCount: number;
+    checkRedisStatus: boolean;
+    checkPostgresStatus: boolean;
+    checkClickhouseStatus: boolean;
+  }): Promise<void> {
+    let retry: number = 0;
+
+    while (retry < data.retryCount) {
+      try {
+        await this.checkStatus({
+          checkRedisStatus: data.checkRedisStatus,
+          checkPostgresStatus: data.checkPostgresStatus,
+          checkClickhouseStatus: data.checkClickhouseStatus,
+        });
+        break;
+      } catch (err) {
+        logger.error("Error checking infrastructure status");
+        logger.error(err);
+        retry++;
+        await Sleep.sleep(1000);
+      }
     }
   }
 }

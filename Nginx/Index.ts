@@ -13,10 +13,11 @@ const APP_NAME: string = process.env["SERVICE_NAME"];
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: false,
         checkPostgresStatus: true,
         checkRedisStatus: false,
+        retryCount: 3
       });
     };
 

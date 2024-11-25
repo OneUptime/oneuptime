@@ -25,10 +25,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
         checkRedisStatus: true,
+        retryCount: 3
       });
     };
 
