@@ -368,6 +368,9 @@ export default class AnalyticsDatabaseService<
         findStatement.statement,
       );
 
+      logger.debug(`${this.model.tableName} Find Statement executed`);
+      logger.debug(findStatement.statement);
+
       const strResult: string = await StreamUtil.convertStreamToText(
         dbResult.stream,
       );
@@ -686,7 +689,13 @@ export default class AnalyticsDatabaseService<
         (select as any)[tenantColumnName] = true;
       }
 
-      await this.execute(this.toDeleteStatement(beforeDeleteBy));
+      const deleteStatement: Statement = this.toDeleteStatement(beforeDeleteBy); 
+
+      await this.execute(deleteStatement);
+
+      logger.debug(`${this.model.tableName} Delete Statement executed`);
+      logger.debug(deleteStatement);
+
     } catch (error) {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
@@ -737,9 +746,17 @@ export default class AnalyticsDatabaseService<
         (select as any)[tenantColumnName] = true;
       }
 
-      await this.execute(
-        this.statementGenerator.toUpdateStatement(beforeUpdateBy),
+      const statement: Statement = this.statementGenerator.toUpdateStatement(
+        beforeUpdateBy,
       );
+
+      await this.execute(
+        statement,
+      );
+
+      logger.debug(`${this.model.tableName} Update Statement executed`);
+      logger.debug(statement);
+      
     } catch (error) {
       await this.onUpdateError(error as Exception);
       throw this.getException(error as Exception);
@@ -923,6 +940,10 @@ export default class AnalyticsDatabaseService<
       );
 
       await this.execute(insertStatement);
+
+
+      logger.debug(`${this.model.tableName} Create Statement executed`);
+      logger.debug(insertStatement);
 
       if (!createBy.props.ignoreHooks) {
         for (let i: number = 0; i < items.length; i++) {
