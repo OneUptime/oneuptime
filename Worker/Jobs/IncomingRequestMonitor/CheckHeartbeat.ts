@@ -67,6 +67,7 @@ RunCron(
         select: {
           _id: true,
           monitorSteps: true,
+          incomingMonitorRequest: true,
           incomingRequestReceivedAt: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
@@ -131,10 +132,7 @@ RunCron(
         }
 
         const incomingRequest: IncomingMonitorRequest = {
-          monitorId: monitor.id!,
-          requestHeaders: undefined,
-          requestBody: undefined,
-          requestMethod: undefined,
+          ...monitor.incomingMonitorRequest! || {},
           incomingRequestReceivedAt:
             monitor.incomingRequestReceivedAt || monitor.createdAt!,
           onlyCheckForIncomingRequestReceivedAt: true,
