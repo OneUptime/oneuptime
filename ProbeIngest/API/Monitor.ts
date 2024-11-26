@@ -340,8 +340,8 @@ router.post(
         await MonitorProbeService.findBy({
           query: getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
           sort: {
-            nextPingAt: SortOrder.Ascending,
-          },
+            nextPingAt: QueryHelper.sortByRandom(), // randomize the order of the monitors
+          } as any,
           skip: 0,
           limit: limit,
           select: {
