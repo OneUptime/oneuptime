@@ -145,6 +145,20 @@ const MetricView: FunctionComponent<ComponentProps> = (
     setCharts(getCharts());
   }, []);
 
+  useEffect(() => {
+    if (
+      props.hideQueryElements &&
+      metricViewData &&
+      metricViewData.startAndEndDate &&
+      metricViewData.startAndEndDate.startValue &&
+      metricViewData.startAndEndDate.endValue
+    ) {
+      fetchAggregatedResults().catch((err: Error) => {
+        setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+      });
+    }
+  }, [metricViewData]);
+
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
@@ -502,20 +516,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     ...metricViewData,
                     startAndEndDate: startAndEndDate,
                   });
-
-                  // if hideQueryElements is true then we should fetch the results immediately because apply button is hidden
-                  if (
-                    props.hideQueryElements &&
-                    startAndEndDate &&
-                    startAndEndDate.startValue &&
-                    startAndEndDate.endValue
-                  ) {
-                    fetchAggregatedResults().catch((err: Error) => {
-                      setMetricResultsError(
-                        API.getFriendlyErrorMessage(err as Error),
-                      );
-                    });
-                  }
                 }}
               />
             </div>
