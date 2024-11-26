@@ -9,11 +9,6 @@ import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
 
-  public static sortByRandom(): FindWhereProperty<any> {
-    return Raw(() => {
-      return "RANDOM()";
-    });
-  }
 
   public static findWithSameText(
     text: string | number,
