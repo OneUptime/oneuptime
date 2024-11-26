@@ -8,6 +8,23 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
+  public static modulo(
+    moduloBy: number,
+    reminder: number,
+  ): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+    const rid2: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(${alias} % :${rid} = :${rid2})`;
+      },
+      {
+        [rid]: moduloBy,
+        [rid2]: reminder,
+      },
+    );
+  }
+
   public static findWithSameText(
     text: string | number,
   ): FindWhereProperty<any> {
