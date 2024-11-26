@@ -128,17 +128,17 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
-          singularName="Trace"
-          pluralName="Traces"
-          name="Traces"
+          singularName="Span"
+          pluralName="Spans"
+          name="Spans"
           isViewable={true}
           cardProps={
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Traces",
+                  title: "Spans",
                   description:
-                    "Traces are the individual spans that make up a request. They are the building blocks of a trace and represent the work done by a single service.",
+                    "Collection of spans make up a trace. Spans are the building blocks of a trace and represent the individual units of work done in a distributed system.",
                 }
           }
           query={{
@@ -148,7 +148,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           }}
           showViewIdButton={true}
           noItemsMessage={
-            props.noItemsMessage ? props.noItemsMessage : "No traces found."
+            props.noItemsMessage ? props.noItemsMessage : "No spans found."
           }
           showRefreshButton={true}
           sortBy="startTime"
