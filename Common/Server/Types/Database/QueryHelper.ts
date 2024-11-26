@@ -8,8 +8,6 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
-
-
   public static findWithSameText(
     text: string | number,
   ): FindWhereProperty<any> {
