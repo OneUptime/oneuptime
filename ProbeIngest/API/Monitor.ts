@@ -33,7 +33,6 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
-import NumberUtil from "Common/Utils/Number";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -339,18 +338,18 @@ router.post(
 
       // we do this to distribute the load among the probes.
       // so every request will get a different set of monitors to monitor
-      const moduloBy: number = 10;
-      const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
+      // const moduloBy: number = 10;
+      // const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
 
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
           query: {
             ...getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
-            version: QueryHelper.modulo(moduloBy, reminder), // distribute the load among the probes
+            // version: QueryHelper.modulo(moduloBy, reminder), // distribute the load among the probes
           },
           sort: {
             nextPingAt: SortOrder.Ascending,
-          } as any,
+          },
           skip: 0,
           limit: limit,
           select: {
