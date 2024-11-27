@@ -7,6 +7,11 @@ import {
 import { PingResult, createClient, ClickHouseClient } from "@clickhouse/client";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import Sleep from "Common/Types/Sleep";
+import API from "../../Utils/API";
+import URL from "../../Types/API/URL";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
 
 export type ClickhouseClient = ClickHouseClient;
 
@@ -103,7 +108,18 @@ export default class ClickhouseDatabase {
       logger.debug(
         "Checking Clickhouse Connection Status - pinging clickhouse",
       );
-      const result: PingResult | undefined = await this.getDataSource()?.ping();
+
+      const dbUrl: string | undefined = this.getDatasourceOptions().url as
+        | string
+        | undefined;
+
+      if (!dbUrl) {
+        throw new DatabaseNotConnectedException("Clickhouse URL not found");
+      }
+
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get(URL.fromString(dbUrl.toString()));
+
       logger.debug("Clickhouse Connection Status Result");
       logger.debug(result);
 
@@ -113,13 +129,24 @@ export default class ClickhouseDatabase {
         );
       }
 
-      if (result?.success === false) {
+      if (result instanceof HTTPErrorResponse) {
         throw new DatabaseNotConnectedException(
           "Clickhouse Database is not connected",
         );
       }
 
-      return true;
+      if (
+        result.data &&
+        ((result.data as JSONObject)["data"] as string) &&
+        ((result.data as JSONObject)["data"] as string).toString().trim() ===
+          "Ok."
+      ) {
+        return true;
+      }
+
+      throw new DatabaseNotConnectedException(
+        "Clickhouse Database is not connected",
+      );
     } catch (err) {
       logger.error("Clickhouse Connection Lost");
       logger.error(err);
