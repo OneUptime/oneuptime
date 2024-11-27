@@ -28,6 +28,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
 import SpanUtil from "../../Utils/SpanUtil";
 import TraceElement from "./TraceElement";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -50,13 +54,17 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     props.spanQuery || null,
   );
 
+  const [telemetryServices, setTelemetryServices] = React.useState<
+    Array<TelemetryService>
+  >([]);
+
   useEffect(() => {
     if (props.spanQuery) {
       setSpanQuery(props.spanQuery);
     }
   }, [props.spanQuery]);
 
-  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
+  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
 
@@ -80,6 +88,26 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         setAttributes(attributes);
       }
 
+      // Load telemetry services
+      const telemetryServices: ListResult<TelemetryService> =
+        await ModelAPI.getList({
+          modelType: TelemetryService,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            serviceColor: true,
+            name: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      setTelemetryServices(telemetryServices.data || []);
+
       setIsPageLoading(false);
       setPageError("");
     } catch (err) {
@@ -89,7 +117,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    loadAttributes().catch((err: Error) => {
+    loadItems().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
@@ -161,6 +189,21 @@ const TraceTable: FunctionComponent<ComponentProps> = (
             );
           }}
           filters={[
+            {
+              field: {
+                serviceId: true,
+              },
+              type: FieldType.MultiSelectDropdown,
+              filterDropdownOptions: telemetryServices.map(
+                (service: TelemetryService) => {
+                  return {
+                    label: service.name!,
+                    value: service.id!.toString(),
+                  };
+                },
+              ),
+              title: "Service",
+            },
             {
               field: {
                 name: true,
@@ -249,6 +292,33 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               },
               title: "Span Name",
               type: FieldType.Text,
+            },
+            {
+              field: {
+                serviceId: true,
+              },
+              title: "Service",
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                const telemetryService: TelemetryService | undefined =
+                  telemetryServices.find((service: TelemetryService) => {
+                    return (
+                      service.id?.toString() === span.serviceId?.toString()
+                    );
+                  });
+
+                if (!telemetryService) {
+                  return <p>Unknown</p>;
+                }
+
+                return (
+                  <Fragment>
+                    <TelemetryServiceElement
+                      telemetryService={telemetryService}
+                    />
+                  </Fragment>
+                );
+              },
             },
             {
               field: {
