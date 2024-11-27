@@ -53,18 +53,23 @@ export default class ApiPut extends ComponentCode {
       if (err instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: ApiComponentUtils.getReturnValues(err),
-          executePort: result.successPort,
+          executePort: result.errorPort,
         });
       }
 
       if (apiResult) {
         return Promise.resolve({
           returnValues: ApiComponentUtils.getReturnValues(apiResult),
-          executePort: result.successPort,
+          executePort: result.errorPort,
         });
       }
 
-      throw options.onError(new APIException("Something wrong happened."));
+      return Promise.resolve({
+        returnValues: {
+          errorMessage: (err as Error).message || "Unknown error",
+        },
+        executePort: result.errorPort,
+      });
     }
   }
 }

@@ -4,7 +4,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
-import APIException from "Common/Types/Exception/ApiException";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
@@ -75,21 +74,26 @@ export default class ApiPost extends ComponentCode {
       if (err instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: ApiComponentUtils.getReturnValues(err),
-          executePort: result.successPort,
+          executePort: result.errorPort,
         });
       }
 
       if (apiResult) {
         return Promise.resolve({
           returnValues: ApiComponentUtils.getReturnValues(apiResult),
-          executePort: result.successPort,
+          executePort: result.errorPort,
         });
       }
 
       logger.debug("API Post Component is done with error.");
       logger.debug(err);
 
-      throw options.onError(new APIException("Something wrong happened."));
+      return Promise.resolve({
+        returnValues: {
+          errorMessage: (err as Error).message || "Unknown error",
+        },
+        executePort: result.errorPort,
+      });
     }
   }
 }
