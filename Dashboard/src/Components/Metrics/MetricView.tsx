@@ -248,7 +248,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       } else {
         chartSeries.push({
           seriesName:
-            queryConfig.metricAliasData.title ||
+            queryConfig.metricAliasData?.title ||
             queryConfig.metricQueryData.filterData.metricName?.toString() ||
             "",
           data: metricResults[index]!.data.map((result: AggregatedModel) => {
@@ -264,10 +264,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
         id: index.toString(),
         type: ChartType.LINE,
         title:
-          queryConfig.metricAliasData.title ||
+          queryConfig.metricAliasData?.title ||
           queryConfig.metricQueryData.filterData.metricName?.toString() ||
           "",
-        description: queryConfig.metricAliasData.description,
+        description: queryConfig.metricAliasData?.description || "",
         props: {
           data: chartSeries,
           xAxis: {
