@@ -25,6 +25,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -116,8 +117,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }
 
         setDashboardViewConfig(
-          dashboard.dashboardViewConfig ||
-            DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
+          JSONFunctions.deserializeValue(
+            dashboard.dashboardViewConfig ||
+              DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
+          ) as DashboardViewConfig,
         );
         setDashboardName(dashboard.name || "Untitled Dashboard");
       } catch (err) {
@@ -203,10 +206,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           }
 
           const newDashboardConfig: DashboardViewConfig =
-            DashboardViewConfigUtil.addComponentToDashboard({
-              component: newComponent,
-              dashboardViewConfig: dashboardViewConfig,
-            });
+            JSONFunctions.deserializeValue(
+              DashboardViewConfigUtil.addComponentToDashboard({
+                component: newComponent,
+                dashboardViewConfig: dashboardViewConfig,
+              }),
+            ) as DashboardViewConfig;
 
           setDashboardViewConfig(newDashboardConfig);
         }}
@@ -215,7 +220,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       <DashboardCanvas
         dashboardViewConfig={dashboardViewConfig}
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
-          setDashboardViewConfig(JSON.parse(JSON.stringify(newConfig)));
+          setDashboardViewConfig(newConfig);
         }}
         onComponentSelected={(componentId: ObjectID) => {
           // Do nothing

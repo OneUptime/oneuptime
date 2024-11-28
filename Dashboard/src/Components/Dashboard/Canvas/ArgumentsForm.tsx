@@ -64,7 +64,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             hideSubmitButton={true}
             ref={formRef}
             initialValues={{
-              ...(component || {}),
+              ...(component?.arguments || {}),
             }}
             onChange={(values: FormValues<JSONObject>) => {
               setComponent({

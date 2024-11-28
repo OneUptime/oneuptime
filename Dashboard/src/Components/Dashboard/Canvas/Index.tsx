@@ -8,6 +8,7 @@ import DashboardBaseComponentElement from "../Components/DashboardBaseComponent"
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -153,7 +154,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       components: [...updatedComponents],
     };
 
-    props.onDashboardViewConfigChange(updatedDashboardViewConfig);
+    props.onDashboardViewConfigChange(
+      JSONFunctions.deserializeValue(
+        updatedDashboardViewConfig,
+      ) as DashboardViewConfig,
+    );
   };
 
   const renderComponent: RenderComponentFunction = (
