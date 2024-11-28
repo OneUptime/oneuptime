@@ -9,6 +9,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -18,6 +19,10 @@ export interface ComponentProps {
   onComponentSelected: (componentId: ObjectID) => void;
   onComponentUnselected: () => void;
   selectedComponentId: ObjectID | null;
+  metrics: {
+    metricNameAndUnits: Array<MetricNameAndUnit>;
+    telemetryAttributes: string[];
+  };
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -240,6 +245,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
             updateComponent(updatedComponent);
           }}
+          metrics={props.metrics}
         />
       )}
     </div>

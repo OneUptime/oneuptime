@@ -26,6 +26,8 @@ import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig"
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import MetricNameAndUnit from "../Metrics/Types/MetricNameAndUnit";
+import MetricUtil from "../Metrics/Utils/Metrics";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -48,6 +50,25 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(
     dashboardViewRef.current?.offsetWidth || 0,
   );
+
+  const [telemetryAttributes, setTelemetryAttributes] = useState<string[]>([]);
+
+  const [metricNameAndUnits, setMetricNamesAndUnits] = useState<
+    MetricNameAndUnit[]
+  >([]);
+
+  const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
+    const {
+      metricNamesAndUnits,
+      telemetryAttributes,
+    }: {
+      metricNamesAndUnits: Array<MetricNameAndUnit>;
+      telemetryAttributes: Array<string>;
+    } = await MetricUtil.loadAllMetricsTypes();
+
+    setMetricNamesAndUnits(metricNamesAndUnits);
+    setTelemetryAttributes(telemetryAttributes);
+  };
 
   const [dashboardName, setDashboardName] = useState<string>("");
 
@@ -99,40 +120,46 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
     async (): Promise<void> => {
-      try {
-        setIsLoading(true);
-        const dashboard: Dashboard | null = await ModelAPI.getItem({
-          modelType: Dashboard,
-          id: props.dashboardId,
-          select: {
-            dashboardViewConfig: true,
-            name: true,
-            description: true,
-          },
-        });
+      const dashboard: Dashboard | null = await ModelAPI.getItem({
+        modelType: Dashboard,
+        id: props.dashboardId,
+        select: {
+          dashboardViewConfig: true,
+          name: true,
+          description: true,
+        },
+      });
 
-        if (!dashboard) {
-          setError("Dashboard not found");
-          return;
-        }
-
-        setDashboardViewConfig(
-          JSONFunctions.deserializeValue(
-            dashboard.dashboardViewConfig ||
-              DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-          ) as DashboardViewConfig,
-        );
-        setDashboardName(dashboard.name || "Untitled Dashboard");
-      } catch (err) {
-        setError(API.getFriendlyErrorMessage(err as Error));
+      if (!dashboard) {
+        setError("Dashboard not found");
+        return;
       }
 
-      setIsLoading(false);
+      setDashboardViewConfig(
+        JSONFunctions.deserializeValue(
+          dashboard.dashboardViewConfig ||
+            DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
+        ) as DashboardViewConfig,
+      );
+      setDashboardName(dashboard.name || "Untitled Dashboard");
     };
+
+  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await loadAllMetricsTypes();
+      await fetchDashboardViewConfig();
+    } catch (err) {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     // Fetch the dashboard view config from the server
-    fetchDashboardViewConfig().catch((err: Error) => {
+    loadPage().catch((err: Error) => {
       setError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
@@ -232,6 +259,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         selectedComponentId={selectedComponentId}
         isEditMode={isEditMode}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}
+        metrics={{
+          telemetryAttributes,
+          metricNameAndUnits,
+        }}
       />
     </div>
   );

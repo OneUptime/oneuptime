@@ -8,6 +8,7 @@ import SideOver from "Common/UI/Components/SideOver/SideOver";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ArgumentsForm from "./ArgumentsForm";
+import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 
 export interface ComponentProps {
   title: string;
@@ -17,6 +18,10 @@ export interface ComponentProps {
   onComponentDelete: (component: DashboardBaseComponent) => void;
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
+  metrics: {
+    metricNameAndUnits: Array<MetricNameAndUnit>;
+    telemetryAttributes: string[];
+  };
 }
 
 const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
@@ -85,6 +90,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
           onFormChange={(component: DashboardBaseComponent) => {
             props.onComponentUpdate(component);
           }}
+          metrics={props.metrics}
         />
       </>
     </SideOver>

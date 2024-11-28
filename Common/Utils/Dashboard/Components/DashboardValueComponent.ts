@@ -35,7 +35,7 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       name: "Metrics",
       description: "Please select the metrics to display on the chart",
       required: true,
-      type: ComponentInputType.MetricsEditor,
+      type: ComponentInputType.MetricsQueryConfig,
       id: "metricsViewConfig",
     });
 

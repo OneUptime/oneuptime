@@ -8,15 +8,26 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ComponentArgument } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
+import {
+  ComponentArgument,
+  ComponentInputType,
+} from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import ComponentInputTypeToFormFieldType from "./ComponentInputTypeToFormFieldType";
 import BasicForm, { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 
 export interface ComponentProps {
+  metrics: {
+    metricNameAndUnits: Array<MetricNameAndUnit>;
+    telemetryAttributes: string[];
+  };
   component: DashboardBaseComponent;
   onHasFormValidationErrors?:
     | ((values: Dictionary<boolean>) => void)
@@ -49,6 +60,84 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
     DashboardComponentsUtil.getComponentSettingsArguments(componentType);
 
+  const getMetricsQueryConfigForm = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+  ) => {
+    return (
+      value: FormValues<JSONObject>,
+      componentProps: CustomElementProps,
+    ) => {
+      return (
+        <MetricQueryConfig
+          {...componentProps}
+          data={value[arg.id] as MetricQueryConfigData}
+          metricNameAndUnits={props.metrics.metricNameAndUnits}
+          telemetryAttributes={props.metrics.telemetryAttributes}
+        />
+      );
+    };
+  };
+
+  const getCustomElememnt = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+  ) => {
+    if (arg.type === ComponentInputType.MetricsQueryConfig) {
+      return getMetricsQueryConfigForm(arg);
+    }
+    return undefined;
+  };
+
+  const getForm = (): ReactElement => {
+    return (
+      <BasicForm
+        hideSubmitButton={true}
+        ref={formRef}
+        initialValues={{
+          ...(component?.arguments || {}),
+        }}
+        onChange={(values: FormValues<JSONObject>) => {
+          setComponent({
+            ...component,
+            arguments: {
+              ...((component.arguments as JSONObject) || {}),
+              ...((values as JSONObject) || {}),
+            },
+          });
+        }}
+        onFormValidationErrorChanged={(hasError: boolean) => {
+          if (hasFormValidationErrors["id"] !== hasError) {
+            setHasFormValidationErrors({
+              ...hasFormValidationErrors,
+              id: hasError,
+            });
+          }
+        }}
+        fields={
+          componentArguments &&
+          componentArguments.map(
+            (arg: ComponentArgument<DashboardBaseComponent>) => {
+              return {
+                title: `${arg.name}`,
+                description: `${
+                  arg.required ? "Required" : "Optional"
+                }. ${arg.description}`,
+                field: {
+                  [arg.id]: true,
+                },
+                required: arg.required,
+                placeholder: arg.placeholder,
+                ...ComponentInputTypeToFormFieldType.getFormFieldTypeByComponentInputType(
+                  arg.type,
+                ),
+                getCustomElement: getCustomElememnt(arg),
+              };
+            },
+          )
+        }
+      />
+    );
+  };
+
   return (
     <div className="mb-3 mt-3">
       <div className="mt-5 mb-5">
@@ -59,53 +148,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         {componentArguments && componentArguments.length === 0 && (
           <ErrorMessage error={"This component does not take any arguments."} />
         )}
-        {componentArguments && componentArguments.length > 0 && (
-          <BasicForm
-            hideSubmitButton={true}
-            ref={formRef}
-            initialValues={{
-              ...(component?.arguments || {}),
-            }}
-            onChange={(values: FormValues<JSONObject>) => {
-              setComponent({
-                ...component,
-                arguments: {
-                  ...((component.arguments as JSONObject) || {}),
-                  ...((values as JSONObject) || {}),
-                },
-              });
-            }}
-            onFormValidationErrorChanged={(hasError: boolean) => {
-              if (hasFormValidationErrors["id"] !== hasError) {
-                setHasFormValidationErrors({
-                  ...hasFormValidationErrors,
-                  id: hasError,
-                });
-              }
-            }}
-            fields={
-              componentArguments &&
-              componentArguments.map(
-                (arg: ComponentArgument<DashboardBaseComponent>) => {
-                  return {
-                    title: `${arg.name}`,
-                    description: `${
-                      arg.required ? "Required" : "Optional"
-                    }. ${arg.description}`,
-                    field: {
-                      [arg.id]: true,
-                    },
-                    required: arg.required,
-                    placeholder: arg.placeholder,
-                    ...ComponentInputTypeToFormFieldType.getFormFieldTypeByComponentInputType(
-                      arg.type,
-                    ),
-                  };
-                },
-              )
-            }
-          />
-        )}
+        {componentArguments && componentArguments.length > 0 && getForm()}
       </div>
     </div>
   );

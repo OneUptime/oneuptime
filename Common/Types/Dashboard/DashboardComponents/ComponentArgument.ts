@@ -7,7 +7,7 @@ export enum ComponentInputType {
   Boolean = "True or False",
   Number = "Number",
   Decimal = "Decimal",
-  MetricsEditor = "MetricsEditor",
+  MetricsQueryConfig = "MetricsQueryConfig",
   LongText = "Long Text",
 }
 

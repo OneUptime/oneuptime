@@ -32,11 +32,11 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Metrics",
+      name: "Chart Configuration",
       description: "Please select the metrics to display on the chart",
       required: true,
-      type: ComponentInputType.MetricsEditor,
-      id: "metricsViewConfig",
+      type: ComponentInputType.MetricsQueryConfig,
+      id: "metricQueryConfig",
     });
 
     return componentArguments;
