@@ -20,7 +20,14 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 6,
-      arguments: {},
+      arguments: {
+        metricQueryConfig: {
+          metricQueryData: {
+            filterData: {},
+            groupBy: undefined,
+          },
+        },
+      },
     };
   }
 

@@ -27,12 +27,12 @@ export interface ComponentProps {
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.data.metricAliasData) {
-    throw new BadDataException("MetricAlias is required");
+  if (!props.data) {
+    throw new BadDataException("Data is required");
   }
 
   if (!props.data.metricQueryData) {
-    throw new BadDataException("Either MetricQuery is required");
+    throw new BadDataException("MetricQueryData is required");
   }
 
   return (

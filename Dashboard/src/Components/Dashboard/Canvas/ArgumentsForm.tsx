@@ -112,7 +112,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return undefined;
   };
 
-
   const getForm: GetReactElementFunction = (): ReactElement => {
     return (
       <BasicForm

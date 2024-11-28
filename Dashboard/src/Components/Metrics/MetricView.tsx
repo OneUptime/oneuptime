@@ -29,31 +29,17 @@ import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ChartGroup, {
-  Chart,
-  ChartType,
-} from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Dictionary from "Common/Types/Dictionary";
-import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
-import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
-import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
-import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
-import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import MetricQueryConfigData, {
-  ChartSeries,
-} from "Common/Types/Metrics/MetricQueryConfigData";
-import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
+
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
-
-export interface MetricViewData extends MetricsViewConfig {
-  startAndEndDate: InBetween<Date> | null;
-}
+import MetricViewData from "./Types/MetricViewData";
+import MetricCharts from "./MetricCharts";
 
 export interface ComponentProps {
   data: MetricViewData;
@@ -63,8 +49,6 @@ export interface ComponentProps {
 const MetricView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [xAxisType, setXAxisType] = useState<XAxisType>(XAxisType.Time);
-
   const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
     Text.getLetterFromAByNumber(props.data.queryConfigs.length),
   );
@@ -105,27 +89,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  type GetChartXAxisTypeFunction = () => XAxisType;
-
-  const getChartXAxisType: GetChartXAxisTypeFunction = (): XAxisType => {
-    if (
-      metricViewData.startAndEndDate?.startValue &&
-      metricViewData.startAndEndDate?.endValue
-    ) {
-      // if these are less than a day then we can use time
-      const hourDifference: number = OneUptimeDate.getHoursBetweenTwoDates(
-        metricViewData.startAndEndDate.startValue as Date,
-        metricViewData.startAndEndDate.endValue as Date,
-      );
-
-      if (hourDifference <= 24) {
-        return XAxisType.Time;
-      }
-    }
-
-    return XAxisType.Date;
-  };
-
   useEffect(() => {
     fetchAggregatedResults().catch((err: Error) => {
       setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
@@ -134,8 +97,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
     loadAllMetricsTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
-
-    setCharts(getCharts());
   }, []);
 
   useEffect(() => {
@@ -155,177 +116,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
-
-  type GetChartsFunction = () => Array<Chart>;
-
-  const getCharts: GetChartsFunction = (): Array<Chart> => {
-    const charts: Array<Chart> = [];
-
-    let index: number = 0;
-
-    if (!metricResults) {
-      return [];
-    }
-
-    for (const queryConfig of metricViewData.queryConfigs) {
-      if (!metricResults[index]) {
-        continue;
-      }
-
-      let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Sum
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Sum;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Count
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Sum;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Max
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Max;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Min
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Min;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Avg
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Average;
-      }
-
-      const chartSeries: Array<SeriesPoint> = [];
-
-      if (queryConfig.getSeries) {
-        for (const item of metricResults[index]!.data) {
-          const series: ChartSeries = queryConfig.getSeries(item);
-          const seriesName: string = series.title;
-
-          //check if the series already exists if it does then add the data to the existing series
-
-          // if it does not exist then create a new series and add the data to it
-
-          const existingSeries: SeriesPoint | undefined = chartSeries.find(
-            (s: SeriesPoint) => {
-              return s.seriesName === seriesName;
-            },
-          );
-
-          if (existingSeries) {
-            existingSeries.data.push({
-              x: OneUptimeDate.fromString(item.timestamp),
-              y: item.value,
-            });
-          } else {
-            const newSeries: SeriesPoint = {
-              seriesName: seriesName,
-              data: [
-                {
-                  x: OneUptimeDate.fromString(item.timestamp),
-                  y: item.value,
-                },
-              ],
-            };
-
-            chartSeries.push(newSeries);
-          }
-        }
-      } else {
-        chartSeries.push({
-          seriesName:
-            queryConfig.metricAliasData?.title ||
-            queryConfig.metricQueryData.filterData.metricName?.toString() ||
-            "",
-          data: metricResults[index]!.data.map((result: AggregatedModel) => {
-            return {
-              x: OneUptimeDate.fromString(result.timestamp),
-              y: result.value,
-            };
-          }),
-        });
-      }
-
-      const chart: Chart = {
-        id: index.toString(),
-        type: ChartType.LINE,
-        title:
-          queryConfig.metricAliasData?.title ||
-          queryConfig.metricQueryData.filterData.metricName?.toString() ||
-          "",
-        description: queryConfig.metricAliasData?.description || "",
-        props: {
-          data: chartSeries,
-          xAxis: {
-            legend: "Time",
-            options: {
-              type: xAxisType,
-              max:
-                metricViewData.startAndEndDate?.endValue ||
-                OneUptimeDate.getCurrentDate(),
-              min:
-                metricViewData.startAndEndDate?.startValue ||
-                OneUptimeDate.addRemoveHours(
-                  OneUptimeDate.getCurrentDate(),
-                  -1,
-                ),
-              aggregateType: xAxisAggregationType,
-            },
-          },
-          yAxis: {
-            // legend is the unit of the metric
-            legend: "",
-
-            options: {
-              type: YAxisType.Number,
-              formatter: (value: number) => {
-                const metricNameAndUnit: MetricNameAndUnit | undefined =
-                  metricNamesAndUnits.find((m: MetricNameAndUnit) => {
-                    return (
-                      m.metricName ===
-                      queryConfig.metricQueryData.filterData.metricName
-                    );
-                  });
-
-                return `${value} ${metricNameAndUnit?.unit || ""}`;
-              },
-              precision: YAxisPrecision.NoDecimals,
-              max: "auto",
-              min: "auto",
-            },
-          },
-          curve: ChartCurve.LINEAR,
-          sync: true,
-        },
-      };
-
-      charts.push(chart);
-
-      index++;
-    }
-
-    return charts;
-  };
-
-  const [charts, setCharts] = useState<Array<Chart>>(getCharts());
-
-  useEffect(() => {
-    setCharts(getCharts());
-  }, [metricViewData, metricResults]);
 
   const [isMetricResultsLoading, setIsMetricResultsLoading] =
     useState<boolean>(false);
@@ -410,7 +200,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
         }
 
         setMetricResults(results);
-        setXAxisType(getChartXAxisType());
         setMetricResultsError("");
       } catch (err: unknown) {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
@@ -585,7 +374,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {!isMetricResultsLoading && !metricResultsError && (
         <div className="grid grid-cols-1 gap-4">
           {/** charts */}
-          <ChartGroup charts={charts} />
+          <MetricCharts
+            metricResults={metricResults}
+            metricNamesAndUnits={metricNamesAndUnits}
+            metricViewData={metricViewData}
+          />
         </div>
       )}
     </Fragment>
