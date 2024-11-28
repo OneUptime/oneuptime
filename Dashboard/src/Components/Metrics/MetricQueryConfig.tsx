@@ -38,16 +38,18 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   return (
     <Card>
       <div className="-mt-5" tabIndex={props.tabIndex}>
-        <MetricAlias
-          data={props.data.metricAliasData}
-          onDataChanged={(data: MetricAliasData) => {
-            props.onBlur?.();
-            props.onFocus?.();
-            props.onChange &&
-              props.onChange({ ...props.data, metricAliasData: data });
-          }}
-          isFormula={false}
-        />
+        {props.data.metricAliasData && (
+          <MetricAlias
+            data={props.data.metricAliasData}
+            onDataChanged={(data: MetricAliasData) => {
+              props.onBlur?.();
+              props.onFocus?.();
+              props.onChange &&
+                props.onChange({ ...props.data, metricAliasData: data });
+            }}
+            isFormula={false}
+          />
+        )}
         {props.data.metricQueryData && (
           <MetricQuery
             data={props.data.metricQueryData}

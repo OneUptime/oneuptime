@@ -7,7 +7,7 @@ export interface ChartSeries {
 }
 
 export default interface MetricQueryConfigData {
-  metricAliasData: MetricAliasData;
+  metricAliasData?: MetricAliasData | undefined;
   metricQueryData: MetricQueryData;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
 }

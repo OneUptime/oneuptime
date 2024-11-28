@@ -22,6 +22,7 @@ import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
   metrics: {
@@ -60,9 +61,19 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
     DashboardComponentsUtil.getComponentSettingsArguments(componentType);
 
-  const getMetricsQueryConfigForm = (
+  type GetMetricsQueryConfigFormFunction = (
     arg: ComponentArgument<DashboardBaseComponent>,
-  ) => {
+  ) => (
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement;
+
+  const getMetricsQueryConfigForm: GetMetricsQueryConfigFormFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+  ): ((
+    value: FormValues<JSONObject>,
+    componentProps: CustomElementProps,
+  ) => ReactElement) => {
     return (
       value: FormValues<JSONObject>,
       componentProps: CustomElementProps,
@@ -78,16 +89,31 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const getCustomElememnt = (
+  type GetCustomElementFunction = (
     arg: ComponentArgument<DashboardBaseComponent>,
-  ) => {
+  ) =>
+    | ((
+        value: FormValues<JSONObject>,
+        componentProps: CustomElementProps,
+      ) => ReactElement)
+    | undefined;
+
+  const getCustomElememnt: GetCustomElementFunction = (
+    arg: ComponentArgument<DashboardBaseComponent>,
+  ):
+    | ((
+        value: FormValues<JSONObject>,
+        componentProps: CustomElementProps,
+      ) => ReactElement)
+    | undefined => {
     if (arg.type === ComponentInputType.MetricsQueryConfig) {
       return getMetricsQueryConfigForm(arg);
     }
     return undefined;
   };
 
-  const getForm = (): ReactElement => {
+
+  const getForm: GetReactElementFunction = (): ReactElement => {
     return (
       <BasicForm
         hideSubmitButton={true}
