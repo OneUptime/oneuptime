@@ -10,6 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
+import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -23,6 +24,7 @@ export interface ComponentProps {
     metricNameAndUnits: Array<MetricNameAndUnit>;
     telemetryAttributes: string[];
   };
+  dashboardStartAndEndDate: DashboardStartAndEndDate;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -191,6 +193,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         dashboardCanvasHeightInPx={
           dashboardCanvasRef.current?.clientHeight || 0
         }
+        metricNameAndUnits={props.metrics.metricNameAndUnits}
+        dashboardStartAndEndDate={props.dashboardStartAndEndDate}
         dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
         dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
         dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}

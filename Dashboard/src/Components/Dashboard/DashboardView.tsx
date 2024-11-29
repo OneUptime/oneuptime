@@ -269,6 +269,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onComponentUnselected={() => {
           setSelectedComponentId(null);
         }}
+        dashboardStartAndEndDate={startAndEndDate}
         selectedComponentId={selectedComponentId}
         isEditMode={isEditMode}
         currentTotalDashboardWidthInPx={dashboardTotalWidth}
