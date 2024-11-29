@@ -17,33 +17,33 @@ const DashboardDelete: FunctionComponent<
   return (
     <Fragment>
       <div className="mt-5">
-          <DuplicateModel
-            modelId={modelId}
-            modelType={Dashboard}
-            fieldsToDuplicate={{
-              description: true,
-              labels: true,
-              dashboardViewConfig: true
-            }}
-            navigateToOnSuccess={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.DASHBOARDS] as Route,
-            )}
-            fieldsToChange={[
-              {
-                field: {
-                  name: true,
-                },
-                title: "New Dashboard Name",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "New Dashboard Name",
-                validation: {
-                  minLength: 2,
-                },
-              }
-            ]}
-          />
-        </div>
+        <DuplicateModel
+          modelId={modelId}
+          modelType={Dashboard}
+          fieldsToDuplicate={{
+            description: true,
+            labels: true,
+            dashboardViewConfig: true,
+          }}
+          navigateToOnSuccess={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DASHBOARDS] as Route,
+          )}
+          fieldsToChange={[
+            {
+              field: {
+                name: true,
+              },
+              title: "New Dashboard Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "New Dashboard Name",
+              validation: {
+                minLength: 2,
+              },
+            },
+          ]}
+        />
+      </div>
     </Fragment>
   );
 };
