@@ -16,6 +16,19 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "View Dashboard",
       "Delete Dashboard",
     ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_SETTINGS, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_OVERVIEW, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Overview",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

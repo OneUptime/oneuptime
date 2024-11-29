@@ -36,6 +36,12 @@ const DashboardViewDelete: LazyExoticComponent<
   return import("../Pages/Dashboards/View/Delete");
 });
 
+const DashboardViewSettings: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Dashboards/View/Settings");
+});
+
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -88,6 +94,18 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               <DashboardViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_SETTINGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <DashboardViewSettings
+                {...props}
+                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route}
               />
             </Suspense>
           }

@@ -105,6 +105,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
   [PageMap.DASHBOARD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.DASHBOARD_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -729,6 +730,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARD_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARD_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_VIEW_SETTINGS]
     }`,
   ),
 

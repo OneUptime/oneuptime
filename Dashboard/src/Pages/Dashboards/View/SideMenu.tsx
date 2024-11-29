@@ -42,6 +42,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+      <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+
         <SideMenuItem
           link={{
             title: "Delete",
