@@ -19,8 +19,6 @@ import MetricViewData from "../Types/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
 
 export default class MetricUtil {
-
-
   public static async fetchResults(data: {
     metricViewData: MetricViewData;
   }): Promise<Array<AggregatedResult>> {
@@ -122,14 +120,14 @@ export default class MetricUtil {
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
       | HTTPErrorResponse = await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
-          "/telemetry/metrics/get-attributes",
-        ),
-        {},
-        {
-          ...ModelAPI.getCommonHeaders(),
-        },
-      );
+      URL.fromString(APP_API_URL.toString()).addRoute(
+        "/telemetry/metrics/get-attributes",
+      ),
+      {},
+      {
+        ...ModelAPI.getCommonHeaders(),
+      },
+    );
 
     let attributes: Array<string> = [];
 

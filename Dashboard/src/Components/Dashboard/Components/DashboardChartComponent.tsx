@@ -18,21 +18,24 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-  const [metricResults, setMetricResults] = React.useState<Array<AggregatedResult>>([]);
+  const [metricResults, setMetricResults] = React.useState<
+    Array<AggregatedResult>
+  >([]);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig ? [props.component.arguments.metricQueryConfig] : [],
-    startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(props.dashboardStartAndEndDate),
-    formulaConfigs: []
-  }
+    queryConfigs: props.component.arguments.metricQueryConfig
+      ? [props.component.arguments.metricQueryConfig]
+      : [],
+    startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
+      props.dashboardStartAndEndDate,
+    ),
+    formulaConfigs: [],
+  };
 
   const fetchAggregatedResults: PromiseVoidFunction =
     async (): Promise<void> => {
-
-
       setIsLoading(true);
 
       if (
@@ -66,17 +69,21 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.component.arguments.metricQueryConfig, props.metricNameAndUnits]);
+  }, [
+    props.dashboardStartAndEndDate,
+    props.component.arguments.metricQueryConfig,
+    props.metricNameAndUnits,
+  ]);
 
-
-
-  return <div>
-    <MetricCharts
-      metricResults={metricResults}
-      metricNamesAndUnits={props.metricNameAndUnits}
-      metricViewData={metricViewData}
-    />
-  </div>;
+  return (
+    <div>
+      <MetricCharts
+        metricResults={metricResults}
+        metricNamesAndUnits={props.metricNameAndUnits}
+        metricViewData={metricViewData}
+      />
+    </div>
+  );
 };
 
 export default DashboardChartComponentElement;

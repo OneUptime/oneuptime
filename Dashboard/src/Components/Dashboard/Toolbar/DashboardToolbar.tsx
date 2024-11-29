@@ -46,7 +46,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
         {!props.isSaving && (
           <div className="flex">
-              <div className="mt-2">
+            <div className="mt-2">
               <DashboardStartAndEndDateView
                 dashboardStartAndEndDate={props.startAndEndDate}
                 onClick={() => {
@@ -54,8 +54,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   setShowTimeSelectModal(true);
                 }}
               />
-              </div>
-            
+            </div>
 
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">
