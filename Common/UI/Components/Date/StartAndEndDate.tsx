@@ -13,6 +13,7 @@ export interface ComponentProps {
   initialValue?: InBetween<Date> | undefined;
   onValueChanged: (value: InBetween<Date> | null) => void;
   type: StartAndEndDateType;
+  hideTimeButtons?: boolean | undefined;
 }
 
 type DateFilterFunction = (props: ComponentProps) => ReactElement;
@@ -212,7 +213,7 @@ const StartAndEndDate: DateFilterFunction = (
           </div>
         </div>
 
-        <div className="mt-1 flex space-x-2 -ml-3">
+        {!props.hideTimeButtons && <div className="mt-1 flex space-x-2 -ml-3">
           {props.type === StartAndEndDateType.DateTime && (
             <Button
               buttonStyle={
@@ -356,7 +357,7 @@ const StartAndEndDate: DateFilterFunction = (
             }}
             title="3 months"
           />
-        </div>
+        </div>}
       </div>
     );
   }

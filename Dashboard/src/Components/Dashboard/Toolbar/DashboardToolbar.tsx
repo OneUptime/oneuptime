@@ -1,10 +1,14 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import Modal from "Common/UI/Components/Modal/Modal";
+import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
+import DashboardStartAndEndDateElement from "./DashboardStartAndEndDate";
+
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -17,12 +21,17 @@ export interface ComponentProps {
   isFullScreen: boolean;
   isSaving: boolean;
   dashboardName: string;
+  startAndEndDate: DashboardStartAndEndDate;
+  onStartAndEndDateChange: (startAndEndDate: DashboardStartAndEndDate) => void;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
+
+  const [tempStartAndEndDate, setTempStartAndEndDate] = useState<DashboardStartAndEndDate | null>(null);
+  const [showTimeSelectModal, setShowTimeSelectModal] = useState<boolean>(false);
 
   return (
     <div
@@ -35,6 +44,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
         {!props.isSaving && (
           <div className="flex">
+
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">
                 <MoreMenuItem
@@ -116,6 +126,29 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
+
+      {showTimeSelectModal && (
+        <Modal title="Select Start and End Time"
+          onClose={() => {
+            setTempStartAndEndDate(null);
+            setShowTimeSelectModal(false);
+          }}
+
+          onSubmit={() => {
+            if (tempStartAndEndDate) {
+              props.onStartAndEndDateChange(tempStartAndEndDate);
+            }
+            setShowTimeSelectModal(false);
+            setTempStartAndEndDate(null);
+          }}
+        >
+          <div className="-mt-5">
+            <DashboardStartAndEndDateElement value={tempStartAndEndDate || undefined} onChange={(startAndEndDate: DashboardStartAndEndDate) => {
+              setTempStartAndEndDate(startAndEndDate);
+            }} />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

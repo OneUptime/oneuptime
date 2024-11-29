@@ -28,6 +28,8 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricNameAndUnit from "../Metrics/Types/MetricNameAndUnit";
 import MetricUtil from "../Metrics/Utils/Metrics";
+import DashboardStartAndEndDate from "./Types/DashboardStartAndEndDate";
+import DashboardStartAndEndDateRange from "./Types/DashboardStartAndEndDateRange";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -39,6 +41,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(
     DashboardMode.View,
   );
+
+  const [startAndEndDate, setStartAndEndDate] = useState<DashboardStartAndEndDate>({
+    range: DashboardStartAndEndDateRange.ONE_HOUR
+  });
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -204,6 +210,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             setError(API.getFriendlyErrorMessage(err));
           });
           setDashboardMode(DashboardMode.View);
+        }}
+        startAndEndDate={startAndEndDate}
+        onStartAndEndDateChange={(newStartAndEndDate: DashboardStartAndEndDate) => {
+          setStartAndEndDate(newStartAndEndDate);
         }}
         onCancelEditClick={() => {
           setDashboardMode(DashboardMode.View);
