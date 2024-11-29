@@ -42,7 +42,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
-      <SideMenuItem
+        <SideMenuItem
           link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
