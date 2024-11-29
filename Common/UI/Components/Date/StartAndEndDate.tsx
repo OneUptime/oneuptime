@@ -213,17 +213,59 @@ const StartAndEndDate: DateFilterFunction = (
           </div>
         </div>
 
-        {!props.hideTimeButtons && <div className="mt-1 flex space-x-2 -ml-3">
-          {props.type === StartAndEndDateType.DateTime && (
+        {!props.hideTimeButtons && (
+          <div className="mt-1 flex space-x-2 -ml-3">
+            {props.type === StartAndEndDateType.DateTime && (
+              <Button
+                buttonStyle={
+                  is1Hour ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+                }
+                buttonSize={ButtonSize.Small}
+                onClick={() => {
+                  // set it to past 1 hour
+                  const endDate: Date = OneUptimeDate.getCurrentDate();
+                  const startDate: Date = OneUptimeDate.addRemoveHours(
+                    endDate,
+                    -1,
+                  );
+
+                  setStartDateTime(startDate);
+                  setEndDateTime(endDate);
+                }}
+                title="1 hour"
+              />
+            )}
+
+            {props.type === StartAndEndDateType.DateTime && (
+              <Button
+                buttonStyle={
+                  is3Hours ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+                }
+                buttonSize={ButtonSize.Small}
+                onClick={() => {
+                  // set it to past 3 hour
+                  const endDate: Date = OneUptimeDate.getCurrentDate();
+                  const startDate: Date = OneUptimeDate.addRemoveHours(
+                    endDate,
+                    -3,
+                  );
+
+                  setStartDateTime(startDate);
+                  setEndDateTime(endDate);
+                }}
+                title="3 hours"
+              />
+            )}
+
             <Button
               buttonStyle={
-                is1Hour ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+                is1Day ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 1 hour
+                // set it to past 1 day
                 const endDate: Date = OneUptimeDate.getCurrentDate();
-                const startDate: Date = OneUptimeDate.addRemoveHours(
+                const startDate: Date = OneUptimeDate.addRemoveDays(
                   endDate,
                   -1,
                 );
@@ -231,20 +273,94 @@ const StartAndEndDate: DateFilterFunction = (
                 setStartDateTime(startDate);
                 setEndDateTime(endDate);
               }}
-              title="1 hour"
+              title="1 day"
             />
-          )}
 
-          {props.type === StartAndEndDateType.DateTime && (
             <Button
               buttonStyle={
-                is3Hours ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+                is1Week ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 3 hour
+                // set it to past 1 week
                 const endDate: Date = OneUptimeDate.getCurrentDate();
-                const startDate: Date = OneUptimeDate.addRemoveHours(
+                const startDate: Date = OneUptimeDate.addRemoveDays(
+                  endDate,
+                  -7,
+                );
+
+                setStartDateTime(startDate);
+                setEndDateTime(endDate);
+              }}
+              title="1 week"
+            />
+
+            <Button
+              buttonStyle={
+                is2Weeks ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+              }
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                // set it to past 1 week
+                const endDate: Date = OneUptimeDate.getCurrentDate();
+                const startDate: Date = OneUptimeDate.addRemoveDays(
+                  endDate,
+                  -14,
+                );
+
+                setStartDateTime(startDate);
+                setEndDateTime(endDate);
+              }}
+              title="2 weeks"
+            />
+
+            <Button
+              buttonStyle={
+                is3Weeks ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+              }
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                // set it to past 1 week
+                const endDate: Date = OneUptimeDate.getCurrentDate();
+                const startDate: Date = OneUptimeDate.addRemoveDays(
+                  endDate,
+                  -21,
+                );
+
+                setStartDateTime(startDate);
+                setEndDateTime(endDate);
+              }}
+              title="3 weeks"
+            />
+
+            <Button
+              buttonStyle={
+                is1Month ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+              }
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                // set it to past 1 month
+                const endDate: Date = OneUptimeDate.getCurrentDate();
+                const startDate: Date = OneUptimeDate.addRemoveMonths(
+                  endDate,
+                  -1,
+                );
+
+                setStartDateTime(startDate);
+                setEndDateTime(endDate);
+              }}
+              title="1 month"
+            />
+
+            <Button
+              buttonStyle={
+                is3Months ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+              }
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                // set it to past 1 month
+                const endDate: Date = OneUptimeDate.getCurrentDate();
+                const startDate: Date = OneUptimeDate.addRemoveMonths(
                   endDate,
                   -3,
                 );
@@ -252,112 +368,10 @@ const StartAndEndDate: DateFilterFunction = (
                 setStartDateTime(startDate);
                 setEndDateTime(endDate);
               }}
-              title="3 hours"
+              title="3 months"
             />
-          )}
-
-          <Button
-            buttonStyle={
-              is1Day ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 day
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveDays(endDate, -1);
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="1 day"
-          />
-
-          <Button
-            buttonStyle={
-              is1Week ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 week
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveDays(endDate, -7);
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="1 week"
-          />
-
-          <Button
-            buttonStyle={
-              is2Weeks ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 week
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveDays(endDate, -14);
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="2 weeks"
-          />
-
-          <Button
-            buttonStyle={
-              is3Weeks ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 week
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveDays(endDate, -21);
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="3 weeks"
-          />
-
-          <Button
-            buttonStyle={
-              is1Month ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 month
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveMonths(
-                endDate,
-                -1,
-              );
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="1 month"
-          />
-
-          <Button
-            buttonStyle={
-              is3Months ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-            }
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              // set it to past 1 month
-              const endDate: Date = OneUptimeDate.getCurrentDate();
-              const startDate: Date = OneUptimeDate.addRemoveMonths(
-                endDate,
-                -3,
-              );
-
-              setStartDateTime(startDate);
-              setEndDateTime(endDate);
-            }}
-            title="3 months"
-          />
-        </div>}
+          </div>
+        )}
       </div>
     );
   }

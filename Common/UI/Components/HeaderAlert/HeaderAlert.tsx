@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import ColorSwatch from "../../../Types/ColorSwatch";
 
 export enum HeaderAlertType {
   SUCCESS = "Success",
@@ -18,6 +19,7 @@ export interface ComponentProps {
   className?: string | undefined;
   alertType: HeaderAlertType;
   tooltip?: string | undefined;
+  colorSwatch?: ColorSwatch | undefined;
 }
 
 const HeaderAlert: (props: ComponentProps) => ReactElement = (
@@ -55,6 +57,12 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
     case HeaderAlertType.INFO:
       bgColor = "bg-indigo";
       break;
+  }
+
+  // color swatch overrides the color.
+  if (props.colorSwatch) {
+    textColor = `text-${props.colorSwatch}-500 hover:text-${props.colorSwatch}-600`;
+    bgColor = `bg-${props.colorSwatch}`;
   }
 
   const getElement: GetReactElementFunction = (): ReactElement => {

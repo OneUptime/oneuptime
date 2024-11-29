@@ -42,9 +42,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     DashboardMode.View,
   );
 
-  const [startAndEndDate, setStartAndEndDate] = useState<DashboardStartAndEndDate>({
-    range: DashboardStartAndEndDateRange.ONE_HOUR
-  });
+  const [startAndEndDate, setStartAndEndDate] =
+    useState<DashboardStartAndEndDate>({
+      range: DashboardStartAndEndDateRange.PAST_ONE_HOUR,
+    });
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -212,7 +213,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardMode(DashboardMode.View);
         }}
         startAndEndDate={startAndEndDate}
-        onStartAndEndDateChange={(newStartAndEndDate: DashboardStartAndEndDate) => {
+        onStartAndEndDateChange={(
+          newStartAndEndDate: DashboardStartAndEndDate,
+        ) => {
           setStartAndEndDate(newStartAndEndDate);
         }}
         onCancelEditClick={() => {

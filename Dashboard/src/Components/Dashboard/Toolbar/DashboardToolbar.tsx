@@ -7,8 +7,8 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import Modal from "Common/UI/Components/Modal/Modal";
 import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
-import DashboardStartAndEndDateElement from "./DashboardStartAndEndDate";
-
+import DashboardStartAndEndDateElement from "./DashboardStartAndEndDateEdit";
+import DashboardStartAndEndDateView from "./DashboardStartAndEndDateView";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -30,8 +30,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
-  const [tempStartAndEndDate, setTempStartAndEndDate] = useState<DashboardStartAndEndDate | null>(null);
-  const [showTimeSelectModal, setShowTimeSelectModal] = useState<boolean>(false);
+  const [tempStartAndEndDate, setTempStartAndEndDate] =
+    useState<DashboardStartAndEndDate | null>(null);
+  const [showTimeSelectModal, setShowTimeSelectModal] =
+    useState<boolean>(false);
 
   return (
     <div
@@ -44,6 +46,16 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
         {!props.isSaving && (
           <div className="flex">
+              <div className="mt-2">
+              <DashboardStartAndEndDateView
+                dashboardStartAndEndDate={props.startAndEndDate}
+                onClick={() => {
+                  setTempStartAndEndDate(props.startAndEndDate);
+                  setShowTimeSelectModal(true);
+                }}
+              />
+              </div>
+            
 
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">
@@ -128,12 +140,12 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       </div>
 
       {showTimeSelectModal && (
-        <Modal title="Select Start and End Time"
+        <Modal
+          title="Select Start and End Time"
           onClose={() => {
             setTempStartAndEndDate(null);
             setShowTimeSelectModal(false);
           }}
-
           onSubmit={() => {
             if (tempStartAndEndDate) {
               props.onStartAndEndDateChange(tempStartAndEndDate);
@@ -142,10 +154,13 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             setTempStartAndEndDate(null);
           }}
         >
-          <div className="-mt-5">
-            <DashboardStartAndEndDateElement value={tempStartAndEndDate || undefined} onChange={(startAndEndDate: DashboardStartAndEndDate) => {
-              setTempStartAndEndDate(startAndEndDate);
-            }} />
+          <div className="mt-5">
+            <DashboardStartAndEndDateElement
+              value={tempStartAndEndDate || undefined}
+              onChange={(startAndEndDate: DashboardStartAndEndDate) => {
+                setTempStartAndEndDate(startAndEndDate);
+              }}
+            />
           </div>
         </Modal>
       )}

@@ -25,6 +25,7 @@ import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
+  //eslint-disable react/no-unused-prop-types
   metrics: {
     metricNameAndUnits: Array<MetricNameAndUnit>;
     telemetryAttributes: string[];
@@ -74,6 +75,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     value: FormValues<JSONObject>,
     componentProps: CustomElementProps,
   ) => ReactElement) => {
+    //eslint-disable react/display-name
     return (
       value: FormValues<JSONObject>,
       componentProps: CustomElementProps,
