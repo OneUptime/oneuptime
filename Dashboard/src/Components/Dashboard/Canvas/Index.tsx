@@ -49,6 +49,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       grid[row] = new Array(canvasWidth).fill(null);
     }
 
+    let maxHeightInDashboardUnits = 0; // max height of the grid
+
     // Place components in the grid
     allComponents.forEach((component: DashboardBaseComponent) => {
       const {
@@ -74,6 +76,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         ) {
           grid[i]![j] = component;
         }
+
+        maxHeightInDashboardUnits = Math.max(
+          maxHeightInDashboardUnits,
+          topInDashboardUnits + heightInDashboardUnits,
+        );
       }
     });
 
@@ -95,6 +102,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }
 
         if (!component) {
+
+          if(!props.isEditMode && i >= maxHeightInDashboardUnits) {
+            // if we are not in edit mode, we should not render blank units
+            continue;
+          }
+
           // render a blank unit
           renderedComponents.push(
             <BlankDashboardUnitElement
