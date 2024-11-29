@@ -23,18 +23,11 @@ import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Common/Models/AnalyticsModels/Metric";
-import OneUptimeDate from "Common/Types/Date";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Dictionary from "Common/Types/Dictionary";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
-
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
@@ -155,49 +148,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
         setIsMetricResultsLoading(false);
         return;
       }
-
-      const results: Array<AggregatedResult> = [];
       try {
-        for (const queryConfig of metricViewData.queryConfigs) {
-          const result: AggregatedResult = await ModelAPI.aggregate({
-            modelType: Metric,
-            aggregateBy: {
-              query: {
-                time: metricViewData.startAndEndDate!,
-                name: queryConfig.metricQueryData.filterData.metricName!,
-                attributes: queryConfig.metricQueryData.filterData
-                  .attributes as Dictionary<string | number | boolean>,
-              },
-              aggregationType:
-                (queryConfig.metricQueryData.filterData
-                  .aggegationType as MetricsAggregationType) ||
-                MetricsAggregationType.Avg,
-              aggregateColumnName: "value",
-              aggregationTimestampColumnName: "time",
-              startTimestamp:
-                (metricViewData.startAndEndDate?.startValue as Date) ||
-                OneUptimeDate.getCurrentDate(),
-              endTimestamp:
-                (metricViewData.startAndEndDate?.endValue as Date) ||
-                OneUptimeDate.getCurrentDate(),
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              groupBy: queryConfig.metricQueryData.groupBy,
-            },
-          });
-
-          result.data.map((data: AggregatedModel) => {
-            // convert to int from float
-
-            if (data.value) {
-              data.value = Math.round(data.value);
-            }
-
-            return data;
-          });
-
-          results.push(result);
-        }
+        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
+          metricViewData: metricViewData,
+        });
 
         setMetricResults(results);
         setMetricResultsError("");
@@ -207,18 +161,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
       setIsMetricResultsLoading(false);
     };
-
-  // type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
-
-  // const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
-  //   (): MetricFormulaConfigData => {
-  //     return {
-  //       metricAliasData: { metricVariable: "", title: "", description: "" },
-  //       metricFormulaData: {
-  //         metricFormula: "",
-  //       },
-  //     };
-  //   };
 
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;

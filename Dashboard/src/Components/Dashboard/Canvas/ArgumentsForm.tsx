@@ -86,6 +86,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           data={value[arg.id] as MetricQueryConfigData}
           metricNameAndUnits={props.metrics.metricNameAndUnits}
           telemetryAttributes={props.metrics.telemetryAttributes}
+          hideCard={true}
         />
       );
     };

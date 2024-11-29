@@ -18,6 +18,8 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
+import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
@@ -31,6 +33,8 @@ export interface DashboardBaseComponentProps {
   dashboardCanvasWidthInPx: number;
   dashboardCanvasHeightInPx: number;
   dashboardViewConfig: DashboardViewConfig;
+  dashboardStartAndEndDate: DashboardStartAndEndDate; 
+  metricNameAndUnits: Array<MetricNameAndUnit>;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
