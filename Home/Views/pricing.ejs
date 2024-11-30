@@ -652,13 +652,13 @@
           <div class="p-8 sm:p-10 -mt-8">
             <div class="flex justify-between">
               <p class="text-base font-semibold text-gray-500">Data Rentention (in days)</p>
-              <p id="data-rentention-in-days" class="text-base font-semibold text-gray-600">15 Days</p>
+              <p id="data-retention-in-days" class="text-base font-semibold text-gray-600">15 Days</p>
             </div>
             <input id="default-range" type="range" value="15" max="180" min="0" step="1"
               onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null,this.value)"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ">
             <div>
-              <p id="more-than-6-months-rentention" style="display: none;" class="text-base text-gray-600">If you're
+              <p id="more-than-6-months-retention" style="display: none;" class="text-base text-gray-600">If you're
                 looking for data rention of more than 6 months. contact sales@oneuptime.com for a discount. </p>
             </div>
 
@@ -1585,7 +1585,7 @@
           // update telemetry count - total-number-of-telemetry
 
           document.getElementById("total-number-of-gb-ingested").innerHTML = numberOfGb + " GB";
-          document.getElementById("data-rentention-in-days").innerHTML = numberOfDays + " Days";
+          document.getElementById("data-retention-in-days").innerHTML = numberOfDays + " Days";
 
 
 
@@ -1600,10 +1600,10 @@
 
           if (numberOfDays === 180) {
             // show more than 100 monitors message
-            document.getElementById("more-than-6-months-rentention").style.display = "block";
+            document.getElementById("more-than-6-months-retention").style.display = "block";
           } else {
             // hide more than 100 monitors
-            document.getElementById("more-than-6-months-rentention").style.display = "none";
+            document.getElementById("more-than-6-months-retention").style.display = "none";
           }
 
         }
