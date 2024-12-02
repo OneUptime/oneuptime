@@ -52,6 +52,34 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
             placeholder="Description..."
           />
         </div>
+        <div className="flex">
+          <div className="w-1/2">
+            <Input
+              value={props.data.legend}
+              onChange={(value: string) => {
+                return props.onDataChanged({
+                  ...props.data,
+                  metricVariable: props.data.metricVariable,
+                  legend: value,
+                });
+              }}
+              placeholder="Legend (e.g. Response Time)"
+            />
+          </div>
+          <div className="w-1/2">
+            <Input
+              value={props.data.legendUnit}
+              onChange={(value: string) => {
+                return props.onDataChanged({
+                  ...props.data,
+                  metricVariable: props.data.metricVariable,
+                  legendUnit: value,
+                });
+              }}
+              placeholder="Unit (e.g. ms)"
+            />
+          </div>
+        </div>
       </div>
     </Fragment>
   );

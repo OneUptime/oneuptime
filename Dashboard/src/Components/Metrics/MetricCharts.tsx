@@ -141,7 +141,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       } else {
         chartSeries.push({
           seriesName:
-            queryConfig.metricAliasData?.title ||
+            queryConfig.metricAliasData?.legend ||
             queryConfig.metricQueryData.filterData.metricName?.toString() ||
             "",
           data: props.metricResults[index]!.data.map(
@@ -183,8 +183,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           yAxis: {
             // legend is the unit of the metric
-            legend: "",
-
+            legend: queryConfig.metricAliasData?.legendUnit || "",
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
@@ -196,7 +195,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     );
                   });
 
-                return `${value} ${metricNameAndUnit?.unit || ""}`;
+                return `${value} ${queryConfig.metricAliasData?.legendUnit || metricNameAndUnit?.unit || ""}`;
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",

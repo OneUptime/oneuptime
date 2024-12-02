@@ -115,6 +115,53 @@ class MonitorMetricTypeUtil {
     }
   }
 
+  public static getLegendByMonitorMetricType(
+    monitorMetricType: MonitorMetricType,
+  ): string {
+    switch (monitorMetricType) {
+      case MonitorMetricType.ResponseTime:
+        return "Response Time";
+      case MonitorMetricType.ResponseStatusCode:
+        return "Response Status Code";
+      case MonitorMetricType.IsOnline:
+        return "Is Online";
+      case MonitorMetricType.DiskUsagePercent:
+        return "Disk Usage Percent";
+      case MonitorMetricType.CPUUsagePercent:
+        return "CPU Usage Percent";
+      case MonitorMetricType.MemoryUsagePercent:
+        return "Memory Usage Percent";
+      case MonitorMetricType.ExecutionTime:
+        return "Execution Time";
+      default:
+        return "";
+    }
+  }
+
+  public static getLegendUnitByMonitorMetricType(
+    monitorMetricType: MonitorMetricType,
+  ): string {
+    switch (monitorMetricType) {
+      case MonitorMetricType.ResponseTime:
+        return "ms";
+      case MonitorMetricType.ResponseStatusCode:
+        return "";
+      case MonitorMetricType.IsOnline:
+        return "";
+      case MonitorMetricType.DiskUsagePercent:
+        return "%";
+      case MonitorMetricType.CPUUsagePercent:
+        return "%";
+      case MonitorMetricType.MemoryUsagePercent:
+        return "%";
+      case MonitorMetricType.ExecutionTime:
+        return "ms";
+      default:
+        return "";
+    }
+  }
+
+
   public static getDescriptionByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
   ): string {

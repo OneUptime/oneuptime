@@ -125,6 +125,14 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
               MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
                 monitorMetricType,
               ),
+              legend:   
+              MonitorMetricTypeUtil.getLegendByMonitorMetricType(
+                monitorMetricType,
+              ),
+              legendUnit:
+              MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+                monitorMetricType,
+              ),
           },
           metricQueryData: {
             filterData: {

@@ -124,7 +124,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         metricAliasData: {
           title: props.component.arguments.chartTitle || undefined,
           description: props.component.arguments.chartDescription || undefined,
-          metricVariable: undefined
+          metricVariable: undefined,
+          legend: undefined,
         }
       }]
       : [],

@@ -28,6 +28,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               metricVariable: "a",
               title: "",
               description: "",
+              legend: "",
             },
             metricQueryData: {
               filterData: {

@@ -38,6 +38,16 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       ComponentArgument<DashboardChartComponent>
     > = [];
 
+    
+
+    componentArguments.push({
+      name: "Chart Configuration",
+      description: "Please select the metrics to display on the chart",
+      required: true,
+      type: ComponentInputType.MetricsQueryConfig,
+      id: "metricQueryConfig",
+    });
+
     componentArguments.push({
       name: "Chart Title",
       description: "The title of the chart",
@@ -52,14 +62,6 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       required: false,
       type: ComponentInputType.LongText,
       id: "chartDescription",
-    });
-
-    componentArguments.push({
-      name: "Chart Configuration",
-      description: "Please select the metrics to display on the chart",
-      required: true,
-      type: ComponentInputType.MetricsQueryConfig,
-      id: "metricQueryConfig",
     });
 
     componentArguments.push({

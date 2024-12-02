@@ -62,6 +62,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
           metricVariable: currentVar,
           title: "",
           description: "",
+          legend: "",
+          legendUnit: "",
         },
         metricQueryData: {
           filterData: {
