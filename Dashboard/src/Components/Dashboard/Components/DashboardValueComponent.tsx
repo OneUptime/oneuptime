@@ -21,7 +21,9 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   const [metricResults, setMetricResults] = React.useState<
     Array<AggregatedResult>
   >([]);
-  const [aggregationType, setAggregationType] = React.useState<AggregationType>(AggregationType.Avg);
+  const [aggregationType, setAggregationType] = React.useState<AggregationType>(
+    AggregationType.Avg,
+  );
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -63,14 +65,18 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       if (
         !metricViewData.queryConfigs[0] ||
         !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        metricViewData.queryConfigs[0].metricQueryData.filterData?.aggegationType
+        metricViewData.queryConfigs[0].metricQueryData.filterData
+          ?.aggegationType
       ) {
         setIsLoading(false);
         setError(
           "Please select a aggregation. Click here to add a aggregation.",
         );
       } else {
-        setAggregationType(metricViewData.queryConfigs[0].metricQueryData.filterData?.aggegationType as AggregationType || AggregationType.Avg);
+        setAggregationType(
+          (metricViewData.queryConfigs[0].metricQueryData.filterData
+            ?.aggegationType as AggregationType) || AggregationType.Avg,
+        );
       }
 
       try {
@@ -133,22 +139,19 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       } else if (aggregationType === AggregationType.Count) {
         aggregatedValue += 1;
       }
-
     }
   }
 
-  if(aggregationType === AggregationType.Avg && avgCount > 0) {
+  if (aggregationType === AggregationType.Avg && avgCount > 0) {
     aggregatedValue = aggregatedValue / avgCount;
   }
 
   return (
     <div>
       <div className="text-center text-sm text-semibold">
-        {props.component.arguments.title || ''}
+        {props.component.arguments.title || ""}
       </div>
-      <div>
-        {aggregatedValue || '-'}
-      </div>
+      <div>{aggregatedValue || "-"}</div>
     </div>
   );
 };

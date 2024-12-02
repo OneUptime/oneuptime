@@ -62,7 +62,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       if (
         !metricViewData.queryConfigs[0] ||
         !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        metricViewData.queryConfigs[0].metricQueryData.filterData?.aggegationType
+        metricViewData.queryConfigs[0].metricQueryData.filterData
+          ?.aggegationType
       ) {
         setIsLoading(false);
         setError(

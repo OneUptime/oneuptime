@@ -21,7 +21,7 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       minHeightInDashboardUnits: 1,
       minWidthInDashboardUnits: 1,
       arguments: {
-        title: ''
+        title: "",
       },
     };
   }
