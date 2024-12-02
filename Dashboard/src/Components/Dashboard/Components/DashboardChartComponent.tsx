@@ -125,8 +125,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           title: props.component.arguments.chartTitle || undefined,
           description: props.component.arguments.chartDescription || undefined,
           metricVariable: undefined,
-          legend: undefined,
-          legendUnit: undefined,
+          legend: props.component.arguments.legendText || undefined,
+          legendUnit: props.component.arguments.legendUnit || undefined,
         }
       }]
       : [],
