@@ -29,6 +29,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               title: "",
               description: "",
               legend: "",
+              legendUnit: "",
             },
             metricQueryData: {
               filterData: {

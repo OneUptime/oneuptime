@@ -126,6 +126,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           description: props.component.arguments.chartDescription || undefined,
           metricVariable: undefined,
           legend: undefined,
+          legendUnit: undefined,
         }
       }]
       : [],
