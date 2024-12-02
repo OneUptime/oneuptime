@@ -148,18 +148,17 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.40;
-  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.10;
+  const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.4;
+  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.1;
 
   return (
     <div className="w-full text-center">
-      <div 
-        style={
-          {
-            fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
-          }
-        }
-      className="text-center text-sm text-semibold">
+      <div
+        style={{
+          fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
+        }}
+        className="text-center text-sm text-semibold"
+      >
         {props.component.arguments.title || ""}
       </div>
       <div
@@ -167,7 +166,9 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
         style={{
           fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
         }}
-      >{aggregatedValue || "-"}</div>
+      >
+        {aggregatedValue || "-"}
+      </div>
     </div>
   );
 };
