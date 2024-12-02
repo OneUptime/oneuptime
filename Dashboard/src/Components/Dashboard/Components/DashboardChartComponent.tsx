@@ -44,6 +44,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       ) {
         setIsLoading(false);
         setError("Please select a valid start and end date.");
+        return;
       }
 
       if (
@@ -57,18 +58,20 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       ) {
         setIsLoading(false);
         setError("Please select a metric. Click here to add a metric.");
+        return;
       }
 
       if (
         !metricViewData.queryConfigs[0] ||
         !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        metricViewData.queryConfigs[0].metricQueryData.filterData
+        !metricViewData.queryConfigs[0].metricQueryData.filterData
           ?.aggegationType
       ) {
         setIsLoading(false);
         setError(
           "Please select a aggregation. Click here to add a aggregation.",
         );
+        return;
       }
 
       try {

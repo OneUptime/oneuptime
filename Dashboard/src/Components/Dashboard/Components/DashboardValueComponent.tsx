@@ -47,6 +47,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       ) {
         setIsLoading(false);
         setError("Please select a valid start and end date.");
+        return;
       }
 
       if (
@@ -60,18 +61,20 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       ) {
         setIsLoading(false);
         setError("Please select a metric. Click here to add a metric.");
+        return;
       }
 
       if (
         !metricViewData.queryConfigs[0] ||
         !metricViewData.queryConfigs[0].metricQueryData.filterData ||
-        metricViewData.queryConfigs[0].metricQueryData.filterData
+        !metricViewData.queryConfigs[0].metricQueryData.filterData
           ?.aggegationType
       ) {
         setIsLoading(false);
         setError(
-          "Please select a aggregation. Click here to add a aggregation.",
+          "Please select an Aggregation Type. Click here to add a Aggregation Type.",
         );
+        return;
       } else {
         setAggregationType(
           (metricViewData.queryConfigs[0].metricQueryData.filterData

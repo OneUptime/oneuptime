@@ -8,5 +8,9 @@ export default interface DashboardChartComponent extends BaseComponent {
   componentId: ObjectID;
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
+    chartTitle?: string | undefined;
+    chartDescription?: string | undefined;
+    legendText?: string | undefined;
+    legendUnit?: string | undefined;
   };
 }
