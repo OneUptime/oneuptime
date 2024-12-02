@@ -93,6 +93,7 @@ export default class MonitorResourceUtil {
         disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
         currentMonitorStatusId: true,
         _id: true,
+        name: true,
       },
       props: {
         isRoot: true,
@@ -137,6 +138,9 @@ export default class MonitorResourceUtil {
       );
     }
 
+    let probeName: string | undefined = undefined;
+    const monitorName: string | undefined = monitor.name || undefined;
+
     // save the last log to MonitorProbe.
 
     // get last log. We do this because there are many monitoring steps and we need to store those.
@@ -160,6 +164,9 @@ export default class MonitorResourceUtil {
             },
             select: {
               lastMonitoringLog: true,
+              probe: {
+                name: true,
+              },
             },
             props: {
               isRoot: true,
@@ -169,6 +176,8 @@ export default class MonitorResourceUtil {
         if (!monitorProbe) {
           throw new BadDataException("Probe is not assigned to this monitor");
         }
+
+        probeName = monitorProbe.probe?.name || undefined;
 
         await MonitorProbeService.updateOneBy({
           query: {
@@ -252,6 +261,8 @@ export default class MonitorResourceUtil {
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
         dataToProcess: dataToProcess,
+        probeName: probeName || undefined,
+        monitorName: monitorName || undefined,
       });
     } catch (err) {
       logger.error("Unable to save metrics");
@@ -564,6 +575,8 @@ export default class MonitorResourceUtil {
     monitorId: ObjectID;
     projectId: ObjectID;
     dataToProcess: DataToProcess;
+    probeName: string | undefined;
+    monitorName: string | undefined;
   }): Promise<void> {
     if (!data.monitorId) {
       return;
@@ -607,10 +620,17 @@ export default class MonitorResourceUtil {
         monitorMetric.value = isOnline ? 1 : 0;
         monitorMetric.unit = "";
         monitorMetric.attributes = {
-          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
+
+        if (data.monitorName) {
+          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+        }
+
+        if (data.probeName) {
+          monitorMetric.attributes["probeName"] = data.probeName.toString();
+        }
 
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -638,10 +658,17 @@ export default class MonitorResourceUtil {
         monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
         monitorMetric.unit = "%";
         monitorMetric.attributes = {
-          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
+
+        if (data.monitorName) {
+          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+        }
+
+        if (data.probeName) {
+          monitorMetric.attributes["probeName"] = data.probeName.toString();
+        }
 
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -662,10 +689,17 @@ export default class MonitorResourceUtil {
         monitorMetric.value = basicMetrics.memoryMetrics.percentUsed;
         monitorMetric.unit = "%";
         monitorMetric.attributes = {
-          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
+
+        if (data.monitorName) {
+          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+        }
+
+        if (data.probeName) {
+          monitorMetric.attributes["probeName"] = data.probeName.toString();
+        }
 
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -687,11 +721,19 @@ export default class MonitorResourceUtil {
           monitorMetric.value = diskMetric.percentUsed;
           monitorMetric.unit = "%";
           monitorMetric.attributes = {
-            monitorName: data.monitorName.toString(),
             monitorId: data.monitorId.toString(),
             projectId: data.projectId.toString(),
             diskPath: diskMetric.diskPath,
           };
+
+          if (data.monitorName) {
+            monitorMetric.attributes["monitorName"] =
+              data.monitorName.toString();
+          }
+
+          if (data.probeName) {
+            monitorMetric.attributes["probeName"] = data.probeName.toString();
+          }
 
           monitorMetric.time = OneUptimeDate.getCurrentDate();
           monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -718,16 +760,20 @@ export default class MonitorResourceUtil {
       ).customCodeMonitorResponse?.executionTimeInMS;
       monitorMetric.unit = "ms";
       monitorMetric.attributes = {
-        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
-        probeName: (
-          data.dataToProcess as ProbeMonitorResponse
-        ).probeName.toString(),
       };
+
+      if (data.monitorName) {
+        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+      }
+
+      if (data.probeName) {
+        monitorMetric.attributes["probeName"] = data.probeName.toString();
+      }
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -757,7 +803,6 @@ export default class MonitorResourceUtil {
         monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
         monitorMetric.unit = "ms";
         monitorMetric.attributes = {
-          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
           probeId: (
@@ -766,6 +811,14 @@ export default class MonitorResourceUtil {
           browserType: syntheticMonitorResponse.browserType,
           screenSizeType: syntheticMonitorResponse.screenSizeType,
         };
+
+        if (data.monitorName) {
+          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+        }
+
+        if (data.probeName) {
+          monitorMetric.attributes["probeName"] = data.probeName.toString();
+        }
 
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -788,13 +841,20 @@ export default class MonitorResourceUtil {
       ).responseTimeInMs;
       monitorMetric.unit = "ms";
       monitorMetric.attributes = {
-        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
+
+      if (data.monitorName) {
+        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+      }
+
+      if (data.probeName) {
+        monitorMetric.attributes["probeName"] = data.probeName.toString();
+      }
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -817,13 +877,20 @@ export default class MonitorResourceUtil {
         : 0;
       monitorMetric.unit = "";
       monitorMetric.attributes = {
-        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
+
+      if (data.monitorName) {
+        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+      }
+
+      if (data.probeName) {
+        monitorMetric.attributes["probeName"] = data.probeName.toString();
+      }
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -846,7 +913,6 @@ export default class MonitorResourceUtil {
       ).responseCode;
       monitorMetric.unit = "Status Code";
       monitorMetric.attributes = {
-        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (

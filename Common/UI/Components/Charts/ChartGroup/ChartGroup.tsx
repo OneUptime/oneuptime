@@ -14,10 +14,12 @@ export interface Chart {
   description?: string | undefined;
   type: ChartType;
   props: LineChartProps;
+  
 }
 
 export interface ComponentProps {
   charts: Array<Chart>;
+  hideCard?: boolean | undefined;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (
@@ -31,7 +33,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         switch (chart.type) {
           case ChartType.LINE:
             return (
-              <div key={index} className="p-6 rounded-md bg-white shadow">
+              <div key={index} className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow" }`}>
                 <h2
                   data-testid="card-details-heading"
                   id="card-details-heading"

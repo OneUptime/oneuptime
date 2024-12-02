@@ -222,7 +222,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onCancelEditClick={async () => {
           // load the dashboard view config again
           setDashboardMode(DashboardMode.View);
-          await fetchDashboardViewConfig()
+          await fetchDashboardViewConfig();
         }}
         onEditClick={() => {
           setDashboardMode(DashboardMode.Edit);

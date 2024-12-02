@@ -48,15 +48,19 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
         {!props.isSaving && (
           <div className="flex">
-            {props.dashboardViewConfig && props.dashboardViewConfig.components && props.dashboardViewConfig.components.length > 0 && <div className="mt-1.5">
-              <DashboardStartAndEndDateView
-                dashboardStartAndEndDate={props.startAndEndDate}
-                onClick={() => {
-                  setTempStartAndEndDate(props.startAndEndDate);
-                  setShowTimeSelectModal(true);
-                }}
-              />
-            </div>}
+            {props.dashboardViewConfig &&
+              props.dashboardViewConfig.components &&
+              props.dashboardViewConfig.components.length > 0 && (
+                <div className="mt-1.5">
+                  <DashboardStartAndEndDateView
+                    dashboardStartAndEndDate={props.startAndEndDate}
+                    onClick={() => {
+                      setTempStartAndEndDate(props.startAndEndDate);
+                      setShowTimeSelectModal(true);
+                    }}
+                  />
+                </div>
+              )}
 
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">
