@@ -13,6 +13,7 @@ export interface ComponentProps {
   yAxis: YAxis;
   curve: ChartCurve;
   sync: boolean;
+  heightInPx?: number | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -42,9 +43,14 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     setRecords(records);
   }, [props.data]);
 
+
+  const className: string = props.heightInPx ? `` : "h-80";
+  const style: React.CSSProperties = props.heightInPx ? { height: `${props.heightInPx}px` } : {};
+
   return (
     <LineChart
-      className="h-80"
+      className={className}
+      style={style}
       data={records}
       tickGap={1}
       index={"Time"}

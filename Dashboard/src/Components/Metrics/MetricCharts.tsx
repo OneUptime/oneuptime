@@ -22,6 +22,7 @@ export interface ComponentProps {
   metricResults: Array<AggregatedResult>;
   metricNamesAndUnits: Array<MetricNameAndUnit>;
   hideCard?: boolean | undefined;
+  heightInPx?: number | undefined;
 }
 
 const MetricCharts: FunctionComponent<ComponentProps> = (
@@ -215,7 +216,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     return charts;
   };
 
-  return <ChartGroup charts={getCharts()} hideCard={props.hideCard} />;
+  return <ChartGroup charts={getCharts()} hideCard={props.hideCard}  heightInPx={props.heightInPx}/>;
 };
 
 export default MetricCharts;

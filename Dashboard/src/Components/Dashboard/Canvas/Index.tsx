@@ -186,6 +186,20 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     const isSelected: boolean =
       props.selectedComponentId?.toString() === componentId.toString();
 
+      const component: DashboardBaseComponent | undefined =
+        props.dashboardViewConfig.components.find(
+          (c: DashboardBaseComponent) =>
+            c.componentId.toString() === componentId.toString(),
+        );
+
+      const currentUnitSizeInPx: number = props.currentTotalDashboardWidthInPx / 12;
+
+      const heightOfComponentInPx: number = currentUnitSizeInPx * (component?.heightInDashboardUnits || 0);
+
+      const widthOfComponentInPx: number = currentUnitSizeInPx * (component?.widthInDashboardUnits || 0);
+
+
+
     return (
       <DashboardBaseComponentElement
         dashboardViewConfig={props.dashboardViewConfig}
@@ -193,6 +207,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         dashboardCanvasHeightInPx={
           dashboardCanvasRef.current?.clientHeight || 0
         }
+        dashboardComponentWidthInPx={widthOfComponentInPx}
+        dashboardComponentHeightInPx={heightOfComponentInPx}
         metricNameAndUnits={props.metrics.metricNameAndUnits}
         dashboardStartAndEndDate={props.dashboardStartAndEndDate}
         dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}

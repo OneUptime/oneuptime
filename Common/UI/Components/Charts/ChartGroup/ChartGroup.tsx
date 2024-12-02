@@ -20,6 +20,7 @@ export interface Chart {
 export interface ComponentProps {
   charts: Array<Chart>;
   hideCard?: boolean | undefined;
+  heightInPx?: number | undefined;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (
@@ -49,7 +50,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {chart.description}
                   </p>
                 )}
-                <LineChart key={index} {...chart.props} syncid={syncId} />
+                <LineChart key={index} {...chart.props} syncid={syncId} heightInPx={props.heightInPx} />
               </div>
             );
           default:

@@ -32,6 +32,8 @@ export interface DashboardBaseComponentProps {
   dashboardCanvasLeftInPx: number;
   dashboardCanvasWidthInPx: number;
   dashboardCanvasHeightInPx: number;
+  dashboardComponentHeightInPx: number;
+  dashboardComponentWidthInPx: number;
   dashboardViewConfig: DashboardViewConfig;
   dashboardStartAndEndDate: DashboardStartAndEndDate;
   metricNameAndUnits: Array<MetricNameAndUnit>;
