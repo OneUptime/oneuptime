@@ -52,8 +52,8 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
             placeholder="Description..."
           />
         </div>
-        <div className="flex">
-          <div className="w-1/2">
+        <div className="w-1/3 flex space-x-3">
+          <div className="w-full">
             <Input
               value={props.data.legend}
               onChange={(value: string) => {
@@ -66,7 +66,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
               placeholder="Legend (e.g. Response Time)"
             />
           </div>
-          <div className="w-1/2">
+          <div>
             <Input
               value={props.data.legendUnit}
               onChange={(value: string) => {
