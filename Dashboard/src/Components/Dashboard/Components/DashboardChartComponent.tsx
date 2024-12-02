@@ -115,12 +115,31 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     heightOfChart = undefined;
   }
 
+  // add title and description. 
+
+  const chartMetricViewData: MetricViewData = {
+    queryConfigs: props.component.arguments.metricQueryConfig
+      ? [{
+        ...(props.component.arguments.metricQueryConfig)!,
+        metricAliasData: {
+          title: props.component.arguments.chartTitle || undefined,
+          description: props.component.arguments.chartDescription || undefined,
+          metricVariable: undefined
+        }
+      }]
+      : [],
+    startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
+      props.dashboardStartAndEndDate,
+    ),
+    formulaConfigs: [],
+  };
+
   return (
     <div>
       <MetricCharts
         metricResults={metricResults}
         metricNamesAndUnits={props.metricNameAndUnits}
-        metricViewData={metricViewData}
+        metricViewData={chartMetricViewData}
         hideCard={true}
         heightInPx={heightOfChart}
       />
