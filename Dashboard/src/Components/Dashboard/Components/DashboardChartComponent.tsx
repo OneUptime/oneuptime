@@ -43,8 +43,19 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         !metricViewData.startAndEndDate?.endValue
       ) {
         setIsLoading(false);
-        return;
+        setError("Please select a valid start and end date.");
       }
+
+      if(!metricViewData.queryConfigs || metricViewData.queryConfigs.length === 0 || !metricViewData.queryConfigs[0] || !metricViewData.queryConfigs[0].metricQueryData || !metricViewData.queryConfigs[0].metricQueryData.filterData || Object.keys(metricViewData.queryConfigs[0].metricQueryData.filterData).length === 0) {
+        setIsLoading(false);
+        setError("Please select a metric. Click here to add a metric.");
+      }
+
+      if(!metricViewData.queryConfigs[0] || !metricViewData.queryConfigs[0].metricQueryData.groupBy || Object.keys(metricViewData.queryConfigs[0].metricQueryData.groupBy).length === 0) {
+        setIsLoading(false);
+        setError("Please select a aggregation. Click here to add a aggregation.");
+      }
+
       try {
         const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
           metricViewData: metricViewData,
@@ -59,13 +70,6 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage error={error} />;
-  }
 
   useEffect(() => {
     fetchAggregatedResults();
@@ -74,6 +78,22 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.metricQueryConfig,
     props.metricNameAndUnits,
   ]);
+
+
+  useEffect(() => {
+    fetchAggregatedResults();
+  }, [
+  
+  ]);
+
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
 
   return (
     <div>

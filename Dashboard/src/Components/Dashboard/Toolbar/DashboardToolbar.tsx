@@ -9,6 +9,7 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
 import DashboardStartAndEndDateElement from "./DashboardStartAndEndDateEdit";
 import DashboardStartAndEndDateView from "./DashboardStartAndEndDateView";
+import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -23,6 +24,7 @@ export interface ComponentProps {
   dashboardName: string;
   startAndEndDate: DashboardStartAndEndDate;
   onStartAndEndDateChange: (startAndEndDate: DashboardStartAndEndDate) => void;
+  dashboardViewConfig: DashboardViewConfig;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -46,7 +48,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         </div>
         {!props.isSaving && (
           <div className="flex">
-            <div className="mt-2">
+            {props.dashboardViewConfig && props.dashboardViewConfig.components && props.dashboardViewConfig.components.length > 0 && <div className="mt-1.5">
               <DashboardStartAndEndDateView
                 dashboardStartAndEndDate={props.startAndEndDate}
                 onClick={() => {
@@ -54,7 +56,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   setShowTimeSelectModal(true);
                 }}
               />
-            </div>
+            </div>}
 
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">

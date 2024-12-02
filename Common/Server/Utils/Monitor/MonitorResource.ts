@@ -607,6 +607,7 @@ export default class MonitorResourceUtil {
         monitorMetric.value = isOnline ? 1 : 0;
         monitorMetric.unit = "";
         monitorMetric.attributes = {
+          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
@@ -637,6 +638,7 @@ export default class MonitorResourceUtil {
         monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
         monitorMetric.unit = "%";
         monitorMetric.attributes = {
+          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
@@ -660,6 +662,7 @@ export default class MonitorResourceUtil {
         monitorMetric.value = basicMetrics.memoryMetrics.percentUsed;
         monitorMetric.unit = "%";
         monitorMetric.attributes = {
+          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
         };
@@ -684,6 +687,7 @@ export default class MonitorResourceUtil {
           monitorMetric.value = diskMetric.percentUsed;
           monitorMetric.unit = "%";
           monitorMetric.attributes = {
+            monitorName: data.monitorName.toString(),
             monitorId: data.monitorId.toString(),
             projectId: data.projectId.toString(),
             diskPath: diskMetric.diskPath,
@@ -714,11 +718,15 @@ export default class MonitorResourceUtil {
       ).customCodeMonitorResponse?.executionTimeInMS;
       monitorMetric.unit = "ms";
       monitorMetric.attributes = {
+        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
+        probeName: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeName.toString(),
       };
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
@@ -749,6 +757,7 @@ export default class MonitorResourceUtil {
         monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
         monitorMetric.unit = "ms";
         monitorMetric.attributes = {
+          monitorName: data.monitorName.toString(),
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
           probeId: (
@@ -779,6 +788,7 @@ export default class MonitorResourceUtil {
       ).responseTimeInMs;
       monitorMetric.unit = "ms";
       monitorMetric.attributes = {
+        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
@@ -807,6 +817,7 @@ export default class MonitorResourceUtil {
         : 0;
       monitorMetric.unit = "";
       monitorMetric.attributes = {
+        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (
@@ -835,6 +846,7 @@ export default class MonitorResourceUtil {
       ).responseCode;
       monitorMetric.unit = "Status Code";
       monitorMetric.attributes = {
+        monitorName: data.monitorName.toString(),
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
         probeId: (

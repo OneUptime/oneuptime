@@ -200,6 +200,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onFullScreenClick={() => {
           setIsFullScreen(true);
         }}
+        dashboardViewConfig={dashboardViewConfig}
         onCollapseScreenClick={() => {
           setIsFullScreen(false);
         }}
@@ -218,8 +219,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         ) => {
           setStartAndEndDate(newStartAndEndDate);
         }}
-        onCancelEditClick={() => {
+        onCancelEditClick={async () => {
+          // load the dashboard view config again
           setDashboardMode(DashboardMode.View);
+          await fetchDashboardViewConfig()
         }}
         onEditClick={() => {
           setDashboardMode(DashboardMode.Edit);
