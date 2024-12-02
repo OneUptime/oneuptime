@@ -46,7 +46,6 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
         !metricViewData.startAndEndDate?.endValue
       ) {
         setIsLoading(false);
-        setError("Please select a valid start and end date.");
         return;
       }
 
@@ -60,7 +59,6 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
           .length === 0
       ) {
         setIsLoading(false);
-        setError("Please select a metric. Click here to add a metric.");
         return;
       }
 
@@ -71,9 +69,6 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
           ?.aggegationType
       ) {
         setIsLoading(false);
-        setError(
-          "Please select an Aggregation Type. Click here to add a Aggregation Type.",
-        );
         return;
       }
       setAggregationType(
@@ -149,25 +144,25 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   }
 
   const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.4;
-  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.1;
+  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.13;
 
   return (
-    <div className="w-full text-center">
+    <div className="w-full text-center h-full m-auto">
       <div
         style={{
           fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
         }}
-        className="text-center text-sm text-semibold"
+        className="text-center text-bold mb-1 truncate"
       >
-        {props.component.arguments.title || ""}
+        {props.component.arguments.title || " "}
       </div>
       <div
-        className="text-center text-lg text-semibold"
+        className="text-center text-semibold truncate"
         style={{
           fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
         }}
       >
-        {aggregatedValue || "-"}
+        {aggregatedValue || "0"}
       </div>
     </div>
   );

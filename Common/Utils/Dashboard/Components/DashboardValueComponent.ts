@@ -22,6 +22,12 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       minWidthInDashboardUnits: 1,
       arguments: {
         title: "",
+        metricQueryConfig: {
+          metricQueryData: {
+            filterData: {},
+            groupBy: undefined,
+          },
+        },
       },
     };
   }
