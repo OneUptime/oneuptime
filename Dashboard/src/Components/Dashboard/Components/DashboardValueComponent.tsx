@@ -75,12 +75,11 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
           "Please select an Aggregation Type. Click here to add a Aggregation Type.",
         );
         return;
-      } else {
-        setAggregationType(
-          (metricViewData.queryConfigs[0].metricQueryData.filterData
-            ?.aggegationType as AggregationType) || AggregationType.Avg,
-        );
       }
+      setAggregationType(
+        (metricViewData.queryConfigs[0].metricQueryData.filterData
+          ?.aggegationType as AggregationType) || AggregationType.Avg,
+      );
 
       try {
         const results: Array<AggregatedResult> = await MetricUtil.fetchResults({

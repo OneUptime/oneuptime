@@ -38,8 +38,6 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
       ComponentArgument<DashboardChartComponent>
     > = [];
 
-    
-
     componentArguments.push({
       name: "Chart Configuration",
       description: "Please select the metrics to display on the chart",

@@ -161,7 +161,6 @@ class MonitorMetricTypeUtil {
     }
   }
 
-
   public static getDescriptionByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
   ): string {

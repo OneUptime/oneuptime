@@ -125,11 +125,11 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
               MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
                 monitorMetricType,
               ),
-              legend:   
+            legend:
               MonitorMetricTypeUtil.getLegendByMonitorMetricType(
                 monitorMetricType,
               ),
-              legendUnit:
+            legendUnit:
               MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
                 monitorMetricType,
               ),

@@ -115,20 +115,23 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     heightOfChart = undefined;
   }
 
-  // add title and description. 
+  // add title and description.
 
   const chartMetricViewData: MetricViewData = {
     queryConfigs: props.component.arguments.metricQueryConfig
-      ? [{
-        ...(props.component.arguments.metricQueryConfig)!,
-        metricAliasData: {
-          title: props.component.arguments.chartTitle || undefined,
-          description: props.component.arguments.chartDescription || undefined,
-          metricVariable: undefined,
-          legend: props.component.arguments.legendText || undefined,
-          legendUnit: props.component.arguments.legendUnit || undefined,
-        }
-      }]
+      ? [
+          {
+            ...props.component.arguments.metricQueryConfig!,
+            metricAliasData: {
+              title: props.component.arguments.chartTitle || undefined,
+              description:
+                props.component.arguments.chartDescription || undefined,
+              metricVariable: undefined,
+              legend: props.component.arguments.legendText || undefined,
+              legendUnit: props.component.arguments.legendUnit || undefined,
+            },
+          },
+        ]
       : [],
     startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
