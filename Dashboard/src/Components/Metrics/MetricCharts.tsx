@@ -216,7 +216,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     return charts;
   };
 
-  return <ChartGroup charts={getCharts()} hideCard={props.hideCard}  heightInPx={props.heightInPx}/>;
+  return (
+    <ChartGroup
+      charts={getCharts()}
+      hideCard={props.hideCard}
+      heightInPx={props.heightInPx}
+    />
+  );
 };
 
 export default MetricCharts;

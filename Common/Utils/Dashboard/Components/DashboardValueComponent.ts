@@ -20,7 +20,9 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 1,
       minWidthInDashboardUnits: 1,
-      arguments: {},
+      arguments: {
+        title: ''
+      },
     };
   }
 
@@ -32,11 +34,19 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
     > = [];
 
     componentArguments.push({
-      name: "Metrics",
-      description: "Please select the metrics to display on the chart",
+      name: "Title",
+      description: "The title to display",
+      required: false,
+      type: ComponentInputType.Text,
+      id: "title",
+    });
+
+    componentArguments.push({
+      name: "Value Configuration",
+      description: "Please select the metric to display",
       required: true,
       type: ComponentInputType.MetricsQueryConfig,
-      id: "metricsViewConfig",
+      id: "metricQueryConfig",
     });
 
     return componentArguments;

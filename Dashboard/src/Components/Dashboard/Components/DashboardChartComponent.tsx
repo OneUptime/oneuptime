@@ -61,9 +61,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
       if (
         !metricViewData.queryConfigs[0] ||
-        !metricViewData.queryConfigs[0].metricQueryData.groupBy ||
-        Object.keys(metricViewData.queryConfigs[0].metricQueryData.groupBy)
-          .length === 0
+        !metricViewData.queryConfigs[0].metricQueryData.filterData ||
+        metricViewData.queryConfigs[0].metricQueryData.filterData?.aggegationType
       ) {
         setIsLoading(false);
         setError(
@@ -105,6 +104,13 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     return <ErrorMessage error={error} />;
   }
 
+  let heightOfChart: number | undefined =
+    (props.dashboardComponentHeightInPx || 0) - 100;
+
+  if (heightOfChart < 0) {
+    heightOfChart = undefined;
+  }
+
   return (
     <div>
       <MetricCharts
@@ -112,6 +118,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         metricNamesAndUnits={props.metricNameAndUnits}
         metricViewData={metricViewData}
         hideCard={true}
+        heightInPx={heightOfChart}
       />
     </div>
   );

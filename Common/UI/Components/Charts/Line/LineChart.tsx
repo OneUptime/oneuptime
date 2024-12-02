@@ -43,9 +43,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     setRecords(records);
   }, [props.data]);
 
-
   const className: string = props.heightInPx ? `` : "h-80";
-  const style: React.CSSProperties = props.heightInPx ? { height: `${props.heightInPx}px` } : {};
+  const style: React.CSSProperties = props.heightInPx
+    ? { height: `${props.heightInPx}px` }
+    : {};
 
   return (
     <LineChart

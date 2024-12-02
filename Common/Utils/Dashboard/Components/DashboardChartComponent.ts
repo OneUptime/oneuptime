@@ -13,8 +13,8 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
     return {
       _type: ObjectType.DashboardComponent,
       componentType: DashboardComponentType.Chart,
-      widthInDashboardUnits: 12,
-      heightInDashboardUnits: 6,
+      widthInDashboardUnits: 6,
+      heightInDashboardUnits: 3,
       topInDashboardUnits: 0,
       leftInDashboardUnits: 0,
       componentId: ObjectID.generate(),

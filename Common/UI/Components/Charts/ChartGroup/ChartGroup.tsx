@@ -14,7 +14,6 @@ export interface Chart {
   description?: string | undefined;
   type: ChartType;
   props: LineChartProps;
-  
 }
 
 export interface ComponentProps {
@@ -34,7 +33,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         switch (chart.type) {
           case ChartType.LINE:
             return (
-              <div key={index} className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow" }`}>
+              <div
+                key={index}
+                className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow"}`}
+              >
                 <h2
                   data-testid="card-details-heading"
                   id="card-details-heading"
@@ -50,7 +52,12 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                     {chart.description}
                   </p>
                 )}
-                <LineChart key={index} {...chart.props} syncid={syncId} heightInPx={props.heightInPx} />
+                <LineChart
+                  key={index}
+                  {...chart.props}
+                  syncid={syncId}
+                  heightInPx={props.heightInPx}
+                />
               </div>
             );
           default:
