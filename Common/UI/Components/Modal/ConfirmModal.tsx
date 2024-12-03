@@ -28,9 +28,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       submitButtonText={
         props.submitButtonText ? props.submitButtonText : "Confirm"
       }
-      closeButtonText={
-        props.closeButtonText ? props.closeButtonText : "Cancel"
-      }
+      closeButtonText={props.closeButtonText ? props.closeButtonText : "Cancel"}
       closeButtonStyleType={
         props.closeButtonType ? props.closeButtonType : ButtonStyleType.NORMAL
       }

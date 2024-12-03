@@ -123,7 +123,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Close}
                 title="Cancel"
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                onClick={()=>{
+                onClick={() => {
                   setShowCancelModal(true);
                 }}
               />
@@ -149,10 +149,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           closeButtonText={"Keep Editing"}
           onSubmit={() => {
             props.onCancelEditClick();
-            setShowCancelModal(false); 
+            setShowCancelModal(false);
           }}
           onClose={() => {
-            setShowCancelModal(false); 
+            setShowCancelModal(false);
           }}
         />
       ) : (
