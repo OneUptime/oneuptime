@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { DashboardStartAndEndDateUtil } from "../Types/DashboardStartAndEndDate";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "../../Metrics/Types/MetricViewData";
@@ -10,6 +9,9 @@ import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponent;
@@ -90,11 +92,13 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
+
+    const [metricQueryConfig, setMetricQueryConfig] = React.useState<MetricQueryConfigData | undefined>(props.component.arguments.metricQueryConfig);
+
   useEffect(() => {
     fetchAggregatedResults();
   }, [
     props.dashboardStartAndEndDate,
-    props.component.arguments.metricQueryConfig,
     props.metricNameAndUnits,
   ]);
 
@@ -102,8 +106,17 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
     fetchAggregatedResults();
   }, []);
 
+  useEffect(() => {
+
+    // set metricQueryConfig to the new value only if it is different from the previous value
+    if (JSONFunctions.isJSONObjectDifferent(metricQueryConfig || {}, props.component.arguments.metricQueryConfig || {})) {
+      setMetricQueryConfig(props.component.arguments.metricQueryConfig);
+      fetchAggregatedResults();
+    }
+  }, [props.component.arguments.metricQueryConfig]);
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <ComponentLoader  />;
   }
 
   if (error) {

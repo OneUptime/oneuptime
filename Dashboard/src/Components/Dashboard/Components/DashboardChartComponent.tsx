@@ -4,12 +4,12 @@ import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { DashboardStartAndEndDateUtil } from "../Types/DashboardStartAndEndDate";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "../../Metrics/Types/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -101,7 +101,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <ComponentLoader  />;
   }
 
   if (error) {

@@ -51,6 +51,7 @@ export const DefaultValidateFunction: DefaultValidateFunctionType = (
 export interface BaseComponentProps<T> {
   submitButtonStyleType?: ButtonStyleType | undefined;
   initialValues?: FormValues<T> | undefined;
+  values?: FormValues<T> | undefined;
   onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
   onChange?: undefined | ((values: FormValues<T>) => void);
   fields: Fields<T>;
@@ -120,6 +121,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [currentFormStepId, setCurrentFormStepId] = useState<string | null>(
       null,
     );
+
+
+    useEffect(() => {
+      if (props.values) {
+        refCurrentValue.current = props.values || {};
+      }
+    }, [props.values]);
 
     useEffect(() => {
       if (formSteps && formSteps.length > 0 && formSteps[0]) {
@@ -328,7 +336,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           formSteps.length > 0 &&
           (
             (formSteps as Array<FormStep<T>>)[
-              formSteps.length - 1
+            formSteps.length - 1
             ] as FormStep<T>
           ).id === currentFormStepId) ||
         currentFormStepId === null
@@ -543,9 +551,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${
-                  formSteps && currentFormStepId ? "w-2/3 pt-6" : "w-full pt-1"
-                }`}
+                className={`${formSteps && currentFormStepId ? "w-2/3 pt-6" : "w-full pt-1"
+                  }`}
               >
                 {props.error && (
                   <div className="mb-3">
@@ -555,9 +562,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 <div>
                   <div
-                    className={`grid md:grid-cols-${
-                      props.showAsColumns || 1
-                    } grid-cols-1 gap-4`}
+                    className={`grid md:grid-cols-${props.showAsColumns || 1
+                      } grid-cols-1 gap-4`}
                   >
                     {formFields &&
                       formFields

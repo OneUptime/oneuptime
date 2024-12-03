@@ -58,6 +58,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     props.onFormChange(component);
   }, [component]);
 
+  useEffect(() => {
+    setComponent(props.component);
+  }, [props.component]);
+
   const componentType: DashboardComponentType = component.componentType;
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
     DashboardComponentsUtil.getComponentSettingsArguments(componentType);
@@ -120,7 +124,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       <BasicForm
         hideSubmitButton={true}
         ref={formRef}
-        initialValues={{
+        values={{
           ...(component?.arguments || {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {

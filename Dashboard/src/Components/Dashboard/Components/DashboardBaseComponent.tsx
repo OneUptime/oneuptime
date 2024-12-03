@@ -374,7 +374,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           (SpaceBetweenUnitsInPx - 2) * (widthOfComponent - 1)
         }px`,
       }}
-      key={props.key}
+      key={component.componentId?.toString() || Math.random().toString()}
       ref={dashboardComponentRef}
       onClick={props.onClick}
     >
