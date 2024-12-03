@@ -11,6 +11,7 @@ export interface ComponentProps {
   submitButtonType?: undefined | ButtonType;
   isLoading?: undefined | boolean;
   disableSubmitButton?: undefined | boolean;
+  closeButtonText?: undefined | string;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -49,7 +50,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
               ? props.closeButtonStyleType
               : ButtonStyleType.NORMAL
           }
-          title={"Close"}
+          title={props.closeButtonText ? props.closeButtonText : "Cancel"}
           data-dismiss="modal"
           onClick={() => {
             props.onClose && props.onClose();

@@ -32,6 +32,7 @@ export interface ComponentProps {
   iconType?: IconType | undefined;
   modalWidth?: ModalWidth | undefined;
   rightElement?: ReactElement | undefined;
+  closeButtonText?: string | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -163,6 +164,9 @@ const Modal: FunctionComponent<ComponentProps> = (
               }
               submitButtonText={
                 props.submitButtonText ? props.submitButtonText : "Save"
+              }
+              closeButtonText={
+                props.closeButtonText ? props.closeButtonText : "Cancel"
               }
               onSubmit={props.onSubmit}
               onClose={props.onClose ? props.onClose : undefined}

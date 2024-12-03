@@ -10,6 +10,7 @@ import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
 import DashboardStartAndEndDateElement from "./DashboardStartAndEndDateEdit";
 import DashboardStartAndEndDateView from "./DashboardStartAndEndDateView";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -34,6 +35,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
     useState<DashboardStartAndEndDate | null>(null);
   const [showTimeSelectModal, setShowTimeSelectModal] =
     useState<boolean>(false);
+
+  const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
 
   return (
     <div
@@ -120,7 +123,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Close}
                 title="Cancel"
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                onClick={props.onCancelEditClick}
+                onClick={()=>{
+                  setShowCancelModal(true);
+                }}
               />
             )}
           </div>
@@ -132,6 +137,27 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
+
+      {showCancelModal ? (
+        <ConfirmModal
+          title={`Are you sure?`}
+          description={
+            "You have unsaved changes. Are you sure you want to cancel?"
+          }
+          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonText={"Discard Changes"}
+          closeButtonText={"Keep Editing"}
+          onSubmit={() => {
+            props.onCancelEditClick();
+            setShowCancelModal(false); 
+          }}
+          onClose={() => {
+            setShowCancelModal(false); 
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {showTimeSelectModal && (
         <Modal
