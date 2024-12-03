@@ -100,8 +100,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     const dashboardComponentOldTopInPx: number = topInPx;
     const dashboardComponentOldLeftInPx: number = leftInPx;
 
-    const newMoveToTop: number = mouseEvent.pageY;
-    const newMoveToLeft: number = mouseEvent.pageX;
+    const newMoveToTop: number = mouseEvent.clientY;
+    const newMoveToLeft: number = mouseEvent.clientX;
 
     const deltaXInPx: number = newMoveToLeft - dashboardComponentOldLeftInPx;
     const deltaYInPx: number = newMoveToTop - dashboardComponentOldTopInPx;
