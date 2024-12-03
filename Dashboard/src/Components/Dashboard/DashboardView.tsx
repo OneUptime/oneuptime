@@ -91,7 +91,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           modelType: Dashboard,
           id: props.dashboardId,
           data: {
-            dashboardViewConfig: dashboardViewConfig,
+            dashboardViewConfig:
+              JSONFunctions.serializeValue(dashboardViewConfig),
           },
         });
       } catch (err) {
