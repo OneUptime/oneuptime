@@ -11,6 +11,7 @@ import DashboardStartAndEndDateElement from "./DashboardStartAndEndDateEdit";
 import DashboardStartAndEndDateView from "./DashboardStartAndEndDateView";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Loader from "Common/UI/Components/Loader/Loader";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -38,6 +39,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
 
+  const isSaving = props.isSaving || true;
+
   return (
     <div
       className={`mt-1.5 mb-1.5 ml-1 mr-1 p-1 h-20 pt-5 pb-5 pl-4 pr-4 rounded bg-white border-2 border-gray-100`}
@@ -47,7 +50,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           {/* Name Component */}
           {props.dashboardName}
         </div>
-        {!props.isSaving && (
+        {!isSaving && (
           <div className="flex">
             {props.dashboardViewConfig &&
               props.dashboardViewConfig.components &&
@@ -130,10 +133,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
           </div>
         )}
-        {props.isSaving && (
+        {isSaving && (
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
-            <div className="ml-2">Saving...</div>
+            <Loader />
+            <div className="ml-2 text-sm text-gray-400">Saving...</div>
           </div>
         )}
       </div>
