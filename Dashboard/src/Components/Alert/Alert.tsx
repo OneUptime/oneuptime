@@ -20,7 +20,7 @@ const AlertElement: FunctionComponent<ComponentProps> = (
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.INCIDENT_VIEW] as Route,
+          RouteMap[PageMap.ALERT_VIEW] as Route,
           {
             modelId: new ObjectID(props.alert._id as string),
           },
