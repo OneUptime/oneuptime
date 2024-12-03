@@ -123,7 +123,6 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
   const fetchDashboardViewConfig: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -179,6 +178,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     handleResize();
   }, [dashboardMode, selectedComponentId]);
 
+
+  const dashboardCanvasRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
   if (error) {
     return <ErrorMessage error={error} />;
   }
@@ -198,14 +200,22 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       <DashboardToolbar
         dashboardMode={dashboardMode}
         onFullScreenClick={() => {
-          setIsFullScreen(true);
+          const canvasElement: HTMLDivElement | null = dashboardCanvasRef.current;
+
+          if (!canvasElement) {
+            return;
+          }
+
+          if(canvasElement.requestFullscreen){
+            canvasElement.requestFullscreen();
+
+          }else{
+            // full screen not supported by browser
+            alert("Full screen not supported by this browser. Please use a different browser.");
+          }
         }}
         dashboardViewConfig={dashboardViewConfig}
-        onCollapseScreenClick={() => {
-          setIsFullScreen(false);
-        }}
         dashboardName={dashboardName}
-        isFullScreen={isFullScreen}
         isSaving={isSaving}
         onSaveClick={() => {
           saveDashboardViewConfig().catch((err: Error) => {
@@ -259,7 +269,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newDashboardConfig);
         }}
       />
-
+      <div ref={dashboardCanvasRef}>
       <DashboardCanvas
         dashboardViewConfig={dashboardViewConfig}
         onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
@@ -281,6 +291,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           metricNameAndUnits,
         }}
       />
+      </div>
     </div>
   );
 };

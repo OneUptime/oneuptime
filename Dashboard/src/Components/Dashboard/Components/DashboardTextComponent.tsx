@@ -9,11 +9,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const textClassName: string = `m-auto truncate ${props.component.arguments.isBold ? "font-medium" : ""} ${props.component.arguments.isItalic ? "italic" : ""} ${props.component.arguments.isUnderline ? "underline" : ""}`;
-  const textHeightInxPx: number = props.dashboardComponentHeightInPx * 0.5;
+  const textClassName: string = `m-auto truncate flex flex-col justify-center h-full ${props.component.arguments.isBold ? "font-medium" : ""} ${props.component.arguments.isItalic ? "italic" : ""} ${props.component.arguments.isUnderline ? "underline" : ""}`;
+  const textHeightInxPx: number = props.dashboardComponentHeightInPx * 0.4;
 
   return (
-    <div>
+    <div className="h-full">
       <div
         className={textClassName}
         style={{

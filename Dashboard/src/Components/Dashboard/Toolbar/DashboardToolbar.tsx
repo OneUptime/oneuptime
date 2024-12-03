@@ -16,10 +16,8 @@ export interface ComponentProps {
   onSaveClick: () => void;
   onCancelEditClick: () => void;
   onFullScreenClick: () => void;
-  onCollapseScreenClick: () => void;
   dashboardMode: DashboardMode;
   onAddComponentClick: (type: DashboardComponentType) => void;
-  isFullScreen: boolean;
   isSaving: boolean;
   dashboardName: string;
   startAndEndDate: DashboardStartAndEndDate;
@@ -90,21 +88,12 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
-            {!isEditMode && !props.isFullScreen && (
+            {!isEditMode && (
               <Button
                 icon={IconProp.Expand}
                 buttonStyle={ButtonStyleType.ICON}
                 onClick={props.onFullScreenClick}
                 tooltip="Full Screen"
-              />
-            )}
-
-            {!isEditMode && props.isFullScreen && (
-              <Button
-                icon={IconProp.Collapse}
-                buttonStyle={ButtonStyleType.ICON}
-                onClick={props.onCollapseScreenClick}
-                tooltip="Collapse Screen"
               />
             )}
 
