@@ -17,7 +17,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <a
-      key={props.key}
+      key={props.key || Math.random()}
       className={`cursor-pointer group flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 ${props.className}`}
       role="menuitem"
       onClick={() => {
