@@ -39,7 +39,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
 
-  const isSaving = props.isSaving || true;
+  const isSaving: boolean = props.isSaving;
 
   return (
     <div
