@@ -178,8 +178,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     handleResize();
   }, [dashboardMode, selectedComponentId]);
 
-
-  const dashboardCanvasRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
   if (error) {
     return <ErrorMessage error={error} />;
@@ -200,18 +200,20 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       <DashboardToolbar
         dashboardMode={dashboardMode}
         onFullScreenClick={() => {
-          const canvasElement: HTMLDivElement | null = dashboardCanvasRef.current;
+          const canvasElement: HTMLDivElement | null =
+            dashboardCanvasRef.current;
 
           if (!canvasElement) {
             return;
           }
 
-          if(canvasElement.requestFullscreen){
+          if (canvasElement.requestFullscreen) {
             canvasElement.requestFullscreen();
-
-          }else{
+          } else {
             // full screen not supported by browser
-            alert("Full screen not supported by this browser. Please use a different browser.");
+            alert(
+              "Full screen not supported by this browser. Please use a different browser.",
+            );
           }
         }}
         dashboardViewConfig={dashboardViewConfig}
@@ -270,27 +272,27 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
       />
       <div ref={dashboardCanvasRef}>
-      <DashboardCanvas
-        dashboardViewConfig={dashboardViewConfig}
-        onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
-          setDashboardViewConfig(newConfig);
-        }}
-        onComponentSelected={(componentId: ObjectID) => {
-          // Do nothing
-          setSelectedComponentId(componentId);
-        }}
-        onComponentUnselected={() => {
-          setSelectedComponentId(null);
-        }}
-        dashboardStartAndEndDate={startAndEndDate}
-        selectedComponentId={selectedComponentId}
-        isEditMode={isEditMode}
-        currentTotalDashboardWidthInPx={dashboardTotalWidth}
-        metrics={{
-          telemetryAttributes,
-          metricNameAndUnits,
-        }}
-      />
+        <DashboardCanvas
+          dashboardViewConfig={dashboardViewConfig}
+          onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {
+            setDashboardViewConfig(newConfig);
+          }}
+          onComponentSelected={(componentId: ObjectID) => {
+            // Do nothing
+            setSelectedComponentId(componentId);
+          }}
+          onComponentUnselected={() => {
+            setSelectedComponentId(null);
+          }}
+          dashboardStartAndEndDate={startAndEndDate}
+          selectedComponentId={selectedComponentId}
+          isEditMode={isEditMode}
+          currentTotalDashboardWidthInPx={dashboardTotalWidth}
+          metrics={{
+            telemetryAttributes,
+            metricNameAndUnits,
+          }}
+        />
       </div>
     </div>
   );

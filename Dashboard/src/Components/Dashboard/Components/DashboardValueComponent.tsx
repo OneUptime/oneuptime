@@ -92,31 +92,33 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
-
-    const [metricQueryConfig, setMetricQueryConfig] = React.useState<MetricQueryConfigData | undefined>(props.component.arguments.metricQueryConfig);
+  const [metricQueryConfig, setMetricQueryConfig] = React.useState<
+    MetricQueryConfigData | undefined
+  >(props.component.arguments.metricQueryConfig);
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [
-    props.dashboardStartAndEndDate,
-    props.metricNameAndUnits,
-  ]);
+  }, [props.dashboardStartAndEndDate, props.metricNameAndUnits]);
 
   useEffect(() => {
     fetchAggregatedResults();
   }, []);
 
   useEffect(() => {
-
     // set metricQueryConfig to the new value only if it is different from the previous value
-    if (JSONFunctions.isJSONObjectDifferent(metricQueryConfig || {}, props.component.arguments.metricQueryConfig || {})) {
+    if (
+      JSONFunctions.isJSONObjectDifferent(
+        metricQueryConfig || {},
+        props.component.arguments.metricQueryConfig || {},
+      )
+    ) {
       setMetricQueryConfig(props.component.arguments.metricQueryConfig);
       fetchAggregatedResults();
     }
   }, [props.component.arguments.metricQueryConfig]);
 
   if (isLoading) {
-    return <ComponentLoader  />;
+    return <ComponentLoader />;
   }
 
   if (error) {

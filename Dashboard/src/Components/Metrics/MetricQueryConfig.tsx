@@ -1,7 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import MetricAlias from "./MetricAlias";
 import MetricQuery from "./MetricQuery";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import Card from "Common/UI/Components/Card/Card";
 import Button, {
   ButtonSize,
@@ -29,20 +28,13 @@ export interface ComponentProps {
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.data) {
-    throw new BadDataException("Data is required");
-  }
-
-  if (!props.data.metricQueryData) {
-    throw new BadDataException("MetricQueryData is required");
-  }
 
   const getContent: GetReactElementFunction = (): ReactElement => {
     return (
       <div>
-        {props.data.metricAliasData && (
+        {props.data?.metricAliasData && (
           <MetricAlias
-            data={props.data.metricAliasData}
+            data={props.data?.metricAliasData || {}}
             onDataChanged={(data: MetricAliasData) => {
               props.onBlur?.();
               props.onFocus?.();
@@ -52,9 +44,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             isFormula={false}
           />
         )}
-        {props.data.metricQueryData && (
+        {props.data?.metricQueryData && (
           <MetricQuery
-            data={props.data.metricQueryData}
+            data={props.data?.metricQueryData || {}}
             onDataChanged={(data: MetricQueryData) => {
               props.onBlur?.();
               props.onFocus?.();

@@ -10,6 +10,8 @@ import MetricViewData from "../../Metrics/Types/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -92,16 +94,33 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     fetchAggregatedResults();
   }, [
     props.dashboardStartAndEndDate,
-    props.component.arguments.metricQueryConfig,
     props.metricNameAndUnits,
   ]);
+
+  const [metricQueryConfig, setMetricQueryConfig] = React.useState<
+    MetricQueryConfigData | undefined
+  >(props.component.arguments.metricQueryConfig);
+
+
+  useEffect(() => {
+    // set metricQueryConfig to the new value only if it is different from the previous value
+    if (
+      JSONFunctions.isJSONObjectDifferent(
+        metricQueryConfig || {},
+        props.component.arguments.metricQueryConfig || {},
+      )
+    ) {
+      setMetricQueryConfig(props.component.arguments.metricQueryConfig);
+      fetchAggregatedResults();
+    }
+  }, [props.component.arguments.metricQueryConfig]);
 
   useEffect(() => {
     fetchAggregatedResults();
   }, []);
 
   if (isLoading) {
-    return <ComponentLoader  />;
+    return <ComponentLoader />;
   }
 
   if (error) {
@@ -120,18 +139,18 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const chartMetricViewData: MetricViewData = {
     queryConfigs: props.component.arguments.metricQueryConfig
       ? [
-          {
-            ...props.component.arguments.metricQueryConfig!,
-            metricAliasData: {
-              title: props.component.arguments.chartTitle || undefined,
-              description:
-                props.component.arguments.chartDescription || undefined,
-              metricVariable: undefined,
-              legend: props.component.arguments.legendText || undefined,
-              legendUnit: props.component.arguments.legendUnit || undefined,
-            },
+        {
+          ...props.component.arguments.metricQueryConfig!,
+          metricAliasData: {
+            title: props.component.arguments.chartTitle || undefined,
+            description:
+              props.component.arguments.chartDescription || undefined,
+            metricVariable: undefined,
+            legend: props.component.arguments.legendText || undefined,
+            legendUnit: props.component.arguments.legendUnit || undefined,
           },
-        ]
+        },
+      ]
       : [],
     startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,

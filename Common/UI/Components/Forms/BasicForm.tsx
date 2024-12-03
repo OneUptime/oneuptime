@@ -122,7 +122,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       null,
     );
 
-
     useEffect(() => {
       if (props.values) {
         refCurrentValue.current = props.values || {};
@@ -336,7 +335,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           formSteps.length > 0 &&
           (
             (formSteps as Array<FormStep<T>>)[
-            formSteps.length - 1
+              formSteps.length - 1
             ] as FormStep<T>
           ).id === currentFormStepId) ||
         currentFormStepId === null
@@ -551,8 +550,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${formSteps && currentFormStepId ? "w-2/3 pt-6" : "w-full pt-1"
-                  }`}
+                className={`${
+                  formSteps && currentFormStepId ? "w-2/3 pt-6" : "w-full pt-1"
+                }`}
               >
                 {props.error && (
                   <div className="mb-3">
@@ -562,8 +562,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 <div>
                   <div
-                    className={`grid md:grid-cols-${props.showAsColumns || 1
-                      } grid-cols-1 gap-4`}
+                    className={`grid md:grid-cols-${
+                      props.showAsColumns || 1
+                    } grid-cols-1 gap-4`}
                   >
                     {formFields &&
                       formFields
