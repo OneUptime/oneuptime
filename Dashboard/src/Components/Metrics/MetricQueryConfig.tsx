@@ -28,7 +28,6 @@ export interface ComponentProps {
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const getContent: GetReactElementFunction = (): ReactElement => {
     return (
       <div>

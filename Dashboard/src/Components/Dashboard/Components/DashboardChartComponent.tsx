@@ -92,15 +92,11 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [
-    props.dashboardStartAndEndDate,
-    props.metricNameAndUnits,
-  ]);
+  }, [props.dashboardStartAndEndDate, props.metricNameAndUnits]);
 
   const [metricQueryConfig, setMetricQueryConfig] = React.useState<
     MetricQueryConfigData | undefined
   >(props.component.arguments.metricQueryConfig);
-
 
   useEffect(() => {
     // set metricQueryConfig to the new value only if it is different from the previous value
@@ -139,18 +135,18 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const chartMetricViewData: MetricViewData = {
     queryConfigs: props.component.arguments.metricQueryConfig
       ? [
-        {
-          ...props.component.arguments.metricQueryConfig!,
-          metricAliasData: {
-            title: props.component.arguments.chartTitle || undefined,
-            description:
-              props.component.arguments.chartDescription || undefined,
-            metricVariable: undefined,
-            legend: props.component.arguments.legendText || undefined,
-            legendUnit: props.component.arguments.legendUnit || undefined,
+          {
+            ...props.component.arguments.metricQueryConfig!,
+            metricAliasData: {
+              title: props.component.arguments.chartTitle || undefined,
+              description:
+                props.component.arguments.chartDescription || undefined,
+              metricVariable: undefined,
+              legend: props.component.arguments.legendText || undefined,
+              legendUnit: props.component.arguments.legendUnit || undefined,
+            },
           },
-        },
-      ]
+        ]
       : [],
     startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,

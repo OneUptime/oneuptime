@@ -12,6 +12,7 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponent;
@@ -158,8 +159,19 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
+  // round to 2 decimal places
+  aggregatedValue = Math.round(aggregatedValue * 100) / 100;
+
   const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.4;
   const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.13;
+
+  const unit: string | undefined =
+    props.metricNameAndUnits?.find((item: MetricNameAndUnit) => {
+      return (
+        item.metricName?.toString() ===
+        props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString()
+      );
+    })?.unit || "";
 
   return (
     <div className="w-full text-center h-full m-auto">
@@ -178,6 +190,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
         }}
       >
         {aggregatedValue || "0"}
+        {unit}
       </div>
     </div>
   );
