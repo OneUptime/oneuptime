@@ -12,6 +12,8 @@ import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -120,7 +122,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <div className="m-auto flex flex-col justify-center w-full h-full">
+      <div className="h-7 w-7 text-gray-400 w-full text-center mx-auto">
+        <Icon icon={IconProp.ChartBar} />
+      </div>
+      <ErrorMessage error={error} />
+    </div>
   }
 
   let heightOfChart: number | undefined =
@@ -135,18 +142,18 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const chartMetricViewData: MetricViewData = {
     queryConfigs: props.component.arguments.metricQueryConfig
       ? [
-          {
-            ...props.component.arguments.metricQueryConfig!,
-            metricAliasData: {
-              title: props.component.arguments.chartTitle || undefined,
-              description:
-                props.component.arguments.chartDescription || undefined,
-              metricVariable: undefined,
-              legend: props.component.arguments.legendText || undefined,
-              legendUnit: props.component.arguments.legendUnit || undefined,
-            },
+        {
+          ...props.component.arguments.metricQueryConfig!,
+          metricAliasData: {
+            title: props.component.arguments.chartTitle || undefined,
+            description:
+              props.component.arguments.chartDescription || undefined,
+            metricVariable: undefined,
+            legend: props.component.arguments.legendText || undefined,
+            legendUnit: props.component.arguments.legendUnit || undefined,
           },
-        ]
+        },
+      ]
       : [],
     startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
