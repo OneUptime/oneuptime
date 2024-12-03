@@ -1392,6 +1392,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ...data,
         } as any;
 
+        logger.debug("Updated Item");
+        logger.debug(JSON.stringify(updatedItem, null, 2));
+
         await this.getRepository().save(updatedItem);
 
         // hit workflow.

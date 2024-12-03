@@ -36,7 +36,7 @@ export default class ObjectID extends DatabaseProperty {
   }
 
   public equals(other: ObjectID): boolean {
-    return this.id.toString() === other.id.toString();
+    return (this.id?.toString() || "") === (other.id?.toString() || "");
   }
 
   public override toString(): string {
