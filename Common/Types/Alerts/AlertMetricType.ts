@@ -1,6 +1,6 @@
 enum AlertMetricType {
-  TimeToAcknowledge = "oneuptime.alert.timeToAcknowledge",
-  TimeToResolve = "oneuptime.alert.timeToResolve",
+  TimeToAcknowledge = "oneuptime.alert.time-to-acknowledge",
+  TimeToResolve = "oneuptime.alert.time-to-resolve",
   AlertCount = "oneuptime.alert.count",
   AlertDuration = "oneuptime.alert.duration",
 }
