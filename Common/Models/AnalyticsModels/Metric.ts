@@ -22,6 +22,8 @@ export enum MetricPointType {
 export enum ServiceType {
   OpenTelemetry = "OpenTelemetry",
   Monitor = "Monitor",
+  Incident = "Incident",
+  Alert = "Alert",
 }
 
 export default class Metric extends AnalyticsBaseModel {
