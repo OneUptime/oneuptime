@@ -44,7 +44,6 @@ import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import logger from "../Utils/Logger";
-import { name } from "ejs";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -247,9 +246,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-        "Status was changed because incident " +
-        createdItem.id.toString() +
-        " was created.",
+          "Status was changed because incident " +
+            createdItem.id.toString() +
+            " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -284,9 +283,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -609,7 +608,7 @@ export class Service extends DatabaseService<Model> {
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-            resolvedMonitorState.id!.toString()
+              resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -722,7 +721,7 @@ export class Service extends DatabaseService<Model> {
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-      incidentStateId.toString()
+        incidentStateId.toString()
     ) {
       return;
     }
@@ -751,7 +750,9 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  public async refreshIncidentMetrics(data: { incidentId: ObjectID }): Promise<void> {
+  public async refreshIncidentMetrics(data: {
+    incidentId: ObjectID;
+  }): Promise<void> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
@@ -763,7 +764,7 @@ export class Service extends DatabaseService<Model> {
         incidentSeverity: {
           _id: true,
           name: true,
-        }
+        },
       },
       props: {
         isRoot: true,
@@ -938,7 +939,7 @@ export class Service extends DatabaseService<Model> {
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-          OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";

@@ -178,7 +178,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       alertId: createdItem.alertId,
     }).catch((error: Error) => {
       logger.error(
-        "Error while refreshing alert metrics after alert state timeline creation"
+        "Error while refreshing alert metrics after alert state timeline creation",
       );
       logger.error(error);
     });
