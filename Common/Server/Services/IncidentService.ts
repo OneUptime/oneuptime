@@ -141,7 +141,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     // store incident metric
-
   }
 
   protected override async onBeforeCreate(
