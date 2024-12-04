@@ -125,6 +125,8 @@ router.post(
         );
       }
 
+      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
+
       const traceData: JSONObject = req.body.toJSON
         ? req.body.toJSON()
         : req.body;
@@ -408,8 +410,6 @@ router.post(
       }).catch((err: Error) => {
         logger.error(err);
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -431,6 +431,8 @@ router.post(
           "Invalid request - projectId not found in request.",
         );
       }
+
+      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
@@ -687,8 +689,6 @@ router.post(
       }).catch((err: Error) => {
         logger.error(err);
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -710,6 +710,8 @@ router.post(
           "Invalid request - projectId  not found in request.",
         );
       }
+
+      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
@@ -912,8 +914,6 @@ router.post(
       }).catch((err: Error) => {
         logger.error(err);
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
