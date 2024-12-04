@@ -34,6 +34,17 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import MetricService from "./MetricService";
+import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
+import Metric, {
+  MetricPointType,
+  ServiceType,
+} from "../../Models/AnalyticsModels/Metric";
+import OneUptimeDate from "../../Types/Date";
+import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import logger from "../Utils/Logger";
+import { name } from "ejs";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -236,9 +247,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -273,9 +284,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -598,7 +609,7 @@ export class Service extends DatabaseService<Model> {
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -711,7 +722,7 @@ export class Service extends DatabaseService<Model> {
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -737,6 +748,290 @@ export class Service extends DatabaseService<Model> {
     await IncidentStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+    });
+  }
+
+  public async refreshIncidentMetrics(data: { incidentId: ObjectID }): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        projectId: true,
+        monitors: {
+          _id: true,
+          name: true,
+        },
+        incidentSeverity: {
+          _id: true,
+          name: true,
+        }
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    // get incident state timeline
+
+    const incidentStateTimelines: Array<IncidentStateTimeline> =
+      await IncidentStateTimelineService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          projectId: true,
+          incidentStateId: true,
+          incidentState: {
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const firstIncidentStateTimeline: IncidentStateTimeline | undefined =
+      incidentStateTimelines[0];
+
+    // delete all the incident metrics with this incident id because its a refresh.
+
+    await MetricService.deleteBy({
+      query: {
+        serviceId: data.incidentId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const itemsToSave: Array<Metric> = [];
+
+    // now we need to create new metrics for this incident - TimeToAcknowledge, TimeToResolve, IncidentCount, IncidentDuration
+
+    const incidentStartsAt: Date =
+      firstIncidentStateTimeline?.startsAt ||
+      incident.createdAt ||
+      OneUptimeDate.getCurrentDate();
+
+    const incidentCountMetric: Metric = new Metric();
+
+    incidentCountMetric.projectId = incident.projectId;
+    incidentCountMetric.serviceId = incident.id!;
+    incidentCountMetric.serviceType = ServiceType.Incident;
+    incidentCountMetric.name = IncidentMetricType.IncidentCount;
+    incidentCountMetric.description = "Number of incidents created";
+    incidentCountMetric.value = 1;
+    incidentCountMetric.unit = "";
+    incidentCountMetric.attributes = {
+      incidentId: data.incidentId.toString(),
+      projectId: incident.projectId.toString(),
+      monitorIds:
+        incident.monitors?.map((monitor: Monitor) => {
+          return monitor._id?.toString();
+        }) || [],
+      monitorNames:
+        incident.monitors?.map((monitor: Monitor) => {
+          return monitor.name?.toString();
+        }) || [],
+      incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+      incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+    };
+
+    incidentCountMetric.time = incidentStartsAt;
+    incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+      incidentCountMetric.time,
+    );
+    incidentCountMetric.metricPointType = MetricPointType.Sum;
+
+    itemsToSave.push(incidentCountMetric);
+
+    // is the incident acknowledged?
+    const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
+      (timeline: IncidentStateTimeline) => {
+        return timeline.incidentState?.isAcknowledgedState;
+      },
+    );
+
+    if (isIncidentAcknowledged) {
+      const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
+        incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
+          return timeline.incidentState?.isAcknowledgedState;
+        });
+
+      if (ackIncidentStateTimeline) {
+        const timeToAcknowledgeMetric: Metric = new Metric();
+
+        timeToAcknowledgeMetric.projectId = incident.projectId;
+        timeToAcknowledgeMetric.serviceId = incident.id!;
+        timeToAcknowledgeMetric.serviceType = ServiceType.Incident;
+        timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.description =
+          "Time taken to acknowledge the incident";
+        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        timeToAcknowledgeMetric.unit = "seconds";
+        timeToAcknowledgeMetric.attributes = {
+          incidentId: data.incidentId.toString(),
+          projectId: incident.projectId.toString(),
+          monitorIds:
+            incident.monitors?.map((monitor: Monitor) => {
+              return monitor._id?.toString();
+            }) || [],
+          monitorNames:
+            incident.monitors?.map((monitor: Monitor) => {
+              return monitor.name?.toString();
+            }) || [],
+          incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+          incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+        };
+
+        timeToAcknowledgeMetric.time =
+          ackIncidentStateTimeline?.startsAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToAcknowledgeMetric.time,
+        );
+        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+
+        itemsToSave.push(timeToAcknowledgeMetric);
+      }
+    }
+
+    // time to resolve
+    const isIncidentResolved: boolean = incidentStateTimelines.some(
+      (timeline: IncidentStateTimeline) => {
+        return timeline.incidentState?.isResolvedState;
+      },
+    );
+
+    if (isIncidentResolved) {
+      const resolvedIncidentStateTimeline: IncidentStateTimeline | undefined =
+        incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
+          return timeline.incidentState?.isResolvedState;
+        });
+
+      if (resolvedIncidentStateTimeline) {
+        const timeToResolveMetric: Metric = new Metric();
+
+        timeToResolveMetric.projectId = incident.projectId;
+        timeToResolveMetric.serviceId = incident.id!;
+        timeToResolveMetric.serviceType = ServiceType.Incident;
+        timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
+        timeToResolveMetric.description = "Time taken to resolve the incident";
+        timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          resolvedIncidentStateTimeline?.startsAt ||
+          OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        timeToResolveMetric.unit = "seconds";
+        timeToResolveMetric.attributes = {
+          incidentId: data.incidentId.toString(),
+          projectId: incident.projectId.toString(),
+          monitorIds:
+            incident.monitors?.map((monitor: Monitor) => {
+              return monitor._id?.toString();
+            }) || [],
+          monitorNames:
+            incident.monitors?.map((monitor: Monitor) => {
+              return monitor.name?.toString();
+            }) || [],
+          incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+          incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+        };
+
+        timeToResolveMetric.time =
+          resolvedIncidentStateTimeline?.startsAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToResolveMetric.time,
+        );
+        timeToResolveMetric.metricPointType = MetricPointType.Sum;
+
+        itemsToSave.push(timeToResolveMetric);
+      }
+    }
+
+    // incident duration
+
+    const incidentDurationMetric: Metric = new Metric();
+
+    const lastIncidentStateTimeline: IncidentStateTimeline | undefined =
+      incidentStateTimelines[incidentStateTimelines.length - 1];
+
+    if (lastIncidentStateTimeline) {
+      const incidentEndsAt: Date =
+        lastIncidentStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
+
+      // save metric.
+
+      incidentDurationMetric.projectId = incident.projectId;
+      incidentDurationMetric.serviceId = incident.id!;
+      incidentDurationMetric.serviceType = ServiceType.Incident;
+      incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
+      incidentDurationMetric.description = "Duration of the incident";
+      incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+        incidentEndsAt,
+        incidentStartsAt,
+      );
+      incidentDurationMetric.unit = "seconds";
+      incidentDurationMetric.attributes = {
+        incidentId: data.incidentId.toString(),
+        projectId: incident.projectId.toString(),
+        monitorIds:
+          incident.monitors?.map((monitor: Monitor) => {
+            return monitor._id?.toString();
+          }) || [],
+        monitorNames:
+          incident.monitors?.map((monitor: Monitor) => {
+            return monitor.name?.toString();
+          }) || [],
+        incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+        incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+      };
+
+      incidentDurationMetric.time =
+        lastIncidentStateTimeline?.startsAt ||
+        incident.createdAt ||
+        OneUptimeDate.getCurrentDate();
+      incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        incidentDurationMetric.time,
+      );
+      incidentDurationMetric.metricPointType = MetricPointType.Sum;
+    }
+
+    await MetricService.createMany({
+      items: itemsToSave,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // index attributes.
+    TelemetryUtil.indexAttributes({
+      attributes: ["monitorIds", "projectId", "incidentId", "monitorNames"],
+      projectId: incident.projectId,
+      telemetryType: TelemetryType.Metric,
+    }).catch((err: Error) => {
+      logger.error(err);
     });
   }
 }

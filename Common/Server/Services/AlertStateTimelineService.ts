@@ -18,6 +18,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
@@ -171,6 +172,15 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         currentAlertStateId: createdItem.alertStateId,
       },
       props: onCreate.createBy.props,
+    });
+
+    AlertService.refreshAlertMetrics({
+      alertId: createdItem.alertId,
+    }).catch((error: Error) => {
+      logger.error(
+        "Error while refreshing alert metrics after alert state timeline creation"
+      );
+      logger.error(error);
     });
 
     return createdItem;

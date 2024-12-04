@@ -28,6 +28,16 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import logger from "../Utils/Logger";
+import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import MetricService from "./MetricService";
+import OneUptimeDate from "../../Types/Date";
+import Metric, {
+  MetricPointType,
+  ServiceType,
+} from "../../Models/AnalyticsModels/Metric";
+import AlertMetricType from "../../Types/Alerts/AlertMetricType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -562,6 +572,266 @@ export class Service extends DatabaseService<Model> {
     await AlertStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+    });
+  }
+
+  public async refreshAlertMetrics(data: { alertId: ObjectID }): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        projectId: true,
+        monitor: {
+          _id: true,
+          name: true,
+        },
+        alertSeverity: {
+          name: true,
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found");
+    }
+
+    if (!alert.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    // get alert state timeline
+
+    const alertStateTimelines: Array<AlertStateTimeline> =
+      await AlertStateTimelineService.findBy({
+        query: {
+          alertId: data.alertId,
+        },
+        select: {
+          projectId: true,
+          alertStateId: true,
+          alertState: {
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const firstAlertStateTimeline: AlertStateTimeline | undefined =
+      alertStateTimelines[0];
+
+    // delete all the alert metrics with this alert id because its a refresh.
+
+    await MetricService.deleteBy({
+      query: {
+        serviceId: data.alertId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const itemsToSave: Array<Metric> = [];
+
+    // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
+
+    const alertStartsAt: Date =
+      firstAlertStateTimeline?.startsAt ||
+      alert.createdAt ||
+      OneUptimeDate.getCurrentDate();
+
+    const alertCountMetric: Metric = new Metric();
+
+    alertCountMetric.projectId = alert.projectId;
+    alertCountMetric.serviceId = alert.id!;
+    alertCountMetric.serviceType = ServiceType.Alert;
+    alertCountMetric.name = AlertMetricType.AlertCount;
+    alertCountMetric.description = "Number of alerts created";
+    alertCountMetric.value = 1;
+    alertCountMetric.unit = "";
+    alertCountMetric.attributes = {
+      alertId: data.alertId.toString(),
+      projectId: alert.projectId.toString(),
+      monitorId: alert.monitor?.id!.toString() || "",
+      monitorName: alert.monitor?.name!.toString() || "",
+      alertSeverityId: alert.alertSeverity?.id!.toString() || "",
+      alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+    };
+
+    alertCountMetric.time = alertStartsAt;
+    alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+      alertCountMetric.time,
+    );
+    alertCountMetric.metricPointType = MetricPointType.Sum;
+
+    itemsToSave.push(alertCountMetric);
+
+    // is the alert acknowledged?
+    const isAlertAcknowledged: boolean = alertStateTimelines.some(
+      (timeline: AlertStateTimeline) => {
+        return timeline.alertState?.isAcknowledgedState;
+      },
+    );
+
+    if (isAlertAcknowledged) {
+      const ackAlertStateTimeline: AlertStateTimeline | undefined =
+        alertStateTimelines.find((timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isAcknowledgedState;
+        });
+
+      if (ackAlertStateTimeline) {
+        const timeToAcknowledgeMetric: Metric = new Metric();
+
+        timeToAcknowledgeMetric.projectId = alert.projectId;
+        timeToAcknowledgeMetric.serviceId = alert.id!;
+        timeToAcknowledgeMetric.serviceType = ServiceType.Alert;
+        timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.description =
+          "Time taken to acknowledge the alert";
+        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+          alertStartsAt,
+        );
+        timeToAcknowledgeMetric.unit = "seconds";
+        timeToAcknowledgeMetric.attributes = {
+          alertId: data.alertId.toString(),
+          projectId: alert.projectId.toString(),
+          monitorId: alert.monitor?.id!.toString() || "",
+          monitorName: alert.monitor?.name!.toString() || "",
+          alertSeverityId: alert.alertSeverity?.id!.toString() || "",
+          alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+        };
+
+        timeToAcknowledgeMetric.time =
+          ackAlertStateTimeline?.startsAt ||
+          alert.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToAcknowledgeMetric.time,
+        );
+        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+
+        itemsToSave.push(timeToAcknowledgeMetric);
+      }
+    }
+
+    // time to resolve
+    const isAlertResolved: boolean = alertStateTimelines.some(
+      (timeline: AlertStateTimeline) => {
+        return timeline.alertState?.isResolvedState;
+      },
+    );
+
+    if (isAlertResolved) {
+      const resolvedAlertStateTimeline: AlertStateTimeline | undefined =
+        alertStateTimelines.find((timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isResolvedState;
+        });
+
+      if (resolvedAlertStateTimeline) {
+        const timeToResolveMetric: Metric = new Metric();
+
+        timeToResolveMetric.projectId = alert.projectId;
+        timeToResolveMetric.serviceId = alert.id!;
+        timeToResolveMetric.serviceType = ServiceType.Alert;
+        timeToResolveMetric.name = AlertMetricType.TimeToResolve;
+        timeToResolveMetric.description = "Time taken to resolve the alert";
+        timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          resolvedAlertStateTimeline?.startsAt ||
+            OneUptimeDate.getCurrentDate(),
+          alertStartsAt,
+        );
+        timeToResolveMetric.unit = "seconds";
+        timeToResolveMetric.attributes = {
+          alertId: data.alertId.toString(),
+          projectId: alert.projectId.toString(),
+          monitorId: alert.monitor?.id!.toString() || "",
+          monitorName: alert.monitor?.name!.toString() || "",
+          alertSeverityId: alert.alertSeverity?.id!.toString() || "",
+          alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+        };
+
+        timeToResolveMetric.time =
+          resolvedAlertStateTimeline?.startsAt ||
+          alert.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToResolveMetric.time,
+        );
+        timeToResolveMetric.metricPointType = MetricPointType.Sum;
+
+        itemsToSave.push(timeToResolveMetric);
+      }
+    }
+
+    // alert duration
+
+    const alertDurationMetric: Metric = new Metric();
+
+    const lastAlertStateTimeline: AlertStateTimeline | undefined =
+      alertStateTimelines[alertStateTimelines.length - 1];
+
+    if (lastAlertStateTimeline) {
+      const alertEndsAt: Date =
+        lastAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
+
+      // save metric.
+
+      alertDurationMetric.projectId = alert.projectId;
+      alertDurationMetric.serviceId = alert.id!;
+      alertDurationMetric.serviceType = ServiceType.Alert;
+      alertDurationMetric.name = AlertMetricType.AlertDuration;
+      alertDurationMetric.description = "Duration of the alert";
+      alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+        alertEndsAt,
+        alertStartsAt,
+      );
+      alertDurationMetric.unit = "seconds";
+      alertDurationMetric.attributes = {
+        alertId: data.alertId.toString(),
+        projectId: alert.projectId.toString(),
+        monitorId: alert.monitor?.id!.toString() || "",
+        monitorName: alert.monitor?.name!.toString() || "",
+        alertSeverityId: alert.alertSeverity?.id!.toString() || "",
+        alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+      };
+
+      alertDurationMetric.time =
+        lastAlertStateTimeline?.startsAt ||
+        alert.createdAt ||
+        OneUptimeDate.getCurrentDate();
+      alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        alertDurationMetric.time,
+      );
+      alertDurationMetric.metricPointType = MetricPointType.Sum;
+    }
+
+    await MetricService.createMany({
+      items: itemsToSave,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // index attributes.
+    TelemetryUtil.indexAttributes({
+      attributes: ["monitorId", "projectId", "alertId", "monitorNames"],
+      projectId: alert.projectId,
+      telemetryType: TelemetryType.Metric,
+    }).catch((err: Error) => {
+      logger.error(err);
     });
   }
 }

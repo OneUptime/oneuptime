@@ -24,9 +24,6 @@ export enum ServiceType {
   Monitor = "Monitor",
   Alert = "Alert",
   Incident = "Incident",
-  MonitorStatusTimeline = "MonitorStatusTimeline",
-  IncidentStateTimeline = "IncidentStateTimeline",
-  AlertStateTimeline = "AlertStateTimeline",
 }
 
 export default class Metric extends AnalyticsBaseModel {

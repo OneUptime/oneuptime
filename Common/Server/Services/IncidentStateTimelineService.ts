@@ -19,6 +19,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -226,6 +227,13 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         );
       }
     }
+
+    IncidentService.refreshIncidentMetrics({
+      incidentId: createdItem.incidentId,
+    }).catch((error: Error) => {
+      logger.error(`Error while refreshing incident metrics:`);
+      logger.error(error);
+    });
 
     return createdItem;
   }

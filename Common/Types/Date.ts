@@ -845,6 +845,18 @@ export default class OneUptimeDate {
     return minutes;
   }
 
+  public static getDifferenceInSeconds(date: Date, date2: Date): number {
+    date = this.fromString(date);
+    date2 = this.fromString(date2);
+    const seconds: number = moment(date).diff(moment(date2), "seconds");
+
+    if (seconds < 0) {
+      return seconds * -1;
+    }
+
+    return seconds;
+  }
+
   public static getDifferenceInMonths(date: Date, date2: Date): number {
     date = this.fromString(date);
     date2 = this.fromString(date2);
