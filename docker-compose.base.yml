@@ -408,6 +408,15 @@ services:
             options:
                 max-size: "1000m"
 
+    fluent-bit: 
+        networks:
+          - oneuptime
+        restart: always
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     isolated-vm:
         networks:
           - oneuptime

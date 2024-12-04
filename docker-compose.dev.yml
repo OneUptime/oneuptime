@@ -425,6 +425,21 @@ services:
             context: ./Fluentd
             dockerfile: ./Dockerfile
 
+    fluent-bit: 
+        ports:
+            - 24225:24224
+            - 24285:24284
+            - 2020:2020
+        extends:
+            file: ./docker-compose.base.yml
+            service: fluent-bit
+        volumes:
+            - ./FluentBit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml
+        build:
+            network: host
+            context: .
+            dockerfile: ./FluentBit/Dockerfile
+
     ingress:
         build:
             network: host

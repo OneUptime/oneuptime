@@ -388,17 +388,17 @@ notifications:
 
 startupProbe: # Startup probe configuration
   enabled: true
-  periodSeconds: 30
+  periodSeconds: 60
   failureThreshold: 18
 
 livenessProbe: # Liveness probe configuration
   enabled: true
-  periodSeconds: 30
+  periodSeconds: 60
   timeoutSeconds: 120
   initialDelaySeconds: 10
 
 readinessProbe: # Readiness probe configuration
   enabled: true
-  periodSeconds: 30
+  periodSeconds: 60
   initialDelaySeconds: 10
   timeoutSeconds: 120
