@@ -434,7 +434,7 @@ services:
             file: ./docker-compose.base.yml
             service: fluent-bit
         volumes:
-            - ./FluentBit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml
+            - ./FluentBit/etc:/fluent-bit/etc/
         build:
             network: host
             context: .

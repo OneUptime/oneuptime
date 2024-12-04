@@ -4,9 +4,11 @@ service:
   http_server: true
   http_listen: 0.0.0.0
   http_port: 2020
+
 pipeline:
   inputs:
     - name: random
+
   outputs:
     - name: stdout
       match: '*'
