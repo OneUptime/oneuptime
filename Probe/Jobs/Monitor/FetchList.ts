@@ -28,6 +28,14 @@ export default class FetchListAndProbe {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
+        // Sleep randomly between 1 and 5 seconds.
+        // We do this to avoid all workers hitting the server at the same time and fetching the same monitors.
+        const sleepTime: number = Math.floor(Math.random() * 5000) + 1000;
+        logger.debug(
+          `Worker ${this.workerName} is sleeping for ${sleepTime} seconds`,
+        );
+        await Sleep.sleep(Math.round(sleepTime) % 5000);
+
         const runTime: Date = OneUptimeDate.getCurrentDate();
 
         logger.debug(`Probing monitors ${this.workerName}`);
