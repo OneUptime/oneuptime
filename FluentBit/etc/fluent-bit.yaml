@@ -23,13 +23,15 @@ pipeline:
       match: '*'
     - name: opentelemetry
       match: '*'
-      host: 'otel-collector'
-      port: 4318
-      metrics_uri: '/v1/metrics'
-      logs_uri: '/v1/logs'
-      traces_uri: '/v1/traces'
+      host: 'test.oneuptime.com'
+      port: 443
+      metrics_uri: '/otlp/v1/metrics'
+      logs_uri: '/otlp/v1/logs'
+      traces_uri: '/otlp/v1/traces'
+      tls: On
+      tls.verify: Off
       header: 
-        - x-oneuptime-token aaa670e0-ac15-11ef-9e8b-0bf23dab1c65
+        - x-oneuptime-token 9ae975b0-b333-11ef-92d2-9fe012af0314
 
 
  
