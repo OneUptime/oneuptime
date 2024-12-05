@@ -25,6 +25,9 @@ pipeline:
       match: '*'
       host: 'otel-collector'
       port: 4318
+      metrics_uri: '/v1/metrics'
+      logs_uri: '/v1/logs'
+      traces_uri: '/v1/traces'
       header: 
         - x-oneuptime-token aaa670e0-ac15-11ef-9e8b-0bf23dab1c65
 
