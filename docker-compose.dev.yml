@@ -430,6 +430,7 @@ services:
             - 24225:24224
             - 24285:24284
             - 2020:2020
+            - 8889:8889
         extends:
             file: ./docker-compose.base.yml
             service: fluent-bit

@@ -88,6 +88,7 @@ class OpenTelemetryRequestMiddleware {
         }
         productType = ProductType.Traces;
       } else if (req.url.includes("/otlp/v1/logs")) {
+        debugger;
         if (isProtobuf) {
           req.body = LogsData.decode(req.body);
         }

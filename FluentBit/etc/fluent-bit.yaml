@@ -1,14 +1,22 @@
 service:
   flush: 1
   log_level: info
-  http_server: true
-  http_listen: 0.0.0.0
-  http_port: 2020
 
 pipeline:
   inputs:
-    - name: random
+    - name: http
+      listen: 0.0.0.0
+      port: 8889
 
   outputs:
     - name: stdout
       match: '*'
+    - name: opentelemetry
+      match: '*'
+      host: 'otel-collector'
+      port: 4318
+      header: 
+        - x-oneuptime-token aaa670e0-ac15-11ef-9e8b-0bf23dab1c65
+        - x-oneuptime-service-name fluent-bit
+
+

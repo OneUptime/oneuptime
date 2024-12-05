@@ -23,6 +23,8 @@ export default class TelemetryIngest {
     try {
       // check header.
 
+      debugger;
+
       let oneuptimeToken: string | undefined = req.headers[
         "x-oneuptime-token"
       ] as string | undefined;
