@@ -8,6 +8,16 @@ pipeline:
       listen: 0.0.0.0
       port: 8889
 
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            value: fluent-bit
+
   outputs:
     - name: stdout
       match: '*'
@@ -17,6 +27,6 @@ pipeline:
       port: 4318
       header: 
         - x-oneuptime-token aaa670e0-ac15-11ef-9e8b-0bf23dab1c65
-        - x-oneuptime-service-name fluent-bit
 
 
+ 

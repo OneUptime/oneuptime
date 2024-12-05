@@ -308,6 +308,7 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${WORKER_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
         logging:
             driver: "local"
             options:
