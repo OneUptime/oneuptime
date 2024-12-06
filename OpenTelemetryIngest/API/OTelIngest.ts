@@ -144,7 +144,9 @@ router.post(
         // get service name from resourceSpan attributes
 
         const serviceName: string = getServiceNameFromAttributes(
-          (resourceSpan["resource"] as JSONObject)?.["attributes"] as JSONArray || [],
+          ((resourceSpan["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -451,7 +453,9 @@ router.post(
         // get service name from resourceMetric attributes
 
         const serviceName: string = getServiceNameFromAttributes(
-          (resourceMetric["resource"] as JSONObject)?.["attributes"] as JSONArray || [],
+          ((resourceMetric["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -728,7 +732,9 @@ router.post(
         // get service name from resourceLog attributes
 
         const serviceName: string = getServiceNameFromAttributes(
-          (resourceLog["resource"] as JSONObject)?.["attributes"] as JSONArray || [],
+          ((resourceLog["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
