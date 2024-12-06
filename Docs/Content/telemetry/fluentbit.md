@@ -47,8 +47,49 @@ Once you created a token, click on "View" to view the token.
 
 ## Configuration
 
-You can use the following configuration to send the telemetry data to the OneUptime OpenTelemetry HTTP Collector. You can add this configuration to the fluentbit configuration file. The configuration file is usually located at `/etc/fluent-bit/fluent-bit.yaml`.
+You can use the following configuration to send the telemetry data to the OneUptime OpenTelemetry HTTP Collector. You can add this configuration to the fluentbit configuration file. The configuration file is usually located at `/etc/fluent-bit/fluent-bit.yaml`. Here's how an outputs section of the configuration file would look like:
 
+
+```yaml
+
+
+outputs:
+  - name: stdout
+    match: '*'
+  - name: opentelemetry
+    match: '*'
+    host: 'oneuptime.com'
+    port: 443
+    metrics_uri: '/otlp/v1/metrics'
+    logs_uri: '/otlp/v1/logs'
+    traces_uri: '/otlp/v1/traces'
+    tls: On
+    tls.verify: Off
+    header: 
+      - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+
+```
+
+Please make sure you have opentelemetry_envelope in your input section. Here's an example of how the input section would look like:
+
+```yaml
+pipeline:
+  inputs:
+      # Your inputs
+
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            # Please replace YOUR_SERVICE_NAME with the name of your service
+            value: YOUR_SERVICE_NAME
+```
+
+Here is the example complete configuration file:
 
 ```yaml
 service:
@@ -69,7 +110,6 @@ pipeline:
             context: otel_resource_attributes
             action: upsert
             key: service.name
-            # Please have your service name here
             value: YOUR_SERVICE_NAME
 
   outputs:
@@ -77,19 +117,37 @@ pipeline:
       match: '*'
     - name: opentelemetry
       match: '*'
-      host: 'oneuptime.com' # OneUptime OpenTelemetry HTTP Collector
+      host: 'oneuptime.com'
+      port: 443
       metrics_uri: '/otlp/v1/metrics'
       logs_uri: '/otlp/v1/logs'
       traces_uri: '/otlp/v1/traces'
-      port: 443
+      tls: On
+      tls.verify: Off
       header: 
-        - x-oneuptime-token YOUR_SERVICE_TOKEN
-
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```
 
 
 **If you're self hosting OneUptime**: If you're self hosting OneUptime you can replace the `host` with the host of your OneUptime instance. If you're hosting on http server and not https, you can replace the `port` with the port of your OneUptime instance (likely port 80).
 
+In this case the configuration would look like:
+
+```yaml
+outputs:
+  - name: stdout
+    match: '*'
+  - name: opentelemetry
+    match: '*'
+    host: 'your-oneuptime-instance.com'
+    port: 80
+    metrics_uri: '/otlp/v1/metrics'
+    logs_uri: '/otlp/v1/logs'
+    traces_uri: '/otlp/v1/traces'
+    header: 
+      - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
 ## Usage
 
-Once you have added the configuration to the fluentbit configuration file, you can restart the fluentd service. Once the service is restarted, the telemetry data will be sent to the OneUptime HTTP Source. You can now start seeing the telemetry data in the OneUptime dashboard. If you have any questions or need help with the configuration, please reach out to us at support@oneuptime.com
+Once you have added the configuration to the fluentbit configuration file, you can restart the fluentbit service. Once the service is restarted, the telemetry data will be sent to the OneUptime HTTP Source. You can now start seeing the telemetry data in the OneUptime dashboard. If you have any questions or need help with the configuration, please reach out to us at support@oneuptime.com
