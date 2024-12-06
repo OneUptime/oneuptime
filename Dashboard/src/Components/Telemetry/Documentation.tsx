@@ -25,6 +25,8 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
 
   const fluentdDocUrl: Route = Route.fromString("/docs/telemetry/fluentd");
 
+  const fluentBitDocUrl: Route = Route.fromString("/docs/telemetry/fluentbit"); 
+
   return (
     <Card
       title={"Documentation"}
@@ -116,6 +118,43 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
           {
             image: MoreSourcesImage,
             navigateToUrl: fluentdDocUrl,
+            title: "+ 1000 more sources",
+          },
+        ]}
+      />
+
+      <ImageTiles
+        title="Integrate with FluentBit"
+        description="OneUptime supports a native integration with FluentBit. FluentBit is an open source data collector for unified logging and telemetry layer. FluentBit allows you to unify data collection and consumption for a better use and understanding of data."
+        tiles={[
+          {
+            image: DockerImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Docker",
+          },
+          {
+            image: SyslogImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Syslog",
+          },
+          {
+            image: PostgresSQLImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "PostgresSQL",
+          },
+          {
+            image: MySQLImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "MySQL",
+          },
+          {
+            image: SystemdImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Systemd",
+          },
+          {
+            image: MoreSourcesImage,
+            navigateToUrl: fluentBitDocUrl,
             title: "+ 1000 more sources",
           },
         ]}
