@@ -23,23 +23,20 @@ export default class Semaphore {
       throw new Error("Redis client is not connected");
     }
 
+    const lockOptions: LockOptions = {};
 
-    const lockOptions: LockOptions = {
-      
-    };
-
-    if(data.lockTimeout) {
+    if (data.lockTimeout) {
       lockOptions.lockTimeout = data.lockTimeout;
     }
 
-    if(data.acquireTimeout) {
+    if (data.acquireTimeout) {
       lockOptions.acquireTimeout = data.acquireTimeout;
     }
 
     const mutex: SemaphoreMutex = new Mutex(
       client,
       data.namespace + "-" + key,
-      lockOptions
+      lockOptions,
     );
 
     await mutex.acquire();
