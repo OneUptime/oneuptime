@@ -1,5 +1,5 @@
 import Redis, { ClientType } from "./Redis";
-import { Mutex } from "redis-semaphore";
+import { Mutex, LockOptions } from "redis-semaphore";
 
 export type SemaphoreMutex = Mutex;
 
@@ -8,7 +8,8 @@ export default class Semaphore {
   public static async lock(data: {
     key: string;
     namespace: string;
-    lockTimeout?: number;
+    lockTimeout?: number | undefined;
+    acquireTimeout?: number | undefined;
   }): Promise<SemaphoreMutex> {
     if (!data.lockTimeout) {
       data.lockTimeout = 5000;
@@ -22,12 +23,20 @@ export default class Semaphore {
       throw new Error("Redis client is not connected");
     }
 
+    const lockOptions: LockOptions = {};
+
+    if (data.lockTimeout) {
+      lockOptions.lockTimeout = data.lockTimeout;
+    }
+
+    if (data.acquireTimeout) {
+      lockOptions.acquireTimeout = data.acquireTimeout;
+    }
+
     const mutex: SemaphoreMutex = new Mutex(
       client,
       data.namespace + "-" + key,
-      {
-        lockTimeout: data.lockTimeout,
-      },
+      lockOptions,
     );
 
     await mutex.acquire();
