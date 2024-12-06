@@ -25,7 +25,7 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
 
   const fluentdDocUrl: Route = Route.fromString("/docs/telemetry/fluentd");
 
-  const fluentBitDocUrl: Route = Route.fromString("/docs/telemetry/fluentbit"); 
+  const fluentBitDocUrl: Route = Route.fromString("/docs/telemetry/fluentbit");
 
   return (
     <Card

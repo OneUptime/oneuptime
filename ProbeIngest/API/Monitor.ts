@@ -330,7 +330,19 @@ router.post(
           lockTimeout: 15000,
           acquireTimeout: 20000,
         });
+        logger.debug(
+          "Mutex acquired - " +
+            probeId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
       } catch (err) {
+        logger.debug(
+          "Mutex acquire failed - " +
+            probeId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
         logger.error(err);
       }
 
@@ -413,7 +425,19 @@ router.post(
       if (mutex) {
         try {
           await Semaphore.release(mutex);
+          logger.debug(
+            "Mutex released - " +
+              probeId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString(),
+          );
         } catch (err) {
+          logger.debug(
+            "Mutex release failed - " +
+              probeId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString(),
+          );
           logger.error(err);
         }
       }
