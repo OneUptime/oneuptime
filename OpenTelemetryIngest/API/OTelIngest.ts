@@ -1,44 +1,30 @@
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
-// import OTelIngestService, {
-//   OtelAggregationTemporality,
-//   TelemetryServiceDataIngested,
-// } from "Common/Server/Services/OpenTelemetryIngestService";
-// import OneUptimeDate from "Common/Types/Date";
+import OTelIngestService, {
+  TelemetryServiceDataIngested,
+} from "Common/Server/Services/OpenTelemetryIngestService";
+import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-// import JSONFunctions from "Common/Types/JSONFunctions";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-// import Text from "Common/Types/Text";
-// import LogService from "Common/Server/Services/LogService";
-// import MetricService from "Common/Server/Services/MetricService";
-// import SpanService from "Common/Server/Services/SpanService";
-// import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import Text from "Common/Types/Text";
+import LogService from "Common/Server/Services/LogService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-// import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-// import Log from "Common/Models/AnalyticsModels/Log";
-// import Metric, {
-//   MetricPointType,
-//   ServiceType,
-// } from "Common/Models/AnalyticsModels/Metric";
-// import Span, {
-//   SpanEventType,
-//   SpanKind,
-//   SpanStatus,
-// } from "Common/Models/AnalyticsModels/Span";
+import Log from "Common/Models/AnalyticsModels/Log";
+
 import protobuf from "protobufjs";
-// import Dictionary from "Common/Types/Dictionary";
-// import ObjectID from "Common/Types/ObjectID";
-// import LogSeverity from "Common/Types/Log/LogSeverity";
-// import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-// import ExceptionUtil from "../Utils/Exception";
-// import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
+import LogSeverity from "Common/Types/Log/LogSeverity";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 
 // Load proto file for OTel
 
@@ -116,7 +102,7 @@ router.post(
     res: ExpressResponse,
     // next: NextFunction,
   ): Promise<void> => {
-    return Response.sendEmptySuccessResponse(req, res);
+    Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
 
     // try {
     //   if (!(req as TelemetryRequest).projectId) {
@@ -397,21 +383,21 @@ router.post(
     //     },
     //   });
 
-    //   // TelemetryUtil.indexAttributes({
-    //   //   attributes: ArrayUtil.removeDuplicates(attributes),
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   telemetryType: TelemetryType.Trace,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
+    // TelemetryUtil.indexAttributes({
+    //   attributes: ArrayUtil.removeDuplicates(attributes),
+    //   projectId: (req as TelemetryRequest).projectId,
+    //   telemetryType: TelemetryType.Trace,
+    // }).catch((err: Error) => {
+    //   logger.error(err);
+    // });
 
-    //   // OTelIngestService.recordDataIngestedUsgaeBilling({
-    //   //   services: serviceDictionary,
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   productType: ProductType.Traces,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
+    // OTelIngestService.recordDataIngestedUsgaeBilling({
+    //   services: serviceDictionary,
+    //   projectId: (req as TelemetryRequest).projectId,
+    //   productType: ProductType.Traces,
+    // }).catch((err: Error) => {
+    //   logger.error(err);
+    // });
     // } catch (err) {
     //   return next(err);
     // }
@@ -708,247 +694,246 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    // next: NextFunction,
+    next: NextFunction,
   ): Promise<void> => {
-    return Response.sendEmptySuccessResponse(req, res);
-    // try {
-    //   if (!(req as TelemetryRequest).projectId) {
-    //     throw new BadRequestException(
-    //       "Invalid request - projectId  not found in request.",
-    //     );
-    //   }
+    try {
+      if (!(req as TelemetryRequest).projectId) {
+        throw new BadRequestException(
+          "Invalid request - projectId  not found in request.",
+        );
+      }
 
-    //   Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
+      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
 
-    //   req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+      req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-    //   const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
+      const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
-    //   const dbLogs: Array<Log> = [];
+      const dbLogs: Array<Log> = [];
 
-    //   let attributes: string[] = [];
+      let attributes: string[] = [];
 
-    //   const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
-    //   for (const resourceLog of resourceLogs) {
-    //     // get service name from resourceLog attributes
+      for (const resourceLog of resourceLogs) {
+        // get service name from resourceLog attributes
 
-    //     const serviceName: string = getServiceNameFromAttributes(
-    //       ((resourceLog["resource"] as JSONObject)?.[
-    //         "attributes"
-    //       ] as JSONArray) || [],
-    //     );
+        const serviceName: string = getServiceNameFromAttributes(
+          ((resourceLog["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
+        );
 
-    //     if (!serviceDictionary[serviceName]) {
-    //       const service: {
-    //         serviceId: ObjectID;
-    //         dataRententionInDays: number;
-    //       } = await OTelIngestService.telemetryServiceFromName({
-    //         serviceName: serviceName,
-    //         projectId: (req as TelemetryRequest).projectId,
-    //       });
+        if (!serviceDictionary[serviceName]) {
+          const service: {
+            serviceId: ObjectID;
+            dataRententionInDays: number;
+          } = await OTelIngestService.telemetryServiceFromName({
+            serviceName: serviceName,
+            projectId: (req as TelemetryRequest).projectId,
+          });
 
-    //       serviceDictionary[serviceName] = {
-    //         serviceName: serviceName,
-    //         serviceId: service.serviceId,
-    //         dataRententionInDays: service.dataRententionInDays,
-    //         dataIngestedInGB: 0,
-    //       };
-    //     }
+          serviceDictionary[serviceName] = {
+            serviceName: serviceName,
+            serviceId: service.serviceId,
+            dataRententionInDays: service.dataRententionInDays,
+            dataIngestedInGB: 0,
+          };
+        }
 
-    //     // size of req.body in bytes.
-    //     const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
-    //     serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+        // size of req.body in bytes.
+        const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
+        serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
-    //     const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
+        const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
 
-    //     for (const scopeLog of scopeLogs) {
-    //       const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
+        for (const scopeLog of scopeLogs) {
+          const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
 
-    //       for (const log of logRecords) {
-    //         const dbLog: Log = new Log();
+          for (const log of logRecords) {
+            const dbLog: Log = new Log();
 
-    //         /*
-    //                     Example:
+            /*
+                        Example:
 
-    //                     {
-    //                         "timeUnixNano":"1698069643739368000",
-    //                         "severityNumber":"SEVERITY_NUMBER_INFO",
-    //                         "severityText":"Information",
-    //                         "body":{
-    //                             "stringValue":"Application is shutting down..."
-    //                         },
-    //                         "traceId":"",
-    //                         "spanId":"",
-    //                         "observedTimeUnixNano":"1698069643739368000"
-    //                     }
-    //                     */
+                        {
+                            "timeUnixNano":"1698069643739368000",
+                            "severityNumber":"SEVERITY_NUMBER_INFO",
+                            "severityText":"Information",
+                            "body":{
+                                "stringValue":"Application is shutting down..."
+                            },
+                            "traceId":"",
+                            "spanId":"",
+                            "observedTimeUnixNano":"1698069643739368000"
+                        }
+                        */
 
-    //         //attributes
+            //attributes
 
-    //         let attributesObject: JSONObject = {};
+            let attributesObject: JSONObject = {};
 
-    //         if (
-    //           resourceLog["resource"] &&
-    //           (resourceLog["resource"] as JSONObject)["attributes"] &&
-    //           (
-    //             (resourceLog["resource"] as JSONObject)[
-    //               "attributes"
-    //             ] as JSONArray
-    //           ).length > 0
-    //         ) {
-    //           attributesObject = {
-    //             ...attributesObject,
-    //             resource: TelemetryUtil.getAttributes({
-    //               items: (resourceLog["resource"] as JSONObject)[
-    //                 "attributes"
-    //               ] as JSONArray,
-    //               telemetryServiceName: serviceName,
-    //               telemetryServiceId:
-    //                 serviceDictionary[serviceName]!.serviceId!,
-    //             }),
-    //           };
-    //         }
+            if (
+              resourceLog["resource"] &&
+              (resourceLog["resource"] as JSONObject)["attributes"] &&
+              (
+                (resourceLog["resource"] as JSONObject)[
+                  "attributes"
+                ] as JSONArray
+              ).length > 0
+            ) {
+              attributesObject = {
+                ...attributesObject,
+                resource: TelemetryUtil.getAttributes({
+                  items: (resourceLog["resource"] as JSONObject)[
+                    "attributes"
+                  ] as JSONArray,
+                  telemetryServiceName: serviceName,
+                  telemetryServiceId:
+                    serviceDictionary[serviceName]!.serviceId!,
+                }),
+              };
+            }
 
-    //         if (
-    //           scopeLog["scope"] &&
-    //           Object.keys(scopeLog["scope"]).length > 0
-    //         ) {
-    //           attributesObject = {
-    //             ...attributesObject,
-    //             scope: (scopeLog["scope"] as JSONObject) || {},
-    //           };
-    //         }
+            if (
+              scopeLog["scope"] &&
+              Object.keys(scopeLog["scope"]).length > 0
+            ) {
+              attributesObject = {
+                ...attributesObject,
+                scope: (scopeLog["scope"] as JSONObject) || {},
+              };
+            }
 
-    //         dbLog.attributes = {
-    //           ...attributesObject,
-    //           ...TelemetryUtil.getAttributes({
-    //             items: log["attributes"] as JSONArray,
-    //             telemetryServiceName: serviceName,
-    //             telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
-    //           }),
-    //         };
+            dbLog.attributes = {
+              ...attributesObject,
+              ...TelemetryUtil.getAttributes({
+                items: log["attributes"] as JSONArray,
+                telemetryServiceName: serviceName,
+                telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+              }),
+            };
 
-    //         dbLog.projectId = (req as TelemetryRequest).projectId;
-    //         dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
+            dbLog.projectId = (req as TelemetryRequest).projectId;
+            dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-    //         dbLog.timeUnixNano = log["timeUnixNano"] as number;
-    //         dbLog.time = OneUptimeDate.fromUnixNano(
-    //           log["timeUnixNano"] as number,
-    //         );
+            dbLog.timeUnixNano = log["timeUnixNano"] as number;
+            dbLog.time = OneUptimeDate.fromUnixNano(
+              log["timeUnixNano"] as number,
+            );
 
-    //         let logSeverityNumber: number =
-    //           (log["severityNumber"] as number) || 0; // 0 is Unspecified by default.
+            let logSeverityNumber: number =
+              (log["severityNumber"] as number) || 0; // 0 is Unspecified by default.
 
-    //         if (typeof logSeverityNumber === "string") {
-    //           if (logSeverityNumber === "SEVERITY_NUMBER_TRACE") {
-    //             logSeverityNumber = 1;
-    //           } else if (logSeverityNumber === "SEVERITY_NUMBER_DEBUG") {
-    //             logSeverityNumber = 5;
-    //           } else if (logSeverityNumber === "SEVERITY_NUMBER_INFO") {
-    //             logSeverityNumber = 9;
-    //           } else if (logSeverityNumber === "SEVERITY_NUMBER_WARN") {
-    //             logSeverityNumber = 13;
-    //           } else if (logSeverityNumber === "SEVERITY_NUMBER_ERROR") {
-    //             logSeverityNumber = 17;
-    //           } else if (logSeverityNumber === "SEVERITY_NUMBER_FATAL") {
-    //             logSeverityNumber = 21;
-    //           } else {
-    //             logSeverityNumber = parseInt(logSeverityNumber);
-    //           }
-    //         }
+            if (typeof logSeverityNumber === "string") {
+              if (logSeverityNumber === "SEVERITY_NUMBER_TRACE") {
+                logSeverityNumber = 1;
+              } else if (logSeverityNumber === "SEVERITY_NUMBER_DEBUG") {
+                logSeverityNumber = 5;
+              } else if (logSeverityNumber === "SEVERITY_NUMBER_INFO") {
+                logSeverityNumber = 9;
+              } else if (logSeverityNumber === "SEVERITY_NUMBER_WARN") {
+                logSeverityNumber = 13;
+              } else if (logSeverityNumber === "SEVERITY_NUMBER_ERROR") {
+                logSeverityNumber = 17;
+              } else if (logSeverityNumber === "SEVERITY_NUMBER_FATAL") {
+                logSeverityNumber = 21;
+              } else {
+                logSeverityNumber = parseInt(logSeverityNumber);
+              }
+            }
 
-    //         dbLog.severityNumber = logSeverityNumber;
+            dbLog.severityNumber = logSeverityNumber;
 
-    //         let logSeverity: LogSeverity = LogSeverity.Unspecified;
+            let logSeverity: LogSeverity = LogSeverity.Unspecified;
 
-    //         // these numbers are from the opentelemetry/api-logs package
-    //         if (logSeverityNumber < 0 || logSeverityNumber > 24) {
-    //           logSeverity = LogSeverity.Unspecified;
-    //           logSeverityNumber = 0;
-    //         } else if (logSeverityNumber >= 1 && logSeverityNumber <= 4) {
-    //           logSeverity = LogSeverity.Trace;
-    //         } else if (logSeverityNumber >= 5 && logSeverityNumber <= 8) {
-    //           logSeverity = LogSeverity.Debug;
-    //         } else if (logSeverityNumber >= 9 && logSeverityNumber <= 12) {
-    //           logSeverity = LogSeverity.Information;
-    //         } else if (logSeverityNumber >= 13 && logSeverityNumber <= 16) {
-    //           logSeverity = LogSeverity.Warning;
-    //         } else if (logSeverityNumber >= 17 && logSeverityNumber <= 20) {
-    //           logSeverity = LogSeverity.Error;
-    //         } else if (logSeverityNumber >= 21 && logSeverityNumber <= 24) {
-    //           logSeverity = LogSeverity.Fatal;
-    //         }
+            // these numbers are from the opentelemetry/api-logs package
+            if (logSeverityNumber < 0 || logSeverityNumber > 24) {
+              logSeverity = LogSeverity.Unspecified;
+              logSeverityNumber = 0;
+            } else if (logSeverityNumber >= 1 && logSeverityNumber <= 4) {
+              logSeverity = LogSeverity.Trace;
+            } else if (logSeverityNumber >= 5 && logSeverityNumber <= 8) {
+              logSeverity = LogSeverity.Debug;
+            } else if (logSeverityNumber >= 9 && logSeverityNumber <= 12) {
+              logSeverity = LogSeverity.Information;
+            } else if (logSeverityNumber >= 13 && logSeverityNumber <= 16) {
+              logSeverity = LogSeverity.Warning;
+            } else if (logSeverityNumber >= 17 && logSeverityNumber <= 20) {
+              logSeverity = LogSeverity.Error;
+            } else if (logSeverityNumber >= 21 && logSeverityNumber <= 24) {
+              logSeverity = LogSeverity.Fatal;
+            }
 
-    //         dbLog.severityText = logSeverity;
+            dbLog.severityText = logSeverity;
 
-    //         const logBody: JSONObject = log["body"] as JSONObject;
+            const logBody: JSONObject = log["body"] as JSONObject;
 
-    //         dbLog.body = logBody["stringValue"] as string;
+            dbLog.body = logBody["stringValue"] as string;
 
-    //         dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
-    //         dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
+            dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
+            dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
 
-    //         dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
+            dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
 
-    //         attributes = [
-    //           ...attributes,
-    //           ...Object.keys(dbLog.attributes || {}),
-    //         ];
+            attributes = [
+              ...attributes,
+              ...Object.keys(dbLog.attributes || {}),
+            ];
 
-    //         dbLogs.push(dbLog);
-    //       }
-    //     }
-    //   }
+            dbLogs.push(dbLog);
+          }
+        }
+      }
 
-    //   await LogService.createMany({
-    //     items: dbLogs,
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
+      await LogService.createMany({
+        items: dbLogs,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    //   // TelemetryUtil.indexAttributes({
-    //   //   attributes: ArrayUtil.removeDuplicates(attributes),
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   telemetryType: TelemetryType.Log,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
+      // TelemetryUtil.indexAttributes({
+      //   attributes: ArrayUtil.removeDuplicates(attributes),
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   telemetryType: TelemetryType.Log,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
 
-    //   // OTelIngestService.recordDataIngestedUsgaeBilling({
-    //   //   services: serviceDictionary,
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   productType: ProductType.Logs,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
-    // } catch (err) {
-    //   return next(err);
-    // }
+      // OTelIngestService.recordDataIngestedUsgaeBilling({
+      //   services: serviceDictionary,
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   productType: ProductType.Logs,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
-// type GetServiceNameFromAttributesFunction = (attributes: JSONArray) => string;
+type GetServiceNameFromAttributesFunction = (attributes: JSONArray) => string;
 
-// const getServiceNameFromAttributes: GetServiceNameFromAttributesFunction = (
-//   attributes: JSONArray,
-// ): string => {
-//   for (const attribute of attributes) {
-//     if (
-//       attribute["key"] === "service.name" &&
-//       attribute["value"] &&
-//       (attribute["value"] as JSONObject)["stringValue"]
-//     ) {
-//       if (
-//         typeof (attribute["value"] as JSONObject)["stringValue"] === "string"
-//       ) {
-//         return (attribute["value"] as JSONObject)["stringValue"] as string;
-//       }
-//     }
-//   }
+const getServiceNameFromAttributes: GetServiceNameFromAttributesFunction = (
+  attributes: JSONArray,
+): string => {
+  for (const attribute of attributes) {
+    if (
+      attribute["key"] === "service.name" &&
+      attribute["value"] &&
+      (attribute["value"] as JSONObject)["stringValue"]
+    ) {
+      if (
+        typeof (attribute["value"] as JSONObject)["stringValue"] === "string"
+      ) {
+        return (attribute["value"] as JSONObject)["stringValue"] as string;
+      }
+    }
+  }
 
-//   return "Unknown Service";
-// };
+  return "Unknown Service";
+};
 
 export default router;
