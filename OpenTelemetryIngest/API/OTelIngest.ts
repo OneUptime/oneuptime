@@ -703,8 +703,6 @@ router.post(
         );
       }
 
-      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
-
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
@@ -908,6 +906,8 @@ router.post(
       // }).catch((err: Error) => {
       //   logger.error(err);
       // });
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
