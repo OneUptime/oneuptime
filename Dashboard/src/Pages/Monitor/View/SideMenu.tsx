@@ -37,7 +37,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
-        {MonitorTypeHelper.doesMonitorTypeHaveMetrics(props.monitorType) ? (
+        {MonitorTypeHelper.doesMonitorTypeHaveGraphs(props.monitorType) ? (
           <SideMenuItem
             link={{
               title: "Metrics",
