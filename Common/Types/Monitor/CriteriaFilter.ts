@@ -38,6 +38,10 @@ export enum CheckOn {
 
   // Trace monitors.
   SpanCount = "Span Count",
+
+  // Metric Monitors. 
+  MetricValue = "Metric Value",
+
 }
 
 export interface ServerMonitorOptions {

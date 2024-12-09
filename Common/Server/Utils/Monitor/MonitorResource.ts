@@ -55,6 +55,7 @@ import Metric, {
 import MetricService from "../../Services/MetricService";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import TelemetryUtil from "../Telemetry/Telemetry";
+import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -1264,6 +1265,19 @@ export default class MonitorResourceUtil {
       // check server monitor
       const logMonitorResult: string | null =
         await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (logMonitorResult) {
+        return logMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Metrics) {
+      // check server monitor
+      const logMonitorResult: string | null =
+        await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
         });
