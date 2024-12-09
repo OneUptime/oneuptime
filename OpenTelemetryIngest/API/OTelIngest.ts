@@ -2,6 +2,7 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import OTelIngestService, {
+  OtelAggregationTemporality,
   TelemetryServiceDataIngested,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
@@ -25,6 +26,23 @@ import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Span, {
+  SpanEventType,
+  SpanKind,
+  SpanStatus,
+} from "Common/Models/AnalyticsModels/Span";
+import ExceptionUtil from "../Utils/Exception";
+import ArrayUtil from "Common/Utils/Array";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import logger from "Common/Server/Utils/Logger";
+import Metric, {
+  MetricPointType,
+  ServiceType,
+} from "Common/Models/AnalyticsModels/Metric";
+import MetricService from "Common/Server/Services/MetricService";
+import SpanService from "Common/Server/Services/SpanService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 
 // Load proto file for OTel
 
@@ -100,307 +118,305 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    // next: NextFunction,
+    next: NextFunction,
   ): Promise<void> => {
-    Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
+    try {
+      if (!(req as TelemetryRequest).projectId) {
+        throw new BadRequestException(
+          "Invalid request - projectId not found in request.",
+        );
+      }
 
-    // try {
-    //   if (!(req as TelemetryRequest).projectId) {
-    //     throw new BadRequestException(
-    //       "Invalid request - projectId not found in request.",
-    //     );
-    //   }
+      const traceData: JSONObject = req.body.toJSON
+        ? req.body.toJSON()
+        : req.body;
+      const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
 
-    //   Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
+      const dbSpans: Array<Span> = [];
+      const dbExceptions: Array<ExceptionInstance> = [];
 
-    //   const traceData: JSONObject = req.body.toJSON
-    //     ? req.body.toJSON()
-    //     : req.body;
-    //   const resourceSpans: JSONArray = traceData["resourceSpans"] as JSONArray;
+      let attributes: string[] = [];
 
-    //   const dbSpans: Array<Span> = [];
-    //   const dbExceptions: Array<ExceptionInstance> = [];
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
-    //   let attributes: string[] = [];
+      for (const resourceSpan of resourceSpans) {
+        // get service name from resourceSpan attributes
 
-    //   const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+        const serviceName: string = getServiceNameFromAttributes(
+          ((resourceSpan["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
+        );
 
-    //   for (const resourceSpan of resourceSpans) {
-    //     // get service name from resourceSpan attributes
+        if (!serviceDictionary[serviceName]) {
+          const service: {
+            serviceId: ObjectID;
+            dataRententionInDays: number;
+          } = await OTelIngestService.telemetryServiceFromName({
+            serviceName: serviceName,
+            projectId: (req as TelemetryRequest).projectId,
+          });
 
-    //     const serviceName: string = getServiceNameFromAttributes(
-    //       ((resourceSpan["resource"] as JSONObject)?.[
-    //         "attributes"
-    //       ] as JSONArray) || [],
-    //     );
+          serviceDictionary[serviceName] = {
+            serviceName: serviceName,
+            serviceId: service.serviceId,
+            dataRententionInDays: service.dataRententionInDays,
+            dataIngestedInGB: 0,
+          };
+        }
 
-    //     if (!serviceDictionary[serviceName]) {
-    //       const service: {
-    //         serviceId: ObjectID;
-    //         dataRententionInDays: number;
-    //       } = await OTelIngestService.telemetryServiceFromName({
-    //         serviceName: serviceName,
-    //         projectId: (req as TelemetryRequest).projectId,
-    //       });
+        // size of req.body in bytes.
+        const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceSpan);
+        serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
-    //       serviceDictionary[serviceName] = {
-    //         serviceName: serviceName,
-    //         serviceId: service.serviceId,
-    //         dataRententionInDays: service.dataRententionInDays,
-    //         dataIngestedInGB: 0,
-    //       };
-    //     }
+        const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
 
-    //     // size of req.body in bytes.
-    //     const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceSpan);
-    //     serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+        for (const scopeSpan of scopeSpans) {
+          const spans: JSONArray = scopeSpan["spans"] as JSONArray;
 
-    //     const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
+          for (const span of spans) {
+            const dbSpan: Span = new Span();
 
-    //     for (const scopeSpan of scopeSpans) {
-    //       const spans: JSONArray = scopeSpan["spans"] as JSONArray;
+            // attrbibutes
+            const attributesObject: JSONObject = {};
 
-    //       for (const span of spans) {
-    //         const dbSpan: Span = new Span();
+            if (
+              resourceSpan["resource"] &&
+              (resourceSpan["resource"] as JSONObject)["attributes"] &&
+              (
+                (resourceSpan["resource"] as JSONObject)[
+                  "attributes"
+                ] as JSONArray
+              ).length > 0
+            ) {
+              attributesObject["resource"] = TelemetryUtil.getAttributes({
+                items: (resourceSpan["resource"] as JSONObject)[
+                  "attributes"
+                ] as JSONArray,
+                telemetryServiceName: serviceName,
+                telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+              });
+            }
 
-    //         // attrbibutes
-    //         const attributesObject: JSONObject = {};
+            // scope attributes
 
-    //         if (
-    //           resourceSpan["resource"] &&
-    //           (resourceSpan["resource"] as JSONObject)["attributes"] &&
-    //           (
-    //             (resourceSpan["resource"] as JSONObject)[
-    //               "attributes"
-    //             ] as JSONArray
-    //           ).length > 0
-    //         ) {
-    //           attributesObject["resource"] = TelemetryUtil.getAttributes({
-    //             items: (resourceSpan["resource"] as JSONObject)[
-    //               "attributes"
-    //             ] as JSONArray,
-    //             telemetryServiceName: serviceName,
-    //             telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
-    //           });
-    //         }
+            if (
+              scopeSpan["scope"] &&
+              Object.keys(scopeSpan["scope"]).length > 0
+            ) {
+              attributesObject["scope"] = scopeSpan["scope"] as JSONObject;
+            }
 
-    //         // scope attributes
+            dbSpan.attributes = {
+              ...attributesObject,
+              ...TelemetryUtil.getAttributes({
+                items: span["attributes"] as JSONArray,
+                telemetryServiceName: serviceName,
+                telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+              }),
+            };
 
-    //         if (
-    //           scopeSpan["scope"] &&
-    //           Object.keys(scopeSpan["scope"]).length > 0
-    //         ) {
-    //           attributesObject["scope"] = scopeSpan["scope"] as JSONObject;
-    //         }
+            dbSpan.projectId = (req as TelemetryRequest).projectId;
+            dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-    //         dbSpan.attributes = {
-    //           ...attributesObject,
-    //           ...TelemetryUtil.getAttributes({
-    //             items: span["attributes"] as JSONArray,
-    //             telemetryServiceName: serviceName,
-    //             telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
-    //           }),
-    //         };
+            dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
+            dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
+            dbSpan.parentSpanId = Text.convertBase64ToHex(
+              span["parentSpanId"] as string,
+            );
+            dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
+            dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
 
-    //         dbSpan.projectId = (req as TelemetryRequest).projectId;
-    //         dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
+            let spanStatusCode: SpanStatus = SpanStatus.Unset;
 
-    //         dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
-    //         dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
-    //         dbSpan.parentSpanId = Text.convertBase64ToHex(
-    //           span["parentSpanId"] as string,
-    //         );
-    //         dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
-    //         dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
+            if (
+              span["status"] &&
+              (span["status"] as JSONObject)?.["code"] &&
+              typeof (span["status"] as JSONObject)?.["code"] === "number"
+            ) {
+              spanStatusCode = (span["status"] as JSONObject)?.[
+                "code"
+              ] as number;
+            }
 
-    //         let spanStatusCode: SpanStatus = SpanStatus.Unset;
+            if (
+              span["status"] &&
+              (span["status"] as JSONObject)?.["code"] &&
+              typeof (span["status"] as JSONObject)?.["code"] === "string"
+            ) {
+              if (
+                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_UNSET"
+              ) {
+                spanStatusCode = SpanStatus.Unset;
+              } else if (
+                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_OK"
+              ) {
+                spanStatusCode = SpanStatus.Ok;
+              } else if (
+                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_ERROR"
+              ) {
+                spanStatusCode = SpanStatus.Error;
+              }
+            }
 
-    //         if (
-    //           span["status"] &&
-    //           (span["status"] as JSONObject)?.["code"] &&
-    //           typeof (span["status"] as JSONObject)?.["code"] === "number"
-    //         ) {
-    //           spanStatusCode = (span["status"] as JSONObject)?.[
-    //             "code"
-    //           ] as number;
-    //         }
+            dbSpan.statusCode = spanStatusCode;
 
-    //         if (
-    //           span["status"] &&
-    //           (span["status"] as JSONObject)?.["code"] &&
-    //           typeof (span["status"] as JSONObject)?.["code"] === "string"
-    //         ) {
-    //           if (
-    //             (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_UNSET"
-    //           ) {
-    //             spanStatusCode = SpanStatus.Unset;
-    //           } else if (
-    //             (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_OK"
-    //           ) {
-    //             spanStatusCode = SpanStatus.Ok;
-    //           } else if (
-    //             (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_ERROR"
-    //           ) {
-    //             spanStatusCode = SpanStatus.Error;
-    //           }
-    //         }
+            dbSpan.statusMessage = (span["status"] as JSONObject)?.[
+              "message"
+            ] as string;
 
-    //         dbSpan.statusCode = spanStatusCode;
+            dbSpan.startTime = OneUptimeDate.fromUnixNano(
+              span["startTimeUnixNano"] as number,
+            );
 
-    //         dbSpan.statusMessage = (span["status"] as JSONObject)?.[
-    //           "message"
-    //         ] as string;
+            dbSpan.endTime = OneUptimeDate.fromUnixNano(
+              span["endTimeUnixNano"] as number,
+            );
 
-    //         dbSpan.startTime = OneUptimeDate.fromUnixNano(
-    //           span["startTimeUnixNano"] as number,
-    //         );
+            dbSpan.durationUnixNano =
+              (span["endTimeUnixNano"] as number) -
+              (span["startTimeUnixNano"] as number);
 
-    //         dbSpan.endTime = OneUptimeDate.fromUnixNano(
-    //           span["endTimeUnixNano"] as number,
-    //         );
+            dbSpan.name = span["name"] as string;
+            dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
 
-    //         dbSpan.durationUnixNano =
-    //           (span["endTimeUnixNano"] as number) -
-    //           (span["startTimeUnixNano"] as number);
+            // add events
 
-    //         dbSpan.name = span["name"] as string;
-    //         dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
+            if (span["events"] && span["events"] instanceof Array) {
+              dbSpan.events = [];
 
-    //         // add events
+              for (const event of span["events"] as JSONArray) {
+                const eventTimeUnixNano: number = event[
+                  "timeUnixNano"
+                ] as number;
+                const eventTime: Date =
+                  OneUptimeDate.fromUnixNano(eventTimeUnixNano);
 
-    //         if (span["events"] && span["events"] instanceof Array) {
-    //           dbSpan.events = [];
+                const eventAttributes: JSONObject = TelemetryUtil.getAttributes(
+                  {
+                    items: event["attributes"] as JSONArray,
+                    telemetryServiceName: serviceName,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                  },
+                );
 
-    //           for (const event of span["events"] as JSONArray) {
-    //             const eventTimeUnixNano: number = event[
-    //               "timeUnixNano"
-    //             ] as number;
-    //             const eventTime: Date =
-    //               OneUptimeDate.fromUnixNano(eventTimeUnixNano);
+                dbSpan.events.push({
+                  time: eventTime,
+                  timeUnixNano: eventTimeUnixNano,
+                  name: event["name"] as string,
+                  attributes: eventAttributes,
+                });
 
-    //             const eventAttributes: JSONObject = TelemetryUtil.getAttributes(
-    //               {
-    //                 items: event["attributes"] as JSONArray,
-    //                 telemetryServiceName: serviceName,
-    //                 telemetryServiceId:
-    //                   serviceDictionary[serviceName]!.serviceId!,
-    //               },
-    //             );
+                if (event["name"] === SpanEventType.Exception) {
+                  // add exception object.
+                  const exception: ExceptionInstance = new ExceptionInstance();
+                  exception.projectId = dbSpan.projectId;
+                  exception.serviceId = dbSpan.serviceId;
+                  exception.spanId = dbSpan.spanId;
+                  exception.traceId = dbSpan.traceId;
+                  exception.time = eventTime;
+                  exception.timeUnixNano = eventTimeUnixNano;
+                  exception.spanStatusCode = dbSpan.statusCode;
+                  exception.spanName = dbSpan.name;
+                  exception.message =
+                    (eventAttributes["exception.message"] as string) || "";
+                  exception.stackTrace =
+                    (eventAttributes["exception.stacktrace"] as string) || "";
+                  exception.exceptionType =
+                    (eventAttributes["exception.type"] as string) || "";
+                  exception.escaped =
+                    (eventAttributes["exception.escaped"] as boolean) || false;
+                  const exceptionAttributes: JSONObject = {
+                    ...eventAttributes,
+                  };
 
-    //             dbSpan.events.push({
-    //               time: eventTime,
-    //               timeUnixNano: eventTimeUnixNano,
-    //               name: event["name"] as string,
-    //               attributes: eventAttributes,
-    //             });
+                  for (const keys of Object.keys(exceptionAttributes)) {
+                    // delete all keys that start with exception to avoid duplicate keys because we already saved it.
+                    if (keys.startsWith("exception.")) {
+                      delete exceptionAttributes[keys];
+                    }
+                  }
 
-    //             if (event["name"] === SpanEventType.Exception) {
-    //               // add exception object.
-    //               const exception: ExceptionInstance = new ExceptionInstance();
-    //               exception.projectId = dbSpan.projectId;
-    //               exception.serviceId = dbSpan.serviceId;
-    //               exception.spanId = dbSpan.spanId;
-    //               exception.traceId = dbSpan.traceId;
-    //               exception.time = eventTime;
-    //               exception.timeUnixNano = eventTimeUnixNano;
-    //               exception.spanStatusCode = dbSpan.statusCode;
-    //               exception.spanName = dbSpan.name;
-    //               exception.message =
-    //                 (eventAttributes["exception.message"] as string) || "";
-    //               exception.stackTrace =
-    //                 (eventAttributes["exception.stacktrace"] as string) || "";
-    //               exception.exceptionType =
-    //                 (eventAttributes["exception.type"] as string) || "";
-    //               exception.escaped =
-    //                 (eventAttributes["exception.escaped"] as boolean) || false;
-    //               const exceptionAttributes: JSONObject = {
-    //                 ...eventAttributes,
-    //               };
+                  exception.attributes = exceptionAttributes;
+                  exception.fingerprint =
+                    ExceptionUtil.getFingerprint(exception);
 
-    //               for (const keys of Object.keys(exceptionAttributes)) {
-    //                 // delete all keys that start with exception to avoid duplicate keys because we already saved it.
-    //                 if (keys.startsWith("exception.")) {
-    //                   delete exceptionAttributes[keys];
-    //                 }
-    //               }
+                  // add exception to dbExceptions
+                  dbExceptions.push(exception);
 
-    //               exception.attributes = exceptionAttributes;
-    //               exception.fingerprint =
-    //                 ExceptionUtil.getFingerprint(exception);
+                  // save exception status
+                  // maybe this can be improved instead of doing a lot of db calls.
+                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
+                }
+              }
+            }
 
-    //               // add exception to dbExceptions
-    //               dbExceptions.push(exception);
+            // add links
 
-    //               // save exception status
-    //               // maybe this can be improved instead of doing a lot of db calls.
-    //               await ExceptionUtil.saveOrUpdateTelemetryException(exception);
-    //             }
-    //           }
-    //         }
+            if (span["links"] && span["links"] instanceof Array) {
+              dbSpan.links = [];
 
-    //         // add links
+              for (const link of span["links"] as JSONArray) {
+                dbSpan.links.push({
+                  traceId: Text.convertBase64ToHex(link["traceId"] as string),
+                  spanId: Text.convertBase64ToHex(link["spanId"] as string),
+                  attributes: TelemetryUtil.getAttributes({
+                    items: link["attributes"] as JSONArray,
+                    telemetryServiceName: serviceName,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                  }),
+                });
+              }
+            }
 
-    //         if (span["links"] && span["links"] instanceof Array) {
-    //           dbSpan.links = [];
+            dbSpan.attributes = JSONFunctions.flattenObject(dbSpan.attributes);
 
-    //           for (const link of span["links"] as JSONArray) {
-    //             dbSpan.links.push({
-    //               traceId: Text.convertBase64ToHex(link["traceId"] as string),
-    //               spanId: Text.convertBase64ToHex(link["spanId"] as string),
-    //               attributes: TelemetryUtil.getAttributes({
-    //                 items: link["attributes"] as JSONArray,
-    //                 telemetryServiceName: serviceName,
-    //                 telemetryServiceId:
-    //                   serviceDictionary[serviceName]!.serviceId!,
-    //               }),
-    //             });
-    //           }
-    //         }
+            attributes = [
+              ...attributes,
+              ...Object.keys(dbSpan.attributes || {}),
+            ];
 
-    //         dbSpan.attributes = JSONFunctions.flattenObject(dbSpan.attributes);
+            dbSpans.push(dbSpan);
+          }
+        }
+      }
 
-    //         attributes = [
-    //           ...attributes,
-    //           ...Object.keys(dbSpan.attributes || {}),
-    //         ];
+      await SpanService.createMany({
+        items: dbSpans,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    //         dbSpans.push(dbSpan);
-    //       }
-    //     }
-    //   }
+      await ExceptionInstanceService.createMany({
+        items: dbExceptions,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    //   await SpanService.createMany({
-    //     items: dbSpans,
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
+      TelemetryUtil.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Trace,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
 
-    //   await ExceptionInstanceService.createMany({
-    //     items: dbExceptions,
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
+      OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Traces,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
+    } catch (err) {
+      return next(err);
+    }
 
-    // TelemetryUtil.indexAttributes({
-    //   attributes: ArrayUtil.removeDuplicates(attributes),
-    //   projectId: (req as TelemetryRequest).projectId,
-    //   telemetryType: TelemetryType.Trace,
-    // }).catch((err: Error) => {
-    //   logger.error(err);
-    // });
-
-    // OTelIngestService.recordDataIngestedUsgaeBilling({
-    //   services: serviceDictionary,
-    //   projectId: (req as TelemetryRequest).projectId,
-    //   productType: ProductType.Traces,
-    // }).catch((err: Error) => {
-    //   logger.error(err);
-    // });
-    // } catch (err) {
-    //   return next(err);
-    // }
+    return Response.sendEmptySuccessResponse(req, res);
   },
 );
 
@@ -411,279 +427,277 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    // next: NextFunction,
+    next: NextFunction,
   ): Promise<void> => {
-    return Response.sendEmptySuccessResponse(req, res);
+    try {
+      if (!(req as TelemetryRequest).projectId) {
+        throw new BadRequestException(
+          "Invalid request - projectId not found in request.",
+        );
+      }
 
-    // try {
-    //   if (!(req as TelemetryRequest).projectId) {
-    //     throw new BadRequestException(
-    //       "Invalid request - projectId not found in request.",
-    //     );
-    //   }
+      req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-    //   Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
+      const resourceMetrics: JSONArray = req.body[
+        "resourceMetrics"
+      ] as JSONArray;
 
-    //   req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+      const dbMetrics: Array<Metric> = new Array<Metric>();
 
-    //   const resourceMetrics: JSONArray = req.body[
-    //     "resourceMetrics"
-    //   ] as JSONArray;
+      let attributes: string[] = [];
 
-    //   const dbMetrics: Array<Metric> = new Array<Metric>();
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
-    //   let attributes: string[] = [];
+      for (const resourceMetric of resourceMetrics) {
+        // get service name from resourceMetric attributes
 
-    //   const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+        const serviceName: string = getServiceNameFromAttributes(
+          ((resourceMetric["resource"] as JSONObject)?.[
+            "attributes"
+          ] as JSONArray) || [],
+        );
 
-    //   for (const resourceMetric of resourceMetrics) {
-    //     // get service name from resourceMetric attributes
+        if (!serviceDictionary[serviceName]) {
+          const service: {
+            serviceId: ObjectID;
+            dataRententionInDays: number;
+          } = await OTelIngestService.telemetryServiceFromName({
+            serviceName: serviceName,
+            projectId: (req as TelemetryRequest).projectId,
+          });
 
-    //     const serviceName: string = getServiceNameFromAttributes(
-    //       ((resourceMetric["resource"] as JSONObject)?.[
-    //         "attributes"
-    //       ] as JSONArray) || [],
-    //     );
+          serviceDictionary[serviceName] = {
+            serviceName: serviceName,
+            serviceId: service.serviceId,
+            dataRententionInDays: service.dataRententionInDays,
+            dataIngestedInGB: 0,
+          };
+        }
 
-    //     if (!serviceDictionary[serviceName]) {
-    //       const service: {
-    //         serviceId: ObjectID;
-    //         dataRententionInDays: number;
-    //       } = await OTelIngestService.telemetryServiceFromName({
-    //         serviceName: serviceName,
-    //         projectId: (req as TelemetryRequest).projectId,
-    //       });
+        // size of req.body in bytes.
+        const sizeInGb: number =
+          JSONFunctions.getSizeOfJSONinGB(resourceMetric);
 
-    //       serviceDictionary[serviceName] = {
-    //         serviceName: serviceName,
-    //         serviceId: service.serviceId,
-    //         dataRententionInDays: service.dataRententionInDays,
-    //         dataIngestedInGB: 0,
-    //       };
-    //     }
+        serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
-    //     // size of req.body in bytes.
-    //     const sizeInGb: number =
-    //       JSONFunctions.getSizeOfJSONinGB(resourceMetric);
+        const scopeMetrics: JSONArray = resourceMetric[
+          "scopeMetrics"
+        ] as JSONArray;
 
-    //     serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+        for (const scopeMetric of scopeMetrics) {
+          const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
 
-    //     const scopeMetrics: JSONArray = resourceMetric[
-    //       "scopeMetrics"
-    //     ] as JSONArray;
+          for (const metric of metrics) {
+            const metricName: string = metric["name"] as string;
+            const metricDescription: string = metric["description"] as string;
 
-    //     for (const scopeMetric of scopeMetrics) {
-    //       const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
+            const metricUnit: string = metric["unit"] as string;
 
-    //       for (const metric of metrics) {
-    //         const metricName: string = metric["name"] as string;
-    //         const metricDescription: string = metric["description"] as string;
+            const dbMetric: Metric = new Metric();
 
-    //         const metricUnit: string = metric["unit"] as string;
+            dbMetric.projectId = (req as TelemetryRequest).projectId;
+            dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-    //         const dbMetric: Metric = new Metric();
+            dbMetric.serviceType = ServiceType.OpenTelemetry; // OpenTelemetry
 
-    //         dbMetric.projectId = (req as TelemetryRequest).projectId;
-    //         dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
+            dbMetric.name = metricName;
+            dbMetric.description = metricDescription;
 
-    //         dbMetric.serviceType = ServiceType.OpenTelemetry; // OpenTelemetry
+            if (metricUnit) {
+              dbMetric.unit = metricUnit;
+            }
 
-    //         dbMetric.name = metricName;
-    //         dbMetric.description = metricDescription;
+            let attributesObject: JSONObject = {};
 
-    //         if (metricUnit) {
-    //           dbMetric.unit = metricUnit;
-    //         }
+            if (
+              metric["attributes"] &&
+              metric["attributes"] instanceof Array &&
+              metric["attributes"].length > 0
+            ) {
+              attributesObject = {
+                ...TelemetryUtil.getAttributes({
+                  items: metric["attributes"] as JSONArray,
+                  telemetryServiceName: serviceName,
+                  telemetryServiceId:
+                    serviceDictionary[serviceName]!.serviceId!,
+                }),
+              };
+            }
 
-    //         let attributesObject: JSONObject = {};
+            if (
+              resourceMetric["resource"] &&
+              (resourceMetric["resource"] as JSONObject)["attributes"] &&
+              ((resourceMetric["resource"] as JSONObject)[
+                "attributes"
+              ] as JSONArray) instanceof Array &&
+              (
+                (resourceMetric["resource"] as JSONObject)[
+                  "attributes"
+                ] as JSONArray
+              ).length > 0
+            ) {
+              attributesObject = {
+                ...attributesObject,
+                resource: TelemetryUtil.getAttributes({
+                  items: (resourceMetric["resource"] as JSONObject)[
+                    "attributes"
+                  ] as JSONArray,
+                  telemetryServiceName: serviceName,
+                  telemetryServiceId:
+                    serviceDictionary[serviceName]!.serviceId!,
+                }),
+              };
+            }
 
-    //         if (
-    //           metric["attributes"] &&
-    //           metric["attributes"] instanceof Array &&
-    //           metric["attributes"].length > 0
-    //         ) {
-    //           attributesObject = {
-    //             ...TelemetryUtil.getAttributes({
-    //               items: metric["attributes"] as JSONArray,
-    //               telemetryServiceName: serviceName,
-    //               telemetryServiceId:
-    //                 serviceDictionary[serviceName]!.serviceId!,
-    //             }),
-    //           };
-    //         }
+            if (
+              scopeMetric["scope"] &&
+              Object.keys(scopeMetric["scope"]).length > 0
+            ) {
+              attributesObject = {
+                ...attributesObject,
+                scope: (scopeMetric["scope"] as JSONObject) || {},
+              };
+            }
 
-    //         if (
-    //           resourceMetric["resource"] &&
-    //           (resourceMetric["resource"] as JSONObject)["attributes"] &&
-    //           ((resourceMetric["resource"] as JSONObject)[
-    //             "attributes"
-    //           ] as JSONArray) instanceof Array &&
-    //           (
-    //             (resourceMetric["resource"] as JSONObject)[
-    //               "attributes"
-    //             ] as JSONArray
-    //           ).length > 0
-    //         ) {
-    //           attributesObject = {
-    //             ...attributesObject,
-    //             resource: TelemetryUtil.getAttributes({
-    //               items: (resourceMetric["resource"] as JSONObject)[
-    //                 "attributes"
-    //               ] as JSONArray,
-    //               telemetryServiceName: serviceName,
-    //               telemetryServiceId:
-    //                 serviceDictionary[serviceName]!.serviceId!,
-    //             }),
-    //           };
-    //         }
+            // add attributes
+            dbMetric.attributes = attributesObject;
 
-    //         if (
-    //           scopeMetric["scope"] &&
-    //           Object.keys(scopeMetric["scope"]).length > 0
-    //         ) {
-    //           attributesObject = {
-    //             ...attributesObject,
-    //             scope: (scopeMetric["scope"] as JSONObject) || {},
-    //           };
-    //         }
+            if (
+              metric["sum"] &&
+              (metric["sum"] as JSONObject)["dataPoints"] &&
+              ((metric["sum"] as JSONObject)["dataPoints"] as JSONArray)
+                .length > 0
+            ) {
+              for (const datapoint of (metric["sum"] as JSONObject)[
+                "dataPoints"
+              ] as JSONArray) {
+                const sumMetric: Metric =
+                  OTelIngestService.getMetricFromDatapoint({
+                    dbMetric: dbMetric,
+                    datapoint: datapoint,
+                    aggregationTemporality: (metric["sum"] as JSONObject)[
+                      "aggregationTemporality"
+                    ] as OtelAggregationTemporality,
+                    isMonotonic: (metric["sum"] as JSONObject)[
+                      "isMonotonic"
+                    ] as boolean | undefined,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                    telemetryServiceName: serviceName,
+                  });
 
-    //         // add attributes
-    //         dbMetric.attributes = attributesObject;
+                sumMetric.metricPointType = MetricPointType.Sum;
 
-    //         if (
-    //           metric["sum"] &&
-    //           (metric["sum"] as JSONObject)["dataPoints"] &&
-    //           ((metric["sum"] as JSONObject)["dataPoints"] as JSONArray)
-    //             .length > 0
-    //         ) {
-    //           for (const datapoint of (metric["sum"] as JSONObject)[
-    //             "dataPoints"
-    //           ] as JSONArray) {
-    //             const sumMetric: Metric =
-    //               OTelIngestService.getMetricFromDatapoint({
-    //                 dbMetric: dbMetric,
-    //                 datapoint: datapoint,
-    //                 aggregationTemporality: (metric["sum"] as JSONObject)[
-    //                   "aggregationTemporality"
-    //                 ] as OtelAggregationTemporality,
-    //                 isMonotonic: (metric["sum"] as JSONObject)[
-    //                   "isMonotonic"
-    //                 ] as boolean | undefined,
-    //                 telemetryServiceId:
-    //                   serviceDictionary[serviceName]!.serviceId!,
-    //                 telemetryServiceName: serviceName,
-    //               });
+                sumMetric.attributes = JSONFunctions.flattenObject(
+                  sumMetric.attributes || {},
+                );
 
-    //             sumMetric.metricPointType = MetricPointType.Sum;
+                dbMetrics.push(sumMetric);
+              }
+            } else if (
+              metric["gauge"] &&
+              (metric["gauge"] as JSONObject)["dataPoints"] &&
+              ((metric["gauge"] as JSONObject)["dataPoints"] as JSONArray)
+                .length > 0
+            ) {
+              for (const datapoint of (metric["gauge"] as JSONObject)[
+                "dataPoints"
+              ] as JSONArray) {
+                const guageMetric: Metric =
+                  OTelIngestService.getMetricFromDatapoint({
+                    dbMetric: dbMetric,
+                    datapoint: datapoint,
+                    aggregationTemporality: (metric["gauge"] as JSONObject)[
+                      "aggregationTemporality"
+                    ] as OtelAggregationTemporality,
+                    isMonotonic: (metric["gauge"] as JSONObject)[
+                      "isMonotonic"
+                    ] as boolean | undefined,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                    telemetryServiceName: serviceName,
+                  });
 
-    //             sumMetric.attributes = JSONFunctions.flattenObject(
-    //               sumMetric.attributes || {},
-    //             );
+                guageMetric.metricPointType = MetricPointType.Gauge;
 
-    //             dbMetrics.push(sumMetric);
-    //           }
-    //         } else if (
-    //           metric["gauge"] &&
-    //           (metric["gauge"] as JSONObject)["dataPoints"] &&
-    //           ((metric["gauge"] as JSONObject)["dataPoints"] as JSONArray)
-    //             .length > 0
-    //         ) {
-    //           for (const datapoint of (metric["gauge"] as JSONObject)[
-    //             "dataPoints"
-    //           ] as JSONArray) {
-    //             const guageMetric: Metric =
-    //               OTelIngestService.getMetricFromDatapoint({
-    //                 dbMetric: dbMetric,
-    //                 datapoint: datapoint,
-    //                 aggregationTemporality: (metric["gauge"] as JSONObject)[
-    //                   "aggregationTemporality"
-    //                 ] as OtelAggregationTemporality,
-    //                 isMonotonic: (metric["gauge"] as JSONObject)[
-    //                   "isMonotonic"
-    //                 ] as boolean | undefined,
-    //                 telemetryServiceId:
-    //                   serviceDictionary[serviceName]!.serviceId!,
-    //                 telemetryServiceName: serviceName,
-    //               });
+                guageMetric.attributes = JSONFunctions.flattenObject(
+                  guageMetric.attributes || {},
+                );
 
-    //             guageMetric.metricPointType = MetricPointType.Gauge;
+                dbMetrics.push(guageMetric);
+              }
+            } else if (
+              metric["histogram"] &&
+              (metric["histogram"] as JSONObject)["dataPoints"] &&
+              ((metric["histogram"] as JSONObject)["dataPoints"] as JSONArray)
+                .length > 0
+            ) {
+              for (const datapoint of (metric["histogram"] as JSONObject)[
+                "dataPoints"
+              ] as JSONArray) {
+                const histogramMetric: Metric =
+                  OTelIngestService.getMetricFromDatapoint({
+                    dbMetric: dbMetric,
+                    datapoint: datapoint,
+                    aggregationTemporality: (metric["histogram"] as JSONObject)[
+                      "aggregationTemporality"
+                    ] as OtelAggregationTemporality,
+                    isMonotonic: (metric["histogram"] as JSONObject)[
+                      "isMonotonic"
+                    ] as boolean | undefined,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                    telemetryServiceName: serviceName,
+                  });
 
-    //             guageMetric.attributes = JSONFunctions.flattenObject(
-    //               guageMetric.attributes || {},
-    //             );
+                histogramMetric.metricPointType = MetricPointType.Histogram;
 
-    //             dbMetrics.push(guageMetric);
-    //           }
-    //         } else if (
-    //           metric["histogram"] &&
-    //           (metric["histogram"] as JSONObject)["dataPoints"] &&
-    //           ((metric["histogram"] as JSONObject)["dataPoints"] as JSONArray)
-    //             .length > 0
-    //         ) {
-    //           for (const datapoint of (metric["histogram"] as JSONObject)[
-    //             "dataPoints"
-    //           ] as JSONArray) {
-    //             const histogramMetric: Metric =
-    //               OTelIngestService.getMetricFromDatapoint({
-    //                 dbMetric: dbMetric,
-    //                 datapoint: datapoint,
-    //                 aggregationTemporality: (metric["histogram"] as JSONObject)[
-    //                   "aggregationTemporality"
-    //                 ] as OtelAggregationTemporality,
-    //                 isMonotonic: (metric["histogram"] as JSONObject)[
-    //                   "isMonotonic"
-    //                 ] as boolean | undefined,
-    //                 telemetryServiceId:
-    //                   serviceDictionary[serviceName]!.serviceId!,
-    //                 telemetryServiceName: serviceName,
-    //               });
+                histogramMetric.attributes = JSONFunctions.flattenObject(
+                  histogramMetric.attributes || {},
+                );
 
-    //             histogramMetric.metricPointType = MetricPointType.Histogram;
+                attributes = [
+                  ...attributes,
+                  ...Object.keys(histogramMetric.attributes || {}),
+                ];
 
-    //             histogramMetric.attributes = JSONFunctions.flattenObject(
-    //               histogramMetric.attributes || {},
-    //             );
+                dbMetrics.push(histogramMetric);
+              }
+            } else {
+              logger.warn("Unknown metric type");
+              logger.warn(metric);
+            }
+          }
+        }
+      }
 
-    //             attributes = [
-    //               ...attributes,
-    //               ...Object.keys(histogramMetric.attributes || {}),
-    //             ];
+      await MetricService.createMany({
+        items: dbMetrics,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    //             dbMetrics.push(histogramMetric);
-    //           }
-    //         } else {
-    //           logger.warn("Unknown metric type");
-    //           logger.warn(metric);
-    //         }
-    //       }
-    //     }
-    //   }
+      TelemetryUtil.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Metric,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
 
-    //   await MetricService.createMany({
-    //     items: dbMetrics,
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
+      OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Metrics,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
 
-    //   // TelemetryUtil.indexAttributes({
-    //   //   attributes: ArrayUtil.removeDuplicates(attributes),
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   telemetryType: TelemetryType.Metric,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
-
-    //   // OTelIngestService.recordDataIngestedUsgaeBilling({
-    //   //   services: serviceDictionary,
-    //   //   projectId: (req as TelemetryRequest).projectId,
-    //   //   productType: ProductType.Metrics,
-    //   // }).catch((err: Error) => {
-    //   //   logger.error(err);
-    //   // });
-    // } catch (err) {
-    //   return next(err);
-    // }
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
@@ -702,8 +716,6 @@ router.post(
           "Invalid request - projectId  not found in request.",
         );
       }
-
-      Response.sendEmptySuccessResponse(req, res); // send empty response to client early to avoid timeouts.
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
@@ -893,23 +905,23 @@ router.post(
         },
       });
 
-      // TelemetryUtil.indexAttributes({
-      //   attributes: ArrayUtil.removeDuplicates(attributes),
-      //   projectId: (req as TelemetryRequest).projectId,
-      //   telemetryType: TelemetryType.Log,
-      // }).catch((err: Error) => {
-      //   logger.error(err);
-      // });
+      TelemetryUtil.indexAttributes({
+        attributes: ArrayUtil.removeDuplicates(attributes),
+        projectId: (req as TelemetryRequest).projectId,
+        telemetryType: TelemetryType.Log,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
 
-      // OTelIngestService.recordDataIngestedUsgaeBilling({
-      //   services: serviceDictionary,
-      //   projectId: (req as TelemetryRequest).projectId,
-      //   productType: ProductType.Logs,
-      // }).catch((err: Error) => {
-      //   logger.error(err);
-      // });
+      OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Logs,
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
 
-      // return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
