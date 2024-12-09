@@ -7,7 +7,6 @@ import TelemetryIngest, {
 // } from "Common/Server/Services/OpenTelemetryIngestService";
 // import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
 // import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 // import Text from "Common/Types/Text";
@@ -117,7 +116,6 @@ router.post(
     res: ExpressResponse,
     // next: NextFunction,
   ): Promise<void> => {
-
     return Response.sendEmptySuccessResponse(req, res);
 
     // try {
@@ -429,9 +427,8 @@ router.post(
     res: ExpressResponse,
     // next: NextFunction,
   ): Promise<void> => {
-
     return Response.sendEmptySuccessResponse(req, res);
-    
+
     // try {
     //   if (!(req as TelemetryRequest).projectId) {
     //     throw new BadRequestException(
@@ -713,7 +710,6 @@ router.post(
     res: ExpressResponse,
     // next: NextFunction,
   ): Promise<void> => {
-
     return Response.sendEmptySuccessResponse(req, res);
     // try {
     //   if (!(req as TelemetryRequest).projectId) {
@@ -773,7 +769,7 @@ router.post(
     //         const dbLog: Log = new Log();
 
     //         /*
-    //                     Example: 
+    //                     Example:
 
     //                     {
     //                         "timeUnixNano":"1698069643739368000",
