@@ -193,6 +193,7 @@ probes:
     description: "Probe"
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    monitorRetryLimit: 3
     key:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
