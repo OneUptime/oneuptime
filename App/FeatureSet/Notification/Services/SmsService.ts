@@ -37,58 +37,52 @@ export default class SmsService {
     const smsLog: SmsLog = new SmsLog();
 
     try {
-      // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
+      // Calculate the number of SMS segments, each SMS can contain 160 characters.
       const smsSegments: number = Math.ceil(message.length / 160);
 
+      // Trim unnecessary lines from the message
       message = Text.trimLines(message);
 
       let smsCost: number = 0;
 
+      // Determine if billing is enabled and no custom Twilio config is used
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
       if (shouldChargeForSMS) {
         smsCost = SMSDefaultCostInCents / 100;
 
+        // Check if the phone number is high-risk, adjust cost accordingly
         if (isHighRiskPhoneNumber(to)) {
           smsCost = SMSHighRiskCostInCents / 100;
         }
       }
 
+      // Multiply cost by the number of message segments if it exceeds one
       if (smsSegments > 1) {
         smsCost = smsCost * smsSegments;
-      }
-
-      smsLog.toNumber = to;
-
-      smsLog.smsText =
-        options && options.isSensitive
-          ? "This message is sensitive and is not logged"
-          : message;
-      smsLog.smsCostInUSDCents = 0;
-
-      if (options.projectId) {
-        smsLog.projectId = options.projectId;
       }
 
       const twilioConfig: TwilioConfig | null =
         options.customTwilioConfig || (await getTwilioConfig());
 
+      // Check if Twilio configuration is available
       if (!twilioConfig) {
         throw new BadDataException("Twilio Config not found");
       }
 
+      // Initialize Twilio client with account credentials
       const client: Twilio.Twilio = Twilio(
         twilioConfig.accountSid,
         twilioConfig.authToken,
       );
 
+      // Set the sender phone number in the SMS log
       smsLog.fromNumber = twilioConfig.phoneNumber;
 
       let project: Project | null = null;
 
-      // make sure project has enough balance.
-
+      // Ensure the project has sufficient balance for SMS notifications
       if (options.projectId) {
         project = await ProjectService.findOneById({
           id: options.projectId,
@@ -104,6 +98,7 @@ export default class SmsService {
           },
         });
 
+        // Check if the specified project exists
         if (!project) {
           smsLog.status = SmsStatus.Error;
           smsLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
@@ -114,20 +109,28 @@ export default class SmsService {
               isRoot: true,
             },
           });
-          return;
+          return; // Exit if project not found
         }
 
+        // Verify if SMS notifications are enabled for the project
         if (!project.enableSmsNotifications) {
           smsLog.status = SmsStatus.Error;
+
           smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
+
           logger.error(smsLog.statusMessage);
+
+          // Create an SMS log entry in the database
           await SmsLogService.create({
             data: smsLog,
             props: {
               isRoot: true,
             },
           });
+
+          // Check if the notification about disabled SMS has not been sent to project owners
           if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
+            // Update the project to indicate the notification has been sent
             await ProjectService.updateOneById({
               data: {
                 notEnabledSmsOrCallNotificationSentToOwners: true,
@@ -137,17 +140,21 @@ export default class SmsService {
                 isRoot: true,
               },
             });
+
+            // Send an email to project owners notifying them that SMS notifications are not enabled
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "SMS notifications not enabled for " + (project.name || ""),
               `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
             );
           }
+
           return;
         }
 
+        // Check if SMS sending should incur a charge
         if (shouldChargeForSMS) {
-          // check if auto recharge is enabled and current balance is low.
+          // Initialize updated balance with the current SMS or call balance
           let updatedBalance: number =
             project.smsOrCallCurrentBalanceInUSDCents!;
           try {
@@ -155,15 +162,22 @@ export default class SmsService {
               project.id!,
             );
           } catch (err) {
+            // Log an error if recharging fails
             logger.error(err);
           }
 
+          // Update the project's current balance with the new balance
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
+          // Check if the updated balance is zero or undefined
           if (!project.smsOrCallCurrentBalanceInUSDCents) {
+            // Set the SMS log status to indicate low balance
             smsLog.status = SmsStatus.LowBalance;
+            // Log an error message indicating insufficient balance
             smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
             logger.error(smsLog.statusMessage);
+
+            // Create a log entry for the low balance situation
             await SmsLogService.create({
               data: smsLog,
               props: {
@@ -171,7 +185,9 @@ export default class SmsService {
               },
             });
 
+            // Check if a low balance notification has been sent to project owners
             if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
+              // Update the project to reflect that the notification has been sent
               await ProjectService.updateOneById({
                 data: {
                   lowCallAndSMSBalanceNotificationSentToOwners: true,
@@ -181,9 +197,12 @@ export default class SmsService {
                   isRoot: true,
                 },
               });
+
+              // Send an email to project owners about the low balance
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
+
                 `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${message} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
                   (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
                 } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`,
@@ -250,6 +269,7 @@ export default class SmsService {
           data: {
             smsOrCallCurrentBalanceInUSDCents:
               project.smsOrCallCurrentBalanceInUSDCents,
+
             notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
           },
           id: project.id!,
