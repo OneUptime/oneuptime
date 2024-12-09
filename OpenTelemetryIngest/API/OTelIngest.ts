@@ -1,4 +1,3 @@
-import ArrayUtil from "Common/Utils/Array";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
@@ -11,12 +10,11 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import Text from "Common/Types/Text";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
-import ExceptionInstanceService from "Common/Server/Services//ExceptionInstanceService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -398,21 +396,21 @@ router.post(
         },
       });
 
-      TelemetryUtil.indexAttributes({
-        attributes: ArrayUtil.removeDuplicates(attributes),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Trace,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // TelemetryUtil.indexAttributes({
+      //   attributes: ArrayUtil.removeDuplicates(attributes),
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   telemetryType: TelemetryType.Trace,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
 
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Traces,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // OTelIngestService.recordDataIngestedUsgaeBilling({
+      //   services: serviceDictionary,
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   productType: ProductType.Traces,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
     } catch (err) {
       return next(err);
     }
@@ -679,21 +677,21 @@ router.post(
         },
       });
 
-      TelemetryUtil.indexAttributes({
-        attributes: ArrayUtil.removeDuplicates(attributes),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Metric,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // TelemetryUtil.indexAttributes({
+      //   attributes: ArrayUtil.removeDuplicates(attributes),
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   telemetryType: TelemetryType.Metric,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
 
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Metrics,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // OTelIngestService.recordDataIngestedUsgaeBilling({
+      //   services: serviceDictionary,
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   productType: ProductType.Metrics,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
     } catch (err) {
       return next(err);
     }
@@ -906,21 +904,21 @@ router.post(
         },
       });
 
-      TelemetryUtil.indexAttributes({
-        attributes: ArrayUtil.removeDuplicates(attributes),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Log,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // TelemetryUtil.indexAttributes({
+      //   attributes: ArrayUtil.removeDuplicates(attributes),
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   telemetryType: TelemetryType.Log,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
 
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Logs,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
+      // OTelIngestService.recordDataIngestedUsgaeBilling({
+      //   services: serviceDictionary,
+      //   projectId: (req as TelemetryRequest).projectId,
+      //   productType: ProductType.Logs,
+      // }).catch((err: Error) => {
+      //   logger.error(err);
+      // });
     } catch (err) {
       return next(err);
     }
