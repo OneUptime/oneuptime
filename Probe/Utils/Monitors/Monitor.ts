@@ -1,4 +1,4 @@
-import { PROBE_INGEST_URL } from "../../Config";
+import { PROBE_INGEST_URL, PROBE_MONITOR_RETRY_LIMIT } from "../../Config";
 import ProbeUtil from "../Probe";
 import ProbeAPIRequest from "../ProbeAPIRequest";
 import ApiMonitor, { APIResponse } from "./MonitorTypes/ApiMonitor";
@@ -203,7 +203,7 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
-            retry: 10,
+            retry: PROBE_MONITOR_RETRY_LIMIT,
             monitorId: monitorId,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
@@ -220,7 +220,7 @@ export default class MonitorUtil {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
           {
-            retry: 10,
+            retry: PROBE_MONITOR_RETRY_LIMIT,
             monitorId: monitorId,
             timeout: new PositiveNumber(60000), // 60 seconds
           },
@@ -257,7 +257,7 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
-          retry: 10,
+          retry: PROBE_MONITOR_RETRY_LIMIT,
           monitorId: monitorId,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
@@ -333,7 +333,7 @@ export default class MonitorUtil {
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
-          retry: 10,
+          retry: PROBE_MONITOR_RETRY_LIMIT,
           monitorId: monitorId,
           timeout: new PositiveNumber(60000), // 60 seconds
         },
@@ -362,7 +362,7 @@ export default class MonitorUtil {
         {
           isHeadRequest: MonitorUtil.isHeadRequest(monitorStep),
           monitorId: monitorId,
-          retry: 10,
+          retry: PROBE_MONITOR_RETRY_LIMIT,
           timeout: new PositiveNumber(60000), // 60 seconds
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         },
@@ -404,7 +404,7 @@ export default class MonitorUtil {
           requestBody: requestBody || undefined,
           monitorId: monitorId,
           requestType: monitorStep.data?.requestType || HTTPMethod.GET,
-          retry: 10,
+          retry: PROBE_MONITOR_RETRY_LIMIT,
           timeout: new PositiveNumber(60000), // 60 seconds
           doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
         },

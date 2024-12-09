@@ -64,6 +64,8 @@ spec:
               value: {{ $val.description }}
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
+            - name: PROBE_MONITOR_RETRY_LIMIT
+              value: {{ $val.monitorRetryLimit | squote }}
             # syntheticMonitorScriptTimeoutInMs
             - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}

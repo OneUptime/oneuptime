@@ -73,3 +73,9 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number = process
       process.env["PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS"].toString(),
     )
   : 60000;
+
+export const PROBE_MONITOR_RETRY_LIMIT: number = process.env[
+  "PROBE_MONITOR_RETRY_LIMIT"
+]
+  ? parseInt(process.env["PROBE_MONITOR_RETRY_LIMIT"].toString())
+  : 3;

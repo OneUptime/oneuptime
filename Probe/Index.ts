@@ -1,4 +1,4 @@
-import { PROBE_MONITORING_WORKERS } from "./Config";
+import { PROBE_MONITOR_RETRY_LIMIT, PROBE_MONITORING_WORKERS } from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
 import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";
@@ -35,6 +35,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await App.addDefaultRoutes();
 
     try {
+      logger.debug(
+        `This probe will retyr monitor for: ${PROBE_MONITOR_RETRY_LIMIT} times`,
+      );
+
       // Register this probe.
       await Register.registerProbe();
 
