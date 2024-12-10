@@ -4,11 +4,12 @@ import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 
-export default class LogMonitorCriteria {
+export default class MetricMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
+    
     // Metric Monitoring Checks
 
     let threshold: number | string | undefined | null =

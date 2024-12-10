@@ -26,6 +26,15 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import SpanService from "Common/Server/Services/SpanService";
+import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import MetricService from "Common/Server/Services/MetricService";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import Dictionary from "Common/Types/Dictionary";
 
 RunCron(
   "LogMonitor:MonitorLogMonitor",
@@ -104,7 +113,7 @@ RunCron(
     logger.debug(telemetryMonitors);
 
     const monitorResponses: Array<
-      Promise<LogMonitorResponse | TraceMonitorResponse>
+      Promise<LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse>
     > = [];
 
     for (const monitor of telemetryMonitors) {
@@ -134,8 +143,9 @@ RunCron(
       }
     }
 
-    const responses: Array<LogMonitorResponse | TraceMonitorResponse> =
-      await Promise.all(monitorResponses);
+    const responses: Array<
+      LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+    > = await Promise.all(monitorResponses);
 
     for (const response of responses) {
       MonitorResourceUtil.monitorResource(response);
@@ -147,13 +157,17 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
-}) => Promise<LogMonitorResponse | TraceMonitorResponse>;
+}) => Promise<
+  LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+>;
 
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
-}): Promise<LogMonitorResponse | TraceMonitorResponse> => {
+}): Promise<
+  LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+> => {
   const { monitorStep, monitorType, monitorId } = data;
 
   if (monitorType === MonitorType.Logs) {
@@ -165,6 +179,13 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Traces) {
     return monitorTrace({
+      monitorStep,
+      monitorId,
+    });
+  }
+
+  if (monitorType === MonitorType.Metrics) {
+    return monitorMetric({
       monitorStep,
       monitorId,
     });
@@ -208,6 +229,69 @@ const monitorTrace: MonitorTraceFunction = async (data: {
   };
 };
 
+type MonitorMetricFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorMetric: MonitorMetricFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  // Monitor traces
+  const metricMonitorConfig: MonitorStepMetricMonitor | undefined =
+    data.monitorStep.data?.metricMonitor;
+
+  if (!metricMonitorConfig) {
+    throw new BadDataException("Metric config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
+    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
+      {
+        query: {
+          time: startAndEndDate,
+          name: queryConfig.metricQueryData.filterData.metricName,
+          attributes: queryConfig.metricQueryData.filterData
+            .attributes as Dictionary<string | number | boolean>,
+        },
+        aggregationType:
+          (queryConfig.metricQueryData.filterData
+            .aggegationType as MetricsAggregationType) ||
+          MetricsAggregationType.Avg,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    finalResult.push(aggregatedResults);
+  }
+
+  return {
+    metricViewConfig: metricMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: finalResult,
+    monitorId: data.monitorId,
+  };
+};
 type MonitorLogsFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;

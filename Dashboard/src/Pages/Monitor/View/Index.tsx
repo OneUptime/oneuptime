@@ -53,6 +53,7 @@ import PageMap from "../../../Utils/PageMap";
 import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/MetricMonitorPreview";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -577,10 +578,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 "Preview of the metrics that match the filter of this monitor."
               }
             >
-              <LogMonitorPreview
-                monitorStepLogMonitor={
+              <MetricMonitorPreview
+                monitorStepMetricMonitor={
                   monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
-                    ?.logMonitor
+                    ?.metricMonitor
                 }
               />
             </Card>

@@ -237,6 +237,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Metrics) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.MetricValue;
+      });
+    }
+
     return options;
   }
 
