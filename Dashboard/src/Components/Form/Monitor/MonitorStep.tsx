@@ -152,7 +152,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-
   const fetchTelemetryServices: PromiseVoidFunction =
     async (): Promise<void> => {
       const telemetryServicesResult: ListResult<TelemetryService> =
