@@ -1,4 +1,6 @@
+import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
+import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
@@ -30,11 +32,13 @@ export default class MetricMonitorCriteria {
 
       if (metricAlias) {
         // find the index of the alias in the dataToProcess.
-        const indexOfAlias = (
+        const indexOfAlias: number = (
           input.dataToProcess as MetricMonitorResponse
-        ).metricViewConfig.queryConfigs.findIndex((queryConfig) => {
-          return queryConfig.metricAliasData?.metricVariable === metricAlias;
-        });
+        ).metricViewConfig.queryConfigs.findIndex(
+          (queryConfig: MetricQueryConfigData) => {
+            return queryConfig.metricAliasData?.metricVariable === metricAlias;
+          },
+        );
 
         // now get the aggregated result for that alias
         if (indexOfAlias !== -1) {
@@ -42,7 +46,7 @@ export default class MetricMonitorCriteria {
             metricAggregaredResult[indexOfAlias];
           if (aggregatedResultForAlias) {
             const numbers: Array<number> = aggregatedResultForAlias.data.map(
-              (data) => {
+              (data: AggregateModel) => {
                 return data.value;
               },
             );
@@ -58,9 +62,11 @@ export default class MetricMonitorCriteria {
 
       // if there's no alias then this is the default case
       if (aggregatedResult) {
-        const numbers: Array<number> = aggregatedResult.data.map((data) => {
-          return data.value;
-        });
+        const numbers: Array<number> = aggregatedResult.data.map(
+          (data: AggregateModel) => {
+            return data.value;
+          },
+        );
 
         return CompareCriteria.compareCriteriaNumbers({
           value: numbers,
