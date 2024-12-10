@@ -159,11 +159,12 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       )}
 
       {(props.monitorType === MonitorType.Logs ||
-        props.monitorType === MonitorType.Traces || props.monitorType === MonitorType.Metrics)  && (
-          <TelemetryMonitorSummaryView
-            telemetryMonitorSummary={props.telemetryMonitorSummary}
-          />
-        )}
+        props.monitorType === MonitorType.Traces ||
+        props.monitorType === MonitorType.Metrics) && (
+        <TelemetryMonitorSummaryView
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
+        />
+      )}
     </div>
   );
 };

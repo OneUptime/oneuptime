@@ -61,7 +61,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorName: string;
     metricOptions?: {
       metricAliases: Array<string>;
-    }
+    };
   }): MonitorCriteriaInstance | null {
     if (arg.monitorType === MonitorType.IncomingRequest) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -130,7 +130,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             checkOn: CheckOn.MetricValue,
             filterType: FilterType.GreaterThan,
             metricMonitorOptions: {
-              metricAlias: arg.metricOptions && arg.metricOptions.metricAliases && arg.metricOptions.metricAliases.length > 0 ? arg.metricOptions.metricAliases[0] : undefined,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
             },
             value: 0, // if there are some logs then monitor is online.
           },
@@ -313,7 +318,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorName: string;
     metricOptions?: {
       metricAliases: Array<string>;
-    }
+    };
   }): MonitorCriteriaInstance {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
@@ -451,7 +456,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-
     if (arg.monitorType === MonitorType.Metrics) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
@@ -462,7 +466,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             checkOn: CheckOn.MetricValue,
             filterType: FilterType.EqualTo,
             metricMonitorOptions: {
-              metricAlias: arg.metricOptions && arg.metricOptions.metricAliases && arg.metricOptions.metricAliases.length > 0 ? arg.metricOptions.metricAliases[0] : undefined,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
             },
             value: 0, // if there are no logs then the monitor is offline
           },

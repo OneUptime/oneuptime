@@ -5,24 +5,29 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 
 export interface ComponentProps {
-    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined;
+  monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined;
 }
 
 const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      props.monitorStepMetricMonitor?.rollingTime ||
+        RollingTimeUtil.getDefault(),
+    );
 
-    const startAndEndDate: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
-        props.monitorStepMetricMonitor?.rollingTime || RollingTimeUtil.getDefault(),
-    )
-
-    return <MetricView
-        data={{
-            startAndEndDate: startAndEndDate,
-            queryConfigs: props.monitorStepMetricMonitor?.metricViewConfig.queryConfigs || [],
-            formulaConfigs: props.monitorStepMetricMonitor?.metricViewConfig.formulaConfigs || [],
-        }}
+  return (
+    <MetricView
+      data={{
+        startAndEndDate: startAndEndDate,
+        queryConfigs:
+          props.monitorStepMetricMonitor?.metricViewConfig.queryConfigs || [],
+        formulaConfigs:
+          props.monitorStepMetricMonitor?.metricViewConfig.formulaConfigs || [],
+      }}
     />
+  );
 };
 
 export default MetricMonitorPreview;

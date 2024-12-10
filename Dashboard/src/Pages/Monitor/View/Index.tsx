@@ -566,9 +566,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </div>
         )}
 
-
-
-{monitor?.monitorType === MonitorType.Metrics &&
+      {monitor?.monitorType === MonitorType.Metrics &&
         monitor.monitorSteps &&
         monitor.monitorSteps.data?.monitorStepsInstanceArray &&
         monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (

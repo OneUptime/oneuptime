@@ -39,9 +39,8 @@ export enum CheckOn {
   // Trace monitors.
   SpanCount = "Span Count",
 
-  // Metric Monitors. 
+  // Metric Monitors.
   MetricValue = "Metric Value",
-
 }
 
 export interface ServerMonitorOptions {
@@ -81,7 +80,7 @@ export interface EvaluateOverTimeOptions {
 export interface CriteriaFilter {
   checkOn: CheckOn;
   serverMonitorOptions?: ServerMonitorOptions | undefined;
-  metricMonitorOptions?: MetricMonitorOptions | undefined;  
+  metricMonitorOptions?: MetricMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   eveluateOverTime?: boolean | undefined;

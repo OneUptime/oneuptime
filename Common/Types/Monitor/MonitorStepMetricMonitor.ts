@@ -8,22 +8,21 @@ export default interface MonitorStepMetricMonitor {
 }
 
 export class MonitorStepMetricMonitorUtil {
-
   public static getDefault(): MonitorStepMetricMonitor {
     return {
       metricViewConfig: {
         queryConfigs: [],
-        formulaConfigs: []
+        formulaConfigs: [],
       },
-      rollingTime: RollingTime.Past1Minute
+      rollingTime: RollingTime.Past1Minute,
     };
   }
 
   public static fromJSON(json: JSONObject): MonitorStepMetricMonitor {
-    return (json as any) as MonitorStepMetricMonitor;
+    return json as any as MonitorStepMetricMonitor;
   }
 
   public static toJSON(monitor: MonitorStepMetricMonitor): JSONObject {
-    return (monitor as any) as JSONObject;
+    return monitor as any as JSONObject;
   }
 }

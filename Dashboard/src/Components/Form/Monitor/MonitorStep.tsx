@@ -63,7 +63,9 @@ import MonitorTestForm from "./MonitorTest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
-import MonitorStepMetricMonitor, { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -150,28 +152,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchMetricAttributes: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/metrics/get-attributes",
+          ),
+          {},
+          {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        );
 
-  const fetchMetricAttributes: PromiseVoidFunction = async (): Promise<void> => {
-    const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
-          "/telemetry/metrics/get-attributes",
-        ),
-        {},
-        {
-          ...ModelAPI.getCommonHeaders(),
-        },
-      );
-
-    if (attributeRepsonse instanceof HTTPErrorResponse) {
-      throw attributeRepsonse;
-    } else {
-      const attributes: Array<string> = attributeRepsonse.data[
-        "attributes"
-      ] as Array<string>;
-      setAttributeKeys(attributes);
-    }
-  };
+      if (attributeRepsonse instanceof HTTPErrorResponse) {
+        throw attributeRepsonse;
+      } else {
+        const attributes: Array<string> = attributeRepsonse.data[
+          "attributes"
+        ] as Array<string>;
+        setAttributeKeys(attributes);
+      }
+    };
 
   const fetchTelemetryServices: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -217,7 +219,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         if (props.monitorType === MonitorType.Metrics) {
           await fetchMetricAttributes();
         }
-
       } catch (err) {
         setError(API.getFriendlyErrorMessage(err as Error));
       }

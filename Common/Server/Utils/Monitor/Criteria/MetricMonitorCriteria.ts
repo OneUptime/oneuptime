@@ -1,10 +1,8 @@
-import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 
 export default class LogMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
