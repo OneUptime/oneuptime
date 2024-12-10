@@ -20,6 +20,7 @@ import { FindOperator } from "typeorm";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "./MonitorStepTraceMonitor";
+import MonitorStepMetricMonitor, { MonitorStepMetricMonitorUtil } from "./MonitorStepMetricMonitor";
 
 export interface MonitorStepType {
   id: string;
@@ -50,6 +51,10 @@ export interface MonitorStepType {
 
   // trace monitor type.
   traceMonitor?: MonitorStepTraceMonitor | undefined;
+
+
+  // Metric Monitor 
+  metricMonitor: MonitorStepMetricMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -72,6 +77,7 @@ export default class MonitorStep extends DatabaseProperty {
       browserTypes: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
+      metricMonitor: undefined,
     };
   }
 
@@ -99,6 +105,7 @@ export default class MonitorStep extends DatabaseProperty {
       browserTypes: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
+      metricMonitor: undefined,
     };
 
     return monitorStep;
@@ -162,6 +169,11 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setLogMonitor(logMonitor: MonitorStepLogMonitor): MonitorStep {
     this.data!.logMonitor = logMonitor;
+    return this;
+  }
+
+  public setMetricMonitor(metricMonitor: MonitorStepMetricMonitor): MonitorStep {
+    this.data!.metricMonitor = metricMonitor;
     return this;
   }
 
@@ -285,6 +297,7 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
               )
             : undefined,
+            metricMonitor: this.data.metricMonitor ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor) : undefined,
           traceMonitor: this.data.traceMonitor
             ? MonitorStepTraceMonitorUtil.toJSON(
                 this.data.traceMonitor ||
@@ -383,6 +396,9 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
+        metricMonitor: json["metricMonitor"]
+        ? (json["metricMonitor"] as JSONObject) 
+        : undefined,
       traceMonitor: json["traceMonitor"]
         ? (json["traceMonitor"] as JSONObject)
         : undefined,
@@ -394,6 +410,10 @@ export default class MonitorStep extends DatabaseProperty {
 
     if (monitorStep.data && !monitorStep.data?.traceMonitor) {
       monitorStep.data.traceMonitor = MonitorStepTraceMonitorUtil.getDefault();
+    }
+
+    if(monitorStep.data && !monitorStep.data?.metricMonitor) {
+      monitorStep.data.metricMonitor = MonitorStepMetricMonitorUtil.getDefault();
     }
 
     return monitorStep;

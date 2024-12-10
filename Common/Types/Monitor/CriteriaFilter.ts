@@ -48,6 +48,10 @@ export interface ServerMonitorOptions {
   diskPath?: string | undefined;
 }
 
+export interface MetricMonitorOptions {
+  metricAlias?: string | undefined;
+}
+
 export enum EvaluateOverTimeType {
   Average = "Average",
   Sum = "Sum",
@@ -77,6 +81,7 @@ export interface EvaluateOverTimeOptions {
 export interface CriteriaFilter {
   checkOn: CheckOn;
   serverMonitorOptions?: ServerMonitorOptions | undefined;
+  metricMonitorOptions?: MetricMonitorOptions | undefined;  
   filterType: FilterType | undefined;
   value: string | number | undefined;
   eveluateOverTime?: boolean | undefined;

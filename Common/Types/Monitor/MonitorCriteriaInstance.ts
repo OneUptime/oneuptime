@@ -59,6 +59,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
     monitorName: string;
+    metricOptions?: {
+      metricAliases: Array<string>;
+    }
   }): MonitorCriteriaInstance | null {
     if (arg.monitorType === MonitorType.IncomingRequest) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -99,6 +102,36 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             checkOn: CheckOn.LogCount,
             filterType: FilterType.GreaterThan,
+            value: 0, // if there are some logs then monitor is online.
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if the ${arg.monitorName} is online`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Metrics) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.GreaterThan,
+            metricMonitorOptions: {
+              metricAlias: arg.metricOptions && arg.metricOptions.metricAliases && arg.metricOptions.metricAliases.length > 0 ? arg.metricOptions.metricAliases[0] : undefined,
+            },
             value: 0, // if there are some logs then monitor is online.
           },
         ],
@@ -278,6 +311,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     incidentSeverityId: ObjectID;
     alertSeverityId: ObjectID;
     monitorName: string;
+    metricOptions?: {
+      metricAliases: Array<string>;
+    }
   }): MonitorCriteriaInstance {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
@@ -384,6 +420,50 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             checkOn: CheckOn.LogCount,
             filterType: FilterType.EqualTo,
+            value: 0, // if there are no logs then the monitor is offline
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+
+    if (arg.monitorType === MonitorType.Metrics) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.EqualTo,
+            metricMonitorOptions: {
+              metricAlias: arg.metricOptions && arg.metricOptions.metricAliases && arg.metricOptions.metricAliases.length > 0 ? arg.metricOptions.metricAliases[0] : undefined,
+            },
             value: 0, // if there are no logs then the monitor is offline
           },
         ],

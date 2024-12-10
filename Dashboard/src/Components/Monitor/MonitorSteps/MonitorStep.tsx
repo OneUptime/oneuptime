@@ -144,8 +144,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     try {
       if (
         props.monitorType === MonitorType.Logs ||
-        props.monitorType === MonitorType.Traces ||
-        props.monitorType === MonitorType.Metrics
+        props.monitorType === MonitorType.Traces
       ) {
         await fetchTelemetryServices();
       }

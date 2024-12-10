@@ -566,6 +566,29 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </div>
         )}
 
+
+
+{monitor?.monitorType === MonitorType.Metrics &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
+          <div>
+            <Card
+              title={"Metrics Preview"}
+              description={
+                "Preview of the metrics that match the filter of this monitor."
+              }
+            >
+              <LogMonitorPreview
+                monitorStepLogMonitor={
+                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
+                    ?.logMonitor
+                }
+              />
+            </Card>
+          </div>
+        )}
+
       {monitor?.monitorType === MonitorType.Traces &&
         monitor.monitorSteps &&
         monitor.monitorSteps.data?.monitorStepsInstanceArray &&
