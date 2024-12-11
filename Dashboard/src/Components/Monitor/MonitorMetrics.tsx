@@ -28,6 +28,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricViewData from "../Metrics/Types/MetricViewData";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -99,6 +100,10 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   // set it to past 1 hour
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
+
+
+
+
 
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
@@ -279,15 +284,20 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
       return queries;
     };
 
+  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
+    startAndEndDate: startAndEndDate,
+    queryConfigs: getQueryConfigByMonitorMetricTypes(),
+    formulaConfigs: [],
+  });
+
   return (
     <div>
       <MetricView
-        data={{
-          startAndEndDate: startAndEndDate,
-          queryConfigs: getQueryConfigByMonitorMetricTypes(),
-          formulaConfigs: [],
-        }}
+        data={metricViewData}
         hideQueryElements={true}
+        onChange={(data: MetricViewData) => {
+          setMetricViewData(data);
+        }}
       />
     </div>
   );

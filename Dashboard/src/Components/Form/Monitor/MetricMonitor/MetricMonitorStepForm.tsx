@@ -17,6 +17,7 @@ export interface ComponentProps {
 const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+
   const [monitorStepMetricMonitor, setMonitorStepMetricMonitor] =
     React.useState<MonitorStepMetricMonitor>(
       props.monitorStepMetricMonitor ||
@@ -56,6 +57,16 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
           queryConfigs: monitorStepMetricMonitor.metricViewConfig.queryConfigs,
           formulaConfigs:
             monitorStepMetricMonitor.metricViewConfig.formulaConfigs,
+        }}
+        onChange={(data) => {
+          // we dont care about start and end time here because it is not editable in metric view but editable in rolling time picker. 
+          setMonitorStepMetricMonitor({
+            ...monitorStepMetricMonitor,
+            metricViewConfig: {
+              queryConfigs: data.queryConfigs,
+              formulaConfigs: data.formulaConfigs,
+            },
+          });
         }}
       />
     </div>
