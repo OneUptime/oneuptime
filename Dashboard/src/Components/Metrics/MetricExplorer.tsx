@@ -7,7 +7,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricViewData from "./Types/MetricViewData";
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
-
   const metricName: string =
     Navigation.getQueryStringByName("metricName") || "";
 
@@ -20,9 +19,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
-  const [metricViewData, setMetricViewData] = React.useState<
-    MetricViewData
-  >({
+  const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: startAndEndDate,
     queryConfigs: [
       {
@@ -38,8 +35,8 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             metricName: metricName,
             attributes: serviceName
               ? {
-                "resource.oneuptime.telemetry.service.name": serviceName,
-              }
+                  "resource.oneuptime.telemetry.service.name": serviceName,
+                }
               : {},
             aggegationType: MetricsAggregationType.Avg,
           },

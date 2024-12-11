@@ -15,13 +15,10 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       props.monitorStepMetricMonitor?.rollingTime ||
-      RollingTimeUtil.getDefault(),
+        RollingTimeUtil.getDefault(),
     );
 
-
-  const [metricViewData, setMetricViewData] = React.useState<
-    MetricViewData
-  >({
+  const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: startAndEndDate,
     queryConfigs:
       props.monitorStepMetricMonitor?.metricViewConfig.queryConfigs || [],

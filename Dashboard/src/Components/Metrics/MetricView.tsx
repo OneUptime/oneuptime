@@ -7,9 +7,7 @@ import React, {
 } from "react";
 import MetricQueryConfig from "./MetricQueryConfig";
 import MetricGraphConfig from "./MetricFormulaConfig";
-import Button, {
-  ButtonSize,
-} from "Common/UI/Components/Button/Button";
+import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -86,7 +84,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-
   useEffect(() => {
     if (
       props.hideQueryElements &&
@@ -127,32 +124,36 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsPageLoading(false);
       setPageError("");
 
-      /// if there's no query then set the default query and fetch results. 
-      if (props.data.queryConfigs.length === 0 && metricNamesAndUnits.length > 0 && metricNamesAndUnits[0] && metricNamesAndUnits[0].metricName) {
-        // then  add a default query which would be the first 
-        props.onChange && props.onChange({
-          ...props.data,
-          queryConfigs: [
-            {
-              metricAliasData: {
-                metricVariable: "a",
-                legend: "",
-                title: "",
-                description: "",
-                legendUnit: ""
+      /// if there's no query then set the default query and fetch results.
+      if (
+        props.data.queryConfigs.length === 0 &&
+        metricNamesAndUnits.length > 0 &&
+        metricNamesAndUnits[0] &&
+        metricNamesAndUnits[0].metricName
+      ) {
+        // then  add a default query which would be the first
+        props.onChange &&
+          props.onChange({
+            ...props.data,
+            queryConfigs: [
+              {
+                metricAliasData: {
+                  metricVariable: "a",
+                  legend: "",
+                  title: "",
+                  description: "",
+                  legendUnit: "",
+                },
+                metricQueryData: {
+                  filterData: {
+                    metricName: metricNamesAndUnits[0].metricName,
+                    aggegationType: MetricsAggregationType.Avg,
+                  },
+                },
               },
-              metricQueryData: {
-                filterData: {
-                  metricName: metricNamesAndUnits[0].metricName,
-                  aggegationType: MetricsAggregationType.Avg,
-                }
-              },
-              
-            }
-          ],
-        });
+            ],
+          });
       }
-
     } catch (err) {
       setIsPageLoading(false);
       setPageError(API.getFriendlyErrorMessage(err as Error));
@@ -195,23 +196,26 @@ const MetricView: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-3">
-        {!props.hideStartAndEndDate && <div className="mb-5">
-          <Card>
-            <div className="-mt-5">
-              <FieldLabelElement title="Start and End Time" required={true} />
-              <StartAndEndDate
-                type={StartAndEndDateType.DateTime}
-                initialValue={props.data.startAndEndDate || undefined}
-                onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
-                  props.onChange && props.onChange({
-                    ...props.data,
-                    startAndEndDate: startAndEndDate,
-                  });
-                }}
-              />
-            </div>
-          </Card>
-        </div>}
+        {!props.hideStartAndEndDate && (
+          <div className="mb-5">
+            <Card>
+              <div className="-mt-5">
+                <FieldLabelElement title="Start and End Time" required={true} />
+                <StartAndEndDate
+                  type={StartAndEndDateType.DateTime}
+                  initialValue={props.data.startAndEndDate || undefined}
+                  onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
+                    props.onChange &&
+                      props.onChange({
+                        ...props.data,
+                        startAndEndDate: startAndEndDate,
+                      });
+                  }}
+                />
+              </div>
+            </Card>
+          </div>
+        )}
 
         {!props.hideQueryElements && (
           <div className="space-y-3">
@@ -225,10 +229,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.queryConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      props.onChange && props.onChange({
-                        ...props.data,
-                        queryConfigs: newGraphConfigs,
-                      });
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: newGraphConfigs,
+                        });
                     }}
                     data={queryConfig}
                     telemetryAttributes={telemetryAttributes}
@@ -239,10 +244,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
                       ];
                       newGraphConfigs.splice(index, 1);
 
-                      props.onChange && props.onChange({
-                        ...props.data,
-                        queryConfigs: newGraphConfigs,
-                      });
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: newGraphConfigs,
+                        });
                     }}
                   />
                 );
@@ -265,10 +271,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      props.onChange && props.onChange({
-                        ...props.data,
-                        formulaConfigs: newGraphConfigs,
-                      });
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          formulaConfigs: newGraphConfigs,
+                        });
                     }}
                     data={formulaConfig}
                     onRemove={() => {
@@ -276,10 +283,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs.splice(index, 1);
-                      props.onChange && props.onChange({
-                        ...props.data,
-                        formulaConfigs: newGraphConfigs,
-                      });
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          formulaConfigs: newGraphConfigs,
+                        });
                     }}
                   />
                 );
@@ -293,13 +301,14 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   title="Add Metric"
                   buttonSize={ButtonSize.Small}
                   onClick={() => {
-                    props.onChange && props.onChange({
-                      ...props.data,
-                      queryConfigs: [
-                        ...props.data.queryConfigs,
-                        getEmptyQueryConfigData(),
-                      ],
-                    });
+                    props.onChange &&
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: [
+                          ...props.data.queryConfigs,
+                          getEmptyQueryConfigData(),
+                        ],
+                      });
                   }}
                 />
                 {/* <Button

@@ -101,10 +101,6 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
 
-
-
-
-
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   type GetQueryConfigByMonitorMetricTypesFunction =
