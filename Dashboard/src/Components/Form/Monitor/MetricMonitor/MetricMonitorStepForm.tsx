@@ -7,6 +7,7 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimePicker from "Common/UI/Components/RollingTimePicker/RollingTimePicker";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 
 export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor;
@@ -19,7 +20,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepMetricMonitor, setMonitorStepMetricMonitor] =
     React.useState<MonitorStepMetricMonitor>(
       props.monitorStepMetricMonitor ||
-        MonitorStepMetricMonitorUtil.getDefault(),
+      MonitorStepMetricMonitorUtil.getDefault(),
     );
 
   useEffect(() => {
@@ -33,6 +34,11 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      <FieldLabelElement
+        title="Time Range"
+        description={"Select the time range for the metric monitor."}
+        required={true}
+      />
       <RollingTimePicker
         value={monitorStepMetricMonitor.rollingTime}
         onChange={(value: RollingTime) => {
@@ -44,6 +50,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
       />
 
       <MetricView
+        hideStartAndEndDate={true}
         data={{
           startAndEndDate: startAndEndDate,
           queryConfigs: monitorStepMetricMonitor.metricViewConfig.queryConfigs,

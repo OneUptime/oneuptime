@@ -9,7 +9,6 @@ import MetricQueryConfig from "./MetricQueryConfig";
 import MetricGraphConfig from "./MetricFormulaConfig";
 import Button, {
   ButtonSize,
-  ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
@@ -25,7 +24,6 @@ import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -37,6 +35,8 @@ import MetricCharts from "./MetricCharts";
 export interface ComponentProps {
   data: MetricViewData;
   hideQueryElements?: boolean;
+  hideStartAndEndDate?: boolean;
+  onChange: (data: MetricViewData) => void;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
@@ -73,10 +73,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
       };
     };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>(
-    props.data,
-  );
-
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
 
@@ -85,28 +81,25 @@ const MetricView: FunctionComponent<ComponentProps> = (
   );
 
   useEffect(() => {
-    fetchAggregatedResults().catch((err: Error) => {
-      setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
-    });
-
     loadAllMetricsTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
 
+
   useEffect(() => {
     if (
       props.hideQueryElements &&
-      metricViewData &&
-      metricViewData.startAndEndDate &&
-      metricViewData.startAndEndDate.startValue &&
-      metricViewData.startAndEndDate.endValue
+      props.data &&
+      props.data.startAndEndDate &&
+      props.data.startAndEndDate.startValue &&
+      props.data.startAndEndDate.endValue
     ) {
       fetchAggregatedResults().catch((err: Error) => {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       });
     }
-  }, [metricViewData]);
+  }, [props.data]);
 
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
@@ -133,6 +126,33 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
       setIsPageLoading(false);
       setPageError("");
+
+      /// if there's no query then set the default query and fetch results. 
+      if (props.data.queryConfigs.length === 0 && metricNamesAndUnits.length > 0 && metricNamesAndUnits[0] && metricNamesAndUnits[0].metricName) {
+        // then  add a default query which would be the first 
+        props.onChange && props.onChange({
+          ...props.data,
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: "a",
+                legend: "",
+                title: "",
+                description: "",
+                legendUnit: ""
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: metricNamesAndUnits[0].metricName,
+                  aggegationType: MetricsAggregationType.Avg,
+                }
+              },
+              
+            }
+          ],
+        });
+      }
+
     } catch (err) {
       setIsPageLoading(false);
       setPageError(API.getFriendlyErrorMessage(err as Error));
@@ -144,15 +164,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsMetricResultsLoading(true);
 
       if (
-        !metricViewData.startAndEndDate?.startValue ||
-        !metricViewData.startAndEndDate?.endValue
+        !props.data.startAndEndDate?.startValue ||
+        !props.data.startAndEndDate?.endValue
       ) {
         setIsMetricResultsLoading(false);
         return;
       }
       try {
         const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: metricViewData,
+          metricViewData: props.data,
         });
 
         setMetricResults(results);
@@ -175,7 +195,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <div className="space-y-3">
-        <div className="mb-5">
+        {!props.hideStartAndEndDate && <div className="mb-5">
           <Card>
             <div className="-mt-5">
               <FieldLabelElement title="Start and End Time" required={true} />
@@ -183,30 +203,30 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 type={StartAndEndDateType.DateTime}
                 initialValue={props.data.startAndEndDate || undefined}
                 onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
-                  setMetricViewData({
-                    ...metricViewData,
+                  props.onChange && props.onChange({
+                    ...props.data,
                     startAndEndDate: startAndEndDate,
                   });
                 }}
               />
             </div>
           </Card>
-        </div>
+        </div>}
 
         {!props.hideQueryElements && (
           <div className="space-y-3">
-            {metricViewData.queryConfigs.map(
+            {props.data.queryConfigs.map(
               (queryConfig: MetricQueryConfigData, index: number) => {
                 return (
                   <MetricQueryConfig
                     key={index}
                     onChange={(data: MetricQueryConfigData) => {
                       const newGraphConfigs: Array<MetricQueryConfigData> = [
-                        ...metricViewData.queryConfigs,
+                        ...props.data.queryConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      setMetricViewData({
-                        ...metricViewData,
+                      props.onChange && props.onChange({
+                        ...props.data,
                         queryConfigs: newGraphConfigs,
                       });
                     }}
@@ -215,12 +235,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     metricNameAndUnits={metricNamesAndUnits}
                     onRemove={() => {
                       const newGraphConfigs: Array<MetricQueryConfigData> = [
-                        ...metricViewData.queryConfigs,
+                        ...props.data.queryConfigs,
                       ];
                       newGraphConfigs.splice(index, 1);
 
-                      setMetricViewData({
-                        ...metricViewData,
+                      props.onChange && props.onChange({
+                        ...props.data,
                         queryConfigs: newGraphConfigs,
                       });
                     }}
@@ -235,29 +255,29 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {!props.hideQueryElements && (
         <div className="space-y-3">
           <div className="space-y-3">
-            {metricViewData.formulaConfigs.map(
+            {props.data.formulaConfigs.map(
               (formulaConfig: MetricFormulaConfigData, index: number) => {
                 return (
                   <MetricGraphConfig
                     key={index}
                     onDataChanged={(data: MetricFormulaConfigData) => {
                       const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                        ...metricViewData.formulaConfigs,
+                        ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      setMetricViewData({
-                        ...metricViewData,
+                      props.onChange && props.onChange({
+                        ...props.data,
                         formulaConfigs: newGraphConfigs,
                       });
                     }}
                     data={formulaConfig}
                     onRemove={() => {
                       const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                        ...metricViewData.formulaConfigs,
+                        ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs.splice(index, 1);
-                      setMetricViewData({
-                        ...metricViewData,
+                      props.onChange && props.onChange({
+                        ...props.data,
                         formulaConfigs: newGraphConfigs,
                       });
                     }}
@@ -270,13 +290,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
             <div className="flex -ml-3 mt-8 justify-between w-full">
               <div>
                 <Button
-                  title="Add Query"
+                  title="Add Metric"
                   buttonSize={ButtonSize.Small}
                   onClick={() => {
-                    setMetricViewData({
-                      ...metricViewData,
+                    props.onChange && props.onChange({
+                      ...props.data,
                       queryConfigs: [
-                        ...metricViewData.queryConfigs,
+                        ...props.data.queryConfigs,
                         getEmptyQueryConfigData(),
                       ],
                     });
@@ -296,15 +316,6 @@ const MetricView: FunctionComponent<ComponentProps> = (
               }}
             /> */}
               </div>
-              <div className="flex items-end -mr-3">
-                <Button
-                  title="Apply"
-                  icon={IconProp.Play}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  buttonSize={ButtonSize.Small}
-                  onClick={fetchAggregatedResults}
-                />
-              </div>
             </div>
           </div>
           <HorizontalRule />
@@ -321,7 +332,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           <MetricCharts
             metricResults={metricResults}
             metricNamesAndUnits={metricNamesAndUnits}
-            metricViewData={metricViewData}
+            metricViewData={props.data}
           />
         </div>
       )}
