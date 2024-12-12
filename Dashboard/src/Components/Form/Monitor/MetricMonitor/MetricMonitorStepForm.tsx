@@ -1,7 +1,7 @@
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -21,10 +21,24 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   const monitorStepMetricMonitor: MonitorStepMetricMonitor =
     props.monitorStepMetricMonitor || MonitorStepMetricMonitorUtil.getDefault();
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      monitorStepMetricMonitor.rollingTime || RollingTime.Past1Minute,
+  const [startAndEndTime, setStartAndEndTime] =
+    React.useState<InBetween<Date> | null>(null);
+
+  useEffect(() => {
+    setStartAndEndTime(
+      RollingTimeUtil.convertToStartAndEndDate(
+        monitorStepMetricMonitor.rollingTime || RollingTime.Past1Minute,
+      ),
     );
+  }, [monitorStepMetricMonitor.rollingTime]);
+
+  useEffect(() => {
+    setStartAndEndTime(
+      RollingTimeUtil.convertToStartAndEndDate(
+        monitorStepMetricMonitor.rollingTime || RollingTime.Past1Minute,
+      ),
+    );
+  }, []);
 
   return (
     <div>
@@ -56,7 +70,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
       <MetricView
         hideStartAndEndDate={true}
         data={{
-          startAndEndDate: startAndEndDate,
+          startAndEndDate: startAndEndTime,
           queryConfigs: monitorStepMetricMonitor.metricViewConfig.queryConfigs,
           formulaConfigs:
             monitorStepMetricMonitor.metricViewConfig.formulaConfigs,

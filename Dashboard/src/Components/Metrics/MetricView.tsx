@@ -33,6 +33,7 @@ import MetricUtil from "./Utils/Metrics";
 import MetricViewData from "./Types/MetricViewData";
 import MetricCharts from "./MetricCharts";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   data: MetricViewData;
@@ -96,6 +97,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  const metricViewDataRef: React.MutableRefObject<MetricViewData> =
+    React.useRef(props.data);
+
   useEffect(() => {
     loadAllMetricsTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
@@ -103,7 +107,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
+    const hasChanged: boolean = JSONFunctions.isJSONObjectDifferent(
+      metricViewDataRef.current,
+      props.data,
+    );
+
     if (
+      hasChanged &&
       props.data &&
       props.data.startAndEndDate &&
       props.data.startAndEndDate.startValue &&
@@ -115,6 +125,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
       fetchAggregatedResults().catch((err: Error) => {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       });
+
+      metricViewDataRef.current = props.data;
     }
   }, [props.data]);
 
