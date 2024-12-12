@@ -1,7 +1,7 @@
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -18,15 +18,8 @@ export interface ComponentProps {
 const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [monitorStepMetricMonitor, setMonitorStepMetricMonitor] =
-    React.useState<MonitorStepMetricMonitor>(
-      props.monitorStepMetricMonitor ||
-        MonitorStepMetricMonitorUtil.getDefault(),
-    );
-
-  useEffect(() => {
-    props.onChange(monitorStepMetricMonitor);
-  }, [monitorStepMetricMonitor]);
+  const monitorStepMetricMonitor: MonitorStepMetricMonitor =
+    props.monitorStepMetricMonitor || MonitorStepMetricMonitorUtil.getDefault();
 
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
@@ -43,7 +36,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
       <RollingTimePicker
         value={monitorStepMetricMonitor.rollingTime}
         onChange={(value: RollingTime) => {
-          setMonitorStepMetricMonitor({
+          props.onChange({
             ...monitorStepMetricMonitor,
             rollingTime: value,
           });
@@ -73,7 +66,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
         chartCssClass="rounded-md border border-gray-200 mt-2"
         onChange={(data: MetricViewData) => {
           // we dont care about start and end time here because it is not editable in metric view but editable in rolling time picker.
-          setMonitorStepMetricMonitor({
+          props.onChange({
             ...monitorStepMetricMonitor,
             metricViewConfig: {
               queryConfigs: data.queryConfigs,
