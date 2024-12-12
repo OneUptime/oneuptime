@@ -759,6 +759,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         )}
         <MonitorCriteriaElement
           monitorType={props.monitorType}
+          monitorStep={monitorStep}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={
             props.incidentSeverityDropdownOptions

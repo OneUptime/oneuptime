@@ -21,7 +21,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepMetricMonitor, setMonitorStepMetricMonitor] =
     React.useState<MonitorStepMetricMonitor>(
       props.monitorStepMetricMonitor ||
-        MonitorStepMetricMonitorUtil.getDefault(),
+      MonitorStepMetricMonitorUtil.getDefault(),
     );
 
   useEffect(() => {
@@ -52,11 +52,13 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div className="mt-3"></div>
 
-<FieldLabelElement
+      <FieldLabelElement
         title="Select Metrics"
         description={"Select the metrics to monitor."}
         required={true}
       />
+
+      <div className="mt-3"></div>
 
       <MetricView
         hideStartAndEndDate={true}
@@ -66,6 +68,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
           formulaConfigs:
             monitorStepMetricMonitor.metricViewConfig.formulaConfigs,
         }}
+        hideCardInQueryElements={true}
         onChange={(data: MetricViewData) => {
           // we dont care about start and end time here because it is not editable in metric view but editable in rolling time picker.
           setMonitorStepMetricMonitor({

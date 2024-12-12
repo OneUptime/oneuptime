@@ -5,6 +5,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
@@ -17,6 +18,7 @@ export interface ComponentProps {
   initialValue: Array<CriteriaFilter> | undefined;
   onChange?: undefined | ((value: Array<CriteriaFilter>) => void);
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
 }
 
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
@@ -43,6 +45,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             monitorType={props.monitorType}
             key={index}
             initialValue={i}
+            monitorStep={props.monitorStep}
             onDelete={() => {
               if (criteriaFilters.length === 1) {
                 setShowCantDeleteModal(true);

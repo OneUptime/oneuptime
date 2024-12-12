@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import MetricQueryConfig from "./MetricQueryConfig";
 import MetricGraphConfig from "./MetricFormulaConfig";
-import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
+import Button, { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -29,12 +29,14 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import MetricUtil from "./Utils/Metrics";
 import MetricViewData from "./Types/MetricViewData";
 import MetricCharts from "./MetricCharts";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 
 export interface ComponentProps {
   data: MetricViewData;
   hideQueryElements?: boolean;
   hideStartAndEndDate?: boolean;
   onChange: (data: MetricViewData) => void;
+  hideCardInQueryElements?: boolean;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
@@ -47,6 +49,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [metricNamesAndUnits, setMetricNamesAndUnits] = useState<
     Array<MetricNameAndUnit>
   >([]);
+
+  const [showCannotRemoveOneRemainingQueryError, setShowCannotRemoveOneRemainingQueryError] = useState<boolean>(false);
 
   type GetEmptyQueryConfigFunction = () => MetricQueryConfigData;
 
@@ -86,12 +90,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     if (
-      props.hideQueryElements &&
       props.data &&
       props.data.startAndEndDate &&
       props.data.startAndEndDate.startValue &&
       props.data.startAndEndDate.endValue
     ) {
+      setCurrentQueryVariable(Text.getLetterFromAByNumber(props.data.queryConfigs.length));
       fetchAggregatedResults().catch((err: Error) => {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       });
@@ -236,9 +240,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         });
                     }}
                     data={queryConfig}
+                    hideCard={props.hideCardInQueryElements}
                     telemetryAttributes={telemetryAttributes}
                     metricNameAndUnits={metricNamesAndUnits}
                     onRemove={() => {
+
+                      if (props.data.queryConfigs.length === 1) {
+                        setShowCannotRemoveOneRemainingQueryError(true);
+                        return;
+                      }
+
                       const newGraphConfigs: Array<MetricQueryConfigData> = [
                         ...props.data.queryConfigs,
                       ];
@@ -336,7 +347,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {metricResultsError && <ErrorMessage error={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 mt-3">
           {/** charts */}
           <MetricCharts
             metricResults={metricResults}
@@ -344,6 +355,24 @@ const MetricView: FunctionComponent<ComponentProps> = (
             metricViewData={props.data}
           />
         </div>
+      )}
+
+
+      {showCannotRemoveOneRemainingQueryError ? (
+        <ConfirmModal
+          title={`Cannot Remove Query`}
+          description={
+            `Cannot remove query because there must be at least one query.`
+          }
+          isLoading={false}
+          submitButtonText={"Close"}
+          submitButtonType={ButtonStyleType.NORMAL}
+          onSubmit={() => {
+            return setShowCannotRemoveOneRemainingQueryError(false);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </Fragment>
   );

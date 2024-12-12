@@ -33,6 +33,7 @@ import React, {
 } from "react";
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -40,6 +41,7 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
   initialValue?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
@@ -233,6 +235,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         />
 
         <CriteriaFilters
+          monitorStep={props.monitorStep}
           monitorType={props.monitorType}
           initialValue={monitorCriteriaInstance?.data?.filters || []}
           onChange={(value: Array<CriteriaFilter>) => {
@@ -274,7 +277,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               (i: DropdownOption) => {
                 return (
                   i.value ===
-                    monitorCriteriaInstance?.data?.monitorStatusId?.id ||
+                  monitorCriteriaInstance?.data?.monitorStatusId?.id ||
                   undefined
                 );
               },
