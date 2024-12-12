@@ -21,7 +21,6 @@ type DateFilterFunction = (props: ComponentProps) => ReactElement;
 const StartAndEndDate: DateFilterFunction = (
   props: ComponentProps,
 ): ReactElement => {
-
   const [startDateError, setStartDateError] = React.useState<string>("");
   const [endDateError, setEndDateError] = React.useState<string>("");
 
@@ -33,9 +32,8 @@ const StartAndEndDate: DateFilterFunction = (
     inputType = InputType.DATETIME_LOCAL;
   }
 
-  const startDateTime: Date | undefined = props.value?.startValue; 
+  const startDateTime: Date | undefined = props.value?.startValue;
   const endDateTime: Date | undefined = props.value?.endValue;
-
 
   useEffect(() => {
     if (endDateTime && startDateTime) {
@@ -64,7 +62,6 @@ const StartAndEndDate: DateFilterFunction = (
       setStartDateError("");
       setEndDateError("");
     }
-
   }, [props.value]);
 
   // difference between both dates is 60 mins.
@@ -137,7 +134,13 @@ const StartAndEndDate: DateFilterFunction = (
                 error={startDateError}
                 onChange={(changedValue: string | Date) => {
                   if (!changedValue) {
-                    props.onValueChanged && props.onValueChanged(new InBetween<Date>(OneUptimeDate.getCurrentDate(), endDateTime || OneUptimeDate.getCurrentDate()));
+                    props.onValueChanged &&
+                      props.onValueChanged(
+                        new InBetween<Date>(
+                          OneUptimeDate.getCurrentDate(),
+                          endDateTime || OneUptimeDate.getCurrentDate(),
+                        ),
+                      );
                   }
 
                   if (
@@ -146,7 +149,13 @@ const StartAndEndDate: DateFilterFunction = (
                     (props.type === StartAndEndDateType.Date ||
                       props.type === StartAndEndDateType.DateTime)
                   ) {
-                    props.onValueChanged && props.onValueChanged(new InBetween<Date>(OneUptimeDate.fromString(changedValue as string), endDateTime));
+                    props.onValueChanged &&
+                      props.onValueChanged(
+                        new InBetween<Date>(
+                          OneUptimeDate.fromString(changedValue as string),
+                          endDateTime,
+                        ),
+                      );
                   }
                 }}
                 value={startDateTime || ""}
@@ -162,7 +171,13 @@ const StartAndEndDate: DateFilterFunction = (
                 error={endDateError}
                 onChange={(changedValue: string | Date) => {
                   if (!changedValue) {
-                    props.onValueChanged && props.onValueChanged(new InBetween<Date>(startDateTime || OneUptimeDate.getCurrentDate(), OneUptimeDate.getCurrentDate()));
+                    props.onValueChanged &&
+                      props.onValueChanged(
+                        new InBetween<Date>(
+                          startDateTime || OneUptimeDate.getCurrentDate(),
+                          OneUptimeDate.getCurrentDate(),
+                        ),
+                      );
                   }
 
                   if (
@@ -171,7 +186,13 @@ const StartAndEndDate: DateFilterFunction = (
                     (props.type === StartAndEndDateType.Date ||
                       props.type === StartAndEndDateType.DateTime)
                   ) {
-                    props.onValueChanged && props.onValueChanged(new InBetween<Date>(startDateTime, OneUptimeDate.fromString(changedValue as string)));
+                    props.onValueChanged &&
+                      props.onValueChanged(
+                        new InBetween<Date>(
+                          startDateTime,
+                          OneUptimeDate.fromString(changedValue as string),
+                        ),
+                      );
                   }
                 }}
                 value={endDateTime || ""}
@@ -199,7 +220,9 @@ const StartAndEndDate: DateFilterFunction = (
                   );
 
                   props.onValueChanged &&
-                    props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                    props.onValueChanged(
+                      new InBetween<Date>(startDate, endDate),
+                    );
                 }}
                 title="1 hour"
               />
@@ -220,7 +243,9 @@ const StartAndEndDate: DateFilterFunction = (
                   );
 
                   props.onValueChanged &&
-                    props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                    props.onValueChanged(
+                      new InBetween<Date>(startDate, endDate),
+                    );
                 }}
                 title="3 hours"
               />
@@ -240,7 +265,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="1 day"
             />
@@ -259,7 +284,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="1 week"
             />
@@ -278,7 +303,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="2 weeks"
             />
@@ -297,7 +322,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="3 weeks"
             />
@@ -316,7 +341,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="1 month"
             />
@@ -335,7 +360,7 @@ const StartAndEndDate: DateFilterFunction = (
                 );
 
                 props.onValueChanged &&
-                props.onValueChanged(new InBetween<Date>(startDate, endDate));
+                  props.onValueChanged(new InBetween<Date>(startDate, endDate));
               }}
               title="3 months"
             />

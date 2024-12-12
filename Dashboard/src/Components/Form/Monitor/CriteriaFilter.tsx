@@ -1,6 +1,8 @@
 import CriteriaFilterUiUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
   CheckOn,
   CriteriaFilter,
@@ -122,27 +124,27 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
   let metricVariables: Array<string> =
     props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map(
-      (queryConfig) => {
+      (queryConfig: MetricQueryConfigData) => {
         return queryConfig.metricAliasData?.metricVariable || "";
       },
     ) || [];
 
   // push formula variables as well.
   props.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs?.forEach(
-    (formulaConfig) => {
+    (formulaConfig: MetricFormulaConfigData) => {
       metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
     },
   );
 
   // remove duplicates and empty strings
 
-  metricVariables = metricVariables.filter((item, index) => {
+  metricVariables = metricVariables.filter((item: string, index: number) => {
     return metricVariables.indexOf(item) === index && item !== "";
   });
 
   // now make this into dropdown options.
   const metricVariableOptions: Array<DropdownOption> = metricVariables.map(
-    (item) => {
+    (item: string) => {
       return {
         value: item,
         label: item,
