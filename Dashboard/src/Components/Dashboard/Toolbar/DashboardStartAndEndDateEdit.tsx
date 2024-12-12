@@ -45,7 +45,7 @@ const DashboardStartAndEndDateEditElement: FunctionComponent<ComponentProps> = (
       {props.value?.range === DashboardStartAndEndDateRange.CUSTOM && (
         <StartAndEndDate
           type={StartAndEndDateType.DateTime}
-          initialValue={props.value?.startAndEndDate || undefined}
+          value={props.value?.startAndEndDate || undefined}
           hideTimeButtons={true}
           onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
             if (startAndEndDate) {

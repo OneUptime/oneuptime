@@ -21,7 +21,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepMetricMonitor, setMonitorStepMetricMonitor] =
     React.useState<MonitorStepMetricMonitor>(
       props.monitorStepMetricMonitor ||
-      MonitorStepMetricMonitorUtil.getDefault(),
+        MonitorStepMetricMonitorUtil.getDefault(),
     );
 
   useEffect(() => {

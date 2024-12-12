@@ -63,16 +63,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     setFilterTypeOptions(
       criteriaFilter?.checkOn
         ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
-          criteriaFilter?.checkOn,
-        )
+            criteriaFilter?.checkOn,
+          )
         : [],
     );
     setValuePlaceholder(
       criteriaFilter?.checkOn
         ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn({
-          monitorType: props.monitorType,
-          checkOn: criteriaFilter?.checkOn,
-        })
+            monitorType: props.monitorType,
+            checkOn: criteriaFilter?.checkOn,
+          })
         : "",
     );
   }, [criteriaFilter]);
@@ -120,17 +120,19 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
+  let metricVariables: Array<string> =
+    props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map(
+      (queryConfig) => {
+        return queryConfig.metricAliasData?.metricVariable || "";
+      },
+    ) || [];
 
-  let metricVariables: Array<string> = props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map((queryConfig) => {
-    return queryConfig.metricAliasData?.metricVariable || "";
-  }) || [];
-
-
-  // push formula variables as well. 
-  props.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs?.forEach((formulaConfig) => {
-    metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
-  });
-
+  // push formula variables as well.
+  props.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs?.forEach(
+    (formulaConfig) => {
+      metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
+    },
+  );
 
   // remove duplicates and empty strings
 
@@ -139,23 +141,24 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   });
 
   // now make this into dropdown options.
-  const metricVariableOptions: Array<DropdownOption> = metricVariables.map((item) => {
-    return {
-      value: item,
-      label: item,
-    };
-  });
+  const metricVariableOptions: Array<DropdownOption> = metricVariables.map(
+    (item) => {
+      return {
+        value: item,
+        label: item,
+      };
+    },
+  );
 
+  let selectedMetricVariableOption: DropdownOption | undefined =
+    metricVariableOptions.find((i: DropdownOption) => {
+      return i.value === criteriaFilter?.metricMonitorOptions?.metricAlias;
+    });
 
-  let selectedMetricVariableOption: DropdownOption | undefined = metricVariableOptions.find((i: DropdownOption) => {
-    return i.value === criteriaFilter?.metricMonitorOptions?.metricAlias;
-  }); 
-
-  if(!selectedMetricVariableOption) {
-    // select first varoable. 
+  if (!selectedMetricVariableOption) {
+    // select first varoable.
     selectedMetricVariableOption = metricVariableOptions[0];
   }
-  
 
   return (
     <div>
@@ -199,29 +202,26 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             </div>
           )}
 
-
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-1">
               <FieldLabelElement title="Select Metric Variable" />
               <Dropdown
-                value={metricVariableOptions.find((i: DropdownOption) => {
-                  return i.value === criteriaFilter?.value;
-                })}
+                value={selectedMetricVariableOption}
                 options={metricVariableOptions}
-                onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
                   setCriteriaFilter({
                     ...criteriaFilter,
                     metricMonitorOptions: {
                       metricAlias: value?.toString(),
-                    }
+                    },
                   });
                 }}
               />
             </div>
           )}
-
-
 
         {/** checkbox for evaluateOverTime */}
 
@@ -244,9 +244,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           )}
 
         {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn &&
-          CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-          criteriaFilter.eveluateOverTime ? (
+        criteriaFilter?.checkOn &&
+        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
+        criteriaFilter.eveluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="Evaluate" />
             <Dropdown
@@ -258,12 +258,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 const evaluateOverTimeOption: EvaluateOverTimeOptions =
                   criteriaFilter?.evaluateOverTimeOptions
                     ? {
-                      ...criteriaFilter?.evaluateOverTimeOptions,
-                    }
+                        ...criteriaFilter?.evaluateOverTimeOptions,
+                      }
                     : {
-                      timeValueInMinutes: 5,
-                      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                    };
+                        timeValueInMinutes: 5,
+                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                      };
 
                 setCriteriaFilter({
                   ...criteriaFilter,
@@ -282,9 +282,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         )}
 
         {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn &&
-          CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-          criteriaFilter.eveluateOverTime ? (
+        criteriaFilter?.checkOn &&
+        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
+        criteriaFilter.eveluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="For the last (in minutes)" />
             <Dropdown
@@ -296,12 +296,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 const evaluateOverTimeOption: EvaluateOverTimeOptions =
                   criteriaFilter?.evaluateOverTimeOptions
                     ? {
-                      ...criteriaFilter?.evaluateOverTimeOptions,
-                    }
+                        ...criteriaFilter?.evaluateOverTimeOptions,
+                      }
                     : {
-                      timeValueInMinutes: 5,
-                      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                    };
+                        timeValueInMinutes: 5,
+                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                      };
 
                 setCriteriaFilter({
                   ...criteriaFilter,
