@@ -37,6 +37,8 @@ export interface ComponentProps {
   hideStartAndEndDate?: boolean;
   onChange: (data: MetricViewData) => void;
   hideCardInQueryElements?: boolean;
+  hideCardInCharts?: boolean;
+  chartCssClass?:string | undefined
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
@@ -70,6 +72,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
         metricQueryData: {
           filterData: {
             aggegationType: MetricsAggregationType.Avg,
+            metricName: metricNamesAndUnits.length > 0 && metricNamesAndUnits[0] && metricNamesAndUnits[0].metricName ? metricNamesAndUnits[0].metricName : "",
           },
         },
       };
@@ -350,9 +353,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-1 gap-4 mt-3">
           {/** charts */}
           <MetricCharts
+            hideCard={props.hideCardInCharts}
             metricResults={metricResults}
             metricNamesAndUnits={metricNamesAndUnits}
             metricViewData={props.data}
+            chartCssClass={props.chartCssClass}
           />
         </div>
       )}

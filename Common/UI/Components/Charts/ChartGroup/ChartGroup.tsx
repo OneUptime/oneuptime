@@ -20,6 +20,7 @@ export interface ComponentProps {
   charts: Array<Chart>;
   hideCard?: boolean | undefined;
   heightInPx?: number | undefined;
+  chartCssClass?: string | undefined;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (
@@ -35,7 +36,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             return (
               <div
                 key={index}
-                className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow"}`}
+                className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow"} ${props.chartCssClass || ""}`}
               >
                 <h2
                   data-testid="card-details-heading"
