@@ -50,6 +50,14 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
         }}
       />
 
+      <div className="mt-3"></div>
+
+<FieldLabelElement
+        title="Select Metrics"
+        description={"Select the metrics to monitor."}
+        required={true}
+      />
+
       <MetricView
         hideStartAndEndDate={true}
         data={{
