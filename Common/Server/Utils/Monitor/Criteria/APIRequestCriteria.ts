@@ -70,7 +70,7 @@ export default class APIRequestCriteria {
     }
 
     //check response code
-    if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode) {
+    if (input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode && (input.dataToProcess as ProbeMonitorResponse).responseCode) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const value: Array<number> | number =
