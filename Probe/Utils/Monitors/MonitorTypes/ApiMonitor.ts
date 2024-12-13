@@ -18,7 +18,7 @@ export interface APIResponse {
   requestBody: JSONObject;
   isSecure: boolean;
   responseTimeInMS: PositiveNumber;
-  statusCode: number;
+  statusCode: number | undefined;
   responseBody: string;
   responseHeaders: Headers;
   isOnline: boolean;
@@ -175,7 +175,7 @@ export default class ApiMonitor {
         requestHeaders: options.requestHeaders || {},
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: new PositiveNumber(0),
-        statusCode: 0,
+        statusCode: undefined,
         responseBody: "",
         responseHeaders: {},
         failureCause: API.getFriendlyErrorMessage(err as Error),
