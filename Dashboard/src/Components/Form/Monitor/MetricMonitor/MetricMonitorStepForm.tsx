@@ -77,7 +77,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
         }}
         hideCardInQueryElements={true}
         hideCardInCharts={true}
-        chartCssClass="rounded-md border border-gray-200 mt-2"
+        chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
         onChange={(data: MetricViewData) => {
           // we dont care about start and end time here because it is not editable in metric view but editable in rolling time picker.
           props.onChange({

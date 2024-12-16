@@ -127,6 +127,7 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
       <MetricView
         data={metricViewData}
         hideQueryElements={true}
+        chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
         hideStartAndEndDate={true}
         onChange={(data: MetricViewData) => {
           setMetricViewData(data);
