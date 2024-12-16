@@ -1,10 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import DropdownUtil from "../../Utils/Dropdown";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 
 export interface ComponentProps {
-  initialValue?: undefined | RollingTime;
   value?: RollingTime | undefined;
   onChange?: undefined | ((value: RollingTime) => void);
 }
@@ -12,43 +11,31 @@ export interface ComponentProps {
 const RollingTimePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [rollingTime, setRollingTime] = React.useState<RollingTime>(
-    props.initialValue || RollingTime.Past1Minute,
-  );
-
   const dropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(RollingTime);
 
-  useEffect(() => {
-    if (props.value) {
-      setRollingTime(props.value);
-    }
-  }, [props.value]);
-
-  useEffect(() => {
-    if (rollingTime) {
-      props.onChange && props.onChange(rollingTime);
-    }
-  }, [rollingTime]);
-
   const currentDropdownOption: DropdownOption | undefined =
     dropdownOptions.find((option: DropdownOption) => {
-      return option.value === rollingTime;
+      return option.value === props.value;
     });
 
   return (
     <Dropdown
       value={currentDropdownOption}
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-        if (value === null) {
-          return;
+        let selectedOption: DropdownOption = dropdownOptions.find(
+          (option: DropdownOption) => {
+            return option.value === value;
+          },
+        ) as DropdownOption;
+
+        if (!selectedOption) {
+          selectedOption = dropdownOptions[0] as DropdownOption;
         }
 
-        if (Array.isArray(value)) {
-          return;
+        if (props.onChange) {
+          props.onChange(selectedOption.value as RollingTime);
         }
-
-        setRollingTime(value as RollingTime);
       }}
       options={dropdownOptions}
     />

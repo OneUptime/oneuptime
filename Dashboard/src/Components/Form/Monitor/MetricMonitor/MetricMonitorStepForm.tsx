@@ -18,6 +18,10 @@ export interface ComponentProps {
 const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
+    null,
+  );
+
   const monitorStepMetricMonitor: MonitorStepMetricMonitor =
     props.monitorStepMetricMonitor || MonitorStepMetricMonitorUtil.getDefault();
 
@@ -25,6 +29,12 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
     React.useState<InBetween<Date> | null>(null);
 
   useEffect(() => {
+    if (rollingTime === monitorStepMetricMonitor.rollingTime) {
+      return;
+    }
+
+    setRollingTime(monitorStepMetricMonitor.rollingTime);
+
     setStartAndEndTime(
       RollingTimeUtil.convertToStartAndEndDate(
         monitorStepMetricMonitor.rollingTime || RollingTime.Past1Minute,
@@ -50,6 +60,11 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
       <RollingTimePicker
         value={monitorStepMetricMonitor.rollingTime}
         onChange={(value: RollingTime) => {
+          // if the value is the same then dont do anything!
+          if (value === monitorStepMetricMonitor.rollingTime) {
+            return;
+          }
+
           props.onChange({
             ...monitorStepMetricMonitor,
             rollingTime: value,

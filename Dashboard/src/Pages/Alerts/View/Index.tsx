@@ -48,7 +48,9 @@ import MonitorElement from "../../../Components/Monitor/Monitor";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import HeaderAlert, { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import HeaderAlert, {
+  HeaderAlertType,
+} from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 
@@ -658,46 +660,60 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      {telemetryQuery && telemetryQuery.telemetryType === TelemetryType.Log && telemetryQuery.telemetryQuery && (
-        <div>
-          <Card title={"Logs"} description={"Logs for this alert."}>
-            <DashboardLogsViewer
-              id="logs-preview"
-              logQuery={telemetryQuery.telemetryQuery}
-              limit={10}
-              noLogsMessage="No logs found"
-            />
-          </Card>
-        </div>
-      )}
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Log &&
+        telemetryQuery.telemetryQuery && (
+          <div>
+            <Card title={"Logs"} description={"Logs for this alert."}>
+              <DashboardLogsViewer
+                id="logs-preview"
+                logQuery={telemetryQuery.telemetryQuery}
+                limit={10}
+                noLogsMessage="No logs found"
+              />
+            </Card>
+          </div>
+        )}
 
       {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Trace && telemetryQuery.telemetryQuery && (
+        telemetryQuery.telemetryType === TelemetryType.Trace &&
+        telemetryQuery.telemetryQuery && (
           <div>
             <TraceTable spanQuery={telemetryQuery.telemetryQuery} />
           </div>
         )}
 
       {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Metric && telemetryQuery.metricViewData && (
-          <Card title={"Metrics"} description={"Metrics for this alert."} 
-            rightElement={telemetryQuery.metricViewData.startAndEndDate ? <HeaderAlert
-              icon={IconProp.Clock}
-              onClick={() => {
-                // do nothing!
-              }}
-              title={OneUptimeDate.getInBetweenDatesAsFormattedString(telemetryQuery.metricViewData.startAndEndDate)}
-              alertType={HeaderAlertType.INFO}
-              colorSwatch={ColorSwatch.Blue}
-               /> : <></>
-            }>
+        telemetryQuery.telemetryType === TelemetryType.Metric &&
+        telemetryQuery.metricViewData && (
+          <Card
+            title={"Metrics"}
+            description={"Metrics for this alert."}
+            rightElement={
+              telemetryQuery.metricViewData.startAndEndDate ? (
+                <HeaderAlert
+                  icon={IconProp.Clock}
+                  onClick={() => {
+                    // do nothing!
+                  }}
+                  title={OneUptimeDate.getInBetweenDatesAsFormattedString(
+                    telemetryQuery.metricViewData.startAndEndDate,
+                  )}
+                  alertType={HeaderAlertType.INFO}
+                  colorSwatch={ColorSwatch.Blue}
+                />
+              ) : (
+                <></>
+              )
+            }
+          >
             <MetricView
               data={telemetryQuery.metricViewData}
               hideQueryElements={true}
               chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
               hideStartAndEndDate={true}
               onChange={(_data: MetricViewData) => {
-                // do nothing! 
+                // do nothing!
               }}
             />
           </Card>

@@ -9,7 +9,6 @@ import Timezone from "./Timezone";
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-
   public static getInBetweenDatesAsFormattedString(
     inBetween: InBetween<Date>,
   ): string {
