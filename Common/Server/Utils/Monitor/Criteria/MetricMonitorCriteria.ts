@@ -11,7 +11,7 @@ export default class MetricMonitorCriteria {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
-    // Metric Monitoring Checks
+    // Metric Monitoring Check
 
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -52,7 +52,7 @@ export default class MetricMonitorCriteria {
             );
 
             return CompareCriteria.compareCriteriaNumbers({
-              value: numbers,
+              value: numbers && numbers.length > 0 ? numbers : 0,
               threshold: threshold as number,
               criteriaFilter: input.criteriaFilter,
             });
@@ -69,7 +69,7 @@ export default class MetricMonitorCriteria {
         );
 
         return CompareCriteria.compareCriteriaNumbers({
-          value: numbers,
+          value: numbers && numbers.length > 0 ? numbers : 0,
           threshold: threshold as number,
           criteriaFilter: input.criteriaFilter,
         });

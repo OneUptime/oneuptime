@@ -415,6 +415,10 @@ export default class AnalyticsDatabaseService<
     strResult: string,
     columns: string[],
   ): JSONObject[] {
+    if (!strResult || !strResult.trim()) {
+      return [];
+    }
+
     const jsonItems: Array<JSONObject> = [];
 
     const rows: Array<string> = strResult.split("\n");

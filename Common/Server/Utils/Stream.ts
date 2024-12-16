@@ -11,6 +11,10 @@ export default class StreamUtil {
         const chunks: Array<any> = [];
 
         stream.on("data", (chunk: any) => {
+          if (Array.isArray(chunk) && chunk.length === 0) {
+            return;
+          }
+
           chunks.push(Buffer.from(chunk));
         });
         stream.on("end", () => {

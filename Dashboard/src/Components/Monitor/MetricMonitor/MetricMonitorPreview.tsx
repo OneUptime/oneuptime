@@ -5,13 +5,19 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import MetricViewData from "../../Metrics/Types/MetricViewData";
 import Card from "Common/UI/Components/Card/Card";
-import HeaderAlert, { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import HeaderAlert, {
+  HeaderAlertType,
+} from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import Modal from "Common/UI/Components/Modal/Modal";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import Dropdown, { DropdownOption, DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined;
@@ -20,7 +26,6 @@ export interface ComponentProps {
 const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const [rollingTime, setRollingTime] = React.useState<RollingTime>(
     props.monitorStepMetricMonitor?.rollingTime || RollingTimeUtil.getDefault(),
   );
@@ -28,20 +33,16 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   const rollingTimeDropdownOptions: DropdownOption[] =
     DropdownUtil.getDropdownOptionsFromEnum(RollingTime);
 
+  const [modalTempRollingTime, setModalTempRollingTime] =
+    React.useState<RollingTime | null>(null);
 
-  const [modalTempRollingTime, setModalTempRollingTime] = React.useState<RollingTime | null>(
-    null
-  );
-
-
-  const [showTimePickerModal, setShowTimePickerModal] = React.useState<boolean>(
-    false,
-  );
+  const [showTimePickerModal, setShowTimePickerModal] =
+    React.useState<boolean>(false);
 
   const initialStartAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       props.monitorStepMetricMonitor?.rollingTime ||
-      RollingTimeUtil.getDefault(),
+        RollingTimeUtil.getDefault(),
     );
 
   const [startAndEndDate, setStartAndEndDate] = React.useState<InBetween<Date>>(
@@ -49,11 +50,8 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   );
 
   useEffect(() => {
-    setStartAndEndDate(
-      RollingTimeUtil.convertToStartAndEndDate(rollingTime),
-    );
+    setStartAndEndDate(RollingTimeUtil.convertToStartAndEndDate(rollingTime));
   }, [rollingTime]);
-
 
   const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: startAndEndDate,
@@ -73,7 +71,7 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
     });
   }, [startAndEndDate]);
 
-  const getStartAndEndDateElement = (): ReactElement => {
+  const getStartAndEndDateElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div>
         <HeaderAlert
@@ -110,7 +108,9 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
                     return option.value === modalTempRollingTime;
                   },
                 )}
-                onChange={(range: DropdownValue | Array<DropdownValue> | null) => {
+                onChange={(
+                  range: DropdownValue | Array<DropdownValue> | null,
+                ) => {
                   setModalTempRollingTime(range as RollingTime);
                 }}
                 options={rollingTimeDropdownOptions}
@@ -123,7 +123,11 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card title={"Metrics Preview"} description={"Preview of the metrics that match this monitor criteria"} rightElement={getStartAndEndDateElement()}>
+    <Card
+      title={"Metrics Preview"}
+      description={"Preview of the metrics that match this monitor criteria"}
+      rightElement={getStartAndEndDateElement()}
+    >
       <MetricView
         data={metricViewData}
         hideQueryElements={true}

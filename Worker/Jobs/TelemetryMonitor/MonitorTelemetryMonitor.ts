@@ -35,12 +35,13 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricService from "Common/Server/Services/MetricService";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 
 RunCron(
-  "LogMonitor:MonitorLogMonitor",
+  "TelemetryMonitor:MonitorTelemetryMonitor",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    logger.debug("Checking LogMonitor:MonitorLogMonitor");
+    logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor");
 
     const telemetryMonitors: Array<Monitor> = await MonitorService.findBy({
       query: {
@@ -67,6 +68,7 @@ RunCron(
         createdAt: true,
         monitoringInterval: true,
         monitorType: true,
+        projectId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -133,6 +135,7 @@ RunCron(
               monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!,
             monitorType: monitor.monitorType!,
             monitorId: monitor.id!,
+            projectId: monitor.projectId!,
           }),
         );
       } catch (error) {
@@ -157,6 +160,7 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }) => Promise<
   LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
 >;
@@ -165,15 +169,17 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }): Promise<
   LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
 > => {
-  const { monitorStep, monitorType, monitorId } = data;
+  const { monitorStep, monitorType, monitorId, projectId } = data;
 
   if (monitorType === MonitorType.Logs) {
     return monitorLogs({
       monitorStep,
       monitorId,
+      projectId,
     });
   }
 
@@ -181,6 +187,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
     return monitorTrace({
       monitorStep,
       monitorId,
+      projectId,
     });
   }
 
@@ -188,6 +195,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
     return monitorMetric({
       monitorStep,
       monitorId,
+      projectId,
     });
   }
 
@@ -197,11 +205,13 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 type MonitorTraceFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }) => Promise<TraceMonitorResponse>;
 
 const monitorTrace: MonitorTraceFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }): Promise<TraceMonitorResponse> => {
   // Monitor traces
   const traceQuery: MonitorStepTraceMonitor | undefined =
@@ -212,6 +222,8 @@ const monitorTrace: MonitorTraceFunction = async (data: {
   }
 
   const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(traceQuery);
+
+  query.projectId = data.projectId;
 
   const countTraces: PositiveNumber = await SpanService.countBy({
     query: query,
@@ -232,11 +244,13 @@ const monitorTrace: MonitorTraceFunction = async (data: {
 type MonitorMetricFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
 const monitorMetric: MonitorMetricFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }): Promise<MetricMonitorResponse> => {
   // Monitor traces
   const metricMonitorConfig: MonitorStepMetricMonitor | undefined =
@@ -254,14 +268,25 @@ const monitorMetric: MonitorMetricFunction = async (data: {
   const finalResult: Array<AggregatedResult> = [];
 
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: queryConfig.metricQueryData.filterData.metricName,
+    };
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      query.attributes = queryConfig.metricQueryData.filterData
+        .attributes as Dictionary<string>;
+    }
+
     const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
       {
-        query: {
-          time: startAndEndDate,
-          name: queryConfig.metricQueryData.filterData.metricName,
-          attributes: queryConfig.metricQueryData.filterData
-            .attributes as Dictionary<string | number | boolean>,
-        },
+        query: query,
         aggregationType:
           (queryConfig.metricQueryData.filterData
             .aggegationType as MetricsAggregationType) ||
@@ -282,6 +307,9 @@ const monitorMetric: MonitorMetricFunction = async (data: {
       },
     );
 
+    logger.debug("Aggregated results");
+    logger.debug(aggregatedResults);
+
     finalResult.push(aggregatedResults);
   }
 
@@ -295,11 +323,13 @@ const monitorMetric: MonitorMetricFunction = async (data: {
 type MonitorLogsFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }) => Promise<LogMonitorResponse>;
 
 const monitorLogs: MonitorLogsFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
+  projectId: ObjectID;
 }): Promise<LogMonitorResponse> => {
   // Monitor logs
   const logQuery: MonitorStepLogMonitor | undefined =
@@ -310,6 +340,7 @@ const monitorLogs: MonitorLogsFunction = async (data: {
   }
 
   const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
+  query.projectId = data.projectId;
 
   const countLogs: PositiveNumber = await LogService.countBy({
     query: query,
