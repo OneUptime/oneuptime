@@ -49,6 +49,9 @@ import TraceTable from "../../../Components/Traces/TraceTable";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import IconProp from "Common/Types/Icon/IconProp";
+import HeaderAlert, { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import ColorSwatch from "Common/Types/ColorSwatch";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -716,7 +719,16 @@ const IncidentView: FunctionComponent<
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Metric &&
         telemetryQuery.metricViewData && (
-          <Card title={"Metrics"} description={"Metrics for this incident."}>
+          <Card title={"Metrics"} description={"Metrics for this incident."} rightElement={telemetryQuery.metricViewData.startAndEndDate ? <HeaderAlert
+            icon={IconProp.Clock}
+            onClick={() => {
+              // do nothing!
+            }}
+            title={OneUptimeDate.getInBetweenDatesAsFormattedString(telemetryQuery.metricViewData.startAndEndDate)}
+            alertType={HeaderAlertType.INFO}
+            colorSwatch={ColorSwatch.Blue}
+             /> : <></>
+          }>
             <MetricView
               data={telemetryQuery.metricViewData}
               hideQueryElements={true}
