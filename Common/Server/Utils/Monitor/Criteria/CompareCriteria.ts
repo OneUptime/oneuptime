@@ -313,7 +313,7 @@ export default class CompareCriteria {
         CompareCriteria.isTrue({
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -331,7 +331,7 @@ export default class CompareCriteria {
         CompareCriteria.isFalse({
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -366,7 +366,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -385,7 +385,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -404,7 +404,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -423,7 +423,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -442,7 +442,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -461,7 +461,7 @@ export default class CompareCriteria {
           threshold: data.threshold as number,
           value: data.value,
           evaluationType:
-            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType,
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType || data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -485,15 +485,21 @@ export default class CompareCriteria {
     // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
     let message: string = "";
 
+    let evaluationType: EvaluateOverTimeType | undefined = data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType;
+
+    if(data.criteriaFilter.metricMonitorOptions?.metricAggregationType){
+      evaluationType = data.criteriaFilter.metricMonitorOptions.metricAggregationType;
+    } 
+
     if (
-      data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+      evaluationType ===
       EvaluateOverTimeType.AnyValue
     ) {
       message += "Any value of";
     }
 
     if (
-      data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
+      evaluationType ===
       EvaluateOverTimeType.AllValues
     ) {
       message += "All values of";
