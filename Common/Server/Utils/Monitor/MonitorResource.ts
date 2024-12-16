@@ -1280,6 +1280,7 @@ export default class MonitorResourceUtil {
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
         });
 
       if (logMonitorResult) {

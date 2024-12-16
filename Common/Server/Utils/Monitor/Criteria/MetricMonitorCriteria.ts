@@ -1,7 +1,9 @@
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
+import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
@@ -10,6 +12,7 @@ export default class MetricMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
   }): Promise<string | null> {
     // Metric Monitoring Check
 
@@ -25,10 +28,33 @@ export default class MetricMonitorCriteria {
       const metricAlias: string =
         input.criteriaFilter.metricMonitorOptions?.metricAlias || "";
 
+      // Pick based on the alias, or if there's no alias, pick the first one
+
+
+      let aliasIndex: number = input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs.findIndex(
+        (queryConfig: MetricQueryConfigData) => {
+          return queryConfig.metricAliasData?.metricVariable === metricAlias;
+        },
+      ) || -1;
+
+      if (aliasIndex < 0) {
+        // then try to find in formula
+        let formulaIndex: number = input.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs.findIndex(
+          (formulaConfig: MetricFormulaConfigData) => {
+            return formulaConfig.metricAliasData?.metricVariable === metricAlias;
+          },
+        ) || -1;
+
+        if (formulaIndex >= 0) {
+          // add number of queries to the index
+          formulaIndex = formulaIndex + (input.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs.length || 0);
+          aliasIndex = formulaIndex;
+        }
+      }
       const aggregatedResult: AggregatedResult | undefined =
-        metricAggregaredResult && metricAggregaredResult.length > 0
-          ? metricAggregaredResult[0]
-          : undefined;
+        metricAggregaredResult && metricAggregaredResult.length >= (aliasIndex - 1) && aliasIndex >= 0
+          ? metricAggregaredResult[aliasIndex]
+          : (metricAggregaredResult[0] || undefined);
 
       if (metricAlias) {
         // find the index of the alias in the dataToProcess.

@@ -230,6 +230,7 @@ export default class CriteriaFilterUtil {
         return i.value === CheckOn.LogCount;
       });
     }
+    
 
     if (monitorType === MonitorType.Traces) {
       options = options.filter((i: DropdownOption) => {
@@ -267,7 +268,7 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.LogCount || checkOn === CheckOn.SpanCount) {
+    if (checkOn === CheckOn.LogCount || checkOn === CheckOn.SpanCount || checkOn === CheckOn.MetricValue) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||

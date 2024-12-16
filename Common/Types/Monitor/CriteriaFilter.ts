@@ -47,8 +47,19 @@ export interface ServerMonitorOptions {
   diskPath?: string | undefined;
 }
 
+export enum MetricAggregationOption { 
+  AllValues = "All Values",
+  AnyValue = "Any Value",
+  Average = "Average Value",
+  Count = "Count",
+  Maximum = "Maximum Value",
+  Minimum = "Minimum Value",
+  Sum = "Sum of Values",
+}
+
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
+  metricAggregationOption?: MetricAggregationOption | undefined;
 }
 
 export enum EvaluateOverTimeType {
