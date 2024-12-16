@@ -30,7 +30,7 @@ import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
-import MetricViewData from "./Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricCharts from "./MetricCharts";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import JSONFunctions from "Common/Types/JSONFunctions";

@@ -4,7 +4,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { DashboardStartAndEndDateUtil } from "../Types/DashboardStartAndEndDate";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MetricViewData from "../../Metrics/Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";

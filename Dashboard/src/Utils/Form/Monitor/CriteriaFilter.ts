@@ -29,6 +29,11 @@ export default class CriteriaFilterUtil {
   ): string {
     let text: string = "Check if ";
 
+    // add metic aggregation type to the text
+    if (criteriaFilter?.metricMonitorOptions?.metricAggregationType) {
+      text += `${criteriaFilter.metricMonitorOptions.metricAggregationType.toString()} of `;
+    }
+
     // template: the maximum percentage of disk usage on /dev/sda in the past three minutes exceeds 21%.
 
     const isPercentage: boolean =
@@ -230,7 +235,6 @@ export default class CriteriaFilterUtil {
         return i.value === CheckOn.LogCount;
       });
     }
-    
 
     if (monitorType === MonitorType.Traces) {
       options = options.filter((i: DropdownOption) => {
@@ -268,7 +272,11 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.LogCount || checkOn === CheckOn.SpanCount || checkOn === CheckOn.MetricValue) {
+    if (
+      checkOn === CheckOn.LogCount ||
+      checkOn === CheckOn.SpanCount ||
+      checkOn === CheckOn.MetricValue
+    ) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||

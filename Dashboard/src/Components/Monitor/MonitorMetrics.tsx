@@ -28,7 +28,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
-import MetricViewData from "../Metrics/Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 
 export interface ComponentProps {
   monitorId: ObjectID;

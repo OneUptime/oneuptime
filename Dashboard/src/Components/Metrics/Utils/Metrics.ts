@@ -15,7 +15,7 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import MetricViewData from "../Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
 
 export default class MetricUtil {

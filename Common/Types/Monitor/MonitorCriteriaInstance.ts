@@ -130,7 +130,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             checkOn: CheckOn.MetricValue,
             filterType: FilterType.GreaterThan,
-            
+
             metricMonitorOptions: {
               metricAggregationType: EvaluateOverTimeType.AnyValue,
               metricAlias:

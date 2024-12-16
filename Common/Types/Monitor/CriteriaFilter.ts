@@ -56,8 +56,6 @@ export enum EvaluateOverTimeType {
   AnyValue = "Any Value",
 }
 
-
-
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;

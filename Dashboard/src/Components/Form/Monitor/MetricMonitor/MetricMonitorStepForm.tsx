@@ -8,7 +8,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimePicker from "Common/UI/Components/RollingTimePicker/RollingTimePicker";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import MetricViewData from "../../../Metrics/Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 
 export interface ComponentProps {
   monitorStepMetricMonitor: MonitorStepMetricMonitor;

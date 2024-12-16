@@ -56,6 +56,7 @@ import MetricService from "../../Services/MetricService";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(
@@ -442,6 +443,7 @@ export default class MonitorResourceUtil {
         telemetryQuery = {
           telemetryQuery: (dataToProcess as LogMonitorResponse).logQuery,
           telemetryType: TelemetryType.Log,
+          metricViewData: null,
         };
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Log query found.`,
@@ -452,6 +454,29 @@ export default class MonitorResourceUtil {
         telemetryQuery = {
           telemetryQuery: (dataToProcess as TraceMonitorResponse).spanQuery,
           telemetryType: TelemetryType.Trace,
+          metricViewData: null,
+        };
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Span query found.`,
+        );
+      }
+
+      if (
+        dataToProcess &&
+        (dataToProcess as MetricMonitorResponse).metricViewConfig &&
+        (dataToProcess as MetricMonitorResponse).startAndEndDate
+      ) {
+        telemetryQuery = {
+          telemetryQuery: null,
+          telemetryType: TelemetryType.Metric,
+          metricViewData: {
+            startAndEndDate:
+              (dataToProcess as MetricMonitorResponse).startAndEndDate || null,
+            queryConfigs: (dataToProcess as MetricMonitorResponse)
+              .metricViewConfig.queryConfigs,
+            formulaConfigs: (dataToProcess as MetricMonitorResponse)
+              .metricViewConfig.formulaConfigs,
+          },
         };
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Span query found.`,

@@ -9,7 +9,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import MetricViewData from "./Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";

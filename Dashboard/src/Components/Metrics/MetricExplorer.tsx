@@ -4,7 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import MetricViewData from "./Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
   const metricName: string =

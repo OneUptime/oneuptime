@@ -3,7 +3,7 @@ import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMoni
 import MetricView from "../../Metrics/MetricView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
-import MetricViewData from "../../Metrics/Types/MetricViewData";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import Card from "Common/UI/Components/Card/Card";
 import HeaderAlert, {
   HeaderAlertType,
@@ -71,56 +71,57 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
     });
   }, [startAndEndDate]);
 
-  const getStartAndEndDateElement: GetReactElementFunction = (): ReactElement => {
-    return (
-      <div>
-        <HeaderAlert
-          icon={IconProp.Clock}
-          onClick={() => {
-            // show modal
-            setModalTempRollingTime(rollingTime);
-            setShowTimePickerModal(true);
-          }}
-          title={`${rollingTime}`}
-          alertType={HeaderAlertType.INFO}
-          colorSwatch={ColorSwatch.Blue}
-          tooltip="Click to change the date and time range of data."
-        />
-        {showTimePickerModal && (
-          <Modal
-            title="Select Time Range"
-            onClose={() => {
-              setModalTempRollingTime(null);
-              setShowTimePickerModal(false);
+  const getStartAndEndDateElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <div>
+          <HeaderAlert
+            icon={IconProp.Clock}
+            onClick={() => {
+              // show modal
+              setModalTempRollingTime(rollingTime);
+              setShowTimePickerModal(true);
             }}
-            onSubmit={() => {
-              if (modalTempRollingTime) {
-                setRollingTime(modalTempRollingTime);
-              }
-              setModalTempRollingTime(null);
-              setShowTimePickerModal(false);
-            }}
-          >
-            <div className="mt-5">
-              <Dropdown
-                value={rollingTimeDropdownOptions.find(
-                  (option: DropdownOption) => {
-                    return option.value === modalTempRollingTime;
-                  },
-                )}
-                onChange={(
-                  range: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setModalTempRollingTime(range as RollingTime);
-                }}
-                options={rollingTimeDropdownOptions}
-              />
-            </div>
-          </Modal>
-        )}
-      </div>
-    );
-  };
+            title={`${rollingTime}`}
+            alertType={HeaderAlertType.INFO}
+            colorSwatch={ColorSwatch.Blue}
+            tooltip="Click to change the date and time range of data."
+          />
+          {showTimePickerModal && (
+            <Modal
+              title="Select Time Range"
+              onClose={() => {
+                setModalTempRollingTime(null);
+                setShowTimePickerModal(false);
+              }}
+              onSubmit={() => {
+                if (modalTempRollingTime) {
+                  setRollingTime(modalTempRollingTime);
+                }
+                setModalTempRollingTime(null);
+                setShowTimePickerModal(false);
+              }}
+            >
+              <div className="mt-5">
+                <Dropdown
+                  value={rollingTimeDropdownOptions.find(
+                    (option: DropdownOption) => {
+                      return option.value === modalTempRollingTime;
+                    },
+                  )}
+                  onChange={(
+                    range: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    setModalTempRollingTime(range as RollingTime);
+                  }}
+                  options={rollingTimeDropdownOptions}
+                />
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    };
 
   return (
     <Card
