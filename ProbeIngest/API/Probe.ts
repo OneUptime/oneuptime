@@ -229,11 +229,6 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      if (DisableAutomaticIncidentCreation) {
-        return Response.sendJsonObjectResponse(req, res, {
-          message: "Automatic incident creation is disabled.",
-        });
-      }
 
       const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
         req.body["probeMonitorResponse"],

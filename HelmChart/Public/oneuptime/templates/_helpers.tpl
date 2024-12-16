@@ -432,6 +432,9 @@ Usage:
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
 
+- name: DISABLE_AUTOMATIC_ALERT_CREATION
+  value: {{ $.Values.alert.disableAutomaticCreation | squote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

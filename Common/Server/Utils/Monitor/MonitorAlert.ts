@@ -12,6 +12,7 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
@@ -191,6 +192,10 @@ export default class MonitorAlert {
 
         if (criteriaAlert.remediationNotes) {
           alert.remediationNotes = criteriaAlert.remediationNotes;
+        }
+
+        if (DisableAutomaticAlertCreation) {
+          return;
         }
 
         await AlertService.create({

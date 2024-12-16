@@ -12,6 +12,7 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
@@ -108,9 +109,9 @@ export default class MonitorIncident {
           (incident: Incident) => {
             return (
               incident.createdCriteriaId ===
-                input.criteriaInstance.data?.id.toString() &&
+              input.criteriaInstance.data?.id.toString() &&
               incident.createdIncidentTemplateId ===
-                criteriaIncident.id.toString()
+              criteriaIncident.id.toString()
             );
           },
         );
@@ -203,6 +204,10 @@ export default class MonitorIncident {
           incident.remediationNotes = criteriaIncident.remediationNotes;
         }
 
+        if (DisableAutomaticIncidentCreation) {
+          return;
+        }
+
         await IncidentService.create({
           data: incident,
           props: {
@@ -217,9 +222,9 @@ export default class MonitorIncident {
     openIncident: Incident;
     rootCause: string;
     dataToProcess:
-      | ProbeMonitorResponse
-      | IncomingMonitorRequest
-      | DataToProcess;
+    | ProbeMonitorResponse
+    | IncomingMonitorRequest
+    | DataToProcess;
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await IncidentStateTimelineService.getResolvedStateIdForProject(
@@ -279,7 +284,7 @@ export default class MonitorIncident {
 
     if (
       input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
+      input.openIncident.createdCriteriaId?.toString()
       ]
     ) {
       if (
