@@ -750,11 +750,11 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageId: data.statusPageId,
       });
 
+    const numberOfDays: number = data.historyDays || 14;
+
     const currentDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.getSomeDaysAgo(
-      data.historyDays || 14,
-    );
-    const startAndEndDate: string = `${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(currentDate, true)}`;
+    const startDate: Date = OneUptimeDate.getSomeDaysAgo(numberOfDays);
+    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(currentDate, true)})`;
 
     if (statusPageResources.length === 0) {
       return {

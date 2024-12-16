@@ -8,7 +8,6 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
-import { DisableAutomaticIncidentCreation } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import MailService from "Common/Server/Services/MailService";
 import ProbeService from "Common/Server/Services/ProbeService";
@@ -229,7 +228,6 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-
       const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
         req.body["probeMonitorResponse"],
       ) as any;
