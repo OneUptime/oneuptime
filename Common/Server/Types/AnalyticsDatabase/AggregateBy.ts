@@ -2,6 +2,7 @@ import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import CommonAggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "../../../Types/Date";
 
 export default interface AggregateBy<TBaseModel extends AnalyticsBaseModel>
   extends CommonAggregateBy<TBaseModel> {
@@ -13,6 +14,9 @@ export class AggregateUtil {
     startDate: Date;
     endDate: Date;
   }): AggregationInterval {
+    data.startDate = OneUptimeDate.fromString(data.startDate);
+    data.endDate = OneUptimeDate.fromString(data.endDate);
+
     const diff: number = data.endDate.getTime() - data.startDate.getTime();
 
     if (diff <= 1000 * 60 * 60 * 3) {

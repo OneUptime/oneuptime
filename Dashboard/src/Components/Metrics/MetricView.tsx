@@ -186,6 +186,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
             ],
           });
       }
+
+      if (props.data) {
+        fetchAggregatedResults().catch((err: Error) => {
+          setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+        });
+      }
     } catch (err) {
       setIsPageLoading(false);
       setPageError(API.getFriendlyErrorMessage(err as Error));

@@ -1,3 +1,4 @@
+import OneUptimeDate from "../../../../Types/Date";
 import NotImplementedException from "../../../../Types/Exception/NotImplementedException";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
@@ -15,8 +16,8 @@ export default class XAxisUtil {
       throw new NotImplementedException();
     }
 
-    const startDate: Date = data.xAxisMin as Date;
-    const endDate: Date = data.xAxisMax as Date;
+    const startDate: Date = OneUptimeDate.fromString(data.xAxisMin as Date);
+    const endDate: Date = OneUptimeDate.fromString(data.xAxisMax as Date);
 
     const totalMilliseconds: number = endDate.getTime() - startDate.getTime();
     const totalSeconds: number = totalMilliseconds / 1000;

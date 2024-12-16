@@ -723,7 +723,7 @@ const IncidentView: FunctionComponent<
         telemetryQuery.metricViewData && (
           <Card
             title={"Metrics"}
-            description={"Metrics for this incident."}
+            description={"Metrics related to this incident."}
             rightElement={
               telemetryQuery.metricViewData.startAndEndDate ? (
                 <HeaderAlert
