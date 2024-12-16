@@ -65,16 +65,16 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     setFilterTypeOptions(
       criteriaFilter?.checkOn
         ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
-            criteriaFilter?.checkOn,
-          )
+          criteriaFilter?.checkOn,
+        )
         : [],
     );
     setValuePlaceholder(
       criteriaFilter?.checkOn
         ? CriteriaFilterUiUtil.getFilterTypePlaceholderValueByCheckOn({
-            monitorType: props.monitorType,
-            checkOn: criteriaFilter?.checkOn,
-          })
+          monitorType: props.monitorType,
+          checkOn: criteriaFilter?.checkOn,
+        })
         : "",
     );
   }, [criteriaFilter]);
@@ -121,6 +121,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType
       );
     });
+
+  const metricAggregationOptions: Array<DropdownOption> = [...evalOverTimeDropdownOptions]; // evalOverTimeDropdownOptions and metricAggregationOptions are same 
+
+  const metricAggregationValue: DropdownOption | undefined =
+    metricAggregationOptions.find((i: DropdownOption) => {
+      return i.value === criteriaFilter?.metricMonitorOptions?.metricAggregationType;
+    });
+
 
   let metricVariables: Array<string> =
     props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map(
@@ -217,7 +225,31 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   setCriteriaFilter({
                     ...criteriaFilter,
                     metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
                       metricAlias: value?.toString(),
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+
+        {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.MetricValue && (
+            <div className="mt-1">
+              <FieldLabelElement title="Select Aggregation" />
+              <Dropdown
+                value={metricAggregationValue}
+                options={metricAggregationOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setCriteriaFilter({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      metricAggregationType: value?.toString() as EvaluateOverTimeType,
                     },
                   });
                 }}
@@ -246,9 +278,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           )}
 
         {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.eveluateOverTime ? (
+          criteriaFilter?.checkOn &&
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
+          criteriaFilter.eveluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="Evaluate" />
             <Dropdown
@@ -260,12 +292,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 const evaluateOverTimeOption: EvaluateOverTimeOptions =
                   criteriaFilter?.evaluateOverTimeOptions
                     ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
+                      ...criteriaFilter?.evaluateOverTimeOptions,
+                    }
                     : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
+                      timeValueInMinutes: 5,
+                      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                    };
 
                 setCriteriaFilter({
                   ...criteriaFilter,
@@ -284,9 +316,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         )}
 
         {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.eveluateOverTime ? (
+          criteriaFilter?.checkOn &&
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
+          criteriaFilter.eveluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="For the last (in minutes)" />
             <Dropdown
@@ -298,12 +330,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 const evaluateOverTimeOption: EvaluateOverTimeOptions =
                   criteriaFilter?.evaluateOverTimeOptions
                     ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
+                      ...criteriaFilter?.evaluateOverTimeOptions,
+                    }
                     : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
+                      timeValueInMinutes: 5,
+                      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                    };
 
                 setCriteriaFilter({
                   ...criteriaFilter,

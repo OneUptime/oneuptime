@@ -10,6 +10,7 @@ import {
   CriteriaFilter,
   FilterCondition,
   FilterType,
+  EvaluateOverTimeType,
 } from "./CriteriaFilter";
 import { CriteriaIncident } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";
@@ -129,7 +130,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             checkOn: CheckOn.MetricValue,
             filterType: FilterType.GreaterThan,
+            
             metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
               metricAlias:
                 arg.metricOptions &&
                 arg.metricOptions.metricAliases &&
@@ -466,6 +469,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             checkOn: CheckOn.MetricValue,
             filterType: FilterType.EqualTo,
             metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
               metricAlias:
                 arg.metricOptions &&
                 arg.metricOptions.metricAliases &&

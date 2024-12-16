@@ -6,7 +6,7 @@ import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/Metri
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import { CheckOn, CriteriaFilter, EvaluateOverTimeType } from "Common/Types/Monitor/CriteriaFilter";
 
 export default class MetricMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -15,6 +15,10 @@ export default class MetricMonitorCriteria {
     monitorStep: MonitorStep;
   }): Promise<string | null> {
     // Metric Monitoring Check
+
+    if(input.criteriaFilter.metricMonitorOptions && !input.criteriaFilter.metricMonitorOptions.metricAggregationType){
+        input.criteriaFilter.metricMonitorOptions.metricAggregationType = EvaluateOverTimeType.AnyValue;
+    }
 
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
