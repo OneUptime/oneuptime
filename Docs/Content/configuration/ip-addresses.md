@@ -4,9 +4,6 @@ If you are using OneUptime.com and want to whitelist our IP's for security reaso
 
 Please whitelist the following IP's in your firewall to allow oneuptime.com to reach your resources.
 
-- 51.159.99.250
-- 62.210.173.51
-- 51.159.101.36
 - 172.174.206.132
 - 57.151.99.117  
 
