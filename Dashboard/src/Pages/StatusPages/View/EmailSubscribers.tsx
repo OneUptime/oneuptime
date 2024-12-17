@@ -1,7 +1,7 @@
 import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -130,6 +130,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       },
       {
         field: {
+          isSubscriptionConfirmed: true,
+        },
+        title: "Send Confirmation Email",
+        description: "Send a confirmation email to this subscriber with a link to confirm subscription.",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        doNotShowWhenEditing: true,
+      },
+      {
+        field: {
           sendYouHaveSubscribedMessage: true,
         },
         title: "Send Subscription Email",
@@ -234,6 +244,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isViewable={false}
             selectMoreFields={{
               subscriberPhone: true,
+              isSubscriptionConfirmed: true,
             }}
             query={{
               statusPageId: modelId,
@@ -301,6 +312,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   if (item["isUnsubscribed"]) {
                     return <Pill color={Red} text={"Unsubscribed"} />;
                   }
+
+                  if(!item["isSubscriptionConfirmed"]) {
+                    return <Pill color={Yellow} text={"Awaiting Confirmation"} tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription" />;
+                  }
+                  
                   return <Pill color={Green} text={"Subscribed"} />;
                 },
               },

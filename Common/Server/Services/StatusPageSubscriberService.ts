@@ -524,6 +524,7 @@ export class Service extends DatabaseService<Model> {
       query: {
         statusPageId: statusPageId,
         isUnsubscribed: false,
+        isSubscriptionConfirmed: true,
       },
       select: {
         _id: true,

@@ -1,6 +1,7 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
+import Tooltip from "../Tooltip/Tooltip";
 
 export enum PillSize {
   Small = "10px",
@@ -15,6 +16,7 @@ export interface ComponentProps {
   size?: PillSize | undefined;
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
+  tooltip?: string | undefined;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
@@ -39,29 +41,42 @@ const Pill: FunctionComponent<ComponentProps> = (
       </span>
     );
   }
-  return (
-    <span
-      data-testid="pill"
-      className="rounded-full p-1 pl-3 pr-3"
-      style={{
-        // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 
-        color:
-          props.style?.color || Color.shouldUseDarkText(props.color || Black)
-            ? "#000000"
-            : "#ffffff",
-        backgroundColor:
-          props.style?.backgroundColor || props.color
-            ? props.color.toString()
-            : Black.toString(),
-        fontSize: props.size ? props.size.toString() : PillSize.Normal,
-        ...props.style,
-      }}
-    >
-      {" "}
-      {props.text}{" "}
-    </span>
-  );
-};
+  const getPillElement = (): ReactElement => {
+    return (
+      <span
+        data-testid="pill"
+        className="rounded-full p-1 pl-3 pr-3"
+        style={{
+          // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+
+          color:
+            props.style?.color || Color.shouldUseDarkText(props.color || Black)
+              ? "#000000"
+              : "#ffffff",
+          backgroundColor:
+            props.style?.backgroundColor || props.color
+              ? props.color.toString()
+              : Black.toString(),
+          fontSize: props.size ? props.size.toString() : PillSize.Normal,
+          ...props.style,
+        }}
+      >
+        {" "}
+        {props.text}{" "}
+      </span>
+    );
+  };
+
+  if (props.tooltip) {
+    return (
+      <Tooltip text={props.tooltip}>
+        {getPillElement()}
+      </Tooltip>
+    );
+  };
+
+  return getPillElement();
+}
 
 export default Pill;
