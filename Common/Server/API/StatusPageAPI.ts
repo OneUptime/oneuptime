@@ -88,7 +88,7 @@ export default class StatusPageAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const token: string = req.query["token"] as string;
+        const token: string = req.query["verification-token"] as string;
 
         const statusPageSubscriberId: ObjectID = new ObjectID(
           req.params["statusPageSubscriberId"] as string,

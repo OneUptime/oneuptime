@@ -349,7 +349,6 @@ export class Service extends DatabaseService<Model> {
       statusPageUrl: statusPageURL,
       confirmationToken: subscriber.subscriptionConfirmationToken || "",
       statusPageSubscriberId: subscriber.id!,
-      statusPageId: subscriber.statusPageId,
     }).toString();
 
     if (
@@ -373,7 +372,7 @@ export class Service extends DatabaseService<Model> {
             isPublicStatusPage: statusPage.isPublicStatusPage
               ? "true"
               : "false",
-            confirmSubscriptionUrl: confirmSubscriptionLink,
+              confirmationUrl: confirmSubscriptionLink,
           },
           subject: "Confirm your subscription to " + statusPageName,
         },
@@ -502,10 +501,9 @@ export class Service extends DatabaseService<Model> {
     statusPageUrl: string;
     confirmationToken: string;
     statusPageSubscriberId: ObjectID;
-    statusPageId: ObjectID;
   }): URL {
     return URL.fromString(data.statusPageUrl).addRoute(
-      `/confirm-subscription/${data.statusPageId.toString()}/${data.statusPageSubscriberId.toString()}?token=${data.confirmationToken}`,
+      `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
   }
 

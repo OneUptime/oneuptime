@@ -38,7 +38,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
 
       const statusPageSubscriberId: string =
         Navigation.getLastParamAsObjectID().toString();
-      const token: string | null = Navigation.getQueryStringByName("token");
+      const token: string | null = Navigation.getQueryStringByName("verification-token");
 
       if (!token) {
         setError("Token is required");
@@ -55,7 +55,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         await API.get(
           URL.fromString(STATUS_PAGE_API_URL.toString())
             .addRoute(`/confirm-subscription/${statusPageSubscriberId}`)
-            .addQueryParam("token", token),
+            .addQueryParam("verification-token", token),
         );
 
       if (response instanceof HTTPErrorResponse) {
