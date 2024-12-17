@@ -250,7 +250,7 @@ export class Service extends DatabaseService<Model> {
     if (
       createdItem.statusPageId &&
       createdItem.subscriberEmail &&
-      createdItem._id 
+      createdItem._id
     ) {
       // Call mail service and send an email.
 
@@ -372,7 +372,7 @@ export class Service extends DatabaseService<Model> {
             isPublicStatusPage: statusPage.isPublicStatusPage
               ? "true"
               : "false",
-              confirmationUrl: confirmSubscriptionLink,
+            confirmationUrl: confirmSubscriptionLink,
           },
           subject: "Confirm your subscription to " + statusPageName,
         },

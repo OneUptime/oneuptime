@@ -38,7 +38,8 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
 
       const statusPageSubscriberId: string =
         Navigation.getLastParamAsObjectID().toString();
-      const token: string | null = Navigation.getQueryStringByName("verification-token");
+      const token: string | null =
+        Navigation.getQueryStringByName("verification-token");
 
       if (!token) {
         setError("Token is required");

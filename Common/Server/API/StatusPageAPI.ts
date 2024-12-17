@@ -134,6 +134,10 @@ export default class StatusPageAPI extends BaseAPI<
           },
         });
 
+        await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
+          subscriberId: statusPageSubscriberId,
+        });
+
         return Response.sendEmptySuccessResponse(req, res);
       },
     );
