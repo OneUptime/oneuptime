@@ -188,7 +188,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
-                You have been subscribed successfully.
+                Confirmation link has been sent to your email. If you don't see the email, please check your spam folder.{" "}
               </p>
             )}
 
