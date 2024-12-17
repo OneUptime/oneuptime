@@ -34,6 +34,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import ConfirmSubscription from "./Pages/Subscribe/ConfirmSubscription";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -378,6 +379,18 @@ const App: () => JSX.Element = () => {
           }
         />
 
+        <PageRoute
+          path={RouteMap[PageMap.CONFIRM_SUBSCRIPTION]?.toString() || ""}
+          element={
+            <ConfirmSubscription
+              pageRoute={RouteMap[PageMap.CONFIRM_SUBSCRIPTION] as Route}
+              onLoadComplete={() => {
+                onPageLoadComplete();
+              }}
+            />
+          }
+        />
+
         {/* Preview */}
 
         <PageRoute
@@ -582,6 +595,22 @@ const App: () => JSX.Element = () => {
             <Sso
               statusPageName={statusPageName}
               logoFileId={new ObjectID(statusPageLogoFileId)}
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]?.toString() || ""
+          }
+          element={
+            <ConfirmSubscription
+              onLoadComplete={() => {
+                onPageLoadComplete();
+              }}
+              pageRoute={
+                RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
+              }
             />
           }
         />

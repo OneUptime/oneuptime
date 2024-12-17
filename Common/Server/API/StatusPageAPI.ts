@@ -82,7 +82,6 @@ export default class StatusPageAPI extends BaseAPI<
   public constructor() {
     super(StatusPage, StatusPageService);
 
-
     // confirm subscription api
     this.router.get(
       `${new this.entityType()
@@ -102,7 +101,7 @@ export default class StatusPageAPI extends BaseAPI<
               subscriptionConfirmationToken: token,
             },
             select: {
-             isSubscriptionConfirmed: true,
+              isSubscriptionConfirmed: true,
             },
             props: {
               isRoot: true,
@@ -113,11 +112,13 @@ export default class StatusPageAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException("Subscriber not found or confirmation token is invalid"),
+            new NotFoundException(
+              "Subscriber not found or confirmation token is invalid",
+            ),
           );
         }
 
-        // check if subscription confirmed already. 
+        // check if subscription confirmed already.
 
         if (subscriber.isSubscriptionConfirmed) {
           return Response.sendEmptySuccessResponse(req, res);

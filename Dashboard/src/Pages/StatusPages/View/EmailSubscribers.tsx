@@ -133,7 +133,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           isSubscriptionConfirmed: true,
         },
         title: "Send Confirmation Email",
-        description: "Send a confirmation email to this subscriber with a link to confirm subscription.",
+        description:
+          "Send a confirmation email to this subscriber with a link to confirm subscription.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,
@@ -313,10 +314,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return <Pill color={Red} text={"Unsubscribed"} />;
                   }
 
-                  if(!item["isSubscriptionConfirmed"]) {
-                    return <Pill color={Yellow} text={"Awaiting Confirmation"} tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription" />;
+                  if (!item["isSubscriptionConfirmed"]) {
+                    return (
+                      <Pill
+                        color={Yellow}
+                        text={"Awaiting Confirmation"}
+                        tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription"
+                      />
+                    );
                   }
-                  
+
                   return <Pill color={Green} text={"Subscribed"} />;
                 },
               },

@@ -2,6 +2,7 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export enum PillSize {
   Small = "10px",
@@ -42,7 +43,7 @@ const Pill: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const getPillElement = (): ReactElement => {
+  const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
       <span
         data-testid="pill"
@@ -69,14 +70,10 @@ const Pill: FunctionComponent<ComponentProps> = (
   };
 
   if (props.tooltip) {
-    return (
-      <Tooltip text={props.tooltip}>
-        {getPillElement()}
-      </Tooltip>
-    );
-  };
+    return <Tooltip text={props.tooltip}>{getPillElement()}</Tooltip>;
+  }
 
   return getPillElement();
-}
+};
 
 export default Pill;

@@ -161,16 +161,21 @@ export class Service extends DatabaseService<Model> {
 
     data.data.projectId = statuspage.projectId;
 
-    const isEmailSubscriber: boolean = !!data.data.subscriberEmail;
-    const isSubscriptionConfirmed: boolean = !!data.data.isSubscriptionConfirmed;
+    const isEmailSubscriber: boolean = Boolean(data.data.subscriberEmail);
+    const isSubscriptionConfirmed: boolean = Boolean(
+      data.data.isSubscriptionConfirmed,
+    );
 
     if (isEmailSubscriber && !isSubscriptionConfirmed) {
       data.data.isSubscriptionConfirmed = false;
-    }else{
+    } else {
       data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers.
     }
 
-    data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(100000, 999999).toString();
+    data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
+      100000,
+      999999,
+    ).toString();
 
     return { createBy: data, carryForward: statuspage };
   }
@@ -192,13 +197,10 @@ export class Service extends DatabaseService<Model> {
       onCreate.carryForward.name ||
       "Status Page";
 
-
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
       createdItem.id!,
     ).toString();
-
-
 
     if (
       createdItem.statusPageId &&
@@ -250,23 +252,22 @@ export class Service extends DatabaseService<Model> {
       createdItem.subscriberEmail &&
       createdItem._id
     ) {
-
       // Call mail service and send an email.
 
       // get status page domain for this status page.
       // if the domain is not found, use the internal status page preview link.
 
-      const isSubcriptionConfirmed: boolean = !!createdItem.isSubscriptionConfirmed;
+      const isSubcriptionConfirmed: boolean = Boolean(
+        createdItem.isSubscriptionConfirmed,
+      );
 
       if (!isSubcriptionConfirmed) {
-
         await this.sendConfirmSubscriptionEmail({
           subscriberId: createdItem.id!,
         });
       }
 
       if (isSubcriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
-
         await this.sendYouHaveSubscribedEmail({
           subscriberId: createdItem.id!,
         });
@@ -275,7 +276,6 @@ export class Service extends DatabaseService<Model> {
 
     return createdItem;
   }
-
 
   public async sendConfirmSubscriptionEmail(data: {
     subscriberId: ObjectID;
@@ -338,20 +338,19 @@ export class Service extends DatabaseService<Model> {
       statusPage.id,
     );
 
-    const statusPageName: string = statusPage.pageTitle || statusPage.name || "Status Page";
+    const statusPageName: string =
+      statusPage.pageTitle || statusPage.name || "Status Page";
 
     const host: Hostname = await DatabaseConfig.getHost();
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink(
-      {
-        statusPageUrl: statusPageURL,
-        confirmationToken: subscriber.subscriptionConfirmationToken || "",
-        statusPageSubscriberId: subscriber.id!,
-        statusPageId: subscriber.statusPageId,
-      }
-    ).toString();
+    const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink({
+      statusPageUrl: statusPageURL,
+      confirmationToken: subscriber.subscriptionConfirmationToken || "",
+      statusPageSubscriberId: subscriber.id!,
+      statusPageId: subscriber.statusPageId,
+    }).toString();
 
     if (
       subscriber.statusPageId &&
@@ -365,11 +364,10 @@ export class Service extends DatabaseService<Model> {
           vars: {
             statusPageName: statusPageName,
             logoUrl: statusPage.logoFileId
-              ? new URL(httpProtocol
-                , host)
-                .addRoute(FileRoute)
-                .addRoute("/image/" + statusPage.logoFileId)
-                .toString()
+              ? new URL(httpProtocol, host)
+                  .addRoute(FileRoute)
+                  .addRoute("/image/" + statusPage.logoFileId)
+                  .toString()
               : "",
             statusPageUrl: statusPageURL,
             isPublicStatusPage: statusPage.isPublicStatusPage
@@ -387,17 +385,13 @@ export class Service extends DatabaseService<Model> {
         },
       ).catch((err: Error) => {
         logger.error(err);
-      }
-      );
+      });
     }
   }
-
 
   public async sendYouHaveSubscribedEmail(data: {
     subscriberId: ObjectID;
   }): Promise<void> {
-
-
     // get subscriber
     const subscriber: Model | null = await this.findOneBy({
       query: {
@@ -421,7 +415,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-   const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: subscriber.statusPageId.toString(),
       },
@@ -447,16 +441,16 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if(!statusPage || !statusPage.id) {
+    if (!statusPage || !statusPage.id) {
       return;
     }
-
 
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       statusPage.id,
     );
 
-    const statusPageName: string = statusPage.pageTitle ||statusPage.name || "Status Page";
+    const statusPageName: string =
+      statusPage.pageTitle || statusPage.name || "Status Page";
 
     const host: Hostname = await DatabaseConfig.getHost();
 
@@ -480,9 +474,9 @@ export class Service extends DatabaseService<Model> {
             statusPageName: statusPageName,
             logoUrl: statusPage.logoFileId
               ? new URL(httpProtocol, host)
-                .addRoute(FileRoute)
-                .addRoute("/image/" + statusPage.logoFileId)
-                .toString()
+                  .addRoute(FileRoute)
+                  .addRoute("/image/" + statusPage.logoFileId)
+                  .toString()
               : "",
             statusPageUrl: statusPageURL,
             isPublicStatusPage: statusPage.isPublicStatusPage
@@ -504,12 +498,11 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-
   public getConfirmSubscriptionLink(data: {
     statusPageUrl: string;
     confirmationToken: string;
-    statusPageSubscriberId: ObjectID
-    statusPageId: ObjectID
+    statusPageSubscriberId: ObjectID;
+    statusPageId: ObjectID;
   }): URL {
     return URL.fromString(data.statusPageUrl).addRoute(
       `/confirm-subscription/${data.statusPageId.toString()}/${data.statusPageSubscriberId.toString()}?token=${data.confirmationToken}`,
