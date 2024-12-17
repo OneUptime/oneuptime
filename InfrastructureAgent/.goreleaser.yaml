@@ -14,6 +14,61 @@ before:
     - go mod download
 env:
     - CGO_ENABLED=0
+nfpms:
+  # note that this is an array of nfpm configs
+  - #
+    # ID of the nfpm config, must be unique.
+    #
+    # Default: 'default'.
+    id: default
+
+    # Name of the package.
+    #
+    # Default: ProjectName.
+    # Templates: allowed.
+    package_name: oneuptime-infrastructure-agent
+
+    file_name_template: 'oneuptime-infrastructure-agent_{{ .Arch }}.{{ .Format }}'
+
+    # Your app's vendor.
+    vendor: HackerBay, Inc.
+
+    # Your app's homepage.
+    #
+    # Default: inferred from global metadata.
+    homepage: https:/oneuptime.com/
+
+    # Your app's maintainer (probably you).
+    #
+    # Default: inferred from global metadata.
+    maintainer: OneUptime Infrastructure Team <infra@oneuptime.com>
+
+    # Your app's description.
+    #
+    # Default: inferred from global metadata.
+    description: |-
+      OneUptime Infrastructure Agent is a lightweight agent that collects system metrics and sends them to the OneUptime platform.
+
+    # Your app's license.
+    #
+    # Default: inferred from global metadata.
+    license: Apache 2.0
+
+    # Formats to be generated.
+    formats:
+      - apk
+      - deb
+      - rpm
+      - termux.deb
+      - archlinux
+
+    # Packages your package depends on. (overridable)
+    dependencies:
+      - git
+      - bash
+      - coreutils
+      - systemd
+    
 builds:
   - binary: oneuptime-infrastructure-agent
     main: ./

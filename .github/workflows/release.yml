@@ -1734,6 +1734,10 @@ jobs:
         with:
           install-only: true
 
+      # This tool is used to generate .rpm and .deb packages
+      - name: Install NFPM
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
       - name: Show GoReleaser version
         run: goreleaser -v
 
