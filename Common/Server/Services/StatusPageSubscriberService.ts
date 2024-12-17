@@ -29,6 +29,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import Model from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import NumberUtil from "../../Utils/Number";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -160,6 +161,17 @@ export class Service extends DatabaseService<Model> {
 
     data.data.projectId = statuspage.projectId;
 
+    const isEmailSubscriber: boolean = !!data.data.subscriberEmail;
+    const isSubscriptionConfirmed: boolean = !!data.data.isSubscriptionConfirmed;
+
+    if (isEmailSubscriber && !isSubscriptionConfirmed) {
+      data.data.isSubscriptionConfirmed = false;
+    }else{
+      data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers.
+    }
+
+    data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(100000, 999999).toString();
+
     return { createBy: data, carryForward: statuspage };
   }
 
@@ -180,14 +192,13 @@ export class Service extends DatabaseService<Model> {
       onCreate.carryForward.name ||
       "Status Page";
 
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
       createdItem.id!,
     ).toString();
+
+
 
     if (
       createdItem.statusPageId &&
@@ -237,28 +248,244 @@ export class Service extends DatabaseService<Model> {
     if (
       createdItem.statusPageId &&
       createdItem.subscriberEmail &&
-      createdItem._id &&
-      createdItem.sendYouHaveSubscribedMessage
+      createdItem._id
     ) {
+
       // Call mail service and send an email.
 
       // get status page domain for this status page.
       // if the domain is not found, use the internal status page preview link.
 
+      const isSubcriptionConfirmed: boolean = !!createdItem.isSubscriptionConfirmed;
+
+      if (!isSubcriptionConfirmed) {
+
+        await this.sendConfirmSubscriptionEmail({
+          subscriberId: createdItem.id!,
+        });
+      }
+
+      if (isSubcriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
+
+        await this.sendYouHaveSubscribedEmail({
+          subscriberId: createdItem.id!,
+        });
+      }
+    }
+
+    return createdItem;
+  }
+
+
+  public async sendConfirmSubscriptionEmail(data: {
+    subscriberId: ObjectID;
+  }): Promise<void> {
+    // get subscriber
+    const subscriber: Model | null = await this.findOneBy({
+      query: {
+        _id: data.subscriberId,
+      },
+      select: {
+        statusPageId: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        projectId: true,
+        subscriptionConfirmationToken: true,
+        sendYouHaveSubscribedMessage: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    // get status page
+    if (!subscriber || !subscriber.statusPageId) {
+      return;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: subscriber.statusPageId.toString(),
+      },
+      select: {
+        logoFileId: true,
+        isPublicStatusPage: true,
+        pageTitle: true,
+        name: true,
+        smtpConfig: {
+          _id: true,
+          hostname: true,
+          port: true,
+          username: true,
+          password: true,
+          fromEmail: true,
+          fromName: true,
+          secure: true,
+        },
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (!statusPage || !statusPage.id) {
+      return;
+    }
+
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id,
+    );
+
+    const statusPageName: string = statusPage.pageTitle || statusPage.name || "Status Page";
+
+    const host: Hostname = await DatabaseConfig.getHost();
+
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink(
+      {
+        statusPageUrl: statusPageURL,
+        confirmationToken: subscriber.subscriptionConfirmationToken || "",
+        statusPageSubscriberId: subscriber.id!,
+        statusPageId: subscriber.statusPageId,
+      }
+    ).toString();
+
+    if (
+      subscriber.statusPageId &&
+      subscriber.subscriberEmail &&
+      subscriber._id
+    ) {
       MailService.sendMail(
         {
-          toEmail: createdItem.subscriberEmail,
+          toEmail: subscriber.subscriberEmail,
+          templateType: EmailTemplateType.ConfirmStatusPageSubscription,
+          vars: {
+            statusPageName: statusPageName,
+            logoUrl: statusPage.logoFileId
+              ? new URL(httpProtocol
+                , host)
+                .addRoute(FileRoute)
+                .addRoute("/image/" + statusPage.logoFileId)
+                .toString()
+              : "",
+            statusPageUrl: statusPageURL,
+            isPublicStatusPage: statusPage.isPublicStatusPage
+              ? "true"
+              : "false",
+            confirmSubscriptionUrl: confirmSubscriptionLink,
+          },
+          subject: "Confirm your subscription to " + statusPageName,
+        },
+        {
+          projectId: subscriber.projectId,
+          mailServer: ProjectSMTPConfigService.toEmailServer(
+            statusPage.smtpConfig,
+          ),
+        },
+      ).catch((err: Error) => {
+        logger.error(err);
+      }
+      );
+    }
+  }
+
+
+  public async sendYouHaveSubscribedEmail(data: {
+    subscriberId: ObjectID;
+  }): Promise<void> {
+
+
+    // get subscriber
+    const subscriber: Model | null = await this.findOneBy({
+      query: {
+        _id: data.subscriberId,
+      },
+      select: {
+        statusPageId: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        projectId: true,
+        sendYouHaveSubscribedMessage: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    // get status page
+    if (!subscriber || !subscriber.statusPageId) {
+      return;
+    }
+
+   const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: subscriber.statusPageId.toString(),
+      },
+      select: {
+        logoFileId: true,
+        isPublicStatusPage: true,
+        pageTitle: true,
+        name: true,
+        smtpConfig: {
+          _id: true,
+          hostname: true,
+          port: true,
+          username: true,
+          password: true,
+          fromEmail: true,
+          fromName: true,
+          secure: true,
+        },
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if(!statusPage || !statusPage.id) {
+      return;
+    }
+
+
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id,
+    );
+
+    const statusPageName: string = statusPage.pageTitle ||statusPage.name || "Status Page";
+
+    const host: Hostname = await DatabaseConfig.getHost();
+
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const unsubscribeLink: string = this.getUnsubscribeLink(
+      URL.fromString(statusPageURL),
+      subscriber.id!,
+    ).toString();
+
+    if (
+      subscriber.statusPageId &&
+      subscriber.subscriberEmail &&
+      subscriber._id
+    ) {
+      MailService.sendMail(
+        {
+          toEmail: subscriber.subscriberEmail,
           templateType: EmailTemplateType.SubscribedToStatusPage,
           vars: {
             statusPageName: statusPageName,
-            logoUrl: onCreate.carryForward.logoFileId
+            logoUrl: statusPage.logoFileId
               ? new URL(httpProtocol, host)
-                  .addRoute(FileRoute)
-                  .addRoute("/image/" + onCreate.carryForward.logoFileId)
-                  .toString()
+                .addRoute(FileRoute)
+                .addRoute("/image/" + statusPage.logoFileId)
+                .toString()
               : "",
             statusPageUrl: statusPageURL,
-            isPublicStatusPage: onCreate.carryForward.isPublicStatusPage
+            isPublicStatusPage: statusPage.isPublicStatusPage
               ? "true"
               : "false",
             unsubscribeUrl: unsubscribeLink,
@@ -266,17 +493,27 @@ export class Service extends DatabaseService<Model> {
           subject: "You have been subscribed to " + statusPageName,
         },
         {
-          projectId: createdItem.projectId,
+          projectId: subscriber.projectId,
           mailServer: ProjectSMTPConfigService.toEmailServer(
-            onCreate.carryForward.smtpConfig,
+            statusPage.smtpConfig,
           ),
         },
       ).catch((err: Error) => {
         logger.error(err);
       });
     }
+  }
 
-    return createdItem;
+
+  public getConfirmSubscriptionLink(data: {
+    statusPageUrl: string;
+    confirmationToken: string;
+    statusPageSubscriberId: ObjectID
+    statusPageId: ObjectID
+  }): URL {
+    return URL.fromString(data.statusPageUrl).addRoute(
+      `/confirm-subscription/${data.statusPageId.toString()}/${data.statusPageSubscriberId.toString()}?token=${data.confirmationToken}`,
+    );
   }
 
   public async getSubscribersByStatusPage(

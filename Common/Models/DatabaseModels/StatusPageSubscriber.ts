@@ -434,6 +434,61 @@ export default class StatusPageSubscriber extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Subscription Confirmed",
+    description: "Has subscriber confirmed their subscription? (for example, by clicking on a confirmation link in an email)",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isSubscriptionConfirmed?: boolean = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+    ],
+    read: [
+    ],
+    update: [
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.ShortText,
+    title: "Subscription Confirmation Token",
+    description: "Token used to confirm subscription. This is a random token that is sent to the subscriber's email address to confirm their subscription.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true
+  })
+  public subscriptionConfirmationToken?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

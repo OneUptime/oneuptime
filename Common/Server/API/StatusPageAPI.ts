@@ -82,6 +82,61 @@ export default class StatusPageAPI extends BaseAPI<
   public constructor() {
     super(StatusPage, StatusPageService);
 
+
+    // confirm subscription api
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const token: string = req.query["token"] as string;
+
+        const statusPageSubscriberId: ObjectID = new ObjectID(
+          req.params["statusPageSubscriberId"] as string,
+        );
+
+        const subscriber: StatusPageSubscriber | null =
+          await StatusPageSubscriberService.findOneBy({
+            query: {
+              _id: statusPageSubscriberId,
+              subscriptionConfirmationToken: token,
+            },
+            select: {
+             isSubscriptionConfirmed: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!subscriber) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Subscriber not found or confirmation token is invalid"),
+          );
+        }
+
+        // check if subscription confirmed already. 
+
+        if (subscriber.isSubscriptionConfirmed) {
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
+        await StatusPageSubscriberService.updateOneById({
+          id: statusPageSubscriberId,
+          data: {
+            isSubscriptionConfirmed: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
     // CNAME verification api
     this.router.get(
       `${new this.entityType()

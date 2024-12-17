@@ -18,6 +18,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SUBSCRIBE_SMS]: new Route(`/subscribe/sms`),
   [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
   [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
+  [PageMap.CONFIRM_SUBSCRIPTION]: new Route(`/confirm-subscription/:id`),
 
   [PageMap.LOGIN]: new Route(`/login`),
   [PageMap.SSO]: new Route(`/sso`),
@@ -84,6 +85,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PREVIEW_UPDATE_SUBSCRIPTION]: new Route(
     `/status-page/${RouteParams.StatusPageId}/update-subscription/:id`,
+  ),
+
+  [PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/confirm-subscription/:id`,
   ),
 };
 

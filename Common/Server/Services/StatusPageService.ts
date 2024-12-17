@@ -454,8 +454,8 @@ export class Service extends DatabaseService<StatusPage> {
   }
 
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
-    const domains: Array<StatusPageDomain> =
-      await StatusPageDomainService.findBy({
+    const domain: StatusPageDomain | null =
+      await StatusPageDomainService.findOneBy({
         query: {
           statusPageId: statusPageId,
           isSslProvisioned: true,
@@ -463,21 +463,15 @@ export class Service extends DatabaseService<StatusPage> {
         select: {
           fullDomain: true,
         },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
 
-    let statusPageURL: string = domains
-      .map((d: StatusPageDomain) => {
-        return d.fullDomain;
-      })
-      .join(", ");
+    let statusPageURL: string = domain?.fullDomain || "";
 
-    if (domains.length === 0) {
+    if (!statusPageURL) {
       const host: Hostname = await DatabaseConfig.getHost();
 
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();

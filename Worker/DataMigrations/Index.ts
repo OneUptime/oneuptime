@@ -38,6 +38,7 @@ import AddDefaultCopilotActionTypes from "./AddDefaultCopilotActionTypes";
 import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlertSeverityAndStateToExistingProjects";
 import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
+import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -81,6 +82,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddDefaultAlertSeverityAndStateToExistingProjects(),
   new RefreshDefaultUserNotificationSetting(),
   new AddServiceTypeColumnToMetricsTable(),
+  new AddIsSubscriptionConfirmedToSubscribers(),
 ];
 
 export default DataMigrations;
