@@ -112,7 +112,7 @@ const StatusPageDelete: FunctionComponent<
             field: {
               isReportEnabled: true,
             },
-            title: "Enable Reports",
+            title: "Enable Sending Reports to Subscribers",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             placeholder: "Enable Status Page Reports",
@@ -172,10 +172,10 @@ const StatusPageDelete: FunctionComponent<
               field: {
                 isReportEnabled: true,
               },
-              title: "Reports Enabled",
+              title: "Reports Enabled for Subscribers",
               placeholder: "No",
               fieldType: FieldType.Boolean,
-              description: "Enable email reports for this status page.",
+              description: "Subscribers will receive regular reports by email.",
             },
             {
               field: {
