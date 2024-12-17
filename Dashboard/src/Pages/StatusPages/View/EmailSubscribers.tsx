@@ -132,12 +132,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         field: {
           isSubscriptionConfirmed: true,
         },
-        title: "Send Confirmation Email",
-        description:
-          "Send a confirmation email to this subscriber with a link to confirm subscription.",
+        title: "Do not send confirmation link",
+        description: "If this option is checked, then no confirmation link will be sent to the subscriber.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
-        doNotShowWhenEditing: true,
+        defaultValue: true,
       },
       {
         field: {
@@ -145,7 +144,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Send Subscription Email",
         description:
-          'Send "You have subscribed to this status page" email to this subscriber?',
+          'Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.',
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,

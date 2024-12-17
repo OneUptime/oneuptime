@@ -469,7 +469,12 @@ export default class StatusPageSubscriber extends BaseModel {
   public isSubscriptionConfirmed?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageSubscriber,
+    ],
     read: [],
     update: [],
   })

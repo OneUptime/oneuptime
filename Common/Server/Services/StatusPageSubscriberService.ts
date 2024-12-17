@@ -250,7 +250,7 @@ export class Service extends DatabaseService<Model> {
     if (
       createdItem.statusPageId &&
       createdItem.subscriberEmail &&
-      createdItem._id
+      createdItem._id 
     ) {
       // Call mail service and send an email.
 
