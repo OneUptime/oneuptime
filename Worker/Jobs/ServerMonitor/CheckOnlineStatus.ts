@@ -16,13 +16,13 @@ RunCron(
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     try {
-      const twoMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
+      const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(3);
 
       const serverMonitors: Array<Monitor> = await MonitorService.findBy({
         query: {
           monitorType: MonitorType.Server,
           serverMonitorRequestReceivedAt:
-            QueryHelper.lessThanEqualToOrNull(twoMinsAgo),
+            QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
         },
         props: {
           isRoot: true,
