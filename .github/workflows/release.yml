@@ -1730,9 +1730,12 @@ jobs:
         uses: actions/setup-go@v4
 
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6.1.0
         with:
           install-only: true
+
+      - name: GoReleaser Version
+        run: goreleaser -v
 
       # This tool is used to generate .rpm and .deb packages
       - name: Install NFPM

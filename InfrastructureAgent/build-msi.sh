@@ -2,6 +2,7 @@
 
 # sudo apt update
 # sudo apt install -y msitools
+# sudo apt-get install wixl
 
 
 # Exit script on any error
@@ -31,7 +32,7 @@ mkdir -p "$OUTPUT_DIR"
 
 # Check if wixl is installed
 if ! command -v wixl &> /dev/null; then
-  echo "Error: wixl is not installed. Please install it using 'sudo apt install -y msitools'."
+  echo "Error: wixl is not installed. Please install it using 'sudo apt install -y msitools wixl'."
   exit 1
 fi
 
