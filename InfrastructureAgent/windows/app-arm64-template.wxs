@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="OneUptime Infrastructure Agent (arm64)" Language="1033" Version="version_placeholder" Manufacturer="HackerBay, Inc." UpgradeCode="e2c6daee-3273-43ab-bef1-09cc0960c356">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="OneUptimeAgent" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="PUT-ARM64-GUID-HERE">
+        <File Source="binary_placeholder" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="ProductFeature" Title="OneUptime Infrastructure Agent (arm64)" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+  </Product>
+</Wix>

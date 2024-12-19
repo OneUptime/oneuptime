@@ -14,6 +14,7 @@ before:
     - go mod download
 env:
     - CGO_ENABLED=0
+
 nfpms:
   # note that this is an array of nfpm configs
   - #
@@ -68,7 +69,8 @@ nfpms:
       - bash
       - coreutils
       - systemd
-    
+  
+
 builds:
   - binary: oneuptime-infrastructure-agent
     main: ./
