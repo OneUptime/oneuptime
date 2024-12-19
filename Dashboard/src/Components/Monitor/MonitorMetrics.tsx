@@ -85,17 +85,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
     MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
 
-  if (error) {
-    return <ErrorMessage error={error} />;
-  }
-
-  if (monitorMetricTypesByMonitor.length === 0) {
-    return <></>;
-  }
 
   // set it to past 1 hour
   const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -285,6 +275,19 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     queryConfigs: getQueryConfigByMonitorMetricTypes(),
     formulaConfigs: [],
   });
+
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} />;
+  }
+
+  if (monitorMetricTypesByMonitor.length === 0) {
+    return <></>;
+  }
 
   return (
     <div>
