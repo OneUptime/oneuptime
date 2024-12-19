@@ -42,9 +42,9 @@
                     >
                         <File
                             Id='binary_placeholder'
-                            Name='./dist/oneuptime_windows_arm64/oneuptime-infrastructure-agent.exe'
+                            Name='binary_placeholder'
                             DiskId='1'
-                            Source='./dist/oneuptime_windows_arm64/oneuptime-infrastructure-agent.exe'
+                            Source='binary_placeholder'
                             KeyPath='yes'
                         />
                     </Component>
