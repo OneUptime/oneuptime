@@ -15,6 +15,7 @@ import Express, {
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -106,6 +107,8 @@ router.post(
       }
 
       serverMonitorResponse.monitorId = monitor.id;
+
+      serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
 
       // process probe response here.
       const probeApiIngestResponse: ProbeApiIngestResponse =

@@ -61,7 +61,7 @@ export default class ServerMonitorCriteria {
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       offlineIfNotCheckedInMinutes =
-        input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 2;
+        input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 3;
     }
 
     if (

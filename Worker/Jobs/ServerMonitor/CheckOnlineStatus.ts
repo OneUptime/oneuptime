@@ -16,7 +16,7 @@ RunCron(
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     try {
-      const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(3);
+      const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
 
       const serverMonitors: Array<Monitor> = await MonitorService.findBy({
         query: {
