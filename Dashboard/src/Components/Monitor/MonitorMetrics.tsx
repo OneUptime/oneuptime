@@ -85,8 +85,6 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
     MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
 
-
-
   // set it to past 1 hour
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
@@ -276,7 +274,6 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     formulaConfigs: [],
   });
 
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -295,7 +292,11 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
         data={metricViewData}
         hideQueryElements={true}
         onChange={(data: MetricViewData) => {
-          setMetricViewData(data);
+          setMetricViewData({
+            ...data,
+            queryConfigs: getQueryConfigByMonitorMetricTypes(),
+            formulaConfigs: [],
+          });
         }}
       />
     </div>
