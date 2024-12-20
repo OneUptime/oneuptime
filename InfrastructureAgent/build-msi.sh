@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# sudo apt update
-# sudo apt install -y msitools
-# sudo apt-get install wixl
+sudo apt update
+sudo apt install -y msitools
+sudo apt-get install wixl
 
 
 # Exit script on any error
