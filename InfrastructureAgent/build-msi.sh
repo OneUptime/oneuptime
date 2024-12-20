@@ -19,8 +19,8 @@ echo "Building MSI for version: $APP_VERSION"
 
 # Paths to binaries
 BINARIES=(
-  "./dist/oneuptime_windows_amd64_v1/oneuptime-infrastructure-agent.exe"
-  "./dist/oneuptime_windows_arm64_v8.0/oneuptime-infrastructure-agent.exe"
+  "/dist/oneuptime_windows_amd64_v1/oneuptime-infrastructure-agent.exe"
+  "/dist/oneuptime_windows_arm64_v8.0/oneuptime-infrastructure-agent.exe"
 )
 
 # Architecture mappings
