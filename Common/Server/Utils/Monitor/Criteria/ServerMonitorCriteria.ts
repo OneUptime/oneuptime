@@ -53,7 +53,7 @@ export default class ServerMonitorCriteria {
       OneUptimeDate.getCurrentDate(),
     );
 
-    let offlineIfNotCheckedInMinutes: number = 2;
+    let offlineIfNotCheckedInMinutes: number = 3;
 
     // check evaluate  over time.
     if (
@@ -68,6 +68,7 @@ export default class ServerMonitorCriteria {
       input.criteriaFilter.checkOn === CheckOn.IsOnline &&
       differenceInMinutes >= offlineIfNotCheckedInMinutes
     ) {
+      
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
 
