@@ -32,6 +32,7 @@ RunCron(
           monitorSteps: true,
           serverMonitorRequestReceivedAt: true,
           createdAt: true,
+          serverMonitorResponse: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -53,8 +54,8 @@ RunCron(
             monitorId: monitor.id!,
             onlyCheckRequestReceivedAt: true,
             requestReceivedAt:
-              monitor.serverMonitorRequestReceivedAt || monitor.createdAt!,
-            hostname: "",
+              monitor.serverMonitorRequestReceivedAt || monitor.serverMonitorResponse?.requestReceivedAt || monitor.createdAt!,
+            hostname: monitor.serverMonitorResponse?.hostname || "",
           };
 
           await MonitorResourceUtil.monitorResource(serverMonitorResponse);

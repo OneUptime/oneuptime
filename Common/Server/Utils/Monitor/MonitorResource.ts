@@ -418,6 +418,7 @@ export default class MonitorResourceUtil {
     logger.debug(
       `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
     );
+    
     response = await MonitorResourceUtil.processMonitorStep({
       dataToProcess: dataToProcess,
       monitorStep: monitorStep,

@@ -41,7 +41,7 @@ for i in "${!BINARIES[@]}"; do
   ARCH="${ARCHES[$i]}"
   WXS_INPUT_FILE="./windows/app-$ARCH-template.wxs"
   WXS_OUTPUT_FILE="./windows/app-$ARCH.wxs"
-  MSI_FILE="$OUTPUT_DIR/$APP_NAME-$APP_VERSION-$ARCH.msi"
+  MSI_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi"
 
   # log binary and arch
   echo "Building MSI for binary: $BINARY and arch: $ARCH"
