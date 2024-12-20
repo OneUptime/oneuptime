@@ -9,7 +9,7 @@ sudo apt-get install wixl
 set -e
 
 # Variables
-OUTPUT_DIR="./dist/windows"
+OUTPUT_DIR="./dist"
 APP_NAME="oneuptime-infrastructure-agent"
 # Take version from --version argument
 
