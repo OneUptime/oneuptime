@@ -1640,6 +1640,56 @@ jobs:
           # Optional. Defaults to repository settings.
           retention-days: 7
 
+  infrastructure-agent-deploy:
+    needs: [generate-build-number]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          
+      - name: Set up Go
+        uses: actions/setup-go@v4
 
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6.1.0
+        with:
+          install-only: true
 
-    
+      - name: GoReleaser Version
+        run: goreleaser -v
+
+      # This tool is used to generate .rpm and .deb packages
+      - name: Install NFPM
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
+      - name: Show GoReleaser version
+        run: goreleaser -v
+
+      - name: Run GoReleaser
+        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=7.0.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+
+      - name: Release MSI Images
+        run: cd InfrastructureAgent && bash build-msi.sh 7.0.${{needs.generate-build-number.outputs.build_number}}
+      
+
+      - name: Upload Release Binaries
+        uses: actions/upload-artifact@v4
+        # Run this on failure
+        with:
+          # Name of the artifact to upload.
+          # Optional. Default is 'artifact'
+          name: binaries
+      
+          # A file, directory or wildcard pattern that describes what to upload
+          # Required.
+          path: |
+            ./InfrastructureAgent/dist
+      
+        
+          # Duration after which artifact will expire in days. 0 means using default retention.
+          # Minimum 1 day.
+          # Maximum 90 days unless changed from the repository settings page.
+          # Optional. Defaults to repository settings.
+          retention-days: 7
+
