@@ -79,7 +79,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formSteps={[
             {
-              title: "Baisc Info",
+              title: "Basic Info",
               id: "basic",
             },
             {

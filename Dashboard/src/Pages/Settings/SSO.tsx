@@ -63,7 +63,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           }}
           formSteps={[
             {
-              title: "Baisc Info",
+              title: "Basic Info",
               id: "basic",
             },
             {
