@@ -54,7 +54,9 @@ RunCron(
             monitorId: monitor.id!,
             onlyCheckRequestReceivedAt: true,
             requestReceivedAt:
-              monitor.serverMonitorRequestReceivedAt || monitor.serverMonitorResponse?.requestReceivedAt || monitor.createdAt!,
+              monitor.serverMonitorRequestReceivedAt ||
+              monitor.serverMonitorResponse?.requestReceivedAt ||
+              monitor.createdAt!,
             hostname: monitor.serverMonitorResponse?.hostname || "",
           };
 

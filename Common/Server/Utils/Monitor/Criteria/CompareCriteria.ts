@@ -31,6 +31,8 @@ export default class CompareCriteria {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
   }): boolean {
+    logger.debug(`isTrue: ${JSON.stringify(data)}`);
+
     if (Array.isArray(data.value)) {
       if (data.evaluationType === EvaluateOverTimeType.AnyValue) {
         return data.value.some((value: boolean) => {
@@ -49,6 +51,8 @@ export default class CompareCriteria {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
   }): boolean {
+    logger.debug(`isFalse: ${JSON.stringify(data)}`);
+
     if (Array.isArray(data.value)) {
       if (data.evaluationType === EvaluateOverTimeType.AnyValue) {
         return data.value.some((value: boolean) => {
@@ -304,6 +308,8 @@ export default class CompareCriteria {
     value: Array<boolean> | boolean;
     criteriaFilter: CriteriaFilter;
   }): string | null {
+    logger.debug(`compareCriteriaBoolean: ${JSON.stringify(data)}`);
+
     if (data.value === null || data.value === undefined) {
       return null;
     }

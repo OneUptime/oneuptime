@@ -12,6 +12,7 @@ import {
 import ServerMonitorResponse, {
   ServerProcess,
 } from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import logger from "../../Logger";
 
 export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -64,18 +65,31 @@ export default class ServerMonitorCriteria {
         input.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes || 3;
     }
 
+    logger.debug("Server Monitor Criteria Filter");
+    logger.debug(`Monitor ID: ${input.dataToProcess.monitorId}`);
+    logger.debug(`Check On: ${input.criteriaFilter.checkOn}`);
+    logger.debug(`Difference in Minutes: ${differenceInMinutes}`);
+    logger.debug(
+      `Offline if not checked in minutes: ${offlineIfNotCheckedInMinutes}`,
+    );
+
     if (
       input.criteriaFilter.checkOn === CheckOn.IsOnline &&
       differenceInMinutes >= offlineIfNotCheckedInMinutes
     ) {
-      
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
 
-      return CompareCriteria.compareCriteriaBoolean({
+      logger.debug(`Current Is Online: ${currentIsOnline}`);
+
+      const criteria: string | null = CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
         criteriaFilter: input.criteriaFilter,
       });
+
+      logger.debug(`Criteria: ${criteria}`);
+
+      return criteria;
     }
 
     if (
@@ -85,10 +99,16 @@ export default class ServerMonitorCriteria {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) || true; // true because request receieved in the last 2 minutes
 
-      return CompareCriteria.compareCriteriaBoolean({
+      logger.debug(`Current Is Online: ${currentIsOnline}`);
+
+      const criteria: string | null = CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
         criteriaFilter: input.criteriaFilter,
       });
+
+      logger.debug(`Criteria: ${criteria}`);
+
+      return criteria;
     }
 
     if (
