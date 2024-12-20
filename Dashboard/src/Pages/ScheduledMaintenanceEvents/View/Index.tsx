@@ -516,7 +516,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             title: "Description",
 
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
         ]}

@@ -58,7 +58,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

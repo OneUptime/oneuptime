@@ -65,7 +65,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
           },
           title: "Description",
           fieldType: FormFieldSchemaType.LongText,
-          required: true,
+          required: false,
           placeholder: "Service Description",
         },
       ]}

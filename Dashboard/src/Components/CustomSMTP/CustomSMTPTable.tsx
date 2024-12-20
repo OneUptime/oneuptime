@@ -113,7 +113,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             stepId: "basic-info",
             description:
               "Friendly description for this config so you remember what this is about.",

@@ -59,7 +59,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             title: "Alert Description",
             stepId: "alert-details",
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

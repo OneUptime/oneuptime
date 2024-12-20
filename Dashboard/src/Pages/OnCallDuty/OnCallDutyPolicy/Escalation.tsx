@@ -97,7 +97,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             title: "Description",
             stepId: "overview",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             description:
               "The description of the escalation rule. This is used to describe the rule.",
           },

@@ -58,7 +58,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             title: "Incident Description",
             stepId: "incident-details",
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

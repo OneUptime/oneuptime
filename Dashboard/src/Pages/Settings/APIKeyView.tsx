@@ -265,7 +265,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "API Key Description",
           },
           {

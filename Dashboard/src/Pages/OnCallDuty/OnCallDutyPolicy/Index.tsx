@@ -55,7 +55,7 @@ const OnCallDutyPolicyView: FunctionComponent<
             stepId: "on-call-policy-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

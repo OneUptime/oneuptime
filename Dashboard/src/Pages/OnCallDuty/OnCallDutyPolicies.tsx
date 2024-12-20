@@ -57,7 +57,7 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

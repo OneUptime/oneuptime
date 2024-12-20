@@ -113,7 +113,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Description",
             stepId: "incident-details",
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
           },
           {
             field: {

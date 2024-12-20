@@ -110,7 +110,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             title: "Description",
             stepId: "incident-details",
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
           },
           {
             field: {

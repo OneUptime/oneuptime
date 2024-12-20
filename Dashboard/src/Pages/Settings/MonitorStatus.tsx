@@ -83,7 +83,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Monitors are up and operating normally.",
           },
           {

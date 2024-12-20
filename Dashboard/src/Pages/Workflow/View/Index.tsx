@@ -54,7 +54,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stepId: "workflow-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

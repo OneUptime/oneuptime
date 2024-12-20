@@ -54,7 +54,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Telemetry Ingestion Key Description",
           },
         ]}

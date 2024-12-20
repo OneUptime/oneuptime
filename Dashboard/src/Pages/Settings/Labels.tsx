@@ -48,7 +48,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This label is for all the internal services.",
           },
           {

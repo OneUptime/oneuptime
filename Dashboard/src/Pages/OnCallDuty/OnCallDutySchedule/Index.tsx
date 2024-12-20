@@ -55,7 +55,7 @@ const OnCallDutyScheduleView: FunctionComponent<
             stepId: "on-call-Schedule-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

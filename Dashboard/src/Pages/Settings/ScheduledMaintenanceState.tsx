@@ -124,7 +124,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder:
               "This Scheduled Maintenance state happens when the event is been monitored",
           },

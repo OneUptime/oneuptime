@@ -99,7 +99,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This probe is to monitor all the internal services.",
           },
 

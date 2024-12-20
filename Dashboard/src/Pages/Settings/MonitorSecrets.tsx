@@ -98,7 +98,7 @@ const MonitorSecrets: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Secret Description",
           },
           {

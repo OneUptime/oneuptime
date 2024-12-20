@@ -85,7 +85,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Description",
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This probe is to monitor all the internal services.",
           },
 

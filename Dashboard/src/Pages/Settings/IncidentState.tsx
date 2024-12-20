@@ -116,7 +116,7 @@ const IncidentsPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder:
               "This incident state happens when the incident is investigated",
           },

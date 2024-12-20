@@ -207,7 +207,7 @@ const MonitorGroupView: FunctionComponent<
             stepId: "monitor-info",
             title: "Group Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

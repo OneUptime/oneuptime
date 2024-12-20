@@ -69,7 +69,7 @@ const CustomFieldsPageBase: (
             },
             title: "Field Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This label is for all the internal services.",
           },
           {

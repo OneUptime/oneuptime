@@ -574,7 +574,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Description",
 
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
         ]}

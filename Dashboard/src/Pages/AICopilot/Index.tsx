@@ -93,7 +93,7 @@ const CodeRepositoryPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
             stepId: "repository-info",
           },
