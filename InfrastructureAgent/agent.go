@@ -49,7 +49,7 @@ func NewAgent(secretKey string, url string) *Agent {
 		return ag
 	}
 
-	job, err := scheduler.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL))
+	job, err := scheduler.NewJob(gocron.DurationJob(30*time.Second), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
