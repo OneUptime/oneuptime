@@ -127,6 +127,7 @@ const OnCallDutyPage: FunctionComponent<
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

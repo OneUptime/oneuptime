@@ -212,7 +212,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             field: {
               description: true,
             },
-
+            noValueMessage: "-",
             title: "Description",
             description: "The description of the escalation rule.",
             type: FieldType.Text,

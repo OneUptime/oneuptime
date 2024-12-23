@@ -82,6 +82,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

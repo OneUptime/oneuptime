@@ -126,6 +126,7 @@ const CustomFieldsPageBase: (
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Field Description",
             type: FieldType.Text,
           },
