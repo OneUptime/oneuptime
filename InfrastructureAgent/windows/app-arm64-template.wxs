@@ -41,8 +41,8 @@
                         Guid='ABCDDCBA-83F1-4F22-985B-FDB3C8ABD474'
                     >
                         <File
-                            Id='binary_placeholder'
-                            Name='binary_placeholder'
+                            Id='oneuptime-infrastructure-agent'
+                            Name='oneuptime-infrastructure-agent.exe'
                             DiskId='1'
                             Source='binary_placeholder'
                             KeyPath='yes'
