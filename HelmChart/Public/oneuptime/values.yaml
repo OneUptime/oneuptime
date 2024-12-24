@@ -2,7 +2,6 @@ global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
 
-
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
 httpProtocol: http
@@ -343,6 +342,7 @@ externalRedis:
   port:
   username:
   password:
+  ipFamily:
   # If you're using an existing secret for the password, please use this instead of password.
   existingSecret:
     name:
