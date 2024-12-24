@@ -56,5 +56,13 @@
         <Feature Id='Complete' Level='1'>
             <ComponentRef Id='MainExecutable' />
         </Feature>
+
+        <!-- Include the WixUIExtension for standard dialogs --> 
+        <UIRef Id="WixUI_InstallDir" /> 
+        <!-- Add a custom action to show a thank you message --> 
+        <CustomAction Id="ShowThankYou" Return="ignore" Execute="immediate" Script="vbscript"> <![CDATA[ MsgBox "Thank you for installing OneUptimevInfrastructure Agent!", vbInformation, "Installation Complete" ]]> </CustomAction> 
+        <!-- Schedule the custom action to run at the end of the installation --> 
+        <InstallExecuteSequence> <Custom Action="ShowThankYou" After="InstallFinalize">NOT Installed</Custom> </InstallExecuteSequence>
+        
     </Product>
 </Wix>
