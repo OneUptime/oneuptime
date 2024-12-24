@@ -47,6 +47,7 @@
                             Source='binary_placeholder'
                             KeyPath='yes'
                         />
+                        <Environment Id='PATH' Name='PATH' Value='[INSTALLDIR]' Permanent='no' Part='last' Action='set' />
                     </Component>
                 </Directory>
             </Directory>
