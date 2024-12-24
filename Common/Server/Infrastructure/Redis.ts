@@ -1,6 +1,7 @@
 import {
   RedisDb,
   RedisHostname,
+  RedisIPFamily,
   RedisPassword,
   RedisPort,
   RedisTlsCa,
@@ -40,6 +41,7 @@ export default abstract class Redis {
       password: RedisPassword,
       db: RedisDb,
       enableTLSForSentinelMode: RedisTlsSentinelMode,
+      family: RedisIPFamily,
       lazyConnect: true,
     };
 

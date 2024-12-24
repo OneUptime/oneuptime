@@ -297,6 +297,8 @@ Usage:
         key: {{ $.Values.externalRedis.existingSecret.passwordKey }}
   {{- end }}
   {{- end }}
+- name: REDIS_IP_FAMILY
+  value: {{ printf "%s" $.Values.externalRedis.ipFamily | quote }}
 - name: REDIS_DB
   {{- if $.Values.redis.enabled }}
   value: {{ printf "0" | squote}}
