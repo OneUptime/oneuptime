@@ -47,7 +47,7 @@
                             Source='binary_placeholder'
                             KeyPath='yes'
                         />
-                        <Environment Id='PATH' Name='PATH' Value='[INSTALLDIR]' Permanent='no' Part='last' Action='set' />
+
                     </Component>
                 </Directory>
             </Directory>
@@ -57,12 +57,19 @@
             <ComponentRef Id='MainExecutable' />
         </Feature>
 
+
+    <CustomAction Id='SetEnvironment' Directory='TARGETDIR' ExeCommand='cmd.exe /c setx PATH [INSTALLDIR]' Return='check' />
+
+
         <!-- Include the WixUIExtension for standard dialogs --> 
         <UIRef Id="WixUI_InstallDir" /> 
         <!-- Add a custom action to show a thank you message --> 
         <CustomAction Id="ShowThankYou" Return="ignore" Execute="immediate" Script="vbscript"> <![CDATA[ MsgBox "Thank you for installing OneUptimevInfrastructure Agent!", vbInformation, "Installation Complete" ]]> </CustomAction> 
         <!-- Schedule the custom action to run at the end of the installation --> 
-        <InstallExecuteSequence> <Custom Action="ShowThankYou" After="InstallFinalize">NOT Installed</Custom> </InstallExecuteSequence>
+        <InstallExecuteSequence> 
+        <Custom Action="SetEnvironment" After="InstallFiles">NOT Installed</Custom>
+        <Custom Action="ShowThankYou" After="InstallFinalize">NOT Installed</Custom> 
+        </InstallExecuteSequence>
         
     </Product>
 </Wix>
