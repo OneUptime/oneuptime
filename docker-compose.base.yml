@@ -90,6 +90,7 @@ x-common-server-variables: &common-server-variables
     REDIS_HOST: ${REDIS_HOST}
     REDIS_PORT: ${REDIS_PORT}
     REDIS_DB: ${REDIS_DB}
+    REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
     REDIS_TLS_CA: ${REDIS_TLS_CA}
     REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
 
