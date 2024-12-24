@@ -181,8 +181,9 @@ export const ShouldRedisTlsEnable: boolean = Boolean(
   RedisTlsCa || (RedisTlsCert && RedisTlsKey),
 );
 
-export const RedisIPFamily: number =
-  Number(process.env["REDIS_IP_FAMILY"]) || 4;
+export const RedisIPFamily: number = process.env["REDIS_IP_FAMILY"]
+  ? Number(process.env["REDIS_IP_FAMILY"])
+  : 4;
 
 export const IsProduction: boolean =
   process.env["ENVIRONMENT"] === "production";
