@@ -298,7 +298,11 @@ Usage:
   {{- end }}
   {{- end }}
 - name: REDIS_IP_FAMILY
-  value: {{ printf "%s" $.Values.externalRedis.ipFamily | quote }}
+  {{- if $.Values.redis.enabled }}
+  value: {{ printf "%s" $.Values.redis.ipFamily | quote }}
+  {{- else }}
+  value: {{ $.Values.externalRedis.ipFamily | quote }}
+  {{- end }}
 - name: REDIS_DB
   {{- if $.Values.redis.enabled }}
   value: {{ printf "0" | squote}}

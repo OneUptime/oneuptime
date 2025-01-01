@@ -105,6 +105,7 @@ redis:
   enabled: true
   clusterDomain: *global-cluster-domain
   architecture: standalone
+  ipFamily: 4
   auth:
     enabled: true
   master:
