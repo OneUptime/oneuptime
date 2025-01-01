@@ -367,6 +367,7 @@ services:
             ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            PORT: ${GLOBAL_PROBE_1_PORT}
         logging:
             driver: "local"
             options:
@@ -386,6 +387,7 @@ services:
             PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            PORT: ${GLOBAL_PROBE_2_PORT}
         logging:
             driver: "local"
             options:

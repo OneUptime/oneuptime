@@ -1,4 +1,4 @@
-import { PROBE_MONITOR_RETRY_LIMIT, PROBE_MONITORING_WORKERS } from "./Config";
+import { PORT, PROBE_MONITOR_RETRY_LIMIT, PROBE_MONITORING_WORKERS } from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
 import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";
@@ -9,7 +9,6 @@ import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
-import Port from "Common/Types/Port";
 
 const APP_NAME: string = "probe";
 
@@ -23,7 +22,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // init the app
     await App.init({
       appName: APP_NAME,
-      port: new Port(3874), // some random port to start the server. Since this is the probe, it doesn't need to be exposed.
+      port: PORT, // some random port to start the server. Since this is the probe, it doesn't need to be exposed.
       isFrontendApp: false,
       statusOptions: {
         liveCheck: async () => {},
