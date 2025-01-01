@@ -7,8 +7,6 @@ Synthetic monitoring is a way to proactively monitor your applications by simula
 The following example shows how to use a Synthetic Monitor:
 
 ```javascript
-// You can use axios module, and page object from Playwright here.
-// Page Object is a class that represents a single page in a browser.
 
 // Objects available in the context of the script are:
 

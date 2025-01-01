@@ -29,6 +29,9 @@ export default class VMRunner {
       http: http,
       https: https,
       axios: axios,
+      setTimeout: setTimeout,
+      clearTimeout: clearTimeout,
+      setInterval: setInterval,
       ...options.context,
     };
 

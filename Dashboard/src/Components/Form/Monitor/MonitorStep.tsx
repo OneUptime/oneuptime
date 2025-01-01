@@ -238,9 +238,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   if (props.monitorType === MonitorType.SyntheticMonitor) {
     codeEditorPlaceholder = `
-        // You can use axios module, and page object from Playwright here.
-        // Page Object is a class that represents a single page in a browser.
-
         // Objects available in the context of the script are:
 
         // - axios: Axios module to make HTTP requests
