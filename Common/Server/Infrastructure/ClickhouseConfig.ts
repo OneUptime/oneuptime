@@ -11,13 +11,16 @@ import {
   ClickhouseUsername,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
+import Hostname from "../../Types/API/Hostname";
 
 export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;
 
 const hostProtocol: string = ClickHouseIsHostHttps ? "https" : "http";
 
+const clickhouseHost: Hostname = ClickhouseHost || new Hostname("clickhouse");
+
 const options: ClickHouseClientConfigOptions = {
-  url: `${hostProtocol}://${ClickhouseHost.toString()}:${ClickhousePort.toNumber()}`,
+  url: `${hostProtocol}://${clickhouseHost.toString()}:${ClickhousePort.toNumber()}`,
   username: ClickhouseUsername,
   password: ClickhousePassword,
   database: ClickhouseDatabase,
