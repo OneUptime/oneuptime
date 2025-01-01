@@ -299,7 +299,7 @@ Usage:
   {{- end }}
 - name: REDIS_IP_FAMILY
   {{- if $.Values.redis.enabled }}
-  value: {{ printf "%s" $.Values.redis.ipFamily | quote }}
+  value: {{ $.Values.redis.ipFamily | quote }}
   {{- else }}
   value: {{ $.Values.externalRedis.ipFamily | quote }}
   {{- end }}
