@@ -9,6 +9,7 @@ import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
+import Port from "Common/Types/Port";
 
 const APP_NAME: string = "probe";
 
@@ -22,7 +23,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // init the app
     await App.init({
       appName: APP_NAME,
-      port: undefined,
+      port: new Port(3874), // some random port to start the server. Since this is the probe, it doesn't need to be exposed.
       isFrontendApp: false,
       statusOptions: {
         liveCheck: async () => {},
