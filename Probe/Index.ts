@@ -1,4 +1,8 @@
-import { PORT, PROBE_MONITOR_RETRY_LIMIT, PROBE_MONITORING_WORKERS } from "./Config";
+import {
+  PORT,
+  PROBE_MONITOR_RETRY_LIMIT,
+  PROBE_MONITORING_WORKERS,
+} from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
 import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";

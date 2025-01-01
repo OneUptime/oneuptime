@@ -81,4 +81,6 @@ export const PROBE_MONITOR_RETRY_LIMIT: number = process.env[
   ? parseInt(process.env["PROBE_MONITOR_RETRY_LIMIT"].toString())
   : 3;
 
-  export const PORT: Port = new Port(process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874);
+export const PORT: Port = new Port(
+  process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874,
+);
