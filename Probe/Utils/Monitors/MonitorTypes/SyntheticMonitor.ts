@@ -93,6 +93,7 @@ export default class SyntheticMonitor {
             timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
             args: {},
             context: {
+              browser: pageAndBrowser.browser,
               page: pageAndBrowser.page,
               screenSizeType: options.screenSizeType,
               browserType: options.browserType,
@@ -143,7 +144,12 @@ export default class SyntheticMonitor {
       }
 
       if (pageAndBrowser?.browser) {
-        await pageAndBrowser.browser.close();
+        try {
+          await pageAndBrowser.browser.close();
+        } catch (err) {
+          // if the browser is already closed, ignore the error
+          logger.error(err);
+        }
       }
 
       return scriptResult;

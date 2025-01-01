@@ -10,6 +10,16 @@ The following example shows how to use a Synthetic Monitor:
 // You can use axios module, and page object from Playwright here.
 // Page Object is a class that represents a single page in a browser.
 
+// Objects available in the context of the script are:
+
+// - axios: Axios module to make HTTP requests
+// - page: Playwright Page object to interact with the browser
+// - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+// - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
+// - browser: Playwright Browser object to interact with the browser
+
+// You can use these objects to interact with the browser and make HTTP requests.
+
 await page.goto('https://playwright.dev/');
 
 // Playwright Documentation here: https://playwright.dev/docs/intro
@@ -32,6 +42,9 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 
 // To log data, use console.log
 // console.log('Hello World');
+
+// You also have browser context available in the script. You can use it to interact with the browser if you need to (for example, to create a new page or dealing with popups).
+
 
 return {
     data: 'Hello World',

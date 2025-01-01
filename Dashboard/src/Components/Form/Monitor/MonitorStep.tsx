@@ -241,6 +241,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         // You can use axios module, and page object from Playwright here.
         // Page Object is a class that represents a single page in a browser.
 
+        // Objects available in the context of the script are:
+
+        // - axios: Axios module to make HTTP requests
+        // - page: Playwright Page object to interact with the browser
+        // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+        // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
+        // - browser: Playwright Browser object to interact with the browser
+
         await page.goto('https://playwright.dev/');
         
         // Playwright Documentation here: https://playwright.dev/docs/intro
