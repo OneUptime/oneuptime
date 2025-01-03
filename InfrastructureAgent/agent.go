@@ -46,7 +46,7 @@ func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 
 	// check if secret key is valid
 	if !checkIfSecretKeyIsValid(ag.SecretKey, ag.OneUptimeURL, ag.ProxyURL) {
-		slog.Error("Secret key is invalid")
+		slog.Error("Secret key is invalid. If you are sure that the secret key is correct, please check your network connection, OneUptime URL (" + ag.OneUptimeURL + "), Proxy URL (" + ag.ProxyURL + ") and try again.")
 		os.Exit(1)
 		return ag
 	}
@@ -133,19 +133,21 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 		return
 	}
 
-	req, err := http.NewRequest(http.MethodPost, oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, bytes.NewBuffer(reqBody))
+	client := &http.Client{}
+
+	if proxyUrl != "" {
+		proxyURL, _ := url.Parse(proxyUrl)
+		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		client = &http.Client{Transport: transport}
+		slog.Info("Using proxy to send request:" + proxyUrl)
+	}
+
+	resp, err := client.Post(oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		slog.Error("Failed to create request: ", err)
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		slog.Error("Failed to send request: ", err)
-		return
-	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -167,6 +169,7 @@ func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl str
 		proxyURL, _ := url.Parse(proxyUrl)
 		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 		client = &http.Client{Transport: transport}
+		slog.Info("Using proxy to send request:" + proxyUrl)
 	}
 
 	if secretKey == "" {
