@@ -25,13 +25,17 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
 # Install the agent
 curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash 
 
-# Configure the agent
-sudo oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
-                "--oneuptime-url=" + host
-              }
+# Configure the agent (without proxy)
+sudo oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} --oneuptime-url=${host}
+
+# Configure the agent (with proxy - optional)
+# If you're using a proxy, you can set the proxy by running the following command
+sudo oneuptime-infrastructure-agent configure --proxy-url=http://proxy.example.com:8080  --secret-key=${props.secretKey.toString()} --oneuptime-url=${host}
 
 # To Start
 sudo oneuptime-infrastructure-agent start
+
+
 
 # To Stop
 sudo oneuptime-infrastructure-agent stop
@@ -56,9 +60,11 @@ sudo oneuptime-infrastructure-agent uninstall
 # Extract the zip file, and you should see a file named oneuptime-infrastructure-agent.exe 
 
 # Command Line: Configure the agent in cmd (Run as Administrator)
-oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} ${
-                "--oneuptime-url=" + host
-              }
+oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} --oneuptime-url=${host}
+
+# Using a proxy (optional)
+# If you're using a proxy, you can set the proxy by running the following command
+oneuptime-infrastructure-agent configure --proxy-url=http://proxy.example.com:8080  --secret-key=${props.secretKey.toString()} --oneuptime-url=${host}
 
 # To Start
 oneuptime-infrastructure-agent start
