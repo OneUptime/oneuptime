@@ -32,6 +32,7 @@ func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 		OneUptimeURL: oneuptimeUrl,
 		ProxyURL:     proxyUrl,
 	}
+	utils.SetDefaultLogger()
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
 	slog.Info("Secret key: " + ag.SecretKey)
@@ -57,7 +58,7 @@ func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 		return ag
 	}
 
-	job, err := scheduler.NewJob(gocron.DurationJob(30*time.Second), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL))
+	job, err := scheduler.NewJob(gocron.DurationJob(30*time.Second), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL, ag.ProxyURL))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -163,7 +164,7 @@ func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl str
 	client := &http.Client{}
 
 	if proxyUrl != "" {
-		proxyURL, _ := url.Parse("http://your-proxy-server:port")
+		proxyURL, _ := url.Parse(proxyUrl)
 		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 		client = &http.Client{Transport: transport}
 	}
