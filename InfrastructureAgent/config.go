@@ -39,6 +39,7 @@ func (c *ConfigFile) loadConfig() error {
 	}
 	c.SecretKey = cfg.SecretKey
 	c.OneUptimeURL = cfg.OneUptimeURL
+	c.ProxyURL = cfg.ProxyURL
 	return nil
 }
 
@@ -63,6 +64,7 @@ func (c *ConfigFile) save(secretKey string, oneuptimeUrl string, proxyUrl string
 
 	// Open the file with os.Create, which truncates the file if it already exists,
 	// and creates it if it doesn't.
+	slog.Info("Saving configuration to file to path: " + c.configPath())
 	file, err := os.Create(c.configPath())
 	if err != nil {
 		return err
@@ -72,6 +74,7 @@ func (c *ConfigFile) save(secretKey string, oneuptimeUrl string, proxyUrl string
 	// which will write the map to the file in JSON format.
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ") // Optional: makes the output more readable
+	slog.Info("Configuration File Saved")
 	return encoder.Encode(config.Data())
 }
 

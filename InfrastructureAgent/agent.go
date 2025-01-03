@@ -32,7 +32,7 @@ func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 		OneUptimeURL: oneuptimeUrl,
 		ProxyURL:     proxyUrl,
 	}
-	utils.SetDefaultLogger()
+
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
 	slog.Info("Secret key: " + ag.SecretKey)

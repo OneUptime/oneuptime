@@ -115,6 +115,12 @@ func main() {
 				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'configure' command")
 				os.Exit(2)
 			}
+
+			slog.Info("Configuring service...")
+			slog.Info("Secret key: " + *secretKey)
+			slog.Info("OneUptime URL: " + *oneuptimeURL)
+			slog.Info("Proxy URL: " + *proxyURL)
+
 			// save configuration
 			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL, prg.config.ProxyURL)
 
@@ -124,7 +130,7 @@ func main() {
 			}
 			// Install the service
 			if err := s.Install(); err != nil {
-				slog.Error("Failed to configure service: ", err)
+				slog.Error("Failed to configure service. Please consider uninstalling the service by running 'oneuptime-infrastructure-agent uninstall' and run configure again. \n", err)
 				os.Exit(2)
 			}
 			fmt.Println("Service installed. Run the service using 'oneuptime-infrastructure-agent start'")
