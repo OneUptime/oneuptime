@@ -44,7 +44,7 @@ func SetDefaultLogger() {
 }
 
 func (p *program) run() {
-	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL)
+	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL, p.config.ProxyURL)
 	p.agent.Start()
 	if service.Interactive() {
 		slog.Info("Running in terminal.")
@@ -112,19 +112,28 @@ func main() {
 			installFlags := flag.NewFlagSet("configure", flag.ExitOnError)
 			secretKey := installFlags.String("secret-key", "", "Secret key (required)")
 			oneuptimeURL := installFlags.String("oneuptime-url", "", "Oneuptime endpoint root URL (required)")
+
+			// Take input - proxy URL, proxy port, username / password - all optional
+
+			proxyURL := installFlags.String("proxy-url", "", "Proxy URL - if you are using a proxy (optional)")
+
 			err := installFlags.Parse(os.Args[2:])
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
+
 			prg.config.SecretKey = *secretKey
 			prg.config.OneUptimeURL = *oneuptimeURL
+			prg.config.ProxyURL = *proxyURL
+
 			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
 				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'configure' command")
 				os.Exit(2)
 			}
 			// save configuration
-			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL)
+			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL, prg.config.ProxyURL)
+
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(2)

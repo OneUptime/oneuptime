@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"oneuptime-infrastructure-agent/model"
 	"oneuptime-infrastructure-agent/utils"
 	"os"
@@ -18,22 +19,24 @@ import (
 type Agent struct {
 	SecretKey    string
 	OneUptimeURL string
+	ProxyURL     string
 	scheduler    gocron.Scheduler
 	mainJob      gocron.Job
 	shutdownHook Hook
 }
 
-func NewAgent(secretKey string, url string) *Agent {
+func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 
 	ag := &Agent{
 		SecretKey:    secretKey,
-		OneUptimeURL: url,
+		OneUptimeURL: oneuptimeUrl,
+		ProxyURL:     proxyUrl,
 	}
-
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
 	slog.Info("Secret key: " + ag.SecretKey)
 	slog.Info("OneUptime URL: " + ag.OneUptimeURL)
+	slog.Info("Proxy URL: " + ag.ProxyURL)
 	if ag.SecretKey == "" || ag.OneUptimeURL == "" {
 		slog.Error("Secret key and OneUptime URL are required")
 		os.Exit(1)
@@ -41,7 +44,7 @@ func NewAgent(secretKey string, url string) *Agent {
 	}
 
 	// check if secret key is valid
-	if !checkIfSecretKeyIsValid(ag.SecretKey, ag.OneUptimeURL) {
+	if !checkIfSecretKeyIsValid(ag.SecretKey, ag.OneUptimeURL, ag.ProxyURL) {
 		slog.Error("Secret key is invalid")
 		os.Exit(1)
 		return ag
@@ -84,7 +87,7 @@ func (ag *Agent) Close() {
 	}
 }
 
-func collectMetricsJob(secretKey string, oneuptimeURL string) {
+func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 	memMetrics := utils.GetMemoryMetrics()
 	if memMetrics == nil {
 		slog.Warn("Failed to get memory metrics")
@@ -129,7 +132,7 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 		return
 	}
 
-	req, err := http.NewRequest(http.MethodPost, oneuptimeURL+"/server-monitor/response/ingest/"+secretKey, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(http.MethodPost, oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, bytes.NewBuffer(reqBody))
 	if err != nil {
 		slog.Error("Failed to create request: ", err)
 		return
@@ -153,18 +156,29 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 	slog.Info("1 minute metrics have been sent to OneUptime.")
 }
 
-func checkIfSecretKeyIsValid(secretKey string, baseUrl string) bool {
+func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl string) bool {
+
+	// if we have a proxy, we need to use that to make the request
+
+	client := &http.Client{}
+
+	if proxyUrl != "" {
+		proxyURL, _ := url.Parse("http://your-proxy-server:port")
+		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		client = &http.Client{Transport: transport}
+	}
+
 	if secretKey == "" {
 		slog.Error("Secret key is empty")
 		return false
 	}
-	resp, err := http.NewRequest(http.MethodGet, baseUrl+"/server-monitor/secret-key/verify/"+secretKey, nil)
+	resp, err := client.Get(oneuptimeUrl + "/server-monitor/secret-key/verify/" + secretKey)
 	if err != nil {
 		slog.Error(err.Error())
 		return false
 	}
-	if resp.Response.StatusCode != 200 {
-		slog.Error("Secret key verification failed with status code " + strconv.Itoa(resp.Response.StatusCode))
+	if resp.StatusCode != 200 {
+		slog.Error("Secret key verification failed with status code " + strconv.Itoa(resp.StatusCode))
 		return false
 	}
 	return true

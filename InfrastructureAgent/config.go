@@ -12,8 +12,12 @@ import (
 )
 
 type ConfigFile struct {
-	SecretKey    string `json:"secret_key"`
-	OneUptimeURL string `json:"oneuptime_url"`
+	SecretKey     string `json:"secret_key"`
+	OneUptimeURL  string `json:"oneuptime_url"`
+	ProxyURL      string `json:"proxy_url"`
+	ProxyPort     string `json:"proxy_port"`
+	ProxyUsername string `json:"proxy_username"`
+	ProxyPassword string `json:"proxy_password"`
 }
 
 func newConfigFile() *ConfigFile {
@@ -38,7 +42,7 @@ func (c *ConfigFile) loadConfig() error {
 	return nil
 }
 
-func (c *ConfigFile) save(secretKey string, url string) error {
+func (c *ConfigFile) save(secretKey string, oneuptimeUrl string, proxyUrl string) error {
 	err := c.loadConfig()
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -47,10 +51,16 @@ func (c *ConfigFile) save(secretKey string, url string) error {
 	if err != nil {
 		return err
 	}
-	err = config.Set("oneuptime_url", url)
+	err = config.Set("oneuptime_url", oneuptimeUrl)
 	if err != nil {
 		return err
 	}
+
+	err = config.Set("proxy_url", proxyUrl)
+	if err != nil {
+		return err
+	}
+
 	// Open the file with os.Create, which truncates the file if it already exists,
 	// and creates it if it doesn't.
 	file, err := os.Create(c.configPath())
