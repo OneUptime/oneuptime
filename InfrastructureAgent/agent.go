@@ -24,10 +24,12 @@ type Agent struct {
 }
 
 func NewAgent(secretKey string, url string) *Agent {
+
 	ag := &Agent{
 		SecretKey:    secretKey,
 		OneUptimeURL: url,
 	}
+
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
 	slog.Info("Secret key: " + ag.SecretKey)

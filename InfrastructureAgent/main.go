@@ -28,6 +28,21 @@ func (p *program) Start(s service.Service) error {
 	return nil
 }
 
+func SetDefaultLogger() {
+	logFile, err := os.OpenFile("output.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+
+	if err != nil {
+		slog.Default().Error("Failed to open log file", "error", err)
+		// If we can't open the log file, we'll log to the console instead
+		logFile = os.Stdout
+	}
+
+	//defer logFile.Close()
+
+	logger := slog.New(slog.NewTextHandler(logFile, nil))
+	slog.SetDefault(logger)
+}
+
 func (p *program) run() {
 	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL)
 	p.agent.Start()
@@ -58,6 +73,9 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func main() {
+
+	SetDefaultLogger()
+	slog.Info("Starting OneUptime Infrastructure Agent")
 	// Set up the configuration
 	config.WithOptions(config.WithTagName("json"))
 	cfg := newConfigFile()
