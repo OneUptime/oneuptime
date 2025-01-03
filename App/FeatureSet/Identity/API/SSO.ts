@@ -45,106 +45,112 @@ const router: ExpressRouter = Express.getRouter();
 router.get(
   "/service-provider-login",
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    if (!req.query["email"]) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("Email is required"),
-      );
-    }
+    try {
+      if (!req.query["email"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Email is required"),
+        );
+      }
 
-    const email: Email = new Email(req.query["email"] as string);
+      const email: Email = new Email(req.query["email"] as string);
 
-    if (!email) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("Email is required"),
-      );
-    }
+      if (!email) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Email is required"),
+        );
+      }
 
-    // get sso config for this user.
+      // get sso config for this user.
 
-    const user: User | null = await UserService.findOneBy({
-      query: { email: email },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!user) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("No SSO config found for this user"),
-      );
-    }
-
-    const userId: ObjectID = user.id!;
-
-    if (!userId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("No SSO config found for this user"),
-      );
-    }
-
-    const projectUserBelongsTo: Array<ObjectID> = (
-      await TeamMemberService.findBy({
-        query: { userId: userId },
+      const user: User | null = await UserService.findOneBy({
+        query: { email: email },
         select: {
-          projectId: true,
+          _id: true,
         },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
         props: {
           isRoot: true,
         },
-      })
-    ).map((teamMember: TeamMember) => {
-      return teamMember.projectId!;
-    });
+      });
 
-    if (projectUserBelongsTo.length === 0) {
-      return Response.sendErrorResponse(
+      if (!user) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const userId: ObjectID = user.id!;
+
+      if (!userId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const projectUserBelongsTo: Array<ObjectID> = (
+        await TeamMemberService.findBy({
+          query: { userId: userId },
+          select: {
+            projectId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).map((teamMember: TeamMember) => {
+        return teamMember.projectId!;
+      });
+
+      if (projectUserBelongsTo.length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
+        query: {
+          projectId: QueryHelper.any(projectUserBelongsTo),
+          isEnabled: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          description: true,
+          _id: true,
+          projectId: true,
+          project: {
+            name: true,
+          } as Select<Project>,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return Response.sendEntityArrayResponse(
         req,
         res,
-        new BadRequestException("No SSO config found for this user"),
+        projectSSOList,
+        projectSSOList.length,
+        ProjectSSO,
       );
+    } catch (err) {
+      logger.error(err);
+
+      Response.sendErrorResponse(req, res, err as Exception);
     }
-
-    const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
-      query: {
-        projectId: QueryHelper.any(projectUserBelongsTo),
-        isEnabled: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        name: true,
-        description: true,
-        _id: true,
-        projectId: true,
-        project: {
-          name: true,
-        } as Select<Project>,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Response.sendEntityArrayResponse(
-      req,
-      res,
-      projectSSOList,
-      projectSSOList.length,
-      ProjectSSO,
-    );
   },
 );
 
@@ -153,7 +159,7 @@ router.get(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction,
+    _next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.params["projectId"]) {
@@ -227,7 +233,9 @@ router.get(
 
       return Response.redirect(req, res, samlRequestUrl);
     } catch (err) {
-      return next(err);
+      logger.error(err);
+
+      Response.sendErrorResponse(req, res, err as Exception);
     }
   },
 );
@@ -522,7 +530,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     );
   } catch (err) {
     logger.error(err);
-    Response.sendErrorResponse(req, res, new ServerException());
+
+    Response.sendErrorResponse(req, res, err as Exception);
   }
 };
 
