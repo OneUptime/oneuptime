@@ -1,15 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log/slog"
+	"net/http"
 	"oneuptime-infrastructure-agent/model"
 	"oneuptime-infrastructure-agent/utils"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/gookit/greq"
 )
 
 type Agent struct {
@@ -118,17 +121,33 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 	}{
 		ServerMonitorResponse: metricsReport,
 	}
-	postBuilder := greq.New(oneuptimeURL).Post("/server-monitor/response/ingest/" + secretKey).
-		JSONType().JSONBody(reqData)
-	resp, err := postBuilder.Do()
+	reqBody, err := json.Marshal(reqData)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to marshal request data: ", err)
+		return
 	}
-	if resp.IsFail() {
+
+	req, err := http.NewRequest(http.MethodPost, oneuptimeURL+"/server-monitor/response/ingest/"+secretKey, bytes.NewBuffer(reqBody))
+	if err != nil {
+		slog.Error("Failed to create request: ", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Error("Failed to send request: ", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		slog.Error("Failed to ingest metrics with status code ", resp.StatusCode)
-		respJson, _ := json.Marshal(resp)
-		slog.Error("Response: ", string(respJson))
+		respBody, _ := io.ReadAll(resp.Body)
+		slog.Error("Response: ", string(respBody))
 	}
+
 	slog.Info("1 minute metrics have been sent to OneUptime.")
 }
 
@@ -137,13 +156,13 @@ func checkIfSecretKeyIsValid(secretKey string, baseUrl string) bool {
 		slog.Error("Secret key is empty")
 		return false
 	}
-	resp, err := greq.New(baseUrl).JSONType().GetDo("/server-monitor/secret-key/verify/" + secretKey)
+	resp, err := http.NewRequest(http.MethodGet, baseUrl+"/server-monitor/secret-key/verify/"+secretKey, nil)
 	if err != nil {
 		slog.Error(err.Error())
 		return false
 	}
-	if resp.StatusCode != 200 {
-		slog.Error("Secret key verification failed with status code ", resp.StatusCode)
+	if resp.Response.StatusCode != 200 {
+		slog.Error("Secret key verification failed with status code " + strconv.Itoa(resp.Response.StatusCode))
 		return false
 	}
 	return true
