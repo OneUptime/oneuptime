@@ -5,7 +5,6 @@ go 1.22.0
 require (
 	github.com/go-co-op/gocron/v2 v2.4.1
 	github.com/gookit/config/v2 v2.2.5
-	github.com/gookit/greq v0.3.0
 	github.com/kardianos/service v1.2.2
 	github.com/shirou/gopsutil/v3 v3.24.4
 )
