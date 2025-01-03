@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
     <Product
-        Name='OneUptimeInfrastructureAgent (arm64)'
+        Name='OneUptimeInfrastructureAgent (amd64)'
         Id='ABCDDCBA-86C7-4D14-AEC0-86413A69ABDE'
         UpgradeCode='ABCDDCBA-7349-453F-94F6-BCB5110BA8FD'
         Language='1033'
@@ -55,18 +55,5 @@
         <Feature Id='Complete' Level='1'>
             <ComponentRef Id='MainExecutable' />
         </Feature>
-
-
-    <CustomAction Id='SetEnvironment' Directory='TARGETDIR' ExeCommand='cmd.exe /c setx PATH [INSTALLDIR]' Return='check' />
-
-
-        <!-- Add a custom action to show a thank you message --> 
-        <CustomAction Id="ShowThankYou" Return="ignore" Execute="immediate" Script="vbscript"> <![CDATA[ MsgBox "Thank you for installing OneUptimevInfrastructure Agent!", vbInformation, "Installation Complete" ]]> </CustomAction> 
-        <!-- Schedule the custom action to run at the end of the installation --> 
-        <InstallExecuteSequence> 
-        <Custom Action="SetEnvironment" After="InstallFiles">NOT Installed</Custom>
-        <Custom Action="ShowThankYou" After="InstallFinalize">NOT Installed</Custom> 
-        </InstallExecuteSequence>
-
     </Product>
 </Wix>
