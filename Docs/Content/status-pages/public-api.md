@@ -201,7 +201,7 @@ This is the response from the API:
 }
 ```
 
-# Announcements API
+### Announcements API
 
 This API will fetch all the announcements that are on the status page. To get all the announcements on the status page, you can make a GET request to the following endpoint:
 
