@@ -68,6 +68,15 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Status Pages",
+    links: [
+      {
+        title: "Public API",
+        url: "/docs/status-pages/public-api",
+      },
+    ],
+  },
+  {
     title: "Probe",
     links: [{ title: "Custom Probes", url: "/docs/probe/custom-probe" }],
   },
