@@ -47,15 +47,16 @@
                             Source='binary_placeholder'
                             KeyPath='yes'
                         />
+                        
                     </Component>
                 </Directory>
             </Directory>
         </Directory>
-
-        <DirectoryRef Id="INSTALLFOLDER"> <Environment Id="MYENVVAR" Name="MYENVVAR" Value="[INSTALLFOLDER]" Part="last" Permanent="yes" System="yes" /> </DirectoryRef>
-
+        
         <Feature Id='Complete' Level='1'>
             <ComponentRef Id='MainExecutable' />
         </Feature>
+
     </Product>
+
 </Wix>
