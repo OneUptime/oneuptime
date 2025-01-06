@@ -18,9 +18,10 @@ export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;
 const hostProtocol: string = ClickHouseIsHostHttps ? "https" : "http";
 
 const clickhouseHost: Hostname = ClickhouseHost || new Hostname("clickhouse");
+const clickhousePort: string = (ClickhousePort || 8123).toString();
 
 const options: ClickHouseClientConfigOptions = {
-  url: `${hostProtocol}://${clickhouseHost.toString()}:${ClickhousePort.toNumber()}`,
+  url: `${hostProtocol}://${clickhouseHost.toString()}:${clickhousePort}`,
   username: ClickhouseUsername,
   password: ClickhousePassword,
   database: ClickhouseDatabase,
