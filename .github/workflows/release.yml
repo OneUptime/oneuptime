@@ -1230,7 +1230,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Preinstall 
         run: npm run prerun
-      - name: Publish Infrastructure Agent
+      - name: Publish NPM Packages
         run: bash ./Scripts/NPM/PublishAllPackages.sh
 
   
