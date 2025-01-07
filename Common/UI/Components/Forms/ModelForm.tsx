@@ -188,16 +188,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
     userPermissions.push(Permission.Public);
 
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns();
-
-    let fieldPermissions: Array<Permission> = [];
-
-    if (FormType.Create === props.formType) {
-      fieldPermissions = accessControl[fieldName]?.create || [];
-    } else {
-      fieldPermissions = accessControl[fieldName]?.update || [];
-    }
+    const fieldPermissions: Array<Permission> = getFieldPermissions(fieldName);
 
     if (
       fieldPermissions &&
@@ -210,6 +201,23 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     return false;
+  };
+
+  const getFieldPermissions: (fieldName: string) => Array<Permission> = (
+    fieldName: string,
+  ): Array<Permission> => {
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    let fieldPermissions: Array<Permission> = [];
+
+    if (FormType.Create === props.formType) {
+      fieldPermissions = accessControl[fieldName]?.create || [];
+    } else {
+      fieldPermissions = accessControl[fieldName]?.update || [];
+    }
+
+    return fieldPermissions;
   };
 
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
@@ -277,6 +285,29 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     fieldsToSet = await fetchDropdownOptions(fieldsToSet);
+
+    // if there are no fields to set, then show permission erorr. This is useful when there are no fields to show.
+    if (fieldsToSet.length === 0 && props.fields.length > 0) {
+      const field: ModelField<TBaseModel> | undefined = props.fields[0];
+
+      if (field) {
+        const fieldName: string | undefined = Object.keys(field.field || {})[0];
+
+        if (fieldName) {
+          const fieldPermisisons: Array<Permission> =
+            getFieldPermissions(fieldName);
+
+          const columnMetadata: TableColumnMetadata =
+            model.getTableColumnMetadata(fieldName);
+
+          setError(
+            `You don't have enough permissions to ${
+              props.formType === FormType.Create ? "create" : "edit"
+            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermisisons.join(", ")}`,
+          );
+        }
+      }
+    }
 
     setFields(fieldsToSet);
   };
