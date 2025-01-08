@@ -10,6 +10,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
@@ -23,6 +24,10 @@ RunCron(
           monitorType: MonitorType.Server,
           serverMonitorRequestReceivedAt:
             QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
+          ...MonitorService.getEnabledMonitorQuery(),
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
         },
         props: {
           isRoot: true,
