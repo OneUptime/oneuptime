@@ -30,9 +30,6 @@ RunCron(
         select: {
           _id: true,
           monitorSteps: true,
-          serverMonitorRequestReceivedAt: true,
-          createdAt: true,
-          serverMonitorResponse: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -44,20 +41,43 @@ RunCron(
             continue;
           }
 
-          const processRequest: boolean = shouldProcessRequest(monitor);
+          const serverMonitor: Monitor | null = await MonitorService.findOneBy({
+            query: {
+              _id: monitor.id!,
+              serverMonitorRequestReceivedAt:
+                QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+              monitorSteps: true,
+              serverMonitorRequestReceivedAt: true,
+              createdAt: true,
+              serverMonitorResponse: true,
+            },
+          });
+
+          if (!serverMonitor) {
+            // server monitor may have receievd a response in the last 2 minutes
+            continue;
+          }
+
+          const processRequest: boolean = shouldProcessRequest(serverMonitor);
 
           if (!processRequest) {
             continue;
           }
 
           const serverMonitorResponse: ServerMonitorResponse = {
-            monitorId: monitor.id!,
+            monitorId: serverMonitor.id!,
             onlyCheckRequestReceivedAt: true,
             requestReceivedAt:
-              monitor.serverMonitorRequestReceivedAt ||
-              monitor.serverMonitorResponse?.requestReceivedAt ||
-              monitor.createdAt!,
-            hostname: monitor.serverMonitorResponse?.hostname || "",
+              serverMonitor.serverMonitorRequestReceivedAt ||
+              serverMonitor.serverMonitorResponse?.requestReceivedAt ||
+              serverMonitor.createdAt!,
+            hostname: serverMonitor.serverMonitorResponse?.hostname || "",
           };
 
           await MonitorResourceUtil.monitorResource(serverMonitorResponse);
