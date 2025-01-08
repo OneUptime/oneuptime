@@ -62,7 +62,9 @@ helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
-## Uninstall Helm Chart
+## Uninstall OneUptime 
+
+To uninstall/delete the `my-oneuptime` deployment:
 
 ```console
 helm uninstall my-oneuptime
@@ -327,6 +329,14 @@ We use these charts as dependencies. You dont need to install them separately. P
 | `postgresql` | PostgreSQL database | https://charts.bitnami.com/bitnami |
 | `redis` | Redis database | https://charts.bitnami.com/bitnami |
 | `clickhouse` | Clickhouse database | https://charts.bitnami.com/bitnami |
+
+## Uninstalling OneUptime
+
+To uninstall/delete the `my-oneuptime` deployment:
+
+```console
+helm uninstall my-oneuptime
+```
 
 ## Contributing
 

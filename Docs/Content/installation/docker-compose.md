@@ -98,3 +98,14 @@ npm run update
 ### Things to consider
 
 - In our Docker setup, we employ a local logging driver. OneUptime, particularly within the probe and ingest containers, generates a substantial amount of logs. To prevent your storage from becoming full, it's crucial to limit the logging storage in Docker. For detailed instructions on how to do this, please refer to the official Docker documentation [here](https://docs.docker.com/config/containers/logging/local/).
+
+
+### Uninstalling OneUptime
+
+To uninstall OneUptime, run the following command:
+
+```
+npm run down
+```
+
+This will stop and remove all the containers, networks, and volumes created by OneUptime. It will not remove the `config.env` file or the cloned repository.
