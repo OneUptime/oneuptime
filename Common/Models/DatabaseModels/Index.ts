@@ -20,6 +20,7 @@ import GreenlockCertificate from "./GreenlockCertificate";
 import GreenlockChallenge from "./GreenlockChallenge";
 // Incidents
 import Incident from "./Incident";
+import IncidentLog from "./IncidentLog";
 import IncidentCustomField from "./IncidentCustomField";
 import IncidentInternalNote from "./IncidentInternalNote";
 import IncidentNoteTemplate from "./IncidentNoteTemplate";
@@ -142,6 +143,7 @@ import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplat
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
 
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+
 import AlertState from "./AlertState";
 import Alert from "./Alert";
 import AlertCustomField from "./AlertCustomField";
@@ -151,10 +153,13 @@ import AlertOwnerTeam from "./AlertOwnerTeam";
 import AlertOwnerUser from "./AlertOwnerUser";
 import AlertSeverity from "./AlertSeverity";
 import AlertNoteTemplate from "./AlertNoteTemplate";
+import AlertLog from "./AlertLog";
+
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 
 import MonitorTest from "./MonitorTest";
+import ScheduledMaintenanceLog from "./ScheduledMaintenanceLog";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -187,6 +192,7 @@ const AllModelTypes: Array<{
 
   IncidentState,
   Incident,
+  IncidentLog,
   IncidentCustomField,
   IncidentStateTimeline,
   IncidentInternalNote,
@@ -201,6 +207,7 @@ const AllModelTypes: Array<{
 
   AlertState,
   Alert,
+  AlertLog,
   AlertCustomField,
   AlertStateTimeline,
   AlertInternalNote,
@@ -232,6 +239,7 @@ const AllModelTypes: Array<{
   ScheduledMaintenancePublicNote,
   ScheduledMaintenanceInternalNote,
   ScheduledMaintenanceCustomField,
+  ScheduledMaintenanceLog,
 
   BillingPaymentMethods,
   BillingInvoice,

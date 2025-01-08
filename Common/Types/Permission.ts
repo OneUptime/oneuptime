@@ -420,6 +420,22 @@ enum Permission {
   ReadIncidentStateTimeline = "ReadIncidentStateTimeline",
   DeleteIncidentStateTimeline = "DeleteIncidentStateTimeline",
 
+  CreateIncidentLog = "CreateIncidentLog",
+  EditIncidentLog = "EditIncidentLog",
+  ReadIncidentLog = "ReadIncidentLog",
+  DeleteIncidentLog = "DeleteIncidentLog",
+
+
+  CreateScheduledMaintenanceLog = "CreateScheduledMaintenanceLog",
+  EditScheduledMaintenanceLog = "EditScheduledMaintenanceLog",
+  ReadScheduledMaintenanceLog = "ReadScheduledMaintenanceLog",
+  DeleteScheduledMaintenanceLog = "DeleteScheduledMaintenanceLog",
+
+  CreateAlertLog = "CreateAlertLog",
+  EditAlertLog = "EditAlertLog",
+  ReadAlertLog = "ReadAlertLog",
+  DeleteAlertLog = "DeleteAlertLog",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
   EditMonitorStatusTimeline = "EditMonitorStatusTimeline",
@@ -1053,6 +1069,105 @@ export class PermissionHelper {
         title: "Read Incident State Timeline",
         description:
           "This permission can read incident state history of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateIncidentLog,
+        title: "Create Incident Log",
+        description:
+          "This permission can create log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentLog,
+        title: "Delete Incident Log",
+        description:
+          "This permission can delete log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentLog,
+        title: "Edit Incident Log",
+        description:
+          "This permission can edit log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentLog,
+        title: "Read Incident Log",
+        description:
+          "This permission can read log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAlertLog,
+        title: "Create Alert Log",
+        description:
+          "This permission can create log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertLog,
+        title: "Delete Alert Log",
+        description:
+          "This permission can delete log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertLog,
+        title: "Edit Alert Log",
+        description:
+          "This permission can edit log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertLog,
+        title: "Read Alert Log",
+        description:
+          "This permission can read log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateScheduledMaintenanceLog,
+        title: "Create Scheduled Maintenance Log",
+        description:
+          "This permission can create log of a scheduled maintenance in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceLog,
+        title: "Delete Scheduled Maintenance Log",
+        description:
+          "This permission can delete log of an scheduled maintenance in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceLog,
+        title: "Edit Scheduled Maintenance Log",
+        description:
+          "This permission can edit log of an scheduled maintenance in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceLog,
+        title: "Read Scheduled Maintenance Log",
+        description:
+          "This permission can read log of an incident in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
