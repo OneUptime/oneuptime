@@ -16,6 +16,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -39,6 +40,9 @@ router.get(
         query: {
           serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
           monitorType: MonitorType.Server,
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
         },
         select: {
           _id: true,
@@ -78,6 +82,10 @@ router.post(
         query: {
           serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
           monitorType: MonitorType.Server,
+          ...MonitorService.getEnabledMonitorQuery(),
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
         },
         select: {
           _id: true,
