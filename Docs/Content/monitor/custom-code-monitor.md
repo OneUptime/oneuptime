@@ -18,6 +18,37 @@ return {
 };
 ```
 
+
+### Using Monitor Secrets
+
+#### Adding a secret
+
+To add a secret, please go to OneUptime Dashboard -> Project Settings -> Monitor Secrets -> Create Monitor Secret.
+
+![Create Secret](/docs/static/images/CreateMonitorSecret.png)
+
+You can select which monitors have access to the secret. In this case we added `ApiKey` secret and selected monitors to have access to it.
+
+**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved. 
+
+#### Using a secret
+
+To use Monitor Secrets in the script, you can use `monitorSecrets` object in the context of the script. You can use it to access the secrets that you have added to the monitor.
+
+```javascript
+// if your secret is of type string then you need to wrap it in quotes
+let stringSecret = '{{monitorSecrets.StringSecret}}';
+
+// if your secret is of type number or boolean then you can use it directly
+let numberSecret = {{monitorSecrets.NumberSecret}};
+
+// if your secret is of type boolean then you can use it directly
+let booleanSecret = {{monitorSecrets.BooleanSecret}};
+
+// you can even console log to see if the secrets is being fetched correctly
+console.log(stringSecret); 
+```
+
 ### Things to consider
 
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
