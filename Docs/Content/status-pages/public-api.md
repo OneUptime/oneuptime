@@ -9,7 +9,7 @@ This API will fetch all the resources that are on the status page including the 
 To get overall status of the resources on the status page, you can make a GET request to the following endpoint:
 
 ```bash
-curl -X GET https://oneuptime.com/status-page-api/overview/:statusPageId
+curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 ```
 
 This is the response from the API: 
@@ -155,7 +155,7 @@ This is the response from the API:
 This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a GET request to the following endpoint:
 
 ```bash
-curl -X GET https://oneuptime.com/status-page-api/incidents/:statusPageId
+curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
 This is the response from the API: 
@@ -181,7 +181,7 @@ This is the response from the API:
 This API will fetch all the scheduled maintenance that are on the status page. To get all the scheduled maintenance on the status page, you can make a GET request to the following endpoint:
 
 ```bash
-curl -X GET https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
+curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
 
 This is the response from the API: 
@@ -206,7 +206,7 @@ This is the response from the API:
 This API will fetch all the announcements that are on the status page. To get all the announcements on the status page, you can make a GET request to the following endpoint:
 
 ```bash
-curl -X GET https://oneuptime.com/status-page-api/announcements/:statusPageId
+curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 ```
 
 This is the response from the API: 
