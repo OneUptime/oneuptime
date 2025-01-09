@@ -425,7 +425,6 @@ enum Permission {
   ReadIncidentLog = "ReadIncidentLog",
   DeleteIncidentLog = "DeleteIncidentLog",
 
-
   CreateScheduledMaintenanceLog = "CreateScheduledMaintenanceLog",
   EditScheduledMaintenanceLog = "EditScheduledMaintenanceLog",
   ReadScheduledMaintenanceLog = "ReadScheduledMaintenanceLog",

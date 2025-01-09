@@ -19,15 +19,14 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-
 export enum ScheduledMaintenanceLogEvent {
-    PublicNote = "PublicNote",
-    SubscriberEmailSent = "SubscriberEmailSent",
-    OwnerEmailSent = "OwnerEmailSent",
-    ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
-    ScheduledMaintenanceAcknowledged = "ScheduledMaintenanceAcknowledged",
-    ScheduledMaintenanceResolved = "ScheduledMaintenanceResolved",
-    PrivateNote = "PrivateNote",
+  PublicNote = "PublicNote",
+  SubscriberEmailSent = "SubscriberEmailSent",
+  OwnerEmailSent = "OwnerEmailSent",
+  ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
+  ScheduledMaintenanceAcknowledged = "ScheduledMaintenanceAcknowledged",
+  ScheduledMaintenanceResolved = "ScheduledMaintenanceResolved",
+  PrivateNote = "PrivateNote",
 }
 
 @EnableDocumentation()
@@ -46,12 +45,8 @@ export enum ScheduledMaintenanceLogEvent {
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenanceLog,
   ],
-  delete: [
-    
-  ],
-  update: [
-    
-  ],
+  delete: [],
+  update: [],
 })
 @EnableWorkflow({
   create: true,
@@ -158,7 +153,8 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "ScheduledMaintenance",
-    description: "Relation to ScheduledMaintenance in which this resource belongs",
+    description:
+      "Relation to ScheduledMaintenance in which this resource belongs",
   })
   @ManyToOne(
     () => {
@@ -194,7 +190,8 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "ScheduledMaintenance ID",
-    description: "Relation to ScheduledMaintenance ID in which this resource belongs",
+    description:
+      "Relation to ScheduledMaintenance ID in which this resource belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -313,7 +310,6 @@ export default class ScheduledMaintenanceLog extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -333,7 +329,8 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     type: TableColumnType.Markdown,
     required: true,
     title: "Log (in Markdown)",
-    description: "Log of the entire scheduledMaintenance state change in Markdown",
+    description:
+      "Log of the entire scheduledMaintenance state change in Markdown",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -341,7 +338,6 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     unique: false,
   })
   public logInMarkdown?: string = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -371,7 +367,6 @@ export default class ScheduledMaintenanceLog extends BaseModel {
   })
   public moreInformationInMarkdown?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -398,5 +393,6 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public scheduledMaintenanceLogEvent?: ScheduledMaintenanceLogEvent = undefined;
+  public scheduledMaintenanceLogEvent?: ScheduledMaintenanceLogEvent =
+    undefined;
 }
