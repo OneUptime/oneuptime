@@ -256,13 +256,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setIncidentStateTimelines(incidentStateTimelines);
       setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
 
+      const overallStatus: MonitorStatus | null =  data["overallStatus"] ? BaseModel.fromJSONObject(
+        (data["overallStatus"] as JSONObject) || {},
+        MonitorStatus,
+      ) : null;
+
       // Parse Data.
       setCurrentStatus(
-        getOverallMonitorStatus(
-          statusPageResources,
-          monitorStatuses,
-          monitorGroupCurrentStatuses,
-        ),
+        overallStatus
       );
 
       setIsLoading(false);
@@ -365,61 +366,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return <></>;
     };
 
-  type GetOverallMonitorStatusFunction = (
-    statusPageResources: Array<StatusPageResource>,
-    monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
-  ) => MonitorStatus | null;
-
-  const getOverallMonitorStatus: GetOverallMonitorStatusFunction = (
-    statusPageResources: Array<StatusPageResource>,
-    monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
-  ): MonitorStatus | null => {
-    let currentStatus: MonitorStatus | null =
-      monitorStatuses.length > 0 && monitorStatuses[0]
-        ? monitorStatuses[0]
-        : null;
-
-    const dict: Dictionary<number> = {};
-
-    for (const resource of statusPageResources) {
-      if (resource.monitor?.currentMonitorStatusId) {
-        if (
-          !Object.keys(dict).includes(
-            resource.monitor?.currentMonitorStatusId.toString() || "",
-          )
-        ) {
-          dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
-        } else {
-          dict[resource.monitor!.currentMonitorStatusId!.toString()]!++;
-        }
-      }
-    }
-
-    // check status of monitor groups.
-
-    for (const groupId in monitorGroupCurrentStatuses) {
-      const statusId: ObjectID | undefined =
-        monitorGroupCurrentStatuses[groupId];
-
-      if (statusId) {
-        if (!Object.keys(dict).includes(statusId.toString() || "")) {
-          dict[statusId.toString()] = 1;
-        } else {
-          dict[statusId.toString()]!++;
-        }
-      }
-    }
-
-    for (const monitorStatus of monitorStatuses) {
-      if (monitorStatus._id && dict[monitorStatus._id]) {
-        currentStatus = monitorStatus;
-      }
-    }
-
-    return currentStatus;
-  };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

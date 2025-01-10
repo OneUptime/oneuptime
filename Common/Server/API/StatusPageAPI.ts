@@ -725,7 +725,7 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageResources.find((resource: StatusPageResource) => {
                 return (
                   resource.monitorGroupId?.toString() ===
-                    monitorGroupId.toString() &&
+                  monitorGroupId.toString() &&
                   (resource.showStatusHistoryChart ||
                     resource.showUptimePercent)
                 );
@@ -1093,7 +1093,13 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
+
+          const overallStatus: MonitorStatus | null = this.getOverallMonitorStatus(statusPageResources, monitorStatuses, monitorGroupCurrentStatuses);
+
           const response: JSONObject = {
+
+            overallStatus: overallStatus ? BaseModel.toJSON(overallStatus, MonitorStatus) : null,
+
             scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
               scheduledMaintenanceEventsPublicNotes,
               ScheduledMaintenancePublicNote,
@@ -2284,4 +2290,56 @@ export default class StatusPageAPI extends BaseAPI<
 
     return response;
   }
+
+
+  public getOverallMonitorStatus(
+    statusPageResources: Array<StatusPageResource>,
+    monitorStatuses: Array<MonitorStatus>,
+    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
+  ): MonitorStatus | null {
+    let currentStatus: MonitorStatus | null =
+      monitorStatuses.length > 0 && monitorStatuses[0]
+        ? monitorStatuses[0]
+        : null;
+
+    const dict: Dictionary<number> = {};
+
+    for (const resource of statusPageResources) {
+      if (resource.monitor?.currentMonitorStatusId) {
+        if (
+          !Object.keys(dict).includes(
+            resource.monitor?.currentMonitorStatusId.toString() || "",
+          )
+        ) {
+          dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
+        } else {
+          dict[resource.monitor!.currentMonitorStatusId!.toString()]!++;
+        }
+      }
+    }
+
+    // check status of monitor groups.
+
+    for (const groupId in monitorGroupCurrentStatuses) {
+      const statusId: ObjectID | undefined =
+        monitorGroupCurrentStatuses[groupId];
+
+      if (statusId) {
+        if (!Object.keys(dict).includes(statusId.toString() || "")) {
+          dict[statusId.toString()] = 1;
+        } else {
+          dict[statusId.toString()]!++;
+        }
+      }
+    }
+
+    for (const monitorStatus of monitorStatuses) {
+      if (monitorStatus._id && dict[monitorStatus._id]) {
+        currentStatus = monitorStatus;
+      }
+    }
+
+    return currentStatus;
+  }
+
 }
