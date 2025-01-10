@@ -256,15 +256,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setIncidentStateTimelines(incidentStateTimelines);
       setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
 
-      const overallStatus: MonitorStatus | null =  data["overallStatus"] ? BaseModel.fromJSONObject(
-        (data["overallStatus"] as JSONObject) || {},
-        MonitorStatus,
-      ) : null;
+      const overallStatus: MonitorStatus | null = data["overallStatus"]
+        ? BaseModel.fromJSONObject(
+            (data["overallStatus"] as JSONObject) || {},
+            MonitorStatus,
+          )
+        : null;
 
       // Parse Data.
-      setCurrentStatus(
-        overallStatus
-      );
+      setCurrentStatus(overallStatus);
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -365,7 +365,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       return <></>;
     };
-
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

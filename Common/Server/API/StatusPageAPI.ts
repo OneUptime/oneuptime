@@ -725,7 +725,7 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageResources.find((resource: StatusPageResource) => {
                 return (
                   resource.monitorGroupId?.toString() ===
-                  monitorGroupId.toString() &&
+                    monitorGroupId.toString() &&
                   (resource.showStatusHistoryChart ||
                     resource.showUptimePercent)
                 );
@@ -1093,12 +1093,17 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
-
-          const overallStatus: MonitorStatus | null = this.getOverallMonitorStatus(statusPageResources, monitorStatuses, monitorGroupCurrentStatuses);
+          const overallStatus: MonitorStatus | null =
+            this.getOverallMonitorStatus(
+              statusPageResources,
+              monitorStatuses,
+              monitorGroupCurrentStatuses,
+            );
 
           const response: JSONObject = {
-
-            overallStatus: overallStatus ? BaseModel.toJSON(overallStatus, MonitorStatus) : null,
+            overallStatus: overallStatus
+              ? BaseModel.toJSON(overallStatus, MonitorStatus)
+              : null,
 
             scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
               scheduledMaintenanceEventsPublicNotes,
@@ -2291,7 +2296,6 @@ export default class StatusPageAPI extends BaseAPI<
     return response;
   }
 
-
   public getOverallMonitorStatus(
     statusPageResources: Array<StatusPageResource>,
     monitorStatuses: Array<MonitorStatus>,
@@ -2341,5 +2345,4 @@ export default class StatusPageAPI extends BaseAPI<
 
     return currentStatus;
   }
-
 }
