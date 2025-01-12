@@ -1259,6 +1259,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         newQuery[key as keyof TBaseModel] = Boolean(filterData[key]);
       }
 
+      if (typeof filterData[key] === Typeof.Number) {
+        newQuery[key as keyof TBaseModel] = filterData[key];
+      }
+
       if (filterData[key] instanceof Date) {
         newQuery[key as keyof TBaseModel] = filterData[key];
       }
