@@ -39,6 +39,7 @@ import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlert
 import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
 import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
+import AddIncidentNumber from "./AddIncidentNumber";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -83,6 +84,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RefreshDefaultUserNotificationSetting(),
   new AddServiceTypeColumnToMetricsTable(),
   new AddIsSubscriptionConfirmedToSubscribers(),
+  new AddIncidentNumber()
 ];
 
 export default DataMigrations;
