@@ -1,3 +1,4 @@
+import BadDataException from "../../Types/Exception/BadDataException";
 import LogSeverity from "../../Types/Log/LogSeverity";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
@@ -17,6 +18,21 @@ export class Service extends DatabaseService<Model> {
     logSeverity?: LogSeverity | undefined,
   }): Promise<Model> {
 
+    if (!data.scheduledMaintenanceId) {
+      throw new BadDataException("Scheduled Maintenance ID is required");
+    }
+
+    if (!data.logInMarkdown) {
+      throw new BadDataException("Log in markdown is required");
+    }
+
+    if (!data.scheduledMaintenanceLogEvent) {
+      throw new BadDataException("Scheduled Maintenance log event is required");
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException("Project ID is required");
+    }
 
     if(!data.logSeverity) {
       data.logSeverity = LogSeverity.Unspecified;
