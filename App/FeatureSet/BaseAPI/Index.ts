@@ -544,18 +544,27 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentLog, IncidentLogServiceType>(IncidentLog, IncidentLogService).getRouter(),
-    )
+      new BaseAPI<IncidentLog, IncidentLogServiceType>(
+        IncidentLog,
+        IncidentLogService,
+      ).getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertLog, AlertLogServiceType>(AlertLog, AlertLogService).getRouter(),
-    )
+      new BaseAPI<AlertLog, AlertLogServiceType>(
+        AlertLog,
+        AlertLogService,
+      ).getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenanceLog, ScheduledMaintenanceLogServiceType>(ScheduledMaintenanceLog, ScheduledMaintenanceLogService).getRouter(),
-    )
+      new BaseAPI<ScheduledMaintenanceLog, ScheduledMaintenanceLogServiceType>(
+        ScheduledMaintenanceLog,
+        ScheduledMaintenanceLogService,
+      ).getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

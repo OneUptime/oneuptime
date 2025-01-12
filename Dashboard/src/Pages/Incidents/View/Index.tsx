@@ -382,7 +382,7 @@ const IncidentView: FunctionComponent<
               title: "Incident ID",
               fieldType: FieldType.ObjectID,
             },
-            
+
             {
               field: {
                 title: true,
