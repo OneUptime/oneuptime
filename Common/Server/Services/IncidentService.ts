@@ -44,6 +44,9 @@ import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import logger from "../Utils/Logger";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -189,11 +192,6 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    const incidentNumberForThisIncident: number =
-      (await this.getExistingIncidentNumberForProject({
-        projectId: projectId,
-      })) + 1;
-
     const incidentState: IncidentState | null =
       await IncidentStateService.findOneBy({
         query: {
@@ -213,6 +211,37 @@ export class Service extends DatabaseService<Model> {
         "Created incident state not found for this project. Please add created incident state from settings.",
       );
     }
+
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: projectId.toString(),
+        namespace: "IncidentService.incident-create",
+        lockTimeout: 15000,
+        acquireTimeout: 20000,
+      });
+
+      logger.debug(
+        "Mutex acquired - IncidentService.incident-create " +
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+    } catch (err) {
+      logger.debug(
+        "Mutex acquire failed - IncidentService.incident-create " +
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+      logger.error(err);
+    }
+
+    const incidentNumberForThisIncident: number =
+      (await this.getExistingIncidentNumberForProject({
+        projectId: projectId,
+      })) + 1;
 
     createBy.data.currentIncidentStateId = incidentState.id;
     createBy.data.incidentNumber = incidentNumberForThisIncident;
@@ -252,19 +281,49 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { createBy, carryForward: null };
+    return {
+      createBy,
+      carryForward: {
+        mutex: mutex,
+      },
+    };
   }
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // these should never be null.
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
     }
 
     if (!createdItem.id) {
       throw new BadDataException("id is required");
+    }
+
+    // release the mutex.
+    if (onCreate.carryForward && onCreate.carryForward.mutex) {
+      const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
+      const projectId: ObjectID = createdItem.projectId!;
+
+      try {
+        await Semaphore.release(mutex);
+        logger.debug(
+          "Mutex released - IncidentService.incident-create " +
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
+      } catch (err) {
+        logger.debug(
+          "Mutex release failed -  IncidentService.incident-create " +
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
+        logger.error(err);
+      }
     }
 
     if (!createdItem.currentIncidentStateId) {

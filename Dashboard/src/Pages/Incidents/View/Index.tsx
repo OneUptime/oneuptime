@@ -375,12 +375,12 @@ const IncidentView: FunctionComponent<
               title: "Incident Number",
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
-                if(!item.incidentNumber) {
+                if (!item.incidentNumber) {
                   return <>-</>;
                 }
-  
+
                 return <># {item.incidentNumber}</>;
-              }
+              },
             },
             {
               field: {

@@ -528,8 +528,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Incident Number",
             type: FieldType.Text,
             getElement: (item: Incident): ReactElement => {
-
-              if(!item.incidentNumber) {
+              if (!item.incidentNumber) {
                 return <>-</>;
               }
 

@@ -84,7 +84,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RefreshDefaultUserNotificationSetting(),
   new AddServiceTypeColumnToMetricsTable(),
   new AddIsSubscriptionConfirmedToSubscribers(),
-  new AddIncidentNumber()
+  new AddIncidentNumber(),
 ];
 
 export default DataMigrations;

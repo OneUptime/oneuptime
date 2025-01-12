@@ -31,7 +31,7 @@ export default class AddIncidentNumber extends DataMigrationBase {
       // first fetch resolved state. Ended state order is -1 of resolved state.
 
       // get all incicents for this project
-      const incidents: Array<Incident> =  await IncidentService.findBy({
+      const incidents: Array<Incident> = await IncidentService.findBy({
         query: {
           projectId: project.id!,
         },
@@ -42,30 +42,29 @@ export default class AddIncidentNumber extends DataMigrationBase {
         skip: 0,
         limit: LIMIT_MAX,
         sort: {
-            createdAt: SortOrder.Descending
+          createdAt: SortOrder.Descending,
         },
         props: {
           isRoot: true,
         },
       });
 
-      const totalIncidentForProject = incidents.length;
-      let incidentCounter = totalIncidentForProject; // start from the last incident number
+      const totalIncidentForProject: number = incidents.length;
+      let incidentCounter: number = totalIncidentForProject; // start from the last incident number
 
-      for(const incident of incidents) {
+      for (const incident of incidents) {
         await IncidentService.updateOneById({
-            id: incident.id!,
-            data: {
-              incidentNumber: incidentCounter,
-            },
-            props: {
-              isRoot: true,
-            },
+          id: incident.id!,
+          data: {
+            incidentNumber: incidentCounter,
+          },
+          props: {
+            isRoot: true,
+          },
         });
 
         incidentCounter = incidentCounter - 1;
       }
-
     }
   }
 
