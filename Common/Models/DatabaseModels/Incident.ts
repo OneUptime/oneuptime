@@ -1086,4 +1086,36 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public telemetryQuery?: TelemetryQuery = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      
+    ],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Number",
+    description: "Incident Number",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public incidentNumber?: number = undefined;
 }

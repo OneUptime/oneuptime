@@ -153,17 +153,51 @@ export class Service extends DatabaseService<Model> {
     // store incident metric
   }
 
+  public async getExistingIncidentNumberForProject(data: {
+    projectId: ObjectID
+  }): Promise<number> { 
+    // get last incident number. 
+    const lastIncident: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        incidentNumber: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if(!lastIncident) {
+      return 0;
+    }
+
+    return lastIncident.incidentNumber || 0;
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
+    const projectId: ObjectID = createBy.props.tenantId || createBy.data.projectId!;
+
+    const incidentNumberForThisIncident: number = await this.getExistingIncidentNumberForProject({
+      projectId: projectId
+    }) + 1;
+
     const incidentState: IncidentState | null =
       await IncidentStateService.findOneBy({
         query: {
-          projectId: createBy.props.tenantId || createBy.data.projectId!,
+          projectId: projectId,
           isCreatedState: true,
         },
         select: {
@@ -181,6 +215,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.currentIncidentStateId = incidentState.id;
+    createBy.data.incidentNumber = incidentNumberForThisIncident;
 
     if (
       (createBy.data.createdByUserId ||
