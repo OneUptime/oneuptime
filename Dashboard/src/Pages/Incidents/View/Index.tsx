@@ -363,13 +363,6 @@ const IncidentView: FunctionComponent<
           fields: [
             {
               field: {
-                _id: true,
-              },
-              title: "Incident ID",
-              fieldType: FieldType.ObjectID,
-            },
-            {
-              field: {
                 incidentNumber: true,
               },
               title: "Incident Number",
@@ -382,6 +375,14 @@ const IncidentView: FunctionComponent<
                 return <># {item.incidentNumber}</>;
               },
             },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Incident ID",
+              fieldType: FieldType.ObjectID,
+            },
+            
             {
               field: {
                 title: true,
