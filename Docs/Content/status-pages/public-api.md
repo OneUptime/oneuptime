@@ -16,6 +16,14 @@ This is the response from the API:
 
 ```json
 {
+
+    "overallStatus": 
+        {   // Monitor Status Object
+            // Overall Status is the worst status of all the monitors and groups on the status page. 
+            // You can find more details on the monitor status here.
+            // https://oneuptime.com/reference/monitor-status
+            
+        },
     "scheduledMaintenanceEventsPublicNotes": [
         // You can find more details on the scheduled maintenance public note here.
         // https://oneuptime.com/reference/scheduled-maintenance-public-note
