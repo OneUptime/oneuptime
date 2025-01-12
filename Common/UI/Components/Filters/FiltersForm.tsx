@@ -8,6 +8,7 @@ import DateFilter from "./DateFilter";
 import DropdownFilter from "./DropdownFilter";
 import EntityFilter from "./EntityFilter";
 import JSONFilter from "./JSONFilter";
+import NumberFilter from "./NumberFilter";
 import TextFilter from "./TextFilter";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -99,6 +100,12 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                     />
 
                     <TextFilter
+                      filter={filter}
+                      filterData={props.filterData}
+                      onFilterChanged={changeFilterData}
+                    />
+
+                    <NumberFilter
                       filter={filter}
                       filterData={props.filterData}
                       onFilterChanged={changeFilterData}
