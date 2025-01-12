@@ -496,6 +496,22 @@ import ScheduledMaintenanceTemplateOwnerUserService, {
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import TableView from "Common/Models/DatabaseModels/TableView";
 
+import IncidentLog from "Common/Models/DatabaseModels/IncidentLog";
+import AlertLog from "Common/Models/DatabaseModels/AlertLog";
+import ScheduledMaintenanceLog from "Common/Models/DatabaseModels/ScheduledMaintenanceLog";
+
+import IncidentLogService, {
+  Service as IncidentLogServiceType,
+} from "Common/Server/Services/IncidentLogService";
+
+import AlertLogService, {
+  Service as AlertLogServiceType,
+} from "Common/Server/Services/AlertLogService";
+
+import ScheduledMaintenanceLogService, {
+  Service as ScheduledMaintenanceLogServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceLogService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -525,6 +541,21 @@ const BaseAPIFeatureSet: FeatureSet = {
         MonitorTestService,
       ).getRouter(),
     );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentLog, IncidentLogServiceType>(IncidentLog, IncidentLogService).getRouter(),
+    )
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertLog, AlertLogServiceType>(AlertLog, AlertLogService).getRouter(),
+    )
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceLog, ScheduledMaintenanceLogServiceType>(ScheduledMaintenanceLog, ScheduledMaintenanceLogService).getRouter(),
+    )
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
