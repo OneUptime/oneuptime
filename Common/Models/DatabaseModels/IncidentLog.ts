@@ -18,6 +18,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import LogSeverity from "../../Types/Log/LogSeverity";
 
 export enum IncidentLogEvent {
   PublicNote = "PublicNote",
@@ -28,6 +29,7 @@ export enum IncidentLogEvent {
   IncidentResolved = "IncidentResolved",
   PrivateNote = "PrivateNote",
 }
+
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incident")
@@ -391,4 +393,32 @@ export default class IncidentLog extends BaseModel {
     unique: false,
   })
   public incidentLogEvent?: IncidentLogEvent = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    title: "Incident Log Severity",
+    description: "Incident Log Severity",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    unique: false,
+  })
+  public incidentLogSeverity?: LogSeverity = undefined;
 }

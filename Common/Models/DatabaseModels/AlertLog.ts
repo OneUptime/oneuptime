@@ -18,6 +18,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import LogSeverity from "../../Types/Log/LogSeverity";
 
 export enum AlertLogEvent {
   PublicNote = "PublicNote",
@@ -391,4 +392,32 @@ export default class AlertLog extends BaseModel {
     unique: false,
   })
   public alertLogEvent?: AlertLogEvent = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    title: "Alert Log Severity",
+    description: "Alert Log Severity",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    unique: false,
+  })
+  public alertLogSeverity?: LogSeverity = undefined;
 }
