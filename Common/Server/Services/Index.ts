@@ -147,6 +147,9 @@ import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 import TableViewService from "./TableViewService";
+import ScheduledMaintenanceLogService from "./ScheduledMaintenanceLogService";
+import AlertLogService from "./AlertLogService";
+import IncidentLogService from "./IncidentLogService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -186,6 +189,7 @@ const services: Array<BaseService> = [
   IncidentSeverityService,
   IncidentStateService,
   IncidentStateTimelineService,
+  IncidentLogService,
 
   LabelService,
 
@@ -222,6 +226,7 @@ const services: Array<BaseService> = [
   ScheduledMaintenanceService,
   ScheduledMaintenanceStateService,
   ScheduledMaintenanceStateTimelineService,
+  ScheduledMaintenanceLogService,
 
   ShortLinkService,
   SmsLogService,
@@ -306,6 +311,8 @@ const services: Array<BaseService> = [
   AlertOwnerUserService,
   AlertSeverityService,
   AlertNoteTemplateService,
+  AlertLogService,
+
   TableViewService,
 ];
 
