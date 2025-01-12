@@ -370,6 +370,20 @@ const IncidentView: FunctionComponent<
             },
             {
               field: {
+                incidentNumber: true,
+              },
+              title: "Incident Number",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                if(!item.incidentNumber) {
+                  return <>-</>;
+                }
+  
+                return <># {item.incidentNumber}</>;
+              }
+            },
+            {
+              field: {
                 title: true,
               },
               title: "Incident Title",

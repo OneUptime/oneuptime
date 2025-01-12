@@ -424,6 +424,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            title: "Incident Number",
+            type: FieldType.Number,
+            field: {
+              incidentNumber: true,
+            },
+          },
+          {
             field: {
               title: true,
             },
@@ -514,6 +521,21 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         columns={[
+          {
+            field: {
+              incidentNumber: true,
+            },
+            title: "Incident Number",
+            type: FieldType.Text,
+            getElement: (item: Incident): ReactElement => {
+
+              if(!item.incidentNumber) {
+                return <>-</>;
+              }
+
+              return <># {item.incidentNumber}</>;
+            },
+          },
           {
             field: {
               title: true,
