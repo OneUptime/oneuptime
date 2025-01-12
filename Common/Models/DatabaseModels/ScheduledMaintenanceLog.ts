@@ -18,9 +18,10 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import LogSeverity from "../../Types/Log/LogSeverity";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import Color from "../../Types/Color";
 
-export enum ScheduledMaintenanceLogEvent {
+export enum ScheduledMaintenanceLogEventType {
   PublicNote = "PublicNote",
   SubscriberEmailSent = "SubscriberEmailSent",
   OwnerEmailSent = "OwnerEmailSent",
@@ -394,35 +395,35 @@ export default class ScheduledMaintenanceLog extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public scheduledMaintenanceLogEvent?: ScheduledMaintenanceLogEvent =
+  public scheduledMaintenanceLogEventType?: ScheduledMaintenanceLogEventType =
     undefined;
 
-    @ColumnAccessControl({
-      create: [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.CreateScheduledMaintenanceLog,
-      ],
-      read: [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.ReadScheduledMaintenanceLog,
-      ],
-      update: [],
-    })
-    @TableColumn({
-      type: TableColumnType.ShortText,
-      required: true,
-      title: "Scheduled Maintenance Log Severity",
-      description: "Scheduled Maintenance Log Severity",
-    })
-    @Column({
-      type: ColumnType.ShortText,
-      nullable: false,
-      unique: false,
-    })
-    public scheduledMaintenanceLogSeverity?: LogSeverity = undefined;
-
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Color,
+    required: true,
+    title: "Color",
+    description: "Display color for this log",
+  })
+  @Column({
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
+    nullable: false,
+    unique: false,
+  })
+  public displayColor?: Color = undefined;
 }

@@ -47,6 +47,9 @@ import logger from "../Utils/Logger";
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
+import IncidentLogService from "./IncidentLogService";
+import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
+import { Blue500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -325,6 +328,14 @@ export class Service extends DatabaseService<Model> {
         logger.error(err);
       }
     }
+
+    await IncidentLogService.createIncidentLog({
+      incidentId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      incidentLogEventType: IncidentLogEventType.IncidentCreated,
+      displayColor: Blue500, 
+      logInMarkdown: "Incident Created",
+    });
 
     if (!createdItem.currentIncidentStateId) {
       throw new BadDataException("currentIncidentStateId is required");

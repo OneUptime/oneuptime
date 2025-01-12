@@ -1,23 +1,30 @@
+import { Blue500 } from "../../Types/BrandColors";
+import Color from "../../Types/Color";
 import BadDataException from "../../Types/Exception/BadDataException";
-import LogSeverity from "../../Types/Log/LogSeverity";
 import ObjectID from "../../Types/ObjectID";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
-import Model, { AlertLogEvent } from "Common/Models/DatabaseModels/AlertLog";
+import Model, {
+  AlertLogEventType,
+} from "Common/Models/DatabaseModels/AlertLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+
+    if (IsBillingEnabled) {
+              this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+            }
   }
 
   public async createAlertLog(data: {
-    alertId: ObjectID,
-    logInMarkdown: string,
-    alertLogEvent: AlertLogEvent,
-    projectId: ObjectID,
-    moreInformationInMarkdown?: string | undefined,
-    logSeverity?: LogSeverity | undefined,
+    alertId: ObjectID;
+    logInMarkdown: string;
+    alertLogEventType: AlertLogEventType;
+    projectId: ObjectID;
+    moreInformationInMarkdown?: string | undefined;
+    displayColor?: Color | undefined;
   }): Promise<Model> {
-
     if (!data.alertId) {
       throw new BadDataException("Alert ID is required");
     }
@@ -26,7 +33,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Log in markdown is required");
     }
 
-    if (!data.alertLogEvent) {
+    if (!data.alertLogEventType) {
       throw new BadDataException("Alert log event is required");
     }
 
@@ -34,19 +41,17 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project ID is required");
     }
 
-
-
     const alertLog: Model = new Model();
 
-    if (!data.logSeverity) {
-      data.logSeverity = LogSeverity.Unspecified;
+    if (!data.displayColor) {
+      data.displayColor = Blue500;
     }
 
-    alertLog.alertLogSeverity = data.logSeverity;
+    alertLog.displayColor = data.displayColor;
 
     alertLog.alertId = data.alertId;
     alertLog.logInMarkdown = data.logInMarkdown;
-    alertLog.alertLogEvent = data.alertLogEvent;
+    alertLog.alertLogEventType = data.alertLogEventType;
     alertLog.projectId = data.projectId;
 
     if (data.moreInformationInMarkdown) {
@@ -57,8 +62,8 @@ export class Service extends DatabaseService<Model> {
       data: alertLog,
       props: {
         isRoot: true,
-      }
-    })
+      },
+    });
   }
 }
 

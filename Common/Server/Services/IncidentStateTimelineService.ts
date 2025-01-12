@@ -20,6 +20,8 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
+import IncidentLogService from "./IncidentLogService";
+import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -189,19 +191,35 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
     // check if this is resolved state, and if it is then resolve all the monitors.
 
-    const isResolvedState: IncidentState | null =
+    const incidentState: IncidentState | null =
       await IncidentStateService.findOneBy({
         query: {
           _id: createdItem.incidentStateId.toString()!,
-          isResolvedState: true,
         },
         props: {
           isRoot: true,
         },
         select: {
           _id: true,
+          isResolvedState: true,
+          isAcknowledgedState: true,
+          isCreatedState: true,
+          color: true,
+          name: true,
         },
       });
+
+    const stateName: string = incidentState?.name || "";
+
+    await IncidentLogService.createIncidentLog({
+      incidentId: createdItem.incidentId!,
+      projectId: createdItem.projectId!,
+      incidentLogEventType: IncidentLogEventType.IncidentStateChanged,
+      displayColor: incidentState?.color,
+      logInMarkdown: "Incident State Changed to **" + stateName + "**",
+    });
+
+    const isResolvedState: boolean = incidentState?.isResolvedState || false;
 
     if (isResolvedState) {
       const incident: Incident | null = await IncidentService.findOneBy({

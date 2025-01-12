@@ -1,23 +1,30 @@
+import { Blue500 } from "../../Types/BrandColors";
+import Color from "../../Types/Color";
 import BadDataException from "../../Types/Exception/BadDataException";
-import LogSeverity from "../../Types/Log/LogSeverity";
 import ObjectID from "../../Types/ObjectID";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
-import Model, { ScheduledMaintenanceLogEvent } from "Common/Models/DatabaseModels/ScheduledMaintenanceLog";
+import Model, {
+  ScheduledMaintenanceLogEventType,
+} from "Common/Models/DatabaseModels/ScheduledMaintenanceLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+
+    if (IsBillingEnabled) {
+              this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+            }
   }
 
   public async createScheduledMaintenanceLog(data: {
-    scheduledMaintenanceId: ObjectID,
-    logInMarkdown: string,
-    scheduledMaintenanceLogEvent: ScheduledMaintenanceLogEvent,
-    projectId: ObjectID,
-    moreInformationInMarkdown?: string | undefined,
-    logSeverity?: LogSeverity | undefined,
+    scheduledMaintenanceId: ObjectID;
+    logInMarkdown: string;
+    scheduledMaintenanceLogEventType: ScheduledMaintenanceLogEventType;
+    projectId: ObjectID;
+    moreInformationInMarkdown?: string | undefined;
+    displayColor?: Color | undefined;
   }): Promise<Model> {
-
     if (!data.scheduledMaintenanceId) {
       throw new BadDataException("Scheduled Maintenance ID is required");
     }
@@ -26,7 +33,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Log in markdown is required");
     }
 
-    if (!data.scheduledMaintenanceLogEvent) {
+    if (!data.scheduledMaintenanceLogEventType) {
       throw new BadDataException("Scheduled Maintenance log event is required");
     }
 
@@ -34,29 +41,31 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project ID is required");
     }
 
-    if(!data.logSeverity) {
-      data.logSeverity = LogSeverity.Unspecified;
+    if (!data.displayColor) {
+      data.displayColor = Blue500;
     }
 
     const scheduledMaintenanceLog: Model = new Model();
 
-    scheduledMaintenanceLog.scheduledMaintenanceLogSeverity = data.logSeverity;
-    scheduledMaintenanceLog.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    scheduledMaintenanceLog.displayColor = data.displayColor;
+    scheduledMaintenanceLog.scheduledMaintenanceId =
+      data.scheduledMaintenanceId;
     scheduledMaintenanceLog.logInMarkdown = data.logInMarkdown;
-    scheduledMaintenanceLog.scheduledMaintenanceLogEvent = data.scheduledMaintenanceLogEvent;
+    scheduledMaintenanceLog.scheduledMaintenanceLogEventType =
+      data.scheduledMaintenanceLogEventType;
     scheduledMaintenanceLog.projectId = data.projectId;
 
-
     if (data.moreInformationInMarkdown) {
-      scheduledMaintenanceLog.moreInformationInMarkdown = data.moreInformationInMarkdown;
+      scheduledMaintenanceLog.moreInformationInMarkdown =
+        data.moreInformationInMarkdown;
     }
 
     return await this.create({
       data: scheduledMaintenanceLog,
       props: {
         isRoot: true,
-      }
-    })
+      },
+    });
   }
 }
 

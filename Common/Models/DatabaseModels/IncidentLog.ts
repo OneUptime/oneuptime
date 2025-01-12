@@ -18,18 +18,17 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import LogSeverity from "../../Types/Log/LogSeverity";
+import Color from "../../Types/Color";
+import ColumnLength from "../../Types/Database/ColumnLength";
 
-export enum IncidentLogEvent {
+export enum IncidentLogEventType {
   PublicNote = "PublicNote",
   SubscriberEmailSent = "SubscriberEmailSent",
   OwnerEmailSent = "OwnerEmailSent",
   IncidentCreated = "IncidentCreated",
-  IncidentAcknowledged = "IncidentAcknowledged",
-  IncidentResolved = "IncidentResolved",
+  IncidentStateChanged = "IncidentStateChanged",
   PrivateNote = "PrivateNote",
 }
-
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incident")
@@ -392,7 +391,7 @@ export default class IncidentLog extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public incidentLogEvent?: IncidentLogEvent = undefined;
+  public incidentLogEventType?: IncidentLogEventType = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -410,15 +409,16 @@ export default class IncidentLog extends BaseModel {
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.Color,
     required: true,
-    title: "Incident Log Severity",
-    description: "Incident Log Severity",
+    title: "Color",
+    description: "Display color for the incident log",
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
     nullable: false,
     unique: false,
   })
-  public incidentLogSeverity?: LogSeverity = undefined;
+  public displayColor?: Color = undefined;
 }

@@ -18,9 +18,10 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import LogSeverity from "../../Types/Log/LogSeverity";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import Color from "../../Types/Color";
 
-export enum AlertLogEvent {
+export enum AlertLogEventType {
   PublicNote = "PublicNote",
   SubscriberEmailSent = "SubscriberEmailSent",
   OwnerEmailSent = "OwnerEmailSent",
@@ -391,33 +392,34 @@ export default class AlertLog extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public alertLogEvent?: AlertLogEvent = undefined;
+  public alertLogEventType?: AlertLogEventType = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateIncidentLog,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadIncidentLog,
     ],
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.Color,
     required: true,
-    title: "Alert Log Severity",
-    description: "Alert Log Severity",
+    title: "Color",
+    description: "Display color for the alert log",
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
     nullable: false,
     unique: false,
   })
-  public alertLogSeverity?: LogSeverity = undefined;
+  public displayColor?: Color = undefined;
 }
