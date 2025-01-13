@@ -20,8 +20,8 @@ import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalN
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
-import IncidentLogService from "Common/Server/Services/IncidentLogService";
-import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
@@ -97,7 +97,7 @@ RunCron(
     const notes: Array<BaseModel> = [...publicNotes, ...privateNotes];
 
     for (const noteObject of notes) {
-      let moreIncidentLogInformationInMarkdown: string = "";
+      let moreIncidentFeedInformationInMarkdown: string = "";
 
       const note: BaseModel = noteObject as BaseModel;
 
@@ -212,22 +212,22 @@ RunCron(
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
         });
 
-        moreIncidentLogInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(
         note._id!.toString(),
       );
 
-      const incidentLogText: string = `Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
+      const incidentFeedText: string = `Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
 
-      await IncidentLogService.createIncidentLog({
+      await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
-        incidentLogEventType: IncidentLogEventType.OwnerNotificationSent,
+        incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        logInMarkdown: incidentLogText,
-        moreInformationInMarkdown: moreIncidentLogInformationInMarkdown,
+        feedInfoInMarkdown: incidentFeedText,
+        moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
       });
     }
   },

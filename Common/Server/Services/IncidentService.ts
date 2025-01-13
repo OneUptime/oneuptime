@@ -47,8 +47,8 @@ import logger from "../Utils/Logger";
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
-import IncidentLogService from "./IncidentLogService";
-import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "./IncidentFeedService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
@@ -329,12 +329,12 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    await IncidentLogService.createIncidentLog({
+    await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
-      incidentLogEventType: IncidentLogEventType.IncidentCreated,
+      incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
       displayColor: Blue500,
-      logInMarkdown: "Incident Created",
+      feedInfoInMarkdown: "Incident Created",
     });
 
     if (!createdItem.currentIncidentStateId) {

@@ -20,7 +20,7 @@ import GreenlockCertificate from "./GreenlockCertificate";
 import GreenlockChallenge from "./GreenlockChallenge";
 // Incidents
 import Incident from "./Incident";
-import IncidentLog from "./IncidentLog";
+import IncidentFeed from "./IncidentFeed";
 import IncidentCustomField from "./IncidentCustomField";
 import IncidentInternalNote from "./IncidentInternalNote";
 import IncidentNoteTemplate from "./IncidentNoteTemplate";
@@ -153,13 +153,13 @@ import AlertOwnerTeam from "./AlertOwnerTeam";
 import AlertOwnerUser from "./AlertOwnerUser";
 import AlertSeverity from "./AlertSeverity";
 import AlertNoteTemplate from "./AlertNoteTemplate";
-import AlertLog from "./AlertLog";
+import AlertFeed from "./AlertFeed";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 
 import MonitorTest from "./MonitorTest";
-import ScheduledMaintenanceLog from "./ScheduledMaintenanceLog";
+import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -192,7 +192,7 @@ const AllModelTypes: Array<{
 
   IncidentState,
   Incident,
-  IncidentLog,
+  IncidentFeed,
   IncidentCustomField,
   IncidentStateTimeline,
   IncidentInternalNote,
@@ -207,7 +207,7 @@ const AllModelTypes: Array<{
 
   AlertState,
   Alert,
-  AlertLog,
+  AlertFeed,
   AlertCustomField,
   AlertStateTimeline,
   AlertInternalNote,
@@ -239,7 +239,7 @@ const AllModelTypes: Array<{
   ScheduledMaintenancePublicNote,
   ScheduledMaintenanceInternalNote,
   ScheduledMaintenanceCustomField,
-  ScheduledMaintenanceLog,
+  ScheduledMaintenanceFeed,
 
   BillingPaymentMethods,
   BillingInvoice,

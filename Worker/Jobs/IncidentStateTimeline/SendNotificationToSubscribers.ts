@@ -30,8 +30,8 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
-import IncidentLogService from "Common/Server/Services/IncidentLogService";
-import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
@@ -295,12 +295,12 @@ RunCron(
         }
       }
 
-      await IncidentLogService.createIncidentLog({
+      await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
-        incidentLogEventType: IncidentLogEventType.SubscriberNotificationSent,
+        incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        logInMarkdown: `**Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
+        feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
       });
     }
   },

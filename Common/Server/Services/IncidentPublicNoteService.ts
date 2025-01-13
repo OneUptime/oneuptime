@@ -3,8 +3,8 @@ import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "Common/Models/DatabaseModels/IncidentPublicNote";
-import IncidentLogService from "./IncidentLogService";
-import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "./IncidentFeedService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import User from "../../Models/DatabaseModels/User";
@@ -53,12 +53,12 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    await IncidentLogService.createIncidentLog({
+    await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
-      incidentLogEventType: IncidentLogEventType.PublicNote,
+      incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Blue500,
-      logInMarkdown: `**Note Posted on Status Page${userName ? " by " + userName.toString() : ""}**
+      feedInfoInMarkdown: `**Note Posted on Status Page${userName ? " by " + userName.toString() : ""}**
 
 ${createdItem.note}
           `,

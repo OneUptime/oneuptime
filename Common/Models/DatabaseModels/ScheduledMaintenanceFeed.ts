@@ -1,4 +1,4 @@
-import Incident from "./Incident";
+import ScheduledMaintenance from "./ScheduledMaintenance";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -18,34 +18,34 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import Color from "../../Types/Color";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import Color from "../../Types/Color";
 
-export enum IncidentLogEventType {
+export enum ScheduledMaintenanceFeedEventType {
   PublicNote = "PublicNote",
-  SubscriberNotificationSent = "SubscriberNotificationSent",
-  OwnerNotificationSent = "OwnerNotificationSent",
-  OwnerAdded = "OwnerAdded",
-  IncidentCreated = "IncidentCreated",
-  IncidentStateChanged = "IncidentStateChanged",
+  SubscriberEmailSent = "SubscriberEmailSent",
+  OwnerEmailSent = "OwnerEmailSent",
+  ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
+  ScheduledMaintenanceAcknowledged = "ScheduledMaintenanceAcknowledged",
+  ScheduledMaintenanceResolved = "ScheduledMaintenanceResolved",
   PrivateNote = "PrivateNote",
 }
 
 @EnableDocumentation()
-@CanAccessIfCanReadOn("incident")
+@CanAccessIfCanReadOn("scheduledMaintenance")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateIncidentLog,
+    Permission.CreateScheduledMaintenanceFeed,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadIncidentLog,
+    Permission.ReadScheduledMaintenanceFeed,
   ],
   delete: [],
   update: [],
@@ -56,31 +56,31 @@ export enum IncidentLogEventType {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/incident-log"))
+@CrudApiEndpoint(new Route("/scheduled-maintenance-feed"))
 @Entity({
-  name: "IncidentLog",
+  name: "ScheduledMaintenanceFeed",
 })
 @TableMetadata({
-  tableName: "IncidentLog",
-  singularName: "Incident Log",
-  pluralName: "Incident Logs",
+  tableName: "ScheduledMaintenanceFeed",
+  singularName: "Scheduled Maintenance Feed",
+  pluralName: "Scheduled Maintenance Feed",
   icon: IconProp.List,
   tableDescription:
-    "Log of the entire incident state change. This is a log of all the incident state changes, public notes, more etc.",
+    "Log of the entire scheduled maintenance state change. This is a log of all the scheduled maintenance state changes, public notes, more etc.",
 })
-export default class IncidentLog extends BaseModel {
+export default class ScheduledMaintenanceFeed extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -110,13 +110,13 @@ export default class IncidentLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -140,26 +140,27 @@ export default class IncidentLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "incidentId",
+    manyToOneRelationColumn: "scheduledMaintenanceId",
     type: TableColumnType.Entity,
-    modelType: Incident,
-    title: "Incident",
-    description: "Relation to Incident in which this resource belongs",
+    modelType: ScheduledMaintenance,
+    title: "ScheduledMaintenance",
+    description:
+      "Relation to ScheduledMaintenance in which this resource belongs",
   })
   @ManyToOne(
     () => {
-      return Incident;
+      return ScheduledMaintenance;
     },
     {
       eager: false,
@@ -168,21 +169,21 @@ export default class IncidentLog extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "incidentId" })
-  public incident?: Incident = undefined;
+  @JoinColumn({ name: "scheduledMaintenanceId" })
+  public scheduledMaintenance?: ScheduledMaintenance = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -190,28 +191,29 @@ export default class IncidentLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    title: "Incident ID",
-    description: "Relation to Incident ID in which this resource belongs",
+    title: "ScheduledMaintenance ID",
+    description:
+      "Relation to ScheduledMaintenance ID in which this resource belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public incidentId?: ObjectID = undefined;
+  public scheduledMaintenanceId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -242,13 +244,13 @@ export default class IncidentLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -315,13 +317,13 @@ export default class IncidentLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -329,27 +331,28 @@ export default class IncidentLog extends BaseModel {
     type: TableColumnType.Markdown,
     required: true,
     title: "Log (in Markdown)",
-    description: "Log of the entire incident state change in Markdown",
+    description:
+      "Log of the entire scheduledMaintenance state change in Markdown",
   })
   @Column({
     type: ColumnType.Markdown,
     nullable: false,
     unique: false,
   })
-  public logInMarkdown?: string = undefined;
+  public feedInfoInMarkdown?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
@@ -371,41 +374,42 @@ export default class IncidentLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    title: "Incident Log Event",
-    description: "Incident Log Event",
+    title: "ScheduledMaintenance Log Event",
+    description: "ScheduledMaintenance Log Event",
   })
   @Column({
     type: ColumnType.ShortText,
     nullable: false,
     unique: false,
   })
-  public incidentLogEventType?: IncidentLogEventType = undefined;
+  public scheduledMaintenanceFeedEventType?: ScheduledMaintenanceFeedEventType =
+    undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -413,7 +417,7 @@ export default class IncidentLog extends BaseModel {
     type: TableColumnType.Color,
     required: true,
     title: "Color",
-    description: "Display color for the incident log",
+    description: "Display color for this log",
   })
   @Column({
     type: ColumnType.Color,

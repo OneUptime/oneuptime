@@ -20,8 +20,8 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
-import IncidentLogService from "./IncidentLogService";
-import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "./IncidentFeedService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -211,12 +211,12 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
     const stateName: string = incidentState?.name || "";
 
-    await IncidentLogService.createIncidentLog({
+    await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
-      incidentLogEventType: IncidentLogEventType.IncidentStateChanged,
+      incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
-      logInMarkdown: "Incident State Changed to **" + stateName + "**",
+      feedInfoInMarkdown: "Incident State Changed to **" + stateName + "**",
     });
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;

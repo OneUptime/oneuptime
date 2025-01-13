@@ -28,8 +28,8 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
-import IncidentLogService from "Common/Server/Services/IncidentLogService";
-import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
@@ -65,7 +65,7 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incident of incidents) {
-      const incidentLogText: string = `Notification sent to Status Page Subscribers on Incident Creation`;
+      const incidentFeedText: string = `Notification sent to Status Page Subscribers on Incident Creation`;
 
       if (!incident.monitors || incident.monitors.length === 0) {
         continue;
@@ -269,12 +269,12 @@ RunCron(
         }
       }
 
-      await IncidentLogService.createIncidentLog({
+      await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
-        incidentLogEventType: IncidentLogEventType.SubscriberNotificationSent,
+        incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        logInMarkdown: incidentLogText,
+        feedInfoInMarkdown: incidentFeedText,
       });
     }
   },

@@ -496,21 +496,21 @@ import ScheduledMaintenanceTemplateOwnerUserService, {
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import TableView from "Common/Models/DatabaseModels/TableView";
 
-import IncidentLog from "Common/Models/DatabaseModels/IncidentLog";
-import AlertLog from "Common/Models/DatabaseModels/AlertLog";
-import ScheduledMaintenanceLog from "Common/Models/DatabaseModels/ScheduledMaintenanceLog";
+import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
+import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
+import ScheduledMaintenanceFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 
-import IncidentLogService, {
-  Service as IncidentLogServiceType,
-} from "Common/Server/Services/IncidentLogService";
+import IncidentFeedService, {
+  Service as IncidentFeedServiceType,
+} from "Common/Server/Services/IncidentFeedService";
 
-import AlertLogService, {
-  Service as AlertLogServiceType,
-} from "Common/Server/Services/AlertLogService";
+import AlertFeedService, {
+  Service as AlertFeedServiceType,
+} from "Common/Server/Services/AlertFeedService";
 
-import ScheduledMaintenanceLogService, {
-  Service as ScheduledMaintenanceLogServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceLogService";
+import ScheduledMaintenanceFeedService, {
+  Service as ScheduledMaintenanceFeedServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceFeedService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -544,25 +544,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentLog, IncidentLogServiceType>(
-        IncidentLog,
-        IncidentLogService,
+      new BaseAPI<IncidentFeed, IncidentFeedServiceType>(
+        IncidentFeed,
+        IncidentFeedService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertLog, AlertLogServiceType>(
-        AlertLog,
-        AlertLogService,
+      new BaseAPI<AlertFeed, AlertFeedServiceType>(
+        AlertFeed,
+        AlertFeedService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenanceLog, ScheduledMaintenanceLogServiceType>(
-        ScheduledMaintenanceLog,
-        ScheduledMaintenanceLogService,
+      new BaseAPI<ScheduledMaintenanceFeed, ScheduledMaintenanceFeedServiceType>(
+        ScheduledMaintenanceFeed,
+        ScheduledMaintenanceFeedService,
       ).getRouter(),
     );
 

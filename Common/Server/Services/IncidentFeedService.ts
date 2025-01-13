@@ -5,8 +5,8 @@ import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  AlertLogEventType,
-} from "Common/Models/DatabaseModels/AlertLog";
+  IncidentFeedEventType,
+} from "Common/Models/DatabaseModels/IncidentFeed";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -17,49 +17,48 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  public async createAlertLog(data: {
-    alertId: ObjectID;
-    logInMarkdown: string;
-    alertLogEventType: AlertLogEventType;
+  public async createIncidentFeed(data: {
+    incidentId: ObjectID;
+    feedInfoInMarkdown: string;
+    incidentFeedEventType: IncidentFeedEventType;
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
   }): Promise<Model> {
-    if (!data.alertId) {
-      throw new BadDataException("Alert ID is required");
+    const incidentFeed: Model = new Model();
+
+    if (!data.incidentId) {
+      throw new BadDataException("Incident ID is required");
     }
 
-    if (!data.logInMarkdown) {
+    if (!data.feedInfoInMarkdown) {
       throw new BadDataException("Log in markdown is required");
     }
 
-    if (!data.alertLogEventType) {
-      throw new BadDataException("Alert log event is required");
+    if (!data.incidentFeedEventType) {
+      throw new BadDataException("Incident log event is required");
     }
 
     if (!data.projectId) {
       throw new BadDataException("Project ID is required");
     }
 
-    const alertLog: Model = new Model();
-
     if (!data.displayColor) {
       data.displayColor = Blue500;
     }
 
-    alertLog.displayColor = data.displayColor;
-
-    alertLog.alertId = data.alertId;
-    alertLog.logInMarkdown = data.logInMarkdown;
-    alertLog.alertLogEventType = data.alertLogEventType;
-    alertLog.projectId = data.projectId;
+    incidentFeed.displayColor = data.displayColor;
+    incidentFeed.incidentId = data.incidentId;
+    incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
+    incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
+    incidentFeed.projectId = data.projectId;
 
     if (data.moreInformationInMarkdown) {
-      alertLog.moreInformationInMarkdown = data.moreInformationInMarkdown;
+      incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
     }
 
     return await this.create({
-      data: alertLog,
+      data: incidentFeed,
       props: {
         isRoot: true,
       },

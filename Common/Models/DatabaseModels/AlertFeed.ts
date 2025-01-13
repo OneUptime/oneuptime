@@ -21,7 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import Color from "../../Types/Color";
 
-export enum AlertLogEventType {
+export enum AlertFeedEventType {
   PublicNote = "PublicNote",
   SubscriberEmailSent = "SubscriberEmailSent",
   OwnerEmailSent = "OwnerEmailSent",
@@ -39,13 +39,13 @@ export enum AlertLogEventType {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateAlertLog,
+    Permission.CreateAlertFeed,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadAlertLog,
+    Permission.ReadAlertFeed,
   ],
   delete: [],
   update: [],
@@ -56,31 +56,31 @@ export enum AlertLogEventType {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/alert-log"))
+@CrudApiEndpoint(new Route("/alert-feed"))
 @Entity({
-  name: "AlertLog",
+  name: "AlertFeed",
 })
 @TableMetadata({
-  tableName: "AlertLog",
-  singularName: "Alert Log",
-  pluralName: "Alert Logs",
+  tableName: "AlertFeed",
+  singularName: "Alert Feed",
+  pluralName: "Alert Feeds",
   icon: IconProp.List,
   tableDescription:
     "Log of the entire alert state change. This is a log of all the alert state changes, public notes, more etc.",
 })
-export default class AlertLog extends BaseModel {
+export default class AlertFeed extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -110,13 +110,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -140,13 +140,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -176,13 +176,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -205,13 +205,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -242,13 +242,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -315,13 +315,13 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -336,20 +336,20 @@ export default class AlertLog extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public logInMarkdown?: string = undefined;
+  public feedInfoInMarkdown?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -371,41 +371,41 @@ export default class AlertLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlertLog,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlertLog,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    title: "Alert Log Event",
-    description: "Alert Log Event",
+    title: "Alert Feed Event",
+    description: "Alert Feed Event",
   })
   @Column({
     type: ColumnType.ShortText,
     nullable: false,
     unique: false,
   })
-  public alertLogEventType?: AlertLogEventType = undefined;
+  public alertFeedEventType?: AlertFeedEventType = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentLog,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentLog,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })

@@ -5,8 +5,8 @@ import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  ScheduledMaintenanceLogEventType,
-} from "Common/Models/DatabaseModels/ScheduledMaintenanceLog";
+  ScheduledMaintenanceFeedEventType,
+} from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -17,10 +17,10 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  public async createScheduledMaintenanceLog(data: {
+  public async createScheduledMaintenanceFeed(data: {
     scheduledMaintenanceId: ObjectID;
-    logInMarkdown: string;
-    scheduledMaintenanceLogEventType: ScheduledMaintenanceLogEventType;
+    feedInfoInMarkdown: string;
+    scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType;
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
@@ -29,11 +29,11 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Scheduled Maintenance ID is required");
     }
 
-    if (!data.logInMarkdown) {
+    if (!data.feedInfoInMarkdown) {
       throw new BadDataException("Log in markdown is required");
     }
 
-    if (!data.scheduledMaintenanceLogEventType) {
+    if (!data.scheduledMaintenanceFeedEventType) {
       throw new BadDataException("Scheduled Maintenance log event is required");
     }
 
@@ -45,23 +45,23 @@ export class Service extends DatabaseService<Model> {
       data.displayColor = Blue500;
     }
 
-    const scheduledMaintenanceLog: Model = new Model();
+    const scheduledMaintenanceFeed: Model = new Model();
 
-    scheduledMaintenanceLog.displayColor = data.displayColor;
-    scheduledMaintenanceLog.scheduledMaintenanceId =
+    scheduledMaintenanceFeed.displayColor = data.displayColor;
+    scheduledMaintenanceFeed.scheduledMaintenanceId =
       data.scheduledMaintenanceId;
-    scheduledMaintenanceLog.logInMarkdown = data.logInMarkdown;
-    scheduledMaintenanceLog.scheduledMaintenanceLogEventType =
-      data.scheduledMaintenanceLogEventType;
-    scheduledMaintenanceLog.projectId = data.projectId;
+    scheduledMaintenanceFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
+    scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType =
+      data.scheduledMaintenanceFeedEventType;
+    scheduledMaintenanceFeed.projectId = data.projectId;
 
     if (data.moreInformationInMarkdown) {
-      scheduledMaintenanceLog.moreInformationInMarkdown =
+      scheduledMaintenanceFeed.moreInformationInMarkdown =
         data.moreInformationInMarkdown;
     }
 
     return await this.create({
-      data: scheduledMaintenanceLog,
+      data: scheduledMaintenanceFeed,
       props: {
         isRoot: true,
       },

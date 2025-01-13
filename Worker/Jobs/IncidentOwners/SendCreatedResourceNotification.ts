@@ -19,8 +19,8 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
-import IncidentLogService from "Common/Server/Services/IncidentLogService";
-import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
@@ -67,8 +67,8 @@ RunCron(
     });
 
     for (const incident of incidents) {
-      const incidentLogText: string = `Notification sent to owners of this Incident on Incident Creation`;
-      let moreIncidentLogInformationInMarkdown: string = "";
+      const incidentFeedText: string = `Notification sent to owners of this Incident on Incident Creation`;
+      let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
         await IncidentService.getIncidentIdentifiedDate(incident.id!);
@@ -189,7 +189,7 @@ RunCron(
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });
 
-          moreIncidentLogInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
+          moreIncidentFeedInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",
@@ -198,13 +198,13 @@ RunCron(
         }
       }
 
-      await IncidentLogService.createIncidentLog({
+      await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
-        incidentLogEventType: IncidentLogEventType.OwnerNotificationSent,
+        incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        logInMarkdown: incidentLogText,
-        moreInformationInMarkdown: moreIncidentLogInformationInMarkdown,
+        feedInfoInMarkdown: incidentFeedText,
+        moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
       });
     }
   },

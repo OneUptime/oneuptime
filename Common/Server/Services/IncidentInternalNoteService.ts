@@ -4,8 +4,8 @@ import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/IncidentInternalNote";
 import UserService from "./UserService";
 import { OnCreate } from "../Types/Database/Hooks";
-import IncidentLogService from "./IncidentLogService";
-import { IncidentLogEventType } from "../../Models/DatabaseModels/IncidentLog";
+import IncidentFeedService from "./IncidentFeedService";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
@@ -38,12 +38,12 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    await IncidentLogService.createIncidentLog({
+    await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
-      incidentLogEventType: IncidentLogEventType.PrivateNote,
+      incidentFeedEventType: IncidentFeedEventType.PrivateNote,
       displayColor: Blue500,
-      logInMarkdown: `**Private (Internal) Note Posted${userName ? " by " + userName.toString() : ""}**
+      feedInfoInMarkdown: `**Private (Internal) Note Posted${userName ? " by " + userName.toString() : ""}**
 
 ${createdItem.note}
           `,
