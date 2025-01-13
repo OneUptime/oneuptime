@@ -358,13 +358,13 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Markdown,
-    required: true,
+    required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
   })
   @Column({
     type: ColumnType.Markdown,
-    nullable: false,
+    nullable: true,
     unique: false,
   })
   public moreInformationInMarkdown?: string = undefined;
