@@ -661,8 +661,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           | DatabaseBaseModelType
           | AnalyticsBaseModelType,
         query: {
-          ...query,
           ...props.query,
+          ...query,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -700,8 +700,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           | DatabaseBaseModelType
           | AnalyticsBaseModelType,
         query: {
-          ...query,
           ...props.query,
+          ...query,
         },
         groupBy: {
           ...props.groupBy,
