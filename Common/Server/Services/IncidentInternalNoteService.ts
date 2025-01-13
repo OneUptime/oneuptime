@@ -1,5 +1,4 @@
 import User from "../../Models/DatabaseModels/User";
-import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/IncidentInternalNote";
@@ -14,10 +13,12 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
-  public override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-
-    const userId: ObjectID | null | undefined = createdItem.createdByUserId || createdItem.createdByUser?.id;
+  public override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const userId: ObjectID | null | undefined =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
     let userName: string | null = null;
 
     if (userId) {
@@ -25,11 +26,11 @@ export class Service extends DatabaseService<Model> {
         id: userId,
         select: {
           name: true,
-          email: true
+          email: true,
         },
         props: {
-        isRoot: true
-        }
+          isRoot: true,
+        },
       });
 
       if (user && user.name && user.name.toString()) {
@@ -37,21 +38,18 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
     await IncidentLogService.createIncidentLog({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentLogEventType: IncidentLogEventType.PrivateNote,
       displayColor: Blue500,
-      logInMarkdown: `**Private (Internal) Note Posted${userName ? " by "+userName.toString() : ""}**
+      logInMarkdown: `**Private (Internal) Note Posted${userName ? " by " + userName.toString() : ""}**
 
 ${createdItem.note}
           `,
     });
 
-
     return createdItem;
-
   }
 }
 

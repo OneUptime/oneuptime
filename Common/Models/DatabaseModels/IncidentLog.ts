@@ -23,8 +23,9 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 
 export enum IncidentLogEventType {
   PublicNote = "PublicNote",
-  SubscriberEmailSent = "SubscriberEmailSent",
-  OwnerEmailSent = "OwnerEmailSent",
+  SubscriberNotificationSent = "SubscriberNotificationSent",
+  OwnerNotificationSent = "OwnerNotificationSent",
+  OwnerAdded = "OwnerAdded",
   IncidentCreated = "IncidentCreated",
   IncidentStateChanged = "IncidentStateChanged",
   PrivateNote = "PrivateNote",

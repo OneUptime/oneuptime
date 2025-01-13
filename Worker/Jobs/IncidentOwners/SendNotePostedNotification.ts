@@ -20,6 +20,9 @@ import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalN
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
+import IncidentLogService from "Common/Server/Services/IncidentLogService";
+import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -94,6 +97,8 @@ RunCron(
     const notes: Array<BaseModel> = [...publicNotes, ...privateNotes];
 
     for (const noteObject of notes) {
+      let moreIncidentLogInformationInMarkdown: string = "";
+
       const note: BaseModel = noteObject as BaseModel;
 
       // get all scheduled events of all the projects.
@@ -206,7 +211,24 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
         });
+
+        moreIncidentLogInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
       }
+
+      const isPrivateNote: boolean = privateNoteIds.includes(
+        note._id!.toString(),
+      );
+
+      const incidentLogText: string = `Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
+
+      await IncidentLogService.createIncidentLog({
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
+        incidentLogEventType: IncidentLogEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        logInMarkdown: incidentLogText,
+        moreInformationInMarkdown: moreIncidentLogInformationInMarkdown,
+      });
     }
   },
 );

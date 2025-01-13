@@ -13,8 +13,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
 
     if (IsBillingEnabled) {
-              this.hardDeleteItemsOlderThanInDays("createdAt", 120);
-            }
+      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+    }
   }
 
   public async createAlertLog(data: {

@@ -28,6 +28,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import IncidentLogService from "Common/Server/Services/IncidentLogService";
+import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "Incident:SendNotificationToSubscribers",
@@ -62,6 +65,8 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incident of incidents) {
+      const incidentLogText: string = `Notification sent to Status Page Subscribers on Incident Creation`;
+
       if (!incident.monitors || incident.monitors.length === 0) {
         continue;
       }
@@ -263,6 +268,14 @@ RunCron(
           logger.error(err);
         }
       }
+
+      await IncidentLogService.createIncidentLog({
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
+        incidentLogEventType: IncidentLogEventType.SubscriberNotificationSent,
+        displayColor: Blue500,
+        logInMarkdown: incidentLogText,
+      });
     }
   },
 );

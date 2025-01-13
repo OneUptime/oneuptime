@@ -9,7 +9,6 @@ import { Blue500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
-import Name from "../../Types/Name";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -29,10 +28,12 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-
-  public override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-
-    const userId: ObjectID | null | undefined = createdItem.createdByUserId || createdItem.createdByUser?.id;
+  public override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const userId: ObjectID | null | undefined =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
     let userName: string | null = null;
 
     if (userId) {
@@ -40,11 +41,11 @@ export class Service extends DatabaseService<Model> {
         id: userId,
         select: {
           name: true,
-          email: true
+          email: true,
         },
         props: {
-          isRoot: true
-        }
+          isRoot: true,
+        },
       });
 
       if (user && user.name) {
@@ -52,21 +53,18 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
     await IncidentLogService.createIncidentLog({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentLogEventType: IncidentLogEventType.PublicNote,
       displayColor: Blue500,
-      logInMarkdown: `**Note Posted on Status Page${userName ? " by "+userName.toString() : ""}**
+      logInMarkdown: `**Note Posted on Status Page${userName ? " by " + userName.toString() : ""}**
 
 ${createdItem.note}
           `,
     });
 
-
     return createdItem;
-
   }
 }
 

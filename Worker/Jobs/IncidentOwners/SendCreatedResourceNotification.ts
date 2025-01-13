@@ -19,6 +19,9 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
+import IncidentLogService from "Common/Server/Services/IncidentLogService";
+import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -64,6 +67,9 @@ RunCron(
     });
 
     for (const incident of incidents) {
+      const incidentLogText: string = `Notification sent to owners of this Incident on Incident Creation`;
+      let moreIncidentLogInformationInMarkdown: string = "";
+
       const incidentIdentifiedDate: Date =
         await IncidentService.getIncidentIdentifiedDate(incident.id!);
 
@@ -182,6 +188,8 @@ RunCron(
             eventType:
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });
+
+          moreIncidentLogInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",
@@ -189,6 +197,15 @@ RunCron(
           logger.error(e);
         }
       }
+
+      await IncidentLogService.createIncidentLog({
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
+        incidentLogEventType: IncidentLogEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        logInMarkdown: incidentLogText,
+        moreInformationInMarkdown: moreIncidentLogInformationInMarkdown,
+      });
     }
   },
 );

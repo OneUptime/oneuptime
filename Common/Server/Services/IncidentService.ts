@@ -333,7 +333,7 @@ export class Service extends DatabaseService<Model> {
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentLogEventType: IncidentLogEventType.IncidentCreated,
-      displayColor: Blue500, 
+      displayColor: Blue500,
       logInMarkdown: "Incident Created",
     });
 

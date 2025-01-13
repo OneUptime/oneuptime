@@ -19,6 +19,9 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
+import IncidentLogService from "Common/Server/Services/IncidentLogService";
+import { IncidentLogEventType } from "Common/Models/DatabaseModels/IncidentLog";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -52,6 +55,8 @@ RunCron(
       });
 
     for (const incidentStateTimeline of incidentStateTimelines) {
+      let moreIncidentLogInformationInMarkdown: string = "";
+
       const incidentId: ObjectID = incidentStateTimeline.incidentId!;
 
       if (!incidentId) {
@@ -207,7 +212,18 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
+
+        moreIncidentLogInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
       }
+
+      await IncidentLogService.createIncidentLog({
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
+        incidentLogEventType: IncidentLogEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        logInMarkdown: `Owners have been notified about the state change of the incident.`,
+        moreInformationInMarkdown: moreIncidentLogInformationInMarkdown,
+      });
     }
   },
 );
