@@ -424,6 +424,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     length: ColumnLength.Color,
     nullable: false,
     unique: false,
+    transformer: Color.getDatabaseTransformer(),
   })
   public displayColor?: Color = undefined;
 }

@@ -420,6 +420,7 @@ export default class AlertFeed extends BaseModel {
     length: ColumnLength.Color,
     nullable: false,
     unique: false,
+    transformer: Color.getDatabaseTransformer(),
   })
   public displayColor?: Color = undefined;
 }
