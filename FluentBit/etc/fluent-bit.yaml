@@ -29,7 +29,6 @@ pipeline:
       logs_uri: '/otlp/v1/logs'
       traces_uri: '/otlp/v1/traces'
       tls: On
-      tls.verify: Off
       header: 
         - x-oneuptime-token 1e603f70-b3c8-11ef-9018-bdd11a3584d1
 

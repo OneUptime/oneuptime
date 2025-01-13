@@ -492,5 +492,4 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userId?: ObjectID = undefined;
-
 }

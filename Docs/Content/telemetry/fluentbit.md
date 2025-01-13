@@ -64,7 +64,6 @@ outputs:
     logs_uri: '/otlp/v1/logs'
     traces_uri: '/otlp/v1/traces'
     tls: On
-    tls.verify: Off
     header:
       - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 
@@ -123,7 +122,6 @@ pipeline:
       logs_uri: '/otlp/v1/logs'
       traces_uri: '/otlp/v1/traces'
       tls: On
-      tls.verify: Off
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
 ```

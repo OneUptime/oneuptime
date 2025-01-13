@@ -424,7 +424,6 @@ export default class AlertFeed extends BaseModel {
   })
   public displayColor?: Color = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
