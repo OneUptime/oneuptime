@@ -1,12 +1,12 @@
 # Public Status Page API
 
-Here's how you can use the Public Status Page API to get the status of your resources that are on the Status Page. All you need to do is to make a GET request to the API endpoint.
+Here's how you can use the Public Status Page API to get the status of your resources that are on the Status Page. All you need to do is to make a POST request to the API endpoint.
 
 #### Overview API
 
 This API will fetch all the resources that are on the status page including the overall status of the resources, incidents, and maintenance, and more.
 
-To get overall status of the resources on the status page, you can make a GET request to the following endpoint:
+To get overall status of the resources on the status page, you can make a POST request to the following endpoint:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
@@ -160,7 +160,7 @@ This is the response from the API:
 
 ### Incident API
 
-This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a GET request to the following endpoint:
+This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a POST request to the following endpoint:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
@@ -186,7 +186,7 @@ This is the response from the API:
 
 ### Scheduled Maintenance API
 
-This API will fetch all the scheduled maintenance that are on the status page. To get all the scheduled maintenance on the status page, you can make a GET request to the following endpoint:
+This API will fetch all the scheduled maintenance that are on the status page. To get all the scheduled maintenance on the status page, you can make a POST request to the following endpoint:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
@@ -211,7 +211,7 @@ This is the response from the API:
 
 ### Announcements API
 
-This API will fetch all the announcements that are on the status page. To get all the announcements on the status page, you can make a GET request to the following endpoint:
+This API will fetch all the announcements that are on the status page. To get all the announcements on the status page, you can make a POST request to the following endpoint:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
