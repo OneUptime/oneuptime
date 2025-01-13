@@ -24,6 +24,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
+    userId?: ObjectID | undefined;
   }): Promise<Model> {
     const incidentFeed: Model = new Model();
 
@@ -52,6 +53,10 @@ export class Service extends DatabaseService<Model> {
     incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
     incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
     incidentFeed.projectId = data.projectId;
+
+    if(data.userId) {
+      incidentFeed.userId = data.userId;
+    }
 
     if (data.moreInformationInMarkdown) {
       incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;

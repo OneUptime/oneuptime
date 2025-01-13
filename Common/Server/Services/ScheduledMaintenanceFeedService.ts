@@ -24,6 +24,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
+    userId?: ObjectID | undefined;
   }): Promise<Model> {
     if (!data.scheduledMaintenanceId) {
       throw new BadDataException("Scheduled Maintenance ID is required");
@@ -54,6 +55,10 @@ export class Service extends DatabaseService<Model> {
     scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType =
       data.scheduledMaintenanceFeedEventType;
     scheduledMaintenanceFeed.projectId = data.projectId;
+
+    if (data.userId) {
+      scheduledMaintenanceFeed.userId = data.userId;
+    }
 
     if (data.moreInformationInMarkdown) {
       scheduledMaintenanceFeed.moreInformationInMarkdown =

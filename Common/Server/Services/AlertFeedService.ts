@@ -24,6 +24,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
+    userId?: ObjectID | undefined;
   }): Promise<Model> {
     if (!data.alertId) {
       throw new BadDataException("Alert ID is required");
@@ -45,6 +46,11 @@ export class Service extends DatabaseService<Model> {
 
     if (!data.displayColor) {
       data.displayColor = Blue500;
+    }
+
+
+    if(data.userId) {
+      alertFeed.userId = data.userId;
     }
 
     alertFeed.displayColor = data.displayColor;
