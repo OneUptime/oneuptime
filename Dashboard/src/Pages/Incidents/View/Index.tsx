@@ -54,7 +54,7 @@ import HeaderAlert, {
   HeaderAlertType,
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
-// import Feed from "Common/UI/Components/Feed/Feed";
+import Feed from "Common/UI/Components/Feed/Feed";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -770,9 +770,7 @@ const IncidentView: FunctionComponent<
           </Card>
         )}
 
-      {/* <Card title={"Incident Feed"} description={"Incident Feed"}>
-        <Feed id="feed" />
-      </Card> */}
+      
     </Fragment>
   );
 };

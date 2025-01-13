@@ -12,7 +12,8 @@ import API from "Common/Utils/API";
 import Cookie from "./Cookie";
 import CookieName from "Common/Types/CookieName";
 
-export default class User {
+export default class UserUtil {
+
   public static setProfilePicId(id: ObjectID | null): void {
     if (!id) {
       LocalStorage.removeItem("profile_pic_id");

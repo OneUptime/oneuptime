@@ -7,8 +7,6 @@ import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import User from "../../Models/DatabaseModels/User";
-import UserService from "./UserService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -34,31 +32,14 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
-    let userName: string | null = null;
-
-    if (userId) {
-      const user: User | null = await UserService.findOneById({
-        id: userId,
-        select: {
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (user && user.name) {
-        userName = user.name.toString();
-      }
-    }
 
     await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Blue500,
-      feedInfoInMarkdown: `**Note Posted on Status Page${userName ? " by " + userName.toString() : ""}**
+      userId: userId || undefined,
+      feedInfoInMarkdown: `**Posted Public Note on Status Page**
 
 ${createdItem.note}
           `,

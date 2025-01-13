@@ -54,7 +54,7 @@ export class Service extends DatabaseService<Model> {
     incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
     incidentFeed.projectId = data.projectId;
 
-    if(data.userId) {
+    if (data.userId) {
       incidentFeed.userId = data.userId;
     }
 

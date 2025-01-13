@@ -48,8 +48,7 @@ export class Service extends DatabaseService<Model> {
       data.displayColor = Blue500;
     }
 
-
-    if(data.userId) {
+    if (data.userId) {
       alertFeed.userId = data.userId;
     }
 
