@@ -283,14 +283,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 field: {
                   isUnsubscribed: true,
                 },
-                title: "Unsubscribed",
+                title: "Unsubscribed?",
                 type: FieldType.Boolean,
               },
               {
                 field: {
                   isSubscriptionConfirmed: true,
                 },
-                title: "Is Subscription Confirmed",
+                title: "Subscription Confirmed?",
                 type: FieldType.Boolean,
               },
               {
