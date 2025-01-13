@@ -560,10 +560,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenanceFeed, ScheduledMaintenanceFeedServiceType>(
+      new BaseAPI<
         ScheduledMaintenanceFeed,
-        ScheduledMaintenanceFeedService,
-      ).getRouter(),
+        ScheduledMaintenanceFeedServiceType
+      >(ScheduledMaintenanceFeed, ScheduledMaintenanceFeedService).getRouter(),
     );
 
     app.use(
