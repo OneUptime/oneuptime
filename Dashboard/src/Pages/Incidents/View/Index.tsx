@@ -774,7 +774,6 @@ const IncidentView: FunctionComponent<
       <Card
         title={"Incident Feed"}
         description={"Incident Feed"}
-
       >
 
         <Feed id="feed" />
