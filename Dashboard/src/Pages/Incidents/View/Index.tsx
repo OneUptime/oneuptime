@@ -506,7 +506,7 @@ const IncidentView: FunctionComponent<
                     <CheckboxViewer
                       isChecked={
                         item[
-                        "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+                          "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
                         ] as boolean
                       }
                       text={
@@ -770,16 +770,9 @@ const IncidentView: FunctionComponent<
           </Card>
         )}
 
-
-      <Card
-        title={"Incident Feed"}
-        description={"Incident Feed"}
-      >
-
+      <Card title={"Incident Feed"} description={"Incident Feed"}>
         <Feed id="feed" />
       </Card>
-
-
     </Fragment>
   );
 };

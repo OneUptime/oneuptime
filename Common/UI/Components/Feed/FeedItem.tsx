@@ -7,11 +7,7 @@ export interface ComponentProps {
 const FeedItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return (
-    <div id={props.id}>
-
-    </div>
-  );
+  return <div id={props.id}></div>;
 };
 
 export default FeedItem;
