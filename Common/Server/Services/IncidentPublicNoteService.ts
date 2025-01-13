@@ -33,7 +33,7 @@ export class Service extends DatabaseService<Model> {
   public override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
 
     const userId: ObjectID | null | undefined = createdItem.createdByUserId || createdItem.createdByUser?.id;
-    let userName: Name | null = null;
+    let userName: string | null = null;
 
     if (userId) {
       const user: User | null = await UserService.findOneById({
@@ -48,7 +48,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        userName = user.name;
+        userName = user.name.toString();
       }
     }
 
@@ -58,7 +58,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId!,
       incidentLogEventType: IncidentLogEventType.PublicNote,
       displayColor: Blue500,
-      logInMarkdown: `**Note Posted on Status Page${userName ? " by "+userName : ""}**
+      logInMarkdown: `**Note Posted on Status Page${userName ? " by "+userName.toString() : ""}**
 
 ${createdItem.note}
           `,
