@@ -363,19 +363,19 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
       displayColor: Blue500,
-      feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created** ${userNameAndEmail ? `by ${userNameAndEmail}` : "OneUptime"}
+      feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created**
       
-      **Incident Desription:** 
-      
-      ${createdItem.description || "No description provided."}
+**Incident Desription:** 
 
-      **Root Cause:**
+${createdItem.description || "No description provided."}
 
-      ${createdItem.rootCause || "No root cause provided."}
+**Root Cause:**
 
-      **Remediation Notes:**
+${createdItem.rootCause || "No root cause provided."}
 
-      ${createdItem.remediationNotes || "No remediation notes provided."}
+**Remediation Notes:**
+
+${createdItem.remediationNotes || "No remediation notes provided."}
 
       `,
       userId: createdByUserId || undefined,
