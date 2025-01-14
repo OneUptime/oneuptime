@@ -21,7 +21,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Yellow500 } from "Common/Types/BrandColors";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -67,7 +67,8 @@ RunCron(
     });
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `Notification sent to owners of this Incident because this incident was created.`;
+      const incidentFeedText: string = `**Incident Created Notification**:
+Notification sent to owners of this incident because this incident was created.`;
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
@@ -202,7 +203,7 @@ RunCron(
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
+        displayColor: Yellow500,
         feedInfoInMarkdown: incidentFeedText,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
       });

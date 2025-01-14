@@ -49,7 +49,7 @@ import Semaphore, {
 } from "Common/Server/Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "../../Types/BrandColors";
+import { Gray500, Red500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -332,37 +332,12 @@ export class Service extends DatabaseService<Model> {
 
     const createdByUserId: ObjectID | undefined | null = createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let userNameAndEmail: string = '';
-
-    if (createdByUserId) {
-
-      const user: User | null = await UserService.findOneBy({
-        query: {
-          _id: createdByUserId?.toString() as string,
-        },
-        select: {
-          _id: true,
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-
-      if (user) {
-        userNameAndEmail = `${user.name} (${user.email})`;
-      }
-
-    }
-
 
     await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
-      displayColor: Blue500,
+      displayColor: Red500,
       feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created**
       
 **Incident Desription:** 
@@ -666,10 +641,10 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
             incidentId: incidentId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Blue500,
-            feedInfoInMarkdown: `**Incident Description Updated.** Here's the new description.
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Incident Description was updated.** Here's the new description.
       
-        ${onUpdate.updateBy.data.description || "No description provided."}
+${onUpdate.updateBy.data.description || "No description provided."}
         `,
             userId: createdByUserId || undefined,
           });
@@ -686,10 +661,10 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
             incidentId: incidentId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Blue500,
-            feedInfoInMarkdown: `**Incident Remediation Notes Updated.** Here's the new remediation notes.
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Incident Remediation Notes were updated.** Here are the new notes.
 
-            ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
+${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             `,
             userId: createdByUserId || undefined,
           });

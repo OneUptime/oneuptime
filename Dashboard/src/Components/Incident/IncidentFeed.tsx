@@ -13,6 +13,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { ComponentProps as FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
     incidentId?: ObjectID;
@@ -144,7 +145,19 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     return (
         <Card title={"Timeline and Feed"} description={
             "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
-        }>
+        }
+
+        buttons={[
+            {
+                title: "Refresh",
+                buttonStyle: ButtonStyleType.ICON, 
+                icon: IconProp.Refresh,
+                onClick: async () => {
+                    await fetchItems();
+                }
+            }
+        ]}
+        >
             <div>
                 {isLoading && <ComponentLoader />}
                 {error && <ErrorMessage error={error} />}
