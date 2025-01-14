@@ -12,9 +12,9 @@ const Feed: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div className="flow-root">
-      <ul role="list" className="-mb-8">
+      <ul role="list">
         {props.items.length === 0 && (
-          <div className="mb-4">
+          <div>
             <ErrorMessage error={props.noItemsMessage} /></div>)}
         {props.items.map((item: FeedItemProps) => {
           return (
