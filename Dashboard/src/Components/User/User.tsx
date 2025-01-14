@@ -69,7 +69,9 @@ const UserElement: FunctionComponent<ComponentProps> = (
           {props.user?.profilePictureId && (
             <Image
               className="h-8 w-8 rounded-full"
-              imageUrl={FileUtil.getFileRoute(props.user!.profilePictureId as ObjectID)}
+              imageUrl={FileUtil.getFileRoute(
+                props.user!.profilePictureId as ObjectID,
+              )}
               alt={user["name"]?.toString() || "User"}
             />
           )}

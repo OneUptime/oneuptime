@@ -56,7 +56,7 @@ export class Service extends DatabaseService<Model> {
     incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
     incidentFeed.projectId = data.projectId;
 
-    if(!data.postedAt){
+    if (!data.postedAt) {
       incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
     }
 

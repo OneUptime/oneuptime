@@ -17,7 +17,6 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
-  
 
     await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.incidentId!,

@@ -38,20 +38,19 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-
     if (createdItem.triggeredByIncidentId) {
-
-      const onCallPolicy: OnCallDutyPolicy | null = await OnCallDutyPolicyService.findOneById({
-        id: createdItem.onCallDutyPolicyId!,
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const onCallPolicy: OnCallDutyPolicy | null =
+        await OnCallDutyPolicyService.findOneById({
+          id: createdItem.onCallDutyPolicyId!,
+          select: {
+            _id: true,
+            projectId: true,
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (onCallPolicy && onCallPolicy.id) {
         await IncidentFeedService.createIncidentFeed({
@@ -130,40 +129,47 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-
-  protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
-    // if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed. 
-    if(onUpdate.updateBy.data.status && onUpdate.updateBy.query.id) {
-
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    // if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
+    if (onUpdate.updateBy.data.status && onUpdate.updateBy.query.id) {
       const id: ObjectID = onUpdate.updateBy.query.id! as ObjectID;
 
-      const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById({
-        id: id,
-        select: {
-          _id: true,
-          projectId: true,
-          onCallDutyPolicyId: true,
-          status: true,
-          statusMessage: true,
-          triggeredByIncidentId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if(onCalldutyPolicyExecutionLog && onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
-        const onCallPolicy: OnCallDutyPolicy | null = await OnCallDutyPolicyService.findOneById({
-          id: onCalldutyPolicyExecutionLog.onCallDutyPolicyId!,
+      const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
+        {
+          id: id,
           select: {
             _id: true,
             projectId: true,
-            name: true,
+            onCallDutyPolicyId: true,
+            status: true,
+            statusMessage: true,
+            triggeredByIncidentId: true,
           },
           props: {
             isRoot: true,
           },
-        });
+        },
+      );
+
+      if (
+        onCalldutyPolicyExecutionLog &&
+        onCalldutyPolicyExecutionLog.triggeredByIncidentId
+      ) {
+        const onCallPolicy: OnCallDutyPolicy | null =
+          await OnCallDutyPolicyService.findOneById({
+            id: onCalldutyPolicyExecutionLog.onCallDutyPolicyId!,
+            select: {
+              _id: true,
+              projectId: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
         if (onCallPolicy && onCallPolicy.id) {
           await IncidentFeedService.createIncidentFeed({
@@ -174,7 +180,6 @@ export class Service extends DatabaseService<Model> {
             feedInfoInMarkdown: `**On Call Policy Status Updated: ** On Call Policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**. ${onCalldutyPolicyExecutionLog.statusMessage}`,
           });
         }
-
       }
     }
 

@@ -15,13 +15,11 @@ const Feed: FunctionComponent<ComponentProps> = (
       <ul role="list">
         {props.items.length === 0 && (
           <div>
-            <ErrorMessage error={props.noItemsMessage} /></div>)}
+            <ErrorMessage error={props.noItemsMessage} />
+          </div>
+        )}
         {props.items.map((item: FeedItemProps) => {
-          return (
-            <FeedItem
-              {...item}
-            />
-          );
+          return <FeedItem {...item} />;
         })}
       </ul>
     </div>

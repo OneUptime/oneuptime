@@ -122,11 +122,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     )?.["publicNote"] as string | undefined;
 
     if (publicNote) {
-
       // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-      if (
-        createBy.data.shouldStatusPageSubscribersBeNotified
-      ) {
+      if (createBy.data.shouldStatusPageSubscribersBeNotified) {
         createBy.data.isStatusPageSubscribersNotified = true;
       }
     }
@@ -237,11 +234,8 @@ ${createdItem.rootCause}`,
       }
     }
 
-
     if (onCreate.carryForward.publicNote) {
-
       const publicNote: string = onCreate.carryForward.publicNote;
-
 
       const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
       incidentPublicNote.incidentId = createdItem.incidentId;
@@ -252,12 +246,10 @@ ${createdItem.rootCause}`,
       incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
         Boolean(createdItem.shouldStatusPageSubscribersBeNotified);
 
-
       await IncidentPublicNoteService.create({
         data: incidentPublicNote,
         props: onCreate.createBy.props,
       });
-
     }
 
     IncidentService.refreshIncidentMetrics({

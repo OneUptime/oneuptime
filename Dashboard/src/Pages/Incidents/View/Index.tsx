@@ -770,10 +770,7 @@ const IncidentView: FunctionComponent<
           </Card>
         )}
 
-
-        <IncidentFeedElement incidentId={modelId} />
-
-      
+      <IncidentFeedElement incidentId={modelId} />
     </Fragment>
   );
 };

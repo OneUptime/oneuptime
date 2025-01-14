@@ -15,9 +15,9 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
-  public getColorBasedOnStatus(status: OnCallDutyExecutionLogTimelineStatus): Color {
-
+  public getColorBasedOnStatus(
+    status: OnCallDutyExecutionLogTimelineStatus,
+  ): Color {
     switch (status) {
       case OnCallDutyExecutionLogTimelineStatus.Started:
         return Blue500;
@@ -34,52 +34,48 @@ export class Service extends DatabaseService<Model> {
       default:
         return Blue500;
     }
-
   }
 
-  public async addToIncidentFeed(
-    data: {
-      onCallDutyPolicyExecutionLogTimelineId: ObjectID;
-    }
-  ): Promise<void> {
-
-    const onCallDutyPolicyExecutionLogTimeline: Model | null = await this.findOneById({
-      id: data.onCallDutyPolicyExecutionLogTimelineId,
-      select: {
-        _id: true,
-        onCallDutyPolicyId: true,
-        triggeredByIncidentId: true,
-        status: true,
-        statusMessage: true,
-        alertSentToUserId: true,
-        onCallDutyPolicy: {
-          name: true,
+  public async addToIncidentFeed(data: {
+    onCallDutyPolicyExecutionLogTimelineId: ObjectID;
+  }): Promise<void> {
+    const onCallDutyPolicyExecutionLogTimeline: Model | null =
+      await this.findOneById({
+        id: data.onCallDutyPolicyExecutionLogTimelineId,
+        select: {
           _id: true,
+          onCallDutyPolicyId: true,
+          triggeredByIncidentId: true,
+          status: true,
+          statusMessage: true,
+          alertSentToUserId: true,
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+          alertSentToUser: {
+            name: true,
+            email: true,
+          },
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+          },
+          onCallDutySchedule: {
+            name: true,
+            _id: true,
+          },
+          isAcknowledged: true,
+          acknowledgedAt: true,
+          userBelongsToTeam: {
+            name: true,
+            _id: true,
+          },
         },
-        alertSentToUser: {
-          name: true,
-          email: true,
+        props: {
+          isRoot: true,
         },
-        onCallDutyPolicyEscalationRule: {
-          name: true,
-          _id: true,
-        },
-        onCallDutySchedule: {
-          name: true,
-          _id: true,
-        },
-        isAcknowledged: true,
-        acknowledgedAt: true,
-        userBelongsToTeam: {
-          name: true,
-          _id: true
-        }
-      },
-      props: {
-        isRoot: true,
-      }
-    });
-
+      });
 
     if (!onCallDutyPolicyExecutionLogTimeline) {
       return;
@@ -89,46 +85,55 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const onCallPolicy: OnCallDutyPolicy | null = await OnCallDutyPolicyService.findOneById({
-      id: onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId!,
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const onCallPolicy: OnCallDutyPolicy | null =
+      await OnCallDutyPolicyService.findOneById({
+        id: onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId!,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (onCallPolicy && onCallPolicy.id) {
-      const status: OnCallDutyExecutionLogTimelineStatus = onCallDutyPolicyExecutionLogTimeline.status!;
+      const status: OnCallDutyExecutionLogTimelineStatus =
+        onCallDutyPolicyExecutionLogTimeline.status!;
 
+      if (
+        status &&
+        (status === OnCallDutyExecutionLogTimelineStatus.Skipped ||
+          status === OnCallDutyExecutionLogTimelineStatus.Error ||
+          status ===
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+          status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
+      ) {
+        const displayColor: Color = status
+          ? this.getColorBasedOnStatus(status)
+          : Blue500;
 
-      if (status && (status === OnCallDutyExecutionLogTimelineStatus.Skipped || status === OnCallDutyExecutionLogTimelineStatus.Error || status === OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged || status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)) {
-
-        const displayColor: Color = status ? this.getColorBasedOnStatus(status) : Blue500;
-
-
-        let feedInfoInMarkdown: string = `
-    The On Call Policy "${onCallPolicy.name}" has been triggered. The escalation rule "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}" ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? " and schedule " + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name + "" : ""} were applied. The user "${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}" (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The current status is "${status}" with the message: "${onCallDutyPolicyExecutionLogTimeline.statusMessage}". ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The user belongs to the team " + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at " + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt : ""}
+        const feedInfoInMarkdown: string = `
+    The On Call Policy "${onCallPolicy.name}" has been triggered. The escalation rule "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}" ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule " + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name) : ""} were applied. The user "${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}" (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The current status is "${status}" with the message: "${onCallDutyPolicyExecutionLogTimeline.statusMessage}". ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The user belongs to the team " + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at " + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt : ""}
       `;
 
-
         await IncidentFeedService.createIncidentFeed({
-          incidentId: onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
+          incidentId:
+            onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
           projectId: onCallPolicy.projectId!,
           incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
           displayColor: displayColor,
           feedInfoInMarkdown: feedInfoInMarkdown,
         });
-
       }
-
     }
   }
 
-  protected override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
     if (createdItem.triggeredByIncidentId) {
       await this.addToIncidentFeed({
         onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
@@ -137,6 +142,5 @@ export class Service extends DatabaseService<Model> {
 
     return createdItem;
   }
-
 }
 export default new Service();

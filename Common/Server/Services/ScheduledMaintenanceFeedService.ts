@@ -26,7 +26,7 @@ export class Service extends DatabaseService<Model> {
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
-    postedAt?: Date | undefined;  
+    postedAt?: Date | undefined;
   }): Promise<Model> {
     if (!data.scheduledMaintenanceId) {
       throw new BadDataException("Scheduled Maintenance ID is required");
@@ -67,8 +67,7 @@ export class Service extends DatabaseService<Model> {
         data.moreInformationInMarkdown;
     }
 
-
-    if(!data.postedAt){
+    if (!data.postedAt) {
       scheduledMaintenanceFeed.postedAt = OneUptimeDate.getCurrentDate();
     }
 

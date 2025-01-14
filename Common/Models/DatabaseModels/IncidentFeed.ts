@@ -497,8 +497,6 @@ export default class IncidentFeed extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
-
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -525,6 +523,4 @@ export default class IncidentFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
-
-
 }

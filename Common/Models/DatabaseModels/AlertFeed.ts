@@ -489,7 +489,6 @@ export default class AlertFeed extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

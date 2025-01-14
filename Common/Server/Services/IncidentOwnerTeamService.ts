@@ -14,57 +14,57 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
-  protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
       limit: deleteBy.limit,
       skip: deleteBy.skip,
       props: {
-        isRoot: true
+        isRoot: true,
       },
       select: {
         incidentId: true,
         projectId: true,
         teamId: true,
-      }
-    })
+      },
+    });
 
     return {
       carryForward: {
-        itemsToDelete: itemsToDelete
+        itemsToDelete: itemsToDelete,
       },
-      deleteBy: deleteBy
-    }
+      deleteBy: deleteBy,
+    };
   }
 
-  protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: Array<ObjectID>): Promise<OnDelete<Model>> {
-
-    const deleteByUserId: ObjectID | undefined = onDelete.deleteBy.deletedByUser?.id || onDelete.deleteBy.props.userId;
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const deleteByUserId: ObjectID | undefined =
+      onDelete.deleteBy.deletedByUser?.id || onDelete.deleteBy.props.userId;
 
     const itemsToDelete: Model[] = onDelete.carryForward.itemsToDelete;
 
     for (const item of itemsToDelete) {
-
       const incidentId: ObjectID | undefined = item.incidentId;
       const projectId: ObjectID | undefined = item.projectId;
       const teamId: ObjectID | undefined = item.teamId;
 
-
       if (incidentId && teamId && projectId) {
-
         const team: Team | null = await TeamService.findOneById({
           id: teamId,
           select: {
-            name: true
+            name: true,
           },
           props: {
-            isRoot: true
-          }
-        })
+            isRoot: true,
+          },
+        });
 
         if (team && team.name) {
-
           await IncidentFeedService.createIncidentFeed({
             incidentId: incidentId,
             projectId: projectId,
@@ -78,36 +78,33 @@ export class Service extends DatabaseService<Model> {
     }
 
     return onDelete;
-
   }
 
-  public override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-    // add incident feed. 
+  public override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    // add incident feed.
 
     const incidentId: ObjectID | undefined = createdItem.incidentId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const teamId: ObjectID | undefined = createdItem.teamId;
-    const createdByUserId: ObjectID | undefined = createdItem.createdByUserId || onCreate.createBy.props.userId;
-
+    const createdByUserId: ObjectID | undefined =
+      createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (incidentId && teamId && projectId) {
-
-
       const team: Team | null = await TeamService.findOneById({
         id: teamId,
         select: {
-          name: true
+          name: true,
         },
         props: {
-          isRoot: true
-        }
-      })
+          isRoot: true,
+        },
+      });
 
       if (team && team.name) {
-
-
         await IncidentFeedService.createIncidentFeed({
-
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,
@@ -115,13 +112,10 @@ export class Service extends DatabaseService<Model> {
           feedInfoInMarkdown: `**Team ${team.name}** was added to the incident as the owner.`,
           userId: createdByUserId || undefined,
         });
-
       }
-
     }
 
     return createdItem;
-
   }
 }
 
