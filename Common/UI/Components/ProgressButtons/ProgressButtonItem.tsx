@@ -48,7 +48,10 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
               </span>
             </span>
           )}
-          <span className="ml-4 text-sm font-medium text-gray-900" style={{ color: props.color.toString() }}>
+          <span
+            className="ml-4 text-sm font-medium text-gray-900"
+            style={{ color: props.color.toString() }}
+          >
             {props.title}
           </span>
         </span>

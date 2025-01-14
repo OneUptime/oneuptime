@@ -206,7 +206,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     }
 
     fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as  Exception));
+      setError(API.getFriendlyMessage(err as Exception));
     });
   }, [props.incidentId]);
 
