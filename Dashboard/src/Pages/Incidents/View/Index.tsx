@@ -54,7 +54,7 @@ import HeaderAlert, {
   HeaderAlertType,
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
-import Feed from "Common/UI/Components/Feed/Feed";
+import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -769,6 +769,9 @@ const IncidentView: FunctionComponent<
             />
           </Card>
         )}
+
+
+        <IncidentFeedElement incidentId={modelId} />
 
       
     </Fragment>
