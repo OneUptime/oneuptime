@@ -68,12 +68,12 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             icon = IconProp.Lock;
         }
 
-        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerAdded){
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerUserAdded){
             icon = IconProp.User;
         }
 
-        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerAdded){
-            icon = IconProp.User;
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerTeamAdded){
+            icon = IconProp.Team;
         }
 
         return {

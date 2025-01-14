@@ -58,12 +58,12 @@ const FeedItem: FunctionComponent<ComponentProps> = (
 
   const getUserIcon: GetReactElementFunction = (): ReactElement => {
     return <div>
-      {!props.user?.profilePictureFile && <Image
+      {!props.user?.profilePictureId && <Image
         className="h-10 w-10 rounded-full"
         imageUrl={Route.fromString(`${BlankProfilePic}`)}
       />}
 
-      {props.user?.profilePictureFile && <Image
+      {props.user?.profilePictureId && <Image
         className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
         imageUrl={FileUtil.getFileRoute(props.user!.profilePictureId as ObjectID)}
       />}

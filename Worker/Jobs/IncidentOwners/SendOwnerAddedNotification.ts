@@ -19,9 +19,6 @@ import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
-import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
-import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",
@@ -211,14 +208,6 @@ RunCron(
           callRequestMessage: callMessage,
           eventType:
             NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-        });
-
-        await IncidentFeedService.createIncidentFeed({
-          incidentId: incident.id!,
-          projectId: incident.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.OwnerAdded,
-          displayColor: Blue500,
-          feedInfoInMarkdown: `User added as owner to this Incident: ${user.name} (${user.email})`,
         });
       }
     }
