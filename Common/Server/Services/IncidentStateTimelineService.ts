@@ -204,7 +204,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
-      feedInfoInMarkdown: "**Incident State** Changed to **" + stateName + "**",
+      feedInfoInMarkdown: "**Incident State** changed to **" + stateName + "**",
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
     });
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;

@@ -61,7 +61,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         }
 
         if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.PublicNote){
-            icon = IconProp.Text;
+            icon = IconProp.Announcement;
         }
 
         if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.PrivateNote){
@@ -82,6 +82,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
 
         if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause){
             icon = IconProp.Cube;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerUserRemoved){
+            icon = IconProp.Close;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerTeamRemoved){
+            icon = IconProp.Close;
         }
 
         return {
@@ -122,7 +130,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                 },
                 skip: 0,
                 sort: {
-                    createdAt: SortOrder.Ascending
+                    postedAt: SortOrder.Ascending
                 },
                 limit: LIMIT_PER_PROJECT
             });
@@ -151,7 +159,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
 
 
     return (
-        <Card title={"Timeline and Feed"} description={
+        <Card title={"Incident Feed"} description={
             "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
         }
 

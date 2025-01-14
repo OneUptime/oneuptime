@@ -649,6 +649,26 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
 
       for (const incidentId of updatedItemIds) {
 
+        if (onUpdate.updateBy.data.title) {
+
+          // add incident feed. 
+          const createdByUserId: ObjectID | undefined | null = onUpdate.updateBy.props.userId;
+
+          await IncidentFeedService.createIncidentFeed({
+
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Incident Title was updated.** Here's the new title.
+
+${onUpdate.updateBy.data.title || "No title provided."}
+          `,
+            userId: createdByUserId || undefined,
+          })
+        }
+
+
         if (onUpdate.updateBy.data.description) {
 
           // add incident feed. 

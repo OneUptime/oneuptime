@@ -5,7 +5,7 @@ import OneUptimeDate from "../../Types/Date";
 import Model from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "../../Types/BrandColors";
+import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
@@ -37,9 +37,9 @@ export class Service extends DatabaseService<Model> {
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
-      displayColor: Blue500,
+      displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `**Posted public note for this incident on status page:**
+      feedInfoInMarkdown: `**Posted public note for this incident on status page**
 
 ${createdItem.note}
           `,

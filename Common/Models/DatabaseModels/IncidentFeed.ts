@@ -33,6 +33,8 @@ export enum IncidentFeedEventType {
   IncidentUpdated = "IncidentUpdated",
   RootCause = "RootCause",
   RemediationNotes = "RemediationNotes",
+  OwnerUserRemoved = "OwnerUserRemoved",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
 }
 
 @EnableDocumentation()

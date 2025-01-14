@@ -4,7 +4,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import { Blue500 } from "../../Types/BrandColors";
+import { Gray500 } from "../../Types/BrandColors";
 import TeamService from "./TeamService";
 import Team from "../../Models/DatabaseModels/Team";
 
@@ -43,8 +43,8 @@ export class Service extends DatabaseService<Model> {
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,
-          displayColor: Blue500,
-          feedInfoInMarkdown: `Team ${team.name} was added to the incident as the owner.`,
+          displayColor: Gray500,
+          feedInfoInMarkdown: `**Team ${team.name}** was added to the incident as the owner.`,
           userId: createdByUserId || undefined,
         });
 
