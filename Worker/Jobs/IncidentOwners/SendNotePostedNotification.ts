@@ -219,7 +219,7 @@ RunCron(
         note._id!.toString(),
       );
 
-      const incidentFeedText: string = `Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
+      const incidentFeedText: string = `**Owners Notified because ${isPrivateNote ? "Private" : "Public"} Note is posted**: Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
 
       await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,

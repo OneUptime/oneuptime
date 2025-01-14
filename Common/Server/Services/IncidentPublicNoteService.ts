@@ -34,12 +34,12 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
     await IncidentFeedService.createIncidentFeed({
-      incidentId: createdItem.id!,
+      incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Blue500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `**Posted Public Note on Status Page**
+      feedInfoInMarkdown: `**Posted public note for this incident on status page:**
 
 ${createdItem.note}
           `,

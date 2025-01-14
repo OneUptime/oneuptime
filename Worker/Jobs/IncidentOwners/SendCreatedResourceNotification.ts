@@ -67,7 +67,7 @@ RunCron(
     });
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `**Incident Created Notification**:
+      const incidentFeedText: string = `**Incident Created Notification Sent**:
 Notification sent to owners of this incident because this incident was created.`;
       let moreIncidentFeedInformationInMarkdown: string = "";
 
@@ -190,7 +190,7 @@ Notification sent to owners of this incident because this incident was created.`
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });
 
-          moreIncidentFeedInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
+          moreIncidentFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

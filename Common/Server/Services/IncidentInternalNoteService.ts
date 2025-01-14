@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
   
 
     await IncidentFeedService.createIncidentFeed({
-      incidentId: createdItem.id!,
+      incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PrivateNote,
       displayColor: Blue500,

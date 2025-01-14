@@ -340,7 +340,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Red500,
       feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created**
       
-**Incident Desription:** 
+**Incident Description:** 
 
 ${createdItem.description || "No description provided."}
 

@@ -94,10 +94,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                   {props.user?.name?.toString() || "Unknown User"}
                 </div>
               </div>}
-              <div className="mt-0.5 text-sm text-gray-500">
+              <div className="mt-0.5 text-sm text-gray-500 w-fit">
                 <Tooltip
                   text={OneUptimeDate.getDateAsLocalFormattedString(props.itemDateTime)}>
-                  <div>{OneUptimeDate.fromNow(props.itemDateTime)}</div>
+                  <div className="w-fit">{OneUptimeDate.fromNow(props.itemDateTime)}</div>
                 </Tooltip>
               </div>
             </div>

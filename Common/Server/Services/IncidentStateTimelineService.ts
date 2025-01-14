@@ -122,32 +122,20 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     )?.["publicNote"] as string | undefined;
 
     if (publicNote) {
-      const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
-      incidentPublicNote.incidentId = createBy.data.incidentId;
-      incidentPublicNote.note = publicNote;
-      incidentPublicNote.postedAt = createBy.data.startsAt;
-      incidentPublicNote.createdAt = createBy.data.startsAt;
-      incidentPublicNote.projectId = createBy.data.projectId!;
-      incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
 
       // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
       if (
-        incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+        createBy.data.shouldStatusPageSubscribersBeNotified
       ) {
         createBy.data.isStatusPageSubscribersNotified = true;
       }
-
-      await IncidentPublicNoteService.create({
-        data: incidentPublicNote,
-        props: createBy.props,
-      });
     }
 
     return {
       createBy,
       carryForward: {
         lastIncidentStateTimelineId: lastIncidentStateTimeline?.id || null,
+        publicNote: publicNote,
       },
     };
   }
@@ -216,7 +204,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
-      feedInfoInMarkdown: "Incident State Changed to **" + stateName + "**",
+      feedInfoInMarkdown: "**Incident State** Changed to **" + stateName + "**",
     });
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;
@@ -244,6 +232,29 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           incident.monitors || [],
         );
       }
+    }
+
+
+    if (onCreate.carryForward.publicNote) {
+
+      const publicNote: string = onCreate.carryForward.publicNote;
+
+
+      const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
+      incidentPublicNote.incidentId = createdItem.incidentId;
+      incidentPublicNote.note = publicNote;
+      incidentPublicNote.postedAt = createdItem.startsAt!;
+      incidentPublicNote.createdAt = createdItem.startsAt!;
+      incidentPublicNote.projectId = createdItem.projectId!;
+      incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        Boolean(createdItem.shouldStatusPageSubscribersBeNotified);
+
+
+      await IncidentPublicNoteService.create({
+        data: incidentPublicNote,
+        props: onCreate.createBy.props,
+      });
+
     }
 
     IncidentService.refreshIncidentMetrics({
