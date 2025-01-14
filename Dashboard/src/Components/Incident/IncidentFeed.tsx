@@ -5,13 +5,14 @@ import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
+import IncidentFeed, { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { ComponentProps as FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface ComponentProps {
     incidentId?: ObjectID;
@@ -34,13 +35,54 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
 
 
     const getFeedItemFromIncidentFeed = (incidentFeed: IncidentFeed): FeedItemProps => {
+
+
+        let icon: IconProp = IconProp.Circle;
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.IncidentCreated){
+            icon = IconProp.Alert;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.IncidentStateChanged){
+            icon = IconProp.ArrowCircleRight;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.IncidentUpdated){
+            icon = IconProp.Edit;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerNotificationSent){
+            icon = IconProp.Bell;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.SubscriberNotificationSent){
+            icon = IconProp.Notification;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.PublicNote){
+            icon = IconProp.Text;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.PrivateNote){
+            icon = IconProp.Lock;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerAdded){
+            icon = IconProp.User;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OwnerAdded){
+            icon = IconProp.User;
+        }
+
         return {
             key: incidentFeed.id!.toString(),
             textInMarkdown: incidentFeed.feedInfoInMarkdown || "",
             moreTextInMarkdown: incidentFeed.moreInformationInMarkdown || "",
             user: incidentFeed.user,
-            itemDateTime: incidentFeed.createdAt!,
+            itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
             color: incidentFeed.displayColor || Gray500,
+            icon: icon,
         };
     }
 
@@ -65,7 +107,9 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                         name: true,
                         email: true,
                         profilePictureId: true,
-                    }
+                    },
+                    incidentFeedEventType: true,
+                    postedAt:   true,
                 },
                 skip: 0,
                 sort: {

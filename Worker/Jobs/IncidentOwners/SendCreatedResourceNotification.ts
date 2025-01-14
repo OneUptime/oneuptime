@@ -67,7 +67,7 @@ RunCron(
     });
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `Notification sent to owners of this Incident on Incident Creation`;
+      const incidentFeedText: string = `Notification sent to owners of this Incident because this incident was created.`;
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =

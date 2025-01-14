@@ -22,7 +22,7 @@ export interface ComponentProps {
   moreTextInMarkdown?: string;
   user?: User | undefined;
   itemDateTime: Date;
-  icon?: IconProp;
+  icon: IconProp;
   color: Color;
 }
 
@@ -48,6 +48,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
         onSubmit={() => {
           return setShowMoreInformationModal(false);
         }}
+        submitButtonType={ButtonStyleType.NORMAL}
       />)
     }
 
@@ -58,7 +59,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   const getUserIcon: GetReactElementFunction = (): ReactElement => {
     return <div>
       {!props.user?.profilePictureFile && <Image
-        className="h-8 w-8 rounded-full"
+        className="h-10 w-10 rounded-full"
         imageUrl={Route.fromString(`${BlankProfilePic}`)}
       />}
 
@@ -88,11 +89,11 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0 flex-1">
             <div>
-              <div className="text-sm">
-                <a href="#" className="font-medium text-gray-900">
+              {props.user?.name && <div className="text-sm">
+                <div className="font-medium text-gray-900">
                   {props.user?.name?.toString() || "Unknown User"}
-                </a>
-              </div>
+                </div>
+              </div>}
               <p className="mt-0.5 text-sm text-gray-500">
                 <Tooltip
                   text={OneUptimeDate.getDateAsLocalFormattedString(props.itemDateTime)}>
@@ -105,12 +106,12 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                 <MarkdownViewer text={props.textInMarkdown} />
               </div>}
               {props.element && <div>{props.element}</div>}
-              {props.moreTextInMarkdown && <Button
+              {props.moreTextInMarkdown && <div className="-ml-3"><Button
                 onClick={() => setShowMoreInformationModal(true)}
                 title="More Information"
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-              />}
+              /></div>}
             </div>
           </div>
         </div>
@@ -125,7 +126,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
       return <></>;
     }
     return (
-      <div className="flex size-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
+      <div className="flex size-10 items-center justify-center rounded-full bg-gray-100 ring-10 ring-white">
         <Icon className="size-5 text-gray-500" icon={props.icon} color={props.color} />
       </div>
     )

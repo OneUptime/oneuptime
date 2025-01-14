@@ -29,6 +29,7 @@ export enum IncidentFeedEventType {
   IncidentCreated = "IncidentCreated",
   IncidentStateChanged = "IncidentStateChanged",
   PrivateNote = "PrivateNote",
+  IncidentUpdated = "IncidentUpdated",
 }
 
 @EnableDocumentation()
@@ -488,4 +489,35 @@ export default class IncidentFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userId?: ObjectID = undefined;
+
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceFeed,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "Feed Posted At",
+    description: "Date and time when the feed was posted",
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public postedAt?: Date = undefined;
+
+
 }

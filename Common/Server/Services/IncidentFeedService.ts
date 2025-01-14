@@ -1,5 +1,6 @@
 import { Blue500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -25,6 +26,7 @@ export class Service extends DatabaseService<Model> {
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
+    postedAt?: Date | undefined;
   }): Promise<Model> {
     const incidentFeed: Model = new Model();
 
@@ -53,6 +55,10 @@ export class Service extends DatabaseService<Model> {
     incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
     incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
     incidentFeed.projectId = data.projectId;
+
+    if(!data.postedAt){
+      incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
+    }
 
     if (data.userId) {
       incidentFeed.userId = data.userId;

@@ -1,5 +1,6 @@
 import { Blue500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -25,6 +26,7 @@ export class Service extends DatabaseService<Model> {
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
+    postedAt?: Date | undefined;  
   }): Promise<Model> {
     if (!data.scheduledMaintenanceId) {
       throw new BadDataException("Scheduled Maintenance ID is required");
@@ -63,6 +65,11 @@ export class Service extends DatabaseService<Model> {
     if (data.moreInformationInMarkdown) {
       scheduledMaintenanceFeed.moreInformationInMarkdown =
         data.moreInformationInMarkdown;
+    }
+
+
+    if(!data.postedAt){
+      scheduledMaintenanceFeed.postedAt = OneUptimeDate.getCurrentDate();
     }
 
     return await this.create({

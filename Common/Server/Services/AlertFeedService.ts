@@ -1,5 +1,6 @@
 import { Blue500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -25,6 +26,7 @@ export class Service extends DatabaseService<Model> {
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
+    postedAt?: Date | undefined;
   }): Promise<Model> {
     if (!data.alertId) {
       throw new BadDataException("Alert ID is required");
@@ -58,6 +60,11 @@ export class Service extends DatabaseService<Model> {
     alertFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
     alertFeed.alertFeedEventType = data.alertFeedEventType;
     alertFeed.projectId = data.projectId;
+
+    if(!data.postedAt){
+      alertFeed.postedAt = OneUptimeDate.getCurrentDate();
+        }
+    
 
     if (data.moreInformationInMarkdown) {
       alertFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;

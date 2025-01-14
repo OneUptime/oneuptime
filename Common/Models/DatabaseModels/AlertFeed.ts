@@ -399,13 +399,13 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentFeed,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentFeed,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -429,13 +429,13 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -466,13 +466,13 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateAlertFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAlertFeed,
     ],
     update: [],
   })
@@ -488,4 +488,32 @@ export default class AlertFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userId?: ObjectID = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertFeed,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "Feed Posted At",
+    description: "Date and time when the feed was posted",
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public postedAt?: Date = undefined;
 }

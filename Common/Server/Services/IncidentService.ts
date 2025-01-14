@@ -227,16 +227,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -314,31 +314,71 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
     }
 
 
-    const createdByUserId: ObjectID | undefined = createdItem.createdByUserId;
+    const createdByUserId: ObjectID | undefined | null = createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    let userNameAndEmail: string = '';
+
+    if (createdByUserId) {
+
+      const user: User | null = await UserService.findOneBy({
+        query: {
+          _id: createdByUserId?.toString() as string,
+        },
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+
+      if (user) {
+        userNameAndEmail = `${user.name} (${user.email})`;
+      }
+
+    }
+
 
     await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
       displayColor: Blue500,
-      feedInfoInMarkdown: "Incident Created",
-      userId: createdByUserId,
+      feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created** ${userNameAndEmail ? `by ${userNameAndEmail}` : "OneUptime"}
+      
+      **Incident Desription:** 
+      
+      ${createdItem.description || "No description provided."}
+
+      **Root Cause:**
+
+      ${createdItem.rootCause || "No root cause provided."}
+
+      **Remediation Notes:**
+
+      ${createdItem.remediationNotes || "No remediation notes provided."}
+
+      `,
+      userId: createdByUserId || undefined,
     });
 
     if (!createdItem.currentIncidentStateId) {
@@ -355,9 +395,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -392,9 +432,9 @@ export class Service extends DatabaseService<Model> {
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -612,7 +652,54 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    if (updatedItemIds.length > 0) {
+
+      for (const incidentId of updatedItemIds) {
+
+        if (onUpdate.updateBy.data.description) {
+
+          // add incident feed. 
+          const createdByUserId: ObjectID | undefined | null = onUpdate.updateBy.props.userId;
+
+          await IncidentFeedService.createIncidentFeed({
+
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Blue500,
+            feedInfoInMarkdown: `**Incident Description Updated.** Here's the new description.
+      
+        ${onUpdate.updateBy.data.description || "No description provided."}
+        `,
+            userId: createdByUserId || undefined,
+          });
+
+        }
+
+        if (onUpdate.updateBy.data.remediationNotes) {
+
+          // add incident feed. 
+          const createdByUserId: ObjectID | undefined | null = onUpdate.updateBy.props.userId;
+
+          await IncidentFeedService.createIncidentFeed({
+
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Blue500,
+            feedInfoInMarkdown: `**Incident Remediation Notes Updated.** Here's the new remediation notes.
+
+            ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
+            `,
+            userId: createdByUserId || undefined,
+          });
+        }
+      }
+
+    }
+
     return onUpdate;
+
   }
 
   public async doesMonitorHasMoreActiveManualIncidents(
@@ -717,7 +804,7 @@ export class Service extends DatabaseService<Model> {
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -830,7 +917,7 @@ export class Service extends DatabaseService<Model> {
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -1048,7 +1135,7 @@ export class Service extends DatabaseService<Model> {
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
