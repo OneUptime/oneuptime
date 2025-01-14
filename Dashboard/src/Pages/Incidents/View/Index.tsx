@@ -608,12 +608,6 @@ const IncidentView: FunctionComponent<
         />
       </div>
 
-    
-
-      
-
-
-
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Log &&
         telemetryQuery.telemetryQuery && (

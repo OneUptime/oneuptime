@@ -1,9 +1,5 @@
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -18,42 +14,42 @@ const IncidentDelete: FunctionComponent<
 
   return (
     <CardModelDetail
-    name="Incident Description"
-    cardProps={{
-      title: "Incident Description",
-      description:
-        "Description of this incident. This is visible on Status Page and is in markdown format.",
-    }}
-    editButtonText="Edit Incident Description"
-    isEditable={true}
-    formFields={[
-      {
-        field: {
-          description: true,
-        },
-        title: "Description",
-
-        fieldType: FormFieldSchemaType.Markdown,
-        required: false,
-        placeholder: "Description",
-      },
-    ]}
-    modelDetailProps={{
-      showDetailsInNumberOfColumns: 1,
-      modelType: Incident,
-      id: "model-detail-incident-description",
-      fields: [
+      name="Incident Description"
+      cardProps={{
+        title: "Incident Description",
+        description:
+          "Description of this incident. This is visible on Status Page and is in markdown format.",
+      }}
+      editButtonText="Edit Incident Description"
+      isEditable={true}
+      formFields={[
         {
           field: {
             description: true,
           },
           title: "Description",
-          fieldType: FieldType.Markdown,
+
+          fieldType: FormFieldSchemaType.Markdown,
+          required: false,
+          placeholder: "Description",
         },
-      ],
-      modelId: modelId,
-    }}
-  />
+      ]}
+      modelDetailProps={{
+        showDetailsInNumberOfColumns: 1,
+        modelType: Incident,
+        id: "model-detail-incident-description",
+        fields: [
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FieldType.Markdown,
+          },
+        ],
+        modelId: modelId,
+      }}
+    />
   );
 };
 

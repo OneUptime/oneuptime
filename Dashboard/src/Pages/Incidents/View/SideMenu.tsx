@@ -29,7 +29,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
-
         <SideMenuItem
           link={{
             title: "Description",
@@ -40,8 +39,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Chat}
         />
-
-
 
         <SideMenuItem
           link={{

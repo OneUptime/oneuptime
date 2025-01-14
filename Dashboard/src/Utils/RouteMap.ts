@@ -484,7 +484,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.INCIDENT_VIEW_REMEDIATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_REMEDIATION]
@@ -502,7 +501,6 @@ const RouteMap: Dictionary<Route> = {
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_DESCRIPTION]
     }`,
   ),
-  
 
   [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${

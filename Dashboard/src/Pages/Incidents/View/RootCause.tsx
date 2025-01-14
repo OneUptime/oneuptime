@@ -1,9 +1,5 @@
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -17,30 +13,30 @@ const IncidentDelete: FunctionComponent<
 
   return (
     <CardModelDetail
-        name="Root Cause"
-        cardProps={{
-          title: "Root Cause",
-          description:
-            "Why did this incident happen? Here is the root cause of this incident.",
-        }}
-        isEditable={false}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-root-cause",
-          fields: [
-            {
-              field: {
-                rootCause: true,
-              },
-              title: "",
-              placeholder: "No root cause identified for this incident.",
-              fieldType: FieldType.Markdown,
+      name="Root Cause"
+      cardProps={{
+        title: "Root Cause",
+        description:
+          "Why did this incident happen? Here is the root cause of this incident.",
+      }}
+      isEditable={false}
+      modelDetailProps={{
+        showDetailsInNumberOfColumns: 1,
+        modelType: Incident,
+        id: "model-detail-incident-root-cause",
+        fields: [
+          {
+            field: {
+              rootCause: true,
             },
-          ],
-          modelId: modelId,
-        }}
-      />
+            title: "",
+            placeholder: "No root cause identified for this incident.",
+            fieldType: FieldType.Markdown,
+          },
+        ],
+        modelId: modelId,
+      }}
+    />
   );
 };
 
