@@ -98,11 +98,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
 
 
     return (
-        <Card title={"Incident Feed"} description={"Incident Feed"}>
+        <Card title={"Timeline and Feed"} description={
+            "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
+        }>
             <div>
                 {isLoading && <ComponentLoader />}
                 {error && <ErrorMessage error={error} />}
-                {!isLoading && !error && <Feed items={feedItems} />}
+                {!isLoading && !error && <Feed items={feedItems} noItemsMessage="Looks like there are no items in this feed for this incident." />}
             </div>
         </Card>
     );
