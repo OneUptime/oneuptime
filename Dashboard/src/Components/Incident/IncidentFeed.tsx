@@ -92,6 +92,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             icon = IconProp.Close;
         }
 
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OnCallNotification){
+            icon = IconProp.Alert;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.OnCallPolicy){
+            icon = IconProp.Call;
+        }
+
         return {
             key: incidentFeed.id!.toString(),
             textInMarkdown: incidentFeed.feedInfoInMarkdown || "",
