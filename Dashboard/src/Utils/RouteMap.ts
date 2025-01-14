@@ -140,6 +140,9 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_INCIDENTS]: "unresolved",
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
+  [PageMap.INCIDENT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
+  [PageMap.INCIDENT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
+  [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.INCIDENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
@@ -480,6 +483,26 @@ const RouteMap: Dictionary<Route> = {
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_STATE_TIMELINE]
     }`,
   ),
+
+
+  [PageMap.INCIDENT_VIEW_REMEDIATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_REMEDIATION]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_ROOT_CAUSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_ROOT_CAUSE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_DESCRIPTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_DESCRIPTION]
+    }`,
+  ),
+  
 
   [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${

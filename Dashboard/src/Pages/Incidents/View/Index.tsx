@@ -608,108 +608,11 @@ const IncidentView: FunctionComponent<
         />
       </div>
 
-      <CardModelDetail
-        name="Incident Description"
-        cardProps={{
-          title: "Incident Description",
-          description:
-            "Description of this incident. This is visible on Status Page and is in markdown format.",
-        }}
-        editButtonText="Edit Incident Description"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
+    
 
-            fieldType: FormFieldSchemaType.Markdown,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-description",
-          fields: [
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      
 
-      <CardModelDetail
-        name="Root Cause"
-        cardProps={{
-          title: "Root Cause",
-          description:
-            "Why did this incident happen? Here is the root cause of this incident.",
-        }}
-        isEditable={false}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-root-cause",
-          fields: [
-            {
-              field: {
-                rootCause: true,
-              },
-              title: "",
-              placeholder: "No root cause identified for this incident.",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
 
-      <CardModelDetail
-        name="Remediation Notes"
-        cardProps={{
-          title: "Remediation Notes",
-          description:
-            "What steps should be taken to resolve this incident? Here are the remediation notes.",
-        }}
-        editButtonText="Edit Remediation Notes"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              remediationNotes: true,
-            },
-            title: "Remediation Notes",
-
-            fieldType: FormFieldSchemaType.Markdown,
-            required: true,
-            placeholder: "Remediation Notes",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-remediation-notes",
-          fields: [
-            {
-              field: {
-                remediationNotes: true,
-              },
-              title: "Remediation Notes",
-              placeholder: "No remediation notes added for this incident.",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
 
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Log &&

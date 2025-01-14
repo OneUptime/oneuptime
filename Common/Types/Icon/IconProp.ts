@@ -18,6 +18,7 @@ enum IconProp {
   Bold = "Bold",
   Italic = "Italic",
   Underline = "Underline",
+  WrenchScrewdriver = "WrenchScrewdriver",
   Cube = "Cube",
   Expand = "Expand",
   Collapse = "Collapse",

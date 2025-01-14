@@ -59,6 +59,25 @@ const IncidentViewOwner: LazyExoticComponent<
   return import("../Pages/Incidents/View/Owners");
 });
 
+const IncidentViewRemediation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Remediation");
+});
+
+
+const IncidentViewRootCause: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/RootCause");
+});
+
+const IncidentViewDescription: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Description");
+});
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -132,6 +151,60 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_REMEDIATION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewRemediation
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_ROOT_CAUSE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewRootCause
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_DESCRIPTION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewDescription
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+
+        
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_INTERNAL_NOTE)}

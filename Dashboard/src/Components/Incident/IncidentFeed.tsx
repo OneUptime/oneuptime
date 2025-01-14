@@ -116,7 +116,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       incidentFeed.incidentFeedEventType ===
       IncidentFeedEventType.RemediationNotes
     ) {
-      icon = IconProp.Announcement;
+      icon = IconProp.Wrench;
     }
 
     if (
