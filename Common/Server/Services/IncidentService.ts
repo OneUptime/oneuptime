@@ -398,7 +398,7 @@ ${createdItem.description || "No description provided."}
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.RootCause,
       displayColor: Red500,
-      feedInfoInMarkdown: `# Root Cause
+      feedInfoInMarkdown: `**Root Cause**
 
 ${createdItem.rootCause || "No root cause provided."}`,
     });
@@ -408,7 +408,7 @@ ${createdItem.rootCause || "No root cause provided."}`,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.RemediationNotes,
       displayColor: Red500,
-      feedInfoInMarkdown: `# Remediation Notes
+      feedInfoInMarkdown: `**Remediation Notes**
 
 ${createdItem.remediationNotes || "No remediation notes provided."}`,
     });
@@ -660,7 +660,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident Title was updated.** Here's the new title.
+            feedInfoInMarkdown: `**Incident title was updated.** Here's the new title.
 
 ${onUpdate.updateBy.data.title || "No title provided."}
           `,
@@ -680,7 +680,7 @@ ${onUpdate.updateBy.data.title || "No title provided."}
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident Description was updated.** Here's the new description.
+            feedInfoInMarkdown: `**Incident description was updated.** Here's the new description.
       
 ${onUpdate.updateBy.data.description || "No description provided."}
         `,
@@ -700,7 +700,7 @@ ${onUpdate.updateBy.data.description || "No description provided."}
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident Remediation Notes were updated.** Here are the new notes.
+            feedInfoInMarkdown: `**Remediation notes were updated.** Here are the new notes.
 
 ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             `,

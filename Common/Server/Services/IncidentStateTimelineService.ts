@@ -205,6 +205,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown: "**Incident State** changed to **" + stateName + "**",
+      moreInformationInMarkdown: `**Cause:** 
+${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
     });
 
