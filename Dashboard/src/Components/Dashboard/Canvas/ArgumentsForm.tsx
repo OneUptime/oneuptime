@@ -178,7 +178,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           Arguments for this component
         </p>
         {componentArguments && componentArguments.length === 0 && (
-          <ErrorMessage message={"This component does not take any arguments."} />
+          <ErrorMessage
+            message={"This component does not take any arguments."}
+          />
         )}
         {componentArguments && componentArguments.length > 0 && getForm()}
       </div>

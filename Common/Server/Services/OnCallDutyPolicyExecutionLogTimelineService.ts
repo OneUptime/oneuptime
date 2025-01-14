@@ -38,8 +38,9 @@ export class Service extends DatabaseService<Model> {
   public async addToIncidentFeed(data: {
     onCallDutyPolicyExecutionLogTimelineId: ObjectID;
   }): Promise<void> {
-
-    logger.debug("OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed");
+    logger.debug(
+      "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed",
+    );
 
     const onCallDutyPolicyExecutionLogTimeline: Model | null =
       await this.findOneById({
@@ -91,7 +92,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    if (onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy && onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id) {
+    if (
+      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy &&
+      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id
+    ) {
       const status: OnCallDutyExecutionLogTimelineStatus =
         onCallDutyPolicyExecutionLogTimeline.status!;
 
@@ -102,7 +106,7 @@ export class Service extends DatabaseService<Model> {
         (status === OnCallDutyExecutionLogTimelineStatus.Skipped ||
           status === OnCallDutyExecutionLogTimelineStatus.Error ||
           status ===
-          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
       ) {
         const displayColor: Color = status
@@ -114,7 +118,6 @@ export class Service extends DatabaseService<Model> {
       `;
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
-
 
         await IncidentFeedService.createIncidentFeed({
           incidentId:
@@ -134,30 +137,28 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-
     logger.debug("OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess");
     logger.debug(createdItem);
-
-
 
     await this.addToIncidentFeed({
       onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
     });
 
-
     return createdItem;
   }
 
-
-  protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
-
-    if(onUpdate.updateBy.query.id){
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.query.id) {
       await this.addToIncidentFeed({
-        onCallDutyPolicyExecutionLogTimelineId: onUpdate.updateBy.query.id as ObjectID,
+        onCallDutyPolicyExecutionLogTimelineId: onUpdate.updateBy.query
+          .id as ObjectID,
       });
     }
 
-    return onUpdate; 
+    return onUpdate;
   }
 }
 export default new Service();

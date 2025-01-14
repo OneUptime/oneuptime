@@ -529,13 +529,13 @@ const IncidentView: FunctionComponent<
               getElement: (item: Incident): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            }
+            },
           ],
           modelId: modelId,
         }}
       />
 
-      <ChangeIncidentState incidentId={modelId} onActionComplete={()=>{}} />
+      <ChangeIncidentState incidentId={modelId} onActionComplete={() => {}} />
 
       <div className="flex space-x-5 mt-5 mb-5 w-full justify-between">
         <InfoCard

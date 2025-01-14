@@ -39,7 +39,10 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
 
   if (props.error) {
     return (
-      <ErrorMessage message={props.error} onRefreshClick={props.onRefreshClick} />
+      <ErrorMessage
+        message={props.error}
+        onRefreshClick={props.onRefreshClick}
+      />
     );
   }
 

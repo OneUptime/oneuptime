@@ -22,7 +22,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
 
-
 export interface ComponentProps {
   incidentId: ObjectID;
   onActionComplete: () => void;
@@ -31,7 +30,6 @@ export interface ComponentProps {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
@@ -50,7 +48,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     IncidentStateTimeline[]
   >([]);
 
-  const fetchIncidentStates = async () => {
+  const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | undefined | null =
       ProjectUtil.getCurrentProject()?.id;
 
@@ -81,10 +79,9 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       });
 
     setIncidentStates(incidentStates.data);
-  }
+  };
 
-
-  const fetchIncidentStateTimelines = async () => {
+  const fetchIncidentStateTimelines: PromiseVoidFunction = async (): Promise<void> => {
     const incidentStateTimelines: ListResult<IncidentStateTimeline> =
       await ModelAPI.getList<IncidentStateTimeline>({
         modelType: IncidentStateTimeline,
@@ -98,40 +95,34 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           incidentStateId: true,
         },
         sort: {
-          startsAt: SortOrder.Ascending
+          startsAt: SortOrder.Ascending,
         },
         requestOptions: {},
       });
 
     setIncidentStateTimelines(incidentStateTimelines.data);
-  }
-
+  };
 
   const loadPage: PromiseVoidFunction = async () => {
-    try{
+    try {
       setIsLoading(true);
       setError("");
 
       await fetchIncidentStates();
       await fetchIncidentStateTimelines();
-
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));
     }
     setIsLoading(false);
   };
 
-
   useEffect(() => {
-    
     loadPage().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err as Exception));
     });
-
   }, []);
 
   useEffect(() => {
-
     if (incidentStates.length === 0 || incidentStateTimelines.length === 0) {
       return;
     }
@@ -144,41 +135,40 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     }
 
     const currentIncidentState: IncidentState | undefined = incidentStates.find(
-      (state: IncidentState) =>
-        state.id?.toString() === currentIncidentStateTimeline.incidentStateId?.toString(),
+      (state: IncidentState) => {
+        return (
+          state.id?.toString() ===
+          currentIncidentStateTimeline.incidentStateId?.toString()
+        );
+      },
     );
 
     setCurrentIncidentState(currentIncidentState);
+  }, [incidentStates, incidentStateTimelines]);
 
-  }, [incidentStates, incidentStateTimelines]); 
-
-
-  if(isLoading) {
+  if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-
-  if(error) {
+  if (error) {
     return <ErrorMessage message={error} />;
   }
 
-
   return (
     <div className="-ml-3 mt-1">
-      
       <ProgressButtons
-
         id="incident-state-progress-buttons"
         currentStepId={currentIncidentState?.id?.toString() || ""}
         onStepClick={(stepId: string) => {
           const incidentState: IncidentState | undefined = incidentStates.find(
-            (state: IncidentState) => state.id?.toString() === stepId,
+            (state: IncidentState) => {
+              return state.id?.toString() === stepId;
+            },
           );
 
           setSelectedIncidentState(incidentState);
           setShowModal(true);
         }}
-
         progressButtonItems={incidentStates.map((state: IncidentState) => {
           return {
             id: state.id?.toString() || "",
@@ -191,14 +181,12 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       {showModal && (
         <ModelFormModal
           modelType={IncidentStateTimeline}
-          name={
-            "create-incident-state-timeline"
-          }
-          title={
-           "Mark Incident as " + selectedIncidentState?.name
-          }
+          name={"create-incident-state-timeline"}
+          title={"Mark Incident as " + selectedIncidentState?.name}
           description={
-          "You are about to mark this incident as " + selectedIncidentState?.name + "."
+            "You are about to mark this incident as " +
+            selectedIncidentState?.name +
+            "."
           }
           onClose={() => {
             setShowModal(false);

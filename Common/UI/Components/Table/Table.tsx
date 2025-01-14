@@ -119,7 +119,7 @@ const Table: TableFunction = <T extends GenericObject>(
           <tr>
             <td colSpan={colspan} className="pl-10 pr-10">
               <ErrorMessage
-              message={props.error}
+                message={props.error}
                 onRefreshClick={props.onRefreshClick}
               />
             </td>
@@ -134,7 +134,7 @@ const Table: TableFunction = <T extends GenericObject>(
           <tr>
             <td colSpan={colspan}>
               <ErrorMessage
-              message={
+                message={
                   props.noItemsMessage
                     ? props.noItemsMessage
                     : `No ${props.singularLabel.toLocaleLowerCase()}`
