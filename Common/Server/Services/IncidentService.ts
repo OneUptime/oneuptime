@@ -329,12 +329,16 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+
+    const createdByUserId: ObjectID | undefined = createdItem.createdByUserId;
+
     await IncidentFeedService.createIncidentFeed({
       incidentId: createdItem.id!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
       displayColor: Blue500,
       feedInfoInMarkdown: "Incident Created",
+      userId: createdByUserId,
     });
 
     if (!createdItem.currentIncidentStateId) {
