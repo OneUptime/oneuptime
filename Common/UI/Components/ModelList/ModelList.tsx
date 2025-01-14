@@ -218,7 +218,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         )}
       </div>
       <div className="max-h-96 mb-5 overflow-y-auto p-2">
-        {error ? <ErrorMessage error={error} /> : <></>}
+        {error ? <ErrorMessage message={error} /> : <></>}
         {isLoading ? <ComponentLoader /> : <></>}
 
         {!isLoading && !error && searchedList.length === 0 ? (

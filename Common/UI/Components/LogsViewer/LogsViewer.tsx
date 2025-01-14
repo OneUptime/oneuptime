@@ -153,7 +153,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }
 
   if (pageError) {
-    return <ErrorMessage error={pageError} />;
+    return <ErrorMessage message={pageError} />;
   }
 
   return (

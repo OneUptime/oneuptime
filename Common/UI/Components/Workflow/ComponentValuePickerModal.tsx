@@ -109,7 +109,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
 
         <div className="max-h-96 mt-5 mb-5 overflow-y-auto">
           {props.components.length === 0 ? (
-            <ErrorMessage error={"No components in this workflow."} />
+            <ErrorMessage message={"No components in this workflow."} />
           ) : (
             <></>
           )}
@@ -117,7 +117,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
           {props.components.length > 0 &&
           searchText &&
           searchedComponents.length === 0 ? (
-            <ErrorMessage error={"No components match your search"} />
+            <ErrorMessage message={"No components match your search"} />
           ) : (
             <></>
           )}
@@ -137,7 +137,7 @@ const ComponentValuePickerModal: FunctionComponent<ComponentProps> = (
 
                     {component.metadata.returnValues &&
                       component.metadata.returnValues.length === 0 && (
-                        <ErrorMessage error="This component does not have any return values." />
+                        <ErrorMessage message="This component does not have any return values." />
                       )}
                     {component.metadata.returnValues &&
                       component.metadata.returnValues.map(

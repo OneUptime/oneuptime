@@ -107,7 +107,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
     >
       {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
     </Page>
   );
 };

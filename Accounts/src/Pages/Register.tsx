@@ -179,7 +179,7 @@ const RegisterPage: () => JSX.Element = () => {
   ]);
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {

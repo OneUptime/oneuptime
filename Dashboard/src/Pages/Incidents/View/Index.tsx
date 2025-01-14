@@ -154,7 +154,7 @@ const IncidentView: FunctionComponent<
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   type GetIncidentStateFunction = () => IncidentState | undefined;

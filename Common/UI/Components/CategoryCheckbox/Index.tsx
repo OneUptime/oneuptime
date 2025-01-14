@@ -81,7 +81,7 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
   if (options.length === 0) {
     return (
       <div>
-        <ErrorMessage error="No options found." />
+        <ErrorMessage message="No options found." />
       </div>
     );
   }

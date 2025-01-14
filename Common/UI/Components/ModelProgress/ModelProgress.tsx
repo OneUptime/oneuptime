@@ -55,7 +55,7 @@ const ModelProgress: <TBaseModel extends BaseModel>(
       <div className="w-full -mt-6">
         {!error && (
           <div>
-            <ErrorMessage error={error} />
+            <ErrorMessage message={error} />
           </div>
         )}
         {isLoading && <ComponentLoader />}

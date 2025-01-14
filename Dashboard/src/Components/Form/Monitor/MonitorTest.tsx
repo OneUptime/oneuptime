@@ -188,7 +188,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Large}
         >
           <div>
-            {error && <ErrorMessage error={error} />}
+            {error && <ErrorMessage message={error} />}
             {isLoading && (
               <div className="w-full text-center mt-10 mb-10">
                 <Loader

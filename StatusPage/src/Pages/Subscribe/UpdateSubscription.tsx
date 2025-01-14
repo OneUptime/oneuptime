@@ -211,7 +211,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     <Page>
       {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLaoding && !error ? (
         <div className="justify-center">

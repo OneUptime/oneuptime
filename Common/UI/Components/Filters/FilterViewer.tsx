@@ -346,7 +346,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
   });
 
   if (props.filterError) {
-    return <ErrorMessage error={props.filterError} />;
+    return <ErrorMessage message={props.filterError} />;
   }
 
   const showViewer: boolean = filterTexts.length > 0;

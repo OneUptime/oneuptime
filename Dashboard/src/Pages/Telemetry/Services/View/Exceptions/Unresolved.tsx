@@ -60,7 +60,7 @@ const MetricsTablePage: FunctionComponent<
     };
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {
@@ -68,7 +68,7 @@ const MetricsTablePage: FunctionComponent<
   }
 
   if (!telemetryService) {
-    return <ErrorMessage error="Telemetry Service not found." />;
+    return <ErrorMessage message="Telemetry Service not found." />;
   }
 
   return (

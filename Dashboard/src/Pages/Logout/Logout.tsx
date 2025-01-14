@@ -40,7 +40,7 @@ const Logout: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ]}
     >
       {!error ? <PageLoader isVisible={true} /> : <></>}
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
     </Page>
   );
 };

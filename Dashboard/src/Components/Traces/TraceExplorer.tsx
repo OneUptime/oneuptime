@@ -447,7 +447,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -471,7 +471,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             {ganttChart ? (
               <GanttChart chart={ganttChart} />
             ) : (
-              <ErrorMessage error={"No spans found"} />
+              <ErrorMessage message={"No spans found"} />
             )}
           </div>
         </Card>

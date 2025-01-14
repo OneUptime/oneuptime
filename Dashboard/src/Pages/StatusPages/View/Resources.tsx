@@ -405,7 +405,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       <>
         {isLoading ? <ComponentLoader /> : <></>}
 
-        {error ? <ErrorMessage error={error} /> : <></>}
+        {error ? <ErrorMessage message={error} /> : <></>}
 
         {!isLoading && !error ? getModelTable(null, null) : <></>}
 

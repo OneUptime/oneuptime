@@ -127,7 +127,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         <div className="h-7 w-7 text-gray-400 w-full text-center mx-auto">
           <Icon icon={IconProp.ChartBar} />
         </div>
-        <ErrorMessage error={error} />
+        <ErrorMessage message={error} />
       </div>
     );
   }

@@ -15,7 +15,7 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (!props.syntheticMonitorResponse) {
     return (
-      <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 

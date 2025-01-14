@@ -166,7 +166,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   };
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {
@@ -189,7 +189,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   const getAttributesContentElement: GetReactElementFunction =
     (): ReactElement => {
       if (!span) {
-        return <ErrorMessage error="Span not found" />;
+        return <ErrorMessage message="Span not found" />;
       }
 
       return (
@@ -224,11 +224,11 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     event: SpanEvent,
   ): ReactElement => {
     if (!span) {
-      return <ErrorMessage error="No span found" />;
+      return <ErrorMessage message="No span found" />;
     }
 
     if (!event) {
-      return <ErrorMessage error="No event found" />;
+      return <ErrorMessage message="No event found" />;
     }
 
     return (
@@ -322,9 +322,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
     if (!eventsToShow || eventsToShow.length === 0) {
       if (eventType === SpanEventType.Exception) {
-        return <ErrorMessage error="No exceptions found for this span." />;
+        return <ErrorMessage message="No exceptions found for this span." />;
       }
-      return <ErrorMessage error="No events found for this span." />;
+      return <ErrorMessage message="No events found for this span." />;
     }
 
     let bgColorClassName: string = "bg-indigo-500";
@@ -398,7 +398,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   const getExceptionsContentElement: GetExceptionsFunction =
     (): ReactElement => {
       if (!exceptions || exceptions.length === 0) {
-        return <ErrorMessage error="No exceptions found for this span." />;
+        return <ErrorMessage message="No exceptions found for this span." />;
       }
 
       const bgColorClassName: string = "bg-red-500";
@@ -508,7 +508,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
   const getBasicInfo: GetReactElementFunction = (): ReactElement => {
     if (!span) {
-      return <ErrorMessage error="Span not found" />;
+      return <ErrorMessage message="Span not found" />;
     }
 
     return (

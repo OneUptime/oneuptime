@@ -58,7 +58,7 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId!,
           incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
           displayColor: Yellow500,
-          feedInfoInMarkdown: `**On Call Policy Started Executing: ** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`,
+          feedInfoInMarkdown: `**On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`,
         });
       }
     }

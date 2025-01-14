@@ -45,7 +45,7 @@ const BasicFormModal: <T extends GenericObject>(
       <>
         {isLoading && <ComponentLoader />}
 
-        {props.error && <ErrorMessage error={props.error} />}
+        {props.error && <ErrorMessage message={props.error} />}
 
         {!isLoading && (
           <BasicForm

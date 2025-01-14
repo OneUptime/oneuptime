@@ -123,7 +123,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   let heightOfText: number | undefined =

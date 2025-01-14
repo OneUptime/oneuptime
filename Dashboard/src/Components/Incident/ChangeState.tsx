@@ -1,12 +1,5 @@
-import UserElement from "../User/User";
-import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -20,95 +13,157 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
+import Exception from "Common/Types/Exception/Exception";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 
-export enum IncidentType {
-  Ack,
-  Resolve,
-}
 
 export interface ComponentProps {
   incidentId: ObjectID;
-  incidentTimeline: Array<IncidentStateTimeline>;
-  incidentType: IncidentType;
   onActionComplete: () => void;
 }
 
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [incidentTimeline, setIncidentTimeline] = useState<
-    IncidentStateTimeline | undefined
-  >(undefined);
 
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  useEffect(() => {
-    for (const event of props.incidentTimeline) {
-      if (
-        event.incidentState &&
-        (event.incidentState.isAcknowledgedState ||
-          event.incidentState.isResolvedState) &&
-        props.incidentType === IncidentType.Ack &&
-        event.id
-      ) {
-        setIncidentTimeline(event);
-      }
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-      if (
-        event.incidentState &&
-        event.incidentState.isResolvedState &&
-        props.incidentType === IncidentType.Resolve &&
-        event.id
-      ) {
-        setIncidentTimeline(event);
-      }
+  const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
+  const [currentIncidentState, setCurrentIncidentState] = useState<
+    IncidentState | undefined
+  >(undefined);
+
+  const [selectedIncidentState, setSelectedIncidentState] = useState<
+    IncidentState | undefined
+  >(undefined);
+
+  const [incidentStateTimelines, setIncidentStateTimelines] = useState<
+    IncidentStateTimeline[]
+  >([]);
+
+  const fetchIncidentStates = async () => {
+    const projectId: ObjectID | undefined | null =
+      ProjectUtil.getCurrentProject()?.id;
+
+    if (!projectId) {
+      throw new BadDataException("ProjectId not found.");
     }
-  }, [props.incidentTimeline]);
 
-  if (incidentTimeline && incidentTimeline.createdAt) {
-    return (
-      <div>
-        {incidentTimeline.createdByUser && (
-          <UserElement user={incidentTimeline.createdByUser} />
-        )}
-        {!incidentTimeline.createdByUser && (
-          <p>
-            {props.incidentType === IncidentType.Ack
-              ? "Acknowledged"
-              : "Resolved"}{" "}
-            by OneUptime
-          </p>
-        )}
-        {OneUptimeDate.getDateAsLocalFormattedString(
-          incidentTimeline.createdAt,
-        )}
-      </div>
-    );
+    const incidentStates: ListResult<IncidentState> =
+      await ModelAPI.getList<IncidentState>({
+        modelType: IncidentState,
+        query: {
+          projectId: projectId,
+        },
+        limit: 99,
+        skip: 0,
+        select: {
+          _id: true,
+          isResolvedState: true,
+          isAcknowledgedState: true,
+          isCreatedState: true,
+          name: true,
+          color: true,
+        },
+        sort: {},
+        requestOptions: {},
+      });
+
+    setIncidentStates(incidentStates.data);
   }
+
+
+  const fetchIncidentStateTimelines = async () => {
+    const incidentStateTimelines: ListResult<IncidentStateTimeline> =
+      await ModelAPI.getList<IncidentStateTimeline>({
+        modelType: IncidentStateTimeline,
+        query: {
+          incidentId: props.incidentId,
+        },
+        limit: 99,
+        skip: 0,
+        select: {
+          _id: true,
+          incidentStateId: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending
+        },
+        requestOptions: {},
+      });
+
+    setIncidentStateTimelines(incidentStateTimelines.data);
+  }
+
+
+  const loadPage: PromiseVoidFunction = async () => {
+    try{
+      setIsLoading(true);
+      setError("");
+
+      await fetchIncidentStates();
+      await fetchIncidentStateTimelines();
+
+    } catch (err: unknown) {
+      setError(API.getFriendlyMessage(err as Exception));
+    }
+    setIsLoading(false);
+  };
+
+
+  useEffect(() => {
+    
+    loadPage().catch((err: unknown) => {
+      setError(API.getFriendlyMessage(err as Exception));
+    });
+
+  }, []);
+
+  useEffect(() => {
+
+    if (incidentStates.length === 0 || incidentStateTimelines.length === 0) {
+      return;
+    }
+
+    const currentIncidentStateTimeline: IncidentStateTimeline | undefined =
+      incidentStateTimelines[incidentStateTimelines.length - 1];
+
+    if (!currentIncidentStateTimeline) {
+      return;
+    }
+
+    const currentIncidentState: IncidentState | undefined = incidentStates.find(
+      (state: IncidentState) =>
+        state.id?.toString() === currentIncidentStateTimeline.incidentStateId?.toString(),
+    );
+
+    setCurrentIncidentState(currentIncidentState);
+
+  }, [incidentStates, incidentStateTimelines]); 
+
+
+  if(isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+
+  if(error) {
+    return <ErrorMessage message={error} />;
+  }
+
 
   return (
     <div className="-ml-3 mt-1">
-      <Button
-        buttonSize={ButtonSize.Small}
-        title={
-          props.incidentType === IncidentType.Ack
-            ? "Acknowledge Incident"
-            : "Resolve Incident"
-        }
-        icon={
-          props.incidentType === IncidentType.Ack
-            ? IconProp.Circle
-            : IconProp.CheckCircle
-        }
-        buttonStyle={
-          props.incidentType === IncidentType.Ack
-            ? ButtonStyleType.WARNING_OUTLINE
-            : ButtonStyleType.SUCCESS_OUTLINE
-        }
-        onClick={async () => {
-          setShowModal(true);
-        }}
-      />
+      
+      <ProgressButtons />
 
       {showModal && (
         <ModelFormModal

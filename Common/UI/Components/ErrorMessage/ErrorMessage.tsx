@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  error: string | ReactElement;
+  message: string | ReactElement;
   onRefreshClick?: undefined | (() => void);
 }
 
@@ -10,7 +10,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
-      {props.error}
+      {props.message}
       {props.onRefreshClick ? (
         <div
           role={"refresh-button"}

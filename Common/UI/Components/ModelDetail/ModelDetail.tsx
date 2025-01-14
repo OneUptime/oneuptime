@@ -251,7 +251,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   }
 
   if (!item) {
-    return <ErrorMessage error="Item not found" />;
+    return <ErrorMessage message="Item not found" />;
   }
 
   return (

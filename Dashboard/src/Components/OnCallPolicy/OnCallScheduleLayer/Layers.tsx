@@ -214,7 +214,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (

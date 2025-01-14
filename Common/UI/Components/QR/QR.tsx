@@ -26,7 +26,7 @@ const QRCodeElement: FunctionComponent<ComponentProps> = (
   }, [props.text]);
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (

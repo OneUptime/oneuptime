@@ -161,7 +161,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     <Fragment>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLoading && !error ? (
         <div>

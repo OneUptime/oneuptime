@@ -18,7 +18,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
       <h2 className="text-base font-medium text-gray-500">{props.name}</h2>
       <p className="text-sm font-medium text-gray-400">{props.description}</p>
       {props.returnValues && props.returnValues.length === 0 && (
-        <ErrorMessage error={"This component does not return any value."} />
+        <ErrorMessage message={"This component does not return any value."} />
       )}
       <div className="mt-3">
         {props.returnValues &&

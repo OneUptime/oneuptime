@@ -228,7 +228,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
   }
 
   if (pageError) {
-    return <ErrorMessage error={pageError} />;
+    return <ErrorMessage message={pageError} />;
   }
 
   return (
@@ -377,7 +377,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
       {isMetricResultsLoading && <ComponentLoader />}
 
-      {metricResultsError && <ErrorMessage error={metricResultsError} />}
+      {metricResultsError && <ErrorMessage message={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && (
         <div className="grid grid-cols-1 gap-4 mt-3">

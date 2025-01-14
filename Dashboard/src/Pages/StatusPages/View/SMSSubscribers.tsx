@@ -213,7 +213,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!error && !isLoading ? (
         <>

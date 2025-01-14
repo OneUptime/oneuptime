@@ -229,7 +229,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     >
       <div>
         {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage error={error} />}
+        {error && <ErrorMessage message={error} />}
         {!isLoading && !error && (
           <Feed
             items={feedItems}

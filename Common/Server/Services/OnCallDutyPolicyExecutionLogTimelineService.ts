@@ -1,14 +1,13 @@
-import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
-import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -39,6 +38,9 @@ export class Service extends DatabaseService<Model> {
   public async addToIncidentFeed(data: {
     onCallDutyPolicyExecutionLogTimelineId: ObjectID;
   }): Promise<void> {
+
+    logger.debug("OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed");
+
     const onCallDutyPolicyExecutionLogTimeline: Model | null =
       await this.findOneById({
         id: data.onCallDutyPolicyExecutionLogTimelineId,
@@ -46,6 +48,7 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           onCallDutyPolicyId: true,
           triggeredByIncidentId: true,
+          projectId: true,
           status: true,
           statusMessage: true,
           alertSentToUserId: true,
@@ -77,6 +80,9 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+    logger.debug("OnCallDutyPolicyExecutionLogTimeline: ");
+    logger.debug(onCallDutyPolicyExecutionLogTimeline);
+
     if (!onCallDutyPolicyExecutionLogTimeline) {
       return;
     }
@@ -85,29 +91,18 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const onCallPolicy: OnCallDutyPolicy | null =
-      await OnCallDutyPolicyService.findOneById({
-        id: onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId!,
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (onCallPolicy && onCallPolicy.id) {
+    if (onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy && onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id) {
       const status: OnCallDutyExecutionLogTimelineStatus =
         onCallDutyPolicyExecutionLogTimeline.status!;
+
+      logger.debug("Status: " + status);
 
       if (
         status &&
         (status === OnCallDutyExecutionLogTimelineStatus.Skipped ||
           status === OnCallDutyExecutionLogTimelineStatus.Error ||
           status ===
-            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
       ) {
         const displayColor: Color = status
@@ -115,17 +110,22 @@ export class Service extends DatabaseService<Model> {
           : Blue500;
 
         const feedInfoInMarkdown: string = `
-    The On Call Policy "${onCallPolicy.name}" has been triggered. The escalation rule "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}" ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule " + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name) : ""} were applied. The user "${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}" (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The current status is "${status}" with the message: "${onCallDutyPolicyExecutionLogTimeline.statusMessage}". ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The user belongs to the team " + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at " + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt : ""}
+    The On Call Policy "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}" has been triggered. The escalation rule "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}" ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule " + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name) : ""} were applied. The user "${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}" (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The current status is "${status}" with the message: "${onCallDutyPolicyExecutionLogTimeline.statusMessage}". ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The user belongs to the team " + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at " + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt : ""}
       `;
+
+        logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
+
 
         await IncidentFeedService.createIncidentFeed({
           incidentId:
             onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
-          projectId: onCallPolicy.projectId!,
+          projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
           incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
           displayColor: displayColor,
           feedInfoInMarkdown: feedInfoInMarkdown,
         });
+
+        logger.debug("Incident Feed created");
       }
     }
   }
@@ -134,13 +134,30 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    if (createdItem.triggeredByIncidentId) {
+
+    logger.debug("OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess");
+    logger.debug(createdItem);
+
+
+
+    await this.addToIncidentFeed({
+      onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
+    });
+
+
+    return createdItem;
+  }
+
+
+  protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
+
+    if(onUpdate.updateBy.query.id){
       await this.addToIncidentFeed({
-        onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
+        onCallDutyPolicyExecutionLogTimelineId: onUpdate.updateBy.query.id as ObjectID,
       });
     }
 
-    return createdItem;
+    return onUpdate; 
   }
 }
 export default new Service();

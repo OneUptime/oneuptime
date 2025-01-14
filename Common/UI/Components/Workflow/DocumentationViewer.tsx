@@ -66,7 +66,7 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
         Here is some documentation for this component.
       </p>
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
       {isLoading ? <ComponentLoader /> : <></>}
 
       <div className="mt-3">

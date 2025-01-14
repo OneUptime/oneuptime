@@ -164,7 +164,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (props.monitorType === MonitorType.API) {

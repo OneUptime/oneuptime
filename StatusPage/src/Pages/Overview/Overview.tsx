@@ -371,7 +371,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   type GetMonitorOverviewListInGroupFunction = (
@@ -509,7 +509,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (elements.length === 0) {
       elements.push(
         <div key={1} className="mb-20">
-          <ErrorMessage error="No resources added to this group." />
+          <ErrorMessage message="No resources added to this group." />
         </div>,
       );
     }
@@ -613,7 +613,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   return (
     <Page>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLoading && !error ? (
         <div data-testid="status-page-overview">

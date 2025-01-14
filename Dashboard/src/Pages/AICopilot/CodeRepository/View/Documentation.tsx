@@ -98,15 +98,15 @@ const CopilotDocuementationPage: FunctionComponent<
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (!codeRepository) {
-    return <ErrorMessage error={"Code Repository not found"} />;
+    return <ErrorMessage message={"Code Repository not found"} />;
   }
 
   if (!documentation) {
-    return <ErrorMessage error={"Documentation not found"} />;
+    return <ErrorMessage message={"Documentation not found"} />;
   }
 
   return (

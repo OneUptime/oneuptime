@@ -15,7 +15,7 @@ const Feed: FunctionComponent<ComponentProps> = (
       <ul role="list">
         {props.items.length === 0 && (
           <div>
-            <ErrorMessage error={props.noItemsMessage} />
+            <ErrorMessage message={props.noItemsMessage} />
           </div>
         )}
         {props.items.map((item: FeedItemProps) => {

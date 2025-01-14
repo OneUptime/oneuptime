@@ -511,7 +511,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }
 
     if (formError) {
-      return <ErrorMessage error={formError} />;
+      return <ErrorMessage message={formError} />;
     }
 
     let showSubmitButton: boolean = !props.hideSubmitButton;

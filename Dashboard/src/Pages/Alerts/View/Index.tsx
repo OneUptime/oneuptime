@@ -148,7 +148,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   type GetAlertStateFunction = () => AlertState | undefined;

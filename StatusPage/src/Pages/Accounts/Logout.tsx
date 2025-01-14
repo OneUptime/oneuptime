@@ -37,7 +37,7 @@ const Logout: () => JSX.Element = () => {
   }, [StatusPageUtil.getStatusPageId()]);
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return <PageLoader isVisible={true} />;

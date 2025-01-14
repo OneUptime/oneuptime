@@ -394,7 +394,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (!parsedData) {

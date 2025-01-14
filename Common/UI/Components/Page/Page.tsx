@@ -33,7 +33,7 @@ const Page: FunctionComponent<ComponentProps> = (
   }, [props.breadcrumbLinks]);
 
   if (props.error) {
-    return <ErrorMessage error={props.error} />;
+    return <ErrorMessage message={props.error} />;
   }
 
   return (

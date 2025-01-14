@@ -111,7 +111,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
         )}
 
         {component.nodeType === NodeType.PlaceholderNode && (
-          <ErrorMessage error="No trigger added. Please add a trigger in order to run this workflow" />
+          <ErrorMessage message="No trigger added. Please add a trigger in order to run this workflow" />
         )}
       </>
     </SideOver>

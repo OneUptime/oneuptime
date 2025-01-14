@@ -329,7 +329,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (

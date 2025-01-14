@@ -87,7 +87,7 @@ const Home: FunctionComponent<ComponentProps> = (
     >
       <div>
         {isLoading && <PageLoader isVisible={true} />}
-        {error && <ErrorMessage error={error} />}
+        {error && <ErrorMessage message={error} />}
 
         {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
           <IncidentsTable

@@ -105,11 +105,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (!telemetryException) {
-    return <ErrorMessage error="Exception not found" />;
+    return <ErrorMessage message="Exception not found" />;
   }
 
   type MarkAsResolvedUnresolvedFunction = (

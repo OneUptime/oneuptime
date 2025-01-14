@@ -68,11 +68,11 @@ const CopilotPullRequestPage: FunctionComponent<
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (!codeRepository) {
-    return <ErrorMessage error={"Code Repository not found"} />;
+    return <ErrorMessage message={"Code Repository not found"} />;
   }
 
   return (
