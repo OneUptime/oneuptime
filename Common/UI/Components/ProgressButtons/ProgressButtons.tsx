@@ -11,10 +11,11 @@ export interface ComponentProps {
 const ProgressButtons: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   type IsStepCompletedFunction = (stepId: string) => boolean;
 
-  const isStepCompleted: IsStepCompletedFunction = (stepId: string): boolean => {
+  const isStepCompleted: IsStepCompletedFunction = (
+    stepId: string,
+  ): boolean => {
     return (
       props.progressButtonItems.findIndex(
         (progressButtonItem: ProgressItemProps) => {

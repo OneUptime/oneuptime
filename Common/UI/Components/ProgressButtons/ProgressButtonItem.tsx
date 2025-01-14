@@ -29,7 +29,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
         return props.onClick();
       }}
     >
-      <a href="#" className="group flex w-full items-center">
+      <div className="group flex w-full items-center">
         <span className="flex items-center px-6 py-4 text-sm font-medium">
           {props.isCompletedStep && (
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 group-hover:bg-indigo-800">
@@ -48,11 +48,11 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
               </span>
             </span>
           )}
-          <span className="ml-4 text-sm font-medium text-gray-900">
+          <span className="ml-4 text-sm font-medium text-gray-900" style={{ color: props.color.toString() }}>
             {props.title}
           </span>
         </span>
-      </a>
+      </div>
 
       {!props.isLastStep && (
         <div

@@ -16,6 +16,8 @@ import { ComponentProps as FeedItemProps } from "Common/UI/Components/Feed/FeedI
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   incidentId?: ObjectID;
@@ -28,7 +30,11 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
 
-  const getFeedItemsFromIncidentFeeds = (
+  type GetFeedItemsFromIncidentFeeds = (
+    incidentFeeds: IncidentFeed[],
+  ) => FeedItemProps[];
+
+  const getFeedItemsFromIncidentFeeds: GetFeedItemsFromIncidentFeeds = (
     incidentFeeds: IncidentFeed[],
   ): FeedItemProps[] => {
     return incidentFeeds.map((incidentFeed: IncidentFeed) => {
@@ -36,7 +42,11 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const getFeedItemFromIncidentFeed = (
+  type GetFeedItemFromIncidentFeed = (
+    incidentFeed: IncidentFeed,
+  ) => FeedItemProps;
+
+  const getFeedItemFromIncidentFeed: GetFeedItemFromIncidentFeed = (
     incidentFeed: IncidentFeed,
   ): FeedItemProps => {
     let icon: IconProp = IconProp.Circle;
@@ -153,7 +163,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const fetchItems = async () => {
+  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
     try {
@@ -183,8 +193,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       });
 
       setFeedItems(getFeedItemsFromIncidentFeeds(incidentFeeds.data));
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
+    } catch (err: unknown) {
+      setError(API.getFriendlyMessage(err as Exception));
     }
 
     setIsLoading(false);
@@ -195,8 +205,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    fetchItems().catch((err) => {
-      setError(API.getFriendlyMessage(err));
+    fetchItems().catch((err: unknown) => {
+      setError(API.getFriendlyMessage(err as  Exception));
     });
   }, [props.incidentId]);
 
