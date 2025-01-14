@@ -338,19 +338,15 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
       displayColor: Red500,
-      feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created**
+      feedInfoInMarkdown: `**Incident #${createdItem.incidentNumber?.toString()} Created**: 
       
-**Incident Description:** 
+**Incident Title**:
+
+${createdItem.title || "No title provided."}
+
+**Description**:
 
 ${createdItem.description || "No description provided."}
-
-**Root Cause:**
-
-${createdItem.rootCause || "No root cause provided."}
-
-**Remediation Notes:**
-
-${createdItem.remediationNotes || "No remediation notes provided."}
 
       `,
       userId: createdByUserId || undefined,
@@ -395,6 +391,28 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         isRoot: true,
       },
     });
+
+
+    await IncidentFeedService.createIncidentFeed({
+      incidentId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      incidentFeedEventType: IncidentFeedEventType.RootCause,
+      displayColor: Red500,
+      feedInfoInMarkdown: `# Root Cause
+
+${createdItem.rootCause || "No root cause provided."}`,
+    });
+
+    await IncidentFeedService.createIncidentFeed({
+      incidentId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      incidentFeedEventType: IncidentFeedEventType.RemediationNotes,
+      displayColor: Red500,
+      feedInfoInMarkdown: `# Remediation Notes
+
+${createdItem.remediationNotes || "No remediation notes provided."}`,
+    });
+
 
     // add owners.
 

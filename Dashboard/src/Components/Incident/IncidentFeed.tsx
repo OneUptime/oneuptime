@@ -76,6 +76,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             icon = IconProp.Team;
         }
 
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.RemediationNotes){
+            icon = IconProp.Announcement;
+        }
+
+        if(incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause){
+            icon = IconProp.Cube;
+        }
+
         return {
             key: incidentFeed.id!.toString(),
             textInMarkdown: incidentFeed.feedInfoInMarkdown || "",
