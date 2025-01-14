@@ -1,12 +1,8 @@
-import ChangeIncidentState, {
-  IncidentType,
-} from "../../../Components/Incident/ChangeState";
+import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -25,7 +21,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
-import GlobalEvent from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -534,66 +529,13 @@ const IncidentView: FunctionComponent<
               getElement: (item: Incident): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Acknowledge Incident",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Incident,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeIncidentState
-                    incidentId={modelId}
-                    incidentTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    incidentType={IncidentType.Ack}
-                    onActionComplete={async () => {
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Resolve Incident",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Incident,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeIncidentState
-                    incidentId={modelId}
-                    incidentTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    incidentType={IncidentType.Resolve}
-                    onActionComplete={async () => {
-                      GlobalEvent.dispatchEvent(
-                        EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-                      );
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
+            }
           ],
           modelId: modelId,
         }}
       />
+
+      <ChangeIncidentState incidentId={modelId} onActionComplete={()=>{}} />
 
       <div className="flex space-x-5 mt-5 mb-5 w-full justify-between">
         <InfoCard

@@ -64,7 +64,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   if (props.error) {
     return (
       <ErrorMessage
-        error={props.error}
+        message={props.error}
         onRefreshClick={props.onRefreshClick ? props.onRefreshClick : undefined}
       />
     );

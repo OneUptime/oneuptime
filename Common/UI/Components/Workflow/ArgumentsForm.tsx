@@ -56,7 +56,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         {component.metadata.arguments &&
           component.metadata.arguments.length === 0 && (
             <ErrorMessage
-              error={"This component does not take any arguments."}
+              message={"This component does not take any arguments."}
             />
           )}
         {component.metadata.arguments &&

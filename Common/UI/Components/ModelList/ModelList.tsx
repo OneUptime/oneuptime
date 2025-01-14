@@ -223,7 +223,7 @@ const ModelList: <TBaseModel extends BaseModel>(
 
         {!isLoading && !error && searchedList.length === 0 ? (
           <ErrorMessage
-            error={
+            message={
               searchText
                 ? "No items match your search"
                 : props.noItemsMessage || "No items found."

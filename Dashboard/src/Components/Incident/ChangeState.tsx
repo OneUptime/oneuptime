@@ -20,6 +20,7 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
+import { Black } from "Common/Types/BrandColors";
 
 
 export interface ComponentProps {
@@ -73,7 +74,9 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           name: true,
           color: true,
         },
-        sort: {},
+        sort: {
+          order: SortOrder.Ascending,
+        },
         requestOptions: {},
       });
 
@@ -163,25 +166,39 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   return (
     <div className="-ml-3 mt-1">
       
-      <ProgressButtons />
+      <ProgressButtons
+
+        id="incident-state-progress-buttons"
+        currentStepId={currentIncidentState?.id?.toString() || ""}
+        onStepClick={(stepId: string) => {
+          const incidentState: IncidentState | undefined = incidentStates.find(
+            (state: IncidentState) => state.id?.toString() === stepId,
+          );
+
+          setSelectedIncidentState(incidentState);
+          setShowModal(true);
+        }}
+
+        progressButtonItems={incidentStates.map((state: IncidentState) => {
+          return {
+            id: state.id?.toString() || "",
+            title: state.name || "",
+            color: state.color || Black,
+          };
+        })}
+      />
 
       {showModal && (
         <ModelFormModal
           modelType={IncidentStateTimeline}
           name={
-            props.incidentType === IncidentType.Ack
-              ? "Acknowledge Incident"
-              : "Resolve Incident"
+            "create-incident-state-timeline"
           }
           title={
-            props.incidentType === IncidentType.Ack
-              ? "Acknowledge Incident"
-              : "Resolve Incident"
+           "Mark Incident as " + selectedIncidentState?.name
           }
           description={
-            props.incidentType === IncidentType.Ack
-              ? "Mark this incident as acknowledged."
-              : "Mark this incident as resolved."
+          "You are about to mark this incident as " + selectedIncidentState?.name + "."
           }
           onClose={() => {
             setShowModal(false);
@@ -195,51 +212,9 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
               throw new BadDataException("ProjectId not found.");
             }
 
-            const incidentStates: ListResult<IncidentState> =
-              await ModelAPI.getList<IncidentState>({
-                modelType: IncidentState,
-                query: {
-                  projectId: projectId,
-                },
-                limit: 99,
-                skip: 0,
-                select: {
-                  _id: true,
-                  isResolvedState: true,
-                  isAcknowledgedState: true,
-                  isCreatedState: true,
-                },
-                sort: {},
-                requestOptions: {},
-              });
-
-            let stateId: ObjectID | null = null;
-
-            for (const state of incidentStates.data) {
-              if (
-                props.incidentType === IncidentType.Ack &&
-                state.isAcknowledgedState
-              ) {
-                stateId = state.id;
-                break;
-              }
-
-              if (
-                props.incidentType === IncidentType.Resolve &&
-                state.isResolvedState
-              ) {
-                stateId = state.id;
-                break;
-              }
-            }
-
-            if (!stateId) {
-              throw new BadDataException("Incident State not found.");
-            }
-
             model.projectId = projectId;
             model.incidentId = props.incidentId;
-            model.incidentStateId = stateId;
+            model.incidentStateId = selectedIncidentState!.id!;
 
             return model;
           }}

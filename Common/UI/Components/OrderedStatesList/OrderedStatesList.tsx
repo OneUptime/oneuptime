@@ -46,7 +46,7 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
   if (props.data.length === 0) {
     return (
       <ErrorMessage
-        error={
+        message={
           props.noItemsMessage
             ? props.noItemsMessage
             : `No ${props.singularLabel.toLocaleLowerCase()}`

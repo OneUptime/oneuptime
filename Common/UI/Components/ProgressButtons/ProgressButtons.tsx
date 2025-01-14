@@ -34,7 +34,7 @@ const ProgressButtons: FunctionComponent<ComponentProps> = (
     <nav aria-label="Progress" id={props.id}>
       <ol
         role="list"
-        className="divide-y divide-gray-300 rounded-md border border-gray-300 md:flex md:divide-y-0"
+        className="bg-white shadow divide-y divide-gray-300 rounded-md border border-gray-300 md:flex md:divide-y-0"
       >
         {props.progressButtonItems.map(
           (progressButtonItem: ProgressItemProps, index: number) => {

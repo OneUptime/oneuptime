@@ -142,7 +142,7 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
 
       {props.showFilter && props.filterError && (
         <ErrorMessage
-          error={props.filterError}
+          message={props.filterError}
           onRefreshClick={props.onFilterRefreshClick}
         />
       )}

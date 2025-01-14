@@ -48,7 +48,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
         {component.metadata.returnValues &&
           component.metadata.returnValues.length === 0 && (
             <ErrorMessage
-              error={
+              message={
                 'This workflow trigger does not take any return values. You can run it by clicking the "Run" button below.'
               }
             />

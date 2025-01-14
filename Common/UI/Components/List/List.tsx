@@ -61,7 +61,7 @@ const List: ListFunction = <T extends GenericObject>(
       return (
         <div className="p-6">
           <ErrorMessage
-            error={props.error}
+            message={props.error}
             onRefreshClick={props.onRefreshClick}
           />
         </div>
@@ -72,7 +72,7 @@ const List: ListFunction = <T extends GenericObject>(
       return (
         <div className="p-6">
           <ErrorMessage
-            error={
+            message={
               props.noItemsMessage
                 ? props.noItemsMessage
                 : `No ${props.singularLabel.toLocaleLowerCase()}`

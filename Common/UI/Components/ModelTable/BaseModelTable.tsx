@@ -1717,7 +1717,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               {tableColumns.length === 0 && props.columns.length > 0 ? (
                 <ErrorMessage
-                  error={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                     model.getReadPermissions(),
                   ).join(", ")}`}
                 />

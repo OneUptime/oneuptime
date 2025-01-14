@@ -40,7 +40,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (!probeMonitorResponse) {
       return (
         <ErrorMessage
-          error={
+          message={
             "No summary available for the selected probe. Should be few minutes for summary to show up. "
           }
         />
@@ -108,7 +108,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <ErrorMessage
-        error={
+        message={
           "No summary available for the selected probe. Should be few minutes for summary to show up. "
         }
       />
@@ -121,7 +121,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <ErrorMessage
-        error={
+        message={
           "No summary available. Looks like no incoming / inbound request was made."
         }
       />

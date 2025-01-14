@@ -22,28 +22,28 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <li
-      className="relative md:flex md:flex-1"
+      className="relative md:flex md:flex-1 "
       id={props.id}
       key={props.id}
       onClick={() => {
         return props.onClick();
       }}
     >
-      <div className="group flex w-full items-center">
+      <div className="group flex w-full items-center hover:bg-gray-50 cursor-pointer">
         <span className="flex items-center px-6 py-4 text-sm font-medium">
           {props.isCompletedStep && (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 group-hover:bg-indigo-800">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 group-hover:bg-indigo-800" style={{ backgroundColor: props.color.toString() }}>
               <Icon icon={IconProp.Check} className="size-6 text-white" />
             </span>
           )}
           {props.isCurrentStep && (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600" style={{ borderColor: props.color.toString() }}>
               <span className="text-indigo-600">{props.stepCount}</span>
             </span>
           )}
-          {!props.isCompletedStep && !props.isCompletedStep && (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 group-hover:border-gray-400">
-              <span className="text-gray-500 group-hover:text-gray-900">
+          {!props.isCompletedStep && !props.isCurrentStep && (
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 group-hover:border-gray-400" style={{ borderColor: props.color.toString() }}>
+              <span className="text-gray-500 group-hover:text-gray-900" style={{ color: props.color.toString() }}>
                 {props.stepCount}
               </span>
             </span>
