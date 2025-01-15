@@ -15,7 +15,7 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
 
-export interface ComponentProps {
+export interface FeedItemProps {
   key: string;
   textInMarkdown: string;
   element?: ReactElement;
@@ -24,6 +24,11 @@ export interface ComponentProps {
   itemDateTime: Date;
   icon: IconProp;
   color: Color;
+}
+
+
+export interface ComponentProps extends FeedItemProps {
+  isLastItem?: boolean;
 }
 
 const FeedItem: FunctionComponent<ComponentProps> = (

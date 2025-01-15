@@ -134,8 +134,8 @@ export class Service extends DatabaseService<Model> {
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     // if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
-    if (onUpdate.updateBy.data.status && onUpdate.updateBy.query.id) {
-      const id: ObjectID = onUpdate.updateBy.query.id! as ObjectID;
+    if (onUpdate.updateBy.data.status && onUpdate.updateBy.query._id) {
+      const id: ObjectID = onUpdate.updateBy.query._id! as ObjectID;
 
       const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
         {
@@ -177,7 +177,12 @@ export class Service extends DatabaseService<Model> {
             projectId: onCalldutyPolicyExecutionLog.projectId!,
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
-            feedInfoInMarkdown: `**On Call Policy Status Updated: ** On Call Policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**. ${onCalldutyPolicyExecutionLog.statusMessage}`,
+            moreInformationInMarkdown: `**Status:** ${onCalldutyPolicyExecutionLog.status}
+            
+**Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`,
+            feedInfoInMarkdown: `**On Call Policy Status Updated:** 
+
+On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`,
           });
         }
       }

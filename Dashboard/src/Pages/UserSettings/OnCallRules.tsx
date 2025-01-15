@@ -134,7 +134,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description: options.description,
         }}
         noItemsMessage={
-          "No notification rules found. Please add one to receive notifications."
+          "No notification rules found for this user. Please add one to receive notifications."
         }
         formFields={[
           {

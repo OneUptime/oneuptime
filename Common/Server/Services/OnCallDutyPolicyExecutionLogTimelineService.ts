@@ -114,9 +114,9 @@ export class Service extends DatabaseService<Model> {
           ? this.getColorBasedOnStatus(status)
           : Blue500;
 
-        const feedInfoInMarkdown: string = `
-    The On Call Policy "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}" has been triggered. The escalation rule "${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}" ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule " + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name) : ""} were applied. The user "${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}" (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The current status is "${status}" with the message: "${onCallDutyPolicyExecutionLogTimeline.statusMessage}". ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The user belongs to the team " + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at " + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt : ""}
-      `;
+        const feedInfoInMarkdown: string = `**On-call alert ${status} to ${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name?.toString().trim()}**
+
+The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}** has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule **" + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name + "**") : ""} were applied. The user **${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}** (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "**" : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "**" : ""}`;
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
 
