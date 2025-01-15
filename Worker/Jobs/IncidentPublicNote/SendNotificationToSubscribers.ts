@@ -290,6 +290,7 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: `**Notification sent to subscribers** for public note added to this Incident.`,
         moreInformationInMarkdown: `**Public Note:**
+        
 ${incidentPublicNote.note}`,
       });
 
