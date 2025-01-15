@@ -95,10 +95,12 @@ const FeedItem: FunctionComponent<ComponentProps> = (
     return (
       <li key={props.key}>
         <div className="relative pb-8">
-          {!props.isLastItem && <span
-            className="absolute left-5 top-5 -ml-px h-full w-0.5 bg-gray-200"
-            aria-hidden="true"
-          ></span>}
+          {!props.isLastItem && (
+            <span
+              className="absolute left-5 top-5 -ml-px h-full w-0.5 bg-gray-200"
+              aria-hidden="true"
+            ></span>
+          )}
           <div className="relative flex items-start space-x-3">
             <div className="relative">
               {props.user && getUserIcon()}

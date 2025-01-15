@@ -19,10 +19,9 @@ const Feed: FunctionComponent<ComponentProps> = (
           </div>
         )}
         {props.items.map((item: FeedItemProps, index: number) => {
-          return <FeedItem {...item} 
-
-          isLastItem={index === props.items.length - 1}
-          />;
+          return (
+            <FeedItem {...item} isLastItem={index === props.items.length - 1} />
+          );
         })}
       </ul>
     </div>
