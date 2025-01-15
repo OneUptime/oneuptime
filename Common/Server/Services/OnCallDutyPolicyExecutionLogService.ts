@@ -9,10 +9,11 @@ import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import { Yellow500 } from "../../Types/BrandColors";
+import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
+import Color from "../../Types/Color";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -129,6 +130,24 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  public getDisplayColorByStatus(status: OnCallDutyPolicyStatus): Color {
+    switch (status) {
+      case OnCallDutyPolicyStatus.Scheduled:
+        return Blue500;
+      case OnCallDutyPolicyStatus.Started:
+        return Yellow500;
+      case OnCallDutyPolicyStatus.Executing:
+        return Yellow500;
+      case OnCallDutyPolicyStatus.Completed:
+        return Green500;
+      case OnCallDutyPolicyStatus.Error:
+        return Red500;
+      default:
+        return Blue500;
+    }
+  }
+
+
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
@@ -176,7 +195,9 @@ export class Service extends DatabaseService<Model> {
             incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
             projectId: onCalldutyPolicyExecutionLog.projectId!,
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-            displayColor: Yellow500,
+            displayColor: onCalldutyPolicyExecutionLog.status ? this.getDisplayColorByStatus(
+              onCalldutyPolicyExecutionLog.status
+            ) : Blue500,
             moreInformationInMarkdown: `**Status:** ${onCalldutyPolicyExecutionLog.status}
             
 **Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`,
