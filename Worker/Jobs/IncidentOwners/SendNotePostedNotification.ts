@@ -212,7 +212,7 @@ RunCron(
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
         });
 
-        moreIncidentFeedInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(

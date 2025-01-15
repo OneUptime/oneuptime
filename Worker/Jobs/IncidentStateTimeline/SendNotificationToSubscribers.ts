@@ -98,6 +98,7 @@ RunCron(
           _id: true,
           title: true,
           description: true,
+          projectId: true,
           monitors: {
             _id: true,
           },
@@ -296,6 +297,9 @@ RunCron(
         }
       }
 
+
+      logger.debug("Notificaiton sent to subscribers for incident state change");
+
       await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
@@ -303,6 +307,8 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
       });
+
+      logger.debug("Incident Feed created");
     }
   },
 );

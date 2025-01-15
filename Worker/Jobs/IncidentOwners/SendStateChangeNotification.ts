@@ -74,6 +74,7 @@ RunCron(
           _id: true,
           title: true,
           description: true,
+          projectId: true,
           monitors: {
             name: true,
           },
@@ -213,7 +214,7 @@ RunCron(
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
 
-        moreIncidentFeedInformationInMarkdown += `User notified: ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
       await IncidentFeedService.createIncidentFeed({

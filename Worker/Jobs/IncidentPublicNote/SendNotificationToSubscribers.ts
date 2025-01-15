@@ -78,6 +78,7 @@ RunCron(
           _id: true,
           title: true,
           description: true,
+          projectId: true,
           monitors: {
             _id: true,
           },
@@ -278,6 +279,10 @@ RunCron(
         }
       }
 
+      logger.debug(
+        `Notification sent to subscribers for public note added to incident: ${incident.id}`,
+      );
+
       await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
@@ -287,6 +292,8 @@ RunCron(
         moreInformationInMarkdown: `**Public Note:**
 ${incidentPublicNote.note}`,
       });
+
+      logger.debug("Incident Feed created");
     }
   },
 );
