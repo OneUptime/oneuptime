@@ -535,9 +535,12 @@ const IncidentView: FunctionComponent<
         }}
       />
 
-      <ChangeIncidentState incidentId={modelId} onActionComplete={async () => {
+      <ChangeIncidentState
+        incidentId={modelId}
+        onActionComplete={async () => {
           await fetchData();
-      }} />
+        }}
+      />
 
       <div className="flex space-x-5 mt-5 mb-5 w-full justify-between">
         <InfoCard

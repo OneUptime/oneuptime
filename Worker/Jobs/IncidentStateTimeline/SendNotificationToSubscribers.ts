@@ -297,8 +297,9 @@ RunCron(
         }
       }
 
-
-      logger.debug("Notificaiton sent to subscribers for incident state change");
+      logger.debug(
+        "Notificaiton sent to subscribers for incident state change",
+      );
 
       await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,

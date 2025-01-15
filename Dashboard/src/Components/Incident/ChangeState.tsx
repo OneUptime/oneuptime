@@ -208,13 +208,13 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             return model;
           }}
           onSuccess={(model: IncidentStateTimeline) => {
-
             //get incident state and update current incident state
-            const incidentState: IncidentState | undefined = incidentStates.find(
-              (state: IncidentState) => {
-                return state.id?.toString() === model.incidentStateId?.toString();
-              },
-            );
+            const incidentState: IncidentState | undefined =
+              incidentStates.find((state: IncidentState) => {
+                return (
+                  state.id?.toString() === model.incidentStateId?.toString()
+                );
+              });
 
             setCurrentIncidentState(incidentState);
 

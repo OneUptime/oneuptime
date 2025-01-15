@@ -8,6 +8,7 @@ import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -151,11 +152,28 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    if (onUpdate.updateBy.query.id) {
-      await this.addToIncidentFeed({
-        onCallDutyPolicyExecutionLogTimelineId: onUpdate.updateBy.query
-          .id as ObjectID,
+    if (onUpdate.updateBy.query) {
+
+      const updatedItems: Array<Model> = await this.findBy({
+        query: onUpdate.updateBy.query,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
       });
+
+      for(const updatedItem of updatedItems) {
+        await this.addToIncidentFeed({
+          onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
+        });
+      }
+
+
+      
     }
 
     return onUpdate;

@@ -271,8 +271,6 @@ RunCron(
         }
       }
 
-      debugger;
-
       logger.debug("Creating incident feed for subscriber notification");
 
       await IncidentFeedService.createIncidentFeed({
@@ -285,6 +283,5 @@ RunCron(
 
       logger.debug("Incident Feed created");
     }
-    
   },
 );

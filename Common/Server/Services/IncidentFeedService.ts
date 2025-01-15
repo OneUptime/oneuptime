@@ -1,4 +1,3 @@
-import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
@@ -7,13 +6,13 @@ import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import Model, {
+import IncidentFeed, {
   IncidentFeedEventType,
 } from "Common/Models/DatabaseModels/IncidentFeed";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<IncidentFeed> {
   public constructor() {
-    super(Model);
+    super(IncidentFeed);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 120);
@@ -29,12 +28,11 @@ export class Service extends DatabaseService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
-  }): Promise<Model> {
-
+  }): Promise<IncidentFeed> {
     logger.debug("IncidentFeedService.createIncidentFeed");
     logger.debug(data);
 
-    const incidentFeed: Model = new Model();
+    const incidentFeed: IncidentFeed = new IncidentFeed();
 
     if (!data.incidentId) {
       throw new BadDataException("Incident ID is required");
@@ -74,7 +72,7 @@ export class Service extends DatabaseService<Model> {
       incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
     }
 
-    const createdIncidentFeed: IncidentFeed  =  await this.create({
+    const createdIncidentFeed: IncidentFeed = await this.create({
       data: incidentFeed,
       props: {
         isRoot: true,
@@ -85,8 +83,6 @@ export class Service extends DatabaseService<Model> {
     logger.debug(createdIncidentFeed);
 
     return createdIncidentFeed;
-
-
   }
 }
 

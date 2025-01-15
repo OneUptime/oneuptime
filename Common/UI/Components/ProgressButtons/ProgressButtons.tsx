@@ -16,39 +16,39 @@ const ProgressButtons: FunctionComponent<ComponentProps> = (
   const isStepCompleted: IsStepCompletedFunction = (
     stepId: string,
   ): boolean => {
-    
     // if the step is on or before the completed step, return true
     return Boolean(
       props.completedStepId &&
-      props.progressButtonItems.findIndex(
-        (progressButtonItem: ProgressItemProps) =>
-          progressButtonItem.id === stepId,
-      ) <=
         props.progressButtonItems.findIndex(
-          (progressButtonItem: ProgressItemProps) =>
-            progressButtonItem.id === props.completedStepId,
-        )
+          (progressButtonItem: ProgressItemProps) => {
+            return progressButtonItem.id === stepId;
+          },
+        ) <=
+          props.progressButtonItems.findIndex(
+            (progressButtonItem: ProgressItemProps) => {
+              return progressButtonItem.id === props.completedStepId;
+            },
+          ),
     );
   };
 
-
-  const isCurrentStep: IsStepCompletedFunction = (
-    stepId: string,
-  ): boolean => {
+  const isCurrentStep: IsStepCompletedFunction = (stepId: string): boolean => {
     // if this is one step ahead of the completed step, return true
     return Boolean(
       props.completedStepId &&
         props.progressButtonItems.findIndex(
-          (progressButtonItem: ProgressItemProps) =>
-            progressButtonItem.id === stepId,
+          (progressButtonItem: ProgressItemProps) => {
+            return progressButtonItem.id === stepId;
+          },
         ) ===
           props.progressButtonItems.findIndex(
-            (progressButtonItem: ProgressItemProps) =>
-              progressButtonItem.id === props.completedStepId,
-          ) + 1,
+            (progressButtonItem: ProgressItemProps) => {
+              return progressButtonItem.id === props.completedStepId;
+            },
+          ) +
+            1,
     );
-
-  }
+  };
 
   return (
     <nav aria-label="Progress" id={props.id} className="ml-3">

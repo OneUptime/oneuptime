@@ -26,10 +26,14 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
       id={props.id}
       key={props.id}
       onClick={() => {
-        if(!props.isCompletedStep) return props.onClick();
+        if (!props.isCompletedStep) {
+          return props.onClick();
+        }
       }}
     >
-      <div className={`group flex w-full items-center ${props.isCompletedStep ? '': 'hover:bg-gray-50 cursor-pointer'}`}>
+      <div
+        className={`group flex w-full items-center ${props.isCompletedStep ? "" : "hover:bg-gray-50 cursor-pointer"}`}
+      >
         <span className="flex items-center px-6 py-4 text-sm font-medium">
           {props.isCompletedStep && (
             <span
@@ -44,9 +48,14 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
               className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600"
               style={{ borderColor: props.color.toString() }}
             >
-              <span className="text-indigo-600" style={{
-                color: props.color.toString()
-              }} >{props.stepCount}</span>
+              <span
+                className="text-indigo-600"
+                style={{
+                  color: props.color.toString(),
+                }}
+              >
+                {props.stepCount}
+              </span>
             </span>
           )}
           {!props.isCompletedStep && !props.isCurrentStep && (

@@ -12,9 +12,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div
-      className={`rounded-md bg-white shadow p-5 ${props.className || ""}`}
-    >
+    <div className={`rounded-md bg-white shadow p-5 ${props.className || ""}`}>
       <div>
         <FieldLabelElement title={props.title} />
       </div>
