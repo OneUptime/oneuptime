@@ -153,7 +153,6 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.query) {
-
       const updatedItems: Array<Model> = await this.findBy({
         query: onUpdate.updateBy.query,
         props: {
@@ -166,14 +165,11 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
         skip: 0,
       });
 
-      for(const updatedItem of updatedItems) {
+      for (const updatedItem of updatedItems) {
         await this.addToIncidentFeed({
           onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
         });
       }
-
-
-      
     }
 
     return onUpdate;

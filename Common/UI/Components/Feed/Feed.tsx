@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import FeedItem, { ComponentProps as FeedItemProps } from "./FeedItem";
+import FeedItem, { FeedItemProps } from "./FeedItem";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
@@ -18,8 +18,11 @@ const Feed: FunctionComponent<ComponentProps> = (
             <ErrorMessage message={props.noItemsMessage} />
           </div>
         )}
-        {props.items.map((item: FeedItemProps) => {
-          return <FeedItem {...item} />;
+        {props.items.map((item: FeedItemProps, index: number) => {
+          return <FeedItem {...item} 
+
+          isLastItem={index === props.items.length - 1}
+          />;
         })}
       </ul>
     </div>

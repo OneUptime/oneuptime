@@ -26,7 +26,6 @@ export interface FeedItemProps {
   color: Color;
 }
 
-
 export interface ComponentProps extends FeedItemProps {
   isLastItem?: boolean;
 }

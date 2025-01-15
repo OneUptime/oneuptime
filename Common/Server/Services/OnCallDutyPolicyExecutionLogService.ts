@@ -147,7 +147,6 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
@@ -195,9 +194,11 @@ export class Service extends DatabaseService<Model> {
             incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
             projectId: onCalldutyPolicyExecutionLog.projectId!,
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-            displayColor: onCalldutyPolicyExecutionLog.status ? this.getDisplayColorByStatus(
-              onCalldutyPolicyExecutionLog.status
-            ) : Blue500,
+            displayColor: onCalldutyPolicyExecutionLog.status
+              ? this.getDisplayColorByStatus(
+                  onCalldutyPolicyExecutionLog.status,
+                )
+              : Blue500,
             moreInformationInMarkdown: `**Status:** ${onCalldutyPolicyExecutionLog.status}
             
 **Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`,
