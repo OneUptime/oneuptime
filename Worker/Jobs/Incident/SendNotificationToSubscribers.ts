@@ -52,6 +52,7 @@ RunCron(
         _id: true,
         title: true,
         description: true,
+        projectId: true,
         monitors: {
           _id: true,
         },
@@ -65,7 +66,8 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `Notification sent to Status Page Subscribers on Incident Creation`;
+      const incidentFeedText: string = `**Subscriber Incident Created Notification Sent**:
+      Notification sent to status page subscribers because this incident was created.`;
 
       if (!incident.monitors || incident.monitors.length === 0) {
         continue;
@@ -269,6 +271,10 @@ RunCron(
         }
       }
 
+      debugger;
+
+      logger.debug("Creating incident feed for subscriber notification");
+
       await IncidentFeedService.createIncidentFeed({
         incidentId: incident.id!,
         projectId: incident.projectId!,
@@ -276,6 +282,9 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: incidentFeedText,
       });
+
+      logger.debug("Incident Feed created");
     }
+    
   },
 );

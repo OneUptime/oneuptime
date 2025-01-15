@@ -52,6 +52,7 @@ RunCron(
         skip: 0,
         select: {
           _id: true,
+          projectId: true,
           incidentId: true,
           incidentStateId: true,
           incidentState: {

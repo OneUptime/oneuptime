@@ -1,9 +1,11 @@
+import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import Model, {
   IncidentFeedEventType,
@@ -28,6 +30,10 @@ export class Service extends DatabaseService<Model> {
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
   }): Promise<Model> {
+
+    logger.debug("IncidentFeedService.createIncidentFeed");
+    logger.debug(data);
+
     const incidentFeed: Model = new Model();
 
     if (!data.incidentId) {
@@ -68,12 +74,19 @@ export class Service extends DatabaseService<Model> {
       incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
     }
 
-    return await this.create({
+    const createdIncidentFeed: IncidentFeed  =  await this.create({
       data: incidentFeed,
       props: {
         isRoot: true,
       },
     });
+
+    logger.debug("Incident Feed created");
+    logger.debug(createdIncidentFeed);
+
+    return createdIncidentFeed;
+
+
   }
 }
 

@@ -59,6 +59,7 @@ RunCron(
           _id: true,
           note: true,
           incidentId: true,
+          projectId: true,
         },
       });
 
