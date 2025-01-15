@@ -4,7 +4,7 @@ import ProgressButtonItem, { ProgressItemProps } from "./ProgressButtonItem";
 export interface ComponentProps {
   id: string;
   progressButtonItems: Array<ProgressItemProps>;
-  currentStepId: string;
+  completedStepId?: string | undefined;
   onStepClick?: (stepId: string) => void;
 }
 
@@ -16,25 +16,45 @@ const ProgressButtons: FunctionComponent<ComponentProps> = (
   const isStepCompleted: IsStepCompletedFunction = (
     stepId: string,
   ): boolean => {
-    return (
+    
+    // if the step is on or before the completed step, return true
+    return Boolean(
+      props.completedStepId &&
       props.progressButtonItems.findIndex(
-        (progressButtonItem: ProgressItemProps) => {
-          return progressButtonItem.id === stepId;
-        },
-      ) <
-      props.progressButtonItems.findIndex(
-        (progressButtonItem: ProgressItemProps) => {
-          return progressButtonItem.id === props.currentStepId;
-        },
-      )
+        (progressButtonItem: ProgressItemProps) =>
+          progressButtonItem.id === stepId,
+      ) <=
+        props.progressButtonItems.findIndex(
+          (progressButtonItem: ProgressItemProps) =>
+            progressButtonItem.id === props.completedStepId,
+        )
     );
   };
 
+
+  const isCurrentStep: IsStepCompletedFunction = (
+    stepId: string,
+  ): boolean => {
+    // if this is one step ahead of the completed step, return true
+    return Boolean(
+      props.completedStepId &&
+        props.progressButtonItems.findIndex(
+          (progressButtonItem: ProgressItemProps) =>
+            progressButtonItem.id === stepId,
+        ) ===
+          props.progressButtonItems.findIndex(
+            (progressButtonItem: ProgressItemProps) =>
+              progressButtonItem.id === props.completedStepId,
+          ) + 1,
+    );
+
+  }
+
   return (
-    <nav aria-label="Progress" id={props.id}>
+    <nav aria-label="Progress" id={props.id} className="ml-3">
       <ol
         role="list"
-        className="bg-white shadow divide-y divide-gray-300 rounded-md border border-gray-300 md:flex md:divide-y-0"
+        className="bg-white shadow divide-y divide-gray-300 rounded-md md:flex md:divide-y-0"
       >
         {props.progressButtonItems.map(
           (progressButtonItem: ProgressItemProps, index: number) => {
@@ -49,7 +69,7 @@ const ProgressButtons: FunctionComponent<ComponentProps> = (
                     props.progressButtonItems.length - 1
                   ]!.id
                 }
-                isCurrentStep={progressButtonItem.id === props.currentStepId}
+                isCurrentStep={isCurrentStep(progressButtonItem.id)}
                 isCompletedStep={isStepCompleted(progressButtonItem.id)}
                 onClick={() => {
                   return props.onStepClick

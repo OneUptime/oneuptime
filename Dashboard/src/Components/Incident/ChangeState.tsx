@@ -81,27 +81,28 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     setIncidentStates(incidentStates.data);
   };
 
-  const fetchIncidentStateTimelines: PromiseVoidFunction = async (): Promise<void> => {
-    const incidentStateTimelines: ListResult<IncidentStateTimeline> =
-      await ModelAPI.getList<IncidentStateTimeline>({
-        modelType: IncidentStateTimeline,
-        query: {
-          incidentId: props.incidentId,
-        },
-        limit: 99,
-        skip: 0,
-        select: {
-          _id: true,
-          incidentStateId: true,
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        requestOptions: {},
-      });
+  const fetchIncidentStateTimelines: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const incidentStateTimelines: ListResult<IncidentStateTimeline> =
+        await ModelAPI.getList<IncidentStateTimeline>({
+          modelType: IncidentStateTimeline,
+          query: {
+            incidentId: props.incidentId,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            incidentStateId: true,
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          requestOptions: {},
+        });
 
-    setIncidentStateTimelines(incidentStateTimelines.data);
-  };
+      setIncidentStateTimelines(incidentStateTimelines.data);
+    };
 
   const loadPage: PromiseVoidFunction = async () => {
     try {
@@ -158,7 +159,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     <div className="-ml-3 mt-1">
       <ProgressButtons
         id="incident-state-progress-buttons"
-        currentStepId={currentIncidentState?.id?.toString() || ""}
+        completedStepId={currentIncidentState?.id?.toString() || ""}
         onStepClick={(stepId: string) => {
           const incidentState: IncidentState | undefined = incidentStates.find(
             (state: IncidentState) => {
@@ -206,7 +207,17 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
             return model;
           }}
-          onSuccess={() => {
+          onSuccess={(model: IncidentStateTimeline) => {
+
+            //get incident state and update current incident state
+            const incidentState: IncidentState | undefined = incidentStates.find(
+              (state: IncidentState) => {
+                return state.id?.toString() === model.incidentStateId?.toString();
+              },
+            );
+
+            setCurrentIncidentState(incidentState);
+
             setShowModal(false);
             props.onActionComplete();
           }}
