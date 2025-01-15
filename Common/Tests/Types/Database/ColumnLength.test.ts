@@ -14,7 +14,7 @@ describe("enum ColumnLength", () => {
   });
 
   test("ColumnLength.Color", () => {
-    expect(ColumnLength.Color).toEqual(7);
+    expect(ColumnLength.Color).toEqual(10);
   });
 
   test("ColumnLength.Name", () => {
