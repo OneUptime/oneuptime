@@ -662,6 +662,25 @@ ${onUpdate.updateBy.data.title || "No title provided."}
           });
         }
 
+        if (onUpdate.updateBy.data.rootCause) {
+          // add incident feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await IncidentFeedService.createIncidentFeed({
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Incident root cause was updated.** Here's the new root cause.
+      
+${onUpdate.updateBy.data.rootCause || "No root cause provided."}
+        `,
+            userId: createdByUserId || undefined,
+          });
+        }
+
+
         if (onUpdate.updateBy.data.description) {
           // add incident feed.
           const createdByUserId: ObjectID | undefined | null =

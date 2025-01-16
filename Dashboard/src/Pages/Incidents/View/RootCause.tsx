@@ -19,7 +19,7 @@ const IncidentDelete: FunctionComponent<
         description:
           "Why did this incident happen? Here is the root cause of this incident.",
       }}
-      isEditable={false}
+      isEditable={true}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
         modelType: Incident,
