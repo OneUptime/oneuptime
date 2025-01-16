@@ -23,12 +23,20 @@ import Color from "../../Types/Color";
 
 export enum ScheduledMaintenanceFeedEventType {
   PublicNote = "PublicNote",
-  SubscriberEmailSent = "SubscriberEmailSent",
-  OwnerEmailSent = "OwnerEmailSent",
+  SubscriberNotificationSent = "SubscriberNotificationSent",
+  OwnerNotificationSent = "OwnerNotificationSent",
+  OwnerUserAdded = "OwnerUserAdded",
+  OwnerTeamAdded = "OwnerTeamAdded",
   ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
-  ScheduledMaintenanceAcknowledged = "ScheduledMaintenanceAcknowledged",
-  ScheduledMaintenanceResolved = "ScheduledMaintenanceResolved",
+  ScheduledMaintenanceStateChanged = "ScheduledMaintenanceStateChanged",
   PrivateNote = "PrivateNote",
+  ScheduledMaintenanceUpdated = "ScheduledMaintenanceUpdated",
+  RootCause = "RootCause",
+  RemediationNotes = "RemediationNotes",
+  OwnerUserRemoved = "OwnerUserRemoved",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
+  OnCallPolicy = "OnCallPolicy",
+  OnCallNotification = "OnCallNotification",
 }
 
 @EnableDocumentation()
@@ -403,13 +411,13 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentFeed,
+      Permission.CreateScheduledMaintenanceFeed,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentFeed,
+      Permission.ReadScheduledMaintenanceFeed,
     ],
     update: [],
   })

@@ -1,11 +1,8 @@
 import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
-import ChangeScheduledMaintenanceState, {
-  StateType,
-} from "../../../Components/ScheduledMaintenance/ChangeState";
+import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesLabel";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -29,6 +26,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
@@ -379,7 +377,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
+                          "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
                           ] as boolean
                         }
                         text={
@@ -395,7 +393,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
+                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
                           ] as boolean
                         }
                         text={
@@ -411,7 +409,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
+                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
                           ] as boolean
                         }
                         text={
@@ -439,63 +437,16 @@ const ScheduledMaintenanceView: FunctionComponent<
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Change State to Ongoing",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: ScheduledMaintenance,
-                onBeforeFetchData: JSONObject | undefined,
-                fetchItems: VoidFunction | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeScheduledMaintenanceState
-                    scheduledMaintenanceId={modelId}
-                    scheduledMaintenanceTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    stateType={StateType.Ongoing}
-                    onActionComplete={() => {
-                      fetchItems && fetchItems();
-                    }}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Change State to Completed",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: ScheduledMaintenance,
-                onBeforeFetchData: JSONObject | undefined,
-                fetchItems: VoidFunction | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeScheduledMaintenanceState
-                    scheduledMaintenanceId={modelId}
-                    scheduledMaintenanceTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    stateType={StateType.Completed}
-                    onActionComplete={() => {
-                      fetchItems && fetchItems();
-                    }}
-                  />
-                );
-              },
-            },
+            }
           ],
           modelId: modelId,
+        }}
+      />
+
+      <ChangeScheduledMaintenanceState
+        scheduledMaintenanceId={modelId}
+        onActionComplete={async () => {
+          // do nothing! 
         }}
       />
 
@@ -536,6 +487,8 @@ const ScheduledMaintenanceView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
     </Fragment>
   );
 };
