@@ -18,9 +18,15 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import OneUptimeDate from "Common/Types/Date";
+import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 
 export interface ComponentProps {
-  incidentId?: ObjectID;
+  incidentId: ObjectID;
 }
 
 const IncidentFeedElement: FunctionComponent<ComponentProps> = (
@@ -29,6 +35,15 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
+
+  const [showPublicNoteModal, setShowPublicNoteModal] = React.useState<boolean>(
+    false,
+  );
+
+  const [showPrivateNoteModal, setShowPrivateNoteModal] = React.useState<boolean>(
+    false,
+  );
+
 
   type GetFeedItemsFromIncidentFeeds = (
     incidentFeeds: IncidentFeed[],
@@ -218,6 +233,22 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       }
       buttons={[
         {
+          title: "Add Public Note",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Team,
+          onClick: () => {
+              setShowPublicNoteModal(true);
+          }
+        },
+        {
+          title: "Add Private Note",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Lock,
+          onClick: () => {
+              setShowPrivateNoteModal(true);
+          }
+        },
+        {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
@@ -236,6 +267,112 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             noItemsMessage="Looks like there are no items in this feed for this incident."
           />
         )}
+        {showPublicNoteModal && (
+        <ModelFormModal
+          modelType={IncidentPublicNote}
+          name={"create-incidentt-public-note"}
+          title={"Add Public Note to this Incident"}
+          description={
+            "Add a public note to this incident. This note will be visible to all subscribers of this incident and will show up on the status page."
+          }
+          onClose={() => {
+            setShowPublicNoteModal(false);
+          }}
+          submitButtonText="Save"
+          onBeforeCreate={async (model: IncidentPublicNote) => {
+            model.incidentId = props.incidentId!;
+            return model;
+          }}
+          onSuccess={() => {
+            setShowPublicNoteModal(false);
+            fetchItems().catch((err: unknown) => {
+              setError(API.getFriendlyMessage(err as Exception));
+            });
+          }}
+          formProps={{
+            name: "create-scheduled-maintenance-state-timeline",
+            modelType: IncidentPublicNote,
+            id: "create-scheduled-maintenance-state-timeline",
+            fields: [
+              {
+                field: {
+                  note: true,
+                },
+                fieldType: FormFieldSchemaType.Markdown,
+                description:
+                  "Post a public note about this state change to the status page.",
+                title: "Public Note",
+                required: true,
+              },
+              {
+                field: {
+                  postedAt: true,
+                },
+                fieldType: FormFieldSchemaType.DateTime,
+                description:
+                  "The date and time this note was posted. By default, it will be the current date and time.",
+                title: "Posted At",
+                required: true,
+                defaultValue: OneUptimeDate.getCurrentDate(),
+              },
+              {
+                field: {
+                 shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+                },
+                fieldType: FormFieldSchemaType.Checkbox,
+                description: "Should status page subscribers be notified when this note is posted?",
+                title: "Notify Status Page Subscribers",
+                required: false,
+                defaultValue: true,
+              },
+            ],
+            formType: FormType.Create,
+          }}
+        />
+      )}
+
+      {showPrivateNoteModal && (
+        <ModelFormModal
+          modelType={IncidentInternalNote}
+          name={"create-incidentt-internal-note"}
+          title={"Add Private Note to this Incident"}
+          description={
+            "Add a private note to this incident. This note will be visible only to the team members of this incident."
+          }
+          onClose={() => {
+            setShowPrivateNoteModal(false);
+          }}
+          submitButtonText="Save"
+          onBeforeCreate={async (model: IncidentInternalNote) => {
+            model.incidentId = props.incidentId!;
+            return model;
+          }}
+          onSuccess={() => {
+            setShowPrivateNoteModal(false);
+            fetchItems().catch((err: unknown) => {
+              setError(API.getFriendlyMessage(err as Exception));
+            });
+          }}
+          formProps={{
+            name: "create-incident-internal-note",
+            modelType: IncidentInternalNote,
+            id: "create-incident-internal-note",
+            fields: [
+              {
+                field: {
+                  note: true,
+                },
+                fieldType: FormFieldSchemaType.Markdown,
+                description:
+                  "Post a private note about this incident. This note will be visible only to the team members of this incident.",
+                title: "Private Note",
+                required: true,
+              }
+            ],
+            formType: FormType.Create,
+          }}
+        />
+      )}
       </div>
     </Card>
   );
