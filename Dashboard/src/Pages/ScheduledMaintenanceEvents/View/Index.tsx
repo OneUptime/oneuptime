@@ -450,44 +450,6 @@ const ScheduledMaintenanceView: FunctionComponent<
         }}
       />
 
-      <CardModelDetail
-        name="Event Description"
-        cardProps={{
-          title: "Event Description",
-          description:
-            "Description for this event. This is visible on Status Page and is in markdown format.",
-        }}
-        editButtonText="Edit Event Description"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-
-            fieldType: FormFieldSchemaType.Markdown,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: ScheduledMaintenance,
-          id: "model-detail-event-description",
-          fields: [
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
       <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
     </Fragment>
   );

@@ -28,6 +28,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+
+<SideMenuItem
+          link={{
+            title: "Description",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Chat}
+        />
         <SideMenuItem
           link={{
             title: "Owners",
