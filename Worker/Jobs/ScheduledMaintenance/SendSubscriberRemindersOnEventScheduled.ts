@@ -6,6 +6,9 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import logger from "Common/Server/Utils/Logger";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 RunCron(
   "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -32,6 +35,7 @@ RunCron(
           title: true,
           description: true,
           startsAt: true,
+          projectId: true,
           monitors: {
             _id: true,
           },
@@ -45,15 +49,15 @@ RunCron(
 
     logger.debug(
       "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Found " +
-        scheduledEvents.length +
-        " events",
+      scheduledEvents.length +
+      " events",
     );
 
     for (const event of scheduledEvents) {
       try {
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
-            event.id,
+          event.id,
         );
 
         const nextSubscriberNotificationAt: Date | null =
@@ -65,7 +69,7 @@ RunCron(
 
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Next subscriber notification at: " +
-            nextSubscriberNotificationAt,
+          nextSubscriberNotificationAt,
         );
 
         await ScheduledMaintenanceService.updateOneById({
@@ -81,15 +85,29 @@ RunCron(
 
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Notification sent for event: " +
-            event.id,
+          event.id,
         );
       } catch (err) {
         logger.error(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Error sending notification for event: " +
-            event.id,
+          event.id,
         );
         logger.error(err);
       }
+
+
+      const scheduledMaintenanceFeedText: string = `**Reminder Notification Sent to Subscribers**:
+            
+Reminder notification sent to status page subscribers because this scheduled maintenance is about to start.`;
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        scheduledMaintenanceId: event.id!,
+        projectId: event.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: scheduledMaintenanceFeedText,
+      });
     }
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(

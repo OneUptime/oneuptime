@@ -54,7 +54,7 @@ RunCron(
 
       const scheduledMaintenanceFeedText: string = `**Subscriber Scheduled Maintenance Created Notification Sent**:
       
-Notification sent to status page subscribers because this scheduledMaintenance was created.`;
+Notification sent to status page subscribers because this scheduled maintenance was created.`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
         scheduledMaintenanceId: event.id!,
