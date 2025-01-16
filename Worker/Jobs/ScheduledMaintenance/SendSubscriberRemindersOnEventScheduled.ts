@@ -49,15 +49,15 @@ RunCron(
 
     logger.debug(
       "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Found " +
-      scheduledEvents.length +
-      " events",
+        scheduledEvents.length +
+        " events",
     );
 
     for (const event of scheduledEvents) {
       try {
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
-          event.id,
+            event.id,
         );
 
         const nextSubscriberNotificationAt: Date | null =
@@ -69,7 +69,7 @@ RunCron(
 
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Next subscriber notification at: " +
-          nextSubscriberNotificationAt,
+            nextSubscriberNotificationAt,
         );
 
         await ScheduledMaintenanceService.updateOneById({
@@ -85,16 +85,15 @@ RunCron(
 
         logger.debug(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Notification sent for event: " +
-          event.id,
+            event.id,
         );
       } catch (err) {
         logger.error(
           "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Error sending notification for event: " +
-          event.id,
+            event.id,
         );
         logger.error(err);
       }
-
 
       const scheduledMaintenanceFeedText: string = `**Reminder Notification Sent to Subscribers**:
             
