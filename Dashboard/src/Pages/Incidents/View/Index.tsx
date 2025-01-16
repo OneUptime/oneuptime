@@ -368,7 +368,7 @@ const IncidentView: FunctionComponent<
                   return <>-</>;
                 }
 
-                return <># {item.incidentNumber}</>;
+                return <>#{item.incidentNumber}</>;
               },
             },
             {

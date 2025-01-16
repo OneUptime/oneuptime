@@ -532,7 +532,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <># {item.incidentNumber}</>;
+              return <>#{item.incidentNumber}</>;
             },
           },
           {
