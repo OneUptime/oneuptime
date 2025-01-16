@@ -37,6 +37,8 @@ deployment:
     replicaCount:
   incomingRequestIngest:
     replicaCount:
+  otelCollector: 
+    replicaCount: 
 
 metalLb:
   enabled: false

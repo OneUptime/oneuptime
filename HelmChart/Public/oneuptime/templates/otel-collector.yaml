@@ -1,8 +1,73 @@
 # OneUptime otel-collector Deployment
-{{- $otelCollectorEnv := dict "PORT"  $.Values.port.otelCollectorGrpc -}}
-{{- $otelCollectorPorts := dict "grpc" $.Values.port.otelCollectorGrpc "http" $.Values.port.otelCollectorHttp -}}
-{{- $identityDeploymentArgs :=dict "IsServer" true "Ports" $otelCollectorPorts "ServiceName" "otel-collector"  "Release" $.Release "Values" $.Values "Env" $otelCollectorEnv -}}
-{{- include "oneuptime.deployment" $identityDeploymentArgs }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+  {{- if $.Values.deployment.otelCollector.replicaCount }}
+  replicas: {{ $.Values.deployment.otelCollector.replicaCount }}
+  {{- else }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+        date: "{{ now | unixEpoch }}"
+        appname: oneuptime
+    spec:
+      volumes:
+        - name: greenlockrc
+          emptyDir:
+            sizeLimit: "1Gi"
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.nodeSelector }}
+      nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "otel-collector" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: PORT
+              value: {{ $.Values.port.otelCollectorGrpc | quote }} 
+          ports:
+            - containerPort: {{ $.Values.port.otelCollectorHttp }}
+              protocol: TCP
+              name: http
+            - containerPort: {{ $.Values.port.otelCollectorGrpc }}
+              protocol: TCP
+              name: grpc
+      restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
 # OneUptime otel-collector Service
