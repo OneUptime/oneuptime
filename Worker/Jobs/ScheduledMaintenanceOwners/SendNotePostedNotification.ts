@@ -19,6 +19,9 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import User from "Common/Models/DatabaseModels/User";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",
@@ -93,6 +96,11 @@ RunCron(
     const notes: Array<BaseModel> = [...publicNotes, ...privateNotes];
 
     for (const noteObject of notes) {
+
+      let moreScheduledMaintenanceFeedInformationInMarkdown: string = "";
+
+
+
       const note: BaseModel = noteObject as BaseModel;
 
       // get all scheduled events of all the projects.
@@ -195,7 +203,25 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
         });
+
+        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
+
+      const isPrivateNote: boolean = privateNoteIds.includes(
+        note._id!.toString(),
+      );
+
+
+      const scheduledMaintenanceFeedText: string = `**Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the scheduled maintenance.`;
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId!,
+        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: scheduledMaintenanceFeedText,
+        moreInformationInMarkdown: moreScheduledMaintenanceFeedInformationInMarkdown,
+      });
     }
   },
 );
