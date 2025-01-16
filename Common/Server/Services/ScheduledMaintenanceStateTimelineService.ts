@@ -23,6 +23,8 @@ import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/Schedul
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
@@ -134,6 +136,34 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       props: {
         isRoot: true,
       },
+    });
+
+
+    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceStateId.toString()!,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          color: true,
+          name: true,
+        },
+      });
+
+
+    const stateName: string = scheduledMaintenanceState?.name || "";
+
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
+      projectId: createdItem.projectId!,
+      scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+      displayColor: scheduledMaintenanceState?.color,
+      feedInfoInMarkdown: "**ScheduledMaintenance State** changed to **" + stateName + "**",
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
     });
 
     // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.

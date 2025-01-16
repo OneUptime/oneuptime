@@ -30,12 +30,15 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    // get all incident notes of all the projects
+    // get all scheduledMaintenance notes of all the projects
 
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -71,6 +74,7 @@ RunCron(
             _id: true,
             title: true,
             description: true,
+            projectId: true,
             startsAt: true,
             monitors: {
               _id: true,
@@ -238,9 +242,9 @@ RunCron(
                   statusPageUrl: statusPageURL,
                   logoUrl: statuspage.logoFileId
                     ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
+                      .addRoute(FileRoute)
+                      .addRoute("/image/" + statuspage.logoFileId)
+                      .toString()
                     : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
@@ -273,6 +277,19 @@ RunCron(
           }
         }
       }
+
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        scheduledMaintenanceId: event.id!,
+        projectId: event.projectId!,
+        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: `**Notification sent to subscribers** for public note added to this ScheduledMaintenance.`,
+        moreInformationInMarkdown: `**Public Note:**
+              
+${publicNote.note}`,
+      });
+
     }
   },
 );

@@ -77,7 +77,6 @@ ${updatedItem.note}
                 `,
             });
     
-    
           }
         }
         return onUpdate;
