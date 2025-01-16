@@ -377,7 +377,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                          "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
+                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
                           ] as boolean
                         }
                         text={
@@ -393,7 +393,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
+                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
                           ] as boolean
                         }
                         text={
@@ -409,7 +409,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
+                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
                           ] as boolean
                         }
                         text={
@@ -437,7 +437,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            }
+            },
           ],
           modelId: modelId,
         }}
@@ -446,7 +446,7 @@ const ScheduledMaintenanceView: FunctionComponent<
       <ChangeScheduledMaintenanceState
         scheduledMaintenanceId={modelId}
         onActionComplete={async () => {
-          // do nothing! 
+          // do nothing!
         }}
       />
 

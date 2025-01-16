@@ -138,7 +138,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       },
     });
 
-
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
         query: {
@@ -154,15 +153,16 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         },
       });
 
-
     const stateName: string = scheduledMaintenanceState?.name || "";
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
-      feedInfoInMarkdown: "**ScheduledMaintenance State** changed to **" + stateName + "**",
+      feedInfoInMarkdown:
+        "**ScheduledMaintenance State** changed to **" + stateName + "**",
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
     });
 

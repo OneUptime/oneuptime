@@ -35,13 +35,11 @@ ${createdItem.note}
     return createdItem;
   }
 
-
-  public override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
-
+  public override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.note) {
-
-
-
       const updatedItems: Array<Model> = await this.findBy({
         query: onUpdate.updateBy.query,
         limit: LIMIT_PER_PROJECT,
@@ -62,7 +60,6 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-
         await IncidentFeedService.createIncidentFeed({
           incidentId: updatedItem.incidentId!,
           projectId: updatedItem.projectId!,
@@ -75,13 +72,10 @@ ${createdItem.note}
 ${updatedItem.note}
           `,
         });
-
-       
       }
     }
     return onUpdate;
   }
 }
-
 
 export default new Service();

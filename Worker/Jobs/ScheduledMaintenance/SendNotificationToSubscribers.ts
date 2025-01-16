@@ -57,12 +57,13 @@ RunCron(
 Notification sent to status page subscribers because this scheduledMaintenance was created.`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-              scheduledMaintenanceId: event.id!,
-              projectId: event.projectId!,
-              scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
-              displayColor: Blue500,
-              feedInfoInMarkdown: scheduledMaintenanceFeedText,
-            });
+        scheduledMaintenanceId: event.id!,
+        projectId: event.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: scheduledMaintenanceFeedText,
+      });
     }
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(

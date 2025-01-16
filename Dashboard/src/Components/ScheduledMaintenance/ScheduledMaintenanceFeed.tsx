@@ -46,165 +46,181 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     scheduledMaintenanceFeeds: ScheduledMaintenanceFeed[],
   ) => FeedItemProps[];
 
-  const getFeedItemsFromScheduledMaintenanceFeeds: GetFeedItemsFromScheduledMaintenanceFeeds = (
-    scheduledMaintenanceFeeds: ScheduledMaintenanceFeed[],
-  ): FeedItemProps[] => {
-    return scheduledMaintenanceFeeds.map((scheduledMaintenanceFeed: ScheduledMaintenanceFeed) => {
-      return getFeedItemFromScheduledMaintenanceFeed(scheduledMaintenanceFeed);
-    });
-  };
+  const getFeedItemsFromScheduledMaintenanceFeeds: GetFeedItemsFromScheduledMaintenanceFeeds =
+    (
+      scheduledMaintenanceFeeds: ScheduledMaintenanceFeed[],
+    ): FeedItemProps[] => {
+      return scheduledMaintenanceFeeds.map(
+        (scheduledMaintenanceFeed: ScheduledMaintenanceFeed) => {
+          return getFeedItemFromScheduledMaintenanceFeed(
+            scheduledMaintenanceFeed,
+          );
+        },
+      );
+    };
 
   type GetFeedItemFromScheduledMaintenanceFeed = (
     scheduledMaintenanceFeed: ScheduledMaintenanceFeed,
   ) => FeedItemProps;
 
-  const getFeedItemFromScheduledMaintenanceFeed: GetFeedItemFromScheduledMaintenanceFeed = (
-    scheduledMaintenanceFeed: ScheduledMaintenanceFeed,
-  ): FeedItemProps => {
-    let icon: IconProp = IconProp.Circle;
+  const getFeedItemFromScheduledMaintenanceFeed: GetFeedItemFromScheduledMaintenanceFeed =
+    (scheduledMaintenanceFeed: ScheduledMaintenanceFeed): FeedItemProps => {
+      let icon: IconProp = IconProp.Circle;
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated
-    ) {
-      icon = IconProp.Alert;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated
+      ) {
+        icon = IconProp.Alert;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged
-    ) {
-      icon = IconProp.ArrowCircleRight;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged
+      ) {
+        icon = IconProp.ArrowCircleRight;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated
-    ) {
-      icon = IconProp.Edit;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated
+      ) {
+        icon = IconProp.Edit;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OwnerNotificationSent
-    ) {
-      icon = IconProp.Bell;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OwnerNotificationSent
+      ) {
+        icon = IconProp.Bell;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.SubscriberNotificationSent
-    ) {
-      icon = IconProp.Notification;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.SubscriberNotificationSent
+      ) {
+        icon = IconProp.Notification;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType === ScheduledMaintenanceFeedEventType.PublicNote
-    ) {
-      icon = IconProp.Announcement;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.PublicNote
+      ) {
+        icon = IconProp.Announcement;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType === ScheduledMaintenanceFeedEventType.PrivateNote
-    ) {
-      icon = IconProp.Lock;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.PrivateNote
+      ) {
+        icon = IconProp.Lock;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OwnerUserAdded
-    ) {
-      icon = IconProp.User;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OwnerUserAdded
+      ) {
+        icon = IconProp.User;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OwnerTeamAdded
-    ) {
-      icon = IconProp.Team;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OwnerTeamAdded
+      ) {
+        icon = IconProp.Team;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.RemediationNotes
-    ) {
-      icon = IconProp.Wrench;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.RemediationNotes
+      ) {
+        icon = IconProp.Wrench;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType === ScheduledMaintenanceFeedEventType.RootCause
-    ) {
-      icon = IconProp.Cube;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.RootCause
+      ) {
+        icon = IconProp.Cube;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OwnerUserRemoved
-    ) {
-      icon = IconProp.Close;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OwnerUserRemoved
+      ) {
+        icon = IconProp.Close;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OwnerTeamRemoved
-    ) {
-      icon = IconProp.Close;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OwnerTeamRemoved
+      ) {
+        icon = IconProp.Close;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-      ScheduledMaintenanceFeedEventType.OnCallNotification
-    ) {
-      icon = IconProp.Alert;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OnCallNotification
+      ) {
+        icon = IconProp.Alert;
+      }
 
-    if (
-      scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType === ScheduledMaintenanceFeedEventType.OnCallPolicy
-    ) {
-      icon = IconProp.Call;
-    }
+      if (
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
+        ScheduledMaintenanceFeedEventType.OnCallPolicy
+      ) {
+        icon = IconProp.Call;
+      }
 
-    return {
-      key: scheduledMaintenanceFeed.id!.toString(),
-      textInMarkdown: scheduledMaintenanceFeed.feedInfoInMarkdown || "",
-      moreTextInMarkdown: scheduledMaintenanceFeed.moreInformationInMarkdown || "",
-      user: scheduledMaintenanceFeed.user,
-      itemDateTime: scheduledMaintenanceFeed.postedAt || scheduledMaintenanceFeed.createdAt!,
-      color: scheduledMaintenanceFeed.displayColor || Gray500,
-      icon: icon,
+      return {
+        key: scheduledMaintenanceFeed.id!.toString(),
+        textInMarkdown: scheduledMaintenanceFeed.feedInfoInMarkdown || "",
+        moreTextInMarkdown:
+          scheduledMaintenanceFeed.moreInformationInMarkdown || "",
+        user: scheduledMaintenanceFeed.user,
+        itemDateTime:
+          scheduledMaintenanceFeed.postedAt ||
+          scheduledMaintenanceFeed.createdAt!,
+        color: scheduledMaintenanceFeed.displayColor || Gray500,
+        icon: icon,
+      };
     };
-  };
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
     try {
-      const scheduledMaintenanceFeeds: ListResult<ScheduledMaintenanceFeed> = await ModelAPI.getList({
-        modelType: ScheduledMaintenanceFeed,
-        query: {
-          scheduledMaintenanceId: props.scheduledMaintenanceId!,
-        },
-        select: {
-          moreInformationInMarkdown: true,
-          feedInfoInMarkdown: true,
-          displayColor: true,
-          createdAt: true,
-          user: {
-            name: true,
-            email: true,
-            profilePictureId: true,
+      const scheduledMaintenanceFeeds: ListResult<ScheduledMaintenanceFeed> =
+        await ModelAPI.getList({
+          modelType: ScheduledMaintenanceFeed,
+          query: {
+            scheduledMaintenanceId: props.scheduledMaintenanceId!,
           },
-          scheduledMaintenanceFeedEventType: true,
-          postedAt: true,
-        },
-        skip: 0,
-        sort: {
-          postedAt: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-      });
+          select: {
+            moreInformationInMarkdown: true,
+            feedInfoInMarkdown: true,
+            displayColor: true,
+            createdAt: true,
+            user: {
+              name: true,
+              email: true,
+              profilePictureId: true,
+            },
+            scheduledMaintenanceFeedEventType: true,
+            postedAt: true,
+          },
+          skip: 0,
+          sort: {
+            postedAt: SortOrder.Ascending,
+          },
+          limit: LIMIT_PER_PROJECT,
+        });
 
-      setFeedItems(getFeedItemsFromScheduledMaintenanceFeeds(scheduledMaintenanceFeeds.data));
+      setFeedItems(
+        getFeedItemsFromScheduledMaintenanceFeeds(
+          scheduledMaintenanceFeeds.data,
+        ),
+      );
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));
     }

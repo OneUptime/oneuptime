@@ -14,7 +14,6 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
@@ -50,7 +49,8 @@ export class Service extends DatabaseService<Model> {
     const itemsToDelete: Model[] = onDelete.carryForward.itemsToDelete;
 
     for (const item of itemsToDelete) {
-      const scheduledMaintenanceId: ObjectID | undefined = item.scheduledMaintenanceId;
+      const scheduledMaintenanceId: ObjectID | undefined =
+        item.scheduledMaintenanceId;
       const projectId: ObjectID | undefined = item.projectId;
       const userId: ObjectID | undefined = item.userId;
 
@@ -70,7 +70,8 @@ export class Service extends DatabaseService<Model> {
           await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
             scheduledMaintenanceId: scheduledMaintenanceId,
             projectId: projectId,
-            scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was removed from the scheduled maintenance as the owner.`,
             userId: deleteByUserId || undefined,
@@ -88,7 +89,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // add scheduledMaintenance feed.
 
-    const scheduledMaintenanceId: ObjectID | undefined = createdItem.scheduledMaintenanceId;
+    const scheduledMaintenanceId: ObjectID | undefined =
+      createdItem.scheduledMaintenanceId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const userId: ObjectID | undefined = createdItem.userId;
     const createdByUserId: ObjectID | undefined =
@@ -110,7 +112,8 @@ export class Service extends DatabaseService<Model> {
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
           scheduledMaintenanceId: scheduledMaintenanceId,
           projectId: projectId,
-          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerUserAdded,
+          scheduledMaintenanceFeedEventType:
+            ScheduledMaintenanceFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was added to the scheduled maintenance as the owner.`,
           userId: createdByUserId || undefined,

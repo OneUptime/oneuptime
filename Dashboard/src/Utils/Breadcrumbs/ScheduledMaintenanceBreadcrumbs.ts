@@ -69,12 +69,15 @@ export function getScheduleMaintenanceBreadcrumbs(
       "View Scheduled Maintenance Event",
       "Delete",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION, [
-      "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
-      "Description",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Description",
+      ],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

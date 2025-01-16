@@ -35,52 +35,58 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<ScheduledMaintenanceState[]>([]);
-  const [currentScheduledMaintenanceState, setCurrentScheduledMaintenanceState] = useState<
-    ScheduledMaintenanceState | undefined
-  >(undefined);
-
-  const [selectedScheduledMaintenanceState, setSelectedScheduledMaintenanceState] = useState<
-    ScheduledMaintenanceState | undefined
-  >(undefined);
-
-  const [scheduledMaintenanceStateTimelines, setScheduledMaintenanceStateTimelines] = useState<
-    ScheduledMaintenanceStateTimeline[]
+  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
+    ScheduledMaintenanceState[]
   >([]);
+  const [
+    currentScheduledMaintenanceState,
+    setCurrentScheduledMaintenanceState,
+  ] = useState<ScheduledMaintenanceState | undefined>(undefined);
 
-  const fetchScheduledMaintenanceStates: PromiseVoidFunction = async (): Promise<void> => {
-    const projectId: ObjectID | undefined | null =
-      ProjectUtil.getCurrentProject()?.id;
+  const [
+    selectedScheduledMaintenanceState,
+    setSelectedScheduledMaintenanceState,
+  ] = useState<ScheduledMaintenanceState | undefined>(undefined);
 
-    if (!projectId) {
-      throw new BadDataException("ProjectId not found.");
-    }
+  const [
+    scheduledMaintenanceStateTimelines,
+    setScheduledMaintenanceStateTimelines,
+  ] = useState<ScheduledMaintenanceStateTimeline[]>([]);
 
-    const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
-      await ModelAPI.getList<ScheduledMaintenanceState>({
-        modelType: ScheduledMaintenanceState,
-        query: {
-          projectId: projectId,
-        },
-        limit: 99,
-        skip: 0,
-        select: {
-          _id: true,
-          isResolvedState: true,
-          isOngoingState: true,
-          isScheduledState: true,
-          isEndedState: true,
-          name: true,
-          color: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        requestOptions: {},
-      });
+  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const projectId: ObjectID | undefined | null =
+        ProjectUtil.getCurrentProject()?.id;
 
-    setScheduledMaintenanceStates(scheduledMaintenanceStates.data);
-  };
+      if (!projectId) {
+        throw new BadDataException("ProjectId not found.");
+      }
+
+      const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
+        await ModelAPI.getList<ScheduledMaintenanceState>({
+          modelType: ScheduledMaintenanceState,
+          query: {
+            projectId: projectId,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            isResolvedState: true,
+            isOngoingState: true,
+            isScheduledState: true,
+            isEndedState: true,
+            name: true,
+            color: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          requestOptions: {},
+        });
+
+      setScheduledMaintenanceStates(scheduledMaintenanceStates.data);
+    };
 
   const fetchScheduledMaintenanceStateTimelines: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -102,7 +108,9 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           requestOptions: {},
         });
 
-      setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines.data);
+      setScheduledMaintenanceStateTimelines(
+        scheduledMaintenanceStateTimelines.data,
+      );
     };
 
   const loadPage: PromiseVoidFunction = async () => {
@@ -125,18 +133,27 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
-    if (scheduledMaintenanceStates.length === 0 || scheduledMaintenanceStateTimelines.length === 0) {
+    if (
+      scheduledMaintenanceStates.length === 0 ||
+      scheduledMaintenanceStateTimelines.length === 0
+    ) {
       return;
     }
 
-    const currentScheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | undefined =
-      scheduledMaintenanceStateTimelines[scheduledMaintenanceStateTimelines.length - 1];
+    const currentScheduledMaintenanceStateTimeline:
+      | ScheduledMaintenanceStateTimeline
+      | undefined =
+      scheduledMaintenanceStateTimelines[
+        scheduledMaintenanceStateTimelines.length - 1
+      ];
 
     if (!currentScheduledMaintenanceStateTimeline) {
       return;
     }
 
-    const currentScheduledMaintenanceState: ScheduledMaintenanceState | undefined = scheduledMaintenanceStates.find(
+    const currentScheduledMaintenanceState:
+      | ScheduledMaintenanceState
+      | undefined = scheduledMaintenanceStates.find(
       (state: ScheduledMaintenanceState) => {
         return (
           state.id?.toString() ===
@@ -162,7 +179,9 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         id="scheduledMaintenance-state-progress-buttons"
         completedStepId={currentScheduledMaintenanceState?.id?.toString() || ""}
         onStepClick={(stepId: string) => {
-          const scheduledMaintenanceState: ScheduledMaintenanceState | undefined = scheduledMaintenanceStates.find(
+          const scheduledMaintenanceState:
+            | ScheduledMaintenanceState
+            | undefined = scheduledMaintenanceStates.find(
             (state: ScheduledMaintenanceState) => {
               return state.id?.toString() === stepId;
             },
@@ -171,20 +190,25 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           setSelectedScheduledMaintenanceState(scheduledMaintenanceState);
           setShowModal(true);
         }}
-        progressButtonItems={scheduledMaintenanceStates.map((state: ScheduledMaintenanceState) => {
-          return {
-            id: state.id?.toString() || "",
-            title: state.name || "",
-            color: state.color || Black,
-          };
-        })}
+        progressButtonItems={scheduledMaintenanceStates.map(
+          (state: ScheduledMaintenanceState) => {
+            return {
+              id: state.id?.toString() || "",
+              title: state.name || "",
+              color: state.color || Black,
+            };
+          },
+        )}
       />
 
       {showModal && (
         <ModelFormModal
           modelType={ScheduledMaintenanceStateTimeline}
           name={"create-scheduledMaintenance-state-timeline"}
-          title={"Mark ScheduledMaintenance as " + selectedScheduledMaintenanceState?.name}
+          title={
+            "Mark ScheduledMaintenance as " +
+            selectedScheduledMaintenanceState?.name
+          }
           description={
             "You are about to mark this scheduledMaintenance as " +
             selectedScheduledMaintenanceState?.name +
@@ -204,18 +228,23 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
             model.projectId = projectId;
             model.scheduledMaintenanceId = props.scheduledMaintenanceId;
-            model.scheduledMaintenanceStateId = selectedScheduledMaintenanceState!.id!;
+            model.scheduledMaintenanceStateId =
+              selectedScheduledMaintenanceState!.id!;
 
             return model;
           }}
           onSuccess={(model: ScheduledMaintenanceStateTimeline) => {
             //get scheduledMaintenance state and update current scheduledMaintenance state
-            const scheduledMaintenanceState: ScheduledMaintenanceState | undefined =
-              scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+            const scheduledMaintenanceState:
+              | ScheduledMaintenanceState
+              | undefined = scheduledMaintenanceStates.find(
+              (state: ScheduledMaintenanceState) => {
                 return (
-                  state.id?.toString() === model.scheduledMaintenanceStateId?.toString()
+                  state.id?.toString() ===
+                  model.scheduledMaintenanceStateId?.toString()
                 );
-              });
+              },
+            );
 
             setCurrentScheduledMaintenanceState(scheduledMaintenanceState);
 

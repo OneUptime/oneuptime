@@ -12,7 +12,6 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -23,7 +22,8 @@ export class Service extends DatabaseService<Model> {
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.PrivateNote,
       displayColor: Blue500,
       userId: userId || undefined,
 
@@ -36,51 +36,48 @@ ${createdItem.note}
     return createdItem;
   }
 
+  public override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.note) {
+      const updatedItems: Array<Model> = await this.findBy({
+        query: onUpdate.updateBy.query,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {},
+        select: {
+          scheduledMaintenanceId: true,
+          projectId: true,
+          note: true,
+          createdByUserId: true,
+          createdByUser: {
+            id: true,
+          },
+        },
+      });
 
-      public override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
-    
-        if (onUpdate.updateBy.data.note) {
-    
-    
-    
-          const updatedItems: Array<Model> = await this.findBy({
-            query: onUpdate.updateBy.query,
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {},
-            select: {
-              scheduledMaintenanceId: true,
-              projectId: true,
-              note: true,
-              createdByUserId: true,
-              createdByUser: {
-                id: true,
-              },
-            },
-          });
-    
-          const userId: ObjectID | null | undefined =
-            onUpdate.updateBy.props.userId;
-    
-          for (const updatedItem of updatedItems) {
-    
-            await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-              scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-              projectId: updatedItem.projectId!,
-              scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
-              displayColor: Blue500,
-              userId: userId || undefined,
-    
-              feedInfoInMarkdown: `**Updated Private Note**
+      const userId: ObjectID | null | undefined =
+        onUpdate.updateBy.props.userId;
+
+      for (const updatedItem of updatedItems) {
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+          scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+          projectId: updatedItem.projectId!,
+          scheduledMaintenanceFeedEventType:
+            ScheduledMaintenanceFeedEventType.PrivateNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+
+          feedInfoInMarkdown: `**Updated Private Note**
       
 ${updatedItem.note}
                 `,
-            });
-    
-          }
-        }
-        return onUpdate;
+        });
       }
+    }
+    return onUpdate;
+  }
 }
 
 export default new Service();

@@ -242,9 +242,9 @@ RunCron(
                   statusPageUrl: statusPageURL,
                   logoUrl: statuspage.logoFileId
                     ? new URL(httpProtocol, host)
-                      .addRoute(FileRoute)
-                      .addRoute("/image/" + statuspage.logoFileId)
-                      .toString()
+                        .addRoute(FileRoute)
+                        .addRoute("/image/" + statuspage.logoFileId)
+                        .toString()
                     : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
@@ -278,18 +278,17 @@ RunCron(
         }
       }
 
-
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
-        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `**Notification sent to subscribers** for public note added to this ScheduledMaintenance.`,
         moreInformationInMarkdown: `**Public Note:**
               
 ${publicNote.note}`,
       });
-
     }
   },
 );

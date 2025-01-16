@@ -442,15 +442,16 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // create new scheduled maintenance state timeline.
 
-     const createdByUserId: ObjectID | undefined | null =
-          createdItem.createdByUserId || createdItem.createdByUser?.id;
+    const createdByUserId: ObjectID | undefined | null =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-          scheduledMaintenanceId: createdItem.id!,
-          projectId: createdItem.projectId!,
-          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
-          displayColor: Red500,
-          feedInfoInMarkdown: `**Scheduled Maintenance Created**: 
+      scheduledMaintenanceId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
+      displayColor: Red500,
+      feedInfoInMarkdown: `**Scheduled Maintenance Created**: 
           
 **Scheduled Maintenance Title**:
 
@@ -461,8 +462,8 @@ ${createdItem.title || "No title provided."}
 ${createdItem.description || "No description provided."}
     
           `,
-          userId: createdByUserId || undefined,
-        });
+      userId: createdByUserId || undefined,
+    });
 
     const timeline: ScheduledMaintenanceStateTimeline =
       new ScheduledMaintenanceStateTimeline();
@@ -689,48 +690,47 @@ ${createdItem.description || "No description provided."}
       }
     }
 
-     if (updatedItemIds.length > 0) {
-          for (const scheduledMaintenanceId of updatedItemIds) {
-            if (onUpdate.updateBy.data.title) {
-              // add scheduledMaintenance feed.
-              const createdByUserId: ObjectID | undefined | null =
-                onUpdate.updateBy.props.userId;
-    
-              await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-                scheduledMaintenanceId: scheduledMaintenanceId,
-                projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-                scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
-                displayColor: Gray500,
-                feedInfoInMarkdown: `**Scheduled Maintenance title was updated.** Here's the new title.
+    if (updatedItemIds.length > 0) {
+      for (const scheduledMaintenanceId of updatedItemIds) {
+        if (onUpdate.updateBy.data.title) {
+          // add scheduledMaintenance feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Scheduled Maintenance title was updated.** Here's the new title.
     
 ${onUpdate.updateBy.data.title || "No title provided."}
               `,
-                userId: createdByUserId || undefined,
-              });
-            }
-    
+            userId: createdByUserId || undefined,
+          });
+        }
 
-    
-            if (onUpdate.updateBy.data.description) {
-              // add scheduledMaintenance feed.
-              const createdByUserId: ObjectID | undefined | null =
-                onUpdate.updateBy.props.userId;
-    
-              await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-                scheduledMaintenanceId: scheduledMaintenanceId,
-                projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-                scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
-                displayColor: Gray500,
-                feedInfoInMarkdown: `**Scheduled Maintenance description was updated.** Here's the new description.
+        if (onUpdate.updateBy.data.description) {
+          // add scheduledMaintenance feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Scheduled Maintenance description was updated.** Here's the new description.
           
     ${onUpdate.updateBy.data.description || "No description provided."}
             `,
-                userId: createdByUserId || undefined,
-              });
-            }
-  
-          }
+            userId: createdByUserId || undefined,
+          });
         }
+      }
+    }
 
     return onUpdate;
   }

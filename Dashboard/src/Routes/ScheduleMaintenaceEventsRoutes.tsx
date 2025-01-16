@@ -167,7 +167,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION,
           )}
@@ -176,7 +176,9 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               <ScheduledMaintenanceEventViewDescription
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION] as Route
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION
+                  ] as Route
                 }
               />
             </Suspense>

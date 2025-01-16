@@ -27,74 +27,71 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-    public override async onCreateSuccess(
-      _onCreate: OnCreate<Model>,
-      createdItem: Model,
-    ): Promise<Model> {
-      const userId: ObjectID | null | undefined =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
-  
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-        scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
-        projectId: createdItem.projectId!,
-        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PublicNote,
-        displayColor: Indigo500,
-        userId: userId || undefined,
-        feedInfoInMarkdown: `**Posted public note for this scheduledMaintenance on status page**
+  public override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const userId: ObjectID | null | undefined =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
+      projectId: createdItem.projectId!,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.PublicNote,
+      displayColor: Indigo500,
+      userId: userId || undefined,
+      feedInfoInMarkdown: `**Posted public note for this scheduledMaintenance on status page**
   
 ${createdItem.note}
             `,
-      });
-  
-      return createdItem;
-    }
-  
-  
-    public override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
-  
-      if (onUpdate.updateBy.data.note) {
-  
-  
-  
-        const updatedItems: Array<Model> = await this.findBy({
-          query: onUpdate.updateBy.query,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {},
-          select: {
-            scheduledMaintenanceId: true,
-            projectId: true,
-            note: true,
-            createdByUserId: true,
-            createdByUser: {
-              id: true,
-            },
+    });
+
+    return createdItem;
+  }
+
+  public override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.note) {
+      const updatedItems: Array<Model> = await this.findBy({
+        query: onUpdate.updateBy.query,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {},
+        select: {
+          scheduledMaintenanceId: true,
+          projectId: true,
+          note: true,
+          createdByUserId: true,
+          createdByUser: {
+            id: true,
           },
-        });
-  
-        const userId: ObjectID | null | undefined =
-          onUpdate.updateBy.props.userId;
-  
-        for (const updatedItem of updatedItems) {
-  
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-            scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-            projectId: updatedItem.projectId!,
-            scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PublicNote,
-            displayColor: Blue500,
-            userId: userId || undefined,
-  
-            feedInfoInMarkdown: `**Updated Public Note**
+        },
+      });
+
+      const userId: ObjectID | null | undefined =
+        onUpdate.updateBy.props.userId;
+
+      for (const updatedItem of updatedItems) {
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+          scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+          projectId: updatedItem.projectId!,
+          scheduledMaintenanceFeedEventType:
+            ScheduledMaintenanceFeedEventType.PublicNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+
+          feedInfoInMarkdown: `**Updated Public Note**
     
 ${updatedItem.note}
               `,
-          });
-  
-  
-        }
+        });
       }
-      return onUpdate;
     }
+    return onUpdate;
+  }
 }
 
 export default new Service();

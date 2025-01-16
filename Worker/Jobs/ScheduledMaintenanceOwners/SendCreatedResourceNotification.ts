@@ -47,9 +47,7 @@ RunCron(
       });
 
     for (const scheduledMaintenance of scheduledMaintenances) {
-
       let moreScheduledMaintenanceFeedInformationInMarkdown: string = "";
-
 
       await ScheduledMaintenanceService.updateOneById({
         id: scheduledMaintenance.id!,
@@ -137,21 +135,20 @@ RunCron(
         moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
       }
 
-
       const scheduledMaintenanceFeedText: string = `**Owner Scheduled Maintenance Created Notification Sent**:
 
 Notification sent to owners of this incident because this incident was created.`;
 
-
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
         scheduledMaintenanceId: scheduledMaintenance.id!,
         projectId: scheduledMaintenance.projectId!,
-        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Yellow500,
         feedInfoInMarkdown: scheduledMaintenanceFeedText,
-        moreInformationInMarkdown: moreScheduledMaintenanceFeedInformationInMarkdown,
+        moreInformationInMarkdown:
+          moreScheduledMaintenanceFeedInformationInMarkdown,
       });
-
     }
   },
 );

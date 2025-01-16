@@ -18,6 +18,9 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -55,6 +58,8 @@ RunCron(
       });
 
     for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {
+      let moreScheduledMaintenanceFeedInformationInMarkdown: string = "";
+
       const scheduledMaintenance: ScheduledMaintenance =
         scheduledMaintenanceStateTimeline.scheduledMaintenance!;
       const scheduledMaintenanceState: ScheduledMaintenanceState =
@@ -152,7 +157,20 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
         });
+
+        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: `**Owners have been notified about the state change of the scheduled maintenance.**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
+        moreInformationInMarkdown:
+          moreScheduledMaintenanceFeedInformationInMarkdown,
+      });
     }
   },
 );

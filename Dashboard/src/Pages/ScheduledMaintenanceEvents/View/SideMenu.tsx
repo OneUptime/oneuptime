@@ -29,7 +29,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Info}
         />
 
-<SideMenuItem
+        <SideMenuItem
           link={{
             title: "Description",
             to: RouteUtil.populateRouteParams(

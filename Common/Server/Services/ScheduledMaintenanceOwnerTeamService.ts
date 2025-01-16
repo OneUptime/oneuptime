@@ -49,7 +49,8 @@ export class Service extends DatabaseService<Model> {
     const itemsToDelete: Model[] = onDelete.carryForward.itemsToDelete;
 
     for (const item of itemsToDelete) {
-      const scheduledMaintenanceId: ObjectID | undefined = item.scheduledMaintenanceId;
+      const scheduledMaintenanceId: ObjectID | undefined =
+        item.scheduledMaintenanceId;
       const projectId: ObjectID | undefined = item.projectId;
       const teamId: ObjectID | undefined = item.teamId;
 
@@ -68,7 +69,8 @@ export class Service extends DatabaseService<Model> {
           await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
             scheduledMaintenanceId: scheduledMaintenanceId,
             projectId: projectId,
-            scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
             feedInfoInMarkdown: `**Team ${team.name}** was removed from the scheduled maintenance as the owner.`,
             userId: deleteByUserId || undefined,
@@ -86,7 +88,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // add scheduledMaintenance feed.
 
-    const scheduledMaintenanceId: ObjectID | undefined = createdItem.scheduledMaintenanceId;
+    const scheduledMaintenanceId: ObjectID | undefined =
+      createdItem.scheduledMaintenanceId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const teamId: ObjectID | undefined = createdItem.teamId;
     const createdByUserId: ObjectID | undefined =
@@ -107,7 +110,8 @@ export class Service extends DatabaseService<Model> {
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
           scheduledMaintenanceId: scheduledMaintenanceId,
           projectId: projectId,
-          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
+          scheduledMaintenanceFeedEventType:
+            ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `**Team ${team.name}** was added to the scheduled maintenance as the owner.`,
           userId: createdByUserId || undefined,

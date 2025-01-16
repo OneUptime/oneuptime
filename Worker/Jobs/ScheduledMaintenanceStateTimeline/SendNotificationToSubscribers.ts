@@ -30,6 +30,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -96,6 +99,7 @@ RunCron(
             title: true,
             description: true,
             startsAt: true,
+            projectId: true,
             monitors: {
               _id: true,
             },
@@ -291,6 +295,15 @@ RunCron(
           }
         }
       }
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        scheduledMaintenanceId: event.id!,
+        projectId: event.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the scheduled maintenance to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+      });
     }
   },
 );
