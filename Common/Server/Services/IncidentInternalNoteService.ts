@@ -1,10 +1,11 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/IncidentInternalNote";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "../../Types/BrandColors";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,6 +34,54 @@ ${createdItem.note}
 
     return createdItem;
   }
+
+
+  public override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
+
+    if (onUpdate.updateBy.data.note) {
+
+
+
+      const updatedItems: Array<Model> = await this.findBy({
+        query: onUpdate.updateBy.query,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {},
+        select: {
+          incidentId: true,
+          projectId: true,
+          note: true,
+          createdByUserId: true,
+          createdByUser: {
+            id: true,
+          },
+        },
+      });
+
+      const userId: ObjectID | null | undefined =
+        onUpdate.updateBy.props.userId;
+
+      for (const updatedItem of updatedItems) {
+
+        await IncidentFeedService.createIncidentFeed({
+          incidentId: updatedItem.incidentId!,
+          projectId: updatedItem.projectId!,
+          incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+
+          feedInfoInMarkdown: `**Updated Internal / Private Note**
+
+${updatedItem.note}
+          `,
+        });
+
+       
+      }
+    }
+    return onUpdate;
+  }
 }
+
 
 export default new Service();
