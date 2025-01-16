@@ -680,7 +680,6 @@ ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
           });
         }
 
-
         if (onUpdate.updateBy.data.description) {
           // add incident feed.
           const createdByUserId: ObjectID | undefined | null =
