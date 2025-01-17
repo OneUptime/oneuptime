@@ -44,17 +44,28 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           }}
           icon={IconProp.Settings}
         />
+      </SideMenuSection>
+      <SideMenuSection title="On-Call">
         <SideMenuItem
           link={{
-            title: "On-Call Rules",
+            title: "Incident On-Call Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
+              RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
             ),
           }}
-          icon={IconProp.Call}
+          icon={IconProp.Alert}
         />
-      </SideMenuSection>
-      <SideMenuSection title="Logs">
+
+        <SideMenuItem
+          link={{
+            title: "Alert On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+
         <SideMenuItem
           link={{
             title: "On-Call Logs",
