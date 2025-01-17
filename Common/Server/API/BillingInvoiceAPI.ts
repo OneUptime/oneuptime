@@ -14,7 +14,6 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { UserPermission } from "Common/Types/Permission";
@@ -127,37 +126,8 @@ export default class UserAPI extends BaseAPI<
             },
           });
 
-          // refresh subscription status.
-          const subscriptionState: SubscriptionStatus =
-            await BillingService.getSubscriptionStatus(
-              project.paymentProviderSubscriptionId as string,
-            );
-
-          const meteredSubscriptionState: SubscriptionStatus =
-            await BillingService.getSubscriptionStatus(
-              project.paymentProviderMeteredSubscriptionId as string,
-            );
-
-          // if subscription is cancelled, create a new subscription and update project.
-
-          if (
-            meteredSubscriptionState === SubscriptionStatus.Canceled ||
-            subscriptionState === SubscriptionStatus.Canceled
-          ) {
-            await ProjectService.reactiveSubscription(project.id!);
-          }
-
-          await ProjectService.updateOneById({
-            id: project.id!,
-            data: {
-              paymentProviderSubscriptionStatus: subscriptionState,
-              paymentProviderMeteredSubscriptionStatus:
-                meteredSubscriptionState,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
+          await BillingInvoiceService.refreshSubscriptionStatus({
+            projectId: project.id!,
           });
 
           return Response.sendEmptySuccessResponse(req, res);

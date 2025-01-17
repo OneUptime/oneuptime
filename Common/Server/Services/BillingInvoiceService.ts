@@ -10,11 +10,114 @@ import Model, {
   InvoiceStatus,
 } from "Common/Models/DatabaseModels/BillingInvoice";
 import Project from "Common/Models/DatabaseModels/Project";
+import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
+import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
     this.setDoNotAllowDelete(true);
+  }
+
+
+  public async refreshSubscriptionStatus(data: {
+    projectId: ObjectID;
+  }) {
+    let project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        paymentProviderCustomerId: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+    });
+
+    // refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
+    // This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    if (!project.paymentProviderCustomerId) {
+      throw new BadDataException("Payment provider customer id not found.");
+    }
+
+    let subscriptionState: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderSubscriptionId as string,
+      );
+
+    let meteredSubscriptionState: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderMeteredSubscriptionId as string,
+      );
+
+    if (
+      meteredSubscriptionState === SubscriptionStatus.Canceled ||
+      subscriptionState === SubscriptionStatus.Canceled
+    ) {
+
+      // check if all invoices are paid. If yes, then reactivate the subscription.
+
+      const invoices: Array<Invoice> = await BillingService.getInvoices(
+        project.paymentProviderCustomerId,
+      );
+
+      let allInvoicesPaid: boolean = true;
+
+      for (const invoice of invoices) {
+        if (invoice.status === InvoiceStatus.Open || invoice.status === InvoiceStatus.Uncollectible) {
+          allInvoicesPaid = false;
+          break;
+        }
+      }
+
+      if (allInvoicesPaid) {
+
+        await ProjectService.reactiveSubscription(project.id!);
+        project = await ProjectService.findOneById({
+          id: data.projectId,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+            paymentProviderCustomerId: true,
+            paymentProviderSubscriptionId: true,
+            paymentProviderMeteredSubscriptionId: true,
+          },
+        });
+
+        if (!project) {
+          throw new BadDataException("Project not found");
+        }
+
+        subscriptionState = await BillingService.getSubscriptionStatus(
+          project.paymentProviderSubscriptionId as string,
+        );
+
+        meteredSubscriptionState = await BillingService.getSubscriptionStatus(
+          project.paymentProviderMeteredSubscriptionId as string,
+        );
+      }
+    }
+
+    await ProjectService.updateOneById({
+      id: project.id!,
+      data: {
+        paymentProviderSubscriptionStatus: subscriptionState,
+        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
   }
 
   protected override async onBeforeFind(
@@ -37,6 +140,11 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
+    // refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
+    // This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+
+    await this.refreshSubscriptionStatus({ projectId: findBy.props.tenantId! });
+
     if (!project) {
       throw new BadDataException("Project not found");
     }
@@ -44,6 +152,7 @@ export class Service extends DatabaseService<Model> {
     if (!project.paymentProviderCustomerId) {
       throw new BadDataException("Payment provider customer id not found.");
     }
+
 
     const invoices: Array<Invoice> = await BillingService.getInvoices(
       project.paymentProviderCustomerId,

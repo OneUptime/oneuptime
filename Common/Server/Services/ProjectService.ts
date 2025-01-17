@@ -1224,6 +1224,8 @@ export class ProjectService extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    
   }
 
   public getActiveProjectStatusQuery(): Query<Model> {
