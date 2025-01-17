@@ -54,9 +54,7 @@ const AlertViewOwner: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Alerts/View/Owners");
   });
 
-
-
-  const AlertViewRootCause: LazyExoticComponent<
+const AlertViewRootCause: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Alerts/View/RootCause");
@@ -66,14 +64,12 @@ const AlertViewRemediation: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Alerts/View/Remediation");
-}
-);
-
-const AlertDescription: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/Description");
 });
+
+const AlertDescription: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/View/Description");
+  });
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -167,7 +163,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               />
             </Suspense>
           }
-
         />
 
         <PageRoute

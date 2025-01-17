@@ -64,9 +64,6 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Alerts",
       "Description",
     ]),
-
-    
-
   };
   return breadcrumpLinksMap[path];
 }

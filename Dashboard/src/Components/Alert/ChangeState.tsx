@@ -209,12 +209,11 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={(model: AlertStateTimeline) => {
             //get alert state and update current alert state
-            const alertState: AlertState | undefined =
-              alertStates.find((state: AlertState) => {
-                return (
-                  state.id?.toString() === model.alertStateId?.toString()
-                );
-              });
+            const alertState: AlertState | undefined = alertStates.find(
+              (state: AlertState) => {
+                return state.id?.toString() === model.alertStateId?.toString();
+              },
+            );
 
             setCurrentAlertState(alertState);
 
@@ -237,7 +236,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
                 required: false,
                 overrideFieldKey: "privateNote",
                 showEvenIfPermissionDoesNotExist: true,
-              }
+              },
             ],
             formType: FormType.Create,
           }}

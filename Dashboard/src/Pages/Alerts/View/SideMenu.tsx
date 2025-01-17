@@ -62,7 +62,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Wrench}
         />
 
-
         <SideMenuItem
           link={{
             title: "State Timeline",

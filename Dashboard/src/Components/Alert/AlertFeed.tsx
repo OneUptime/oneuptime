@@ -49,39 +49,27 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     });
   };
 
-  type GetFeedItemFromAlertFeed = (
-    alertFeed: AlertFeed,
-  ) => FeedItemProps;
+  type GetFeedItemFromAlertFeed = (alertFeed: AlertFeed) => FeedItemProps;
 
   const getFeedItemFromAlertFeed: GetFeedItemFromAlertFeed = (
     alertFeed: AlertFeed,
   ): FeedItemProps => {
     let icon: IconProp = IconProp.Circle;
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.AlertCreated
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertCreated) {
       icon = IconProp.Alert;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.AlertStateChanged
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertStateChanged) {
       icon = IconProp.ArrowCircleRight;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.AlertUpdated
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertUpdated) {
       icon = IconProp.Edit;
     }
 
     if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OwnerNotificationSent
+      alertFeed.alertFeedEventType === AlertFeedEventType.OwnerNotificationSent
     ) {
       icon = IconProp.Bell;
     }
@@ -93,69 +81,45 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.Notification;
     }
 
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.PublicNote
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.PublicNote) {
       icon = IconProp.Announcement;
     }
 
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.PrivateNote
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.PrivateNote) {
       icon = IconProp.Lock;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OwnerUserAdded
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerUserAdded) {
       icon = IconProp.User;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OwnerTeamAdded
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerTeamAdded) {
       icon = IconProp.Team;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.RemediationNotes
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.RemediationNotes) {
       icon = IconProp.Wrench;
     }
 
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.RootCause
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.RootCause) {
       icon = IconProp.Cube;
     }
 
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OwnerUserRemoved
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerUserRemoved) {
+      icon = IconProp.Close;
+    }
+
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerTeamRemoved) {
       icon = IconProp.Close;
     }
 
     if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OwnerTeamRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.OnCallNotification
+      alertFeed.alertFeedEventType === AlertFeedEventType.OnCallNotification
     ) {
       icon = IconProp.Alert;
     }
 
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.OnCallPolicy
-    ) {
+    if (alertFeed.alertFeedEventType === AlertFeedEventType.OnCallPolicy) {
       icon = IconProp.Call;
     }
 

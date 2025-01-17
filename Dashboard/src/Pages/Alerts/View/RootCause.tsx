@@ -6,9 +6,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 
-const AlertDelete: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (

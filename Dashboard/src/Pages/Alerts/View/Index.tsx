@@ -479,8 +479,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: Alert): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            }
-            
+            },
           ],
           modelId: modelId,
         }}
@@ -505,7 +504,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="w-1/2"
         />
       </div>
-
 
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Log &&
