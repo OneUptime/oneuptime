@@ -54,6 +54,27 @@ const AlertViewOwner: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Alerts/View/Owners");
   });
 
+
+
+  const AlertViewRootCause: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/RootCause");
+});
+
+const AlertViewRemediation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/Remediation");
+}
+);
+
+const AlertDescription: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/Description");
+});
+
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -110,6 +131,43 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               />
             </Suspense>
           }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DESCRIPTION)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertDescription
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_DESCRIPTION] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_ROOT_CAUSE)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewRootCause
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_ROOT_CAUSE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_REMEDIATION)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewRemediation
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route}
+              />
+            </Suspense>
+          }
+
         />
 
         <PageRoute

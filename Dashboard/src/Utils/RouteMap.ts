@@ -156,6 +156,9 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.ALERT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.ALERT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.ALERT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
+  [PageMap.ALERT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
+  [PageMap.ALERT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
   [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.ALERT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
 };
@@ -426,6 +429,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_DESCRIPTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_DESCRIPTION]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_ROOT_CAUSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_ROOT_CAUSE]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_REMEDIATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_REMEDIATION]
     }`,
   ),
 
