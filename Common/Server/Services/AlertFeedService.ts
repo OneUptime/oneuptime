@@ -29,9 +29,7 @@ export class Service extends DatabaseService<Model> {
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
   }): Promise<void> {
-
     try {
-
       if (!data.alertId) {
         throw new BadDataException("Alert ID is required");
       }
@@ -79,7 +77,6 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
-
     } catch (error) {
       logger.error("AlertFeedService.createAlertFeed");
       logger.error(error);

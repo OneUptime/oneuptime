@@ -437,7 +437,6 @@ export class BillingService extends BaseService {
     meteredSubscriptionId: string;
     trialEndsAt?: Date | undefined;
   }> {
-
     logger.debug("Changing plan");
     logger.debug(data);
 

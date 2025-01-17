@@ -29,9 +29,7 @@ export class Service extends DatabaseService<IncidentFeed> {
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
   }): Promise<void> {
-
     try {
-
       logger.debug("IncidentFeedService.createIncidentFeed");
       logger.debug(data);
 
@@ -84,7 +82,6 @@ export class Service extends DatabaseService<IncidentFeed> {
 
       logger.debug("Incident Feed created");
       logger.debug(createdIncidentFeed);
-
     } catch (e) {
       logger.error("Error in creating incident feed");
       logger.error(e);

@@ -29,9 +29,7 @@ export class Service extends DatabaseService<Model> {
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
   }): Promise<void> {
-
     try {
-
       if (!data.scheduledMaintenanceId) {
         throw new BadDataException("Scheduled Maintenance ID is required");
       }
@@ -41,7 +39,9 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (!data.scheduledMaintenanceFeedEventType) {
-        throw new BadDataException("Scheduled Maintenance log event is required");
+        throw new BadDataException(
+          "Scheduled Maintenance log event is required",
+        );
       }
 
       if (!data.projectId) {
@@ -82,7 +82,9 @@ export class Service extends DatabaseService<Model> {
         },
       });
     } catch (error) {
-      logger.error("ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed");
+      logger.error(
+        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed",
+      );
       logger.error(error);
       // we dont want to throw the error here, as this is not critical but we still log it.
     }
