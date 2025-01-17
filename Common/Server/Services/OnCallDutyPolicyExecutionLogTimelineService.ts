@@ -9,6 +9,8 @@ import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import AlertFeedService from "./AlertFeedService";
+import AlertFeed, { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -36,7 +38,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  public async addToIncidentFeed(data: {
+  public async addToIncidentOrAlertFeed(data: {
     onCallDutyPolicyExecutionLogTimelineId: ObjectID;
   }): Promise<void> {
     logger.debug(
@@ -50,6 +52,7 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           onCallDutyPolicyId: true,
           triggeredByIncidentId: true,
+          triggeredByAlertId: true,
           projectId: true,
           status: true,
           statusMessage: true,
@@ -89,7 +92,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    if (!onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+    if (!onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId && !onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
       return;
     }
 
@@ -120,6 +123,8 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
 
+        if(onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+
         await IncidentFeedService.createIncidentFeed({
           incidentId:
             onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
@@ -128,6 +133,18 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
           displayColor: displayColor,
           feedInfoInMarkdown: feedInfoInMarkdown,
         });
+
+      }
+
+      if(onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
+        await AlertFeedService.createAlertFeed({
+          alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
+          projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+          alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+          displayColor: displayColor,
+          feedInfoInMarkdown: feedInfoInMarkdown,
+        });
+      }
 
         logger.debug("Incident Feed created");
       }
@@ -141,7 +158,7 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
     logger.debug("OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess");
     logger.debug(createdItem);
 
-    await this.addToIncidentFeed({
+    await this.addToIncidentOrAlertFeed({
       onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
     });
 
@@ -166,7 +183,7 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
       });
 
       for (const updatedItem of updatedItems) {
-        await this.addToIncidentFeed({
+        await this.addToIncidentOrAlertFeed({
           onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
         });
       }

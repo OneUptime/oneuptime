@@ -47,6 +47,7 @@ enum EmailTemplateType {
   SimpleMessage = "SimpleMessage.hbs",
   VerificationCode = "VerificationCode.hbs",
   AcknowledgeIncident = "AcknowledgeIncident.hbs",
+  AcknowledgeAlert = "AcknowledgeAlert.hbs",
 }
 
 export default EmailTemplateType;

@@ -14,6 +14,8 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
 import Color from "../../Types/Color";
+import AlertFeedService from "./AlertFeedService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -39,7 +41,7 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    if (createdItem.triggeredByIncidentId) {
+    if (createdItem.triggeredByIncidentId || createdItem.triggeredByAlertId) {
       const onCallPolicy: OnCallDutyPolicy | null =
         await OnCallDutyPolicyService.findOneById({
           id: createdItem.onCallDutyPolicyId!,
@@ -53,15 +55,32 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-      if (onCallPolicy && onCallPolicy.id) {
-        await IncidentFeedService.createIncidentFeed({
-          incidentId: createdItem.triggeredByIncidentId,
-          projectId: createdItem.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-          displayColor: Yellow500,
-          feedInfoInMarkdown: `**On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`,
-        });
-      }
+
+        if(onCallPolicy && onCallPolicy.id){
+          const feedInfoInMarkdown: string = `**On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`;
+       
+          if (onCallPolicy && onCallPolicy.id && createdItem.triggeredByIncidentId) {
+            await IncidentFeedService.createIncidentFeed({
+              incidentId: createdItem.triggeredByIncidentId,
+              projectId: createdItem.projectId!,
+              incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+              displayColor: Yellow500,
+              feedInfoInMarkdown:feedInfoInMarkdown,
+            });
+          }
+    
+          if (onCallPolicy && onCallPolicy.id && createdItem.triggeredByAlertId) {
+            await AlertFeedService.createAlertFeed({
+              alertId: createdItem.triggeredByAlertId,
+              projectId: createdItem.projectId!,
+              alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+              displayColor: Yellow500,
+              feedInfoInMarkdown: feedInfoInMarkdown,
+            });
+          }
+        }
+
+      
     }
 
     // get execution rules in this policy adn execute the first rule.
@@ -97,6 +116,7 @@ export class Service extends DatabaseService<Model> {
         {
           projectId: createdItem.projectId!,
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
+          triggeredByAlertId: createdItem.triggeredByAlertId,
           userNotificationEventType: UserNotificationEventType.IncidentCreated,
           onCallPolicyExecutionLogId: createdItem.id!,
           onCallPolicyId: createdItem.onCallDutyPolicyId!,
@@ -107,7 +127,7 @@ export class Service extends DatabaseService<Model> {
         id: createdItem.id!,
         data: {
           status: OnCallDutyPolicyStatus.Executing,
-          statusMessage: "First escalation rule executed....",
+          statusMessage: "First escalation rule executed...",
         },
         props: {
           isRoot: true,
@@ -165,6 +185,7 @@ export class Service extends DatabaseService<Model> {
             status: true,
             statusMessage: true,
             triggeredByIncidentId: true,
+            triggeredByAlertId: true,
           },
           props: {
             isRoot: true,
@@ -174,7 +195,7 @@ export class Service extends DatabaseService<Model> {
 
       if (
         onCalldutyPolicyExecutionLog &&
-        onCalldutyPolicyExecutionLog.triggeredByIncidentId
+        (onCalldutyPolicyExecutionLog.triggeredByIncidentId || onCalldutyPolicyExecutionLog.triggeredByAlertId)
       ) {
         const onCallPolicy: OnCallDutyPolicy | null =
           await OnCallDutyPolicyService.findOneById({
@@ -188,24 +209,50 @@ export class Service extends DatabaseService<Model> {
               isRoot: true,
             },
           });
+        
 
         if (onCallPolicy && onCallPolicy.id) {
-          await IncidentFeedService.createIncidentFeed({
-            incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
-            projectId: onCalldutyPolicyExecutionLog.projectId!,
-            incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-            displayColor: onCalldutyPolicyExecutionLog.status
-              ? this.getDisplayColorByStatus(
+
+          const moreInformationInMarkdown: string = `**Status:** ${onCalldutyPolicyExecutionLog.status}
+
+**Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`;
+
+          const feedInfoInMarkdown: string = `**On Call Policy Status Updated:**
+
+On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
+
+
+          if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
+            await IncidentFeedService.createIncidentFeed({
+              incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
+              projectId: onCalldutyPolicyExecutionLog.projectId!,
+              incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+              displayColor: onCalldutyPolicyExecutionLog.status
+                ? this.getDisplayColorByStatus(
                   onCalldutyPolicyExecutionLog.status,
                 )
-              : Blue500,
-            moreInformationInMarkdown: `**Status:** ${onCalldutyPolicyExecutionLog.status}
-            
-**Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`,
-            feedInfoInMarkdown: `**On Call Policy Status Updated:** 
+                : Blue500,
+              moreInformationInMarkdown: moreInformationInMarkdown,
+              feedInfoInMarkdown: feedInfoInMarkdown,
+            });
+          }
 
-On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`,
-          });
+          if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
+            await AlertFeedService.createAlertFeed({
+              alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
+              projectId: onCalldutyPolicyExecutionLog.projectId!,
+              alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+              displayColor: onCalldutyPolicyExecutionLog.status
+                ? this.getDisplayColorByStatus(
+                  onCalldutyPolicyExecutionLog.status,
+                )
+                : Blue500,
+              moreInformationInMarkdown: moreInformationInMarkdown,
+              feedInfoInMarkdown: feedInfoInMarkdown,
+
+            });
+          }
+
         }
       }
     }

@@ -23,12 +23,20 @@ import Color from "../../Types/Color";
 
 export enum AlertFeedEventType {
   PublicNote = "PublicNote",
-  SubscriberEmailSent = "SubscriberEmailSent",
-  OwnerEmailSent = "OwnerEmailSent",
-  AlertCreated = "AlertCreated",
-  AlertAcknowledged = "AlertAcknowledged",
-  AlertResolved = "AlertResolved",
+  SubscriberNotificationSent = "SubscriberNotificationSent",
+  OwnerNotificationSent = "OwnerNotificationSent",
+  OwnerUserAdded = "OwnerUserAdded",
+  OwnerTeamAdded = "OwnerTeamAdded",
+  IncidentCreated = "IncidentCreated",
+  IncidentStateChanged = "IncidentStateChanged",
   PrivateNote = "PrivateNote",
+  IncidentUpdated = "IncidentUpdated",
+  RootCause = "RootCause",
+  RemediationNotes = "RemediationNotes",
+  OwnerUserRemoved = "OwnerUserRemoved",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
+  OnCallPolicy = "OnCallPolicy",
+  OnCallNotification = "OnCallNotification",
 }
 
 @EnableDocumentation()

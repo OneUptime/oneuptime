@@ -149,16 +149,40 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        return Response.redirect(
+        if (timelineItem.triggeredByIncidentId) {
+
+          return Response.redirect(
+            req,
+            res,
+            new URL(
+              httpProtocol,
+              host,
+              DashboardRoute.addRoute(
+                `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
+              ),
+            ),
+          );
+        }
+
+        if (timelineItem.triggeredByAlertId) {
+
+          return Response.redirect(
+            req,
+            res,
+            new URL(
+              httpProtocol,
+              host,
+              DashboardRoute.addRoute(
+                `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
+              ),
+            ),
+          );
+        }
+
+        return Response.sendErrorResponse(
           req,
           res,
-          new URL(
-            httpProtocol,
-            host,
-            DashboardRoute.addRoute(
-              `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
-            ),
-          ),
+          new BadDataException("Invalid item Id"),
         );
       },
     );
