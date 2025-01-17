@@ -379,8 +379,6 @@ export default class UserOnCallLog extends BaseModel {
   })
   public triggeredByIncidentId?: ObjectID = undefined;
 
-
-
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -391,8 +389,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Triggered By Alert",
-    description:
-      "Relation to Alert which triggered this on-call duty policy.",
+    description: "Relation to Alert which triggered this on-call duty policy.",
   })
   @ManyToOne(
     () => {

@@ -2,7 +2,6 @@ import RunCron from "../../Utils/Cron";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
-import ObjectID from "Common/Types/ObjectID";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
@@ -75,34 +74,33 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
       let incident: Incident | null = null;
       let alert: Alert | null = null;
 
-      if(pendingNotificationLog.triggeredByIncidentId) {
-      
-      incident = await IncidentService.findOneById({
-        id: pendingNotificationLog.triggeredByIncidentId!,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          incidentSeverityId: true,
-        },
-      });
-    }
+      if (pendingNotificationLog.triggeredByIncidentId) {
+        incident = await IncidentService.findOneById({
+          id: pendingNotificationLog.triggeredByIncidentId!,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            incidentSeverityId: true,
+          },
+        });
+      }
 
-    if(pendingNotificationLog.triggeredByAlertId) {
-      alert = await AlertService.findOneById({
-        id: pendingNotificationLog.triggeredByAlertId!,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          alertSeverityId: true,
-        },
-      });
-    }
+      if (pendingNotificationLog.triggeredByAlertId) {
+        alert = await AlertService.findOneById({
+          id: pendingNotificationLog.triggeredByAlertId!,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            alertSeverityId: true,
+          },
+        });
+      }
 
-    if(!incident && !alert) {
-      throw new Error("Incident or Alert not found.");
-    }
+      if (!incident && !alert) {
+        throw new Error("Incident or Alert not found.");
+      }
 
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({

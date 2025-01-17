@@ -183,7 +183,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       options.userNotificationEventType ===
-      UserNotificationEventType.IncidentCreated &&
+        UserNotificationEventType.IncidentCreated &&
       options.triggeredByIncidentId
     ) {
       incident = await IncidentService.findOneById({
@@ -212,7 +212,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       options.userNotificationEventType ===
-      UserNotificationEventType.AlertCreated &&
+        UserNotificationEventType.AlertCreated &&
       options.triggeredByAlertId
     ) {
       alert = await AlertService.findOneById({
@@ -246,12 +246,11 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userEmail?.email &&
       notificationRuleItem.userEmail?.isVerified
     ) {
-
-      // send email for alert. 
+      // send email for alert.
 
       if (
         options.userNotificationEventType ===
-        UserNotificationEventType.AlertCreated &&
+          UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -296,7 +295,7 @@ export class Service extends DatabaseService<Model> {
       // send email for incident
       if (
         options.userNotificationEventType ===
-        UserNotificationEventType.IncidentCreated &&
+          UserNotificationEventType.IncidentCreated &&
         incident
       ) {
         // create an error log.
@@ -361,11 +360,10 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userSms?.phone &&
       notificationRuleItem.userSms?.isVerified
     ) {
-
       //send sms for alert
       if (
         options.userNotificationEventType ===
-        UserNotificationEventType.AlertCreated &&
+          UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -381,12 +379,11 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const smsMessage: SMS =
-          await this.generateSmsTemplateForAlertCreated(
-            notificationRuleItem.userSms.phone,
-            alert,
-            updatedLog.id!,
-          );
+        const smsMessage: SMS = await this.generateSmsTemplateForAlertCreated(
+          notificationRuleItem.userSms.phone,
+          alert,
+          updatedLog.id!,
+        );
 
         // send email.
 
@@ -410,7 +407,7 @@ export class Service extends DatabaseService<Model> {
       // send sms for incident
       if (
         options.userNotificationEventType ===
-        UserNotificationEventType.IncidentCreated &&
+          UserNotificationEventType.IncidentCreated &&
         incident
       ) {
         // create an error log.
@@ -474,12 +471,10 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userCall?.phone &&
       notificationRuleItem.userCall?.isVerified
     ) {
-
-
       // send call for alert
       if (
         options.userNotificationEventType ===
-        UserNotificationEventType.AlertCreated &&
+          UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -521,12 +516,11 @@ export class Service extends DatabaseService<Model> {
         });
       }
 
-
       if (
-        options.userNotificationEventType === UserNotificationEventType.IncidentCreated &&
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
         incident
       ) {
-
         // send call for incident
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
@@ -634,7 +628,6 @@ export class Service extends DatabaseService<Model> {
     return callRequest;
   }
 
-
   public async generateCallTemplateForIncidentCreated(
     to: Phone,
     incident: Incident,
@@ -706,13 +699,13 @@ export class Service extends DatabaseService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created. ${alert.title
-        }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created. ${
+        alert.title
+      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
     };
 
     return sms;
   }
-
 
   public async generateSmsTemplateForIncidentCreated(
     to: Phone,
@@ -735,13 +728,13 @@ export class Service extends DatabaseService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created. ${incident.title
-        }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created. ${
+        incident.title
+      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
     };
 
     return sms;
   }
-
 
   public async generateEmailTemplateForAlertCreated(
     to: Email,
@@ -761,10 +754,7 @@ export class Service extends DatabaseService<Model> {
       ),
       alertSeverity: alert.alertSeverity!.name!,
       alertViewLink: (
-        await AlertService.getAlertLinkInDashboard(
-          alert.projectId!,
-          alert.id!,
-        )
+        await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
       acknowledgeAlertLink: new URL(
         httpProtocol,
@@ -784,7 +774,6 @@ export class Service extends DatabaseService<Model> {
 
     return emailMessage;
   }
-
 
   public async generateEmailTemplateForIncidentCreated(
     to: Email,

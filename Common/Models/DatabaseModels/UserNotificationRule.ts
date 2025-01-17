@@ -452,8 +452,7 @@ class UserNotificationRule extends BaseModel {
   })
   public incidentSeverityId?: ObjectID = undefined;
 
-
-  // alert severity. 
+  // alert severity.
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -501,7 +500,6 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertSeverityId?: ObjectID = undefined;
-
 }
 
 export default UserNotificationRule;

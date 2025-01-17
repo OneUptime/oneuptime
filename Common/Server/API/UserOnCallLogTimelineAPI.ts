@@ -150,7 +150,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         if (timelineItem.triggeredByIncidentId) {
-
           return Response.redirect(
             req,
             res,
@@ -165,7 +164,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         }
 
         if (timelineItem.triggeredByAlertId) {
-
           return Response.redirect(
             req,
             res,

@@ -338,8 +338,6 @@ export default class UserOnCallLogTimeline extends BaseModel {
   })
   public triggeredByIncidentId?: ObjectID = undefined;
 
-
-
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],

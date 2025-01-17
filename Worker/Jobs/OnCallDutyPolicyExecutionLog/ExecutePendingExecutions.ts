@@ -67,14 +67,12 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
-
     // get trigger by alert
-    if(executionLog.triggeredByAlertId) {
+    if (executionLog.triggeredByAlertId) {
       // check if this alert is ack.
-      const isAcknowledged: boolean =
-        await AlertService.isAlertAcknowledged({
-          alertId: executionLog.triggeredByAlertId,
-        });
+      const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
+        alertId: executionLog.triggeredByAlertId,
+      });
 
       if (isAcknowledged) {
         // then mark this policy as executed.

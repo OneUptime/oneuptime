@@ -116,10 +116,9 @@ export class Service extends DatabaseService<Model> {
     let ruleCount: PositiveNumber = new PositiveNumber(0);
 
     let incident: Incident | null = null;
-    let alert:  Alert | null = null;
+    let alert: Alert | null = null;
 
     if (createdItem.triggeredByIncidentId) {
-
       incident = await IncidentService.findOneById({
         id: createdItem.triggeredByIncidentId,
         props: {
@@ -131,29 +130,23 @@ export class Service extends DatabaseService<Model> {
       });
 
       // Check if there are any rules .
-      ruleCount = await UserNotificationRuleService.countBy(
-        {
-          query: {
-            userId: createdItem.userId!,
-            projectId: createdItem.projectId!,
-            ruleType: notificationRuleType,
-            incidentSeverityId: incident?.incidentSeverityId as ObjectID,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
+      ruleCount = await UserNotificationRuleService.countBy({
+        query: {
+          userId: createdItem.userId!,
+          projectId: createdItem.projectId!,
+          ruleType: notificationRuleType,
+          incidentSeverityId: incident?.incidentSeverityId as ObjectID,
         },
-      );
-
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
     }
 
-
-    // get rule count for alerts. 
+    // get rule count for alerts.
     if (createdItem.triggeredByAlertId) {
-
-
       alert = await AlertService.findOneById({
         id: createdItem.triggeredByAlertId,
         props: {
@@ -164,22 +157,19 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-
-      ruleCount = await UserNotificationRuleService.countBy(
-        {
-          query: {
-            userId: createdItem.userId!,
-            projectId: createdItem.projectId!,
-            ruleType: notificationRuleType,
-            alertSeverityId: alert?.alertSeverityId as ObjectID,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
+      ruleCount = await UserNotificationRuleService.countBy({
+        query: {
+          userId: createdItem.userId!,
+          projectId: createdItem.projectId!,
+          ruleType: notificationRuleType,
+          alertSeverityId: alert?.alertSeverityId as ObjectID,
         },
-      );
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
     }
 
     if (ruleCount.toNumber() === 0) {
@@ -220,8 +210,14 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId!,
           notifyAfterMinutes: 0,
           ruleType: notificationRuleType,
-          incidentSeverityId: incident && incident.incidentSeverityId ? incident?.incidentSeverityId as ObjectID : undefined,
-          alertSeverityId: alert && alert.alertSeverityId ? alert?.alertSeverityId as ObjectID : undefined,
+          incidentSeverityId:
+            incident && incident.incidentSeverityId
+              ? (incident?.incidentSeverityId as ObjectID)
+              : undefined,
+          alertSeverityId:
+            alert && alert.alertSeverityId
+              ? (alert?.alertSeverityId as ObjectID)
+              : undefined,
         },
         select: {
           _id: true,

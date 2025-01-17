@@ -229,8 +229,6 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   })
   public triggeredByIncidentId?: ObjectID = undefined;
 
-
-
   @ColumnAccessControl({
     create: [],
     read: [

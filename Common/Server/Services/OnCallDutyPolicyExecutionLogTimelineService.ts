@@ -92,7 +92,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    if (!onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId && !onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
+    if (
+      !onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId &&
+      !onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId
+    ) {
       return;
     }
 
@@ -123,28 +126,26 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
 
-        if(onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+          await IncidentFeedService.createIncidentFeed({
+            incidentId:
+              onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
+            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+            incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+            displayColor: displayColor,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+          });
+        }
 
-        await IncidentFeedService.createIncidentFeed({
-          incidentId:
-            onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
-          projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-          displayColor: displayColor,
-          feedInfoInMarkdown: feedInfoInMarkdown,
-        });
-
-      }
-
-      if(onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
-        await AlertFeedService.createAlertFeed({
-          alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
-          projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          alertFeedEventType: AlertFeedEventType.OnCallPolicy,
-          displayColor: displayColor,
-          feedInfoInMarkdown: feedInfoInMarkdown,
-        });
-      }
+        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
+          await AlertFeedService.createAlertFeed({
+            alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
+            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+            alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+            displayColor: displayColor,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+          });
+        }
 
         logger.debug("Incident Feed created");
       }

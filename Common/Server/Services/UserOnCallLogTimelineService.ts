@@ -47,14 +47,9 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-
-
-
       for (const item of items) {
-
-
-        const isIncident: boolean = !!item.triggeredByIncidentId;
-        const isAlert: boolean = !!item.triggeredByAlertId;
+        const isIncident: boolean = Boolean(item.triggeredByIncidentId);
+        const isAlert: boolean = Boolean(item.triggeredByAlertId);
 
         // this incident is acknowledged.
 
@@ -76,8 +71,7 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException("User not found.");
         }
 
-        let statusMessage: string =
-          `${isIncident ? "Incident" : "Alert"} acknowledged by ${user.name} (${user.email})`;
+        const statusMessage: string = `${isIncident ? "Incident" : "Alert"} acknowledged by ${user.name} (${user.email})`;
 
         await UserOnCallLogService.updateOneById({
           id: item.userNotificationLogId!,
@@ -85,8 +79,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
             acknowledgedByUserId: item.userId!,
             status: UserNotificationExecutionStatus.Completed,
-            statusMessage:
-              statusMessage,
+            statusMessage: statusMessage,
           },
           props: {
             isRoot: true,
@@ -101,8 +94,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
             acknowledgedByUserId: item.userId!,
             status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              statusMessage,
+            statusMessage: statusMessage,
           },
           props: {
             isRoot: true,
@@ -117,8 +109,7 @@ export class Service extends DatabaseService<Model> {
             isAcknowledged: true,
             status:
               OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
-            statusMessage:
-              statusMessage,
+            statusMessage: statusMessage,
           },
           props: {
             isRoot: true,
@@ -126,7 +117,6 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (isIncident) {
-
           // incident.
           await IncidentService.acknowledgeIncident(
             item.triggeredByIncidentId!,
