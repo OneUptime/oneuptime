@@ -7,8 +7,33 @@ import SubscriptionPlan, {
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "../../Types/Billing/SubscriptionStatus";
 
 export default class ProjectUtil {
+  public static setIsSubscriptionInactive(data: {
+    paymentProviderMeteredSubscriptionStatus: SubscriptionStatus;
+    paymentProviderSubscriptionStatus: SubscriptionStatus;
+  }): boolean {
+    const isSubscriptionInactive =
+      SubscriptionStatusUtil.isSubscriptionInactive(
+        data.paymentProviderMeteredSubscriptionStatus,
+      ) ||
+      SubscriptionStatusUtil.isSubscriptionInactive(
+        data.paymentProviderSubscriptionStatus,
+      );
+
+    // save this to local storage
+    LocalStorage.setItem("isSubscriptionInactive", isSubscriptionInactive);
+
+    return isSubscriptionInactive;
+  }
+
+  public static isSubscriptionInactive(): boolean {
+    return Boolean(LocalStorage.getItem("isSubscriptionInactive")) || false;
+  }
+
   public static getCurrentProject(): Project | null {
     if (!LocalStorage.getItem("current_project")) {
       return null;

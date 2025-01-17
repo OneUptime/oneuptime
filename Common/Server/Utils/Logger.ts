@@ -104,4 +104,18 @@ export default class logger {
       severityNumber: data.severityNumber,
     });
   }
+
+  public static trace(message: LogBody): void {
+    const logLevel: ConfigLogLevel = this.getLogLevel();
+
+    if (logLevel === ConfigLogLevel.DEBUG) {
+      // eslint-disable-next-line no-console
+      console.trace(message);
+
+      this.emit({
+        body: message,
+        severityNumber: SeverityNumber.DEBUG,
+      });
+    }
+  }
 }

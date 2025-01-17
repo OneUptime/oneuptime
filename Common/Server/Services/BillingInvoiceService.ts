@@ -12,6 +12,9 @@ import Model, {
 import Project from "Common/Models/DatabaseModels/Project";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../Types/ObjectID";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import logger from "../Utils/Logger";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -19,10 +22,32 @@ export class Service extends DatabaseService<Model> {
     this.setDoNotAllowDelete(true);
   }
 
+  public async refreshSubscriptionStatus(data: { projectId: ObjectID }) {
+    let mutex: SemaphoreMutex | null = null;
 
-  public async refreshSubscriptionStatus(data: {
-    projectId: ObjectID;
-  }) {
+    try {
+      mutex = await Semaphore.lock({
+        key: data.projectId.toString(),
+        namespace: "BillingInoviceService.refreshSubscriptionStatus",
+        lockTimeout: 15000,
+        acquireTimeout: 20000,
+      });
+      logger.debug(
+        "Mutex acquired - " +
+          data.projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+    } catch (err) {
+      logger.debug(
+        "Mutex acquire failed - " +
+          data.projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+      logger.error(err);
+    }
+
     let project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       props: {
@@ -57,11 +82,24 @@ export class Service extends DatabaseService<Model> {
         project.paymentProviderMeteredSubscriptionId as string,
       );
 
+    // update the project.
+
+    await ProjectService.updateOneById({
+      id: project.id!,
+      data: {
+        paymentProviderSubscriptionStatus: subscriptionState,
+        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
     if (
       meteredSubscriptionState === SubscriptionStatus.Canceled ||
       subscriptionState === SubscriptionStatus.Canceled
     ) {
-
       // check if all invoices are paid. If yes, then reactivate the subscription.
 
       const invoices: Array<Invoice> = await BillingService.getInvoices(
@@ -71,14 +109,16 @@ export class Service extends DatabaseService<Model> {
       let allInvoicesPaid: boolean = true;
 
       for (const invoice of invoices) {
-        if (invoice.status === InvoiceStatus.Open || invoice.status === InvoiceStatus.Uncollectible) {
+        if (
+          invoice.status === InvoiceStatus.Open ||
+          invoice.status === InvoiceStatus.Uncollectible
+        ) {
           allInvoicesPaid = false;
           break;
         }
       }
 
       if (allInvoicesPaid) {
-
         await ProjectService.reactiveSubscription(project.id!);
         project = await ProjectService.findOneById({
           id: data.projectId,
@@ -104,20 +144,40 @@ export class Service extends DatabaseService<Model> {
         meteredSubscriptionState = await BillingService.getSubscriptionStatus(
           project.paymentProviderMeteredSubscriptionId as string,
         );
+
+        await ProjectService.updateOneById({
+          id: project.id!,
+          data: {
+            paymentProviderSubscriptionStatus: subscriptionState,
+            paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       }
     }
 
-    await ProjectService.updateOneById({
-      id: project.id!,
-      data: {
-        paymentProviderSubscriptionStatus: subscriptionState,
-        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+        logger.debug(
+          "Mutex released - " +
+            data.projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
+      } catch (err) {
+        logger.debug(
+          "Mutex release failed - " +
+            data.projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
+        );
+        logger.error(err);
+      }
+    }
   }
 
   protected override async onBeforeFind(
@@ -152,7 +212,6 @@ export class Service extends DatabaseService<Model> {
     if (!project.paymentProviderCustomerId) {
       throw new BadDataException("Payment provider customer id not found.");
     }
-
 
     const invoices: Array<Invoice> = await BillingService.getInvoices(
       project.paymentProviderCustomerId,

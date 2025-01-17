@@ -27,6 +27,9 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Project from "Common/Models/DatabaseModels/Project";
+import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -98,6 +101,36 @@ const Settings: FunctionComponent<ComponentProps> = (
             currencyCode: true,
             paymentProviderCustomerId: true,
             paymentProviderInvoiceId: true,
+          }}
+          onFetchSuccess={async () => {
+            if (ProjectUtil.isSubscriptionInactive()) {
+              // fetch project and check subscription again.
+              const project: Project | null = await ModelAPI.getItem({
+                modelType: Project,
+                id: DashboardNavigation.getProjectId()!,
+                select: {
+                  paymentProviderMeteredSubscriptionStatus: true,
+                  paymentProviderSubscriptionStatus: true,
+                },
+              });
+
+              if (project) {
+                const isSubscriptionInactive =
+                  ProjectUtil.setIsSubscriptionInactive({
+                    paymentProviderMeteredSubscriptionStatus:
+                      project.paymentProviderMeteredSubscriptionStatus ||
+                      SubscriptionStatus.Active,
+                    paymentProviderSubscriptionStatus:
+                      project.paymentProviderSubscriptionStatus ||
+                      SubscriptionStatus.Active,
+                  });
+
+                if (!isSubscriptionInactive) {
+                  // if subscription is active then reload the page.
+                  Navigation.reload();
+                }
+              }
+            }
           }}
           filters={[
             {
