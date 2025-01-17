@@ -340,7 +340,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description:
-      "Log of the entire scheduledMaintenance state change in Markdown",
+      "Log of the entire scheduled maintenance state change in Markdown",
   })
   @Column({
     type: ColumnType.Markdown,

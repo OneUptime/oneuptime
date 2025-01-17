@@ -41,7 +41,7 @@ export class Service extends DatabaseService<Model> {
         ScheduledMaintenanceFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `**Posted public note for this scheduledMaintenance on status page**
+      feedInfoInMarkdown: `**Posted public note for this scheduled maintenance on status page**
   
 ${createdItem.note}
             `,

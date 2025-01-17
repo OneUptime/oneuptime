@@ -167,7 +167,7 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Owners have been notified about the state change of the scheduled maintenance.**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
+        feedInfoInMarkdown: `**Owners have been notified about the state change of the scheduled maintenance.**: Owners have been notified about the state change of the scheduled maintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
       });

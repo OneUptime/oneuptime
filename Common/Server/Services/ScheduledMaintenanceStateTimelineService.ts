@@ -162,7 +162,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
-        "**ScheduledMaintenance State** changed to **" + stateName + "**",
+        "**Scheduled Maintenance State** changed to **" + stateName + "**",
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
     });
 
