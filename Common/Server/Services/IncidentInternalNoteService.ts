@@ -53,7 +53,7 @@ ${createdItem.note}
           note: true,
           createdByUserId: true,
           createdByUser: {
-            id: true,
+            _id: true,
           },
         },
       });
