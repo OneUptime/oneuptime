@@ -22,7 +22,9 @@ export class Service extends DatabaseService<Model> {
     this.setDoNotAllowDelete(true);
   }
 
-  public async refreshSubscriptionStatus(data: { projectId: ObjectID }) {
+  public async refreshSubscriptionStatus(data: {
+    projectId: ObjectID;
+  }): Promise<void> {
     let mutex: SemaphoreMutex | null = null;
 
     try {

@@ -115,7 +115,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               });
 
               if (project) {
-                const isSubscriptionInactive =
+                const isSubscriptionInactive: boolean =
                   ProjectUtil.setIsSubscriptionInactive({
                     paymentProviderMeteredSubscriptionStatus:
                       project.paymentProviderMeteredSubscriptionStatus ||

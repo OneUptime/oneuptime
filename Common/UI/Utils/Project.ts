@@ -16,7 +16,7 @@ export default class ProjectUtil {
     paymentProviderMeteredSubscriptionStatus: SubscriptionStatus;
     paymentProviderSubscriptionStatus: SubscriptionStatus;
   }): boolean {
-    const isSubscriptionInactive =
+    const isSubscriptionInactive: boolean =
       SubscriptionStatusUtil.isSubscriptionInactive(
         data.paymentProviderMeteredSubscriptionStatus,
       ) ||
