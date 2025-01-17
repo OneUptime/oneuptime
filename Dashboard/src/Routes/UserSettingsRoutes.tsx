@@ -25,9 +25,7 @@ const UserSettingsIncidentNotificationRules: LazyExoticComponent<
   return import("../Pages/UserSettings/IncidentOnCallRules");
 });
 
-
 const UserSettingsAlertNotificationRules: LazyExoticComponent<
-
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/UserSettings/AlertOnCallRules");
@@ -83,7 +81,7 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             UserSettingsRoutePath[
-            PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
+              PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE
             ] || ""
           }
           element={
@@ -101,7 +99,7 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             UserSettingsRoutePath[
-            PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
+              PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS
             ] || ""
           }
           element={
@@ -135,24 +133,28 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] || ""
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
               <UserSettingsIncidentNotificationRules
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route
+                  RouteMap[
+                    PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
+                  ] as Route
                 }
               />
             </Suspense>
           }
         />
 
-
         <PageRoute
           path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] || ""
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] ||
+            ""
           }
           element={
             <Suspense fallback={Loader}>
@@ -165,9 +167,6 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-
-
-
       </PageRoute>
     </Routes>
   );

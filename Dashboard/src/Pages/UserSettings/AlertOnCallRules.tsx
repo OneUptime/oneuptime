@@ -33,9 +33,9 @@ import React, {
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [alertSeverities, setAlertSeverities] = useState<
-    Array<AlertSeverity>
-  >([]);
+  const [alertSeverities, setAlertSeverities] = useState<Array<AlertSeverity>>(
+    [],
+  );
   const [userEmails, setUserEmails] = useState<Array<UserEmail>>([]);
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
@@ -217,8 +217,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setIsLoading(true);
 
     try {
-      const alertSeverities: ListResult<AlertSeverity> =
-        await ModelAPI.getList({
+      const alertSeverities: ListResult<AlertSeverity> = await ModelAPI.getList(
+        {
           modelType: AlertSeverity,
           query: {
             projectId: DashboardNavigation.getProjectId()!,
@@ -229,7 +229,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name: true,
           },
           sort: {},
-        });
+        },
+      );
 
       const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
         modelType: UserEmail,
@@ -335,26 +336,28 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <div>
-        {alertSeverities.map(
-          (alertSeverity: AlertSeverity, i: number) => {
-            return (
-              <div key={i}>
-                {getModelTable({
-                  alertSeverity: alertSeverity,
-                  ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
-                  title:
-                    alertSeverity.name + " Severity Alert: " +" When I am on call and " +
-                    alertSeverity.name + " severity alert" +
-                    " is assigned to me...",
-                  description:
-                    "Here are the rules when you are on call and " +
-                    alertSeverity.name + " Severity alert" +
-                    " is assigned to you.",
-                })}
-              </div>
-            );
-          },
-        )}
+        {alertSeverities.map((alertSeverity: AlertSeverity, i: number) => {
+          return (
+            <div key={i}>
+              {getModelTable({
+                alertSeverity: alertSeverity,
+                ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
+                title:
+                  alertSeverity.name +
+                  " Severity Alert: " +
+                  " When I am on call and " +
+                  alertSeverity.name +
+                  " severity alert" +
+                  " is assigned to me...",
+                description:
+                  "Here are the rules when you are on call and " +
+                  alertSeverity.name +
+                  " Severity alert" +
+                  " is assigned to you.",
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {/* <div>
