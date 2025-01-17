@@ -1,11 +1,7 @@
-import ChangeAlertState, {
-  AlertType,
-} from "../../../Components/Alert/ChangeState";
+import ChangeAlertState from "../../../Components/Alert/ChangeState";
 import LabelsElement from "../../../Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -23,7 +19,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
-import GlobalEvent from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -53,6 +48,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
+import AlertFeedElement from "../../../Components/Alert/AlertFeed";
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -483,64 +479,17 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: Alert): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Acknowledge Alert",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Alert,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeAlertState
-                    alertId={modelId}
-                    alertTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    alertType={AlertType.Ack}
-                    onActionComplete={async () => {
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Resolve Alert",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Alert,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeAlertState
-                    alertId={modelId}
-                    alertTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    alertType={AlertType.Resolve}
-                    onActionComplete={async () => {
-                      GlobalEvent.dispatchEvent(
-                        EventName.ACTIVE_ALERTS_COUNT_REFRESH,
-                      );
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
+            }
+            
           ],
           modelId: modelId,
+        }}
+      />
+
+      <ChangeAlertState
+        alertId={modelId}
+        onActionComplete={async () => {
+          await fetchData();
         }}
       />
 
@@ -616,6 +565,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             />
           </Card>
         )}
+
+      <AlertFeedElement alertId={modelId} />
     </Fragment>
   );
 };
