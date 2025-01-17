@@ -1,4 +1,5 @@
 import IncidentSeverity from "./IncidentSeverity";
+import AlertSeverity from "./AlertSeverity";
 import Project from "./Project";
 import User from "./User";
 import UserCall from "./UserCall";
@@ -450,6 +451,57 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incidentSeverityId?: ObjectID = undefined;
+
+
+  // alert severity. 
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertSeverityId",
+    type: TableColumnType.Entity,
+    modelType: AlertSeverity,
+    title: "Alert Severity",
+    description:
+      "Relation to Alert Severity Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return AlertSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertSeverityId" })
+  public alertSeverity?: AlertSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert Severity ID",
+    description: "ID of Alert Severity in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertSeverityId?: ObjectID = undefined;
+
 }
 
 export default UserNotificationRule;

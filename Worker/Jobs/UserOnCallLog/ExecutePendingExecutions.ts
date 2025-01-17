@@ -13,6 +13,8 @@ import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertService from "Common/Server/Services/AlertService";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -34,6 +36,7 @@ RunCron(
           userId: true,
           userNotificationEventType: true,
           triggeredByIncidentId: true,
+          triggeredByAlertId: true,
           onCallDutyPolicyEscalationRuleId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
           onCallDutyPolicyExecutionLogId: true,
@@ -69,7 +72,12 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           pendingNotificationLog.userNotificationEventType!,
         );
 
-      const incident: Incident | null = await IncidentService.findOneById({
+      let incident: Incident | null = null;
+      let alert: Alert | null = null;
+
+      if(pendingNotificationLog.triggeredByIncidentId) {
+      
+      incident = await IncidentService.findOneById({
         id: pendingNotificationLog.triggeredByIncidentId!,
         props: {
           isRoot: true,
@@ -78,6 +86,23 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           incidentSeverityId: true,
         },
       });
+    }
+
+    if(pendingNotificationLog.triggeredByAlertId) {
+      alert = await AlertService.findOneById({
+        id: pendingNotificationLog.triggeredByAlertId!,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          alertSeverityId: true,
+        },
+      });
+    }
+
+    if(!incident && !alert) {
+      throw new Error("Incident or Alert not found.");
+    }
 
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({
@@ -85,7 +110,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             projectId: pendingNotificationLog.projectId!,
             userId: pendingNotificationLog.userId!,
             ruleType: ruleType,
-            incidentSeverityId: incident?.incidentSeverityId as ObjectID,
+            incidentSeverityId: incident?.incidentSeverityId || undefined,
+            alertSeverityId: alert?.alertSeverityId || undefined,
           },
           select: {
             _id: true,
@@ -132,6 +158,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             userNotificationLogId: pendingNotificationLog.id!,
             projectId: pendingNotificationLog.projectId!,
             triggeredByIncidentId: pendingNotificationLog.triggeredByIncidentId,
+            triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
             userNotificationEventType:
               pendingNotificationLog.userNotificationEventType!,
             onCallPolicyExecutionLogId:

@@ -9,6 +9,7 @@ import logger from "Common/Server/Utils/Logger";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import IncidentService from "Common/Server/Services/IncidentService";
+import AlertService from "Common/Server/Services/AlertService";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -34,6 +35,7 @@ RunCron(
           executeNextEscalationRuleInMinutes: true,
           userNotificationEventType: true,
           triggeredByIncidentId: true,
+          triggeredByAlertId: true,
           createdAt: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -65,6 +67,31 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
+
+    // get trigger by alert
+    if(executionLog.triggeredByAlertId) {
+      // check if this alert is ack.
+      const isAcknowledged: boolean =
+        await AlertService.isAlertAcknowledged({
+          alertId: executionLog.triggeredByAlertId,
+        });
+
+      if (isAcknowledged) {
+        // then mark this policy as executed.
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            status: OnCallDutyPolicyStatus.Completed,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+    }
+
     // get trigger by incident
     if (executionLog.triggeredByIncidentId) {
       // check if this incident is ack.
@@ -187,6 +214,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           {
             projectId: executionLog.projectId!,
             triggeredByIncidentId: executionLog.triggeredByIncidentId,
+            triggeredByAlertId: executionLog.triggeredByAlertId,
             userNotificationEventType: executionLog.userNotificationEventType!,
             onCallPolicyExecutionLogId: executionLog.id!,
             onCallPolicyId: executionLog.onCallDutyPolicyId!,
@@ -213,6 +241,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       {
         projectId: executionLog.projectId!,
         triggeredByIncidentId: executionLog.triggeredByIncidentId,
+        triggeredByAlertId: executionLog.triggeredByAlertId,
         userNotificationEventType: executionLog.userNotificationEventType!,
         onCallPolicyExecutionLogId: executionLog.id!,
         onCallPolicyId: executionLog.onCallDutyPolicyId!,

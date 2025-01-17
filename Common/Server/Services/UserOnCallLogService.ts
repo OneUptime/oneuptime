@@ -16,6 +16,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import Model from "Common/Models/DatabaseModels/UserOnCallLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import Alert from "../../Models/DatabaseModels/Alert";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -111,32 +113,74 @@ export class Service extends DatabaseService<Model> {
     const notificationRuleType: NotificationRuleType =
       this.getNotificationRuleType(createdItem.userNotificationEventType!);
 
-    const incident: Incident | null = await IncidentService.findOneById({
-      id: createdItem.triggeredByIncidentId!,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        incidentSeverityId: true,
-      },
-    });
+    let ruleCount: PositiveNumber = new PositiveNumber(0);
 
-    // Check if there are any rules .
-    const ruleCount: PositiveNumber = await UserNotificationRuleService.countBy(
-      {
-        query: {
-          userId: createdItem.userId!,
-          projectId: createdItem.projectId!,
-          ruleType: notificationRuleType,
-          incidentSeverityId: incident?.incidentSeverityId as ObjectID,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
+    let incident: Incident | null = null;
+    let alert:  Alert | null = null;
+
+    if (createdItem.triggeredByIncidentId) {
+
+      incident = await IncidentService.findOneById({
+        id: createdItem.triggeredByIncidentId,
         props: {
           isRoot: true,
         },
-      },
-    );
+        select: {
+          incidentSeverityId: true,
+        },
+      });
+
+      // Check if there are any rules .
+      ruleCount = await UserNotificationRuleService.countBy(
+        {
+          query: {
+            userId: createdItem.userId!,
+            projectId: createdItem.projectId!,
+            ruleType: notificationRuleType,
+            incidentSeverityId: incident?.incidentSeverityId as ObjectID,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        },
+      );
+
+    }
+
+
+    // get rule count for alerts. 
+    if (createdItem.triggeredByAlertId) {
+
+
+      alert = await AlertService.findOneById({
+        id: createdItem.triggeredByAlertId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          alertSeverityId: true,
+        },
+      });
+
+
+      ruleCount = await UserNotificationRuleService.countBy(
+        {
+          query: {
+            userId: createdItem.userId!,
+            projectId: createdItem.projectId!,
+            ruleType: notificationRuleType,
+            alertSeverityId: alert?.alertSeverityId as ObjectID,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        },
+      );
+    }
 
     if (ruleCount.toNumber() === 0) {
       // update this item to be processed.
@@ -176,7 +220,8 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId!,
           notifyAfterMinutes: 0,
           ruleType: notificationRuleType,
-          incidentSeverityId: incident?.incidentSeverityId as ObjectID,
+          incidentSeverityId: incident && incident.incidentSeverityId ? incident?.incidentSeverityId as ObjectID : undefined,
+          alertSeverityId: alert && alert.alertSeverityId ? alert?.alertSeverityId as ObjectID : undefined,
         },
         select: {
           _id: true,
@@ -195,6 +240,7 @@ export class Service extends DatabaseService<Model> {
           userNotificationLogId: createdItem.id!,
           projectId: createdItem.projectId!,
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
+          triggeredByAlertId: createdItem.triggeredByAlertId,
           userNotificationEventType: createdItem.userNotificationEventType!,
           onCallPolicyExecutionLogId:
             createdItem.onCallDutyPolicyExecutionLogId,

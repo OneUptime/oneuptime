@@ -13,6 +13,7 @@ import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolic
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import User from "Common/Models/DatabaseModels/User";
 import Model from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -36,6 +37,7 @@ export class Service extends DatabaseService<Model> {
           userNotificationLogId: true,
           onCallDutyPolicyExecutionLogId: true,
           triggeredByIncidentId: true,
+          triggeredByAlertId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
         },
         skip: 0,
@@ -45,7 +47,15 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+
+
+
       for (const item of items) {
+
+
+        const isIncident: boolean = !!item.triggeredByIncidentId;
+        const isAlert: boolean = !!item.triggeredByAlertId;
+
         // this incident is acknowledged.
 
         // now we need to ack the parent log.
@@ -66,6 +76,9 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException("User not found.");
         }
 
+        let statusMessage: string =
+          `${isIncident ? "Incident" : "Alert"} acknowledged by ${user.name} (${user.email})`;
+
         await UserOnCallLogService.updateOneById({
           id: item.userNotificationLogId!,
           data: {
@@ -73,7 +86,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgedByUserId: item.userId!,
             status: UserNotificationExecutionStatus.Completed,
             statusMessage:
-              "Incident acknowledged by " + user.name + " (" + user.email + ")",
+              statusMessage,
           },
           props: {
             isRoot: true,
@@ -89,7 +102,7 @@ export class Service extends DatabaseService<Model> {
             acknowledgedByUserId: item.userId!,
             status: OnCallDutyPolicyStatus.Completed,
             statusMessage:
-              "Incident acknowledged by " + user.name + " (" + user.email + ")",
+              statusMessage,
           },
           props: {
             isRoot: true,
@@ -105,18 +118,29 @@ export class Service extends DatabaseService<Model> {
             status:
               OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
             statusMessage:
-              "Incident acknowledged by " + user.name + " (" + user.email + ")",
+              statusMessage,
           },
           props: {
             isRoot: true,
           },
         });
 
-        // incident.
-        await IncidentService.acknowledgeIncident(
-          item.triggeredByIncidentId!,
-          item.userId!,
-        );
+        if (isIncident) {
+
+          // incident.
+          await IncidentService.acknowledgeIncident(
+            item.triggeredByIncidentId!,
+            item.userId!,
+          );
+        }
+
+        if (isAlert) {
+          // alert.
+          await AlertService.acknowledgeAlert(
+            item.triggeredByAlertId!,
+            item.userId!,
+          );
+        }
       }
     }
 
