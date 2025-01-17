@@ -28,6 +28,7 @@ import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import Alert from "./Alert";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -377,6 +378,53 @@ export default class UserOnCallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByIncidentId?: ObjectID = undefined;
+
+
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "triggeredByAlertId",
+    type: TableColumnType.Entity,
+    modelType: Alert,
+    title: "Triggered By Alert",
+    description:
+      "Relation to Alert which triggered this on-call duty policy.",
+  })
+  @ManyToOne(
+    () => {
+      return Alert;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "triggeredByAlertId" })
+  public triggeredByAlert?: Alert = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Triggered By Alert ID",
+    description:
+      "ID of the Alert which triggered this on-call escalation policy.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAlertId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

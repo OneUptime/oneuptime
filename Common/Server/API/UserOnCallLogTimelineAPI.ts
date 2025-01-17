@@ -55,6 +55,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               _id: true,
               projectId: true,
               triggeredByIncidentId: true,
+              triggeredByAlertId: true,
             },
             props: {
               isRoot: true,
@@ -115,6 +116,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               _id: true,
               projectId: true,
               triggeredByIncidentId: true,
+              triggeredByAlertId: true,
             },
             props: {
               isRoot: true,
