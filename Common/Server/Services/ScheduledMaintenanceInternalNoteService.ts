@@ -45,7 +45,9 @@ ${createdItem.note}
         query: onUpdate.updateBy.query,
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        props: {},
+        props: {
+          isRoot: true,
+        },
         select: {
           scheduledMaintenanceId: true,
           projectId: true,
