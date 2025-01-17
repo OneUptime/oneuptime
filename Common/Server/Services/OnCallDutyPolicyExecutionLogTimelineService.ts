@@ -10,7 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AlertFeedService from "./AlertFeedService";
-import AlertFeed, { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

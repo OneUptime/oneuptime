@@ -374,7 +374,7 @@ export default class UserOnCallLog extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByIncidentId?: ObjectID = undefined;
@@ -421,7 +421,7 @@ export default class UserOnCallLog extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertId?: ObjectID = undefined;
