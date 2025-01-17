@@ -63,7 +63,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
               RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
             ),
           }}
-          icon={IconProp.Alert}
+          icon={IconProp.ExclaimationCircle}
         />
 
         <SideMenuItem

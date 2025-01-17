@@ -343,7 +343,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   incidentSeverity: incidentSeverity,
                   ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
                   title:
-                    "When I am on call and " +
+                    incidentSeverity.name + " Severity: "+ " When I am on call and " +
                     incidentSeverity.name +
                     " is assigned to me...",
                   description:

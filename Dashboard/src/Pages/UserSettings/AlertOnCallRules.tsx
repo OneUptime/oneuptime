@@ -343,12 +343,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   alertSeverity: alertSeverity,
                   ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
                   title:
-                    "When I am on call and " +
-                    alertSeverity.name +
+                    alertSeverity.name + " Severity Alert: " +" When I am on call and " +
+                    alertSeverity.name + " severity alert" +
                     " is assigned to me...",
                   description:
                     "Here are the rules when you are on call and " +
-                    alertSeverity.name +
+                    alertSeverity.name + " Severity alert" +
                     " is assigned to you.",
                 })}
               </div>
