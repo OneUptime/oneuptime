@@ -17,6 +17,9 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import User from "Common/Models/DatabaseModels/User";
+import AlertFeedService from "Common/Server/Services/AlertFeedService";
+import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
@@ -140,6 +143,8 @@ RunCron(
         vars["isPrivateNote"] = "true";
       }
 
+      let moreAlertFeedInformationInMarkdown: string = "";
+
       for (const user of owners) {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerNotePosted,
@@ -168,7 +173,20 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
         });
+
+        moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
+
+      const alertFeedText: string = `**Owners Notified because note is posted** Owners have been notified about the new note posted on the alert.`;
+
+      await AlertFeedService.createAlertFeed({
+        alertId: alert.id!,
+        projectId: alert.projectId!,
+        alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: alertFeedText,
+        moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+      });
     }
   },
 );

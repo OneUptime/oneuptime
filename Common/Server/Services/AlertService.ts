@@ -38,6 +38,9 @@ import Metric, {
   ServiceType,
 } from "../../Models/AnalyticsModels/Metric";
 import AlertMetricType from "../../Types/Alerts/AlertMetricType";
+import AlertFeedService from "./AlertFeedService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { Gray500, Red500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -223,6 +226,48 @@ export class Service extends DatabaseService<Model> {
     if (!createdItem.currentAlertStateId) {
       throw new BadDataException("currentAlertStateId is required");
     }
+
+    const createdByUserId: ObjectID | undefined | null =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    await AlertFeedService.createAlertFeed({
+      alertId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.AlertCreated,
+      displayColor: Red500,
+      feedInfoInMarkdown: `**Alert Created**: 
+          
+  **Alert Title**:
+  
+  ${createdItem.title || "No title provided."}
+  
+  **Description**:
+  
+  ${createdItem.description || "No description provided."}
+    
+          `,
+      userId: createdByUserId || undefined,
+    });
+
+    await AlertFeedService.createAlertFeed({
+      alertId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.RootCause,
+      displayColor: Red500,
+      feedInfoInMarkdown: `**Root Cause**
+        
+${createdItem.rootCause || "No root cause provided."}`,
+    });
+
+    await AlertFeedService.createAlertFeed({
+      alertId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.RemediationNotes,
+      displayColor: Red500,
+      feedInfoInMarkdown: `**Remediation Notes**
+        
+${createdItem.remediationNotes || "No remediation notes provided."}`,
+    });
 
     await this.changeAlertState({
       projectId: createdItem.projectId,
@@ -442,6 +487,82 @@ export class Service extends DatabaseService<Model> {
             isRoot: true,
           },
         });
+      }
+    }
+
+    if (updatedItemIds.length > 0) {
+      for (const alertId of updatedItemIds) {
+        if (onUpdate.updateBy.data.title) {
+          // add alert feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await AlertFeedService.createAlertFeed({
+            alertId: alertId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            alertFeedEventType: AlertFeedEventType.AlertUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Alert title was updated.** Here's the new title.
+    
+    ${onUpdate.updateBy.data.title || "No title provided."}
+              `,
+            userId: createdByUserId || undefined,
+          });
+        }
+
+        if (onUpdate.updateBy.data.rootCause) {
+          // add alert feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await AlertFeedService.createAlertFeed({
+            alertId: alertId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            alertFeedEventType: AlertFeedEventType.AlertUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Alert root cause was updated.** Here's the new root cause.
+          
+    ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
+            `,
+            userId: createdByUserId || undefined,
+          });
+        }
+
+        if (onUpdate.updateBy.data.description) {
+          // add alert feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await AlertFeedService.createAlertFeed({
+            alertId: alertId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            alertFeedEventType: AlertFeedEventType.AlertUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Alert description was updated.** Here's the new description.
+          
+    ${onUpdate.updateBy.data.description || "No description provided."}
+            `,
+            userId: createdByUserId || undefined,
+          });
+        }
+
+        if (onUpdate.updateBy.data.remediationNotes) {
+          // add alert feed.
+          const createdByUserId: ObjectID | undefined | null =
+            onUpdate.updateBy.props.userId;
+
+          await AlertFeedService.createAlertFeed({
+            alertId: alertId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            alertFeedEventType: AlertFeedEventType.AlertUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Remediation notes were updated.** Here are the new notes.
+    
+    ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
+                `,
+            userId: createdByUserId || undefined,
+          });
+        }
       }
     }
 

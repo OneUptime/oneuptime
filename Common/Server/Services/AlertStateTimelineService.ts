@@ -19,6 +19,8 @@ import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
 import logger from "../Utils/Logger";
+import AlertFeedService from "./AlertFeedService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
@@ -163,6 +165,36 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         },
       });
     }
+
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        _id: createdItem.alertStateId.toString()!,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        isResolvedState: true,
+        isAcknowledgedState: true,
+        isCreatedState: true,
+        color: true,
+        name: true,
+      },
+    });
+
+    const stateName: string = alertState?.name || "";
+
+    await AlertFeedService.createAlertFeed({
+      alertId: createdItem.alertId!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.AlertStateChanged,
+      displayColor: alertState?.color,
+      feedInfoInMarkdown: "**Alert State** changed to **" + stateName + "**",
+      moreInformationInMarkdown: `**Cause:** 
+${createdItem.rootCause}`,
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+    });
 
     await AlertService.updateOneBy({
       query: {

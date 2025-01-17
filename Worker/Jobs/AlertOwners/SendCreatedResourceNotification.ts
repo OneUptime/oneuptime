@@ -18,6 +18,9 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
+import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
+import { Yellow500 } from "Common/Types/BrandColors";
+import AlertFeedService from "Common/Server/Services/AlertFeedService";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -63,6 +66,10 @@ RunCron(
     });
 
     for (const alert of alerts) {
+      const alertFeedText: string = `**Owner Alert Created Notification Sent**:
+      Notification sent to owners of this alert because this alert was created.`;
+      let moreAlertFeedInformationInMarkdown: string = "";
+
       const alertIdentifiedDate: Date =
         await AlertService.getAlertIdentifiedDate(alert.id!);
 
@@ -175,11 +182,22 @@ RunCron(
             eventType:
               NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
           });
+
+          moreAlertFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);
         }
       }
+
+      await AlertFeedService.createAlertFeed({
+        alertId: alert.id!,
+        projectId: alert.projectId!,
+        alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
+        displayColor: Yellow500,
+        feedInfoInMarkdown: alertFeedText,
+        moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+      });
     }
   },
 );

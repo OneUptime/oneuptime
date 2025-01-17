@@ -19,6 +19,9 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import AlertFeedService from "Common/Server/Services/AlertFeedService";
+import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
+import { Blue500 } from "Common/Types/BrandColors";
 
 RunCron(
   "AlertOwner:SendStateChangeEmail",
@@ -125,6 +128,8 @@ RunCron(
         continue;
       }
 
+      let moreAlertFeedInformationInMarkdown: string = "";
+
       for (const user of owners) {
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
@@ -188,7 +193,18 @@ RunCron(
           eventType:
             NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
+
+        moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
+
+      await AlertFeedService.createAlertFeed({
+        alertId: alert.id!,
+        projectId: alert.projectId!,
+        alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
+        displayColor: Blue500,
+        feedInfoInMarkdown: `**Owners have been notified about the state change of the alert.**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
+        moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+      });
     }
   },
 );
