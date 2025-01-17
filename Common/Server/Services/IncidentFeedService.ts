@@ -28,61 +28,69 @@ export class Service extends DatabaseService<IncidentFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
-  }): Promise<IncidentFeed> {
-    logger.debug("IncidentFeedService.createIncidentFeed");
-    logger.debug(data);
+  }): Promise<void> {
 
-    const incidentFeed: IncidentFeed = new IncidentFeed();
+    try {
 
-    if (!data.incidentId) {
-      throw new BadDataException("Incident ID is required");
+      logger.debug("IncidentFeedService.createIncidentFeed");
+      logger.debug(data);
+
+      const incidentFeed: IncidentFeed = new IncidentFeed();
+
+      if (!data.incidentId) {
+        throw new BadDataException("Incident ID is required");
+      }
+
+      if (!data.feedInfoInMarkdown) {
+        throw new BadDataException("Log in markdown is required");
+      }
+
+      if (!data.incidentFeedEventType) {
+        throw new BadDataException("Incident log event is required");
+      }
+
+      if (!data.projectId) {
+        throw new BadDataException("Project ID is required");
+      }
+
+      if (!data.displayColor) {
+        data.displayColor = Blue500;
+      }
+
+      incidentFeed.displayColor = data.displayColor;
+      incidentFeed.incidentId = data.incidentId;
+      incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
+      incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
+      incidentFeed.projectId = data.projectId;
+
+      if (!data.postedAt) {
+        incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
+      }
+
+      if (data.userId) {
+        incidentFeed.userId = data.userId;
+      }
+
+      if (data.moreInformationInMarkdown) {
+        incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
+      }
+
+      const createdIncidentFeed: IncidentFeed = await this.create({
+        data: incidentFeed,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug("Incident Feed created");
+      logger.debug(createdIncidentFeed);
+
+    } catch (e) {
+      logger.error("Error in creating incident feed");
+      logger.error(e);
+
+      // we dont throw this error as it is not a critical error
     }
-
-    if (!data.feedInfoInMarkdown) {
-      throw new BadDataException("Log in markdown is required");
-    }
-
-    if (!data.incidentFeedEventType) {
-      throw new BadDataException("Incident log event is required");
-    }
-
-    if (!data.projectId) {
-      throw new BadDataException("Project ID is required");
-    }
-
-    if (!data.displayColor) {
-      data.displayColor = Blue500;
-    }
-
-    incidentFeed.displayColor = data.displayColor;
-    incidentFeed.incidentId = data.incidentId;
-    incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
-    incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
-    incidentFeed.projectId = data.projectId;
-
-    if (!data.postedAt) {
-      incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
-    }
-
-    if (data.userId) {
-      incidentFeed.userId = data.userId;
-    }
-
-    if (data.moreInformationInMarkdown) {
-      incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
-    }
-
-    const createdIncidentFeed: IncidentFeed = await this.create({
-      data: incidentFeed,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    logger.debug("Incident Feed created");
-    logger.debug(createdIncidentFeed);
-
-    return createdIncidentFeed;
   }
 }
 
