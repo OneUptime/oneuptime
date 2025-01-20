@@ -209,7 +209,6 @@ const StatusPageDelete: FunctionComponent<
                 "How many days of data would you like to include in the report?",
               fieldType: FieldType.Number,
               placeholder: "-",
-            
             },
           ],
           modelId: modelId,

@@ -132,7 +132,6 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       });
     }
 
-
     const privateNote: string | undefined = (
       createBy.miscDataProps as JSONObject | undefined
     )?.["privateNote"] as string | undefined;
