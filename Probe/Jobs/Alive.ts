@@ -7,6 +7,8 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import logger from "Common/Server/Utils/Logger";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 
 BasicCron({
   jobName: "Basic:Alive",
@@ -32,9 +34,17 @@ BasicCron({
 
     logger.debug("Probe ID: " + probeId.toString());
 
-    await API.post(
+    const result: HTTPResponse<JSONObject> = await API.post(
       URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
       ProbeAPIRequest.getDefaultRequestBody(),
     );
+
+    if(result.isSuccess()){
+      logger.debug("Probe update sent to server successfully.");
+    }else{
+      logger.error("Failed to send probe update to server.");
+    }
+
+    
   },
 });
