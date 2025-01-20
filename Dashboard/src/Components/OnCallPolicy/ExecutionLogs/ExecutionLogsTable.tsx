@@ -20,6 +20,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertView from "../../../Components/Alert/Alert";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -116,11 +118,18 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       title: "Triggered By Incident",
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
-        if (item["triggeredByIncident"]) {
+        if (item.triggeredByIncident) {
           return (
             <IncidentView incident={item["triggeredByIncident"] as Incident} />
           );
         }
+
+        if(item.triggeredByAlert){
+          return (
+            <AlertView alert={item["triggeredByAlert"] as Alert} />
+          )
+        }
+
         return <p>No incident.</p>;
       },
     },
