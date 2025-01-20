@@ -47,6 +47,9 @@ metalLb:
     addresses:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
+
+
+
 nginx:
   service:
     loadBalancerIP:
@@ -409,3 +412,8 @@ readinessProbe: # Readiness probe configuration
   periodSeconds: 60
   initialDelaySeconds: 10
   timeoutSeconds: 120
+
+openTelemetryCollectorConfig: 
+  enabled: true
+  queueLength: 1000
+  numConsumers: 10

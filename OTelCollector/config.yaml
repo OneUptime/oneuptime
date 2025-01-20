@@ -28,11 +28,30 @@ exporters:
     headers: {"Content-Type": "application/json"}
     auth:
       authenticator: headers_setter
+    sending_queue:
+      enabled: true
+      num_consumers: ${env:OTEL_EXPORTER_OTLP_SENDING_QUEUE_NUM_CONSUMERS}
+      queue_size: ${env:OTEL_EXPORTER_OTLP_SENDING_QUEUE_SIZE}
 
 service:
   telemetry:
     logs:
       level: "debug"
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              otlphttp:
+                endpoint: "http://${env:SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME}:${env:OPEN_TELEMETRY_INGEST_PORT}/otlp"
+                headers: {"Content-Type": "application/json"}
+                auth:
+                  authenticator: headers_setter
+                sending_queue:
+                  enabled: true
+                  num_consumers: ${env:OTEL_EXPORTER_OTLP_SENDING_QUEUE_NUM_CONSUMERS}
+                  queue_size: ${env:OTEL_EXPORTER_OTLP_SENDING_QUEUE_SIZE}          
+
+
   extensions: [ headers_setter ]
   pipelines:
     traces:

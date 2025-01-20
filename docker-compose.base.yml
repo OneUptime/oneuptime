@@ -399,6 +399,8 @@ services:
           - oneuptime
         environment:
             <<: *common-variables
+            OTEL_EXPORTER_OTLP_SENDING_QUEUE_NUM_CONSUMERS: ${OTEL_EXPORTER_OTLP_SENDING_QUEUE_NUM_CONSUMERS}
+            OTEL_EXPORTER_OTLP_SENDING_QUEUE_SIZE: ${OTEL_EXPORTER_OTLP_SENDING_QUEUE_SIZE}
         restart: always
         logging:
             driver: "local"

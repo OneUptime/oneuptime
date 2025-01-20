@@ -43,6 +43,8 @@ services:
             network: host
             context: .
             dockerfile: ./OTelCollector/Dockerfile
+        ports:
+          - 8874:8888
 
     accounts:
         ports: 
