@@ -56,7 +56,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
       
@@ -126,7 +126,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -188,7 +188,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -249,7 +249,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -310,7 +310,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -371,7 +371,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -432,7 +432,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -495,7 +495,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -558,7 +558,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -619,7 +619,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -680,7 +680,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -741,7 +741,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -802,7 +802,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -863,7 +863,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -924,7 +924,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -985,7 +985,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1046,7 +1046,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1107,7 +1107,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1171,7 +1171,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1234,7 +1234,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1295,7 +1295,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1356,7 +1356,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1418,7 +1418,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1480,7 +1480,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
 
@@ -1531,7 +1531,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
       - run: cd HelmChart && cd Tests && bash index.sh
@@ -1556,7 +1556,7 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
       - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh
@@ -1609,7 +1609,7 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
       - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh

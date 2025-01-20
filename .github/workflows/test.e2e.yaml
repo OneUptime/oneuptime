@@ -27,7 +27,7 @@ jobs:
           docker-images: true
           swap-storage: true
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
       - run: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
