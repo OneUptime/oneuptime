@@ -115,22 +115,28 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           title: true,
         },
       },
-      title: "Triggered By Incident",
+      title: "Triggered By",
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         if (item.triggeredByIncident) {
           return (
+            <div>
+              <p>Incident:</p>
             <IncidentView incident={item["triggeredByIncident"] as Incident} />
+            </div>
           );
         }
 
         if(item.triggeredByAlert){
           return (
+            <div>
+              <p>Alert:</p>
             <AlertView alert={item["triggeredByAlert"] as Alert} />
+            </div>  
           )
         }
 
-        return <p>No incident.</p>;
+        return <p>-</p>;
       },
     },
     {
@@ -203,6 +209,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         selectMoreFields={{
           statusMessage: true,
           onCallDutyPolicyId: true,
+          triggeredByAlert: {
+            title: true,
+          },
         }}
         noItemsMessage={"This policy has not executed so far."}
         viewPageRoute={Navigation.getCurrentRoute()}
