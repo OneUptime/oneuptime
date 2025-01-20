@@ -17,6 +17,7 @@ BasicCron({
     runOnStartup: false,
   },
   runFunction: async () => {
+
     logger.debug("Checking if probe is alive...");
 
     const probeId: string | undefined = LocalCache.getString(
