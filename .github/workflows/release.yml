@@ -1227,7 +1227,7 @@ jobs:
       PACKAGE_VERSION: 7.0.${{needs.generate-build-number.outputs.build_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Preinstall 
         run: npm run prerun
       - name: Publish NPM Packages
@@ -1607,7 +1607,7 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: latest
@@ -1660,7 +1660,7 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: latest
