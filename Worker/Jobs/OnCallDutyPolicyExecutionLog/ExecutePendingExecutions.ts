@@ -67,12 +67,27 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
+
+
+    logger.debug(
+      `Executing on-call policy execution log: ${executionLog.id}`,
+    )
+
     // get trigger by alert
     if (executionLog.triggeredByAlertId) {
+
+      logger.debug(
+        `Triggered by alert: ${executionLog.triggeredByAlertId}`,
+      )
+
       // check if this alert is ack.
       const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
         alertId: executionLog.triggeredByAlertId,
       });
+
+      logger.debug(
+        `Alert is acknowledged: ${isAcknowledged}`,
+      )
 
       if (isAcknowledged) {
         // then mark this policy as executed.
@@ -92,11 +107,20 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
     // get trigger by incident
     if (executionLog.triggeredByIncidentId) {
+
+      logger.debug(
+        `Triggered by incident: ${executionLog.triggeredByIncidentId}`,
+      )
+
       // check if this incident is ack.
       const isAcknowledged: boolean =
         await IncidentService.isIncidentAcknowledged({
           incidentId: executionLog.triggeredByIncidentId,
         });
+
+      logger.debug(
+        `Incident is acknowledged: ${isAcknowledged}`,
+      )
 
       if (isAcknowledged) {
         // then mark this policy as executed.
@@ -126,10 +150,17 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       currentDate,
     );
 
+    logger.debug(
+      `Current date: ${currentDate}, Last executed at: ${lastExecutedAt}, Difference in minutes: ${getDifferenceInMinutes}`,
+    );
+
     if (
       getDifferenceInMinutes <
       (executionLog.executeNextEscalationRuleInMinutes || 0)
     ) {
+      logger.debug(
+        `Execution not needed yet. Waiting for ${executionLog.executeNextEscalationRuleInMinutes} minutes.`,
+      );
       return;
     }
 
@@ -150,18 +181,25 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       });
 
     if (!nextEscalationRule) {
-      // check if we need to repeat this execution.
+      logger.debug(
+        `No next escalation rule found. Checking if we need to repeat this execution.`,
+      );
 
+      // check if we need to repeat this execution.
       if (
         executionLog.onCallPolicyExecutionRepeatCount &&
         executionLog.onCallPolicyExecutionRepeatCount <
-          executionLog.onCallDutyPolicy!
-            .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
+        executionLog.onCallDutyPolicy!
+          .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
       ) {
         // repeating execution
 
         const newRepeatCount: number =
           executionLog.onCallPolicyExecutionRepeatCount + 1;
+
+        logger.debug(
+          `Repeating execution. New repeat count: ${newRepeatCount}`,
+        );
 
         await OnCallDutyPolicyExecutionLogService.updateOneById({
           id: executionLog.id!,
@@ -174,7 +212,6 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         });
 
         // get first escalation rule.
-
         const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
           await OnCallDutyPolicyEscalationRuleService.findOneBy({
             query: {
@@ -191,6 +228,10 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           });
 
         if (!firstEscalationRule) {
+          logger.debug(
+            `No first escalation rule found. Marking execution as complete.`,
+          );
+
           // mark this as complete.
           await OnCallDutyPolicyExecutionLogService.updateOneById({
             id: executionLog.id!,
@@ -205,6 +246,10 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
           return;
         }
+
+        logger.debug(
+          `Starting execution of the first escalation rule: ${firstEscalationRule.id}`,
+        );
 
         // update the execution log.
         await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
@@ -221,6 +266,11 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
         return;
       }
+
+      logger.debug(
+        `No rules to execute and no repeats left. Marking execution as complete.`,
+      );
+
       // mark this as complete as we have no rules to execute.
       await OnCallDutyPolicyExecutionLogService.updateOneById({
         id: executionLog.id!,
@@ -234,6 +284,11 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       });
       return;
     }
+
+    logger.debug(
+      `Starting execution of the next escalation rule: ${nextEscalationRule.id}`,
+    );
+
     await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
       nextEscalationRule!.id!,
       {

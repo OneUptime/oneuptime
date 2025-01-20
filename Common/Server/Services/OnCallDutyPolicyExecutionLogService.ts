@@ -16,6 +16,7 @@ import ObjectID from "../../Types/ObjectID";
 import Color from "../../Types/Color";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -112,13 +113,28 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+
+      let userNotificationEventType: UserNotificationEventType | null = null;
+
+      if(createdItem.triggeredByIncidentId) {
+        userNotificationEventType = UserNotificationEventType.IncidentCreated;
+      }
+
+      if(createdItem.triggeredByAlertId) {
+        userNotificationEventType = UserNotificationEventType.AlertCreated;
+      }
+
+      if(!userNotificationEventType) {
+        throw new BadDataException("Invalid userNotificationEventType");
+      }
+
       await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
         executionRule.id!,
         {
           projectId: createdItem.projectId!,
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
           triggeredByAlertId: createdItem.triggeredByAlertId,
-          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+          userNotificationEventType: userNotificationEventType,
           onCallPolicyExecutionLogId: createdItem.id!,
           onCallPolicyId: createdItem.onCallDutyPolicyId!,
         },
