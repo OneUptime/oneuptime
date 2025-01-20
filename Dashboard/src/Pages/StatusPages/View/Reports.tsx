@@ -134,6 +134,7 @@ const StatusPageDelete: FunctionComponent<
             description:
               "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.",
             fieldType: FormFieldSchemaType.CustomComponent,
+            required: true,
             getCustomElement: (
               value: FormValues<StatusPage>,
               props: CustomElementProps,
@@ -153,6 +154,7 @@ const StatusPageDelete: FunctionComponent<
             title:
               "How many days of data would you like to include in the report?",
             fieldType: FormFieldSchemaType.Number,
+            required: true,
           },
         ]}
         modelDetailProps={{
@@ -207,6 +209,7 @@ const StatusPageDelete: FunctionComponent<
                 "How many days of data would you like to include in the report?",
               fieldType: FieldType.Number,
               placeholder: "-",
+            
             },
           ],
           modelId: modelId,
