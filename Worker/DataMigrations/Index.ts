@@ -40,6 +40,7 @@ import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSett
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
 import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
 import AddIncidentNumber from "./AddIncidentNumber";
+import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotificationRule";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -85,6 +86,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddServiceTypeColumnToMetricsTable(),
   new AddIsSubscriptionConfirmedToSubscribers(),
   new AddIncidentNumber(),
+  new RenameRuleTypeInUserNotificationRule(),
 ];
 
 export default DataMigrations;

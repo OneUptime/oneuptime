@@ -271,7 +271,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Alert ID",
-    required: false, 
+    required: false,
     description:
       "ID of the incident which triggered this on-call escalation policy.",
   })

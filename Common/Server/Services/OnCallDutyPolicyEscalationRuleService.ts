@@ -188,7 +188,9 @@ export class Service extends DatabaseService<Model> {
         teamId: ObjectID | null,
         scheduleId: ObjectID | null,
       ): Promise<void> => {
-        logger.debug(`Starting notification rule execution for userId: ${userId.toString()}`);
+        logger.debug(
+          `Starting notification rule execution for userId: ${userId.toString()}`,
+        );
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage = "Sending notification to user.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Executing;

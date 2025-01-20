@@ -122,18 +122,20 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           return (
             <div>
               <p>Incident:</p>
-            <IncidentView incident={item["triggeredByIncident"] as Incident} />
+              <IncidentView
+                incident={item["triggeredByIncident"] as Incident}
+              />
             </div>
           );
         }
 
-        if(item.triggeredByAlert){
+        if (item.triggeredByAlert) {
           return (
             <div>
               <p>Alert:</p>
-            <AlertView alert={item["triggeredByAlert"] as Alert} />
-            </div>  
-          )
+              <AlertView alert={item["triggeredByAlert"] as Alert} />
+            </div>
+          );
         }
 
         return <p>-</p>;

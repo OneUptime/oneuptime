@@ -113,18 +113,17 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-
       let userNotificationEventType: UserNotificationEventType | null = null;
 
-      if(createdItem.triggeredByIncidentId) {
+      if (createdItem.triggeredByIncidentId) {
         userNotificationEventType = UserNotificationEventType.IncidentCreated;
       }
 
-      if(createdItem.triggeredByAlertId) {
+      if (createdItem.triggeredByAlertId) {
         userNotificationEventType = UserNotificationEventType.AlertCreated;
       }
 
-      if(!userNotificationEventType) {
+      if (!userNotificationEventType) {
         throw new BadDataException("Invalid userNotificationEventType");
       }
 

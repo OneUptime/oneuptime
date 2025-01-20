@@ -70,7 +70,7 @@ RunCron(
         select: {
           _id: true,
           title: true,
-          projectId: true,  
+          projectId: true,
           description: true,
           monitor: {
             name: true,

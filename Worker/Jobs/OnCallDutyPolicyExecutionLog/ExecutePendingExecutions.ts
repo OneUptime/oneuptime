@@ -67,27 +67,18 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
-
-
-    logger.debug(
-      `Executing on-call policy execution log: ${executionLog.id}`,
-    )
+    logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
 
     // get trigger by alert
     if (executionLog.triggeredByAlertId) {
-
-      logger.debug(
-        `Triggered by alert: ${executionLog.triggeredByAlertId}`,
-      )
+      logger.debug(`Triggered by alert: ${executionLog.triggeredByAlertId}`);
 
       // check if this alert is ack.
       const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
         alertId: executionLog.triggeredByAlertId,
       });
 
-      logger.debug(
-        `Alert is acknowledged: ${isAcknowledged}`,
-      )
+      logger.debug(`Alert is acknowledged: ${isAcknowledged}`);
 
       if (isAcknowledged) {
         // then mark this policy as executed.
@@ -107,10 +98,9 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
     // get trigger by incident
     if (executionLog.triggeredByIncidentId) {
-
       logger.debug(
         `Triggered by incident: ${executionLog.triggeredByIncidentId}`,
-      )
+      );
 
       // check if this incident is ack.
       const isAcknowledged: boolean =
@@ -118,9 +108,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           incidentId: executionLog.triggeredByIncidentId,
         });
 
-      logger.debug(
-        `Incident is acknowledged: ${isAcknowledged}`,
-      )
+      logger.debug(`Incident is acknowledged: ${isAcknowledged}`);
 
       if (isAcknowledged) {
         // then mark this policy as executed.
@@ -189,8 +177,8 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       if (
         executionLog.onCallPolicyExecutionRepeatCount &&
         executionLog.onCallPolicyExecutionRepeatCount <
-        executionLog.onCallDutyPolicy!
-          .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
+          executionLog.onCallDutyPolicy!
+            .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
       ) {
         // repeating execution
 

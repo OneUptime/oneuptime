@@ -17,7 +17,6 @@ BasicCron({
     runOnStartup: false,
   },
   runFunction: async () => {
-
     logger.debug("Checking if probe is alive...");
 
     const probeId: string | undefined = LocalCache.getString(
@@ -40,12 +39,10 @@ BasicCron({
       ProbeAPIRequest.getDefaultRequestBody(),
     );
 
-    if(result.isSuccess()){
+    if (result.isSuccess()) {
       logger.debug("Probe update sent to server successfully.");
-    }else{
+    } else {
       logger.error("Failed to send probe update to server.");
     }
-
-    
   },
 });
