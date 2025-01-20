@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Accounts && npm install && npm run compile && npm run dep-check
 
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd IsolatedVM && npm install && npm run compile && npm run dep-check
 
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install && npm run compile && npm run dep-check
 
   compile-app:
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd App && npm install && npm run compile && npm run dep-check
 
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Home && npm install && npm run compile && npm run dep-check
 
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Worker && npm install && npm run compile && npm run dep-check
 
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Workflow && npm install && npm run compile && npm run dep-check
 
@@ -101,7 +101,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd APIReference && npm install && npm run compile && npm run dep-check
 
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Docs && npm install && npm run compile && npm run dep-check
 
@@ -125,7 +125,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Copilot && npm install && npm run compile && npm run dep-check
 
@@ -137,7 +137,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       
       - run: cd Nginx && npm install && npm run compile && npm run dep-check
@@ -161,7 +161,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       
       - run: cd AdminDashboard && npm install && npm run compile && npm run dep-check
@@ -174,7 +174,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       
       - run: cd Dashboard && npm install && npm run compile && npm run dep-check
@@ -188,7 +188,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd E2E && npm install && npm run compile && npm run dep-check
 
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd Probe && npm install && npm run compile && npm run dep-check
 
@@ -212,7 +212,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd ProbeIngest && npm install && npm run compile && npm run dep-check
 
@@ -224,7 +224,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd OpenTelemetryIngest && npm install && npm run compile && npm run dep-check
 
@@ -237,7 +237,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd IncomingRequestIngest && npm install && npm run compile && npm run dep-check
 
@@ -249,7 +249,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd FluentIngest && npm install && npm run compile && npm run dep-check
   
@@ -262,7 +262,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       
       - run: cd StatusPage && npm install && npm run compile && npm run dep-check
@@ -275,6 +275,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd Common && npm install
       - run: cd TestServer && npm install && npm run compile && npm run dep-check

@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       
       # - name: Setup Git LFS
       #   run: git lfs install
@@ -128,7 +128,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -190,7 +190,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -251,7 +251,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -312,7 +312,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -373,7 +373,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -434,7 +434,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -497,7 +497,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -560,7 +560,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -621,7 +621,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -682,7 +682,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -743,7 +743,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -804,7 +804,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -865,7 +865,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -926,7 +926,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -987,7 +987,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1048,7 +1048,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1109,7 +1109,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1173,7 +1173,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1236,7 +1236,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1297,7 +1297,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1358,7 +1358,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1420,7 +1420,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1482,7 +1482,7 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -1533,7 +1533,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: cd HelmChart && cd Tests && bash index.sh
 
   test-e2e-test-saas: 
@@ -1558,7 +1558,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh
       - name: Start Server with release tag
         run: npm run start
@@ -1611,7 +1611,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 18.3.0
+          node-version: latest
       - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh
       - name: Start Server with release tag
         run: npm run start
