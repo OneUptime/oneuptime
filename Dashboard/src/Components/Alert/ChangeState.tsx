@@ -232,7 +232,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
                 fieldType: FormFieldSchemaType.Markdown,
                 description:
                   "Post a private note about this state change to the status page.",
-                title: "Public Note",
+                title: "Private Note",
                 required: false,
                 overrideFieldKey: "privateNote",
                 showEvenIfPermissionDoesNotExist: true,

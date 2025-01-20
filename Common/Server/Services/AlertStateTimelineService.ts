@@ -132,10 +132,16 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       });
     }
 
+
+    const privateNote: string | undefined = (
+      createBy.miscDataProps as JSONObject | undefined
+    )?.["privateNote"] as string | undefined;
+
     return {
       createBy,
       carryForward: {
         lastAlertStateTimelineId: lastAlertStateTimeline?.id || null,
+        privateNote: privateNote,
       },
     };
   }
@@ -205,6 +211,21 @@ ${createdItem.rootCause}`,
       },
       props: onCreate.createBy.props,
     });
+
+    if (onCreate.carryForward.privateNote) {
+      const privateNote: string = onCreate.carryForward.privateNote;
+
+      const alertInternalNote: AlertInternalNote = new AlertInternalNote();
+      alertInternalNote.alertId = createdItem.alertId;
+      alertInternalNote.note = privateNote;
+      alertInternalNote.createdAt = createdItem.startsAt!;
+      alertInternalNote.projectId = createdItem.projectId!;
+
+      await AlertInternalNoteService.create({
+        data: alertInternalNote,
+        props: onCreate.createBy.props,
+      });
+    }
 
     AlertService.refreshAlertMetrics({
       alertId: createdItem.alertId,

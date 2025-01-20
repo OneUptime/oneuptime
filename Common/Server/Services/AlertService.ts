@@ -504,7 +504,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
             displayColor: Gray500,
             feedInfoInMarkdown: `**Alert title was updated.** Here's the new title.
     
-    ${onUpdate.updateBy.data.title || "No title provided."}
+${onUpdate.updateBy.data.title || "No title provided."}
               `,
             userId: createdByUserId || undefined,
           });
@@ -522,7 +522,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
             displayColor: Gray500,
             feedInfoInMarkdown: `**Alert root cause was updated.** Here's the new root cause.
           
-    ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
+${onUpdate.updateBy.data.rootCause || "No root cause provided."}
             `,
             userId: createdByUserId || undefined,
           });
@@ -540,7 +540,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
             displayColor: Gray500,
             feedInfoInMarkdown: `**Alert description was updated.** Here's the new description.
           
-    ${onUpdate.updateBy.data.description || "No description provided."}
+${onUpdate.updateBy.data.description || "No description provided."}
             `,
             userId: createdByUserId || undefined,
           });
@@ -558,7 +558,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
             displayColor: Gray500,
             feedInfoInMarkdown: `**Remediation notes were updated.** Here are the new notes.
     
-    ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
+${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
                 `,
             userId: createdByUserId || undefined,
           });

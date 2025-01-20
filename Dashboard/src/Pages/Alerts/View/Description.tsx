@@ -7,42 +7,43 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 
-const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AlertDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <CardModelDetail
-      name="Remediation Notes"
+      name="Alert Description"
       cardProps={{
-        title: "Remediation Notes",
+        title: "Alert Description",
         description:
-          "What steps should be taken to resolve this alert? Here are the remediation notes.",
+          "Description of this alert. This is visible on Status Page and is in markdown format.",
       }}
-      editButtonText="Edit Remediation Notes"
+      editButtonText="Edit Alert Description"
       isEditable={true}
       formFields={[
         {
           field: {
-            remediationNotes: true,
+            description: true,
           },
-          title: "Remediation Notes",
+          title: "Description",
 
           fieldType: FormFieldSchemaType.Markdown,
-          required: true,
-          placeholder: "Remediation Notes",
+          required: false,
+          placeholder: "Description",
         },
       ]}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
         modelType: Alert,
-        id: "model-detail-alert-remediation-notes",
+        id: "model-detail-alert-description",
         fields: [
           {
             field: {
-              remediationNotes: true,
+              description: true,
             },
-            title: "Remediation Notes",
-            placeholder: "No remediation notes added for this alert.",
+            title: "Description",
             fieldType: FieldType.Markdown,
           },
         ],
