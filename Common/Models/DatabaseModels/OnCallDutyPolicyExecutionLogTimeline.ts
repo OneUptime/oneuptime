@@ -217,7 +217,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Incident ID",
     description: "ID of your OneUptime Incident in which this object belongs",
@@ -273,7 +273,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Alert ID",
     description: "ID of your OneUptime Alert in which this object belongs",
