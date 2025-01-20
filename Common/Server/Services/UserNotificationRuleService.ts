@@ -41,6 +41,8 @@ import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertSeverityService from "./AlertSeverityService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -183,7 +185,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       options.userNotificationEventType ===
-        UserNotificationEventType.IncidentCreated &&
+      UserNotificationEventType.IncidentCreated &&
       options.triggeredByIncidentId
     ) {
       incident = await IncidentService.findOneById({
@@ -212,7 +214,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       options.userNotificationEventType ===
-        UserNotificationEventType.AlertCreated &&
+      UserNotificationEventType.AlertCreated &&
       options.triggeredByAlertId
     ) {
       alert = await AlertService.findOneById({
@@ -250,7 +252,7 @@ export class Service extends DatabaseService<Model> {
 
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.AlertCreated &&
+        UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -295,7 +297,7 @@ export class Service extends DatabaseService<Model> {
       // send email for incident
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.IncidentCreated &&
+        UserNotificationEventType.IncidentCreated &&
         incident
       ) {
         // create an error log.
@@ -363,7 +365,7 @@ export class Service extends DatabaseService<Model> {
       //send sms for alert
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.AlertCreated &&
+        UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -407,7 +409,7 @@ export class Service extends DatabaseService<Model> {
       // send sms for incident
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.IncidentCreated &&
+        UserNotificationEventType.IncidentCreated &&
         incident
       ) {
         // create an error log.
@@ -474,7 +476,7 @@ export class Service extends DatabaseService<Model> {
       // send call for alert
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.AlertCreated &&
+        UserNotificationEventType.AlertCreated &&
         alert
       ) {
         // create an error log.
@@ -518,7 +520,7 @@ export class Service extends DatabaseService<Model> {
 
       if (
         options.userNotificationEventType ===
-          UserNotificationEventType.IncidentCreated &&
+        UserNotificationEventType.IncidentCreated &&
         incident
       ) {
         // send call for incident
@@ -699,9 +701,8 @@ export class Service extends DatabaseService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created. ${
-        alert.title
-      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created. ${alert.title
+        }. To acknowledge this alert, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -728,9 +729,8 @@ export class Service extends DatabaseService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created. ${
-        incident.title
-      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created. ${incident.title
+        }. To acknowledge this incident, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -908,11 +908,15 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  public async addDefaultNotificationRuleForUser(
+  public async addDefaultIncidentNotificationRuleForUser(data: {
     projectId: ObjectID,
     userId: ObjectID,
-    email: Email,
+    userEmail: UserEmail,
+  }
   ): Promise<void> {
+
+    const { projectId, userId, userEmail } = data;
+
     const incidentSeverities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
         query: {
@@ -928,33 +932,6 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    //check userEmail
-
-    let userEmail: UserEmail | null = await UserEmailService.findOneBy({
-      query: {
-        projectId,
-        userId,
-        email,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!userEmail) {
-      userEmail = new UserEmail();
-      userEmail.projectId = projectId;
-      userEmail.userId = userId;
-      userEmail.email = email;
-      userEmail.isVerified = true;
-
-      userEmail = await UserEmailService.create({
-        data: userEmail,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
 
     // create for incident severities.
     for (const incidentSeverity of incidentSeverities) {
@@ -965,7 +942,7 @@ export class Service extends DatabaseService<Model> {
           userId,
           userEmailId: userEmail.id!,
           incidentSeverityId: incidentSeverity.id!,
-          ruleType: NotificationRuleType.ON_CALL_INCIDENT_CREATED,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED,
         },
         props: {
           isRoot: true,
@@ -983,7 +960,7 @@ export class Service extends DatabaseService<Model> {
       notificationRule.userEmailId = userEmail.id!;
       notificationRule.incidentSeverityId = incidentSeverity.id!;
       notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType = NotificationRuleType.ON_CALL_INCIDENT_CREATED;
+      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED;
 
       await this.create({
         data: notificationRule,
@@ -992,6 +969,111 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+
+  public async addDefaultAlertNotificationRulesForUser(data: {
+    projectId: ObjectID,
+    userId: ObjectID,
+    userEmail: UserEmail,
+  }
+  ): Promise<void> {
+
+    const { projectId, userId, userEmail } = data;
+
+    const alertSeverities: Array<AlertSeverity> =
+      await AlertSeverityService.findBy({
+        query: {
+          projectId,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    // create for Alert severities.
+    for (const alertSeverity of alertSeverities) {
+      //check if this rule already exists.
+      const existingRule: Model | null = await this.findOneBy({
+        query: {
+          projectId,
+          userId,
+          userEmailId: userEmail.id!,
+          alertSeverityId: alertSeverity.id!,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (existingRule) {
+        continue; // skip this rule.
+      }
+
+      const notificationRule: Model = new Model();
+
+      notificationRule.projectId = projectId;
+      notificationRule.userId = userId;
+      notificationRule.userEmailId = userEmail.id!;
+      notificationRule.alertSeverityId = alertSeverity.id!;
+      notificationRule.notifyAfterMinutes = 0;
+      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED;
+
+      await this.create({
+        data: notificationRule,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+
+  public async addDefaultNotificationRuleForUser(
+    projectId: ObjectID,
+    userId: ObjectID,
+    email: Email,
+  ): Promise<void> {
+
+    let userEmail: UserEmail | null = await UserEmailService.findOneBy({
+      query: {
+        projectId,
+        userId,
+        email,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    
+    if (!userEmail) {
+      userEmail = new UserEmail();
+      userEmail.projectId = projectId;
+      userEmail.userId = userId;
+      userEmail.email = email;
+      userEmail.isVerified = true;
+
+      userEmail = await UserEmailService.create({
+        data: userEmail,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // add default incident rules for user
+    await this.addDefaultIncidentNotificationRuleForUser({projectId, userId, userEmail});
+
+    // add default alert rules for user, just like the incident
+
+    await this.addDefaultAlertNotificationRulesForUser({projectId, userId, userEmail});
 
     //check if this rule already exists.
     const existingRuleOnCall: Model | null = await this.findOneBy({
