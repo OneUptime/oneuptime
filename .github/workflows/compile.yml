@@ -189,7 +189,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: apt-get update
+      - run: sudo apt-get update
       - run: cd Common && npm install
       - run: cd E2E && npm install && npm run compile && npm run dep-check
 
