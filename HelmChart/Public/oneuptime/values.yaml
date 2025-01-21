@@ -409,3 +409,11 @@ readinessProbe: # Readiness probe configuration
   periodSeconds: 60
   initialDelaySeconds: 10
   timeoutSeconds: 120
+
+
+# OpenTelemetry Collector Configuration
+openTelemetryCollectorConfig: 
+  sendingQueue: 
+    enabled: true
+    size: 1000
+    numConsumers: 3

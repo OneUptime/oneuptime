@@ -46,7 +46,8 @@ service:
       level: "debug"
 {{ end }}
 
-{{ if not .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
+{{ if not .Env.DISABLE_TELEMETRY "true"}}
+{{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
 service:
   telemetry:
     logs:
@@ -62,6 +63,7 @@ service:
                 headers: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
                 {{ end }}
 {{ end}}
+{{ end }}
 
   extensions: [ headers_setter ]
   pipelines:

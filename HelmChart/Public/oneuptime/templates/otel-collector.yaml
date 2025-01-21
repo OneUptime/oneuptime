@@ -60,6 +60,12 @@ spec:
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
               value: {{ $.Values.port.otelCollectorGrpc | quote }} 
+            - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED
+              value: {{ $.Values.otelCollectorSendingQueueEnabled | quote }}
+            - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS
+              value: {{ $.Values.otelCollectorSendingQueueNumConsumers | quote }}
+            - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE
+              value: {{ $.Values.otelCollectorSendingQueueSize | quote }}
           ports:
             - containerPort: {{ $.Values.port.otelCollectorHttp }}
               protocol: TCP
