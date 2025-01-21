@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y curl bash wget
 # Install gomplate
 RUN ARCHITECTURE=$(uname -m) 
 
-RUN if [[ $ARCHITECTURE == "aarch64" ]]; then \
+RUN if [ $ARCHITECTURE = "aarch64" ]; then \
         ARCHITECTURE="arm64"; \
-    elif [[ $ARCHITECTURE == "x86_64" ]]; then \
+    elif [ $ARCHITECTURE = "x86_64" ]; then \
         ARCHITECTURE="amd64"; \
     fi && \
     echo "ARCHITECTURE: $(uname -s) $ARCHITECTURE"
@@ -21,13 +21,13 @@ RUN chmod 755 /usr/local/bin/gomplate
 
 # Install the collector
 RUN ARCHITECTURE=$(uname -m)
-RUN if [[ $ARCHITECTURE == "aarch64" ]]; then \
+RUN if [ $ARCHITECTURE = "aarch64" ]; then \
         wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$COLLECTOR_VERSION/otelcol_$COLLECTOR_VERSION_linux_arm64.deb && \
         dpkg -i otelcol_$COLLECTOR_VERSION_linux_arm64.deb; \
-    elif [[ $ARCHITECTURE == "x86_64" ]]; then \
+    elif [ $ARCHITECTURE = "x86_64" ]; then \
         wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$COLLECTOR_VERSION/otelcol_$COLLECTOR_VERSION_linux_amd64.deb && \
         dpkg -i otelcol_$COLLECTOR_VERSION_linux_amd64.deb; \
-    elif [[ $ARCHITECTURE == "i386" ]]; then \
+    elif [ $ARCHITECTURE = "i386" ]; then \
         wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$COLLECTOR_VERSION/otelcol_$COLLECTOR_VERSION_linux_386.deb && \
         dpkg -i otelcol_$COLLECTOR_VERSION_linux_386.deb; \
     fi
