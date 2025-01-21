@@ -404,6 +404,8 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
+        ports: 
+          - 8810:8810
 
     fluentd:
         networks:
