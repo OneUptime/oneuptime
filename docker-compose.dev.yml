@@ -284,8 +284,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe-1
-        ports:
-          - '9655:9229' # Debugging port.
         build:
             network: host
             context: .
@@ -305,8 +303,6 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe-2
-        ports:
-          - '9656:9229' # Debugging port.
         build:
             network: host
             context: .
