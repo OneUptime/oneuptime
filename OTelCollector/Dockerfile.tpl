@@ -19,10 +19,10 @@ RUN /bin/bash -c 'set -ex && \
     echo "Downloaded gomplate" && \
     chmod 755 /usr/local/bin/gomplate && \
     echo "Installed gomplate" && \  
-    wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$COLLECTOR_VERSION/otelcol_$COLLECTOR_VERSION_linux_$ARCHITECTURE.deb && \
-    echo "Downloaded otelcol_$COLLECTOR_VERSION_linux_$ARCHITECTURE.deb" && \
-    dpkg -i otelcol_$COLLECTOR_VERSION_linux_$ARCHITECTURE.deb && \
-    echo "Installed otelcol_$COLLECTOR_VERSION_linux_$ARCHITECTURE.deb"'
+    wget "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${COLLECTOR_VERSION}/otelcol_${COLLECTOR_VERSION}_$(uname -s)_${ARCHITECTURE}.deb" && \
+    echo "Downloaded otelcol_${COLLECTOR_VERSION}_$(uname -s)_${ARCHITECTURE}.deb" && \
+    dpkg -i otelcol_${COLLECTOR_VERSION}_$(uname -s)_${ARCHITECTURE}.deb && \
+    echo "Installed otelcol_${COLLECTOR_VERSION}_$(uname -s)_${ARCHITECTURE}.deb"'
 
 # Copy the configuration template file config.yaml.tpl
 COPY ./OTelCollector/otel-collector-config.template.yaml /etc/otel-collector-config.template.yaml
