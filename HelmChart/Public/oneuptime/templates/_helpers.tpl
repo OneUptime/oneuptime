@@ -12,6 +12,10 @@ Usage:
 {{- end -}}
 
 {{- define "oneuptime.env.common" }}
+- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+  value: {{ $.Values.openTelemetryExporter.endpoint }}
+- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+  value: {{ $.Values.openTelemetryExporter.headers }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
@@ -119,9 +123,6 @@ Usage:
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
   value: {{ printf "false" | squote }}
-
-- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint }}
 {{- end }}
 
 {{- define "oneuptime.env.oneuptimeSecret" }}
@@ -147,8 +148,7 @@ Usage:
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
 
-- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint }}
+
 
 - name: NOTIFICATION_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.onCreateUser }}

@@ -67,7 +67,9 @@ spec:
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE
               value: {{ $.Values.otelCollectorSendingQueueSize | quote }}
             - name: DISABLE_TELEMETRY
-              value: "false"
+              value: "true"
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: 
           ports:
             - containerPort: {{ $.Values.port.otelCollectorHttp }}
               protocol: TCP
