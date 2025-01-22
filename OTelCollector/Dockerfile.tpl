@@ -1,6 +1,6 @@
 FROM public.ecr.aws/ubuntu/ubuntu:25.04
 
-ENV COLLECTOR_VERSION=0.117.0
+ENV COLLECTOR_VERSION=0.104.0
 
 # Get the architecture
 RUN apt-get update && apt-get install -y curl bash wget
@@ -29,4 +29,4 @@ COPY ./OTelCollector/otel-collector-config.template.yaml /etc/otel-collector-con
 
 # In command, gomplate the configuration file to replace the environment variables otel-collector-config.yaml and run the collector
 
-CMD gomplate -f /etc/otel-collector-config.template.yaml > /etc/otel-collector-config.yaml && otelcol --config /etc/otel-collector-config.yaml
+CMD gomplate -f /etc/otel-collector-config.template.yaml > /etc/otel-collector-config.yaml && echo "Here is the generated config file: " && cat /etc/otel-collector-config.yaml && otelcol --config /etc/otel-collector-config.yaml

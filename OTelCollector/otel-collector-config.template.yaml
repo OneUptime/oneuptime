@@ -38,18 +38,13 @@ exporters:
       queue_size: {{ .Env.OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE }}
     {{ end }}
 
-
-{{ if not .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
 service:
   telemetry:
+{{ if or (not .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT) (eq .Env.DISABLE_TELEMETRY "true") }}
     logs:
       level: "debug"
 {{ end }}
-
-{{ if not .Env.DISABLE_TELEMETRY "true"}}
-{{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
-service:
-  telemetry:
+{{ if and (ne .Env.DISABLE_TELEMETRY "true") .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
     logs:
       level: "debug"
     metrics:
@@ -60,11 +55,14 @@ service:
                 protocol: http/protobuf
                 endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
                 {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
-                headers: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                headers:
+                  {{- $headers := (split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
+                  {{- range $header := $headers }}
+                  {{- $kv := (split "=" $header) }}
+                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  {{- end }}
                 {{ end }}
-{{ end}}
 {{ end }}
-
   extensions: [ headers_setter ]
   pipelines:
     traces:
