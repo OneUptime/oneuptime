@@ -8,6 +8,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
+  [PageMap.MONITOR_CREATE]: "create",
   [PageMap.MONITORS_DISABLED]: "disabled",
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
   [PageMap.MONITORS_PROBE_DISABLED]: "probe-disabled",
@@ -297,6 +298,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_INOPERATIONAL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL]
+    }`,
+  ),
+
+  [PageMap.MONITOR_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_CREATE]
     }`,
   ),
 

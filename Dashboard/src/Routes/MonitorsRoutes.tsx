@@ -107,6 +107,13 @@ const MonitorViewSettings: LazyExoticComponent<
   return import("../Pages/Monitor/View/Settings");
 });
 
+
+const MonitorCreate: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/Create");
+});
+
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -168,6 +175,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorInoperational
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
               />
             </Suspense>
           }
