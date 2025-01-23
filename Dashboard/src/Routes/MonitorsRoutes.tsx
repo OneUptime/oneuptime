@@ -1,3 +1,4 @@
+import Navigation from "Common/UI/Utils/Navigation";
 import Loader from "../Components/Loader/Loader";
 import MonitorLayout from "../Pages/Monitor/Layout";
 import MonitorViewLayout from "../Pages/Monitor/View/Layout";
@@ -115,9 +116,16 @@ const MonitorCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+
+  let hideSideMenu: boolean = false;
+
+  if(Navigation.isOnThisPage(RouteMap[PageMap.MONITOR_CREATE] as Route)){
+    hideSideMenu = true;
+  }
+
   return (
     <Routes>
-      <PageRoute path="/" element={<MonitorLayout {...props} />}>
+      <PageRoute path="/" element={<MonitorLayout hideSideMenu={hideSideMenu} {...props} />}>
         <PageRoute
           index
           element={
