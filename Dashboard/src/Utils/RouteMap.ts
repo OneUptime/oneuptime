@@ -167,6 +167,7 @@ export const AlertsRoutePath: Dictionary<string> = {
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -581,6 +582,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
       ]
     }`,
   ),

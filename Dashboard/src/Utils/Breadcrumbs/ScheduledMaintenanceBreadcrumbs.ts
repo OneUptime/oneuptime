@@ -19,6 +19,14 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Ongoing Scheduled Maintenance",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "New Scheduled Maintenance Event",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW, [
       "Project",
       "Scheduled Maintenance Events",
