@@ -93,7 +93,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Worker",
+            "localRoot": "${workspaceFolder}/Workflow",
             "name": "Workflow: Debug with Docker",
             "port": 8735,
             "remoteRoot": "/usr/src/app",
@@ -107,7 +107,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Worker",
+            "localRoot": "${workspaceFolder}/Docs",
             "name": "Docs: Debug with Docker",
             "port": 8738,
             "remoteRoot": "/usr/src/app",
@@ -121,7 +121,7 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Worker",
+            "localRoot": "${workspaceFolder}/APIReference",
             "name": "API Reference: Debug with Docker",
             "port": 8737,
             "remoteRoot": "/usr/src/app",
@@ -250,20 +250,6 @@
             "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Workers",
-            "name": "Workers: Debug with Docker",
-            "port": 9654,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

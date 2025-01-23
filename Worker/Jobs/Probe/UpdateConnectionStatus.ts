@@ -29,7 +29,7 @@ RunCron(
       skip: 0,
     });
 
-    logger.debug(`Found ${probes.length} incoming request monitors`);
+    logger.debug(`Found ${probes.length} probes`);
 
     logger.debug(probes);
 
