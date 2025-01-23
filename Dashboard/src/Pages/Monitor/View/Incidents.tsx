@@ -25,9 +25,7 @@ const MonitorIncidents: FunctionComponent<
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
-      <IncidentsTable
-        query={query}
-      />
+      <IncidentsTable query={query} />
     </Fragment>
   );
 };

@@ -43,14 +43,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const [initialValuesForScheduledMaintenance, setInitialValuesForScheduledMaintenance] =
-    useState<JSONObject>({});
+  const [
+    initialValuesForScheduledMaintenance,
+    setInitialValuesForScheduledMaintenance,
+  ] = useState<JSONObject>({});
 
   useEffect(() => {
     if (Navigation.getQueryStringByName("scheduledMaintenanceTemplateId")) {
       fetchScheduledMaintenanceTemplate(
         new ObjectID(
-          Navigation.getQueryStringByName("scheduledMaintenanceTemplateId") || "",
+          Navigation.getQueryStringByName("scheduledMaintenanceTemplateId") ||
+            "",
         ),
       );
     } else {
@@ -156,7 +159,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
     }
 
     setIsLoading(false);
-
   };
 
   return (
@@ -338,12 +340,12 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   placeholder: "Select Users",
                   overrideFieldKey: "ownerUsers",
                 },
-      
+
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
                   },
-      
+
                   title: "Event Created: Notify Status Page Subscribers",
                   stepId: "subscribers",
                   description:
@@ -357,7 +359,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
                       true,
                   },
-      
+
                   title: "Event Ongoing: Notify Status Page Subscribers",
                   stepId: "subscribers",
                   description:
@@ -371,7 +373,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
                       true,
                   },
-      
+
                   title: "Event Ended: Notify Status Page Subscribers",
                   stepId: "subscribers",
                   description:

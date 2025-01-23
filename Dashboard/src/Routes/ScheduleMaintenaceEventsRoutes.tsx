@@ -74,7 +74,6 @@ const ScheduledMaintenanceEventViewDescription: LazyExoticComponent<
   return import("../Pages/ScheduledMaintenanceEvents/View/Description");
 });
 
-
 const ScheduledMaintenanceEventCreate: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -84,17 +83,24 @@ const ScheduledMaintenanceEventCreate: LazyExoticComponent<
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-
   let hideSideMenu: boolean = false;
 
-  if (Navigation.isOnThisPage(RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route)) {
+  if (
+    Navigation.isOnThisPage(
+      RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+    )
+  ) {
     hideSideMenu = true;
   }
 
   return (
     <Routes>
-      <PageRoute path="/" element={<ScheduledMaintenancesLaoyut {...props} hideSideMenu={hideSideMenu} />}>
+      <PageRoute
+        path="/"
+        element={
+          <ScheduledMaintenancesLaoyut {...props} hideSideMenu={hideSideMenu} />
+        }
+      >
         <PageRoute
           index
           element={
@@ -128,8 +134,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
@@ -140,9 +145,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               <ScheduledMaintenanceEventCreate
                 {...props}
                 pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
-                  ] as Route
+                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
                 }
               />
             </Suspense>

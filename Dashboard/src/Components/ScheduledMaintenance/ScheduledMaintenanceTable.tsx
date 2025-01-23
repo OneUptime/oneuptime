@@ -26,7 +26,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -40,7 +39,6 @@ export interface ComponentProps {
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
-  createInitialValues?: FormValues<ScheduledMaintenance> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
 }
 
@@ -56,36 +54,34 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     setShowScheduledMaintenanceTemplateModal,
   ] = useState<boolean>(false);
 
-
   let cardbuttons: Array<CardButtonSchema> = [];
 
   const fetchScheduledMaintenanceTemplates: () => Promise<void> =
-  async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-   
+    async (): Promise<void> => {
+      setError("");
+      setIsLoading(true);
 
-    try {
-      const listResult: ListResult<ScheduledMaintenanceTemplate> =
-        await ModelAPI.getList<ScheduledMaintenanceTemplate>({
-          modelType: ScheduledMaintenanceTemplate,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            templateName: true,
-            _id: true,
-          },
-          sort: {},
-        });
+      try {
+        const listResult: ListResult<ScheduledMaintenanceTemplate> =
+          await ModelAPI.getList<ScheduledMaintenanceTemplate>({
+            modelType: ScheduledMaintenanceTemplate,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              templateName: true,
+              _id: true,
+            },
+            sort: {},
+          });
 
-      setScheduledMaintenanceTemplates(listResult.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+        setScheduledMaintenanceTemplates(listResult.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
 
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    };
 
   if (!props.disableCreate) {
     // then add a card button that takes to monitor create page
@@ -114,9 +110,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     ];
   }
 
-
-
-
   return (
     <div>
       <ModelTable<ScheduledMaintenance>
@@ -129,20 +122,17 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         isCreateable={false}
         isViewable={true}
         saveFilterProps={props.saveFilterProps}
-        showCreateForm={
-          false
-        }
+        showCreateForm={false}
         cardProps={{
           title: props.title || "Scheduled Maintenance Events",
           description:
             props.description ||
             "Here is a list of scheduled maintenance events for this project.",
-          buttons: cardbuttons
+          buttons: cardbuttons,
         }}
         noItemsMessage={
           props.noItemsMessage || "No scheduled Maintenance Event found."
         }
-
         showViewIdButton={true}
         viewButtonText="View Event"
         showRefreshButton={true}
@@ -382,7 +372,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
           }}
           onSubmit={async (data: JSONObject) => {
-
             const scheduledMaintenanceTemplateId: ObjectID = data[
               "scheduledMaintenanceTemplateId"
             ] as ObjectID;
@@ -391,9 +380,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             Navigation.navigate(
               RouteUtil.populateRouteParams(
                 new Route(
-                  (RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route).toString(),
+                  (
+                    RouteMap[
+                      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
+                    ] as Route
+                  ).toString(),
                 ).addQueryParams({
-                  scheduledMaintenanceTemplateId: scheduledMaintenanceTemplateId.toString(),
+                  scheduledMaintenanceTemplateId:
+                    scheduledMaintenanceTemplateId.toString(),
                 }),
               ),
             );
