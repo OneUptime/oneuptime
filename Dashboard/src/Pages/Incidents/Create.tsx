@@ -3,7 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -16,10 +16,133 @@ import DashboardNavigation from "../../Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const [initialValuesForIncident, setInitialValuesForIncident] =
+    useState<JSONObject>({});
+
+  useEffect(() => {
+    if (Navigation.getQueryStringByName("incidentTemplateId")) {
+      fetchIncidentTemplate(new ObjectID(Navigation.getQueryStringByName("incidentTemplateId") || ""));
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
+    id: ObjectID,
+  ): Promise<void> => {
+
+    setError("");
+    setIsLoading(true);
+
+    try {
+      //fetch incident template
+
+      const incidentTemplate: IncidentTemplate | null =
+        await ModelAPI.getItem<IncidentTemplate>({
+          modelType: IncidentTemplate,
+          id: id,
+          select: {
+            title: true,
+            description: true,
+            incidentSeverityId: true,
+            monitors: true,
+            onCallDutyPolicies: true,
+            labels: true,
+            changeMonitorStatusToId: true,
+          },
+        });
+
+      const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
+        await ModelAPI.getList<IncidentTemplateOwnerTeam>({
+          modelType: IncidentTemplateOwnerTeam,
+          query: {
+            incidentTemplate: id,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            teamId: true,
+          },
+          sort: {},
+        });
+
+      const usersListResult: ListResult<IncidentTemplateOwnerUser> =
+        await ModelAPI.getList<IncidentTemplateOwnerUser>({
+          modelType: IncidentTemplateOwnerUser,
+          query: {
+            incidentTemplate: id,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            userId: true,
+          },
+          sort: {},
+        });
+
+      if (incidentTemplate) {
+        const initialValue: JSONObject = {
+          ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
+          incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
+          monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
+            return monitor.id!.toString();
+          }),
+          labels: incidentTemplate.labels?.map((label: Label) => {
+            return label.id!.toString();
+          }),
+          changeMonitorStatusTo:
+            incidentTemplate.changeMonitorStatusToId?.toString(),
+          onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
+            (onCallPolicy: OnCallDutyPolicy) => {
+              return onCallPolicy.id!.toString();
+            },
+          ),
+          ownerUsers: usersListResult.data.map(
+            (user: IncidentTemplateOwnerUser): string => {
+              return user.userId!.toString() || "";
+            },
+          ),
+          ownerTeams: teamsListResult.data.map(
+            (team: IncidentTemplateOwnerTeam): string => {
+              return team.teamId!.toString() || "";
+            },
+          ),
+        };
+
+        setInitialValuesForIncident(initialValue);
+      }
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsLoading(false);
+  };
+
+
+
+
+
   return (
     <Fragment>
       <Card
@@ -29,206 +152,213 @@ const IncidentCreate: FunctionComponent<
         }
         className="mb-10"
       >
-        <ModelForm<Incident>
-          modelType={Incident}
-          name="Create New Incident"
-          id="create-incident-form"
-          fields={[
-            {
-              field: {
-                title: true,
-              },
-              title: "Title",
-              fieldType: FormFieldSchemaType.Text,
-              stepId: "incident-details",
-              required: true,
-              placeholder: "Incident Title",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              stepId: "incident-details",
-              fieldType: FormFieldSchemaType.Markdown,
-              required: false,
-            },
-            {
-              field: {
-                incidentSeverity: true,
-              },
-              title: "Incident Severity",
-              stepId: "incident-details",
-              description: "What type of incident is this?",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownModal: {
-                type: IncidentSeverity,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: true,
-              placeholder: "Incident Severity",
-            },
-            {
-              field: {
-                monitors: true,
-              },
-              title: "Monitors affected",
-              stepId: "resources-affected",
-              description: "Select monitors affected by this incident.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Monitor,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Monitors affected",
-            },
-            {
-              field: {
-                onCallDutyPolicies: true,
-              },
-              title: "On-Call Policy",
-              stepId: "on-call",
-              description:
-                "Select on-call duty policy to execute when this incident is created.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: OnCallDutyPolicy,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Select on-call policies",
-            },
-            {
-              field: {
-                changeMonitorStatusTo: true,
-              },
-              title: "Change Monitor Status to ",
-              stepId: "resources-affected",
-              description:
-                "This will change the status of all the monitors attached to this incident.",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownModal: {
-                type: MonitorStatus,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Monitor Status",
-            },
-            {
-              overrideField: {
-                ownerTeams: true,
-              },
-              showEvenIfPermissionDoesNotExist: true,
-              title: "Owner - Teams",
-              stepId: "owners",
-              description:
-                "Select which teams own this incident. They will be notified when the incident is created or updated.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Team,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Select Teams",
-              overrideFieldKey: "ownerTeams",
-            },
-            {
-              overrideField: {
-                ownerUsers: true,
-              },
-              showEvenIfPermissionDoesNotExist: true,
-              title: "Owner - Users",
-              stepId: "owners",
-              description:
-                "Select which users own this incident. They will be notified when the incident is created or updated.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              fetchDropdownOptions: async () => {
-                return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                  DashboardNavigation.getProjectId()!,
-                );
-              },
-              required: false,
-              placeholder: "Select Users",
-              overrideFieldKey: "ownerUsers",
-            },
-            {
-              field: {
-                labels: true,
-              },
-  
-              title: "Labels ",
-              stepId: "more",
-              description:
-                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Label,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Labels",
-            },
-            {
-              field: {
-                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-              },
-  
-              title: "Notify Status Page Subscribers",
-              stepId: "more",
-              description:
-                "Should status page subscribers be notified when this incident is created?",
-              fieldType: FormFieldSchemaType.Checkbox,
-              defaultValue: true,
-              required: false,
-            },
-          ]}
-          steps={[
-            {
-              title: "Incident Details",
-              id: "incident-details",
-            },
-            {
-              title: "Resources Affected",
-              id: "resources-affected",
-            },
-            {
-              title: "On-Call",
-              id: "on-call",
-            },
-            {
-              title: "Owners",
-              id: "owners",
-            },
-            {
-              title: "More",
-              id: "more",
-            },
-          ]}
-          onSuccess={(createdItem: Incident) => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                  {
-                    modelId: createdItem._id,
+
+        <div>
+          {isLoading && <PageLoader isVisible={true} />}
+          {error && <ErrorMessage message={error} />}
+          {!isLoading && !error && (
+            <ModelForm<Incident>
+              modelType={Incident}
+              initialValues={initialValuesForIncident}
+              name="Create New Incident"
+              id="create-incident-form"
+              fields={[
+                {
+                  field: {
+                    title: true,
                   },
-                ),
-              ),
-            );
-          }}
-          submitButtonText={"Declare Incident"}
-          formType={FormType.Create}
-        />
+                  title: "Title",
+                  fieldType: FormFieldSchemaType.Text,
+                  stepId: "incident-details",
+                  required: true,
+                  placeholder: "Incident Title",
+                  validation: {
+                    minLength: 2,
+                  },
+                },
+                {
+                  field: {
+                    description: true,
+                  },
+                  title: "Description",
+                  stepId: "incident-details",
+                  fieldType: FormFieldSchemaType.Markdown,
+                  required: false,
+                },
+                {
+                  field: {
+                    incidentSeverity: true,
+                  },
+                  title: "Incident Severity",
+                  stepId: "incident-details",
+                  description: "What type of incident is this?",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: IncidentSeverity,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: true,
+                  placeholder: "Incident Severity",
+                },
+                {
+                  field: {
+                    monitors: true,
+                  },
+                  title: "Monitors affected",
+                  stepId: "resources-affected",
+                  description: "Select monitors affected by this incident.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Monitor,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Monitors affected",
+                },
+                {
+                  field: {
+                    onCallDutyPolicies: true,
+                  },
+                  title: "On-Call Policy",
+                  stepId: "on-call",
+                  description:
+                    "Select on-call duty policy to execute when this incident is created.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: OnCallDutyPolicy,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Select on-call policies",
+                },
+                {
+                  field: {
+                    changeMonitorStatusTo: true,
+                  },
+                  title: "Change Monitor Status to ",
+                  stepId: "resources-affected",
+                  description:
+                    "This will change the status of all the monitors attached to this incident.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: MonitorStatus,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Monitor Status",
+                },
+                {
+                  overrideField: {
+                    ownerTeams: true,
+                  },
+                  showEvenIfPermissionDoesNotExist: true,
+                  title: "Owner - Teams",
+                  stepId: "owners",
+                  description:
+                    "Select which teams own this incident. They will be notified when the incident is created or updated.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Team,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Select Teams",
+                  overrideFieldKey: "ownerTeams",
+                },
+                {
+                  overrideField: {
+                    ownerUsers: true,
+                  },
+                  showEvenIfPermissionDoesNotExist: true,
+                  title: "Owner - Users",
+                  stepId: "owners",
+                  description:
+                    "Select which users own this incident. They will be notified when the incident is created or updated.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  fetchDropdownOptions: async () => {
+                    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                      DashboardNavigation.getProjectId()!,
+                    );
+                  },
+                  required: false,
+                  placeholder: "Select Users",
+                  overrideFieldKey: "ownerUsers",
+                },
+                {
+                  field: {
+                    labels: true,
+                  },
+
+                  title: "Labels ",
+                  stepId: "more",
+                  description:
+                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                },
+                {
+                  field: {
+                    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                  },
+
+                  title: "Notify Status Page Subscribers",
+                  stepId: "more",
+                  description:
+                    "Should status page subscribers be notified when this incident is created?",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: true,
+                  required: false,
+                },
+              ]}
+              steps={[
+                {
+                  title: "Incident Details",
+                  id: "incident-details",
+                },
+                {
+                  title: "Resources Affected",
+                  id: "resources-affected",
+                },
+                {
+                  title: "On-Call",
+                  id: "on-call",
+                },
+                {
+                  title: "Owners",
+                  id: "owners",
+                },
+                {
+                  title: "More",
+                  id: "more",
+                },
+              ]}
+              onSuccess={(createdItem: Incident) => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                      {
+                        modelId: createdItem._id,
+                      },
+                    ),
+                  ),
+                );
+              }}
+              submitButtonText={"Declare Incident"}
+              formType={FormType.Create}
+            />)}
+        </div>
       </Card>
     </Fragment>
   );

@@ -217,25 +217,37 @@ abstract class Navigation {
     options?: {
       openInNewTab?: boolean | undefined;
       forceNavigate?: boolean | undefined;
+      queryParams?: Dictionary<string> | undefined;
     },
   ): void {
+
+    let finalUrl: string = to.toString();
+
+    // add query params if they exist. 
+
+    if (options?.queryParams) {
+      const url: URL = URL.fromString(finalUrl);
+      url.addQueryParams(options.queryParams);
+      finalUrl = url.toString();
+    }
+
     if (options?.openInNewTab) {
       // open in new tab
-      window.open(to.toString(), "_blank");
+      window.open(finalUrl, "_blank");
       return;
     }
 
     if (options?.forceNavigate && to instanceof Route) {
-      window.location.href = to.toString();
+      window.location.href =finalUrl;
     }
 
     if (this.navigateHook && to instanceof Route && !this.isOnThisPage(to)) {
-      this.navigateHook(to.toString());
+      this.navigateHook(finalUrl);
     }
 
     // if its an external link outside of react.
     if (to instanceof URL) {
-      window.location.href = to.toString();
+      window.location.href = finalUrl;
     }
   }
 }
