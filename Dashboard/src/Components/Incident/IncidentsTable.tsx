@@ -10,7 +10,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
   ModalTableBulkDefaultActions,
@@ -41,7 +40,6 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
-  createInitialValues?: FormValues<Incident> | undefined;
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
 }
@@ -56,9 +54,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [showIncidentTemplateModal, setShowIncidentTemplateModal] =
     useState<boolean>(false);
-
-
-
 
   const fetchIncidentTemplates: () => Promise<void> =
     async (): Promise<void> => {
@@ -87,35 +82,34 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
+  let cardbuttons: Array<CardButtonSchema> = [];
 
-    let cardbuttons: Array<CardButtonSchema> = [];
-
-    if (!props.disableCreate) {
-      // then add a card button that takes to monitor create page
-      cardbuttons = [
-        {
-          title: "Create from Template",
-          icon: IconProp.Template,
-          buttonStyle: ButtonStyleType.OUTLINE,
-          onClick: async (): Promise<void> => {
-            setShowIncidentTemplateModal(true);
-            await fetchIncidentTemplates();
-          },
+  if (!props.disableCreate) {
+    // then add a card button that takes to monitor create page
+    cardbuttons = [
+      {
+        title: "Create from Template",
+        icon: IconProp.Template,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: async (): Promise<void> => {
+          setShowIncidentTemplateModal(true);
+          await fetchIncidentTemplates();
         },
-        {
-          title: "Declare Incident",
-          onClick: () => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_CREATE] as Route,
-              ),
-            );
-          },
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Add,
+      },
+      {
+        title: "Declare Incident",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_CREATE] as Route,
+            ),
+          );
         },
-      ];
-    }
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
 
   return (
     <>
@@ -142,7 +136,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         }}
         createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
-       
         showRefreshButton={true}
         showViewIdButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -399,15 +392,19 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
           }}
           onSubmit={async (data: JSONObject) => {
-            const incidentTemplateId = data["incidentTemplateId"] as ObjectID; 
+            const incidentTemplateId: ObjectID = data[
+              "incidentTemplateId"
+            ] as ObjectID;
 
             // Navigate to declare incident page with the template id
             Navigation.navigate(
               RouteUtil.populateRouteParams(
-                new Route((RouteMap[PageMap.INCIDENT_CREATE] as Route).toString()).addQueryParams({
+                new Route(
+                  (RouteMap[PageMap.INCIDENT_CREATE] as Route).toString(),
+                ).addQueryParams({
                   incidentTemplateId: incidentTemplateId.toString(),
-                })
-              )
+                }),
+              ),
             );
           }}
           formProps={{

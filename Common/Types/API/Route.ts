@@ -101,14 +101,13 @@ export default class Route extends DatabaseProperty {
   }
 
   public addQueryParams(queryParams: Dictionary<string>): Route {
-
     // make sure route ends with "?" if it doesn't have any query params
 
     if (!this.route.includes("?")) {
       this.route += "?";
     }
 
-    for(const key in queryParams) {
+    for (const key in queryParams) {
       this.route += `${key}=${queryParams[key]}&`;
     }
 

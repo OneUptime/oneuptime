@@ -3,7 +3,13 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -31,7 +37,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -40,7 +45,11 @@ const IncidentCreate: FunctionComponent<
 
   useEffect(() => {
     if (Navigation.getQueryStringByName("incidentTemplateId")) {
-      fetchIncidentTemplate(new ObjectID(Navigation.getQueryStringByName("incidentTemplateId") || ""));
+      fetchIncidentTemplate(
+        new ObjectID(
+          Navigation.getQueryStringByName("incidentTemplateId") || "",
+        ),
+      );
     } else {
       setIsLoading(false);
     }
@@ -49,7 +58,6 @@ const IncidentCreate: FunctionComponent<
   const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
   ): Promise<void> => {
-
     setError("");
     setIsLoading(true);
 
@@ -139,10 +147,6 @@ const IncidentCreate: FunctionComponent<
     setIsLoading(false);
   };
 
-
-
-
-
   return (
     <Fragment>
       <Card
@@ -152,7 +156,6 @@ const IncidentCreate: FunctionComponent<
         }
         className="mb-10"
       >
-
         <div>
           {isLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
@@ -309,7 +312,8 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: {
-                    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+                      true,
                   },
 
                   title: "Notify Status Page Subscribers",
@@ -357,7 +361,8 @@ const IncidentCreate: FunctionComponent<
               }}
               submitButtonText={"Declare Incident"}
               formType={FormType.Create}
-            />)}
+            />
+          )}
         </div>
       </Card>
     </Fragment>

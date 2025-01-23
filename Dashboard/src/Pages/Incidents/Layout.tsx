@@ -14,7 +14,11 @@ const IncidentsLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Incidents"}
-      sideMenu={props.hideSideMenu ? undefined : <SideMenu project={props.currentProject || undefined} />}
+      sideMenu={
+        props.hideSideMenu ? undefined : (
+          <SideMenu project={props.currentProject || undefined} />
+        )
+      }
       breadcrumbLinks={getIncidentsBreadcrumbs(path)}
     >
       <Outlet />

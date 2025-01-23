@@ -78,19 +78,14 @@ const IncidentViewDescription: LazyExoticComponent<
   return import("../Pages/Incidents/View/Description");
 });
 
-
-const IncidentCreate: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Create");
-});
-
+const IncidentCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Incidents/Create");
+  });
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
-  
-
   let hideSideMenu: boolean = false;
 
   if (Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_CREATE] as Route)) {
@@ -99,7 +94,10 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
-      <PageRoute path="/" element={<Layout {...props} hideSideMenu={hideSideMenu} />}>
+      <PageRoute
+        path="/"
+        element={<Layout {...props} hideSideMenu={hideSideMenu} />}
+      >
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS] || ""}
           element={
@@ -124,7 +122,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
             <Suspense fallback={Loader}>

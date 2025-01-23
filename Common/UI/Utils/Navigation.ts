@@ -219,10 +219,9 @@ abstract class Navigation {
       forceNavigate?: boolean | undefined;
     },
   ): void {
+    const finalUrl: string = to.toString();
 
-    let finalUrl: string = to.toString();
-
-    // add query params if they exist. 
+    // add query params if they exist.
 
     if (options?.openInNewTab) {
       // open in new tab
@@ -231,7 +230,7 @@ abstract class Navigation {
     }
 
     if (options?.forceNavigate && to instanceof Route) {
-      window.location.href =finalUrl;
+      window.location.href = finalUrl;
     }
 
     if (this.navigateHook && to instanceof Route && !this.isOnThisPage(to)) {
