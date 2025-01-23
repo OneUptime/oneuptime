@@ -31,6 +31,7 @@ import { SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable"
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -56,33 +57,65 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   ] = useState<boolean>(false);
 
 
+  let cardbuttons: Array<CardButtonSchema> = [];
+
   const fetchScheduledMaintenanceTemplates: () => Promise<void> =
-    async (): Promise<void> => {
-      setError("");
-      setIsLoading(true);
-     
+  async (): Promise<void> => {
+    setError("");
+    setIsLoading(true);
+   
 
-      try {
-        const listResult: ListResult<ScheduledMaintenanceTemplate> =
-          await ModelAPI.getList<ScheduledMaintenanceTemplate>({
-            modelType: ScheduledMaintenanceTemplate,
-            query: {},
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              templateName: true,
-              _id: true,
-            },
-            sort: {},
-          });
+    try {
+      const listResult: ListResult<ScheduledMaintenanceTemplate> =
+        await ModelAPI.getList<ScheduledMaintenanceTemplate>({
+          modelType: ScheduledMaintenanceTemplate,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            templateName: true,
+            _id: true,
+          },
+          sort: {},
+        });
 
-        setScheduledMaintenanceTemplates(listResult.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
+      setScheduledMaintenanceTemplates(listResult.data);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
 
-      setIsLoading(false);
-    };
+    setIsLoading(false);
+  };
+
+  if (!props.disableCreate) {
+    // then add a card button that takes to monitor create page
+    cardbuttons = [
+      {
+        title: "Create from Template",
+        icon: IconProp.Template,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: async (): Promise<void> => {
+          setShowScheduledMaintenanceTemplateModal(true);
+          await fetchScheduledMaintenanceTemplates();
+        },
+      },
+      {
+        title: "Create Scheduled Maintenance Event",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+            ),
+          );
+        },
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
+
+
 
   return (
     <div>
@@ -93,7 +126,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         isDeleteable={false}
         query={props.query || {}}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         isViewable={true}
         saveFilterProps={props.saveFilterProps}
         showCreateForm={
@@ -104,19 +137,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           description:
             props.description ||
             "Here is a list of scheduled maintenance events for this project.",
-          buttons: props.disableCreate
-            ? []
-            : [
-                {
-                  title: "Create from Template",
-                  icon: IconProp.Template,
-                  buttonStyle: ButtonStyleType.OUTLINE,
-                  onClick: async (): Promise<void> => {
-                    setShowScheduledMaintenanceTemplateModal(true);
-                    await fetchScheduledMaintenanceTemplates();
-                  },
-                },
-              ],
+          buttons: cardbuttons
         }}
         noItemsMessage={
           props.noItemsMessage || "No scheduled Maintenance Event found."
@@ -366,13 +387,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               "scheduledMaintenanceTemplateId"
             ] as ObjectID;
 
-            // Navigate to declare incident page with the template id
+            // Navigate to create page with the template id
             Navigation.navigate(
               RouteUtil.populateRouteParams(
                 new Route(
                   (RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route).toString(),
                 ).addQueryParams({
-                  incidentTemplateId: scheduledMaintenanceTemplateId.toString(),
+                  scheduledMaintenanceTemplateId: scheduledMaintenanceTemplateId.toString(),
                 }),
               ),
             );

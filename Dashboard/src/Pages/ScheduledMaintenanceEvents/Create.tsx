@@ -164,7 +164,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
       <Card
         title="Create New Scheduled Maintenance"
         description={
-          "Declare a new Scheduled Maintenance to let your team know what's going on and how to respond."
+          "Scheduled maintenance events are planned maintenance events that you can use to notify your team and subscribers about upcoming maintenance events."
         }
         className="mb-10"
       >
