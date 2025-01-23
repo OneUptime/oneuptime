@@ -536,7 +536,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
             <div className="flex">
               {formSteps && currentFormStepId && (
-                <div className="w-1/3">
+                <div style={{ flex: "0 1 auto" }} className="mr-10">
                   {/* Form Steps */}
 
                   <Steps
@@ -551,8 +551,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               )}
               <div
                 className={`${
-                  formSteps && currentFormStepId ? "w-2/3 pt-6" : "w-full pt-1"
+                  formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
                 }`}
+                style={{ flex: "1 1 auto" }}
               >
                 {props.error && (
                   <div className="mb-3">

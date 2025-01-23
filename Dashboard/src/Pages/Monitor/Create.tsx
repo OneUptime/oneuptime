@@ -30,6 +30,7 @@ const MonitorCreate: FunctionComponent<
         description={
           "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team."
         }
+        className="mb-10"
       >
         <ModelForm<Monitor>
           modelType={Monitor}

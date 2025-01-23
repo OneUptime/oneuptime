@@ -16,7 +16,9 @@ const MonitorLayout: FunctionComponent<LayoutPageComponentProps> = (
       title={"Monitors"}
       breadcrumbLinks={getMonitorBreadcrumbs(path)}
       sideMenu={
-        props.hideSideMenu ? undefined: <DashboardSideMenu project={props.currentProject || undefined} />
+        props.hideSideMenu ? undefined : (
+          <DashboardSideMenu project={props.currentProject || undefined} />
+        )
       }
     >
       <Outlet />
