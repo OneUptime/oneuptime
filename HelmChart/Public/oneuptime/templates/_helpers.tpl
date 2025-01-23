@@ -12,10 +12,14 @@ Usage:
 {{- end -}}
 
 {{- define "oneuptime.env.common" }}
+{{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.openTelemetryExporter.endpoint }}
+{{- end }}
+{{- if $.Values.openTelemetryExporter.headers }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ $.Values.openTelemetryExporter.headers }}
+{{- end }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
