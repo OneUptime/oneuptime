@@ -404,14 +404,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             // Navigate to declare incident page with the template id
             Navigation.navigate(
               RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_CREATE] as Route,
-                
-              ),
-              {
-                queryParams: {
+                new Route((RouteMap[PageMap.INCIDENT_CREATE] as Route).toString()).addQueryParams({
                   incidentTemplateId: incidentTemplateId.toString(),
-                },
-              }
+                })
+              )
             );
           }}
           formProps={{

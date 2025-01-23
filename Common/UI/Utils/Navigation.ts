@@ -217,19 +217,12 @@ abstract class Navigation {
     options?: {
       openInNewTab?: boolean | undefined;
       forceNavigate?: boolean | undefined;
-      queryParams?: Dictionary<string> | undefined;
     },
   ): void {
 
     let finalUrl: string = to.toString();
 
     // add query params if they exist. 
-
-    if (options?.queryParams) {
-      const url: URL = URL.fromString(finalUrl);
-      url.addQueryParams(options.queryParams);
-      finalUrl = url.toString();
-    }
 
     if (options?.openInNewTab) {
       // open in new tab
