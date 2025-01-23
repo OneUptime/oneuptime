@@ -27,9 +27,6 @@ const MonitorIncidents: FunctionComponent<
       <DisabledWarning monitorId={modelId} />
       <IncidentsTable
         query={query}
-        createInitialValues={{
-          monitors: [modelId.toString()],
-        }}
       />
     </Fragment>
   );
