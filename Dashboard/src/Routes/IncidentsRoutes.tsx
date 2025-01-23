@@ -1,3 +1,4 @@
+import Navigation from "Common/UI/Utils/Navigation";
 import Loader from "../Components/Loader/Loader";
 import Layout from "../Pages/Incidents/Layout";
 import IncidentViewLayout from "../Pages/Incidents/View/Layout";
@@ -77,12 +78,28 @@ const IncidentViewDescription: LazyExoticComponent<
   return import("../Pages/Incidents/View/Description");
 });
 
+
+const IncidentCreate: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Create");
+});
+
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  
+
+  let hideSideMenu: boolean = false;
+
+  if (Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
   return (
     <Routes>
-      <PageRoute path="/" element={<Layout {...props} />}>
+      <PageRoute path="/" element={<Layout {...props} hideSideMenu={hideSideMenu} />}>
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS] || ""}
           element={
@@ -102,6 +119,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <UnresolvedIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
               />
             </Suspense>
           }

@@ -139,6 +139,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
 
 export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_INCIDENTS]: "unresolved",
+  [PageMap.INCIDENT_CREATE]: "create",
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.INCIDENT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
@@ -482,6 +483,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.UNRESOLVED_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_CREATE]
     }`,
   ),
 
