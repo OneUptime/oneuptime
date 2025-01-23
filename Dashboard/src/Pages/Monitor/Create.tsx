@@ -28,7 +28,7 @@ const MonitorCreate: FunctionComponent<
       <Card
         title="Create New Monitor"
         description={
-          "Monitors let you monitor your web application UI, run custom JavaScript code on a schedule, monitor logs from any source, monitor traces from any source, and monitor metrics from any source."
+          "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team."
         }
       >
         <ModelForm<Monitor>
