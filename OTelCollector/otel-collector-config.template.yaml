@@ -40,11 +40,11 @@ exporters:
 
 service:
   telemetry:
-{{ if or (not .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT) (eq .Env.DISABLE_TELEMETRY "true") }}
+{{ if or (not (index .Env "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT")) (eq .Env.DISABLE_TELEMETRY "true") }}
     logs:
       level: "debug"
 {{ end }}
-{{ if and (ne .Env.DISABLE_TELEMETRY "true") .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
+{{ if and (ne .Env.DISABLE_TELEMETRY "true") (index .Env "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT") }}
     logs:
       level: "debug"
     metrics:
