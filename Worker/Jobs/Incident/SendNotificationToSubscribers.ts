@@ -217,8 +217,9 @@ RunCron(
                         MarkdownContentType.Email,
                       ),
                       unsubscribeUrl: unsubscribeUrl,
-                      
-                      subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+
+                      subscriberEmailNotificationFooterText:
+                        statuspage.subscriberEmailNotificationFooterText || "",
                     },
                     subject: "[Incident] " + statusPageName,
                   },

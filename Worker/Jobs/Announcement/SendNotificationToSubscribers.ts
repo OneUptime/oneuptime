@@ -179,7 +179,8 @@ RunCron(
                         announcement.description || "",
                         MarkdownContentType.Email,
                       ),
-                      subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+                      subscriberEmailNotificationFooterText:
+                        statuspage.subscriberEmailNotificationFooterText || "",
                       unsubscribeUrl: unsubscribeUrl,
                     },
                     subject: "[Announcement] " + statusPageName,

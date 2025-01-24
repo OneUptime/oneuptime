@@ -263,10 +263,10 @@ RunCron(
                   incidentTitle: incident.title || "",
                   incidentDescription: incident.description || "",
                   unsubscribeUrl: unsubscribeUrl,
-                  subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+                  subscriberEmailNotificationFooterText:
+                    statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: "[Incident Update] " + statusPageName,
-                
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

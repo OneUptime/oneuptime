@@ -233,7 +233,8 @@ export class Service extends DatabaseService<Model> {
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
-                    subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+                  subscriberEmailNotificationFooterText:
+                    statuspage.subscriberEmailNotificationFooterText || "",
                   resourcesAffected: resourcesAffected,
                   scheduledAt:
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({

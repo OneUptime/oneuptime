@@ -278,7 +278,8 @@ RunCron(
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
-                  subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+                  subscriberEmailNotificationFooterText:
+                    statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                   scheduledEventStateTimeline.scheduledMaintenanceState?.name,

@@ -651,7 +651,8 @@ export class Service extends DatabaseService<StatusPage> {
           templateType: EmailTemplateType.StatusPageSubscriberReport,
           vars: {
             statusPageName: statusPageName,
-            subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+            subscriberEmailNotificationFooterText:
+              statuspage.subscriberEmailNotificationFooterText || "",
             statusPageUrl: statusPageURL,
             hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,

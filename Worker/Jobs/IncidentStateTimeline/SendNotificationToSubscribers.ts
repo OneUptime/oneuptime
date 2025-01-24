@@ -279,7 +279,8 @@ RunCron(
 
                   incidentState: incidentStateTimeline.incidentState.name,
                   unsubscribeUrl: unsubscribeUrl,
-                  subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
+                  subscriberEmailNotificationFooterText:
+                    statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: `[Incident ${Text.uppercaseFirstLetter(
                   incidentStateTimeline.incidentState.name,
