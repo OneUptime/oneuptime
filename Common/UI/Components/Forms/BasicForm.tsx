@@ -77,7 +77,7 @@ export interface BaseComponentProps<T> {
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
   summary?: {
-    emabled?: boolean;
+    enabled?: boolean;
   } | undefined;
 }
 
@@ -111,7 +111,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, [props.isLoading]);
 
     const getFormSteps: () => Array<FormStep<T>> | undefined = () => {
-      if (props.summary && props.summary.emabled) {
+      if (props.summary && props.summary.enabled) {
         // add to last step
         return [
           ...(props.steps || []),

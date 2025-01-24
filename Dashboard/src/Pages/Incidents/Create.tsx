@@ -361,6 +361,9 @@ const IncidentCreate: FunctionComponent<
               }}
               submitButtonText={"Declare Incident"}
               formType={FormType.Create}
+              summary={{
+                enabled: true,
+              }}
             />
           )}
         </div>
