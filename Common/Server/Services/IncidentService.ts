@@ -50,6 +50,10 @@ import Semaphore, {
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
+import Label from "../../Models/DatabaseModels/Label";
+import LabelService from "./LabelService";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import IncidentSeverityService from "./IncidentSeverityService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -227,16 +231,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -314,16 +318,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -365,9 +369,9 @@ ${createdItem.description || "No description provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -422,9 +426,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -644,79 +648,123 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
 
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
+
+        let shouldAddIncidentFeed: boolean = false;
+        let feedInfoInMarkdown: string = "**Incident was updated.**";
+
+        const createdByUserId: ObjectID | undefined | null =
+          onUpdate.updateBy.props.userId;
+
         if (onUpdate.updateBy.data.title) {
           // add incident feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
 
-          await IncidentFeedService.createIncidentFeed({
-            incidentId: incidentId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident title was updated.** Here's the new title.
-
+          feedInfoInMarkdown += `\n\n**Title**: 
 ${onUpdate.updateBy.data.title || "No title provided."}
-          `,
-            userId: createdByUserId || undefined,
-          });
+`;
+          shouldAddIncidentFeed = true;
         }
 
         if (onUpdate.updateBy.data.rootCause) {
-          // add incident feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
+          if (onUpdate.updateBy.data.title) {
+            // add incident feed.
 
-          await IncidentFeedService.createIncidentFeed({
-            incidentId: incidentId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident root cause was updated.** Here's the new root cause.
-      
+            feedInfoInMarkdown += `\n\n**Root Cause**: 
 ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
-        `,
-            userId: createdByUserId || undefined,
-          });
+  `;
+            shouldAddIncidentFeed = true;
+          }
         }
 
         if (onUpdate.updateBy.data.description) {
           // add incident feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
 
-          await IncidentFeedService.createIncidentFeed({
-            incidentId: incidentId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `**Incident description was updated.** Here's the new description.
-      
-${onUpdate.updateBy.data.description || "No description provided."}
-        `,
-            userId: createdByUserId || undefined,
-          });
+          feedInfoInMarkdown += `\n\n**Incident Description**: 
+          ${onUpdate.updateBy.data.description || "No description provided."}
+          `;
+          shouldAddIncidentFeed = true;
         }
+
 
         if (onUpdate.updateBy.data.remediationNotes) {
           // add incident feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
 
-          await IncidentFeedService.createIncidentFeed({
-            incidentId: incidentId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `**Remediation notes were updated.** Here are the new notes.
-
+          feedInfoInMarkdown += `\n\n**Remediation Notes**: 
 ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
-            `,
-            userId: createdByUserId || undefined,
-          });
+        `;
+          shouldAddIncidentFeed = true;
+
         }
+
+        if (onUpdate.updateBy.data.labels && onUpdate.updateBy.data.labels.length > 0 && Array.isArray(onUpdate.updateBy.data.labels)) {
+          const labelIds: Array<ObjectID> = (onUpdate.updateBy.data.labels as any).map((label: Label) => {
+            if (label._id) {
+              return new ObjectID(label._id?.toString());
+            }
+
+            return null;
+          }
+          ).filter((labelId: ObjectID | null) => {
+            return labelId !== null;
+          });
+
+          const labels: Array<Label> = await LabelService.findBy({
+            query: {
+              _id: QueryHelper.any(labelIds)
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (labels.length > 0) {
+            feedInfoInMarkdown += `\n\n**Labels**:
+
+${labels.map((label: Label) => {
+              return `- ${label.name}`;
+            }).join("\n")}
+`;
+          }
+
+        }
+
+        if (onUpdate.updateBy.data.incidentSeverity && (onUpdate.updateBy.data.incidentSeverity as any)._id) {
+          const incidentSeverity: IncidentSeverity | null = await IncidentSeverityService.findOneBy({
+            query: {
+              _id: new ObjectID(((onUpdate.updateBy.data.incidentSeverity as any))?._id.toString())
+            },
+            select: {
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (incidentSeverity) {
+            feedInfoInMarkdown += `\n\n**Incident Severity**:
+${incidentSeverity.name}
+`;
+          }
+
+        }
+
+        await IncidentFeedService.createIncidentFeed({
+          incidentId: incidentId,
+          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+          incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+          displayColor: Gray500,
+          feedInfoInMarkdown: feedInfoInMarkdown,
+          userId: createdByUserId || undefined,
+        });
+
       }
     }
+
 
     return onUpdate;
   }
@@ -823,7 +871,7 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -936,7 +984,7 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -1154,7 +1202,7 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
