@@ -41,6 +41,7 @@ import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTa
 import AddIsSubscriptionConfirmedToSubscribers from "./AddIsSubscriptionConfirmedToSubscribers";
 import AddIncidentNumber from "./AddIncidentNumber";
 import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotificationRule";
+import AddSubscriberFooterTextToStatusPage from "./AddSubscriberFooterTextToStatusPage";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -87,6 +88,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddIsSubscriptionConfirmedToSubscribers(),
   new AddIncidentNumber(),
   new RenameRuleTypeInUserNotificationRule(),
+  new AddSubscriberFooterTextToStatusPage(),
 ];
 
 export default DataMigrations;

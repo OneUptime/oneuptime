@@ -148,6 +148,12 @@ export class Service extends DatabaseService<StatusPage> {
       createBy.data.defaultBarColor = Green;
     }
 
+    if (!createBy.data.subscriberEmailNotificationFooterText) {
+      createBy.data.subscriberEmailNotificationFooterText =
+        "This is an automated email sent to you because you are subscribed to " +
+        createBy.data.name;
+    }
+
     return {
       createBy,
       carryForward: null,
@@ -645,6 +651,7 @@ export class Service extends DatabaseService<StatusPage> {
           templateType: EmailTemplateType.StatusPageSubscriberReport,
           vars: {
             statusPageName: statusPageName,
+            subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
             statusPageUrl: statusPageURL,
             hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,

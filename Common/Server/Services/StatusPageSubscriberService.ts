@@ -630,6 +630,7 @@ export class Service extends DatabaseService<Model> {
         isPublicStatusPage: true,
         logoFileId: true,
         allowSubscribersToChooseResources: true,
+        subscriberEmailNotificationFooterText: true,
         allowSubscribersToChooseEventTypes: true,
         smtpConfig: {
           _id: true,

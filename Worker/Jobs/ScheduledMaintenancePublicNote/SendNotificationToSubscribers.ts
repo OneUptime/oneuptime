@@ -262,6 +262,7 @@ RunCron(
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
+                  subscriberEmailNotificationFooterText: statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: "[Scheduled Maintenance Update] " + statusPageName,
               },
