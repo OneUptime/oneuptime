@@ -231,16 +231,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -318,16 +318,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -369,9 +369,9 @@ ${createdItem.description || "No description provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-        "Status was changed because incident " +
-        createdItem.id.toString() +
-        " was created.",
+          "Status was changed because incident " +
+            createdItem.id.toString() +
+            " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -426,9 +426,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -648,7 +648,6 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
 
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
-
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = "**Incident was updated.**";
 
@@ -684,7 +683,6 @@ ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
           shouldAddIncidentFeed = true;
         }
 
-
         if (onUpdate.updateBy.data.remediationNotes) {
           // add incident feed.
 
@@ -692,24 +690,30 @@ ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
 ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
         `;
           shouldAddIncidentFeed = true;
-
         }
 
-        if (onUpdate.updateBy.data.labels && onUpdate.updateBy.data.labels.length > 0 && Array.isArray(onUpdate.updateBy.data.labels)) {
-          const labelIds: Array<ObjectID> = (onUpdate.updateBy.data.labels as any).map((label: Label) => {
-            if (label._id) {
-              return new ObjectID(label._id?.toString());
-            }
+        if (
+          onUpdate.updateBy.data.labels &&
+          onUpdate.updateBy.data.labels.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.labels)
+        ) {
+          const labelIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.labels as any
+          )
+            .map((label: Label) => {
+              if (label._id) {
+                return new ObjectID(label._id?.toString());
+              }
 
-            return null;
-          }
-          ).filter((labelId: ObjectID | null) => {
-            return labelId !== null;
-          });
+              return null;
+            })
+            .filter((labelId: ObjectID | null) => {
+              return labelId !== null;
+            });
 
           const labels: Array<Label> = await LabelService.findBy({
             query: {
-              _id: QueryHelper.any(labelIds)
+              _id: QueryHelper.any(labelIds),
             },
             select: {
               name: true,
@@ -724,33 +728,41 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
           if (labels.length > 0) {
             feedInfoInMarkdown += `\n\n**Labels**:
 
-${labels.map((label: Label) => {
-              return `- ${label.name}`;
-            }).join("\n")}
+${labels
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
 `;
           }
-
         }
 
-        if (onUpdate.updateBy.data.incidentSeverity && (onUpdate.updateBy.data.incidentSeverity as any)._id) {
-          const incidentSeverity: IncidentSeverity | null = await IncidentSeverityService.findOneBy({
-            query: {
-              _id: new ObjectID(((onUpdate.updateBy.data.incidentSeverity as any))?._id.toString())
-            },
-            select: {
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+        if (
+          onUpdate.updateBy.data.incidentSeverity &&
+          (onUpdate.updateBy.data.incidentSeverity as any)._id
+        ) {
+          const incidentSeverity: IncidentSeverity | null =
+            await IncidentSeverityService.findOneBy({
+              query: {
+                _id: new ObjectID(
+                  (
+                    onUpdate.updateBy.data.incidentSeverity as any
+                  )?._id.toString(),
+                ),
+              },
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
           if (incidentSeverity) {
             feedInfoInMarkdown += `\n\n**Incident Severity**:
 ${incidentSeverity.name}
 `;
           }
-
         }
 
         await IncidentFeedService.createIncidentFeed({
@@ -761,10 +773,8 @@ ${incidentSeverity.name}
           feedInfoInMarkdown: feedInfoInMarkdown,
           userId: createdByUserId || undefined,
         });
-
       }
     }
-
 
     return onUpdate;
   }
@@ -871,7 +881,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-            resolvedMonitorState.id!.toString()
+              resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -984,7 +994,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-      incidentStateId.toString()
+        incidentStateId.toString()
     ) {
       return;
     }
@@ -1202,7 +1212,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-          OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
