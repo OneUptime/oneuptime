@@ -102,4 +102,8 @@ export default interface Field<TEntity> {
   jsonKeysForDictionary?: Array<string> | undefined;
 
   hideOptionalLabel?: boolean | undefined;
+
+  getSummaryElement?: (
+    item: TEntity,
+  ) => ReactElement | undefined;
 }

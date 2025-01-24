@@ -734,6 +734,8 @@ ${labels
   })
   .join("\n")}
 `;
+
+shouldAddIncidentFeed = true;
           }
         }
 
@@ -762,8 +764,12 @@ ${labels
             feedInfoInMarkdown += `\n\n**Incident Severity**:
 ${incidentSeverity.name}
 `;
+
+            shouldAddIncidentFeed = true;
           }
         }
+
+        if(shouldAddIncidentFeed){
 
         await IncidentFeedService.createIncidentFeed({
           incidentId: incidentId,
@@ -773,6 +779,8 @@ ${incidentSeverity.name}
           feedInfoInMarkdown: feedInfoInMarkdown,
           userId: createdByUserId || undefined,
         });
+
+      }
       }
     }
 

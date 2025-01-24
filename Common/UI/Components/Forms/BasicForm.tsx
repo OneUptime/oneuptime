@@ -3,6 +3,7 @@ import UiAnalytics from "../../Utils/Analytics";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
+import Detail from "../Detail/Detail";
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FormField from "./Fields/FormField";
@@ -34,6 +35,8 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import DetailField from "../Detail/Field";
+import FormFieldSchemaTypeUtil from "./Utils/FormFieldSchemaTypeUtil";
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -73,6 +76,9 @@ export interface BaseComponentProps<T> {
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
+  summary?: {
+    emabled?: boolean;
+  } | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -104,12 +110,28 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       setIsLoading(props.isLoading);
     }, [props.isLoading]);
 
+    const getFormSteps: () => Array<FormStep<T>> | undefined = () => {
+      if (props.summary && props.summary.emabled) {
+        // add to last step
+        return [
+          ...(props.steps || []),
+          {
+            id: "summary",
+            title: "Summary",
+            showIf: () => true,
+            fields: props.fields
+          }
+        ]
+      }
+      return props.steps;
+    }
+
     const [submitButtonText, setSubmitButtonText] = useState<string>(
       props.submitButtonText || "Submit",
     );
 
     const [formSteps, setFormSteps] = useState<Array<FormStep<T>> | undefined>(
-      props.steps,
+      getFormSteps(),
     );
 
     const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
@@ -335,7 +357,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           formSteps.length > 0 &&
           (
             (formSteps as Array<FormStep<T>>)[
-              formSteps.length - 1
+            formSteps.length - 1
             ] as FormStep<T>
           ).id === currentFormStepId) ||
         currentFormStepId === null
@@ -550,9 +572,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${
-                  formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
-                }`}
+                className={`${formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
+                  }`}
                 style={{ flex: "1 1 auto" }}
               >
                 {props.error && (
@@ -563,9 +584,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 <div>
                   <div
-                    className={`grid md:grid-cols-${
-                      props.showAsColumns || 1
-                    } grid-cols-1 gap-4`}
+                    className={`grid md:grid-cols-${props.showAsColumns || 1
+                      } grid-cols-1 gap-4`}
                   >
                     {formFields &&
                       formFields
@@ -606,6 +626,28 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             </div>
                           );
                         })}
+
+                    {/* If Summary, show Model detail  */}
+
+                    {
+                      currentFormStepId === "summary" && (
+                        <Detail
+                          item={refCurrentValue.current as T}
+                          fields={formFields.map((field: Field<T>) => {
+                            const detailField: DetailField<T> = {
+                              title: field.title || "",
+                              fieldType: FormFieldSchemaTypeUtil.toFieldType(field.fieldType || FormFieldSchemaType.Text),
+                              description: field.description || "",
+                              // getElement: field.getSummaryElement,
+                              sideLink: field.sideLink,
+                              key: (Object.keys(field.field || {})[0]?.toString() || "") as keyof T,
+                            }
+                            return detailField;
+                          }) as DetailField<Object>[]}
+                        />
+
+                      )
+                    }
                   </div>
                 </div>
 
