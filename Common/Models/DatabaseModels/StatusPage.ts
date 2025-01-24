@@ -1996,15 +1996,14 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     title: "Subscriber Email Notification Footer Text",
     description: "Text to send to subscribers in the footer of the email.",
     canReadOnRelationQuery: true,
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public subscriberEmailNotificationFooterText?: string = undefined;
 }

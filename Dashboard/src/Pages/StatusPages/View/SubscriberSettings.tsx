@@ -112,6 +112,17 @@ const StatusPageDelete: FunctionComponent<
             description:
               "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
           },
+          {
+            field: {
+              subscriberEmailNotificationFooterText: true,
+            },
+            title: "Subscriber Email Notification Footer Text",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "This is an automated email sent to you because you are subscribed to Status Page.",
+            description:
+              "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -158,6 +169,15 @@ const StatusPageDelete: FunctionComponent<
                 );
               },
             },
+            {
+              field: {
+                subscriberEmailNotificationFooterText: true,
+              },
+              fieldType: FieldType.LongText,
+              title: "Subscriber Email Notification Footer Text",
+              description:
+                "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
+            }
           ],
           modelId: modelId,
         }}
