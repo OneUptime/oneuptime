@@ -10,4 +10,5 @@ export interface FormStep<TEntity> {
   id: string;
   title: string;
   showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
+  isSummaryStep?: boolean | undefined;
 }

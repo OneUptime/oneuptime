@@ -118,8 +118,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           {
             id: "summary",
             title: "Summary",
-            showIf: () => true,
-            fields: props.fields
+            isSummaryStep: true,
           }
         ]
       }
