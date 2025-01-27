@@ -62,7 +62,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
       fetchScheduledMaintenanceTemplate(
         new ObjectID(
           Navigation.getQueryStringByName("scheduledMaintenanceTemplateId") ||
-          "",
+            "",
         ),
       );
     } else {
@@ -277,9 +277,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitors affected",
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (!item.monitors || !Array.isArray(item.monitors)) {
-                      return <p>No monitors affected by this scheduled maintenance event.</p>;
+                      return (
+                        <p>
+                          No monitors affected by this scheduled maintenance
+                          event.
+                        </p>
+                      );
                     }
 
                     const monitorIds: Array<ObjectID> = [];
@@ -326,7 +333,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitor Status",
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (!item.changeMonitorStatusTo) {
                       return (
                         <p>
@@ -361,9 +370,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Status Pages",
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                      return <p>No status pages selected for this scheduled maintenance event.</p>;
+                      return (
+                        <p>
+                          No status pages selected for this scheduled
+                          maintenance event.
+                        </p>
+                      );
                     }
 
                     const statusPageIds: Array<ObjectID> = [];
@@ -412,7 +428,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Teams",
                   overrideFieldKey: "ownerTeams",
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (
                       !(item as JSONObject)["ownerTeams"] ||
                       !Array.isArray((item as JSONObject)["ownerTeams"])
@@ -468,7 +486,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Users",
                   overrideFieldKey: "ownerUsers",
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
                     if (
                       !(item as JSONObject)["ownerUsers"] ||
                       !Array.isArray((item as JSONObject)["ownerUsers"])
@@ -570,17 +590,28 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       />
                     );
                   },
-                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
-                    if (!item.sendSubscriberNotificationsOnBeforeTheEvent || (Array.isArray(item.sendSubscriberNotificationsOnBeforeTheEvent) && item.sendSubscriberNotificationsOnBeforeTheEvent.length === 0)) {
-                      return <p>No reminders set for subscribers.</p>
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    if (
+                      !item.sendSubscriberNotificationsOnBeforeTheEvent ||
+                      (Array.isArray(
+                        item.sendSubscriberNotificationsOnBeforeTheEvent,
+                      ) &&
+                        item.sendSubscriberNotificationsOnBeforeTheEvent
+                          .length === 0)
+                    ) {
+                      return <p>No reminders set for subscribers.</p>;
                     }
 
                     return (
                       <RecurringArrayViewElement
-                        value={item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]}
+                        value={
+                          item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]
+                        }
                         postfix=" before the event is scheduled"
                       />
-                    )
+                    );
                   },
                   required: false,
                 },
