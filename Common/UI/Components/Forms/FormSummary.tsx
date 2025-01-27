@@ -36,24 +36,22 @@ const FormSummary: <T extends GenericObject>(
         <Detail
           item={formValues as T}
           fields={
-            formFields
-             
-              .map((field: Field<T>) => {
-                const detailField: DetailField<T> = {
-                  title: field.title || "",
-                  fieldType: field.getSummaryElement
-                    ? FieldType.Element
-                    : FormFieldSchemaTypeUtil.toFieldType(
-                        field.fieldType || FormFieldSchemaType.Text,
-                      ),
-                  description: field.description || "",
-                  getElement: field.getSummaryElement as any,
-                  sideLink: field.sideLink,
-                  key: (Object.keys(field.field || {})[0]?.toString() ||
-                    "") as keyof T,
-                };
-                return detailField;
-              }) as DetailField<GenericObject>[]
+            formFields.map((field: Field<T>) => {
+              const detailField: DetailField<T> = {
+                title: field.title || "",
+                fieldType: field.getSummaryElement
+                  ? FieldType.Element
+                  : FormFieldSchemaTypeUtil.toFieldType(
+                      field.fieldType || FormFieldSchemaType.Text,
+                    ),
+                description: field.description || "",
+                getElement: field.getSummaryElement as any,
+                sideLink: field.sideLink,
+                key: (Object.keys(field.field || {})[0]?.toString() ||
+                  "") as keyof T,
+              };
+              return detailField;
+            }) as DetailField<GenericObject>[]
           }
         />
         <HorizontalRule />
@@ -65,34 +63,34 @@ const FormSummary: <T extends GenericObject>(
     formStep: FormStep<T>,
   ): ReactElement => {
     return (
-      <h2 className="text-md font-medium text-gray-900 mb-3">{formStep.title}</h2>
+      <h2 className="text-md font-medium text-gray-900 mb-3">
+        {formStep.title}
+      </h2>
     );
   };
 
   const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (
     formStep: FormStep<T>,
   ): ReactElement => {
+    const formFields: Fields<T> = props.formFields
+      .filter((field: Field<T>) => {
+        return formStep.id === field.stepId;
+      })
+      .filter((formField: Field<T>) => {
+        if (!formField.showIf) {
+          return true;
+        }
+        return formField.showIf(formValues);
+      });
 
-    const formFields = props.formFields.filter((field: Field<T>) => {
-      return formStep.id === field.stepId
-    }).filter((formField: Field<T>) => {
-      if (!formField.showIf) {
-        return true;
-      }
-      return formField.showIf(formValues);
-    })
-
-    if(formFields.length === 0) {
-      return <></>
+    if (formFields.length === 0) {
+      return <></>;
     }
 
     return (
       <div>
         {getFormStepTitle(formStep)}
-        {getDetailForFormFields(
-          formValues,
-          formFields
-        )}
+        {getDetailForFormFields(formValues, formFields)}
       </div>
     );
   };
