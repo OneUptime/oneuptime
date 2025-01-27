@@ -65,7 +65,7 @@ const FormSummary: <T extends GenericObject>(
     formStep: FormStep<T>,
   ): ReactElement => {
     return (
-      <h2 className="text-md font-medium text-gray-900">{formStep.title}</h2>
+      <h2 className="text-md font-medium text-gray-900 mb-3">{formStep.title}</h2>
     );
   };
 
