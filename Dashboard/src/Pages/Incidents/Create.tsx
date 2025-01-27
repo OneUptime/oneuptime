@@ -232,21 +232,23 @@ const IncidentCreate: FunctionComponent<
                       return <p>No monitors affected by this incident.</p>;
                     }
 
-                   const monitorIds: Array<ObjectID> = [];
+                    const monitorIds: Array<ObjectID> = [];
 
-                    for(const monitor of item.monitors){
-                      if(typeof monitor === "string"){
+                    for (const monitor of item.monitors) {
+                      if (typeof monitor === "string") {
                         monitorIds.push(new ObjectID(monitor));
                         continue;
                       }
 
-                      if(monitor instanceof ObjectID){
+                      if (monitor instanceof ObjectID) {
                         monitorIds.push(monitor);
                         continue;
                       }
 
-                      if(monitor instanceof Monitor){
-                        monitorIds.push(new ObjectID(monitor._id?.toString() || ""));
+                      if (monitor instanceof Monitor) {
+                        monitorIds.push(
+                          new ObjectID(monitor._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
@@ -256,7 +258,7 @@ const IncidentCreate: FunctionComponent<
                         <FetchMonitors monitorIds={monitorIds} />
                       </div>
                     );
-                  }
+                  },
                 },
                 {
                   field: {
@@ -275,35 +277,49 @@ const IncidentCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select on-call policies",
                   getSummaryElement: (item: FormValues<Incident>) => {
-                    if (!item.onCallDutyPolicies || !Array.isArray(item.onCallDutyPolicies)) {
-                      return <p>No on-call policies will be executed when this incident is created.</p>;
+                    if (
+                      !item.onCallDutyPolicies ||
+                      !Array.isArray(item.onCallDutyPolicies)
+                    ) {
+                      return (
+                        <p>
+                          No on-call policies will be executed when this
+                          incident is created.
+                        </p>
+                      );
                     }
 
                     const onCallDutyPolicyIds: Array<ObjectID> = [];
 
-                    for(const onCallDutyPolicy of item.onCallDutyPolicies){
-                      if(typeof onCallDutyPolicy === "string"){
-                        onCallDutyPolicyIds.push(new ObjectID(onCallDutyPolicy));
+                    for (const onCallDutyPolicy of item.onCallDutyPolicies) {
+                      if (typeof onCallDutyPolicy === "string") {
+                        onCallDutyPolicyIds.push(
+                          new ObjectID(onCallDutyPolicy),
+                        );
                         continue;
                       }
 
-                      if(onCallDutyPolicy instanceof ObjectID){
+                      if (onCallDutyPolicy instanceof ObjectID) {
                         onCallDutyPolicyIds.push(onCallDutyPolicy);
                         continue;
                       }
 
-                      if(onCallDutyPolicy instanceof OnCallDutyPolicy){
-                        onCallDutyPolicyIds.push(new ObjectID(onCallDutyPolicy._id?.toString() || ""));
+                      if (onCallDutyPolicy instanceof OnCallDutyPolicy) {
+                        onCallDutyPolicyIds.push(
+                          new ObjectID(onCallDutyPolicy._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
 
                     return (
                       <div>
-                        <FetchOnCallDutyPolicies onCallDutyPolicyIds={onCallDutyPolicyIds} />
+                        <FetchOnCallDutyPolicies
+                          onCallDutyPolicyIds={onCallDutyPolicyIds}
+                        />
                       </div>
                     );
-                  }
+                  },
                 },
                 {
                   field: {
@@ -323,15 +339,22 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Monitor Status",
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.changeMonitorStatusTo) {
-                      return <p>Status of the monitors will not be changed when this incident is created.</p>;
+                      return (
+                        <p>
+                          Status of the monitors will not be changed when this
+                          incident is created.
+                        </p>
+                      );
                     }
 
                     return (
                       <FetchMonitorStatuses
-                        monitorStatusIds={[new ObjectID(item.changeMonitorStatusTo.toString())]}
+                        monitorStatusIds={[
+                          new ObjectID(item.changeMonitorStatusTo.toString()),
+                        ]}
                       />
                     );
-                  }
+                  },
                 },
                 {
                   overrideField: {
@@ -352,25 +375,32 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Select Teams",
                   overrideFieldKey: "ownerTeams",
                   getSummaryElement: (item: FormValues<Incident>) => {
-                    if(!(item as JSONObject)["ownerTeams"] || !Array.isArray((item as JSONObject)["ownerTeams"])){
-                      return <p>No teams assigned.</p>
+                    if (
+                      !(item as JSONObject)["ownerTeams"] ||
+                      !Array.isArray((item as JSONObject)["ownerTeams"])
+                    ) {
+                      return <p>No teams assigned.</p>;
                     }
 
                     const ownerTeamIds: Array<ObjectID> = [];
 
-                    for(const ownerTeam of ((item as JSONObject)["ownerTeams"] as Array<any>)){
-                      if(typeof ownerTeam === "string"){
+                    for (const ownerTeam of (item as JSONObject)[
+                      "ownerTeams"
+                    ] as Array<any>) {
+                      if (typeof ownerTeam === "string") {
                         ownerTeamIds.push(new ObjectID(ownerTeam));
                         continue;
                       }
 
-                      if(ownerTeam instanceof ObjectID){
+                      if (ownerTeam instanceof ObjectID) {
                         ownerTeamIds.push(ownerTeam);
                         continue;
                       }
 
-                      if(ownerTeam instanceof Team){
-                        ownerTeamIds.push(new ObjectID(ownerTeam._id?.toString() || ""));
+                      if (ownerTeam instanceof Team) {
+                        ownerTeamIds.push(
+                          new ObjectID(ownerTeam._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
@@ -380,7 +410,7 @@ const IncidentCreate: FunctionComponent<
                         <FetchTeam teamIds={ownerTeamIds} />
                       </div>
                     );
-                  }
+                  },
                 },
                 {
                   overrideField: {
@@ -401,25 +431,32 @@ const IncidentCreate: FunctionComponent<
                   placeholder: "Select Users",
                   overrideFieldKey: "ownerUsers",
                   getSummaryElement: (item: FormValues<Incident>) => {
-                    if(!(item as JSONObject)["ownerUsers"] || !Array.isArray((item as JSONObject)["ownerUsers"])){
-                      return <p>No owners assigned.</p>
+                    if (
+                      !(item as JSONObject)["ownerUsers"] ||
+                      !Array.isArray((item as JSONObject)["ownerUsers"])
+                    ) {
+                      return <p>No owners assigned.</p>;
                     }
 
                     const ownerUserIds: Array<ObjectID> = [];
 
-                    for(const ownerUser of ((item as JSONObject)["ownerUsers"] as Array<any>)){
-                      if(typeof ownerUser === "string"){
+                    for (const ownerUser of (item as JSONObject)[
+                      "ownerUsers"
+                    ] as Array<any>) {
+                      if (typeof ownerUser === "string") {
                         ownerUserIds.push(new ObjectID(ownerUser));
                         continue;
                       }
 
-                      if(ownerUser instanceof ObjectID){
+                      if (ownerUser instanceof ObjectID) {
                         ownerUserIds.push(ownerUser);
                         continue;
                       }
 
-                      if(ownerUser instanceof User){
-                        ownerUserIds.push(new ObjectID(ownerUser._id?.toString() || ""));
+                      if (ownerUser instanceof User) {
+                        ownerUserIds.push(
+                          new ObjectID(ownerUser._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
@@ -429,8 +466,7 @@ const IncidentCreate: FunctionComponent<
                         <FetchUsers userIds={ownerUserIds} />
                       </div>
                     );
-                    
-                  }
+                  },
                 },
                 {
                   field: {
@@ -450,26 +486,27 @@ const IncidentCreate: FunctionComponent<
                   required: false,
                   placeholder: "Labels",
                   getSummaryElement: (item: FormValues<Incident>) => {
-
-                    if(!item.labels || !Array.isArray(item.labels)){
-                      return <p>No labels assigned.</p>
+                    if (!item.labels || !Array.isArray(item.labels)) {
+                      return <p>No labels assigned.</p>;
                     }
 
-                    const labelIds: Array<ObjectID> = []; 
+                    const labelIds: Array<ObjectID> = [];
 
-                    for(const label of item.labels){
-                      if(typeof label  === "string"){ 
+                    for (const label of item.labels) {
+                      if (typeof label === "string") {
                         labelIds.push(new ObjectID(label));
                         continue;
                       }
 
-                      if(label instanceof ObjectID){
+                      if (label instanceof ObjectID) {
                         labelIds.push(label);
                         continue;
                       }
 
-                      if(label instanceof Label){
-                        labelIds.push(new ObjectID(label._id?.toString() || ""));
+                      if (label instanceof Label) {
+                        labelIds.push(
+                          new ObjectID(label._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
@@ -479,7 +516,7 @@ const IncidentCreate: FunctionComponent<
                         <FetchLabels labelIds={labelIds} />
                       </div>
                     );
-                  }
+                  },
                 },
                 {
                   field: {

@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import UsersElement from "./Users";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   userIds: Array<ObjectID>;
@@ -22,7 +24,7 @@ const FetchUsers: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
   const [users, setUsers] = React.useState<Array<User>>([]);
 
-  const fetchUsers = async () => {
+  const fetchUsers: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -54,7 +56,7 @@ const FetchUsers: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchUsers().catch((err) => {
+    fetchUsers().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);

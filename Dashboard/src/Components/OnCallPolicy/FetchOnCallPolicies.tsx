@@ -20,28 +20,31 @@ const FetchOnCallDutyPolicies: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
-  const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<Array<OnCallDutyPolicy>>([]);
+  const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
+    Array<OnCallDutyPolicy>
+  >([]);
 
   const fetchOnCallDutyPolicies = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const onCallDutyPolicies: ListResult<OnCallDutyPolicy> = await ModelAPI.getList({
-        modelType: OnCallDutyPolicy,
-        query: {
-          _id: new Includes(props.onCallDutyPolicyIds),
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
-          name: true,
-          _id: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
+      const onCallDutyPolicies: ListResult<OnCallDutyPolicy> =
+        await ModelAPI.getList({
+          modelType: OnCallDutyPolicy,
+          query: {
+            _id: new Includes(props.onCallDutyPolicyIds),
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            name: true,
+            _id: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
       setOnCallDutyPolicies(onCallDutyPolicies.data);
     } catch (err) {

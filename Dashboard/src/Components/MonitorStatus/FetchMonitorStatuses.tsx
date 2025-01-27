@@ -20,7 +20,9 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
-  const [monitorStatus, setMonitorStatus] = React.useState<Array<MonitorStatus>>([]);
+  const [monitorStatus, setMonitorStatus] = React.useState<
+    Array<MonitorStatus>
+  >([]);
 
   const fetchMonitorStatus = async () => {
     setIsLoading(true);

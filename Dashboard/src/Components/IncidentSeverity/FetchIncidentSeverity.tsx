@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import IncidentSeveritiesElement from "./IncidentSeveritiesElement";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   onCallDutyPolicyIds: Array<ObjectID>;
@@ -20,28 +22,31 @@ const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
-  const [incidentSeverities, setIncidentSeverities] = React.useState<Array<IncidentSeverity>>([]);
+  const [incidentSeverities, setIncidentSeverities] = React.useState<
+    Array<IncidentSeverity>
+  >([]);
 
-  const fetchIncidentSeverities = async () => {
+  const fetchIncidentSeverities: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
     try {
-      const incidentSeverities: ListResult<IncidentSeverity> = await ModelAPI.getList({
-        modelType: IncidentSeverity,
-        query: {
-          _id: new Includes(props.onCallDutyPolicyIds),
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
-          name: true,
-          _id: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
+      const incidentSeverities: ListResult<IncidentSeverity> =
+        await ModelAPI.getList({
+          modelType: IncidentSeverity,
+          query: {
+            _id: new Includes(props.onCallDutyPolicyIds),
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          select: {
+            name: true,
+            _id: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
       setIncidentSeverities(incidentSeverities.data);
     } catch (err) {
@@ -52,7 +57,7 @@ const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchIncidentSeverities().catch((err) => {
+    fetchIncidentSeverities().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);

@@ -5,19 +5,17 @@ import Pill from "Common/UI/Components/Pill/Pill";
 
 export interface ComponentProps {
   incidentSeverity: IncidentSeverity;
-  onNavigateComplete?: (() => void) | undefined;
-  showIcon?: boolean | undefined;
 }
 
 const IncidentSeverityElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-    return (
-        <Pill
-          color={props.incidentSeverity.color || Black}
-          text={props.incidentSeverity.name || "Unknown"}
-        />
-      );
+  return (
+    <Pill
+      color={props.incidentSeverity.color || Black}
+      text={props.incidentSeverity.name || "Unknown"}
+    />
+  );
 };
 
 export default IncidentSeverityElement;

@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import LabelsElement from "./Labels";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   labelIds: Array<ObjectID>;
@@ -22,7 +24,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
   const [labels, setLabels] = React.useState<Array<Label>>([]);
 
-  const fetchLabels = async () => {
+  const fetchLabels: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -53,7 +55,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchLabels().catch((err) => {
+    fetchLabels().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);

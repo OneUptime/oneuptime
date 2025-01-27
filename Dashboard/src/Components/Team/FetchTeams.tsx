@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import TeamsElement from "./TeamsElement";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   teamIds: Array<ObjectID>;
@@ -22,7 +24,7 @@ const FetchTeams: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
   const [team, setTeam] = React.useState<Array<Team>>([]);
 
-  const fetchTeam = async () => {
+  const fetchTeam: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -52,7 +54,7 @@ const FetchTeams: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchTeam().catch((err) => {
+    fetchTeam().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
