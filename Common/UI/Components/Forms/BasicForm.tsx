@@ -198,7 +198,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     useEffect(() => {
       setFormSteps(
-        props.steps?.filter((step: FormStep<T>) => {
+        getFormSteps()?.filter((step: FormStep<T>) => {
           if (!step.showIf) {
             return true;
           }
