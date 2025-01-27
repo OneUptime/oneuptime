@@ -3,10 +3,11 @@ import UiAnalytics from "../../Utils/Analytics";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
-import Detail from "../Detail/Detail";
+
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FormField from "./Fields/FormField";
+import FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
 import Field from "./Types/Field";
 import Fields from "./Types/Fields";
@@ -35,8 +36,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
-import DetailField from "../Detail/Field";
-import FormFieldSchemaTypeUtil from "./Utils/FormFieldSchemaTypeUtil";
+
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -633,26 +633,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     {/* If Summary, show Model detail  */}
 
                     {currentFormStepId === "summary" && (
-                      <Detail
-                        item={refCurrentValue.current as T}
-                        fields={
-                          formFields.map((field: Field<T>) => {
-                            const detailField: DetailField<T> = {
-                              title: field.title || "",
-                              fieldType: FormFieldSchemaTypeUtil.toFieldType(
-                                field.fieldType || FormFieldSchemaType.Text,
-                              ),
-                              description: field.description || "",
-                              // getElement: field.getSummaryElement,
-                              sideLink: field.sideLink,
-                              key: (Object.keys(
-                                field.field || {},
-                              )[0]?.toString() || "") as keyof T,
-                            };
-                            return detailField;
-                          }) as DetailField<GenericObject>[]
-                        }
-                      />
+                        <FormSummary formValues={refCurrentValue.current} formFields={formFields} />
                     )}
                   </div>
                 </div>
