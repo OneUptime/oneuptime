@@ -151,6 +151,8 @@ import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import AlertFeedService from "./AlertFeedService";
 import IncidentFeedService from "./IncidentFeedService";
 
+import MonitorTestService from "./MonitorTestService";
+
 const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
@@ -314,6 +316,7 @@ const services: Array<BaseService> = [
   AlertFeedService,
 
   TableViewService,
+  MonitorTestService
 ];
 
 export const AnalyticsServices: Array<
