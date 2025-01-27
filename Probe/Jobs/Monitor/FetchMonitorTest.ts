@@ -58,7 +58,7 @@ export default class FetchMonitorTestAndProbe {
           monitorListUrl,
           {
             ...ProbeAPIRequest.getDefaultRequestBody(),
-            limit: PROBE_MONITOR_FETCH_LIMIT || 100,
+            limit: 100,
           },
           {},
           {},
