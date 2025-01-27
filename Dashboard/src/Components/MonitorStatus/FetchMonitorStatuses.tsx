@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -9,34 +9,33 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import LabelsElement from "./Labels";
+import MonitorStatusesElement from "./MonitorStatusesElement";
 
 export interface ComponentProps {
-  labelIds: Array<ObjectID>;
+  monitorStatusIds: Array<ObjectID>;
 }
 
-const FetchLabels: FunctionComponent<ComponentProps> = (
+const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
-  const [labels, setLabels] = React.useState<Array<Label>>([]);
+  const [monitorStatus, setMonitorStatus] = React.useState<Array<MonitorStatus>>([]);
 
-  const fetchLabels = async () => {
+  const fetchMonitorStatus = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const labels: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
+      const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList({
+        modelType: MonitorStatus,
         query: {
-          _id: new Includes(props.labelIds),
+          _id: new Includes(props.monitorStatusIds),
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         select: {
           name: true,
-          color: true,
           _id: true,
         },
         sort: {
@@ -44,7 +43,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
         },
       });
 
-      setLabels(labels.data);
+      setMonitorStatus(monitorStatus.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -53,7 +52,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchLabels().catch((err) => {
+    fetchMonitorStatus().catch((err) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -66,7 +65,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     return <ComponentLoader />;
   }
 
-  return <LabelsElement labels={labels} />;
+  return <MonitorStatusesElement monitorStatuses={monitorStatus} />;
 };
 
-export default FetchLabels;
+export default FetchMonitorStatuses;

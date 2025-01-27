@@ -37,7 +37,6 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
 
@@ -633,7 +632,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     {/* If Summary, show Model detail  */}
 
                     {currentFormStepId === "summary" && (
-                        <FormSummary formValues={refCurrentValue.current} formFields={formFields} />
+                      <FormSummary
+                        formValues={refCurrentValue.current}
+                        formFields={formFields}
+                      />
                     )}
                   </div>
                 </div>

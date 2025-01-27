@@ -18,63 +18,56 @@ export interface ComponentProps {
 const FetchUsers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string>("");
+  const [users, setUsers] = React.useState<Array<User>>([]);
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
-    const [error, setError] = React.useState<string>("");
-    const [users, setUsers] = React.useState<Array<User>>([]);
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError("");
 
+    try {
+      const users: ListResult<User> = await ModelAPI.getList({
+        modelType: User,
+        query: {
+          _id: new Includes(props.userIds),
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: {
+          name: true,
+          profilePictureId: true,
+          email: true,
+          _id: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
 
-    const fetchUsers = async () => {
-        setIsLoading(true);
-        setError("");
-
-        try{
-            const users: ListResult<User> = await ModelAPI.getList({
-                modelType: User,
-                query: {
-                    _id: new Includes(props.userIds),
-                },
-                skip: 0, 
-                limit: LIMIT_PER_PROJECT,
-                select: {
-                    name: true, 
-                    profilePictureId: true,
-                    email: true,
-                    _id: true
-                },
-                sort: {
-                    name: SortOrder.Ascending
-                }
-            });
-
-            setUsers(users.data);
-        
-        }catch(err){
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
-
-    useEffect(() => {
-        fetchUsers().catch((err) => {
-            setError(API.getFriendlyMessage(err));
-        });
-       
-    }, []);
-
-    if(error){
-        return <ErrorMessage message={error} />;
+      setUsers(users.data);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
     }
 
+    setIsLoading(false);
+  };
 
-    if(isLoading){
-        return <ComponentLoader />;
-    }
+  useEffect(() => {
+    fetchUsers().catch((err) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
 
-  return (
-   <UsersElement users={users} />
-  );
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  return <UsersElement users={users} />;
 };
 
 export default FetchUsers;

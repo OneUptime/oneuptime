@@ -12,67 +12,60 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import TeamsElement from "./TeamsElement";
 
 export interface ComponentProps {
-  userIds: Array<ObjectID>;
+  teamIds: Array<ObjectID>;
 }
 
-const FetchTeam: FunctionComponent<ComponentProps> = (
+const FetchTeams: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string>("");
+  const [team, setTeam] = React.useState<Array<Team>>([]);
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
-    const [error, setError] = React.useState<string>("");
-    const [team, setTeam] = React.useState<Array<Team>>([]);
+  const fetchTeam = async () => {
+    setIsLoading(true);
+    setError("");
 
+    try {
+      const team: ListResult<Team> = await ModelAPI.getList({
+        modelType: Team,
+        query: {
+          _id: new Includes(props.teamIds),
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: {
+          name: true,
+          _id: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
 
-    const fetchTeam = async () => {
-        setIsLoading(true);
-        setError("");
-
-        try{
-            const team: ListResult<Team> = await ModelAPI.getList({
-                modelType: Team,
-                query: {
-                    _id: new Includes(props.userIds),
-                },
-                skip: 0, 
-                limit: LIMIT_PER_PROJECT,
-                select: {
-                    name: true, 
-                    _id: true
-                },
-                sort: {
-                    name: SortOrder.Ascending
-                }
-            });
-
-            setTeam(team.data);
-        
-        }catch(err){
-            setError(API.getFriendlyMessage(err));
-        }
-
-        setIsLoading(false);
-    };
-
-    useEffect(() => {
-        fetchTeam().catch((err) => {
-            setError(API.getFriendlyMessage(err));
-        });
-       
-    }, []);
-
-    if(error){
-        return <ErrorMessage message={error} />;
+      setTeam(team.data);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
     }
 
+    setIsLoading(false);
+  };
 
-    if(isLoading){
-        return <ComponentLoader />;
-    }
+  useEffect(() => {
+    fetchTeam().catch((err) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
 
-  return (
-   <TeamsElement teams={team} />
-  );
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  return <TeamsElement teams={team} />;
 };
 
-export default FetchTeam;
+export default FetchTeams;

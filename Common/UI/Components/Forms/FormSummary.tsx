@@ -10,53 +10,50 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 
 export interface ComponentProps<T> {
-    formValues: FormValues<T>;
-    formFields: Fields<T>;
+  formValues: FormValues<T>;
+  formFields: Fields<T>;
 }
 
 const FormSummary: <T extends GenericObject>(
-    props: ComponentProps<T>,
+  props: ComponentProps<T>,
 ) => ReactElement = <T extends GenericObject>(
-    props: ComponentProps<T>,
+  props: ComponentProps<T>,
 ): ReactElement => {
-        const { formValues, formFields } = props;
+  const { formValues, formFields } = props;
 
-        const getDetailForFormFields: <T extends GenericObject>(
-            formValues: FormValues<T>,
-            formFields: Fields<T>,
-        ) => ReactElement = <T extends GenericObject>(
-            formValues: FormValues<T>,
-            formFields: Fields<T>,
-        ): ReactElement => {
-                return (
-                    <Detail
-                        item={formValues as T}
-                        fields={
-                            formFields.map((field: Field<T>) => {
-                                const detailField: DetailField<T> = {
-                                    title: field.title || "",
-                                    fieldType: field.getSummaryElement ?
-                                        FieldType.Element :
-                                        FormFieldSchemaTypeUtil.toFieldType(
-                                            field.fieldType || FormFieldSchemaType.Text,
-                                        ),
-                                    description: field.description || "",
-                                    getElement: field.getSummaryElement as any,
-                                    sideLink: field.sideLink,
-                                    key: (Object.keys(
-                                        field.field || {},
-                                    )[0]?.toString() || "") as keyof T,
-                                };
-                                return detailField;
-                            }) as DetailField<GenericObject>[]
-                        }
-                    />
-
-                );
+  const getDetailForFormFields: <T extends GenericObject>(
+    formValues: FormValues<T>,
+    formFields: Fields<T>,
+  ) => ReactElement = <T extends GenericObject>(
+    formValues: FormValues<T>,
+    formFields: Fields<T>,
+  ): ReactElement => {
+    return (
+      <Detail
+        item={formValues as T}
+        fields={
+          formFields.map((field: Field<T>) => {
+            const detailField: DetailField<T> = {
+              title: field.title || "",
+              fieldType: field.getSummaryElement
+                ? FieldType.Element
+                : FormFieldSchemaTypeUtil.toFieldType(
+                    field.fieldType || FormFieldSchemaType.Text,
+                  ),
+              description: field.description || "",
+              getElement: field.getSummaryElement as any,
+              sideLink: field.sideLink,
+              key: (Object.keys(field.field || {})[0]?.toString() ||
+                "") as keyof T,
             };
+            return detailField;
+          }) as DetailField<GenericObject>[]
+        }
+      />
+    );
+  };
 
-        return getDetailForFormFields(formValues, formFields);
-    };
+  return getDetailForFormFields(formValues, formFields);
+};
 
 export default FormSummary;
-

@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -9,34 +9,33 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import LabelsElement from "./Labels";
+import IncidentSeveritiesElement from "./IncidentSeveritiesElement";
 
 export interface ComponentProps {
-  labelIds: Array<ObjectID>;
+  onCallDutyPolicyIds: Array<ObjectID>;
 }
 
-const FetchLabels: FunctionComponent<ComponentProps> = (
+const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
-  const [labels, setLabels] = React.useState<Array<Label>>([]);
+  const [incidentSeverities, setIncidentSeverities] = React.useState<Array<IncidentSeverity>>([]);
 
-  const fetchLabels = async () => {
+  const fetchIncidentSeverities = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const labels: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
+      const incidentSeverities: ListResult<IncidentSeverity> = await ModelAPI.getList({
+        modelType: IncidentSeverity,
         query: {
-          _id: new Includes(props.labelIds),
+          _id: new Includes(props.onCallDutyPolicyIds),
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         select: {
           name: true,
-          color: true,
           _id: true,
         },
         sort: {
@@ -44,7 +43,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
         },
       });
 
-      setLabels(labels.data);
+      setIncidentSeverities(incidentSeverities.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -53,7 +52,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchLabels().catch((err) => {
+    fetchIncidentSeverities().catch((err) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
@@ -66,7 +65,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     return <ComponentLoader />;
   }
 
-  return <LabelsElement labels={labels} />;
+  return <IncidentSeveritiesElement incidentSeverities={incidentSeverities} />;
 };
 
-export default FetchLabels;
+export default FetchIncidentSeverities;
