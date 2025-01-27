@@ -180,7 +180,6 @@ main() {
     clone_oneuptime
     
     # Configure environment
-    cd oneuptime || exit 1
     touch config.env
     
     print_info "Merging environment templates..."
