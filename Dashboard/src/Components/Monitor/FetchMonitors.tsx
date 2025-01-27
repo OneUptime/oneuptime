@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import MonitorsElement from "./Monitors";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   monitorIds: Array<ObjectID>;
@@ -22,7 +24,7 @@ const FetchMonitors: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
   const [monitor, setMonitor] = React.useState<Array<Monitor>>([]);
 
-  const fetchMonitor = async () => {
+  const fetchMonitor: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -52,7 +54,7 @@ const FetchMonitors: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchMonitor().catch((err) => {
+    fetchMonitor().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);

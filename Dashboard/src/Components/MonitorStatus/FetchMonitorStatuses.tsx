@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import MonitorStatusesElement from "./MonitorStatusesElement";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   monitorStatusIds: Array<ObjectID>;
@@ -24,7 +26,7 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
     Array<MonitorStatus>
   >([]);
 
-  const fetchMonitorStatus = async () => {
+  const fetchMonitorStatus: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -54,7 +56,7 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    fetchMonitorStatus().catch((err) => {
+    fetchMonitorStatus().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);

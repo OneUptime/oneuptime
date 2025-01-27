@@ -26,35 +26,36 @@ const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
     Array<IncidentSeverity>
   >([]);
 
-  const fetchIncidentSeverities: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
+  const fetchIncidentSeverities: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
 
-    try {
-      const incidentSeverities: ListResult<IncidentSeverity> =
-        await ModelAPI.getList({
-          modelType: IncidentSeverity,
-          query: {
-            _id: new Includes(props.onCallDutyPolicyIds),
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          select: {
-            name: true,
-            _id: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+      try {
+        const incidentSeverities: ListResult<IncidentSeverity> =
+          await ModelAPI.getList({
+            modelType: IncidentSeverity,
+            query: {
+              _id: new Includes(props.onCallDutyPolicyIds),
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+              name: true,
+              _id: true,
+            },
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
 
-      setIncidentSeverities(incidentSeverities.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+        setIncidentSeverities(incidentSeverities.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
 
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    };
 
   useEffect(() => {
     fetchIncidentSeverities().catch((err: Exception) => {

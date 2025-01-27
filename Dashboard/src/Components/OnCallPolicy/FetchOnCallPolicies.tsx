@@ -10,6 +10,8 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import OnCallPoliciesElement from "./OnCallPolicies";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   onCallDutyPolicyIds: Array<ObjectID>;
@@ -24,38 +26,39 @@ const FetchOnCallDutyPolicies: FunctionComponent<ComponentProps> = (
     Array<OnCallDutyPolicy>
   >([]);
 
-  const fetchOnCallDutyPolicies = async () => {
-    setIsLoading(true);
-    setError("");
+  const fetchOnCallDutyPolicies: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
 
-    try {
-      const onCallDutyPolicies: ListResult<OnCallDutyPolicy> =
-        await ModelAPI.getList({
-          modelType: OnCallDutyPolicy,
-          query: {
-            _id: new Includes(props.onCallDutyPolicyIds),
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          select: {
-            name: true,
-            _id: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+      try {
+        const onCallDutyPolicies: ListResult<OnCallDutyPolicy> =
+          await ModelAPI.getList({
+            modelType: OnCallDutyPolicy,
+            query: {
+              _id: new Includes(props.onCallDutyPolicyIds),
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+              name: true,
+              _id: true,
+            },
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
 
-      setOnCallDutyPolicies(onCallDutyPolicies.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+        setOnCallDutyPolicies(onCallDutyPolicies.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
 
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    };
 
   useEffect(() => {
-    fetchOnCallDutyPolicies().catch((err) => {
+    fetchOnCallDutyPolicies().catch((err: Exception) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
