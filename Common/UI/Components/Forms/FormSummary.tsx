@@ -8,10 +8,13 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import DetailField from "../Detail/Field";
 import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
+import { FormStep } from "./Types/FormStep";
+import HorizontalRule from "../HorizontalRule/HorizontalRule";
 
 export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
+  formSteps: FormStep<T>[] | undefined;
 }
 
 const FormSummary: <T extends GenericObject>(
@@ -29,29 +32,80 @@ const FormSummary: <T extends GenericObject>(
     formFields: Fields<T>,
   ): ReactElement => {
     return (
-      <Detail
-        item={formValues as T}
-        fields={
-          formFields.map((field: Field<T>) => {
-            const detailField: DetailField<T> = {
-              title: field.title || "",
-              fieldType: field.getSummaryElement
-                ? FieldType.Element
-                : FormFieldSchemaTypeUtil.toFieldType(
-                    field.fieldType || FormFieldSchemaType.Text,
-                  ),
-              description: field.description || "",
-              getElement: field.getSummaryElement as any,
-              sideLink: field.sideLink,
-              key: (Object.keys(field.field || {})[0]?.toString() ||
-                "") as keyof T,
-            };
-            return detailField;
-          }) as DetailField<GenericObject>[]
-        }
-      />
+      <div>
+        <Detail
+          item={formValues as T}
+          fields={
+            formFields
+              .filter((formField: Field<T>) => {
+                if (!formField.showIf) {
+                  return true;
+                }
+                return formField.showIf(formValues);
+              })
+              .map((field: Field<T>) => {
+                const detailField: DetailField<T> = {
+                  title: field.title || "",
+                  fieldType: field.getSummaryElement
+                    ? FieldType.Element
+                    : FormFieldSchemaTypeUtil.toFieldType(
+                        field.fieldType || FormFieldSchemaType.Text,
+                      ),
+                  description: field.description || "",
+                  getElement: field.getSummaryElement as any,
+                  sideLink: field.sideLink,
+                  key: (Object.keys(field.field || {})[0]?.toString() ||
+                    "") as keyof T,
+                };
+                return detailField;
+              }) as DetailField<GenericObject>[]
+          }
+        />
+        <HorizontalRule />
+      </div>
     );
   };
+
+  const getFormStepTitle: (formStep: FormStep<T>) => ReactElement = (
+    formStep: FormStep<T>,
+  ): ReactElement => {
+    return (
+      <h2 className="text-lg font-medium text-gray-900">{formStep.title}</h2>
+    );
+  };
+
+  const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (
+    formStep: FormStep<T>,
+  ): ReactElement => {
+    return (
+      <div>
+        {getFormStepTitle(formStep)}
+        {getDetailForFormFields(
+          formValues,
+          props.formFields.filter((field: Field<T>) => {
+            return formStep.id === field.stepId;
+          }),
+        )}
+      </div>
+    );
+  };
+
+  if (props.formSteps && props.formSteps.length > 0) {
+    return (
+      <div>
+        {props.formSteps
+          .filter((step: FormStep<T>) => {
+            if (!step.showIf) {
+              return true;
+            }
+            return step.showIf(props.formValues);
+          })
+          .map((formStep: FormStep<T>) => {
+            return getDetailForFormStep(formStep);
+          })}
+      </div>
+    );
+  }
 
   return getDetailForFormFields(formValues, formFields);
 };

@@ -224,7 +224,7 @@ const IncidentCreate: FunctionComponent<
                         ]}
                       />
                     );
-                  }
+                  },
                 },
                 {
                   field: {

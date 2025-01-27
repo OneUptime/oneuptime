@@ -15,7 +15,7 @@ import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   monitorStatusIds: Array<ObjectID>;
-  shouldAnimate: boolean; 
+  shouldAnimate: boolean;
 }
 
 const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
@@ -71,7 +71,12 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
     return <ComponentLoader />;
   }
 
-  return <MonitorStatusesElement monitorStatuses={monitorStatus} shouldAnimate={props.shouldAnimate} />;
+  return (
+    <MonitorStatusesElement
+      monitorStatuses={monitorStatus}
+      shouldAnimate={props.shouldAnimate}
+    />
+  );
 };
 
 export default FetchMonitorStatuses;

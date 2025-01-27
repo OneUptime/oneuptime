@@ -15,11 +15,7 @@ const IncidentSeveritiesElement: FunctionComponent<ComponentProps> = (
       items={props.incidentSeverities}
       moreText="more Incident Severities"
       getEachElement={(incidentSeverity: IncidentSeverity) => {
-        return (
-          <IncidentSeverityElement
-            incidentSeverity={incidentSeverity}
-          />
-        );
+        return <IncidentSeverityElement incidentSeverity={incidentSeverity} />;
       }}
       noItemsMessage="No Incident Severities."
     />

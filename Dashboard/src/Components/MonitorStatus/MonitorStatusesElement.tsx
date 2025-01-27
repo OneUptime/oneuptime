@@ -19,9 +19,10 @@ const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
       {props.monitorStatuses.map((monitorStatus: MonitorStatus, i: number) => {
         return (
           <span key={i}>
-            <MonitorStatusElement shouldAnimate={
-              props.shouldAnimate || false
-            } monitorStatus={monitorStatus} />
+            <MonitorStatusElement
+              shouldAnimate={props.shouldAnimate || false}
+              monitorStatus={monitorStatus}
+            />
             {i !== props.monitorStatuses.length - 1 && <span>,&nbsp;</span>}
           </span>
         );

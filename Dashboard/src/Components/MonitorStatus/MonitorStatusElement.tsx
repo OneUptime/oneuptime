@@ -17,7 +17,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
       color={props.monitorStatus.color || Black}
       text={props.monitorStatus.name || "Unknown"}
     />
-  )
+  );
 };
 
 export default TeamElement;

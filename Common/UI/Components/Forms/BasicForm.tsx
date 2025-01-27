@@ -635,6 +635,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                       <FormSummary
                         formValues={refCurrentValue.current}
                         formFields={formFields}
+                        formSteps={formSteps || undefined}
                       />
                     )}
                   </div>

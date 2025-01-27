@@ -82,7 +82,12 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
     return <p>Monitor status not found</p>;
   }
 
-  return <MonitorStatusElement monitorStatus={monitorStatus} shouldAnimate={props.shouldAnimate} />;
+  return (
+    <MonitorStatusElement
+      monitorStatus={monitorStatus}
+      shouldAnimate={props.shouldAnimate}
+    />
+  );
 };
 
 export default GetMonitorStatusElement;
