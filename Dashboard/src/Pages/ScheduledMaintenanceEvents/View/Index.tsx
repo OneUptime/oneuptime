@@ -1,7 +1,7 @@
 import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
-import StatusPagesElement from "../../../Components/StatusPage/StatusPagesLabel";
+import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import PageComponentProps from "../../PageComponentProps";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";

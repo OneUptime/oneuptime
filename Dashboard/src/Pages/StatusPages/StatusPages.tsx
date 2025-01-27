@@ -14,7 +14,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
-import StatusPageElement from "../../Components/StatusPage/StatusPageLabel";
+import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (

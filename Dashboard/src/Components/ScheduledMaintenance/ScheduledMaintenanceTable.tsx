@@ -1,7 +1,7 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import LabelsElement from "../Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
-import StatusPagesElement from "../StatusPage/StatusPagesLabel";
+import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";

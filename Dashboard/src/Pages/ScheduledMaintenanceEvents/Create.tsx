@@ -36,6 +36,16 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
+import FetchMonitors from "../../Components/Monitor/FetchMonitors";
+import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
+import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import FetchTeams from "../../Components/Team/FetchTeams";
+import FetchUsers from "../../Components/User/FetchUsers";
+import User from "Common/Models/DatabaseModels/User";
+import FetchLabels from "../../Components/Label/FetchLabels";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+import { it } from "node:test";
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
@@ -53,7 +63,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
       fetchScheduledMaintenanceTemplate(
         new ObjectID(
           Navigation.getQueryStringByName("scheduledMaintenanceTemplateId") ||
-            "",
+          "",
         ),
       );
     } else {
@@ -268,6 +278,38 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitors affected",
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (!item.monitors || !Array.isArray(item.monitors)) {
+                      return <p>No monitors affected by this scheduled maintenance event.</p>;
+                    }
+
+                    const monitorIds: Array<ObjectID> = [];
+
+                    for (const monitor of item.monitors) {
+                      if (typeof monitor === "string") {
+                        monitorIds.push(new ObjectID(monitor));
+                        continue;
+                      }
+
+                      if (monitor instanceof ObjectID) {
+                        monitorIds.push(monitor);
+                        continue;
+                      }
+
+                      if (monitor instanceof Monitor) {
+                        monitorIds.push(
+                          new ObjectID(monitor._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchMonitors monitorIds={monitorIds} />
+                      </div>
+                    );
+                  },
                 },
                 {
                   field: {
@@ -285,6 +327,25 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Monitor Status",
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (!item.changeMonitorStatusTo) {
+                      return (
+                        <p>
+                          Status of the monitors will not be changed when this
+                          scheduled maintenance event starts.
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <FetchMonitorStatuses
+                        monitorStatusIds={[
+                          new ObjectID(item.changeMonitorStatusTo.toString()),
+                        ]}
+                        shouldAnimate={false}
+                      />
+                    );
+                  },
                 },
                 {
                   field: {
@@ -301,6 +362,38 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Status Pages",
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (!item.statusPages || !Array.isArray(item.statusPages)) {
+                      return <p>No status pages selected for this scheduled maintenance event.</p>;
+                    }
+
+                    const statusPageIds: Array<ObjectID> = [];
+
+                    for (const statusPage of item.statusPages) {
+                      if (typeof statusPage === "string") {
+                        statusPageIds.push(new ObjectID(statusPage));
+                        continue;
+                      }
+
+                      if (statusPage instanceof ObjectID) {
+                        statusPageIds.push(statusPage);
+                        continue;
+                      }
+
+                      if (statusPage instanceof Monitor) {
+                        statusPageIds.push(
+                          new ObjectID(statusPage._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchStatusPages statusPageIds={statusPageIds} />
+                      </div>
+                    );
+                  },
                 },
                 {
                   overrideField: {
@@ -320,6 +413,43 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Teams",
                   overrideFieldKey: "ownerTeams",
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (
+                      !(item as JSONObject)["ownerTeams"] ||
+                      !Array.isArray((item as JSONObject)["ownerTeams"])
+                    ) {
+                      return <p>No teams assigned.</p>;
+                    }
+
+                    const ownerTeamIds: Array<ObjectID> = [];
+
+                    for (const ownerTeam of (item as JSONObject)[
+                      "ownerTeams"
+                    ] as Array<any>) {
+                      if (typeof ownerTeam === "string") {
+                        ownerTeamIds.push(new ObjectID(ownerTeam));
+                        continue;
+                      }
+
+                      if (ownerTeam instanceof ObjectID) {
+                        ownerTeamIds.push(ownerTeam);
+                        continue;
+                      }
+
+                      if (ownerTeam instanceof Team) {
+                        ownerTeamIds.push(
+                          new ObjectID(ownerTeam._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchTeams teamIds={ownerTeamIds} />
+                      </div>
+                    );
+                  },
                 },
                 {
                   overrideField: {
@@ -339,6 +469,43 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Users",
                   overrideFieldKey: "ownerUsers",
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (
+                      !(item as JSONObject)["ownerUsers"] ||
+                      !Array.isArray((item as JSONObject)["ownerUsers"])
+                    ) {
+                      return <p>No owners assigned.</p>;
+                    }
+
+                    const ownerUserIds: Array<ObjectID> = [];
+
+                    for (const ownerUser of (item as JSONObject)[
+                      "ownerUsers"
+                    ] as Array<any>) {
+                      if (typeof ownerUser === "string") {
+                        ownerUserIds.push(new ObjectID(ownerUser));
+                        continue;
+                      }
+
+                      if (ownerUser instanceof ObjectID) {
+                        ownerUserIds.push(ownerUser);
+                        continue;
+                      }
+
+                      if (ownerUser instanceof User) {
+                        ownerUserIds.push(
+                          new ObjectID(ownerUser._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchUsers userIds={ownerUserIds} />
+                      </div>
+                    );
+                  },
                 },
 
                 {
@@ -404,6 +571,18 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       />
                     );
                   },
+                  getSummaryElement: (item: FormValues<ScheduledMaintenance>) => {
+                    if (!item.sendSubscriberNotificationsOnBeforeTheEvent || (Array.isArray(item.sendSubscriberNotificationsOnBeforeTheEvent) && item.sendSubscriberNotificationsOnBeforeTheEvent.length === 0)) {
+                      return <p>No reminders set for subscribers.</p>
+                    }
+
+                    return (
+                      <RecurringArrayViewElement
+                        value={item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]}
+                        postfix=" before the event is scheduled"
+                      />
+                    )
+                  },
                   required: false,
                 },
                 {
@@ -422,6 +601,38 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Labels",
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    if (!item.labels || !Array.isArray(item.labels)) {
+                      return <p>No labels assigned.</p>;
+                    }
+
+                    const labelIds: Array<ObjectID> = [];
+
+                    for (const label of item.labels) {
+                      if (typeof label === "string") {
+                        labelIds.push(new ObjectID(label));
+                        continue;
+                      }
+
+                      if (label instanceof ObjectID) {
+                        labelIds.push(label);
+                        continue;
+                      }
+
+                      if (label instanceof Label) {
+                        labelIds.push(
+                          new ObjectID(label._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchLabels labelIds={labelIds} />
+                      </div>
+                    );
+                  },
                 },
               ]}
               onSuccess={(createdItem: ScheduledMaintenance) => {
@@ -438,6 +649,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               }}
               submitButtonText={"Create Scheduled Maintenance Event"}
               formType={FormType.Create}
+              summary={{
+                enabled: true,
+              }}
             />
           )}
         </div>

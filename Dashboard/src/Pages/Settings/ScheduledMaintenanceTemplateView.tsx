@@ -22,7 +22,7 @@ import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import StatusPagesElement from "../../Components/StatusPage/StatusPagesLabel";
+import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import {
   getFormSteps,
