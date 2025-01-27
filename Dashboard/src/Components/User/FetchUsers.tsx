@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -9,36 +9,37 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import LabelsElement from "./Labels";
+import UsersElement from "./Users";
 
 export interface ComponentProps {
-  labelIds: Array<ObjectID>;
+  userIds: Array<ObjectID>;
 }
 
-const FetchLabels: FunctionComponent<ComponentProps> = (
+const FetchUsers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
 
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
     const [error, setError] = React.useState<string>("");
-    const [labels, setLabels] = React.useState<Array<Label>>([]);
+    const [users, setUsers] = React.useState<Array<User>>([]);
 
 
-    const fetchLabels = async () => {
+    const fetchUsers = async () => {
         setIsLoading(true);
         setError("");
 
         try{
-            const labels: ListResult<Label> = await ModelAPI.getList({
-                modelType: Label,
+            const users: ListResult<User> = await ModelAPI.getList({
+                modelType: User,
                 query: {
-                    _id: new Includes(props.labelIds),
+                    _id: new Includes(props.userIds),
                 },
                 skip: 0, 
                 limit: LIMIT_PER_PROJECT,
                 select: {
                     name: true, 
-                    color: true, 
+                    profilePictureId: true,
+                    email: true,
                     _id: true
                 },
                 sort: {
@@ -46,7 +47,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
                 }
             });
 
-            setLabels(labels.data);
+            setUsers(users.data);
         
         }catch(err){
             setError(API.getFriendlyMessage(err));
@@ -56,7 +57,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        fetchLabels().catch((err) => {
+        fetchUsers().catch((err) => {
             setError(API.getFriendlyMessage(err));
         });
        
@@ -72,8 +73,8 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     }
 
   return (
-    <LabelsElement labels={labels} />
+   <UsersElement users={users} />
   );
 };
 
-export default FetchLabels;
+export default FetchUsers;

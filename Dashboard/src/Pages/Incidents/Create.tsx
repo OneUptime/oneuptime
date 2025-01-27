@@ -316,13 +316,28 @@ const IncidentCreate: FunctionComponent<
                       return <p>No labels assigned.</p>
                     }
 
+                    const labelIds: Array<ObjectID> = []; 
+
+                    for(const label of item.labels){
+                      if(typeof label  === "string"){ 
+                        labelIds.push(new ObjectID(label));
+                        continue;
+                      }
+
+                      if(label instanceof ObjectID){
+                        labelIds.push(label);
+                        continue;
+                      }
+
+                      if(label instanceof Label){
+                        labelIds.push(new ObjectID(label._id?.toString() || ""));
+                        continue;
+                      }
+                    }
+
                     return (
                       <div>
-                        <FetchLabels labelIds={item.labels?.map(
-                          (label: Label) => {
-                            return new ObjectID(label._id?.toString() || "");
-                          },
-                        )} />
+                        <FetchLabels labelIds={labelIds} />
                       </div>
                     );
                   }

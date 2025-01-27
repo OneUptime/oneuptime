@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -9,36 +9,35 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import LabelsElement from "./Labels";
+import TeamsElement from "./TeamsElement";
 
 export interface ComponentProps {
-  labelIds: Array<ObjectID>;
+  userIds: Array<ObjectID>;
 }
 
-const FetchLabels: FunctionComponent<ComponentProps> = (
+const FetchTeam: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
 
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
     const [error, setError] = React.useState<string>("");
-    const [labels, setLabels] = React.useState<Array<Label>>([]);
+    const [team, setTeam] = React.useState<Array<Team>>([]);
 
 
-    const fetchLabels = async () => {
+    const fetchTeam = async () => {
         setIsLoading(true);
         setError("");
 
         try{
-            const labels: ListResult<Label> = await ModelAPI.getList({
-                modelType: Label,
+            const team: ListResult<Team> = await ModelAPI.getList({
+                modelType: Team,
                 query: {
-                    _id: new Includes(props.labelIds),
+                    _id: new Includes(props.userIds),
                 },
                 skip: 0, 
                 limit: LIMIT_PER_PROJECT,
                 select: {
                     name: true, 
-                    color: true, 
                     _id: true
                 },
                 sort: {
@@ -46,7 +45,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
                 }
             });
 
-            setLabels(labels.data);
+            setTeam(team.data);
         
         }catch(err){
             setError(API.getFriendlyMessage(err));
@@ -56,7 +55,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     };
 
     useEffect(() => {
-        fetchLabels().catch((err) => {
+        fetchTeam().catch((err) => {
             setError(API.getFriendlyMessage(err));
         });
        
@@ -72,8 +71,8 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
     }
 
   return (
-    <LabelsElement labels={labels} />
+   <TeamsElement teams={team} />
   );
 };
 
-export default FetchLabels;
+export default FetchTeam;

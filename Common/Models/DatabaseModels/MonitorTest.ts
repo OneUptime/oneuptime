@@ -442,6 +442,7 @@ export default class MonitorTest extends BaseModel {
   })
   public monitorStepProbeResponse?: MonitorStepProbeResponse = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
