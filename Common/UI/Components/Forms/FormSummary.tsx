@@ -37,12 +37,7 @@ const FormSummary: <T extends GenericObject>(
           item={formValues as T}
           fields={
             formFields
-              .filter((formField: Field<T>) => {
-                if (!formField.showIf) {
-                  return true;
-                }
-                return formField.showIf(formValues);
-              })
+             
               .map((field: Field<T>) => {
                 const detailField: DetailField<T> = {
                   title: field.title || "",
@@ -70,21 +65,33 @@ const FormSummary: <T extends GenericObject>(
     formStep: FormStep<T>,
   ): ReactElement => {
     return (
-      <h2 className="text-lg font-medium text-gray-900">{formStep.title}</h2>
+      <h2 className="text-md font-medium text-gray-900">{formStep.title}</h2>
     );
   };
 
   const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (
     formStep: FormStep<T>,
   ): ReactElement => {
+
+    const formFields = props.formFields.filter((field: Field<T>) => {
+      return formStep.id === field.stepId
+    }).filter((formField: Field<T>) => {
+      if (!formField.showIf) {
+        return true;
+      }
+      return formField.showIf(formValues);
+    })
+
+    if(formFields.length === 0) {
+      return <></>
+    }
+
     return (
       <div>
         {getFormStepTitle(formStep)}
         {getDetailForFormFields(
           formValues,
-          props.formFields.filter((field: Field<T>) => {
-            return formStep.id === field.stepId;
-          }),
+          formFields
         )}
       </div>
     );
