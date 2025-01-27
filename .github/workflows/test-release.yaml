@@ -1,5 +1,9 @@
 name: Push Test Images to Docker Hub and GitHub Container Registry
 
+concurrency:
+  group: test-release
+  cancel-in-progress: true
+
 on:
   push:
     branches:
