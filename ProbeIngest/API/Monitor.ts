@@ -506,13 +506,13 @@ router.post(
   ): Promise<void> => {
     let mutex: SemaphoreMutex | null = null;
 
-    logger.debug("Monitor list API called");
+    logger.debug("Monitor test list API called");
 
     try {
       const data: JSONObject = req.body;
       const limit: number = (data["limit"] as number) || 100;
 
-      logger.debug("Monitor list API called with limit: " + limit);
+      logger.debug("Monitor test list API called with limit: " + limit);
       logger.debug("Data:");
       logger.debug(data);
 
@@ -552,7 +552,7 @@ router.post(
 
       //get list of monitors to be monitored
 
-      logger.debug("Fetching monitor list");
+      logger.debug("Fetching test monitor list");
 
       const monitorTests: Array<MonitorTest> = await MonitorTestService.findBy({
         query: {
