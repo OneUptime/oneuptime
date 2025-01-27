@@ -45,7 +45,6 @@ import User from "Common/Models/DatabaseModels/User";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
-import { it } from "node:test";
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
