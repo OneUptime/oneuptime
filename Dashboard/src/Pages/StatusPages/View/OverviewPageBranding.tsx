@@ -193,6 +193,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 if (item["downtimeMonitorStatuses"]) {
                   return (
                     <MonitorStatuesElement
+                      shouldAnimate={false}
                       monitorStatuses={
                         (item[
                           "downtimeMonitorStatuses"

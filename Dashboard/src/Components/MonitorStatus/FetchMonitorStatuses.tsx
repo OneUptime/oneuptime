@@ -15,6 +15,7 @@ import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
   monitorStatusIds: Array<ObjectID>;
+  shouldAnimate: boolean; 
 }
 
 const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
@@ -41,6 +42,7 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
         select: {
           name: true,
           _id: true,
+          color: true,
         },
         sort: {
           name: SortOrder.Ascending,
@@ -69,7 +71,7 @@ const FetchMonitorStatuses: FunctionComponent<ComponentProps> = (
     return <ComponentLoader />;
   }
 
-  return <MonitorStatusesElement monitorStatuses={monitorStatus} />;
+  return <MonitorStatusesElement monitorStatuses={monitorStatus} shouldAnimate={props.shouldAnimate} />;
 };
 
 export default FetchMonitorStatuses;

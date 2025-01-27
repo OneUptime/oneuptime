@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   monitorStatuses: Array<MonitorStatus>;
+  shouldAnimate: boolean;
 }
 
 const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
@@ -18,7 +19,9 @@ const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
       {props.monitorStatuses.map((monitorStatus: MonitorStatus, i: number) => {
         return (
           <span key={i}>
-            <MonitorStatusElement monitorStatus={monitorStatus} />
+            <MonitorStatusElement shouldAnimate={
+              props.shouldAnimate || false
+            } monitorStatus={monitorStatus} />
             {i !== props.monitorStatuses.length - 1 && <span>,&nbsp;</span>}
           </span>
         );

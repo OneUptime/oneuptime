@@ -15,6 +15,7 @@ import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 
 export interface ComponentProps {
   monitorId: ObjectID;
+  shouldAnimate: boolean;
 }
 
 const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
@@ -81,7 +82,7 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
     return <p>Monitor status not found</p>;
   }
 
-  return <MonitorStatusElement monitorStatus={monitorStatus} />;
+  return <MonitorStatusElement monitorStatus={monitorStatus} shouldAnimate={props.shouldAnimate} />;
 };
 
 export default GetMonitorStatusElement;

@@ -5,7 +5,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   incidentSeverities: Array<IncidentSeverity>;
-  onNavigateComplete?: (() => void) | undefined;
 }
 
 const IncidentSeveritiesElement: FunctionComponent<ComponentProps> = (
@@ -19,7 +18,6 @@ const IncidentSeveritiesElement: FunctionComponent<ComponentProps> = (
         return (
           <IncidentSeverityElement
             incidentSeverity={incidentSeverity}
-            onNavigateComplete={props.onNavigateComplete}
           />
         );
       }}

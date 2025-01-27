@@ -14,7 +14,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
-  onCallDutyPolicyIds: Array<ObjectID>;
+  incidentSeverityIds: Array<ObjectID>;
 }
 
 const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
@@ -36,13 +36,14 @@ const FetchIncidentSeverities: FunctionComponent<ComponentProps> = (
           await ModelAPI.getList({
             modelType: IncidentSeverity,
             query: {
-              _id: new Includes(props.onCallDutyPolicyIds),
+              _id: new Includes(props.incidentSeverityIds),
             },
             skip: 0,
             limit: LIMIT_PER_PROJECT,
             select: {
               name: true,
               _id: true,
+              color: true,
             },
             sort: {
               name: SortOrder.Ascending,

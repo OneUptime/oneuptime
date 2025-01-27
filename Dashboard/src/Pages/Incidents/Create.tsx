@@ -41,6 +41,7 @@ import FetchTeam from "../../Components/Team/FetchTeams";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
+import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -211,6 +212,19 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: true,
                   placeholder: "Incident Severity",
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    if (!item.incidentSeverity) {
+                      return <p>No incident severity selected.</p>;
+                    }
+
+                    return (
+                      <FetchIncidentSeverities
+                        incidentSeverityIds={[
+                          new ObjectID(item.incidentSeverity.toString()),
+                        ]}
+                      />
+                    );
+                  }
                 },
                 {
                   field: {
@@ -352,6 +366,7 @@ const IncidentCreate: FunctionComponent<
                         monitorStatusIds={[
                           new ObjectID(item.changeMonitorStatusTo.toString()),
                         ]}
+                        shouldAnimate={false}
                       />
                     );
                   },
