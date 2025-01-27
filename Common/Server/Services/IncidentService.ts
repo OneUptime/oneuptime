@@ -735,7 +735,7 @@ ${labels
   .join("\n")}
 `;
 
-shouldAddIncidentFeed = true;
+            shouldAddIncidentFeed = true;
           }
         }
 
@@ -769,18 +769,16 @@ ${incidentSeverity.name}
           }
         }
 
-        if(shouldAddIncidentFeed){
-
-        await IncidentFeedService.createIncidentFeed({
-          incidentId: incidentId,
-          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-          incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-          displayColor: Gray500,
-          feedInfoInMarkdown: feedInfoInMarkdown,
-          userId: createdByUserId || undefined,
-        });
-
-      }
+        if (shouldAddIncidentFeed) {
+          await IncidentFeedService.createIncidentFeed({
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: createdByUserId || undefined,
+          });
+        }
       }
     }
 

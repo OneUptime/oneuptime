@@ -76,9 +76,11 @@ export interface BaseComponentProps<T> {
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
-  summary?: {
-    enabled?: boolean;
-  } | undefined;
+  summary?:
+    | {
+        enabled?: boolean;
+      }
+    | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -119,11 +121,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             id: "summary",
             title: "Summary",
             isSummaryStep: true,
-          }
-        ]
+          },
+        ];
       }
       return props.steps;
-    }
+    };
 
     const [submitButtonText, setSubmitButtonText] = useState<string>(
       props.submitButtonText || "Submit",
@@ -356,7 +358,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           formSteps.length > 0 &&
           (
             (formSteps as Array<FormStep<T>>)[
-            formSteps.length - 1
+              formSteps.length - 1
             ] as FormStep<T>
           ).id === currentFormStepId) ||
         currentFormStepId === null
@@ -571,8 +573,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
-                  }`}
+                className={`${
+                  formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
+                }`}
                 style={{ flex: "1 1 auto" }}
               >
                 {props.error && (
@@ -583,8 +586,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                 <div>
                   <div
-                    className={`grid md:grid-cols-${props.showAsColumns || 1
-                      } grid-cols-1 gap-4`}
+                    className={`grid md:grid-cols-${
+                      props.showAsColumns || 1
+                    } grid-cols-1 gap-4`}
                   >
                     {formFields &&
                       formFields
@@ -628,25 +632,28 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                     {/* If Summary, show Model detail  */}
 
-                    {
-                      currentFormStepId === "summary" && (
-                        <Detail
-                          item={refCurrentValue.current as T}
-                          fields={formFields.map((field: Field<T>) => {
+                    {currentFormStepId === "summary" && (
+                      <Detail
+                        item={refCurrentValue.current as T}
+                        fields={
+                          formFields.map((field: Field<T>) => {
                             const detailField: DetailField<T> = {
                               title: field.title || "",
-                              fieldType: FormFieldSchemaTypeUtil.toFieldType(field.fieldType || FormFieldSchemaType.Text),
+                              fieldType: FormFieldSchemaTypeUtil.toFieldType(
+                                field.fieldType || FormFieldSchemaType.Text,
+                              ),
                               description: field.description || "",
                               // getElement: field.getSummaryElement,
                               sideLink: field.sideLink,
-                              key: (Object.keys(field.field || {})[0]?.toString() || "") as keyof T,
-                            }
+                              key: (Object.keys(
+                                field.field || {},
+                              )[0]?.toString() || "") as keyof T,
+                            };
                             return detailField;
-                          }) as DetailField<Object>[]}
-                        />
-
-                      )
-                    }
+                          }) as DetailField<GenericObject>[]
+                        }
+                      />
+                    )}
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { PROBE_INGEST_URL, PROBE_MONITOR_FETCH_LIMIT } from "../../Config";
+import { PROBE_INGEST_URL } from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";

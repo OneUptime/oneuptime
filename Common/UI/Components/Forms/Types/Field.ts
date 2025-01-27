@@ -103,7 +103,5 @@ export default interface Field<TEntity> {
 
   hideOptionalLabel?: boolean | undefined;
 
-  getSummaryElement?: (
-    item: TEntity,
-  ) => ReactElement | undefined;
+  getSummaryElement?: (item: TEntity) => ReactElement | undefined;
 }

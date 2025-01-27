@@ -316,7 +316,7 @@ const services: Array<BaseService> = [
   AlertFeedService,
 
   TableViewService,
-  MonitorTestService
+  MonitorTestService,
 ];
 
 export const AnalyticsServices: Array<

@@ -37,5 +37,4 @@ enum FormFieldSchemaType {
   Dictionary = "Dictionary",
 }
 
-
 export default FormFieldSchemaType;
