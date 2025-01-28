@@ -80,6 +80,8 @@ spec:
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
               value: {{ $.Values.port.apiReference | quote }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.apiReference.disableTelemetryCollection | quote }}
           ports:
             - containerPort: {{ $.Values.port.apiReference }}
               protocol: TCP

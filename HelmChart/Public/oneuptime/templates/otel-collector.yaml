@@ -61,13 +61,13 @@ spec:
             - name: PORT
               value: {{ $.Values.port.otelCollectorGrpc | quote }} 
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED
-              value: {{ $.Values.otelCollectorSendingQueueEnabled | quote }}
+              value: {{ $.Values.openTelemetryCollector.sendingQueue.enabled | quote }}
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS
-              value: {{ $.Values.otelCollectorSendingQueueNumConsumers | quote }}
+              value: {{ $.Values.openTelemetryCollector.sendingQueue.numConsumers | quote }}
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE
-              value: {{ $.Values.otelCollectorSendingQueueSize | quote }}
+              value: {{ $.Values.openTelemetryCollector.sendingQueue.size | quote }}
             - name: DISABLE_TELEMETRY
-              value: "false"
+              value: {{ $.Values.openTelemetryCollector.disableTelemetryCollection | quote }}
           ports:
             - containerPort: {{ $.Values.port.otelCollectorHttp }}
               protocol: TCP

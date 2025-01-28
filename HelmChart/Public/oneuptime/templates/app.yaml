@@ -99,6 +99,8 @@ spec:
               value: {{ $.Values.internalSmtp.email | quote }}
             - name: INTERNAL_SMTP_PASSWORD
               value: "internal_smtp_password"  
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.app.disableTelemetryCollection | quote }}
         
           ports:
             - containerPort: {{ $.Values.port.app }}

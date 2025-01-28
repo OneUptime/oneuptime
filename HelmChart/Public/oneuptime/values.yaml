@@ -48,6 +48,7 @@ metalLb:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
+  disableTelemetryCollection: false
   service:
     loadBalancerIP:
     type: LoadBalancer
@@ -191,6 +192,7 @@ alerts:
 # 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
 statusPage:
   cnameRecord:
+  disableTelemetryCollection: false
 
 probes:
   one:
@@ -203,6 +205,7 @@ probes:
     replicaCount: 1
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
+    disableTelemetryCollection: false
   # two:
   #   name: "Probe 2"
   #   description: "Probe 2"
@@ -240,6 +243,7 @@ port:
 
 testServer:
   enabled: false
+  disableTelemetryCollection: false
 
 
 openTelemetryExporter:
@@ -412,8 +416,51 @@ readinessProbe: # Readiness probe configuration
 
 
 # OpenTelemetry Collector Configuration
-openTelemetryCollectorConfig: 
+openTelemetryCollector: 
+  disableTelemetryCollection: false
   sendingQueue: 
     enabled: true
     size: 1000
     numConsumers: 3
+
+accounts: 
+  disableTelemetryCollection: false
+
+home: 
+  disableTelemetryCollection: false
+
+dashboard:
+  disableTelemetryCollection: false
+
+adminDashboard:
+  disableTelemetryCollection: false
+
+worker:
+  disableTelemetryCollection: false
+
+workflow:
+  disableTelemetryCollection: false
+
+apiReference:
+  disableTelemetryCollection: false
+
+docs:
+  disableTelemetryCollection: false
+
+app: 
+  disableTelemetryCollection: false
+
+probeIngest:
+  disableTelemetryCollection: false
+
+openTelemetryIngest:
+  disableTelemetryCollection: false
+
+fluentIngest:
+  disableTelemetryCollection: false
+
+incomingRequestIngest:
+  disableTelemetryCollection: false
+
+isolatedVM:
+  disableTelemetryCollection: false

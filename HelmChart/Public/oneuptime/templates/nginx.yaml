@@ -107,6 +107,8 @@ spec:
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
               value: "7851" # Port for the nodejs server for live and ready status
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.nginx.disableTelemetryCollection | quote }}
           ports:
             - containerPort: 7849
               protocol: TCP

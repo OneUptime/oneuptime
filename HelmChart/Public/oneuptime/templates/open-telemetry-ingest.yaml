@@ -91,6 +91,8 @@ spec:
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
               value: {{ $.Values.port.openTelemetryIngest | quote }} 
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.openTelemetryIngest.disableTelemetryCollection | quote }}
           ports:
             - containerPort: {{ $.Values.port.openTelemetryIngest }}
               protocol: TCP
