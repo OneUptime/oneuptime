@@ -153,8 +153,6 @@ const StatusPageAnnouncements: LazyExoticComponent<
   return import("../Pages/StatusPages/Announcements");
 });
 
-
-
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -162,32 +160,30 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
     <Routes>
       <PageRoute
         path="/"
-        element={
-          <StatusPageLayout {...props} hideSideMenu={false} />
-        }
+        element={<StatusPageLayout {...props} hideSideMenu={false} />}
       >
-      <PageRoute
-        path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <StatusPages
-              {...props}
-              pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-            />
-          </Suspense>
-        }
-      />
-      <PageRoute
-        path={StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <StatusPageAnnouncements
-              {...props}
-              pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
-            />
-          </Suspense>
-        }
-      />
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPages
+                {...props}
+                pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageAnnouncements
+                {...props}
+                pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
       </PageRoute>
 
       <PageRoute
@@ -213,7 +209,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <StatusPageViewSubscriberSettings
                 {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS] as Route}
+                pageRoute={
+                  RouteMap[
+                    PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                  ] as Route
+                }
               />
             </Suspense>
           }

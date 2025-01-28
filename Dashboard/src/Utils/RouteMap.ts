@@ -831,7 +831,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.STATUS_PAGE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW]
