@@ -50,8 +50,7 @@ export const DefaultValidateFunction: DefaultValidateFunctionType = (
   return {};
 };
 
-
-export interface FormSummaryConfig { 
+export interface FormSummaryConfig {
   enabled: boolean;
   defaultStepName?: string | undefined;
 }
@@ -81,9 +80,7 @@ export interface BaseComponentProps<T> {
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
-  summary?:
-    | FormSummaryConfig
-    | undefined;
+  summary?: FormSummaryConfig | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -119,11 +116,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       if (props.summary && props.summary.enabled) {
         // add to last step
         return [
-          ...(props.steps || [{
-            id: props.summary.defaultStepName || "basic",
-            title: props.summary.defaultStepName || "Basic",
-            isSummaryStep: false
-          }]),
+          ...(props.steps || [
+            {
+              id: props.summary.defaultStepName || "basic",
+              title: props.summary.defaultStepName || "Basic",
+              isSummaryStep: false,
+            },
+          ]),
           {
             id: "summary",
             title: "Summary",
@@ -280,13 +279,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           shouldSkip = true;
         }
 
-        if(props.summary?.enabled && (!props.steps || props.steps.length === 0)){
-          // if summary is enabled and no steps are provided, then all fields belong to the same step and should not be skipped. 
+        if (
+          props.summary?.enabled &&
+          (!props.steps || props.steps.length === 0)
+        ) {
+          // if summary is enabled and no steps are provided, then all fields belong to the same step and should not be skipped.
           shouldSkip = false;
           item.stepId = props.summary.defaultStepName || "basic";
         }
 
-        if(shouldSkip){ 
+        if (shouldSkip) {
           continue;
         }
 

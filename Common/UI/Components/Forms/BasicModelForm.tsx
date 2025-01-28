@@ -47,9 +47,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   hideSubmitButton?: undefined | boolean;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   initialValues?: FormValues<TBaseModel> | undefined;
-  summary?:
-    | FormSummaryConfig
-    | undefined;
+  summary?: FormSummaryConfig | undefined;
 }
 
 const BasicModelForm: <TBaseModel extends BaseModel>(

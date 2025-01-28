@@ -101,9 +101,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
-  summary?:
-    | FormSummaryConfig
-    | undefined;
+  summary?: FormSummaryConfig | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(

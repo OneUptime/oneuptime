@@ -290,7 +290,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               summary: {
-                enabled: true, 
+                enabled: true,
                 defaultStepName: "Public Note",
               },
               name: "create-incident-state-timeline",
@@ -360,7 +360,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               summary: {
-                enabled: true, 
+                enabled: true,
                 defaultStepName: "Private Note",
               },
               name: "create-incident-internal-note",

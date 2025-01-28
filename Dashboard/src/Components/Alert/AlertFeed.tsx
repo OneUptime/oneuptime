@@ -242,7 +242,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               summary: {
-                enabled: true, 
+                enabled: true,
                 defaultStepName: "Private Note",
               },
               name: "create-alert-internal-note",

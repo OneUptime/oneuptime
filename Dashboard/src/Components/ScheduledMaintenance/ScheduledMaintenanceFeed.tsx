@@ -283,7 +283,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         )}
         {showPublicNoteModal && (
           <ModelFormModal
-          modalWidth={ModalWidth.Large}
+            modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenancePublicNote}
             name={"create-scheduledMaintenancet-public-note"}
             title={"Add Public Note to this scheduled maintenance"}
@@ -306,7 +306,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               summary: {
-                enabled: true, 
+                enabled: true,
                 defaultStepName: "Public Note",
               },
               name: "create-scheduled-maintenance-state-timeline",
@@ -353,7 +353,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
 
         {showPrivateNoteModal && (
           <ModelFormModal
-          modalWidth={ModalWidth.Large}
+            modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenanceInternalNote}
             name={"create-scheduledMaintenancet-internal-note"}
             title={"Add Private Note to this scheduled maintenance"}
@@ -376,7 +376,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             }}
             formProps={{
               summary: {
-                enabled: true, 
+                enabled: true,
                 defaultStepName: "Private Note",
               },
               name: "create-scheduledMaintenance-internal-note",
