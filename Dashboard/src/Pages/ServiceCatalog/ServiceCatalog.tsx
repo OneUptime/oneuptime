@@ -30,7 +30,7 @@ const ServiceCatalogPage: FunctionComponent<
         {
           title: "Service Catalog",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
+            RouteMap[PageMap.SERVICE_CATALOG] as Route,
           ),
         },
       ]}

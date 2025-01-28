@@ -12,6 +12,7 @@ import React, {
   lazy,
 } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
+import StatusPageLayout from "../Pages/StatusPages/Layout";
 
 // Pages
 const StatusPages: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -146,11 +147,25 @@ const StatusPagesViewOverviewPageBranding: LazyExoticComponent<
   return import("../Pages/StatusPages/View/OverviewPageBranding");
 });
 
+const StatusPageAnnouncements: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements");
+});
+
+
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
+      <PageRoute
+        path="/"
+        element={
+          <StatusPageLayout {...props} hideSideMenu={false} />
+        }
+      >
       <PageRoute
         path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
         element={
@@ -162,6 +177,18 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           </Suspense>
         }
       />
+      <PageRoute
+        path={StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <StatusPageAnnouncements
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+            />
+          </Suspense>
+        }
+      />
+      </PageRoute>
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW] || ""}
@@ -186,7 +213,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <StatusPageViewSubscriberSettings
                 {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
+                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS] as Route}
               />
             </Suspense>
           }

@@ -824,6 +824,11 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/status-pages`,
   ),
 
+  [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-page/announcements`,
+  ),
+
+
   [PageMap.STATUS_PAGE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW]

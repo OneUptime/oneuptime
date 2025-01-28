@@ -1,14 +1,10 @@
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -18,21 +14,7 @@ import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
-    <Page
-      title={"Status Pages"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Status Pages",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
-          ),
-        },
-      ]}
-    >
+    <div>
       <Banner
         openInNewTab={true}
         title="Need a demo of status pages?"
@@ -150,7 +132,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
-    </Page>
+    </div>
   );
 };
 

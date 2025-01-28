@@ -26,7 +26,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {
           title: "Dashboards",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
+            RouteMap[PageMap.DASHBOARDS] as Route,
           ),
         },
       ]}
