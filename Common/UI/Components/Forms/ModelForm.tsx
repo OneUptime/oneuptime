@@ -15,7 +15,7 @@ import {
 } from "../CategoryCheckbox/CategoryCheckboxTypes";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Pill, { PillSize } from "../Pill/Pill";
-import { FormErrors, FormProps } from "./BasicForm";
+import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
 import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
 import Fields from "./Types/Fields";
@@ -102,9 +102,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?:
-    | {
-        enabled?: boolean;
-      }
+    | FormSummaryConfig
     | undefined;
 }
 

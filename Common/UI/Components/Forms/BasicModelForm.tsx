@@ -3,6 +3,7 @@ import BasicForm, {
   DefaultValidateFunction,
   FormErrors,
   FormProps,
+  FormSummaryConfig,
 } from "./BasicForm";
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
@@ -47,9 +48,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   initialValues?: FormValues<TBaseModel> | undefined;
   summary?:
-    | {
-        enabled?: boolean;
-      }
+    | FormSummaryConfig
     | undefined;
 }
 

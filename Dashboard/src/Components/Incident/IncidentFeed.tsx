@@ -24,6 +24,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -267,7 +268,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         {showPublicNoteModal && (
           <ModelFormModal
             modelType={IncidentPublicNote}
-            name={"create-incidentt-public-note"}
+            modalWidth={ModalWidth.Large}
+            name={"create-incident-public-note"}
             title={"Add Public Note to this Incident"}
             description={
               "Add a public note to this incident. This note will be visible to all subscribers of this incident and will show up on the status page."
@@ -287,9 +289,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               });
             }}
             formProps={{
-              name: "create-scheduled-maintenance-state-timeline",
+              summary: {
+                enabled: true, 
+                defaultStepName: "Public Note",
+              },
+              name: "create-incident-state-timeline",
               modelType: IncidentPublicNote,
-              id: "create-scheduled-maintenance-state-timeline",
+              id: "create-incident-state-timeline",
               fields: [
                 {
                   field: {
@@ -332,7 +338,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         {showPrivateNoteModal && (
           <ModelFormModal
             modelType={IncidentInternalNote}
-            name={"create-incidentt-internal-note"}
+            name={"create-incident-internal-note"}
+            modalWidth={ModalWidth.Large}
             title={"Add Private Note to this Incident"}
             description={
               "Add a private note to this incident. This note will be visible only to the team members of this incident."
@@ -352,6 +359,10 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               });
             }}
             formProps={{
+              summary: {
+                enabled: true, 
+                defaultStepName: "Private Note",
+              },
               name: "create-incident-internal-note",
               modelType: IncidentInternalNote,
               id: "create-incident-internal-note",

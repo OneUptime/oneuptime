@@ -24,6 +24,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
@@ -282,6 +283,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         )}
         {showPublicNoteModal && (
           <ModelFormModal
+          modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenancePublicNote}
             name={"create-scheduledMaintenancet-public-note"}
             title={"Add Public Note to this scheduled maintenance"}
@@ -303,6 +305,10 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
               });
             }}
             formProps={{
+              summary: {
+                enabled: true, 
+                defaultStepName: "Public Note",
+              },
               name: "create-scheduled-maintenance-state-timeline",
               modelType: ScheduledMaintenancePublicNote,
               id: "create-scheduled-maintenance-state-timeline",
@@ -347,6 +353,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
 
         {showPrivateNoteModal && (
           <ModelFormModal
+          modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenanceInternalNote}
             name={"create-scheduledMaintenancet-internal-note"}
             title={"Add Private Note to this scheduled maintenance"}
@@ -368,6 +375,10 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
               });
             }}
             formProps={{
+              summary: {
+                enabled: true, 
+                defaultStepName: "Private Note",
+              },
               name: "create-scheduledMaintenance-internal-note",
               modelType: ScheduledMaintenanceInternalNote,
               id: "create-scheduledMaintenance-internal-note",

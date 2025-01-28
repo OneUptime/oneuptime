@@ -22,6 +22,7 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -218,6 +219,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
 
         {showPrivateNoteModal && (
           <ModelFormModal
+            modalWidth={ModalWidth.Large}
             modelType={AlertInternalNote}
             name={"create-alertt-internal-note"}
             title={"Add Private Note to this Alert"}
@@ -239,6 +241,10 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
               });
             }}
             formProps={{
+              summary: {
+                enabled: true, 
+                defaultStepName: "Private Note",
+              },
               name: "create-alert-internal-note",
               modelType: AlertInternalNote,
               id: "create-alert-internal-note",
