@@ -159,6 +159,13 @@ clone_oneuptime() {
     fi
 }
 
+setup_tsnode() {
+    if ! command_exists ts-node; then
+        print_info "Installing ts-node..."
+        sudo npm install -g ts-node
+    fi
+}
+
 # Main installation process
 main() {
     print_info "Welcome to the OneUptime 🟢 Runner"
@@ -173,9 +180,8 @@ main() {
     setup_nodejs
     setup_docker
     setup_gomplate
-    
-    print_info "Installing ts-node globally..."
-    sudo npm install -g ts-node
+    setup_tsnode
+
     
     clone_oneuptime
     
