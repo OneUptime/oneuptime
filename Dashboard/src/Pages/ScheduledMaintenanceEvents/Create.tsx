@@ -395,7 +395,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         continue;
                       }
 
-                      if (statusPage instanceof Monitor) {
+                      if (statusPage instanceof StatusPage) {
                         statusPageIds.push(
                           new ObjectID(statusPage._id?.toString() || ""),
                         );

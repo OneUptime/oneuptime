@@ -142,6 +142,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
               onBeforeCreate={onBeforeCreate}
               modelType={props.modelType}
               formProps={{
+                summary: props.formSummary,
                 name: `create-${props.modelType.name}-from`,
                 modelType: props.modelType,
                 id: `create-${props.modelType.name}-from`,

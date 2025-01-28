@@ -5,15 +5,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
-import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
-export interface ComponentProps {
-  project?: Project | undefined;
-}
+const DashboardSideMenu: FunctionComponent = (
 
-const DashboardSideMenu: FunctionComponent<ComponentProps> = (
-  _props: ComponentProps,
 ): ReactElement => {
   return (
     <SideMenu>

@@ -30,7 +30,7 @@ import Field from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
-import { FormProps } from "../Forms/BasicForm";
+import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
 import { ModelField } from "../Forms/ModelForm";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
@@ -215,6 +215,8 @@ export interface BaseTableProps<
   initialFilterData?: FilterData<TBaseModel> | undefined;
 
   saveFilterProps?: SaveFilterProps | undefined;
+
+  formSummary?: FormSummaryConfig | undefined;
 }
 
 export interface ComponentProps<

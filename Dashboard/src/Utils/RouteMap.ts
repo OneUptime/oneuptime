@@ -826,7 +826,7 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-page/${
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS]
     }`,
   ),
