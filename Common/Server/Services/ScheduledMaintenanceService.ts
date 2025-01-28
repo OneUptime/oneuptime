@@ -50,6 +50,8 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
+import Label from "../../Models/DatabaseModels/Label";
+import LabelService from "./LabelService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -694,40 +696,86 @@ ${createdItem.description || "No description provided."}
 
     if (updatedItemIds.length > 0) {
       for (const scheduledMaintenanceId of updatedItemIds) {
+        let shouldAddScheduledMaintenanceFeed: boolean = false;
+        let feedInfoInMarkdown: string =
+          "**Scheduled Maintenance was updated.**";
+
+        const createdByUserId: ObjectID | undefined | null =
+          onUpdate.updateBy.props.userId;
+
         if (onUpdate.updateBy.data.title) {
           // add scheduledMaintenance feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
 
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `**Scheduled Maintenance title was updated.** Here's the new title.
-    
+          feedInfoInMarkdown += `\n\n**Title**: 
 ${onUpdate.updateBy.data.title || "No title provided."}
-              `,
-            userId: createdByUserId || undefined,
-          });
+`;
+          shouldAddScheduledMaintenanceFeed = true;
         }
 
         if (onUpdate.updateBy.data.description) {
           // add scheduledMaintenance feed.
-          const createdByUserId: ObjectID | undefined | null =
-            onUpdate.updateBy.props.userId;
 
+          feedInfoInMarkdown += `\n\n**Scheduled Maintenance Description**: 
+          ${onUpdate.updateBy.data.description || "No description provided."}
+          `;
+          shouldAddScheduledMaintenanceFeed = true;
+        }
+
+        if (
+          onUpdate.updateBy.data.labels &&
+          onUpdate.updateBy.data.labels.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.labels)
+        ) {
+          const labelIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.labels as any
+          )
+            .map((label: Label) => {
+              if (label._id) {
+                return new ObjectID(label._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((labelId: ObjectID | null) => {
+              return labelId !== null;
+            });
+
+          const labels: Array<Label> = await LabelService.findBy({
+            query: {
+              _id: QueryHelper.any(labelIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (labels.length > 0) {
+            feedInfoInMarkdown += `\n\n**Labels**:
+
+${labels
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
+`;
+
+            shouldAddScheduledMaintenanceFeed = true;
+          }
+        }
+
+        if (shouldAddScheduledMaintenanceFeed) {
           await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
             scheduledMaintenanceId: scheduledMaintenanceId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**Scheduled Maintenance description was updated.** Here's the new description.
-          
-    ${onUpdate.updateBy.data.description || "No description provided."}
-            `,
+            feedInfoInMarkdown: feedInfoInMarkdown,
             userId: createdByUserId || undefined,
           });
         }
