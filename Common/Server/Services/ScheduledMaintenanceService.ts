@@ -712,13 +712,146 @@ ${onUpdate.updateBy.data.title || "No title provided."}
           shouldAddScheduledMaintenanceFeed = true;
         }
 
+        if (onUpdate.updateBy.data.startsAt) {
+          // add scheduledMaintenance feed.
+
+          feedInfoInMarkdown += `\n\n**Starts At**: 
+${OneUptimeDate.toDateTimeLocalString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
+`;
+          shouldAddScheduledMaintenanceFeed = true;
+        }
+
+        if (onUpdate.updateBy.data.endsAt) {
+          // add scheduledMaintenance feed.
+
+          feedInfoInMarkdown += `\n\n**Ends At**:
+${OneUptimeDate.toDateTimeLocalString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
+`;
+          shouldAddScheduledMaintenanceFeed = true;
+        }
+
         if (onUpdate.updateBy.data.description) {
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Scheduled Maintenance Description**: 
-          ${onUpdate.updateBy.data.description || "No description provided."}
+${onUpdate.updateBy.data.description || "No description provided."}
           `;
           shouldAddScheduledMaintenanceFeed = true;
+        }
+
+        if (
+          onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent &&
+          Array.isArray(
+            onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent,
+          ) &&
+          onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
+            .length > 0
+        ) {
+          feedInfoInMarkdown += `\n\n**Notify Subscribers Before Event Starts**: 
+${(
+  onUpdate.updateBy.data
+    .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
+)
+  .map((recurring: Recurring) => {
+    return `- ${(recurring as Recurring).toString()}`;
+  })
+  .join("\n")}
+          `;
+          shouldAddScheduledMaintenanceFeed = true;
+        }
+
+        if (
+          onUpdate.updateBy.data.monitors &&
+          onUpdate.updateBy.data.monitors.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.monitors)
+        ) {
+          const monitorIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.monitors as any
+          )
+            .map((monitor: Label) => {
+              if (monitor._id) {
+                return new ObjectID(monitor._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((monitorId: ObjectID | null) => {
+              return monitorId !== null;
+            });
+
+          const monitors: Array<Label> = await MonitorService.findBy({
+            query: {
+              _id: QueryHelper.any(monitorIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (monitors.length > 0) {
+            feedInfoInMarkdown += `\n\n**Resources Affected**:
+
+${monitors
+  .map((monitor: Monitor) => {
+    return `- ${monitor.name}`;
+  })
+  .join("\n")}
+`;
+
+            shouldAddScheduledMaintenanceFeed = true;
+          }
+        }
+
+        if (
+          onUpdate.updateBy.data.statusPages &&
+          onUpdate.updateBy.data.statusPages.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.statusPages)
+        ) {
+          const statusPageIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.statusPages as any
+          )
+            .map((statusPage: Label) => {
+              if (statusPage._id) {
+                return new ObjectID(statusPage._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((statusPageId: ObjectID | null) => {
+              return statusPageId !== null;
+            });
+
+          const statusPages: Array<Label> = await StatusPageService.findBy({
+            query: {
+              _id: QueryHelper.any(statusPageIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (statusPages.length > 0) {
+            feedInfoInMarkdown += `\n\n**Show on these status pages:**:
+
+${statusPages
+  .map((statusPage: StatusPage) => {
+    return `- ${statusPage.name}`;
+  })
+  .join("\n")}
+`;
+
+            shouldAddScheduledMaintenanceFeed = true;
+          }
         }
 
         if (

@@ -186,6 +186,10 @@ export default class Recurring extends DatabaseProperty {
     return arrayToReturn;
   }
 
+  public override toString(): string {
+    return `${this.intervalCount} ${this.intervalType}`;
+  }
+
   protected static override toDatabase(
     value: Recurring | Array<Recurring> | FindOperator<Recurring>,
   ): JSONObject | Array<JSONObject> | null {
