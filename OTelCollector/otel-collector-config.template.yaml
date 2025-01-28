@@ -52,7 +52,7 @@ service:
         - periodic:
             exporter:
               otlp:
-                protocol: http/protobuf
+                protocol: http/json
                 endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
                 {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
                 headers:
