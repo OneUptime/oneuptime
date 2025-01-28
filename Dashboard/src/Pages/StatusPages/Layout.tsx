@@ -14,11 +14,7 @@ const ScheduledMaintenancesLayout: FunctionComponent<
   return (
     <Page
       title={"Status Pages"}
-      sideMenu={
-        props.hideSideMenu ? undefined : (
-          <SideMenu />
-        )
-      }
+      sideMenu={props.hideSideMenu ? undefined : <SideMenu />}
       breadcrumbLinks={getStatusPagesBreadcrumbs(path)}
     >
       <Outlet />

@@ -7,7 +7,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Fragment>
-     <AnnouncementTable />
+      <AnnouncementTable />
     </Fragment>
   );
 };

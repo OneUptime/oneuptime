@@ -7,9 +7,7 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const DashboardSideMenu: FunctionComponent = (
-
-): ReactElement => {
+const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   return (
     <SideMenu>
       <SideMenuSection title="Status Pages">

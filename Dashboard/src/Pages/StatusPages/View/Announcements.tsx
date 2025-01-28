@@ -5,6 +5,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import AnnouncementTable from "../../../Components/Announcement/AnnouncementsTable";
+import Query from "Common/Types/BaseDatabase/Query";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -14,16 +16,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const statusPage: StatusPage = new StatusPage();
   statusPage.id = modelId;
 
-  const query={
+  const query: Query<StatusPageAnnouncement> = {
     statusPages: [statusPage],
     projectId: DashboardNavigation.getProjectId()!,
-  }
+  };
 
   return (
     <Fragment>
-      <AnnouncementTable query={query} initialValues={{
-        statusPages: [modelId.toString()]
-      }} />
+      <AnnouncementTable
+        query={query}
+        initialValues={{
+          statusPages: [modelId.toString()],
+        }}
+      />
     </Fragment>
   );
 };
