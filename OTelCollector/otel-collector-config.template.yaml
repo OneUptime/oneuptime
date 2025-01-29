@@ -2,6 +2,9 @@
 # This tempate file will be passed to gomplate to generate the final configuration file.
 
 extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+    path: "/health/status"
   headers_setter:
     headers:
       - action: upsert
@@ -81,7 +84,7 @@ service:
                   {{- end }}
                 {{ end }}
 {{ end }}
-  extensions: [ headers_setter ]
+  extensions: [ headers_setter, health_check ]
   pipelines:
     traces:
       receivers: [otlp]

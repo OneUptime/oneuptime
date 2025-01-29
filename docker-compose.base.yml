@@ -409,7 +409,7 @@ services:
             options:
                 max-size: "1000m"
         ports: 
-          - 8810:8810
+          - 13133:13133 # Otel Collector Health Check Endpoint at /heath/status
 
     fluentd:
         networks:
