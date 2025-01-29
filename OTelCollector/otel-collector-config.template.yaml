@@ -2,6 +2,7 @@
 # This tempate file will be passed to gomplate to generate the final configuration file.
 
 extensions:
+  # health_check will be depreacated soon, please upgrade to health_check_v2
   health_check:
     endpoint: "0.0.0.0:13133"
     path: "/health/status"
