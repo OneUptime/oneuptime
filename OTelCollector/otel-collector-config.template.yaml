@@ -47,6 +47,22 @@ service:
 {{ if and (ne .Env.DISABLE_TELEMETRY "true") (index .Env "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT") }}
     logs:
       level: "debug"
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
+                {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                headers:
+                  # Add new line
+                  {{ "" }}
+                  {{- $headers := (strings.Split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
+                  {{- range $header := $headers }}
+                  {{- $kv := (strings.Split "=" $header) }}
+                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  {{- end }}
+                {{ end }}
     metrics:
       readers:
         - periodic:
