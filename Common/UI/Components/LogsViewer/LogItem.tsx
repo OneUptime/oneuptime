@@ -112,7 +112,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
         )}
 
         <div className={`${bodyColor} courier-prime`}>
-          {isBodyInJSON && <div>{logBody}</div>}
+          {isBodyInJSON && <pre className="whitespace-pre-wrap">{logBody}</pre>}
           {!isBodyInJSON && props.log.body?.toString()}
         </div>
       </div>
@@ -215,7 +215,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {isBodyInJSON && (
-          <div className={`${bodyColor} courier-prime`}>{logBody}</div>
+          <pre className={`${bodyColor} courier-prime whitespace-pre-wrap`}>{logBody}</pre>
         )}
       </div>
 
@@ -250,13 +250,13 @@ const LogItem: FunctionComponent<ComponentProps> = (
               ATTRIBUTES:
             </div>
           </div>
-          <div className={`${bodyColor} courier-prime`}>
+          <pre className={`${bodyColor} courier-prime whitespace-pre-wrap`}>
             {JSON.stringify(
               JSONFunctions.unflattenObject(props.log.attributes || {}),
               null,
               2,
             )}
-          </div>
+          </pre>
         </div>
       )}
     </div>
