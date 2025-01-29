@@ -50,6 +50,36 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "otel-collector" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
+          # Liveness probe
+          {{- if $.Values.startupProbe.enabled }}
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /health/status
+              port: 13133
+            periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- if $.Values.livenessProbe.enabled }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health/status
+              port: 13133
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
+          {{- end }}
+          {{- if $.Values.readinessProbe.enabled }}
+          # Readyness Probe
+          readinessProbe:
+            httpGet:
+              path: /health/status
+              port: 13133
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
           {{- if $.Values.containerSecurityContext }}
           securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
