@@ -184,11 +184,11 @@ export default class AnalyticsDatabaseService<
   ): Promise<void> {
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
-    await this.execute(statement);
+    await this.executeQuery(statement);
   }
 
   public async dropColumnInDatabase(columnName: string): Promise<void> {
-    await this.execute(
+    await this.executeQuery(
       this.statementGenerator.toDropColumnStatement(columnName),
     );
   }
@@ -250,20 +250,18 @@ export default class AnalyticsDatabaseService<
         columns: Array<string>;
       } = this.toAggregateStatement(aggregateBy);
 
-      const dbResult: ExecResult<Stream> = await this.execute(
+      const dbResult: ResultSet<"JSON"> = await this.executeQuery(
         findStatement.statement,
       );
 
-      const strResult: string = await StreamUtil.convertStreamToText(
-        dbResult.stream,
-      );
+      logger.debug(`${this.model.tableName} Aggregate Statement executed`);
 
-      const jsonItems: Array<JSONObject> = this.convertSelectReturnedDataToJson(
-        strResult,
-        findStatement.columns,
-      );
+      const responseJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
 
-      const items: Array<JSONObject> = jsonItems as any;
+      const items: Array<JSONObject> = responseJSON.data
+        ? responseJSON.data
+        : [];
 
       const aggregatedItems: Array<AggregatedModel> = [];
 
@@ -706,7 +704,7 @@ export default class AnalyticsDatabaseService<
 
       const deleteStatement: Statement = this.toDeleteStatement(beforeDeleteBy); 
 
-      await this.execute(deleteStatement);
+      await this.executeQuery(deleteStatement);
 
       logger.debug(`${this.model.tableName} Delete Statement executed`);
       logger.debug(deleteStatement);
@@ -765,7 +763,7 @@ export default class AnalyticsDatabaseService<
         beforeUpdateBy,
       );
 
-      await this.execute(
+      await this.executeQuery(
         statement,
       );
 
@@ -972,7 +970,7 @@ export default class AnalyticsDatabaseService<
         { item: items },
       );
 
-      await this.execute(insertStatement);
+      await this.executeQuery(insertStatement);
 
 
       logger.debug(`${this.model.tableName} Create Statement executed`);
