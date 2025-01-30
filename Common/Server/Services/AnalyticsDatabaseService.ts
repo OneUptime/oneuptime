@@ -405,7 +405,7 @@ export default class AnalyticsDatabaseService<
     }
   }
 
-  private convertSelectReturnedDataToJson(
+  public convertSelectReturnedDataToJson(
     strResult: string,
     columns: string[],
   ): JSONObject[] {
