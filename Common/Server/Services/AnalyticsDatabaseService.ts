@@ -148,18 +148,24 @@ export default class AnalyticsDatabaseService<
 
       const countStatement: Statement = this.toCountStatement(countBy);
 
-
-      const dbResult: ResultSet<"JSON"> = await this.executeQuery(
-        countStatement,
-      );
+      const dbResult: ResultSet<"JSON"> =
+        await this.executeQuery(countStatement);
 
       logger.debug(`${this.model.tableName} Count Statement executed`);
       logger.debug(countStatement);
 
-      const resultInJSON: ResponseJSON<JSONObject> = (await dbResult.json<JSONObject>());
+      const resultInJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
       let countPositive: PositiveNumber = new PositiveNumber(0);
-      if (resultInJSON.data && resultInJSON.data[0] && resultInJSON.data[0]["count()"] && typeof resultInJSON.data[0]["count()"] === "string") {
-        countPositive = new PositiveNumber(resultInJSON.data[0]["count()"] as string);
+      if (
+        resultInJSON.data &&
+        resultInJSON.data[0] &&
+        resultInJSON.data[0]["count()"] &&
+        typeof resultInJSON.data[0]["count()"] === "string"
+      ) {
+        countPositive = new PositiveNumber(
+          resultInJSON.data[0]["count()"] as string,
+        );
       }
 
       logger.debug(`Result: `);
@@ -380,9 +386,10 @@ export default class AnalyticsDatabaseService<
       logger.debug(`${this.model.tableName} Find Statement executed`);
       logger.debug(findStatement.statement);
 
-      const responseJSON: ResponseJSON<JSONObject> = (await dbResult.json<JSONObject>())
+      const responseJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
 
-      const jsonItems: Array<JSONObject> = responseJSON.data; 
+      const jsonItems: Array<JSONObject> = responseJSON.data;
 
       let items: Array<TBaseModel> =
         AnalyticsBaseModel.fromJSONArray<TBaseModel>(jsonItems, this.modelType);

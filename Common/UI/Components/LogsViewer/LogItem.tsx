@@ -215,7 +215,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {isBodyInJSON && (
-          <pre className={`${bodyColor} courier-prime whitespace-pre-wrap`}>{logBody}</pre>
+          <pre className={`${bodyColor} courier-prime whitespace-pre-wrap`}>
+            {logBody}
+          </pre>
         )}
       </div>
 
