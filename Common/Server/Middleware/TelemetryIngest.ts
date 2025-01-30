@@ -8,6 +8,8 @@ import {
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
+import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -17,11 +19,13 @@ export interface TelemetryRequest extends ExpressRequest {
 export default class TelemetryIngest {
   public static async isAuthorizedServiceMiddleware(
     req: ExpressRequest,
-    _res: ExpressResponse,
+    res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
       // check header.
+
+      const isOpenTelemetryAPI: boolean = req.path.includes("/otlp/v1");
 
       let oneuptimeToken: string | undefined = req.headers[
         "x-oneuptime-token"
@@ -35,6 +39,14 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
+        logger.error("Missing header: x-oneuptime-token");
+
+        if (isOpenTelemetryAPI) {
+          // then accept the response and return success.
+          // do not return error because it causes Otel to retry the request.
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
         throw new BadRequestException("Missing header: x-oneuptime-token");
       }
 
@@ -54,6 +66,14 @@ export default class TelemetryIngest {
         });
 
       if (!token) {
+        logger.error("Invalid service token: " + oneuptimeToken);
+
+        if (isOpenTelemetryAPI) {
+          // then accept the response and return success.
+          // do not return error because it causes Otel to retry the request.
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
         throw new BadRequestException(
           "Invalid service token: " + oneuptimeToken,
         );
@@ -62,6 +82,16 @@ export default class TelemetryIngest {
       projectId = token.projectId as ObjectID;
 
       if (!projectId) {
+        logger.error(
+          "Project ID not found for service token: " + oneuptimeToken,
+        );
+
+        if (isOpenTelemetryAPI) {
+          // then accept the response and return success.
+          // do not return error because it causes Otel to retry the request.
+          return Response.sendEmptySuccessResponse(req, res);
+        }
+
         throw new BadRequestException(
           "Project ID not found for service token: " + oneuptimeToken,
         );
