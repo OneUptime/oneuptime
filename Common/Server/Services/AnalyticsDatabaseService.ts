@@ -184,11 +184,11 @@ export default class AnalyticsDatabaseService<
   ): Promise<void> {
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
-    await this.executeQuery(statement);
+    await this.execute(statement);
   }
 
   public async dropColumnInDatabase(columnName: string): Promise<void> {
-    await this.executeQuery(
+    await this.execute(
       this.statementGenerator.toDropColumnStatement(columnName),
     );
   }
@@ -704,7 +704,7 @@ export default class AnalyticsDatabaseService<
 
       const deleteStatement: Statement = this.toDeleteStatement(beforeDeleteBy); 
 
-      await this.executeQuery(deleteStatement);
+      await this.execute(deleteStatement);
 
       logger.debug(`${this.model.tableName} Delete Statement executed`);
       logger.debug(deleteStatement);
@@ -763,7 +763,7 @@ export default class AnalyticsDatabaseService<
         beforeUpdateBy,
       );
 
-      await this.executeQuery(
+      await this.execute(
         statement,
       );
 
@@ -970,7 +970,7 @@ export default class AnalyticsDatabaseService<
         { item: items },
       );
 
-      await this.executeQuery(insertStatement);
+      await this.execute(insertStatement);
 
 
       logger.debug(`${this.model.tableName} Create Statement executed`);
