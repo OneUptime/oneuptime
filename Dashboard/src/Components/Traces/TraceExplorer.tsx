@@ -482,6 +482,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               id={"traces-logs-viewer"}
               noLogsMessage="No logs found for this trace."
               traceIds={[traceId]}
+              limit={LIMIT_PER_PROJECT}
               enableRealtime={false}
             />
           </div>
