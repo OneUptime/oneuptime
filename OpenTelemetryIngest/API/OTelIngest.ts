@@ -374,6 +374,7 @@ router.post(
             dbSpan.attributes = JSONFunctions.flattenObject(dbSpan.attributes);
 
             attributes = [
+              "serviceName",
               ...attributes,
               ...Object.keys(dbSpan.attributes || {}),
             ];
@@ -657,6 +658,7 @@ router.post(
                 );
 
                 attributes = [
+                  "serviceName",
                   ...attributes,
                   ...Object.keys(histogramMetric.attributes || {}),
                 ];
@@ -889,6 +891,7 @@ router.post(
             dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
 
             attributes = [
+              "serviceName",
               ...attributes,
               ...Object.keys(dbLog.attributes || {}),
             ];
