@@ -19,6 +19,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     <DashboardLogsViewer
       showFilters={true}
       telemetryServiceIds={[]}
+      limit={250} // Limit the number of logs to 250 by default
       enableRealtime={true}
       id="logs"
     />
