@@ -26,6 +26,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: clickhouse
+        volumes: 
+            - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
 
     postgres:
         ports: 
