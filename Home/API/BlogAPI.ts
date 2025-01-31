@@ -14,8 +14,7 @@ import Route from "Common/Types/API/Route";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-
-// create redirect for old blog post urls. This is to handle old blog post urls that are indexed by search engines. 
+// create redirect for old blog post urls. This is to handle old blog post urls that are indexed by search engines.
 
 app.get(
   "/blog/post/:file",
@@ -23,14 +22,17 @@ app.get(
     try {
       const fileName: string = req.params["file"] as string;
 
-      return Response.redirect(req, res, new Route(`/blog/post/${fileName}/view`));
+      return Response.redirect(
+        req,
+        res,
+        new Route(`/blog/post/${fileName}/view`),
+      );
     } catch (e) {
       logger.error(e);
       return ServerErrorUtil.renderServerError(res);
     }
   },
 );
-
 
 app.get(
   "/blog/post/:file/view",
@@ -60,19 +62,21 @@ app.get(
   },
 );
 
-
 app.get(
   "/blog/post/:postName/:fileName",
   async (req: ExpressRequest, res: ExpressResponse) => {
     // return static files for blog post images
-    // the static files are stored in the /usr/src/blog/posts/:file/:imageName 
+    // the static files are stored in the /usr/src/blog/posts/:file/:imageName
 
     try {
-     
       const fileName: string = req.params["fileName"] as string;
-      const postName: string = req.params["postName"] as string;  
+      const postName: string = req.params["postName"] as string;
 
-      return Response.sendFileByPath(req, res, `${BlogRootPath}/posts/${postName}/${fileName}`);
+      return Response.sendFileByPath(
+        req,
+        res,
+        `${BlogRootPath}/posts/${postName}/${fileName}`,
+      );
     } catch (e) {
       logger.error(e);
       return ServerErrorUtil.renderServerError(res);

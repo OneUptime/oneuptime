@@ -23,8 +23,8 @@ import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
 import Reviews from "./Utils/Reviews";
 
-// import jobs. 
-import "./Jobs/UpdateBlog"; 
+// import jobs.
+import "./Jobs/UpdateBlog";
 
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {

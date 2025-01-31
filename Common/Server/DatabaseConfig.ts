@@ -30,7 +30,6 @@ export default class DatabaseConfig {
     return globalConfig.getColumnValue(key);
   }
 
-
   public static async getHomeUrl(): Promise<URL> {
     const host: Hostname = await DatabaseConfig.getHost();
 

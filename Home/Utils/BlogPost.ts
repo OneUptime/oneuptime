@@ -47,10 +47,7 @@ export default class BlogPostUtil {
   public static async getBlogPostList(
     tagName?: string | undefined,
   ): Promise<BlogPostHeader[]> {
-
     const filePath: string = `${BlogRootPath}/Blogs.json`;
-
-
 
     let jsonContent: string | JSONArray = await LocalFile.read(filePath);
 
@@ -96,8 +93,7 @@ export default class BlogPostUtil {
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
-    let blogPost: BlogPost | null = await this.getBlogPostFromFile(fileName);
-
+    const blogPost: BlogPost | null = await this.getBlogPostFromFile(fileName);
 
     return blogPost;
   }
@@ -109,12 +105,12 @@ export default class BlogPostUtil {
 
     const fileData:
       | HTTPResponse<
-        | JSONObjectOrArray
-        | BaseModel
-        | BaseModel[]
-        | AnalyticsBaseModel
-        | AnalyticsBaseModel[]
-      >
+          | JSONObjectOrArray
+          | BaseModel
+          | BaseModel[]
+          | AnalyticsBaseModel
+          | AnalyticsBaseModel[]
+        >
       | HTTPErrorResponse = await API.get(fileUrl);
 
     if (fileData.isFailure()) {
@@ -134,11 +130,9 @@ export default class BlogPostUtil {
   }
 
   public static async getAllTagsFromGitHub(): Promise<string[]> {
-
     const filePath: string = `${BlogRootPath}/Tags.md`;
 
-    const tagsMarkdownContent: string | null =
-      await LocalFile.read(filePath);
+    const tagsMarkdownContent: string | null = await LocalFile.read(filePath);
 
     if (!tagsMarkdownContent) {
       return [];
@@ -166,14 +160,11 @@ export default class BlogPostUtil {
   public static async getBlogPostFromFile(
     fileName: string,
   ): Promise<BlogPost | null> {
-
     const filePath: string = `${BlogRootPath}/posts/${fileName}/README.md`;
-
 
     const postDate: string = this.getPostDateFromFileName(fileName);
     const formattedPostDate: string =
       this.getFormattedPostDateFromFileName(fileName);
-
 
     let markdownContent: string = await LocalFile.read(filePath);
 
@@ -203,7 +194,7 @@ export default class BlogPostUtil {
       postDate,
       formattedPostDate,
       socialMediaImageUrl: `${this.getHomeUrl().toString()}/posts/${fileName}/social-media.png`,
-      blogUrl: `${this.getHomeUrl().toString()}/blog/post/${fileName}/view`, 
+      blogUrl: `${this.getHomeUrl().toString()}/blog/post/${fileName}/view`,
     };
 
     return blogPost;
