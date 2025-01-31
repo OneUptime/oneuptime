@@ -1,5 +1,5 @@
 import BlogPostUtil, { BlogPost, BlogPostHeader } from "../Utils/BlogPost";
-import { ViewsPath } from "../Utils/Config";
+import { BlogRootPath, ViewsPath } from "../Utils/Config";
 import NotFoundUtil from "../Utils/NotFound";
 import ServerErrorUtil from "../Utils/ServerError";
 import Text from "Common/Types/Text";
@@ -9,11 +9,31 @@ import Express, {
   ExpressResponse,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import Route from "Common/Types/API/Route";
 
 const app: ExpressApplication = Express.getExpressApp();
 
+
+// create redirect for old blog post urls. This is to handle old blog post urls that are indexed by search engines. 
+
 app.get(
   "/blog/post/:file",
+  async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+      const fileName: string = req.params["file"] as string;
+
+      return Response.redirect(req, res, new Route(`/blog/post/${fileName}/view`));
+    } catch (e) {
+      logger.error(e);
+      return ServerErrorUtil.renderServerError(res);
+    }
+  },
+);
+
+
+app.get(
+  "/blog/post/:file/view",
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const fileName: string = req.params["file"] as string;
@@ -33,6 +53,26 @@ app.get(
         requestDemoCta: false,
         blogPost: blogPost,
       });
+    } catch (e) {
+      logger.error(e);
+      return ServerErrorUtil.renderServerError(res);
+    }
+  },
+);
+
+
+app.get(
+  "/blog/post/:postName/:fileName",
+  async (req: ExpressRequest, res: ExpressResponse) => {
+    // return static files for blog post images
+    // the static files are stored in the /usr/src/blog/posts/:file/:imageName 
+
+    try {
+     
+      const fileName: string = req.params["fileName"] as string;
+      const postName: string = req.params["postName"] as string;  
+
+      return Response.sendFileByPath(req, res, `${BlogRootPath}/posts/${postName}/${fileName}`);
     } catch (e) {
       logger.error(e);
       return ServerErrorUtil.renderServerError(res);

@@ -20,7 +20,7 @@ ENV APP_VERSION=${APP_VERSION}
 RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 
 # Install bash. 
-RUN apk add bash && apk add curl
+RUN apk add bash && apk add curl && apk add git
 
 
 # Install python
@@ -52,6 +52,14 @@ RUN npm install
 # Expose ports.
 #   - 1444: OneUptime-home
 EXPOSE 1444
+
+# Make a directory for blog. 
+RUN mkdir -p /usr/src
+
+# Clone blog repo. 
+RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+
+# Now we have the blog repo cloned to /usr/src/blog.
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app

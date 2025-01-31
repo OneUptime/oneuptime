@@ -22,6 +22,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ListData from "Common/Types/ListData";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import Route from "../../Types/API/Route";
 
 export default class Response {
   public static sendEmptySuccessResponse(
@@ -31,6 +32,14 @@ export default class Response {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.status(200).send({} as EmptyResponse);
+  }
+
+  public static sendFileByPath(
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    path: string,
+  ): void {
+    res.sendFile(path);
   }
 
   public static sendCustomResponse(
@@ -162,9 +171,9 @@ export default class Response {
   public static redirect(
     _req: ExpressRequest,
     res: ExpressResponse,
-    url: URL,
+    to: URL | Route,
   ): void {
-    return res.redirect(url.toString());
+    return res.redirect(to.toString());
   }
 
   public static sendJsonArrayResponse(
