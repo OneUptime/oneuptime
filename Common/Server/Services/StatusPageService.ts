@@ -475,7 +475,9 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-    let statusPageURL: string = domain?.fullDomain || "";
+    let statusPageURL: string = domain?.fullDomain
+      ? `https://${domain.fullDomain}`
+      : "";
 
     if (!statusPageURL) {
       const host: Hostname = await DatabaseConfig.getHost();

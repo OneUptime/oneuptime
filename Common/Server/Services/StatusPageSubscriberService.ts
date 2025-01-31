@@ -356,6 +356,11 @@ export class Service extends DatabaseService<Model> {
       subscriber.subscriberEmail &&
       subscriber._id
     ) {
+      const unsubscribeUrl: string = this.getUnsubscribeLink(
+        URL.fromString(statusPageURL),
+        subscriber.id!,
+      ).toString();
+
       MailService.sendMail(
         {
           toEmail: subscriber.subscriberEmail,
@@ -373,6 +378,7 @@ export class Service extends DatabaseService<Model> {
               ? "true"
               : "false",
             confirmationUrl: confirmSubscriptionLink,
+            unsubscribeUrl: unsubscribeUrl,
           },
           subject: "Confirm your subscription to " + statusPageName,
         },
