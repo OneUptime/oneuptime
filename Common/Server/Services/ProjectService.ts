@@ -430,7 +430,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: new ObjectID(projectId.toString()),
         select: {
           name: true,
-          id: true,
+          _id: true,
           createdOwnerName: true,
           createdOwnerEmail: true,
           planName: true,
@@ -452,7 +452,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
 
       if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Project Created By:* ${project?.createdOwnerName?.toString() + "(" + project.createdOwnerEmail.toString() + ")" || "N/A"}
+        slackMessage += `*Project Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
 `;
       }
 
@@ -634,7 +634,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: createdItem.id!,
         select: {
           name: true,
-          id: true,
+          _id: true,
           createdOwnerName: true,
           createdOwnerEmail: true,
           planName: true,
@@ -656,7 +656,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
 
       if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Created By:* ${project?.createdOwnerName?.toString() + "(" + project.createdOwnerEmail.toString() + ")" || "N/A"}
+        slackMessage += `*Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
 `;
 
         if (IsBillingEnabled) {
@@ -1172,7 +1172,7 @@ export class ProjectService extends DatabaseService<Model> {
           project.createdByUser.name &&
           project.createdByUser.email
         ) {
-          slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + "(" + project.createdByUser.email.toString() + ")" || "N/A"}
+          slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + " (" + project.createdByUser.email.toString() + ")" || "N/A"}
 `;
         }
 
