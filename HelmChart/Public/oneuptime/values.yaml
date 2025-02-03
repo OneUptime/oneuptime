@@ -392,8 +392,12 @@ externalClickhouse:
 # Notification webhooks when certain events happen in the system. (usually they are slack webhooks)
 notifications:
   webhooks:
-    # This is the webhook that will be called when a user is created or signs up.
-    onCreateUser:
+    slack: 
+      # This is the webhook that will be called when a user is created or signs up.
+      onCreateUser:
+      onDeleteProject: 
+      onCreateProject: 
+      onSubscriptionUpdate: 
 
 
 

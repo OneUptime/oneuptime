@@ -1,5 +1,5 @@
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
-import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
+import { IsBillingEnabled, NotificationSlackWebhookOnCreateProject, NotificationSlackWebhookOnDeleteProject, getAllEnvVars } from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -61,6 +61,8 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
+import SlackUtil from "../Utils/Slack";
+import URL from "../../Types/API/URL";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -178,8 +180,8 @@ export class ProjectService extends DatabaseService<Model> {
           if (promoCode.planType !== data.data.planName) {
             throw new BadDataException(
               "Promocode is not valid for this plan. Please select the " +
-                promoCode.planType +
-                " plan.",
+              promoCode.planType +
+              " plan.",
             );
           }
 
@@ -310,9 +312,9 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName(),
+            project.id?.toString() +
+            " to " +
+            plan.getName(),
           );
 
           if (!project.paymentProviderSubscriptionSeats) {
@@ -324,11 +326,11 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats,
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats,
           );
 
           const subscription: {
@@ -350,12 +352,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed.",
           );
 
           // refresh subscription status.
@@ -391,12 +393,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed and project updated.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed and project updated.",
           );
         }
       }
@@ -560,6 +562,57 @@ export class ProjectService extends DatabaseService<Model> {
     createdItem = await this.addDefaultIncidentState(createdItem);
     createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
     createdItem = await this.addDefaultAlertState(createdItem);
+
+
+    if (NotificationSlackWebhookOnCreateProject) {
+
+
+      // fetch project again. 
+      const project: Model | null = await this.findOneById({
+        id: createdItem.id!,
+        select: {
+          name: true,
+          id: true,
+          createdOwnerName: true,
+          createdOwnerEmail: true,
+          planName: true,
+          createdByUserId: true,
+          paymentProviderSubscriptionStatus: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project) {
+        throw new BadDataException("Project not found");
+      }
+
+      let slackMessage: string = `*Project Created:*
+*Project Name:* ${project.name?.toString() || "N/A"}
+*Project ID:* ${project.id?.toString() || "N/A"}
+`;
+
+      if (project.createdOwnerName && project.createdOwnerEmail) {
+        slackMessage += `*Created By:* ${project?.createdOwnerName?.toString() + "(" + project.createdOwnerEmail.toString() + ")" || "N/A"}
+`;
+
+        if (IsBillingEnabled) {
+          // which plan? 
+          slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"}
+*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
+`;
+        }
+
+        SlackUtil.sendMessageToChannel({
+          url: URL.fromString(NotificationSlackWebhookOnCreateProject),
+          text: slackMessage,
+        }).catch((error) => {
+          logger.error("Error sending slack message: " + error);
+        });
+      }
+    }
+
 
     return createdItem;
   }
@@ -1007,29 +1060,75 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    if (IsBillingEnabled) {
-      const projects: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        props: deleteBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-        select: {
-          _id: true,
-          paymentProviderSubscriptionId: true,
-          paymentProviderMeteredSubscriptionId: true,
-        },
-      });
 
-      return { deleteBy, carryForward: projects };
-    }
+    const projects: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+        name: true,
+        createdByUser: {
+          name: true,
+          email: true,
+        }
+      },
+    });
 
-    return { deleteBy, carryForward: [] };
+    return { deleteBy, carryForward: projects };
+
   }
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
+
+    if (NotificationSlackWebhookOnDeleteProject) {
+
+      for (const project of onDelete.carryForward) {
+
+
+        let subscriptionStatus: SubscriptionStatus | null = null;
+
+        if (IsBillingEnabled) {
+          subscriptionStatus = await BillingService.getSubscriptionStatus(
+            project.paymentProviderSubscriptionId!,
+          );
+        }
+
+        let slackMessage: string = `*Project Deleted:*
+*Project Name:* ${project.name?.toString() || "N/A"}
+*Project ID:* ${project._id?.toString() || "N/A"}
+`;
+
+        if (subscriptionStatus) {
+          slackMessage += `*Project Subscription Status:* ${subscriptionStatus?.toString() || "N/A"}
+`;
+        }
+
+        if (project.createdByUser && project.createdByUser.name && project.createdByUser.email) {
+          slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + "(" + project.createdByUser.email.toString() + ")" || "N/A"}
+`;
+        }
+
+        SlackUtil.sendMessageToChannel({
+          url: URL.fromString(NotificationSlackWebhookOnDeleteProject),
+          text: slackMessage,
+        }).catch((err: Error) => {
+          // log this error but do not throw it. Not important enough to stop the process.
+          logger.error(err);
+        });
+
+      }
+    }
+
+
     // get project id
     if (IsBillingEnabled) {
       for (const project of onDelete.carryForward) {
@@ -1046,6 +1145,8 @@ export class ProjectService extends DatabaseService<Model> {
         }
       }
     }
+
+
 
     return onDelete;
   }

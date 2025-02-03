@@ -1,7 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import {
   IsBillingEnabled,
-  NotificationWebhookOnCreateUser,
+  NotificationSlackWebhookOnCreateUser,
 } from "../EnvironmentConfig";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -42,9 +42,9 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    if (NotificationWebhookOnCreateUser) {
+    if (NotificationSlackWebhookOnCreateUser) {
       SlackUtil.sendMessageToChannel({
-        url: URL.fromString(NotificationWebhookOnCreateUser),
+        url: URL.fromString(NotificationSlackWebhookOnCreateUser),
         text: `*New OneUptime User:* 
   *Email:* ${createdItem.email?.toString() || "N/A"}
   *Name:* ${createdItem.name?.toString() || "N/A"}

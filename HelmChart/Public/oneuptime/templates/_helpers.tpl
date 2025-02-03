@@ -152,10 +152,17 @@ Usage:
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
 
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
+  value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
 
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT
+  value: {{ $.Values.notifications.webhooks.slack.onCreateProject }}
 
-- name: NOTIFICATION_WEBHOOK_ON_CREATED_USER
-  value: {{ $.Values.notifications.webhooks.onCreateUser }}
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT
+  value: {{ $.Values.notifications.webhooks.slack.onDeleteProject }}
+
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE
+  value: {{ $.Values.notifications.webhooks.slack.onSubscriptionUpdate }}
 
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
   value: {{ $.Values.letsEncrypt.email }}

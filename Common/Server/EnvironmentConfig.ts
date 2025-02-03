@@ -279,8 +279,23 @@ export const AllowedSubscribersCountInFreePlan: number = process.env[
   ? parseInt(process.env["ALLOWED_SUBSCRIBERS_COUNT_IN_FREE_PLAN"].toString())
   : 100;
 
-export const NotificationWebhookOnCreateUser: string =
-  process.env["NOTIFICATION_WEBHOOK_ON_CREATED_USER"] || "";
+export const NotificationSlackWebhookOnCreateUser: string =
+  process.env["NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER"] || "";
+
+export const NotificationSlackWebhookOnCreateProject: string = process.env[
+  "NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT"
+] || "";
+
+// notification delete project 
+export const NotificationSlackWebhookOnDeleteProject: string = process.env[
+  "NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT"
+] || "";
+
+// notification subscripton update. 
+export const NotificationSlackWebhookOnSubscriptionUpdate: string = process.env[
+  "NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE"
+] || "";
+
 
 export const AdminDashboardClientURL: URL = new URL(
   HttpProtocol,
