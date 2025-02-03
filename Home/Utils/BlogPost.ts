@@ -105,12 +105,12 @@ export default class BlogPostUtil {
 
     const fileData:
       | HTTPResponse<
-        | JSONObjectOrArray
-        | BaseModel
-        | BaseModel[]
-        | AnalyticsBaseModel
-        | AnalyticsBaseModel[]
-      >
+          | JSONObjectOrArray
+          | BaseModel
+          | BaseModel[]
+          | AnalyticsBaseModel
+          | AnalyticsBaseModel[]
+        >
       | HTTPErrorResponse = await API.get(fileUrl);
 
     if (fileData.isFailure()) {

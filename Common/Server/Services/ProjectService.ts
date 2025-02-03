@@ -1,5 +1,10 @@
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
-import { IsBillingEnabled, NotificationSlackWebhookOnCreateProject, NotificationSlackWebhookOnDeleteProject, getAllEnvVars } from "../EnvironmentConfig";
+import {
+  IsBillingEnabled,
+  NotificationSlackWebhookOnCreateProject,
+  NotificationSlackWebhookOnDeleteProject,
+  getAllEnvVars,
+} from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -63,6 +68,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Slack";
 import URL from "../../Types/API/URL";
+import Exception from "../../Types/Exception/Exception";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -180,8 +186,8 @@ export class ProjectService extends DatabaseService<Model> {
           if (promoCode.planType !== data.data.planName) {
             throw new BadDataException(
               "Promocode is not valid for this plan. Please select the " +
-              promoCode.planType +
-              " plan.",
+                promoCode.planType +
+                " plan.",
             );
           }
 
@@ -312,9 +318,9 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName(),
+              project.id?.toString() +
+              " to " +
+              plan.getName(),
           );
 
           if (!project.paymentProviderSubscriptionSeats) {
@@ -326,11 +332,11 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats,
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats,
           );
 
           const subscription: {
@@ -352,12 +358,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats +
-            " completed.",
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats +
+              " completed.",
           );
 
           // refresh subscription status.
@@ -393,12 +399,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats +
-            " completed and project updated.",
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats +
+              " completed and project updated.",
           );
         }
       }
@@ -563,11 +569,8 @@ export class ProjectService extends DatabaseService<Model> {
     createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
     createdItem = await this.addDefaultAlertState(createdItem);
 
-
     if (NotificationSlackWebhookOnCreateProject) {
-
-
-      // fetch project again. 
+      // fetch project again.
       const project: Model | null = await this.findOneById({
         id: createdItem.id!,
         select: {
@@ -598,7 +601,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
 
         if (IsBillingEnabled) {
-          // which plan? 
+          // which plan?
           slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"}
 *Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
 `;
@@ -607,12 +610,11 @@ export class ProjectService extends DatabaseService<Model> {
         SlackUtil.sendMessageToChannel({
           url: URL.fromString(NotificationSlackWebhookOnCreateProject),
           text: slackMessage,
-        }).catch((error) => {
+        }).catch((error: Exception) => {
           logger.error("Error sending slack message: " + error);
         });
       }
     }
-
 
     return createdItem;
   }
@@ -1060,7 +1062,6 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-
     const projects: Array<Model> = await this.findBy({
       query: deleteBy.query,
       props: {
@@ -1076,24 +1077,19 @@ export class ProjectService extends DatabaseService<Model> {
         createdByUser: {
           name: true,
           email: true,
-        }
+        },
       },
     });
 
     return { deleteBy, carryForward: projects };
-
   }
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
-
     if (NotificationSlackWebhookOnDeleteProject) {
-
       for (const project of onDelete.carryForward) {
-
-
         let subscriptionStatus: SubscriptionStatus | null = null;
 
         if (IsBillingEnabled) {
@@ -1112,7 +1108,11 @@ export class ProjectService extends DatabaseService<Model> {
 `;
         }
 
-        if (project.createdByUser && project.createdByUser.name && project.createdByUser.email) {
+        if (
+          project.createdByUser &&
+          project.createdByUser.name &&
+          project.createdByUser.email
+        ) {
           slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + "(" + project.createdByUser.email.toString() + ")" || "N/A"}
 `;
         }
@@ -1124,10 +1124,8 @@ export class ProjectService extends DatabaseService<Model> {
           // log this error but do not throw it. Not important enough to stop the process.
           logger.error(err);
         });
-
       }
     }
-
 
     // get project id
     if (IsBillingEnabled) {
@@ -1145,8 +1143,6 @@ export class ProjectService extends DatabaseService<Model> {
         }
       }
     }
-
-
 
     return onDelete;
   }
