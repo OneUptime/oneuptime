@@ -423,7 +423,7 @@ export class ProjectService extends DatabaseService<Model> {
 
   private async sendSubscriptionChangeWebhookSlackNotification(
     projectId: ObjectID,
-  ) {
+  ): Promise<void> {
     if (NotificationSlackWebhookOnSubscriptionUpdate) {
       // fetch project again.
       const project: Model | null = await this.findOneById({
