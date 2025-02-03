@@ -187,8 +187,8 @@ export class ProjectService extends DatabaseService<Model> {
           if (promoCode.planType !== data.data.planName) {
             throw new BadDataException(
               "Promocode is not valid for this plan. Please select the " +
-              promoCode.planType +
-              " plan.",
+                promoCode.planType +
+                " plan.",
             );
           }
 
@@ -319,9 +319,9 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName(),
+              project.id?.toString() +
+              " to " +
+              plan.getName(),
           );
 
           if (!project.paymentProviderSubscriptionSeats) {
@@ -333,11 +333,11 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats,
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats,
           );
 
           const subscription: {
@@ -359,12 +359,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats +
-            " completed.",
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats +
+              " completed.",
           );
 
           // refresh subscription status.
@@ -400,29 +400,30 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-            project.id?.toString() +
-            " to " +
-            plan.getName() +
-            " with seats " +
-            project.paymentProviderSubscriptionSeats +
-            " completed and project updated.",
+              project.id?.toString() +
+              " to " +
+              plan.getName() +
+              " with seats " +
+              project.paymentProviderSubscriptionSeats +
+              " completed and project updated.",
           );
 
-          if (project.id)
+          if (project.id) {
             // send slack message on plan change.
             await this.sendSubscriptionChangeWebhookSlackNotification(
-              project.id
-            )
+              project.id,
+            );
+          }
         }
-
       }
     }
 
     return { updateBy, carryForward: [] };
   }
 
-
-  private async sendSubscriptionChangeWebhookSlackNotification(projectId: ObjectID) {
+  private async sendSubscriptionChangeWebhookSlackNotification(
+    projectId: ObjectID,
+  ) {
     if (NotificationSlackWebhookOnSubscriptionUpdate) {
       // fetch project again.
       const project: Model | null = await this.findOneById({
