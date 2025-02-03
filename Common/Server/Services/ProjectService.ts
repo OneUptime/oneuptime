@@ -3,6 +3,7 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateProject,
   NotificationSlackWebhookOnDeleteProject,
+  NotificationSlackWebhookOnSubscriptionUpdate,
   getAllEnvVars,
 } from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
@@ -186,8 +187,8 @@ export class ProjectService extends DatabaseService<Model> {
           if (promoCode.planType !== data.data.planName) {
             throw new BadDataException(
               "Promocode is not valid for this plan. Please select the " +
-                promoCode.planType +
-                " plan.",
+              promoCode.planType +
+              " plan.",
             );
           }
 
@@ -318,9 +319,9 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName(),
+            project.id?.toString() +
+            " to " +
+            plan.getName(),
           );
 
           if (!project.paymentProviderSubscriptionSeats) {
@@ -332,11 +333,11 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats,
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats,
           );
 
           const subscription: {
@@ -358,12 +359,12 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed.",
           );
 
           // refresh subscription status.
@@ -399,18 +400,75 @@ export class ProjectService extends DatabaseService<Model> {
 
           logger.debug(
             "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed and project updated.",
+            project.id?.toString() +
+            " to " +
+            plan.getName() +
+            " with seats " +
+            project.paymentProviderSubscriptionSeats +
+            " completed and project updated.",
           );
+
+          if (project.id)
+            // send slack message on plan change.
+            await this.sendSubscriptionChangeWebhookSlackNotification(
+              project.id
+            )
         }
+
       }
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+
+  private async sendSubscriptionChangeWebhookSlackNotification(projectId: ObjectID) {
+    if (NotificationSlackWebhookOnSubscriptionUpdate) {
+      // fetch project again.
+      const project: Model | null = await this.findOneById({
+        id: new ObjectID(projectId.toString()),
+        select: {
+          name: true,
+          id: true,
+          createdOwnerName: true,
+          createdOwnerEmail: true,
+          planName: true,
+          createdByUserId: true,
+          paymentProviderSubscriptionStatus: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project) {
+        throw new BadDataException("Project not found");
+      }
+
+      let slackMessage: string = `*Project Plan Changed:*
+*Project Name:* ${project.name?.toString() || "N/A"}
+*Project ID:* ${project.id?.toString() || "N/A"}
+`;
+
+      if (project.createdOwnerName && project.createdOwnerEmail) {
+        slackMessage += `*Project Created By:* ${project?.createdOwnerName?.toString() + "(" + project.createdOwnerEmail.toString() + ")" || "N/A"}
+`;
+      }
+
+      if (IsBillingEnabled) {
+        // which plan?
+        slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"} 
+*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
+`;
+      }
+
+      SlackUtil.sendMessageToChannel({
+        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
+        text: slackMessage,
+      }).catch((error: Exception) => {
+        logger.error("Error sending slack message: " + error);
+      });
+    }
   }
 
   private async addDefaultScheduledMaintenanceState(
@@ -1321,6 +1379,9 @@ export class ProjectService extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    // send slack message on plan change.
+    await this.sendSubscriptionChangeWebhookSlackNotification(projectId);
   }
 
   public getActiveProjectStatusQuery(): Query<Model> {
