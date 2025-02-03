@@ -105,12 +105,12 @@ export default class BlogPostUtil {
 
     const fileData:
       | HTTPResponse<
-          | JSONObjectOrArray
-          | BaseModel
-          | BaseModel[]
-          | AnalyticsBaseModel
-          | AnalyticsBaseModel[]
-        >
+        | JSONObjectOrArray
+        | BaseModel
+        | BaseModel[]
+        | AnalyticsBaseModel
+        | AnalyticsBaseModel[]
+      >
       | HTTPErrorResponse = await API.get(fileUrl);
 
     if (fileData.isFailure()) {
@@ -154,7 +154,7 @@ export default class BlogPostUtil {
   }
 
   public static async getHomeUrl(): Promise<URL> {
-    return DatabaseConfig.getHomeUrl();
+    return await DatabaseConfig.getHomeUrl();
   }
 
   public static async getBlogPostFromFile(
@@ -193,8 +193,8 @@ export default class BlogPostUtil {
       tags,
       postDate,
       formattedPostDate,
-      socialMediaImageUrl: `${this.getHomeUrl().toString()}/posts/${fileName}/social-media.png`,
-      blogUrl: `${this.getHomeUrl().toString()}/blog/post/${fileName}/view`,
+      socialMediaImageUrl: `${(await this.getHomeUrl()).toString()}/posts/${fileName}/social-media.png`,
+      blogUrl: `${(await this.getHomeUrl()).toString()}/blog/post/${fileName}/view`,
     };
 
     return blogPost;
