@@ -1,0 +1,108 @@
+{
+    "display_information": {
+        "name": "OneUptime",
+        "description": "The Complete Open-Source Observability Platform",
+        "background_color": "#000000",
+        "long_description": "OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors."
+    },
+    "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": false,
+            "messages_tab_read_only_enabled": false
+        },
+        "bot_user": {
+            "display_name": "OneUptime",
+            "always_online": true
+        }
+    },
+    "oauth_config": {
+        "scopes": {
+            "user": [
+                "users:read.email",
+                "users:read"
+            ],
+            "bot": [
+                "app_mentions:read",
+                "assistant:write",
+                "bookmarks:read",
+                "bookmarks:write",
+                "calls:write",
+                "calls:read",
+                "canvases:read",
+                "canvases:write",
+                "channels:history",
+                "channels:join",
+                "channels:manage",
+                "channels:read",
+                "channels:write.invites",
+                "channels:write.topic",
+                "chat:write",
+                "chat:write.customize",
+                "chat:write.public",
+                "commands",
+                "conversations.connect:manage",
+                "conversations.connect:read",
+                "files:read",
+                "conversations.connect:write",
+                "dnd:read",
+                "emoji:read",
+                "files:write",
+                "groups:history",
+                "groups:read",
+                "groups:write",
+                "groups:write.invites",
+                "groups:write.topic",
+                "im:read",
+                "im:history",
+                "incoming-webhook",
+                "links.embed:write",
+                "im:write.topic",
+                "im:write",
+                "links:read",
+                "links:write",
+                "metadata.message:read",
+                "mpim:history",
+                "pins:read",
+                "users:read.email",
+                "users:read",
+                "mpim:read",
+                "mpim:write",
+                "mpim:write.topic",
+                "pins:write",
+                "reactions:write",
+                "reactions:read",
+                "reminders:read",
+                "search:read.files",
+                "remote_files:write",
+                "remote_files:share",
+                "reminders:write",
+                "remote_files:read",
+                "search:read.im",
+                "team.billing:read",
+                "team.preferences:read",
+                "search:read.mpim",
+                "search:read.private",
+                "search:read.public",
+                "usergroups:read",
+                "usergroups:write",
+                "triggers:write",
+                "team:read",
+                "triggers:read",
+                "users.profile:read",
+                "users:write",
+                "workflows.templates:read",
+                "workflow.steps:execute",
+                "workflows.templates:write"
+            ]
+        }
+    },
+    "settings": {
+        "interactivity": {
+            "is_enabled": true
+        },
+        "org_deploy_enabled": true,
+        "socket_mode_enabled": true,
+        "token_rotation_enabled": false
+    }
+}
