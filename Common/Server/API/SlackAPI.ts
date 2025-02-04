@@ -18,6 +18,14 @@ export default class SlackAPI {
 
     const router: ExpressRouter = Express.getRouter();
 
+
+    router.get("/slack/app-manifest", (req: ExpressRequest, res: ExpressResponse) => {
+      // return app manifest for slack app
+      return Response.sendJsonObjectResponse(req, res, {
+        // TODO: Add the slack app manifest here.
+      });
+    });
+
     router.get("/slack/auth", (req: ExpressRequest, res: ExpressResponse) => {
 
       const projectId: string | undefined = req.query["projectId"]?.toString();
