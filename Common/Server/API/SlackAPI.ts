@@ -11,6 +11,7 @@ import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { DashboardClientUrl } from "../EnvironmentConfig";
 import SlackAppManifest from "../Utils/Slack/app-manifest.json";
+import URL from "../../Types/API/URL";
 
 
 export default class SlackAPI {
@@ -25,6 +26,16 @@ export default class SlackAPI {
     });
 
     router.get("/slack/auth", (req: ExpressRequest, res: ExpressResponse) => {
+
+
+      // if there's an error query param. 
+      const error: string | undefined = req.query["error"]?.toString();
+
+      const slackIntegrationPageUrl: URL = URL.fromString(DashboardClientUrl.toString() + "/user-settings/slack-integration");
+
+      if(error){
+        return Response.redirect(req, res, slackIntegrationPageUrl.addQueryParam("error", error));
+      }
 
       const projectId: string | undefined = req.query["projectId"]?.toString();
       const userId: string | undefined = req.query["userId"]?.toString();
@@ -42,7 +53,7 @@ export default class SlackAPI {
       logger.debug(requestBody);
 
       // return back to dashboard after successful auth. 
-      Response.redirect(req, res, DashboardClientUrl);
+      Response.redirect(req, res, slackIntegrationPageUrl);
     });
 
     router.post("/slack/interactive", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {

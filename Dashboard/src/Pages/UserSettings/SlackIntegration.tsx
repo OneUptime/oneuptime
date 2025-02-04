@@ -11,7 +11,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
-import { APP_API_URL, SlackAppClientId } from "Common/UI/Config";
+import { APP_API_URL, HOME_URL, SlackAppClientId } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -22,6 +22,8 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
@@ -36,7 +38,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     try {
       setError(null);
       setIsLoading(true);
-      const response = await API.get<JSONObject>(URL.fromString("/api/slack/app-manifest"));
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get<JSONObject>(URL.fromString(`${HOME_URL.toString()}/api/slack/app-manifest`));
+
+      if(response instanceof HTTPErrorResponse){
+        throw response; 
+      }
+
       setManifest(response.data);
     } catch (error) {
       setError(
@@ -50,6 +57,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   useEffect(() => {
+
+    // if this page has aqueryn param with error, then there was the error in authentication. 
+    const error: string | null = Navigation.getQueryStringByName("error");
+
+    if(error){
+      setError(
+        <div>
+          {error}
+        </div>
+      );
+      return;
+    }
+
     fetchAppManifest().catch((error: Exception) => {
       setError(
         <div>
