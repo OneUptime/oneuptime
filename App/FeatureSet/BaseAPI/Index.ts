@@ -512,6 +512,9 @@ import ScheduledMaintenanceFeedService, {
   Service as ScheduledMaintenanceFeedServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceFeedService";
 
+
+import SlackAPI from "Common/Server/API/SlackAPI";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -1367,6 +1370,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SlackAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

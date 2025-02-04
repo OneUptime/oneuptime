@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 
 export default class SlackUtil {
+
   public static async sendMessageToChannel(data: {
     url: URL;
     text: string;
