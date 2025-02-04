@@ -40,7 +40,7 @@ export default class SlackAuthorization {
     const signature: string = `v0=${crypto.createHmac("sha256", slackSigningSecret).update(baseString).digest("hex")}`;
 
     // check if the signature is valid
-    if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(slackSignature)) === false) {
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(slackSignature))) {
         return Response.sendErrorResponse(
             req,
             res,

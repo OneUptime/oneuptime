@@ -30,6 +30,68 @@ export default class SlackAPI {
         })
       }
 
+
+      // if event is "create-incident" then show the incident create modal with title and description and add a button to submit the form.
+
+      if (body.event && body.event.type === "create-incident") {
+        return Response.sendJsonObjectResponse(req, res, {
+          "type": "modal",
+          "title": {
+            "type": "plain_text",
+            "text": "Create Incident"
+          },
+          "blocks": [
+            {
+              "type": "input",
+              "block_id": "title",
+              "element": {
+                "type": "plain_text_input",
+                "action_id": "title",
+                "placeholder": {
+                  "type": "plain_text",
+                  "text": "Incident Title"
+                }
+              },
+              "label": {
+                "type": "plain_text",
+                "text": "Title"
+              }
+            },
+            {
+              "type": "input",
+              "block_id": "description",
+              "element": {
+                "type": "plain_text_input",
+                "action_id": "description",
+                "placeholder": {
+                  "type": "plain_text",
+                  "text": "Incident Description"
+                }
+              },
+              "label": {
+                "type": "plain_text",
+                "text": "Description"
+              }
+            },
+            // button
+            {
+              "type": "actions",
+              "elements": [
+                {
+                  "type": "button",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Submit"
+                  },
+                  "style": "primary",
+                  "value": "submit"
+                }
+              ]
+            }
+          ]
+        });
+      }
+
       return Response.sendErrorResponse(req, res, new BadRequestException("Invalid request"));
     });
 
