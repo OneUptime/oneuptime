@@ -10,7 +10,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
-import { SlackAppClientId } from "Common/UI/Config";
+import { APP_API_URL, HOME_URL, SlackAppClientId } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -38,7 +38,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             buttonStyle: ButtonStyleType.PRIMARY,
             onClick: () => {
               if(SlackAppClientId){
-                Navigation.navigate(URL.fromString(`https://slack.com/oauth/v2/authorize?scope=incoming-webhook&client_id=${SlackAppClientId}&redirect_uri=https://google.com`))
+
+                const redirect_uri: string = `${APP_API_URL}/slack/auth`
+
+                Navigation.navigate(URL.fromString(`https://slack.com/oauth/v2/authorize?scope=incoming-webhook&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`))
               }else{
                 setError(
                   <div>

@@ -6,6 +6,9 @@ import Express, {
 import Response from "../Utils/Response";
 import SlackAuthorization from "../Middleware/SlackAuthorization";
 import BadRequestException from "../../Types/Exception/BadRequestException";
+import logger from "../Utils/Logger";
+import { JSONObject } from "../../Types/JSON";
+import { DASHBOARD_URL } from "../../UI/Config";
 
 
 export default class SlackAPI {
@@ -14,8 +17,25 @@ export default class SlackAPI {
 
     const router: ExpressRouter = Express.getRouter();
 
-    router.get("/slack/auth", (_req: ExpressRequest, res: ExpressResponse) => {
-      return Response.sendEmptySuccessResponse(_req, res);
+    router.get("/slack/auth", (req: ExpressRequest, res: ExpressResponse) => {
+
+      const projectId: string | undefined = req.query["projectId"]?.toString();
+      const userId: string | undefined = req.query["userId"]?.toString();
+
+      if(!projectId){
+        return Response.sendErrorResponse(req, res, new BadRequestException("Invalid ProjectID in request"));
+      }
+
+      if(!userId){
+        return Response.sendErrorResponse(req, res, new BadRequestException("Invalid UserID in request"));
+      }
+
+      const requestBody: JSONObject =  req.body;
+      logger.debug("Slack Auth Request Body: ");
+      logger.debug(requestBody);
+
+      // return back to dashboard after successful auth. 
+      Response.redirect(req, res, DASHBOARD_URL);
     });
 
 
