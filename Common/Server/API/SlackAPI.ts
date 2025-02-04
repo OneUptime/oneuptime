@@ -48,14 +48,23 @@ export default class SlackAPI {
     });
 
     router.post("/slack/interactive", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
+      return Response.sendJsonObjectResponse(req, res, {
+        "response_action": "clear"
+      });
     });
 
     // options load endpoint. 
 
     router.post("/slack/options-load", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
+      return Response.sendJsonObjectResponse(req, res, {
+        "response_action": "clear"
+      });
     });
 
     router.post("/slack/command", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
+      return Response.sendJsonObjectResponse(req, res, {
+        "response_action": "clear"
+      });
     });
 
 

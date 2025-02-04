@@ -67,7 +67,7 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
-import SlackUtil from "../Utils/Slack";
+import SlackUtil from "../Utils/Slack/Slack";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 
