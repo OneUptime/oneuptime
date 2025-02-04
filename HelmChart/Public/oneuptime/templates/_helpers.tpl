@@ -20,6 +20,8 @@ Usage:
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
+- name: SLACK_APP_CLIENT_ID
+  value: {{ $.Values.slackApp.clientId }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
@@ -151,6 +153,12 @@ Usage:
 {{- define "oneuptime.env.commonServer" }}
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
+
+- name: SLACK_APP_CLIENT_SECRET
+  value: {{ $.Values.slackApp.clientSecret }}
+
+- name: SLACK_APP_SIGNING_SECRET
+  value: {{ $.Values.slackApp.signingSecret }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
