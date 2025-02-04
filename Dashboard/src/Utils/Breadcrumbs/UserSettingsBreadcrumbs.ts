@@ -19,6 +19,10 @@ export function getUserSettingsBreadcrumbs(
       PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
       ["Project", "User Settings", "Incident On-Call Rules"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.USER_SETTINGS_SLACK_INTEGRATION,
+      ["Project", "User Settings", "Slack Integration"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES, [
       "Project",
       "User Settings",

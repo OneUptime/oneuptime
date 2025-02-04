@@ -78,6 +78,17 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           subItemLink={subItemMenuLink}
         />
       </SideMenuSection>
+      <SideMenuSection title="Integrations">
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };
