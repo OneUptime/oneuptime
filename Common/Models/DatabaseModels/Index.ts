@@ -161,10 +161,15 @@ import Dashboard from "./Dashboard";
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
+import UserAuthToken from "./UserAuthToken";
+import ProjectAuthToken from "./ProjectAuthToken";
+
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [
   User,
+  UserAuthToken,
+  ProjectAuthToken,
   Probe,
   Project,
   EmailVerificationToken,
