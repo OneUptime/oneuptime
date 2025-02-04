@@ -109,7 +109,6 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
       });
     });
   } else {
-    req.rawBody = req.body; 
     jsonBodyParserMiddleware(req, res, next);
   }
 });

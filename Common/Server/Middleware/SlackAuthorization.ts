@@ -30,7 +30,7 @@ export default class SlackAuthorization {
 
     const slackSignature: string = req.headers["x-slack-signature"] as string;
     const timestamp: string = req.headers["x-slack-request-timestamp"] as string;
-    const requestBody: string = req.rawBody || "";
+    const requestBody: string = req.body; 
 
     logger.debug(`slackSignature: ${slackSignature}`);
     logger.debug(`timestamp: ${timestamp}`);
