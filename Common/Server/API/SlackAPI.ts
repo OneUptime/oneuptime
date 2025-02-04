@@ -8,7 +8,8 @@ import SlackAuthorization from "../Middleware/SlackAuthorization";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import { DASHBOARD_URL } from "../../UI/Config";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { DashboardClientUrl } from "../EnvironmentConfig";
 
 
 export default class SlackAPI {
@@ -23,11 +24,11 @@ export default class SlackAPI {
       const userId: string | undefined = req.query["userId"]?.toString();
 
       if(!projectId){
-        return Response.sendErrorResponse(req, res, new BadRequestException("Invalid ProjectID in request"));
+        return Response.sendErrorResponse(req, res, new BadDataException("Invalid ProjectID in request"));
       }
 
       if(!userId){
-        return Response.sendErrorResponse(req, res, new BadRequestException("Invalid UserID in request"));
+        return Response.sendErrorResponse(req, res, new BadDataException("Invalid UserID in request"));
       }
 
       const requestBody: JSONObject =  req.body;
@@ -35,7 +36,18 @@ export default class SlackAPI {
       logger.debug(requestBody);
 
       // return back to dashboard after successful auth. 
-      Response.redirect(req, res, DASHBOARD_URL);
+      Response.redirect(req, res, DashboardClientUrl);
+    });
+
+    router.post("/slack/interactive", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
+    });
+
+    // options load endpoint. 
+
+    router.post("/slack/options-load", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
+    });
+
+    router.post("/slack/command", SlackAuthorization.isAuthorizedSlackRequest,  (req: ExpressRequest, res: ExpressResponse) => {
     });
 
 

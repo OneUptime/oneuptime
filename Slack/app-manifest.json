@@ -14,13 +14,39 @@
         "bot_user": {
             "display_name": "OneUptime",
             "always_online": true
-        }
+        },
+        "shortcuts": [
+            {
+                "name": "Create Scheduled Event",
+                "type": "global",
+                "callback_id": "create-scheduled-maintenance",
+                "description": "Create a new scheduled event in OneUptime"
+            },
+            {
+                "name": "Create New Incident",
+                "type": "global",
+                "callback_id": "create-incident",
+                "description": "Creates a new incident in OneUptime"
+            }
+        ],
+        "slash_commands": [
+            {
+                "command": "/oneuptime",
+                "url": "https://local.genosyn.com/api/slack/command",
+                "description": "OneUptime command",
+                "usage_hint": "incident, scheduled event.",
+                "should_escape": false
+            }
+        ]
     },
     "oauth_config": {
+        "redirect_urls": [
+            "https://local.genosyn.com/api/slack/auth"
+        ],
         "scopes": {
             "user": [
-                "users:read.email",
-                "users:read"
+                "users:read",
+                "users:read.email"
             ],
             "bot": [
                 "app_mentions:read",
@@ -99,10 +125,12 @@
     },
     "settings": {
         "interactivity": {
-            "is_enabled": true
+            "is_enabled": true,
+            "request_url": "https://local.genosyn.com/api/slack/interactive",
+            "message_menu_options_url": "https://local.genosyn.com/api/slack/options-load"
         },
         "org_deploy_enabled": true,
-        "socket_mode_enabled": true,
+        "socket_mode_enabled": false,
         "token_rotation_enabled": false
     }
 }
