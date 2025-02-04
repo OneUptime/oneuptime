@@ -8,6 +8,8 @@ import React, {
 import Card from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Navigation from "Common/UI/Utils/Navigation";
+import URL from "Common/Types/API/URL";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
@@ -23,7 +25,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: `Connect with Slack`,
             buttonStyle: ButtonStyleType.PRIMARY,
             onClick: () => {
-              // redirect to slack oauth workflow. 
+             Navigation.navigate(URL.fromString("https://slack.com/oauth/v2/authorize?scope=incoming-webhook&client_id=7205733110631.8419643257392&redirect_uri=https://google.com"))
             },
             icon: IconProp.Slack,
           },
