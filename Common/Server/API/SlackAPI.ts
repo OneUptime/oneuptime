@@ -31,7 +31,7 @@ export default class SlackAPI {
       // if there's an error query param. 
       const error: string | undefined = req.query["error"]?.toString();
 
-      const slackIntegrationPageUrl: URL = URL.fromString(DashboardClientUrl.toString() + "/user-settings/slack-integration");
+      const slackIntegrationPageUrl: URL = URL.fromString(DashboardClientUrl.toString());
 
       if(error){
         return Response.redirect(req, res, slackIntegrationPageUrl.addQueryParam("error", error));

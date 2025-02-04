@@ -27,7 +27,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
-
   const [error, setError] = React.useState<ReactElement | null>(null);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -64,7 +63,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     if(error){
       setError(
         <div>
-          {error}
+          There was an error while connecting with Slack. Please try again.
         </div>
       );
       return;
