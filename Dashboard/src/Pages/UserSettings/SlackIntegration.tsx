@@ -13,7 +13,6 @@ import URL from "Common/Types/API/URL";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
-
   return (
     <Fragment>
       <div>

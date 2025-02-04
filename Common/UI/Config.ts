@@ -240,3 +240,5 @@ export const OpenTelemetryExporterOtlpHeaders: Dictionary<string> =
   getOpenTelemetryExporterOtlpHeaders();
 
 export const DisableTelemetry: boolean = env("DISABLE_TELEMETRY") === "true";
+
+export const SlackAppClientId: string | null = env("SLACK_APP_CLIENT_ID") || null;

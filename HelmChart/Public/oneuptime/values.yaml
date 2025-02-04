@@ -468,3 +468,9 @@ incomingRequestIngest:
 
 isolatedVM:
   disableTelemetryCollection: false
+
+
+slackApp: 
+  clientId:
+  clientSecret:
+  signingSecret:
