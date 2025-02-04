@@ -95,6 +95,15 @@ const DocsNav: NavGroup[] = [
       { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
     ],
   },
+  {
+    title: "Self Hosted",
+    links: [
+      {
+        title: "Slack Integration",
+        url: "/docs/self-hosted/slack-integration",
+      },
+    ],
+  }
 ];
 
 // Export the array of navigation groups
