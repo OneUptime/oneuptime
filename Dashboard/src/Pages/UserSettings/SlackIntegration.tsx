@@ -145,7 +145,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                   Navigation.navigate(URL.fromString(`https://slack.com/oauth/v2/authorize?scope=${
                     botScopes.join(",")
-                  }user_scope=${
+                  }&user_scope=${
                     userScopes.join(",")
                   }&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`))
                 } else {
