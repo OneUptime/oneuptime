@@ -11,7 +11,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
-import { APP_API_URL, HOME_URL, SlackAppClientId } from "Common/UI/Config";
+import { APP_API_URL, SlackAppClientId } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -101,16 +101,33 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   }
 
 
-                  const scopes: Array<string> =[]; 
+                  const userScopes: Array<string> =[]; 
 
                   if(manifest && manifest["oauth_config"] && ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) && ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["user"] && (((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["user"] as Array<string>).length > 0){
-                    scopes.push(...(((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["user"] as Array<string>));
+                    userScopes.push(...(((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["user"] as Array<string>));
+                  }
+
+                  const botScopes: Array<string> =[];
+
+                  if(manifest && manifest["oauth_config"] && ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) && ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["bot"] && (((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["bot"] as Array<string>).length > 0){
+                    botScopes.push(...(((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)["bot"] as Array<string>));
+                  }
+
+                  // if any of the user or bot scopes length = = then error. 
+                  if(userScopes.length === 0 || botScopes.length === 0){
+                    setError(
+                      <div>
+                        Looks like the Slack App scopes are not set properly. For more information, please check this guide to set up Slack App properly: <Link to={new Route("/docs/self-hosted/slack-integration")} openInNewTab={true}>Slack Integration</Link>
+                      </div>);
+                    return;
                   }
 
                   const redirect_uri: string = `${APP_API_URL}/slack/auth?projectId=${projectId.toString()}&userId=${userId.toString()}`;
 
                   Navigation.navigate(URL.fromString(`https://slack.com/oauth/v2/authorize?scope=${
-                    scopes.join(",")
+                    botScopes.join(",")
+                  }user_scope=${
+                    userScopes.join(",")
                   }&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`))
                 } else {
                   setError(

@@ -10,20 +10,18 @@ import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { DashboardClientUrl } from "../EnvironmentConfig";
+import SlackAppManifest from "../Utils/Slack/app-manifest.json";
 
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
-    
 
     const router: ExpressRouter = Express.getRouter();
 
 
     router.get("/slack/app-manifest", (req: ExpressRequest, res: ExpressResponse) => {
       // return app manifest for slack app
-      return Response.sendJsonObjectResponse(req, res, {
-        // TODO: Add the slack app manifest here.
-      });
+      return Response.sendJsonObjectResponse(req, res, SlackAppManifest);
     });
 
     router.get("/slack/auth", (req: ExpressRequest, res: ExpressResponse) => {
