@@ -47,7 +47,6 @@ const UserSettingsNotiifcationSetting: LazyExoticComponent<
   return import("../Pages/UserSettings/NotificationSettings");
 });
 
-
 const UserSettingsSlackIntegration: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -158,21 +157,16 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={
-            UserSettingsRoutePath[
-              PageMap.USER_SETTINGS_SLACK_INTEGRATION
-            ] || ""
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_SLACK_INTEGRATION] || ""
           }
           element={
             <Suspense fallback={Loader}>
               <UserSettingsSlackIntegration
                 {...props}
                 pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_SLACK_INTEGRATION
-                  ] as Route
+                  RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route
                 }
               />
             </Suspense>
