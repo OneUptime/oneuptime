@@ -14,7 +14,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm"; 
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
 export interface Settings {
@@ -26,7 +26,6 @@ export interface SlackSettings extends Settings {
   teamName: string;
   botUserId: string;
 }
-
 
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -112,7 +111,7 @@ class ServiceProviderSetting extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public settings?: SlackSettings  = undefined;
+  public settings?: SlackSettings = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -134,8 +133,6 @@ class ServiceProviderSetting extends BaseModel {
     nullable: false,
   })
   public serviceProviderType?: ServiceProviderType = undefined;
-
-
 
   @ColumnAccessControl({
     create: [],

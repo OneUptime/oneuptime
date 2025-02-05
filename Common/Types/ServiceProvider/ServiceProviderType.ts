@@ -1,4 +1,4 @@
- enum ServiceProviderType {
+enum ServiceProviderType {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
 }

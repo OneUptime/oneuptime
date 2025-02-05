@@ -2,8 +2,8 @@ import ObjectID from "../../Types/ObjectID";
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  SlackMiscData,
-} from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+  SlackSettings,
+} from "Common/Models/DatabaseModels/ServiceProviderSetting";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -12,7 +12,6 @@ export class Service extends DatabaseService<Model> {
 
   public async doesExist(data: {
     projectId: ObjectID;
-    userId: ObjectID;
     serviceProviderType: ServiceProviderType;
   }): Promise<boolean> {
     return (
@@ -20,7 +19,6 @@ export class Service extends DatabaseService<Model> {
         await this.countBy({
           query: {
             projectId: data.projectId,
-            userId: data.userId,
             serviceProviderType: data.serviceProviderType,
           },
           skip: 0,
@@ -33,18 +31,14 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
-  public async refreshAuthToken(data: {
+  public async refreshSetting(data: {
     projectId: ObjectID;
-    userId: ObjectID;
     serviceProviderType: ServiceProviderType;
-    authToken: string;
-    serviceProviderUserId: string;
-    miscData: SlackMiscData;
+    settings: SlackSettings;
   }): Promise<void> {
-    let userAuth: Model | null = await this.findOneBy({
+    let serviceProviderSetting: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        userId: data.userId,
         serviceProviderType: data.serviceProviderType,
       },
       select: {
@@ -55,29 +49,24 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if (!userAuth) {
-      userAuth = new Model();
+    if (!serviceProviderSetting) {
+      serviceProviderSetting = new Model();
 
-      userAuth.projectId = data.projectId;
-      userAuth.userId = data.userId;
-      userAuth.authToken = data.authToken;
-      userAuth.serviceProviderType = data.serviceProviderType;
-      userAuth.serviceProviderUserId = data.serviceProviderUserId;
-      userAuth.miscData = data.miscData;
+      serviceProviderSetting.projectId = data.projectId;
+      serviceProviderSetting.settings = data.settings;
+      serviceProviderSetting.serviceProviderType = data.serviceProviderType;
 
       await this.create({
-        data: userAuth,
+        data: serviceProviderSetting,
         props: {
           isRoot: true,
         },
       });
     } else {
       await this.updateOneById({
-        id: userAuth.id!,
+        id: serviceProviderSetting.id!,
         data: {
-          authToken: data.authToken,
-          serviceProviderUserId: data.serviceProviderUserId,
-          miscData: data.miscData,
+          settings: data.settings,
         },
         props: {
           isRoot: true,

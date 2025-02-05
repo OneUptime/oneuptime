@@ -514,7 +514,6 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 
-
 import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ServiceProviderProjectAuthTokenService, {
   Service as ServiceProviderProjectAuthTokenServiceType,
@@ -525,6 +524,11 @@ import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServicePr
 import ServiceProviderUserAuthTokenService, {
   Service as ServiceProviderUserAuthTokenServiceType,
 } from "Common/Server/Services/ServiceProviderUserAuthTokenService";
+
+import ServiceProviderSetting from "Common/Models/DatabaseModels/ServiceProviderSetting";
+import ServiceProviderSettingService, {
+  Service as ServiceProviderSettingServiceType,
+} from "Common/Server/Services/ServiceProviderSettingService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -553,6 +557,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorTest, MonitorTestServiceType>(
         MonitorTest,
         MonitorTestService,
+      ).getRouter(),
+    );
+
+    //service provider setting
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceProviderSetting, ServiceProviderSettingServiceType>(
+        ServiceProviderSetting,
+        ServiceProviderSettingService,
       ).getRouter(),
     );
 
@@ -590,17 +603,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceProviderProjectAuthToken, ServiceProviderProjectAuthTokenServiceType>( 
+      new BaseAPI<
+        ServiceProviderProjectAuthToken,
+        ServiceProviderProjectAuthTokenServiceType
+      >(
         ServiceProviderProjectAuthToken,
         ServiceProviderProjectAuthTokenService,
       ).getRouter(),
     );
 
-
     // user auth token
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceProviderUserAuthToken, ServiceProviderUserAuthTokenServiceType>(
+      new BaseAPI<
+        ServiceProviderUserAuthToken,
+        ServiceProviderUserAuthTokenServiceType
+      >(
         ServiceProviderUserAuthToken,
         ServiceProviderUserAuthTokenService,
       ).getRouter(),

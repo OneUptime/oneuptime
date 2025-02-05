@@ -27,7 +27,6 @@ export interface SlackMiscData extends MiscData {
   botUserId: string;
 }
 
-
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({

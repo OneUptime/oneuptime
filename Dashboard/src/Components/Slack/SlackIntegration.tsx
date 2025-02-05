@@ -22,16 +22,13 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import ServiceProviderProjectAuthToken, {
-  ServiceProviderType,
-} from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
-import ServiceProviderUserAuthToken, {
-  ServiceProviderUserAuthTokenServiceProviderType,
-} from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 
 const SlackIntegration: FunctionComponent = (): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
@@ -41,9 +38,8 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
   const [manifest, setManifest] = React.useState<JSONObject | null>(null);
   const [isUserAccountAlreadyConnected, setIsUserAccountAlreadyConnected] =
     React.useState<boolean>(false);
-  const [userAuthTokenId, setServiceProviderUserAuthTokenId] = React.useState<ObjectID | null>(
-    null,
-  );
+  const [userAuthTokenId, setServiceProviderUserAuthTokenId] =
+    React.useState<ObjectID | null>(null);
   const [projectAuthTokenId, setServiceProviderProjectAuthTokenId] =
     React.useState<ObjectID | null>(null);
   const [
@@ -87,7 +83,7 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
           modelType: ServiceProviderUserAuthToken,
           query: {
             userId: UserUtil.getUserId()!,
-            serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType.Slack,
+            serviceProviderType: ServiceProviderType.Slack,
           },
           select: {
             _id: true,
@@ -152,13 +148,11 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-
   let cardTitle: string = "";
   let cardDescription: string = "";
   let cardButtons: Array<CardButtonSchema> = [];
 
-
-  // if user and project both connected with slack, then. 
+  // if user and project both connected with slack, then.
   if (isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
     cardTitle = `You are connected with Slack`;
     cardDescription = `Your account is already connected with Slack.`;
@@ -182,16 +176,14 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
             } else {
               setError(
                 <div>
-                  Looks like the user auth token id is not set properly.
-                  Please try again.
+                  Looks like the user auth token id is not set properly. Please
+                  try again.
                 </div>,
               );
             }
           } catch (error) {
             setError(
-              <div>
-                {API.getFriendlyErrorMessage(error as Exception)}
-              </div>,
+              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
             );
           }
           setIsButtonLoading(false);
@@ -201,18 +193,16 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
     ];
   }
 
-
-  const connectWithSlack = () => {
+  const connectWithSlack: VoidFunction = (): void => {
     if (SlackAppClientId) {
-      const projectId: ObjectID | null =
-        ProjectUtil.getCurrentProjectId();
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
       const userId: ObjectID | null = UserUtil.getUserId();
 
       if (!projectId) {
         setError(
           <div>
-            Looks like you have not selected any project. Please
-            select a project to continue.
+            Looks like you have not selected any project. Please select a
+            project to continue.
           </div>,
         );
         return;
@@ -221,8 +211,7 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
       if (!userId) {
         setError(
           <div>
-            Looks like you are not logged in. Please login to
-            continue.
+            Looks like you are not logged in. Please login to continue.
           </div>,
         );
         return;
@@ -233,27 +222,19 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
       if (
         manifest &&
         manifest["oauth_config"] &&
-        ((manifest["oauth_config"] as JSONObject)[
-          "scopes"
-        ] as JSONObject) &&
+        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) &&
+        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
+          "user"
+        ] &&
         (
-          (manifest["oauth_config"] as JSONObject)[
-          "scopes"
-          ] as JSONObject
-        )["user"] &&
-        (
-          (
-            (manifest["oauth_config"] as JSONObject)[
-            "scopes"
-            ] as JSONObject
-          )["user"] as Array<string>
+          ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
+            "user"
+          ] as Array<string>
         ).length > 0
       ) {
         userScopes.push(
           ...((
-            (manifest["oauth_config"] as JSONObject)[
-            "scopes"
-            ] as JSONObject
+            (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
           )["user"] as Array<string>),
         );
       }
@@ -263,27 +244,19 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
       if (
         manifest &&
         manifest["oauth_config"] &&
-        ((manifest["oauth_config"] as JSONObject)[
-          "scopes"
-        ] as JSONObject) &&
+        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) &&
+        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
+          "bot"
+        ] &&
         (
-          (manifest["oauth_config"] as JSONObject)[
-          "scopes"
-          ] as JSONObject
-        )["bot"] &&
-        (
-          (
-            (manifest["oauth_config"] as JSONObject)[
-            "scopes"
-            ] as JSONObject
-          )["bot"] as Array<string>
+          ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
+            "bot"
+          ] as Array<string>
         ).length > 0
       ) {
         botScopes.push(
           ...((
-            (manifest["oauth_config"] as JSONObject)[
-            "scopes"
-            ] as JSONObject
+            (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
           )["bot"] as Array<string>),
         );
       }
@@ -292,13 +265,10 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
       if (userScopes.length === 0 || botScopes.length === 0) {
         setError(
           <div>
-            Looks like the Slack App scopes are not set
-            properly. For more information, please check this
-            guide to set up Slack App properly:{" "}
+            Looks like the Slack App scopes are not set properly. For more
+            information, please check this guide to set up Slack App properly:{" "}
             <Link
-              to={
-                new Route("/docs/self-hosted/slack-integration")
-              }
+              to={new Route("/docs/self-hosted/slack-integration")}
               openInNewTab={true}
             >
               Slack Integration
@@ -322,14 +292,11 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
     } else {
       setError(
         <div>
-          Looks like the Slack App Client ID is not set in the
-          environment variables when you installed OneUptime.
-          For more information, please check this guide to set
-          up Slack App properly:{" "}
+          Looks like the Slack App Client ID is not set in the environment
+          variables when you installed OneUptime. For more information, please
+          check this guide to set up Slack App properly:{" "}
           <Link
-            to={
-              new Route("/docs/self-hosted/slack-integration")
-            }
+            to={new Route("/docs/self-hosted/slack-integration")}
             openInNewTab={true}
           >
             Slack Integration
@@ -337,22 +304,23 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
         </div>,
       );
     }
-  }
+  };
 
+  type GetConnectWithSlackButtonFunction = (title: string) => CardButtonSchema;
 
-
-  const getConnectWithSlackButton = (title: string) => {
+  const getConnectWithSlackButton: GetConnectWithSlackButtonFunction = (
+    title: string,
+  ): CardButtonSchema => {
     return {
       title: title || `Connect with Slack`,
       buttonStyle: ButtonStyleType.PRIMARY,
-      onClick: () => connectWithSlack(),
+      onClick: () => {
+        return connectWithSlack();
+      },
 
       icon: IconProp.Slack,
-
-    }
-  }
-
-
+    };
+  };
 
   // if user is not connected and the project is connected with slack.
   if (!isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
@@ -380,16 +348,14 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
             } else {
               setError(
                 <div>
-                  Looks like the user auth token id is not set properly.
-                  Please try again.
+                  Looks like the user auth token id is not set properly. Please
+                  try again.
                 </div>,
               );
             }
           } catch (error) {
             setError(
-              <div>
-                {API.getFriendlyErrorMessage(error as Exception)}
-              </div>,
+              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
             );
           }
           setIsButtonLoading(false);
@@ -402,9 +368,7 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
   if (!isUserAccountAlreadyConnected && !isProjectAccountAlreadyConnected) {
     cardTitle = `Connect with Slack`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
-    cardButtons = [
-      getConnectWithSlackButton(`Connect with Slack`),
-    ];
+    cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
   }
 
   return (
@@ -415,7 +379,6 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
           description={cardDescription}
           buttons={cardButtons}
         />
-
       </div>
     </Fragment>
   );

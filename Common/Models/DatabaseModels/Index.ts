@@ -163,6 +163,7 @@ import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
 import ServiceProviderUserAuthToken from "./ServiceProviderUserAuthToken";
 import ServiceProviderProjectAuthToken from "./ServiceProviderProjectAuthToken";
+import ServiceProviderSetting from "./ServiceProviderSetting";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -348,6 +349,8 @@ const AllModelTypes: Array<{
   Dashboard,
 
   MonitorTest,
+
+  ServiceProviderSetting,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
