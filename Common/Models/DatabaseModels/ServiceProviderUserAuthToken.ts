@@ -17,6 +17,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
 export interface MiscData {
   [key: string]: any;
@@ -24,11 +25,6 @@ export interface MiscData {
 
 export interface SlackMiscData extends MiscData {
   userId: string;
-}
-
-export enum ServiceProviderUserAuthTokenServiceProviderType {
-  Slack = "Slack",
-  MicrosoftTeams = "MicrosoftTeams",
 }
 
 @TenantColumn("projectId")
@@ -157,7 +153,7 @@ class ServiceProviderUserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ServiceProviderUserAuthTokenServiceProviderType = undefined;
+  public serviceProviderType?: ServiceProviderType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

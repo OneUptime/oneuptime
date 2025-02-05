@@ -22,7 +22,7 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import ServiceProviderProjectAuthTokenService from "../Services/ServiceProviderProjectAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
-import { ServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderServiceProviderProjectAuthToken";
+import { ServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ServiceProviderUserAuthTokenService from "../Services/ServiceProviderUserAuthTokenService";
 import { ServiceProviderUserAuthTokenServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderUserAuthToken";
 

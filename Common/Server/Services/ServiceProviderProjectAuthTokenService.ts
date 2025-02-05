@@ -1,7 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  ServiceProviderType,
   SlackMiscData,
 } from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 

@@ -1,8 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  SlackMiscData,
-  ServiceProviderUserAuthTokenServiceProviderType,
+  SlackMiscData
 } from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
 
 export class Service extends DatabaseService<Model> {
@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
   public async doesExist(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType;
+    serviceProviderType: ServiceProviderType;
   }): Promise<boolean> {
     return (
       (
@@ -36,7 +36,7 @@ export class Service extends DatabaseService<Model> {
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType;
+    serviceProviderType: ServiceProviderType;
     authToken: string;
     serviceProviderUserId: string;
     miscData: SlackMiscData;

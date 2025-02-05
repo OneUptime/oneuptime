@@ -162,7 +162,7 @@ import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
 import ServiceProviderUserAuthToken from "./ServiceProviderUserAuthToken";
-import ServiceProviderProjectAuthToken from "./ServiceProviderServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthToken from "./ServiceProviderProjectAuthToken";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
