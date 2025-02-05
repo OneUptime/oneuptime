@@ -82,7 +82,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/user-settings/slack-integration`,
+            `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
