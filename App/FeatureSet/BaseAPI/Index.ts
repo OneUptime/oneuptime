@@ -515,16 +515,16 @@ import ScheduledMaintenanceFeedService, {
 import SlackAPI from "Common/Server/API/SlackAPI";
 
 
-import ProjectAuthToken from "Common/Models/DatabaseModels/ProjectAuthToken";
-import ProjectAuthTokenService, {
-  Service as ProjectAuthTokenServiceType,
-} from "Common/Server/Services/ProjectAuthTokenService";
+import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthTokenService, {
+  Service as ServiceProviderProjectAuthTokenServiceType,
+} from "Common/Server/Services/ServiceProviderProjectAuthTokenService";
 
-import UserAuthToken from "Common/Models/DatabaseModels/UserAuthToken";
+import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
 
-import UserAuthTokenService, {
-  Service as UserAuthTokenServiceType,
-} from "Common/Server/Services/UserAuthTokenService";
+import ServiceProviderUserAuthTokenService, {
+  Service as ServiceProviderUserAuthTokenServiceType,
+} from "Common/Server/Services/ServiceProviderUserAuthTokenService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -590,9 +590,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ProjectAuthToken, ProjectAuthTokenServiceType>( 
-        ProjectAuthToken,
-        ProjectAuthTokenService,
+      new BaseAPI<ServiceProviderProjectAuthToken, ServiceProviderProjectAuthTokenServiceType>( 
+        ServiceProviderProjectAuthToken,
+        ServiceProviderProjectAuthTokenService,
       ).getRouter(),
     );
 
@@ -600,9 +600,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     // user auth token
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<UserAuthToken, UserAuthTokenServiceType>(
-        UserAuthToken,
-        UserAuthTokenService,
+      new BaseAPI<ServiceProviderUserAuthToken, ServiceProviderUserAuthTokenServiceType>(
+        ServiceProviderUserAuthToken,
+        ServiceProviderUserAuthTokenService,
       ).getRouter(),
     );
 

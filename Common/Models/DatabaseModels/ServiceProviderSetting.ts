@@ -8,53 +8,49 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import CurrentUserCanAccessRecordBy from "../../Types/Database/CurrentUserCanAccessRecordBy";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
-import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm"; 
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
 export interface MiscData {
-  [key: string]: any;
+  [key: string]: string;
 }
 
 export interface SlackMiscData extends MiscData {
-  userId: string;
+  teamId: string;
+  teamName: string;
+  botUserId: string;
 }
 
-export enum UserAuthTokenServiceProviderType {
-  Slack = "Slack",
-  MicrosoftTeams = "MicrosoftTeams",
-}
 
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
-  create: [Permission.CurrentUser],
-  read: [Permission.CurrentUser],
-  delete: [Permission.CurrentUser],
-  update: [Permission.CurrentUser],
+  create: [],
+  read: [],
+  delete: [],
+  update: [],
 })
-@CrudApiEndpoint(new Route("/user-auth-token"))
+@CrudApiEndpoint(new Route("/project-auth-token"))
 @Entity({
-  name: "UserAuthToken",
+  name: "ServiceProviderProjectAuthToken",
 })
 @TableMetadata({
-  tableName: "UserAuthToken",
-  singularName: "User Auth Token",
-  pluralName: "User Auth Tokens",
+  tableName: "ServiceProviderProjectAuthToken",
+  singularName: "Service Provider Project Auth Token",
+  pluralName: "Service Provider Project Auth Tokens",
   icon: IconProp.Lock,
-  tableDescription: "Third Party Auth Token for the User",
+  tableDescription: "Third Party Auth Token for the Project",
 })
-@CurrentUserCanAccessRecordBy("userId")
-class UserAuthToken extends BaseModel {
+class ServiceProviderProjectAuthToken extends BaseModel {
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -79,8 +75,8 @@ class UserAuthToken extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @Index()
@@ -99,8 +95,8 @@ class UserAuthToken extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -118,29 +114,8 @@ class UserAuthToken extends BaseModel {
   public authToken?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [],
-  })
-  @TableColumn({
-    title: "User ID in Service",
-    description: "User ID in the Service Provider",
-    required: true,
-    unique: false,
-    type: TableColumnType.LongText,
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-    unique: false,
-    nullable: false,
-  })
-  public serviceProviderUserId?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -157,11 +132,31 @@ class UserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: UserAuthTokenServiceProviderType = undefined;
+  public serviceProviderType?: ServiceProviderType = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Project ID in Service Provider",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public serviceProviderProjectId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -179,52 +174,8 @@ class UserAuthToken extends BaseModel {
   public miscData?: MiscData = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "user",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "User",
-    description: "Relation to User who this email belongs to",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "userId" })
-  public user?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "User ID",
-    description: "User ID who this email belongs to",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  @Index()
-  public userId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -250,8 +201,8 @@ class UserAuthToken extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -295,4 +246,4 @@ class UserAuthToken extends BaseModel {
   public deletedByUser?: User = undefined;
 }
 
-export default UserAuthToken;
+export default ServiceProviderProjectAuthToken;

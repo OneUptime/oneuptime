@@ -15,6 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
 export interface MiscData {
   [key: string]: string;
@@ -26,10 +27,6 @@ export interface SlackMiscData extends MiscData {
   botUserId: string;
 }
 
-export enum ProjectAuthtokenServiceProviderType {
-  Slack = "Slack",
-  MicrosoftTeams = "MicrosoftTeams",
-}
 
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -41,16 +38,16 @@ export enum ProjectAuthtokenServiceProviderType {
 })
 @CrudApiEndpoint(new Route("/project-auth-token"))
 @Entity({
-  name: "ProjectAuthToken",
+  name: "ServiceProviderProjectAuthToken",
 })
 @TableMetadata({
-  tableName: "ProjectAuthToken",
-  singularName: "Project Auth Token",
-  pluralName: "Project Auth Tokens",
+  tableName: "ServiceProviderProjectAuthToken",
+  singularName: "Service Provider Project Auth Token",
+  pluralName: "Service Provider Project Auth Tokens",
   icon: IconProp.Lock,
   tableDescription: "Third Party Auth Token for the Project",
 })
-class ProjectAuthToken extends BaseModel {
+class ServiceProviderProjectAuthToken extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -135,7 +132,7 @@ class ProjectAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ProjectAuthtokenServiceProviderType = undefined;
+  public serviceProviderType?: ServiceProviderType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -249,4 +246,4 @@ class ProjectAuthToken extends BaseModel {
   public deletedByUser?: User = undefined;
 }
 
-export default ProjectAuthToken;
+export default ServiceProviderProjectAuthToken;

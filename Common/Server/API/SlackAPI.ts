@@ -20,11 +20,11 @@ import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
-import ProjectAuthTokenService from "../Services/ProjectAuthTokenService";
+import ServiceProviderProjectAuthTokenService from "../Services/ServiceProviderProjectAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
-import { ProjectAuthtokenServiceProviderType } from "../../Models/DatabaseModels/ProjectAuthToken";
-import UserAuthTokenService from "../Services/UserAuthTokenService";
-import { UserAuthTokenServiceProviderType } from "../../Models/DatabaseModels/UserAuthToken";
+import { ServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderServiceProviderProjectAuthToken";
+import ServiceProviderUserAuthTokenService from "../Services/ServiceProviderUserAuthTokenService";
+import { ServiceProviderUserAuthTokenServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderUserAuthToken";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -221,9 +221,9 @@ export default class SlackAPI {
           botUserId = responseBody["bot_user_id"]?.toString();
         }
 
-        await ProjectAuthTokenService.refreshAuthToken({
+        await ServiceProviderProjectAuthTokenService.refreshAuthToken({
           projectId: new ObjectID(projectId),
-          serviceProviderType: ProjectAuthtokenServiceProviderType.Slack,
+          serviceProviderType: ServiceProviderType.Slack,
           authToken: slackBotAccessToken || "",
           serviceProviderProjectId: slackTeamId || "",
           miscData: {
@@ -233,10 +233,10 @@ export default class SlackAPI {
           },
         });
 
-        await UserAuthTokenService.refreshAuthToken({
+        await ServiceProviderUserAuthTokenService.refreshAuthToken({
           projectId: new ObjectID(projectId),
           userId: new ObjectID(userId),
-          serviceProviderType: UserAuthTokenServiceProviderType.Slack,
+          serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType.Slack,
           authToken: slackUserAccessToken || "",
           serviceProviderUserId: slackUserId || "",
           miscData: {

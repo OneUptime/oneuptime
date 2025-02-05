@@ -5,43 +5,43 @@ export class MigrationName1738756463613 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" DROP COLUMN "serviceType"`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" DROP COLUMN "serviceType"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" DROP COLUMN "serviceType"`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" DROP COLUMN "serviceType"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" ADD "serviceProviderUserId" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" ADD "serviceProviderUserId" character varying(500) NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" ADD "serviceProviderType" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" ADD "serviceProviderType" character varying(500) NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" ADD "serviceProviderType" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" ADD "serviceProviderType" character varying(500) NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" ADD "serviceProviderProjectId" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" ADD "serviceProviderProjectId" character varying(500) NOT NULL`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" DROP COLUMN "serviceProviderProjectId"`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" DROP COLUMN "serviceProviderProjectId"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" DROP COLUMN "serviceProviderType"`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" DROP COLUMN "serviceProviderType"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" DROP COLUMN "serviceProviderType"`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" DROP COLUMN "serviceProviderType"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" DROP COLUMN "serviceProviderUserId"`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" DROP COLUMN "serviceProviderUserId"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "ProjectAuthToken" ADD "serviceType" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderProjectAuthToken" ADD "serviceType" character varying(500) NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "UserAuthToken" ADD "serviceType" character varying(500) NOT NULL`,
+      `ALTER TABLE "ServiceProviderUserAuthToken" ADD "serviceType" character varying(500) NOT NULL`,
     );
   }
 }

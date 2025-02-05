@@ -22,15 +22,15 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import ProjectAuthToken, {
-  ProjectAuthtokenServiceProviderType,
-} from "Common/Models/DatabaseModels/ProjectAuthToken";
+import ServiceProviderProjectAuthToken, {
+  ServiceProviderType,
+} from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
-import UserAuthToken, {
-  UserAuthTokenServiceProviderType,
-} from "Common/Models/DatabaseModels/UserAuthToken";
+import ServiceProviderUserAuthToken, {
+  ServiceProviderUserAuthTokenServiceProviderType,
+} from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 const SlackIntegration: FunctionComponent = (): ReactElement => {
@@ -41,10 +41,10 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
   const [manifest, setManifest] = React.useState<JSONObject | null>(null);
   const [isUserAccountAlreadyConnected, setIsUserAccountAlreadyConnected] =
     React.useState<boolean>(false);
-  const [userAuthTokenId, setUserAuthTokenId] = React.useState<ObjectID | null>(
+  const [userAuthTokenId, setServiceProviderUserAuthTokenId] = React.useState<ObjectID | null>(
     null,
   );
-  const [projectAuthTokenId, setProjectAuthTokenId] =
+  const [projectAuthTokenId, setServiceProviderProjectAuthTokenId] =
     React.useState<ObjectID | null>(null);
   const [
     isProjectAccountAlreadyConnected,
@@ -58,12 +58,12 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
       setIsLoading(true);
 
       // check if the project is already connected with slack.
-      const projectAuth: ListResult<ProjectAuthToken> =
-        await ModelAPI.getList<ProjectAuthToken>({
-          modelType: ProjectAuthToken,
+      const projectAuth: ListResult<ServiceProviderProjectAuthToken> =
+        await ModelAPI.getList<ServiceProviderProjectAuthToken>({
+          modelType: ServiceProviderProjectAuthToken,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
-            serviceProviderType: ProjectAuthtokenServiceProviderType.Slack,
+            serviceProviderType: ServiceProviderType.Slack,
           },
           select: {
             _id: true,
@@ -77,17 +77,17 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountAlreadyConnected(true);
-        setProjectAuthTokenId(projectAuth.data[0]!.id);
+        setServiceProviderProjectAuthTokenId(projectAuth.data[0]!.id);
       }
 
       // fetch user auth token.
 
-      const userAuth: ListResult<UserAuthToken> =
-        await ModelAPI.getList<UserAuthToken>({
-          modelType: UserAuthToken,
+      const userAuth: ListResult<ServiceProviderUserAuthToken> =
+        await ModelAPI.getList<ServiceProviderUserAuthToken>({
+          modelType: ServiceProviderUserAuthToken,
           query: {
             userId: UserUtil.getUserId()!,
-            serviceProviderType: UserAuthTokenServiceProviderType.Slack,
+            serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType.Slack,
           },
           select: {
             _id: true,
@@ -101,7 +101,7 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
 
       if (userAuth.data.length > 0) {
         setIsUserAccountAlreadyConnected(true);
-        setUserAuthTokenId(userAuth.data[0]!.id);
+        setServiceProviderUserAuthTokenId(userAuth.data[0]!.id);
       }
 
       if (!isUserAccountAlreadyConnected || !isProjectAccountAlreadyConnected) {
@@ -173,12 +173,12 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
             setError(null);
             if (userAuthTokenId) {
               await ModelAPI.deleteItem({
-                modelType: UserAuthToken,
+                modelType: ServiceProviderUserAuthToken,
                 id: userAuthTokenId!,
               });
 
               setIsUserAccountAlreadyConnected(false);
-              setUserAuthTokenId(null);
+              setServiceProviderUserAuthTokenId(null);
             } else {
               setError(
                 <div>
@@ -371,12 +371,12 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
             setError(null);
             if (projectAuthTokenId) {
               await ModelAPI.deleteItem({
-                modelType: ProjectAuthToken,
+                modelType: ServiceProviderProjectAuthToken,
                 id: projectAuthTokenId!,
               });
 
               setIsProjectAccountAlreadyConnected(false);
-              setProjectAuthTokenId(null);
+              setServiceProviderProjectAuthTokenId(null);
             } else {
               setError(
                 <div>

@@ -161,15 +161,15 @@ import Dashboard from "./Dashboard";
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
-import UserAuthToken from "./UserAuthToken";
-import ProjectAuthToken from "./ProjectAuthToken";
+import ServiceProviderUserAuthToken from "./ServiceProviderUserAuthToken";
+import ServiceProviderProjectAuthToken from "./ServiceProviderServiceProviderProjectAuthToken";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [
   User,
-  UserAuthToken,
-  ProjectAuthToken,
+  ServiceProviderUserAuthToken,
+  ServiceProviderProjectAuthToken,
   Probe,
   Project,
   EmailVerificationToken,
