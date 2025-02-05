@@ -514,6 +514,18 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 
+
+import ProjectAuthToken from "Common/Models/DatabaseModels/ProjectAuthToken";
+import ProjectAuthTokenService, {
+  Service as ProjectAuthTokenServiceType,
+} from "Common/Server/Services/ProjectAuthTokenService";
+
+import UserAuthToken from "Common/Models/DatabaseModels/UserAuthToken";
+
+import UserAuthTokenService, {
+  Service as UserAuthTokenServiceType,
+} from "Common/Server/Services/UserAuthTokenService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -573,6 +585,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertNoteTemplate, AlertNoteTemplateServiceType>(
         AlertNoteTemplate,
         AlertNoteTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectAuthToken, ProjectAuthTokenServiceType>( 
+        ProjectAuthToken,
+        ProjectAuthTokenService,
+      ).getRouter(),
+    );
+
+
+    // user auth token
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<UserAuthToken, UserAuthTokenServiceType>(
+        UserAuthToken,
+        UserAuthTokenService,
       ).getRouter(),
     );
 
