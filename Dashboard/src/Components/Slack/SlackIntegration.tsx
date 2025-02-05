@@ -4,7 +4,7 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -152,247 +152,270 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
+
+  let cardTitle: string = "";
+  let cardDescription: string = "";
+  let cardButtons: Array<CardButtonSchema> = [];
+
+
+  // if user and project both connected with slack, then. 
+  if (isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
+    cardTitle = `You are connected with Slack`;
+    cardDescription = `Your account is already connected with Slack.`;
+    cardButtons = [
+      {
+        title: `Disconnect`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.DANGER,
+        onClick: async () => {
+          try {
+            setIsButtonLoading(true);
+            setError(null);
+            if (userAuthTokenId) {
+              await ModelAPI.deleteItem({
+                modelType: UserAuthToken,
+                id: userAuthTokenId!,
+              });
+
+              setIsUserAccountAlreadyConnected(false);
+              setUserAuthTokenId(null);
+            } else {
+              setError(
+                <div>
+                  Looks like the user auth token id is not set properly.
+                  Please try again.
+                </div>,
+              );
+            }
+          } catch (error) {
+            setError(
+              <div>
+                {API.getFriendlyErrorMessage(error as Exception)}
+              </div>,
+            );
+          }
+          setIsButtonLoading(false);
+        },
+        icon: IconProp.Close,
+      },
+    ];
+  }
+
+
+  const connectWithSlack = () => {
+    if (SlackAppClientId) {
+      const projectId: ObjectID | null =
+        ProjectUtil.getCurrentProjectId();
+      const userId: ObjectID | null = UserUtil.getUserId();
+
+      if (!projectId) {
+        setError(
+          <div>
+            Looks like you have not selected any project. Please
+            select a project to continue.
+          </div>,
+        );
+        return;
+      }
+
+      if (!userId) {
+        setError(
+          <div>
+            Looks like you are not logged in. Please login to
+            continue.
+          </div>,
+        );
+        return;
+      }
+
+      const userScopes: Array<string> = [];
+
+      if (
+        manifest &&
+        manifest["oauth_config"] &&
+        ((manifest["oauth_config"] as JSONObject)[
+          "scopes"
+        ] as JSONObject) &&
+        (
+          (manifest["oauth_config"] as JSONObject)[
+          "scopes"
+          ] as JSONObject
+        )["user"] &&
+        (
+          (
+            (manifest["oauth_config"] as JSONObject)[
+            "scopes"
+            ] as JSONObject
+          )["user"] as Array<string>
+        ).length > 0
+      ) {
+        userScopes.push(
+          ...((
+            (manifest["oauth_config"] as JSONObject)[
+            "scopes"
+            ] as JSONObject
+          )["user"] as Array<string>),
+        );
+      }
+
+      const botScopes: Array<string> = [];
+
+      if (
+        manifest &&
+        manifest["oauth_config"] &&
+        ((manifest["oauth_config"] as JSONObject)[
+          "scopes"
+        ] as JSONObject) &&
+        (
+          (manifest["oauth_config"] as JSONObject)[
+          "scopes"
+          ] as JSONObject
+        )["bot"] &&
+        (
+          (
+            (manifest["oauth_config"] as JSONObject)[
+            "scopes"
+            ] as JSONObject
+          )["bot"] as Array<string>
+        ).length > 0
+      ) {
+        botScopes.push(
+          ...((
+            (manifest["oauth_config"] as JSONObject)[
+            "scopes"
+            ] as JSONObject
+          )["bot"] as Array<string>),
+        );
+      }
+
+      // if any of the user or bot scopes length = = then error.
+      if (userScopes.length === 0 || botScopes.length === 0) {
+        setError(
+          <div>
+            Looks like the Slack App scopes are not set
+            properly. For more information, please check this
+            guide to set up Slack App properly:{" "}
+            <Link
+              to={
+                new Route("/docs/self-hosted/slack-integration")
+              }
+              openInNewTab={true}
+            >
+              Slack Integration
+            </Link>
+          </div>,
+        );
+        return;
+      }
+
+      const redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
+
+      Navigation.navigate(
+        URL.fromString(
+          `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
+            ",",
+          )}&user_scope=${userScopes.join(
+            ",",
+          )}&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`,
+        ),
+      );
+    } else {
+      setError(
+        <div>
+          Looks like the Slack App Client ID is not set in the
+          environment variables when you installed OneUptime.
+          For more information, please check this guide to set
+          up Slack App properly:{" "}
+          <Link
+            to={
+              new Route("/docs/self-hosted/slack-integration")
+            }
+            openInNewTab={true}
+          >
+            Slack Integration
+          </Link>
+        </div>,
+      );
+    }
+  }
+
+
+
+  const getConnectWithSlackButton = (title: string) => {
+    return {
+      title: title || `Connect with Slack`,
+      buttonStyle: ButtonStyleType.PRIMARY,
+      onClick: () => connectWithSlack(),
+
+      icon: IconProp.Slack,
+
+    }
+  }
+
+
+
+  // if user is not connected and the project is connected with slack.
+  if (!isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
+    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in your team)`;
+    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardButtons = [
+      // connect with slack button.
+      getConnectWithSlackButton(`Connect my account with Slack`),
+      {
+        title: `Uninstall OneUptime from Slack`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.DANGER,
+        onClick: async () => {
+          try {
+            setIsButtonLoading(true);
+            setError(null);
+            if (projectAuthTokenId) {
+              await ModelAPI.deleteItem({
+                modelType: ProjectAuthToken,
+                id: projectAuthTokenId!,
+              });
+
+              setIsProjectAccountAlreadyConnected(false);
+              setProjectAuthTokenId(null);
+            } else {
+              setError(
+                <div>
+                  Looks like the user auth token id is not set properly.
+                  Please try again.
+                </div>,
+              );
+            }
+          } catch (error) {
+            setError(
+              <div>
+                {API.getFriendlyErrorMessage(error as Exception)}
+              </div>,
+            );
+          }
+          setIsButtonLoading(false);
+        },
+        icon: IconProp.Trash,
+      },
+    ];
+  }
+
+  if (!isUserAccountAlreadyConnected && !isProjectAccountAlreadyConnected) {
+    cardTitle = `Connect with Slack`;
+    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardButtons = [
+      getConnectWithSlackButton(`Connect with Slack`),
+    ];
+  }
+
   return (
     <Fragment>
       <div>
-        {isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected && (
-          <Card
-            title={`Connected with Slack`}
-            description={`Your account is already connected with Slack.`}
-            buttons={[
-              {
-                title: `Disconnect`,
-                isLoading: isButtonLoading,
-                buttonStyle: ButtonStyleType.DANGER,
-                onClick: async () => {
-                  try {
-                    setIsButtonLoading(true);
-                    setError(null);
-                    if (userAuthTokenId) {
-                      await ModelAPI.deleteItem({
-                        modelType: UserAuthToken,
-                        id: userAuthTokenId!,
-                      });
+        <Card
+          title={cardTitle}
+          description={cardDescription}
+          buttons={cardButtons}
+        />
 
-                      setIsUserAccountAlreadyConnected(false);
-                      setUserAuthTokenId(null);
-                    } else {
-                      setError(
-                        <div>
-                          Looks like the user auth token id is not set properly.
-                          Please try again.
-                        </div>,
-                      );
-                    }
-                  } catch (error) {
-                    setError(
-                      <div>
-                        {API.getFriendlyErrorMessage(error as Exception)}
-                      </div>,
-                    );
-                  }
-                  setIsButtonLoading(false);
-                },
-                icon: IconProp.Slack,
-              },
-            ]}
-          ></Card>
-        )}
-
-        {!isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected && (
-          <Card
-            title={`Connected with Slack`}
-            description={`This project is connected with Slack.`}
-            buttons={[
-              {
-                title: `Disconnect Project from Slack`,
-                isLoading: isButtonLoading,
-                buttonStyle: ButtonStyleType.DANGER,
-                onClick: async () => {
-                  try {
-                    setIsButtonLoading(true);
-                    setError(null);
-                    if (projectAuthTokenId) {
-                      await ModelAPI.deleteItem({
-                        modelType: ProjectAuthToken,
-                        id: projectAuthTokenId!,
-                      });
-
-                      setIsProjectAccountAlreadyConnected(false);
-                      setProjectAuthTokenId(null);
-                    } else {
-                      setError(
-                        <div>
-                          Looks like the user auth token id is not set properly.
-                          Please try again.
-                        </div>,
-                      );
-                    }
-                  } catch (error) {
-                    setError(
-                      <div>
-                        {API.getFriendlyErrorMessage(error as Exception)}
-                      </div>,
-                    );
-                  }
-                  setIsButtonLoading(false);
-                },
-                icon: IconProp.Slack,
-              },
-            ]}
-          ></Card>
-        )}
-
-        {!isUserAccountAlreadyConnected ||
-          (!isProjectAccountAlreadyConnected && (
-            <Card
-              title={`Connect with Slack`}
-              description={`Connect your account with Slack to make the most out of OneUptime.`}
-              buttons={[
-                {
-                  title: `Connect with Slack`,
-                  buttonStyle: ButtonStyleType.PRIMARY,
-                  onClick: () => {
-                    if (SlackAppClientId) {
-                      const projectId: ObjectID | null =
-                        ProjectUtil.getCurrentProjectId();
-                      const userId: ObjectID | null = UserUtil.getUserId();
-
-                      if (!projectId) {
-                        setError(
-                          <div>
-                            Looks like you have not selected any project. Please
-                            select a project to continue.
-                          </div>,
-                        );
-                        return;
-                      }
-
-                      if (!userId) {
-                        setError(
-                          <div>
-                            Looks like you are not logged in. Please login to
-                            continue.
-                          </div>,
-                        );
-                        return;
-                      }
-
-                      const userScopes: Array<string> = [];
-
-                      if (
-                        manifest &&
-                        manifest["oauth_config"] &&
-                        ((manifest["oauth_config"] as JSONObject)[
-                          "scopes"
-                        ] as JSONObject) &&
-                        (
-                          (manifest["oauth_config"] as JSONObject)[
-                            "scopes"
-                          ] as JSONObject
-                        )["user"] &&
-                        (
-                          (
-                            (manifest["oauth_config"] as JSONObject)[
-                              "scopes"
-                            ] as JSONObject
-                          )["user"] as Array<string>
-                        ).length > 0
-                      ) {
-                        userScopes.push(
-                          ...((
-                            (manifest["oauth_config"] as JSONObject)[
-                              "scopes"
-                            ] as JSONObject
-                          )["user"] as Array<string>),
-                        );
-                      }
-
-                      const botScopes: Array<string> = [];
-
-                      if (
-                        manifest &&
-                        manifest["oauth_config"] &&
-                        ((manifest["oauth_config"] as JSONObject)[
-                          "scopes"
-                        ] as JSONObject) &&
-                        (
-                          (manifest["oauth_config"] as JSONObject)[
-                            "scopes"
-                          ] as JSONObject
-                        )["bot"] &&
-                        (
-                          (
-                            (manifest["oauth_config"] as JSONObject)[
-                              "scopes"
-                            ] as JSONObject
-                          )["bot"] as Array<string>
-                        ).length > 0
-                      ) {
-                        botScopes.push(
-                          ...((
-                            (manifest["oauth_config"] as JSONObject)[
-                              "scopes"
-                            ] as JSONObject
-                          )["bot"] as Array<string>),
-                        );
-                      }
-
-                      // if any of the user or bot scopes length = = then error.
-                      if (userScopes.length === 0 || botScopes.length === 0) {
-                        setError(
-                          <div>
-                            Looks like the Slack App scopes are not set
-                            properly. For more information, please check this
-                            guide to set up Slack App properly:{" "}
-                            <Link
-                              to={
-                                new Route("/docs/self-hosted/slack-integration")
-                              }
-                              openInNewTab={true}
-                            >
-                              Slack Integration
-                            </Link>
-                          </div>,
-                        );
-                        return;
-                      }
-
-                      const redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
-
-                      Navigation.navigate(
-                        URL.fromString(
-                          `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
-                            ",",
-                          )}&user_scope=${userScopes.join(
-                            ",",
-                          )}&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`,
-                        ),
-                      );
-                    } else {
-                      setError(
-                        <div>
-                          Looks like the Slack App Client ID is not set in the
-                          environment variables when you installed OneUptime.
-                          For more information, please check this guide to set
-                          up Slack App properly:{" "}
-                          <Link
-                            to={
-                              new Route("/docs/self-hosted/slack-integration")
-                            }
-                            openInNewTab={true}
-                          >
-                            Slack Integration
-                          </Link>
-                        </div>,
-                      );
-                    }
-                  },
-                  icon: IconProp.Slack,
-                },
-              ]}
-            />
-          ))}
       </div>
     </Fragment>
   );
