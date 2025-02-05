@@ -17,11 +17,13 @@ import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 export interface MiscData {
-  [key: string]: any;
+  [key: string]: string;
 }
 
 export interface SlackMiscData extends MiscData {
-  organizationId: string;
+  teamId: string;
+  teamName: string;
+  botUserId: string;
 }
 
 export enum ProjectAuthtokenServiceProviderType {

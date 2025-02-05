@@ -26,7 +26,7 @@ export interface SlackMiscData extends MiscData {
   userId: string;
 }
 
-export enum UserAuthtokenServiceProviderType {
+export enum UserAuthTokenServiceProviderType {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
 }
@@ -158,7 +158,7 @@ class UserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: UserAuthtokenServiceProviderType = undefined;
+  public serviceProviderType?: UserAuthTokenServiceProviderType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
