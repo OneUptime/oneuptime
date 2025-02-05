@@ -42,6 +42,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident State",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
+      "Project",
+      "Settings",
+      "Slack Integration",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENTS_SEVERITY, [
       "Project",
       "Settings",

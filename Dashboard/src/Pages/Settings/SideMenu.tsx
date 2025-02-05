@@ -31,6 +31,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Label}
         />
       </SideMenuSection>
+      <SideMenuSection title="Workspace Connections">
+      <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
+      </SideMenuSection>
 
       <SideMenuSection title="Monitors">
         <SideMenuItem

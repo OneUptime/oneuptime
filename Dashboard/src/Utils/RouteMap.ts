@@ -195,6 +195,7 @@ export const SettingsRoutePath: Dictionary<string> = {
 
   [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: "incident-custom-fields",
   [PageMap.SETTINGS_INCIDENTS_STATE]: "incidents-state",
+  [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
   [PageMap.SETTINGS_INCIDENT_TEMPLATES]: "incident-templates",
   [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
@@ -1401,6 +1402,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SLACK_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SLACK_INTEGRATION]
     }`,
   ),
 

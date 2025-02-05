@@ -239,6 +239,13 @@ const SettingsUsageHistory: LazyExoticComponent<
   return import("../Pages/Settings/UsageHistory");
 });
 
+
+const SettingsSlackIntegration: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/SlackIntegration");
+});
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -529,6 +536,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SLACK_INTEGRATION)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsSlackIntegration
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route}
               />
             </Suspense>
           }
