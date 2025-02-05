@@ -141,7 +141,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return;
                   }
 
-                  const redirect_uri: string = `${APP_API_URL}/slack/auth?projectId=${projectId.toString()}&userId=${userId.toString()}`;
+                  const redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
 
                   Navigation.navigate(URL.fromString(`https://slack.com/oauth/v2/authorize?scope=${
                     botScopes.join(",")

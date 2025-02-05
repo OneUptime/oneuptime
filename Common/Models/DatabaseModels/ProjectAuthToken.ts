@@ -24,7 +24,7 @@ export interface SlackMiscData extends MiscData {
   organizationId: string;
 }
 
-export enum ProjectAuthtokenServiceType {
+export enum ProjectAuthtokenServiceProviderType {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
 }
@@ -120,7 +120,8 @@ class ProjectAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Service Type",
+    title: "Service Provider Type",
+    description: "Type of Service Provider - slack, microsoft teams etc.",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -132,7 +133,28 @@ class ProjectAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceType?: ProjectAuthtokenServiceType = undefined;
+  public serviceProviderType?: ProjectAuthtokenServiceProviderType = undefined;
+
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Project ID in Service Provider",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public serviceProviderProjectId?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -25,7 +25,7 @@ export default class SlackAPI {
       return Response.sendJsonObjectResponse(req, res, SlackAppManifest);
     });
 
-    router.get("/slack/auth", (req: ExpressRequest, res: ExpressResponse) => {
+    router.get("/slack/auth/:projectId/:userId", (req: ExpressRequest, res: ExpressResponse) => {
 
 
       // if there's an error query param. 
@@ -37,8 +37,8 @@ export default class SlackAPI {
         return Response.redirect(req, res, slackIntegrationPageUrl.addQueryParam("error", error));
       }
 
-      const projectId: string | undefined = req.query["projectId"]?.toString();
-      const userId: string | undefined = req.query["userId"]?.toString();
+      const projectId: string | undefined = req.params["projectId"]?.toString();
+      const userId: string | undefined = req.params["userId"]?.toString();
 
       if(!projectId){
         return Response.sendErrorResponse(req, res, new BadDataException("Invalid ProjectID in request"));

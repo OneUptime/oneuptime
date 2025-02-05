@@ -26,7 +26,7 @@ export interface SlackMiscData extends MiscData {
   userId: string;
 }
 
-export enum UserAuthtokenServiceType {
+export enum UserAuthtokenServiceProviderType {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
 }
@@ -117,13 +117,15 @@ class UserAuthToken extends BaseModel {
   })
   public authToken?: string = undefined;
 
+
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
     update: [],
   })
   @TableColumn({
-    title: "Service Type",
+    title: "User ID in Service",
+    description: "User ID in the Service Provider",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -135,7 +137,28 @@ class UserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceType?: UserAuthtokenServiceType = undefined;
+  public serviceProviderUserId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Service Provider Type",
+    description: "Type of Service Provider - slack, microsoft teams etc.",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public serviceProviderType?: UserAuthtokenServiceProviderType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
