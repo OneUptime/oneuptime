@@ -289,6 +289,24 @@ class ServiceProviderUserAuthToken extends BaseModel {
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
 }
 
 export default ServiceProviderUserAuthToken;

@@ -36,7 +36,7 @@ export interface SlackMiscData extends MiscData {
   delete: [],
   update: [],
 })
-@CrudApiEndpoint(new Route("/project-auth-token"))
+@CrudApiEndpoint(new Route("/service-provider-project-auth-token"))
 @Entity({
   name: "ServiceProviderProjectAuthToken",
 })
@@ -244,6 +244,24 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
 }
 
 export default ServiceProviderProjectAuthToken;

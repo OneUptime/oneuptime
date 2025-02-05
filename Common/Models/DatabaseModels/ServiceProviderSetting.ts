@@ -17,11 +17,11 @@ import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm"; 
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
-export interface MiscData {
+export interface Settings {
   [key: string]: string;
 }
 
-export interface SlackMiscData extends MiscData {
+export interface SlackSettings extends Settings {
   teamId: string;
   teamName: string;
   botUserId: string;
@@ -36,18 +36,18 @@ export interface SlackMiscData extends MiscData {
   delete: [],
   update: [],
 })
-@CrudApiEndpoint(new Route("/project-auth-token"))
+@CrudApiEndpoint(new Route("/service-provider-setting"))
 @Entity({
-  name: "ServiceProviderProjectAuthToken",
+  name: "ServiceProviderSetting",
 })
 @TableMetadata({
-  tableName: "ServiceProviderProjectAuthToken",
-  singularName: "Service Provider Project Auth Token",
-  pluralName: "Service Provider Project Auth Tokens",
-  icon: IconProp.Lock,
-  tableDescription: "Third Party Auth Token for the Project",
+  tableName: "ServiceProviderSetting",
+  singularName: "Service Provider Setting",
+  pluralName: "Service Provider Settings",
+  icon: IconProp.Settings,
+  tableDescription: "Settings for Third Party Service Providers",
 })
-class ServiceProviderProjectAuthToken extends BaseModel {
+class ServiceProviderSetting extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -100,18 +100,19 @@ class ServiceProviderProjectAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Auth Token",
+    title: "Service Provider Settings",
+    description: "Settings for the Service Provider",
     required: true,
     unique: false,
-    type: TableColumnType.VeryLongText,
+    type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
   })
   @Column({
-    type: ColumnType.VeryLongText,
+    type: ColumnType.JSON,
     unique: false,
     nullable: false,
   })
-  public authToken?: string = undefined;
+  public settings?: SlackSettings  = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -134,44 +135,7 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   })
   public serviceProviderType?: ServiceProviderType = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    title: "Project ID in Service Provider",
-    required: true,
-    unique: false,
-    type: TableColumnType.LongText,
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-    unique: false,
-    nullable: false,
-  })
-  public serviceProviderProjectId?: string = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    title: "Misc Data",
-    required: true,
-    unique: false,
-    type: TableColumnType.JSON,
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    type: ColumnType.JSON,
-    unique: false,
-    nullable: false,
-  })
-  public miscData?: MiscData = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -244,6 +208,26 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
+
+  // deleted by userId
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
 }
 
-export default ServiceProviderProjectAuthToken;
+export default ServiceProviderSetting;
