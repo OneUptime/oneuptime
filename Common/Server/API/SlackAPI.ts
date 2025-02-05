@@ -150,7 +150,7 @@ export default class SlackAPI {
         // ReponseBody is in this format.
         //   {
         //     "ok": true,
-        //     "access_token": "xoxb-17653672481-19874698323-pdFZKVeTuE8sk7oOcBrzbqgy",
+        //     "access_token": "sample-token",
         //     "token_type": "bot",
         //     "scope": "commands,incoming-webhook",
         //     "bot_user_id": "U0KRQLJ9H",
@@ -166,7 +166,7 @@ export default class SlackAPI {
         //     "authed_user": {
         //         "id": "U1234",
         //         "scope": "chat:write",
-        //         "access_token": "xoxp-1234",
+        //         "access_token": "sample-token",
         //         "token_type": "user"
         //     }
         // }
