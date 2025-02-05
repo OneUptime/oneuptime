@@ -512,6 +512,24 @@ import ScheduledMaintenanceFeedService, {
   Service as ScheduledMaintenanceFeedServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceFeedService";
 
+import SlackAPI from "Common/Server/API/SlackAPI";
+
+import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthTokenService, {
+  Service as ServiceProviderProjectAuthTokenServiceType,
+} from "Common/Server/Services/ServiceProviderProjectAuthTokenService";
+
+import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+
+import ServiceProviderUserAuthTokenService, {
+  Service as ServiceProviderUserAuthTokenServiceType,
+} from "Common/Server/Services/ServiceProviderUserAuthTokenService";
+
+import ServiceProviderSetting from "Common/Models/DatabaseModels/ServiceProviderSetting";
+import ServiceProviderSettingService, {
+  Service as ServiceProviderSettingServiceType,
+} from "Common/Server/Services/ServiceProviderSettingService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -539,6 +557,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorTest, MonitorTestServiceType>(
         MonitorTest,
         MonitorTestService,
+      ).getRouter(),
+    );
+
+    //service provider setting
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceProviderSetting, ServiceProviderSettingServiceType>(
+        ServiceProviderSetting,
+        ServiceProviderSettingService,
       ).getRouter(),
     );
 
@@ -571,6 +598,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertNoteTemplate, AlertNoteTemplateServiceType>(
         AlertNoteTemplate,
         AlertNoteTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceProviderProjectAuthToken,
+        ServiceProviderProjectAuthTokenServiceType
+      >(
+        ServiceProviderProjectAuthToken,
+        ServiceProviderProjectAuthTokenService,
+      ).getRouter(),
+    );
+
+    // user auth token
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceProviderUserAuthToken,
+        ServiceProviderUserAuthTokenServiceType
+      >(
+        ServiceProviderUserAuthToken,
+        ServiceProviderUserAuthTokenService,
       ).getRouter(),
     );
 
@@ -1368,6 +1418,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
     );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new GlobalConfigAPI().getRouter(),

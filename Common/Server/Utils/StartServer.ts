@@ -12,6 +12,7 @@ import Express, {
   ExpressStatic,
   ExpressUrlEncoded,
   NextFunction,
+  OneUptimeRequest,
   RequestHandler,
 } from "./Express";
 import logger from "./Logger";
@@ -82,7 +83,7 @@ app.set("view engine", "ejs");
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
 
-app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
   if (req.headers["content-encoding"] === "gzip") {
     const buffers: any = [];
 

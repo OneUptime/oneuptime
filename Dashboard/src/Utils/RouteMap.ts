@@ -195,6 +195,7 @@ export const SettingsRoutePath: Dictionary<string> = {
 
   [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: "incident-custom-fields",
   [PageMap.SETTINGS_INCIDENTS_STATE]: "incidents-state",
+  [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
   [PageMap.SETTINGS_INCIDENT_TEMPLATES]: "incident-templates",
   [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
@@ -265,6 +266,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
   [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: "incident-on-call-rules",
+  [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
@@ -1299,6 +1301,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_SLACK_INTEGRATION]
+    }`,
+  ),
+
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]
@@ -1394,6 +1402,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SLACK_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SLACK_INTEGRATION]
     }`,
   ),
 

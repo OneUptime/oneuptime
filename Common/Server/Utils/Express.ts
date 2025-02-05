@@ -37,7 +37,8 @@ export interface OneUptimeRequest extends express.Request {
   userAuthorization?: JSONWebTokenData;
   tenantId?: ObjectID;
   userGlobalAccessPermission?: UserGlobalAccessPermission;
-  userTenantAccessPermission?: Dictionary<UserTenantAccessPermission>; // tenantId <-> UserTenantAccessPermission
+  userTenantAccessPermission?: Dictionary<UserTenantAccessPermission>; // tenantId <-> UserTenantAccessPermission;
+  rawBody?: string; // raw body of the request before json parsing.
 }
 
 export interface OneUptimeResponse extends express.Response {

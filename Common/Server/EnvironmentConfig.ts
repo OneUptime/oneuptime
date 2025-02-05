@@ -2,6 +2,7 @@ import {
   AccountsRoute,
   AdminDashboardRoute,
   DashboardRoute,
+  AppApiRoute,
 } from "Common/ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Hostname from "Common/Types/API/Hostname";
@@ -299,6 +300,8 @@ export const AdminDashboardClientURL: URL = new URL(
   AdminDashboardRoute,
 );
 
+export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
+
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
   Host,
@@ -313,3 +316,10 @@ export const AccountsClientUrl: URL = new URL(
 
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
+
+export const SlackAppClientId: string | null =
+  process.env["SLACK_APP_CLIENT_ID"] || null;
+export const SlackAppClientSecret: string | null =
+  process.env["SLACK_APP_CLIENT_SECRET"] || null;
+export const SlackAppSigningSecret: string | null =
+  process.env["SLACK_APP_SIGNING_SECRET"] || null;

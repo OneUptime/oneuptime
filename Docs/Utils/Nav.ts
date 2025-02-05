@@ -1,3 +1,5 @@
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+
 export interface NavLink {
   title: string;
   url: string;
@@ -96,6 +98,19 @@ const DocsNav: NavGroup[] = [
     ],
   },
 ];
+
+// Is self hosted install, then...
+if (!IsBillingEnabled) {
+  DocsNav.push({
+    title: "Self Hosted",
+    links: [
+      {
+        title: "Slack Integration",
+        url: "/docs/self-hosted/slack-integration",
+      },
+    ],
+  });
+}
 
 // Export the array of navigation groups
 export default DocsNav;
