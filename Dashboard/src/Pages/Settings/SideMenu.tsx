@@ -32,7 +32,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection title="Workspace Connections">
-      <SideMenuItem
+        <SideMenuItem
           link={{
             title: "Slack",
             to: RouteUtil.populateRouteParams(

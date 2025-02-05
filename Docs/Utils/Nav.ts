@@ -96,22 +96,20 @@ const DocsNav: NavGroup[] = [
       { title: "Installation", url: "/docs/copilot/introduction" },
       { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
     ],
-  }
+  },
 ];
 
 // Is self hosted install, then...
-if(!IsBillingEnabled){
-  DocsNav.push(
-    {
-      title: "Self Hosted",
-      links: [
-        {
-          title: "Slack Integration",
-          url: "/docs/self-hosted/slack-integration",
-        },
-      ],
-    }
-  )
+if (!IsBillingEnabled) {
+  DocsNav.push({
+    title: "Self Hosted",
+    links: [
+      {
+        title: "Slack Integration",
+        url: "/docs/self-hosted/slack-integration",
+      },
+    ],
+  });
 }
 
 // Export the array of navigation groups

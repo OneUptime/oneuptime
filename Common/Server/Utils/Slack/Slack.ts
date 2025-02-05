@@ -5,8 +5,6 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 
 export default class SlackUtil {
-
-
   public async getTextboxField(data: {
     title: string;
     placeholder: string;
@@ -29,7 +27,7 @@ export default class SlackUtil {
         text: data.title,
       },
     };
-  };
+  }
 
   public getButtonField(data: {
     text: string;

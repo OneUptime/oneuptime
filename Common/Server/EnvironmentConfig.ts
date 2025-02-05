@@ -2,7 +2,7 @@ import {
   AccountsRoute,
   AdminDashboardRoute,
   DashboardRoute,
-  AppApiRoute
+  AppApiRoute,
 } from "Common/ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Hostname from "Common/Types/API/Hostname";
@@ -85,62 +85,74 @@ export const ClusterKey: ObjectID = new ObjectID(
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
 
 export const AppApiHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${process.env["APP_PORT"] || 80
+  `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
+    process.env["APP_PORT"] || 80
   }`,
 );
 
 export const ProbeIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_PROBE_INGEST_HOSTNAME"] || "localhost"}:${process.env["PROBE_INGEST_PORT"] || 80
+  `${process.env["SERVER_PROBE_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["PROBE_INGEST_PORT"] || 80
   }`,
 );
 
 export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME"] || "localhost"}:${process.env["OPEN_TELEMETRY_INGEST_PORT"] || 80
+  `${process.env["SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["OPEN_TELEMETRY_INGEST_PORT"] || 80
   }`,
 );
 
 export const IncomingRequestIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INCOMING_REQUEST_INGEST_HOSTNAME"] || "localhost"}:${process.env["INCOMING_REQUEST_INGEST_PORT"] || 80
+  `${process.env["SERVER_INCOMING_REQUEST_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["INCOMING_REQUEST_INGEST_PORT"] || 80
   }`,
 );
 
 export const FluentIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_FLUENT_INGEST_HOSTNAME"] || "localhost"}:${process.env["FLUENT_INGEST_PORT"] || 80
+  `${process.env["SERVER_FLUENT_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["FLUENT_INGEST_PORT"] || 80
   }`,
 );
 
 export const IsolatedVMHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${process.env["ISOLATED_VM_PORT"] || 80
+  `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${
+    process.env["ISOLATED_VM_PORT"] || 80
   }`,
 );
 
 export const WorkerHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_WORKER_HOSTNAME"] || "localhost"}:${process.env["WORKER_PORT"] || 80
+  `${process.env["SERVER_WORKER_HOSTNAME"] || "localhost"}:${
+    process.env["WORKER_PORT"] || 80
   }`,
 );
 
 export const WorkflowHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_WORKFLOW_HOSTNAME"] || "localhost"}:${process.env["WORKFLOW_PORT"] || 80
+  `${process.env["SERVER_WORKFLOW_HOSTNAME"] || "localhost"}:${
+    process.env["WORKFLOW_PORT"] || 80
   }`,
 );
 
 export const HomeHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_HOME_HOSTNAME"] || "localhost"}:${process.env["HOME_PORT"] || 80
+  `${process.env["SERVER_HOME_HOSTNAME"] || "localhost"}:${
+    process.env["HOME_PORT"] || 80
   }`,
 );
 
 export const AccountsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ACCOUNTS_HOSTNAME"] || "localhost"}:${process.env["ACCOUNTS_PORT"] || 80
+  `${process.env["SERVER_ACCOUNTS_HOSTNAME"] || "localhost"}:${
+    process.env["ACCOUNTS_PORT"] || 80
   }`,
 );
 
 export const DashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DASHBOARD_HOSTNAME"] || "localhost"}:${process.env["DASHBOARD_PORT"] || 80
+  `${process.env["SERVER_DASHBOARD_HOSTNAME"] || "localhost"}:${
+    process.env["DASHBOARD_PORT"] || 80
   }`,
 );
 
 export const AdminDashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${process.env["ADMIN_DASHBOARD_PORT"] || 80
+  `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${
+    process.env["ADMIN_DASHBOARD_PORT"] || 80
   }`,
 );
 
@@ -252,8 +264,8 @@ export const AllowedActiveMonitorCountInFreePlan: number = process.env[
   "ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"
 ]
   ? parseInt(
-    process.env["ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"].toString(),
-  )
+      process.env["ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"].toString(),
+    )
   : 10;
 
 export const AllowedStatusPageCountInFreePlan: number = process.env[
@@ -288,12 +300,7 @@ export const AdminDashboardClientURL: URL = new URL(
   AdminDashboardRoute,
 );
 
-
-export const AppApiClientUrl: URL = new URL(
-  HttpProtocol,
-  Host,
-  AppApiRoute,
-);
+export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
@@ -310,7 +317,9 @@ export const AccountsClientUrl: URL = new URL(
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
-
-export const SlackAppClientId: string | null = process.env["SLACK_APP_CLIENT_ID"] || null;
-export const SlackAppClientSecret: string | null = process.env["SLACK_APP_CLIENT_SECRET"] || null;
-export const SlackAppSigningSecret: string | null = process.env["SLACK_APP_SIGNING_SECRET"] || null;
+export const SlackAppClientId: string | null =
+  process.env["SLACK_APP_CLIENT_ID"] || null;
+export const SlackAppClientSecret: string | null =
+  process.env["SLACK_APP_CLIENT_SECRET"] || null;
+export const SlackAppSigningSecret: string | null =
+  process.env["SLACK_APP_SIGNING_SECRET"] || null;

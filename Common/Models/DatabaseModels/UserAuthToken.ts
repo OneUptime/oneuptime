@@ -117,7 +117,6 @@ class UserAuthToken extends BaseModel {
   })
   public authToken?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],

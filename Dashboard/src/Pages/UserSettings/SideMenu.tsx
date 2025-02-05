@@ -78,7 +78,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           subItemLink={subItemMenuLink}
         />
       </SideMenuSection>
-      <SideMenuSection title="Integrations">
+      <SideMenuSection title="Workspace Integrations">
         <SideMenuItem
           link={{
             title: "Slack",

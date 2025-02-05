@@ -137,7 +137,6 @@ class ProjectAuthToken extends BaseModel {
   })
   public serviceProviderType?: ProjectAuthtokenServiceProviderType = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [],
