@@ -22,9 +22,8 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import ServiceProviderProjectAuthTokenService from "../Services/ServiceProviderProjectAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
-import { ServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ServiceProviderUserAuthTokenService from "../Services/ServiceProviderUserAuthTokenService";
-import { ServiceProviderUserAuthTokenServiceProviderType } from "../../Models/DatabaseModels/ServiceProviderUserAuthToken";
+import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -236,7 +235,7 @@ export default class SlackAPI {
         await ServiceProviderUserAuthTokenService.refreshAuthToken({
           projectId: new ObjectID(projectId),
           userId: new ObjectID(userId),
-          serviceProviderType: ServiceProviderUserAuthTokenServiceProviderType.Slack,
+          serviceProviderType: ServiceProviderType.Slack,
           authToken: slackUserAccessToken || "",
           serviceProviderUserId: slackUserId || "",
           miscData: {
