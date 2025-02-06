@@ -8,19 +8,12 @@ export default interface SlackNotificationRule extends BaseNotificationRule {
   filterCondition: FilterCondition; // and OR or. Default is AND
   filters: Array<NotificationRuleCondition>; // if this array is empty then it will be considered as all filters are matched.
 
-  newSlackChannel: {
-    // if filters match then do:
-    shouldCreateSlackChannel: boolean;
-    inviteTeamsToSlackChannel: Array<ObjectID>;
-    inviteUsersToSlackChannel: Array<ObjectID>;
+  // if filters match then do:
+  shouldCreateSlackChannel: boolean;
+  inviteTeamsToNewSlackChannel: Array<ObjectID>;
+  inviteUsersToNewSlackChannel: Array<ObjectID>;
+  shouldAutomaticallyInviteOnCallUsersToNewSlackChannel: boolean;
 
-    // This only applies to incident and alerts.
-    shouldInviteOnCallUsersToSlackChannel: boolean;
-  };
-
-  postToExistingSlackChannel: {
-    // if filters match then do:
-    shouldPostToExistingSlackChannel: boolean;
-    slackChannelName: Array<string>;
-  };
+  shouldPostToExistingSlackChannel: boolean;
+  existingSlackChannelName: string; // seperate by comma
 }
