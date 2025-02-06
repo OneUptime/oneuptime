@@ -530,6 +530,12 @@ import ServiceProviderSettingService, {
   Service as ServiceProviderSettingServiceType,
 } from "Common/Server/Services/ServiceProviderSettingService";
 
+
+import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/ServiceProviderNotificationRule";
+import ServiceProviderNotificationRuleService, {
+  Service as ServiceProviderNotificationRuleServiceType,
+} from "Common/Server/Services/ServiceProviderNotificationRuleService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -550,6 +556,16 @@ const BaseAPIFeatureSet: FeatureSet = {
         AlertState,
         AlertStateService,
       ).getRouter(),
+    );
+
+    // notificaiton rule
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceProviderNotificationRule,
+        ServiceProviderNotificationRuleServiceType
+      >(ServiceProviderNotificationRule, ServiceProviderNotificationRuleService).getRouter(),
     );
 
     app.use(
