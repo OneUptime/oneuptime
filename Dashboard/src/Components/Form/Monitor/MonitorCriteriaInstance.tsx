@@ -2,9 +2,7 @@ import CriteriaFilters from "./CriteriaFilters";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  CriteriaFilter,
-} from "Common/Types/Monitor/CriteriaFilter";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";

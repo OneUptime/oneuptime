@@ -530,7 +530,6 @@ import ServiceProviderSettingService, {
   Service as ServiceProviderSettingServiceType,
 } from "Common/Server/Services/ServiceProviderSettingService";
 
-
 import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/ServiceProviderNotificationRule";
 import ServiceProviderNotificationRuleService, {
   Service as ServiceProviderNotificationRuleServiceType,
@@ -565,7 +564,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         ServiceProviderNotificationRule,
         ServiceProviderNotificationRuleServiceType
-      >(ServiceProviderNotificationRule, ServiceProviderNotificationRuleService).getRouter(),
+      >(
+        ServiceProviderNotificationRule,
+        ServiceProviderNotificationRuleService,
+      ).getRouter(),
     );
 
     app.use(

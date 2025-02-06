@@ -1,3 +1,3 @@
 export default interface BaseNotificationRule {
-    _type: string;
+  _type: string;
 }

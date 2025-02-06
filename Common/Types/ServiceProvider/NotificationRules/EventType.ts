@@ -1,8 +1,8 @@
- enum NotificationRuleEventType { 
-    IncidentCreatedOrUpdated = "IncidentCreatedOrUpdated",
-    MonitorStatusChanged = "MonitorStatusChanged",
-    AlertCreatedOrUpdated = "AlertCreatedOrUpdated",
-    ScheduledMaintenanceCreatedOrUpdated = "ScheduledMaintenanceCreatedOrUpdated",
+enum NotificationRuleEventType {
+  Incident = "Incident",
+  MonitorStatus = "Monitor Status",
+  Alert = "Alert",
+  ScheduledMaintenance = "Scheduled Maintenance",
 }
 
 export default NotificationRuleEventType;

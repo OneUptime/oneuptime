@@ -352,7 +352,7 @@ const AllModelTypes: Array<{
   MonitorTest,
 
   ServiceProviderSetting,
-  ServiceProviderNotificationRule
+  ServiceProviderNotificationRule,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

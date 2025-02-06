@@ -11,124 +11,124 @@ import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/Servic
 import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
 
 export interface ComponentProps {
-    serviceProviderType: ServiceProviderType;
-    eventType: NotificationRuleEventType;
+  serviceProviderType: ServiceProviderType;
+  eventType: NotificationRuleEventType;
 }
 
-const Labels: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-    return (
-        <Fragment>
-            <ModelTable<ServiceProviderNotificationRule>
-                modelType={ServiceProviderNotificationRule}
-                query={{
-                    projectId: DashboardNavigation.getProjectId()!,
-                }}
-                id="servie-provider-table"
-                name="Settings > Service Provider Notification Rules"
-                isDeleteable={true}
-                isEditable={true}
-                isCreateable={true}
-                cardProps={{
-                    title: `${props.serviceProviderType} Notification Rules`,
-                    description:
-                        `Manage notification rules for ${props.serviceProviderType}.`,
-                }}
-                noItemsMessage={"No notification rules found."}
-                formFields={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: "Rule Name",
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        stepId: "basic",
-                        placeholder: "Notify DevOps Team",
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        stepId: "basic",
-                        title: "Description",
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: false,
-                        placeholder: "Notify DevOps Team when a new incident is created.",
-                    },
-                    {
-                        field: {
-                            color: true,
-                        },
-                        title: "Label Color",
-                        fieldType: FormFieldSchemaType.Color,
-                        required: true,
-                        placeholder: "Please select color for this label.",
-                    },
-                ]}
-                formSteps={[
-                    {
-                        title: "Basic",
-                        id: "basic",
-                    },
-                    {
-                        title: "Criteria",
-                        id: "criteria",
-                    },
+const Labels: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  return (
+    <Fragment>
+      <ModelTable<ServiceProviderNotificationRule>
+        modelType={ServiceProviderNotificationRule}
+        query={{
+          projectId: DashboardNavigation.getProjectId()!,
+        }}
+        id="servie-provider-table"
+        name="Settings > Service Provider Notification Rules"
+        isDeleteable={true}
+        isEditable={true}
+        isCreateable={true}
+        cardProps={{
+          title: `${props.serviceProviderType} Notification Rules`,
+          description: `Manage notification rules for ${props.serviceProviderType}.`,
+        }}
+        noItemsMessage={"No notification rules found."}
+        formFields={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Rule Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            stepId: "basic",
+            placeholder: "Notify DevOps Team",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              description: true,
+            },
+            stepId: "basic",
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Notify DevOps Team when a new incident is created.",
+          },
+          {
+            field: {
+              color: true,
+            },
+            title: "Label Color",
+            fieldType: FormFieldSchemaType.Color,
+            required: true,
+            placeholder: "Please select color for this label.",
+          },
+        ]}
+        formSteps={[
+          {
+            title: "Basic",
+            id: "basic",
+          },
+          {
+            title: "Criteria",
+            id: "criteria",
+          },
+        ]}
+        showRefreshButton={true}
+        selectMoreFields={{
+          color: true,
+        }}
+        showViewIdButton={true}
+        filters={[
+          {
+            field: {
+              name: true,
+            },
+            type: FieldType.Text,
+            title: "Name",
+          },
+          {
+            field: {
+              description: true,
+            },
+            type: FieldType.Text,
+            title: "Description",
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
 
-                ]}
-                showRefreshButton={true}
-                selectMoreFields={{
-                    color: true,
-                }}
-                showViewIdButton={true}
-                filters={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        type: FieldType.Text,
-                        title: "Name",
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        type: FieldType.Text,
-                        title: "Description",
-                    },
-                ]}
-                columns={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: "Name",
-                        type: FieldType.Text,
-
-                        getElement: (item: Label): ReactElement => {
-                            return (
-                                <Pill
-                                    color={item["color"] as Color}
-                                    text={item["name"] as string}
-                                />
-                            );
-                        },
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        noValueMessage: "-",
-                        title: "Description",
-                        type: FieldType.Text,
-                    },
-                ]}
-            />
-        </Fragment>
-    );
+            getElement: (item: Label): ReactElement => {
+              return (
+                <Pill
+                  color={item["color"] as Color}
+                  text={item["name"] as string}
+                />
+              );
+            },
+          },
+          {
+            field: {
+              description: true,
+            },
+            noValueMessage: "-",
+            title: "Description",
+            type: FieldType.Text,
+          },
+        ]}
+      />
+    </Fragment>
+  );
 };
 
 export default Labels;

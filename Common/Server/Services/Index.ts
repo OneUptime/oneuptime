@@ -322,11 +322,10 @@ const services: Array<BaseService> = [
   TableViewService,
   MonitorTestService,
 
-
   ServiceProviderProjectAuthTokenService,
-  ServiceProviderUserAuthTokenService, 
-  ServiceProviderSettingService, 
-  ServiveProviderNotificationRuleService
+  ServiceProviderUserAuthTokenService,
+  ServiceProviderSettingService,
+  ServiveProviderNotificationRuleService,
 ];
 
 export const AnalyticsServices: Array<

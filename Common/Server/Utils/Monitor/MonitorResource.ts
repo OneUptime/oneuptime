@@ -16,10 +16,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import BasicInfrastructureMetrics from "Common/Types/Infrastructure/BasicMetrics";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import { JSONObject } from "Common/Types/JSON";
-import {
-  CheckOn,
-  CriteriaFilter,
-} from "Common/Types/Monitor/CriteriaFilter";
+import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";

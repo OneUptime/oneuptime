@@ -19,7 +19,6 @@ import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType
 import BaseNotificationRule from "../../Types/ServiceProvider/NotificationRules/BaseNotificationRule";
 import NotificationRuleEventType from "../../Types/ServiceProvider/NotificationRules/EventType";
 
-
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
@@ -86,7 +85,6 @@ class ServiceProviderNotificationRule extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -107,7 +105,6 @@ class ServiceProviderNotificationRule extends BaseModel {
     nullable: false,
   })
   public name?: string = undefined;
-
 
   @ColumnAccessControl({
     create: [],
@@ -157,7 +154,8 @@ class ServiceProviderNotificationRule extends BaseModel {
   })
   @TableColumn({
     title: "Service Provider Event Type",
-    description: "Event Type for the Service Provider like Incident Created, Monitor Status Updated, etc.",
+    description:
+      "Event Type for the Service Provider like Incident Created, Monitor Status Updated, etc.",
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
