@@ -86,6 +86,50 @@ class ServiceProviderNotificationRule extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Rule Name",
+    description: "Name of the Notification Rule",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public name?: string = undefined;
+
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Rule Description",
+    description: "Description of the Notification Rule",
+    required: false,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: true,
+  })
+  public description?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
