@@ -110,11 +110,6 @@ export enum FilterType {
   IsNotExecuting = "Is Not Executing",
 }
 
-export enum FilterCondition {
-  All = "All",
-  Any = "Any",
-}
-
 export class CriteriaFilterUtil {
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,

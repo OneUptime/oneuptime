@@ -1,9 +1,9 @@
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeMinutes,
   EvaluateOverTimeType,
-  FilterCondition,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";

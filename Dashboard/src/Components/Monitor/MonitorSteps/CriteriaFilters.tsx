@@ -1,7 +1,7 @@
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import CriteriaFilterElement from "./CriteriaFilter";
 import {
   CriteriaFilter,
-  FilterCondition,
 } from "Common/Types/Monitor/CriteriaFilter";
 import React, { FunctionComponent, ReactElement } from "react";
 

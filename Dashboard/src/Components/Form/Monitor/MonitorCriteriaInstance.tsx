@@ -4,7 +4,6 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CriteriaFilter,
-  FilterCondition,
 } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -34,6 +33,7 @@ import React, {
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;

@@ -19,7 +19,6 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   CheckOn,
   CriteriaFilter,
-  FilterCondition,
 } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
@@ -57,6 +56,7 @@ import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 
 export default class MonitorResourceUtil {
   public static async monitorResource(

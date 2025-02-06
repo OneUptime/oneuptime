@@ -16,7 +16,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
-import SlackNotificationRule from "../../Types/ServiceProvider/NotificationRules/SlackNotificationRule";
+import BaseNotificationRule from "../../Types/ServiceProvider/NotificationRules/BaseNotificationRule";
 import NotificationRuleEventType from "../../Types/ServiceProvider/NotificationRules/EventType";
 
 
@@ -104,7 +104,7 @@ class ServiceProviderNotificationRule extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public notificationRule?: SlackNotificationRule = undefined;
+  public notificationRule?: BaseNotificationRule = undefined;
 
   @ColumnAccessControl({
     create: [],
