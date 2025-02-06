@@ -1,4 +1,5 @@
 import ObjectID from "../../ObjectID";
+import NotificationRuleEventType from "./EventType";
 
 export enum NotificationRuleConditionCheckOn {
     MonitorName = "Monitor Name",
@@ -38,13 +39,113 @@ export enum ConditionType {
 
     // could be used for labels. 
     ContainsAll = "Contains All",
-    ContainsAny = "Contains Any",
 }
 
 export default interface NotificationRuleCondition {
     checkOn: NotificationRuleConditionCheckOn;
     conditionType: ConditionType;
     value: string | number | boolean | Array<string> | Array<ObjectID>;
+}
+
+
+export class NotificationRuleConditionUtil {
+
+
+    public static getCheckOnByEventType(eventType: NotificationRuleEventType): Array<NotificationRuleConditionCheckOn> {
+
+        switch (eventType) {
+            case NotificationRuleEventType.IncidentCreatedOrUpdated:
+                return [
+                    NotificationRuleConditionCheckOn.IncidentName,
+                    NotificationRuleConditionCheckOn.IncidentDescription,
+                    NotificationRuleConditionCheckOn.IncidentSeverity,
+                    NotificationRuleConditionCheckOn.IncidentState,
+                    NotificationRuleConditionCheckOn.Labels,
+                    NotificationRuleConditionCheckOn.Monitors,
+                ];
+            case NotificationRuleEventType.AlertCreatedOrUpdated:
+                return [
+                    NotificationRuleConditionCheckOn.AlertName,
+                    NotificationRuleConditionCheckOn.AlertDescription,
+                    NotificationRuleConditionCheckOn.AlertSeverity,
+                    NotificationRuleConditionCheckOn.AlertState,
+                    NotificationRuleConditionCheckOn.Labels,
+                    NotificationRuleConditionCheckOn.Monitors,
+                ];
+            case NotificationRuleEventType.MonitorStatusChanged:
+                return [
+                    NotificationRuleConditionCheckOn.MonitorName,
+                    NotificationRuleConditionCheckOn.MonitorStatus,
+                    NotificationRuleConditionCheckOn.MonitorType,
+                    NotificationRuleConditionCheckOn.Monitors,
+                ];
+            case NotificationRuleEventType.ScheduledMaintenanceCreatedOrUpdated:
+                return [
+                    NotificationRuleConditionCheckOn.ScheduledMaintenanceName,
+                    NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription,
+                    NotificationRuleConditionCheckOn.ScheduledMaintenanceState,
+                    NotificationRuleConditionCheckOn.Labels,
+                    NotificationRuleConditionCheckOn.Monitors,
+                ];
+            default:
+                return [];
+        }
+
+    }
+
+    public static getConditionTypeByCheckOn(checkOn: NotificationRuleConditionCheckOn): Array<ConditionType> {
+        switch (checkOn) {
+            case NotificationRuleConditionCheckOn.MonitorName:
+            case NotificationRuleConditionCheckOn.IncidentName:
+            case NotificationRuleConditionCheckOn.IncidentDescription:
+            case NotificationRuleConditionCheckOn.AlertName:
+            case NotificationRuleConditionCheckOn.AlertDescription:
+            case NotificationRuleConditionCheckOn.ScheduledMaintenanceName:
+            case NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription:
+                return [
+                    ConditionType.EqualTo,
+                    ConditionType.NotEqualTo,
+                    ConditionType.Contains,
+                    ConditionType.NotContains,
+                    ConditionType.StartsWith,
+                    ConditionType.EndsWith,
+                ];
+            case NotificationRuleConditionCheckOn.IncidentSeverity:
+            case NotificationRuleConditionCheckOn.AlertSeverity:
+                return [
+                    ConditionType.Contains,
+                    ConditionType.NotContains
+                ];
+            case NotificationRuleConditionCheckOn.IncidentState:
+            case NotificationRuleConditionCheckOn.AlertState:
+            case NotificationRuleConditionCheckOn.MonitorStatus:
+            case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
+                return [
+                    ConditionType.Contains,
+                    ConditionType.NotContains,
+                ];
+            case NotificationRuleConditionCheckOn.MonitorType:
+
+                return [
+                    ConditionType.Contains,
+                    ConditionType.NotContains,
+                ];
+            case NotificationRuleConditionCheckOn.Labels:
+                return [
+                    ConditionType.Contains,
+                    ConditionType.NotContains,
+                    ConditionType.ContainsAll,
+                ];
+            case NotificationRuleConditionCheckOn.Monitors:
+                return [
+                    ConditionType.Contains,
+                    ConditionType.NotContains,
+                    ConditionType.ContainsAll,
+                ];
+            default:
+                return [];
+        }
+    }
 }
 
 
