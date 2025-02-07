@@ -5,7 +5,9 @@ import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderTyp
 import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
 import ServiceProviderNotificationRuleTable from "../../Components/ServiceProvider/ServiceProviderNotificationRulesTable";
 
-const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
+  _props: PageComponentProps
+): ReactElement => {
   return (
     <div>
       <SlackIntegration />
@@ -17,4 +19,4 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default Settings;
+export default SlackIntegrationPage;
