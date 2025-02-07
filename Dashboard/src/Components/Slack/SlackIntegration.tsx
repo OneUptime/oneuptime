@@ -42,26 +42,27 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const [manifest, setManifest] = React.useState<JSONObject | null>(null);
-  const [isUserAccountAlreadyConnected, setIsUserAccountAlreadyConnected] =
+  const [isUserAccountConnected, setIsUserAccountConnected] =
     React.useState<boolean>(false);
   const [userAuthTokenId, setServiceProviderUserAuthTokenId] =
     React.useState<ObjectID | null>(null);
   const [projectAuthTokenId, setServiceProviderProjectAuthTokenId] =
     React.useState<ObjectID | null>(null);
   const [
-    isProjectAccountAlreadyConnected,
-    setIsProjectAccountAlreadyConnected,
+    isProjectAccountConnected,
+    setIsProjectAccountConnected,
   ] = React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
+  
 
 
   useEffect(() => {
-    if(isProjectAccountAlreadyConnected){
+    if(isProjectAccountConnected){
       props.onConnected();
     }else{
       props.onDisconnected();
     }
-  }, [isProjectAccountAlreadyConnected]);
+  }, [isProjectAccountConnected]);
 
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
@@ -88,7 +89,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
         });
 
       if (projectAuth.data.length > 0) {
-        setIsProjectAccountAlreadyConnected(true);
+        setIsProjectAccountConnected(true);
         setServiceProviderProjectAuthTokenId(projectAuth.data[0]!.id);
       }
 
@@ -112,11 +113,11 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
         });
 
       if (userAuth.data.length > 0) {
-        setIsUserAccountAlreadyConnected(true);
+        setIsUserAccountConnected(true);
         setServiceProviderUserAuthTokenId(userAuth.data[0]!.id);
       }
 
-      if (!isUserAccountAlreadyConnected || !isProjectAccountAlreadyConnected) {
+      if (!isUserAccountConnected || !isProjectAccountConnected) {
         // if any of this is not connected then fetch the app manifest, so we can connect with slack.
 
         // fetch app manifest.
@@ -169,7 +170,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
   let cardButtons: Array<CardButtonSchema> = [];
 
   // if user and project both connected with slack, then.
-  if (isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
+  if (isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = `You are connected with Slack`;
     cardDescription = `Your account is already connected with Slack.`;
     cardButtons = [
@@ -187,7 +188,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
                 id: userAuthTokenId!,
               });
 
-              setIsUserAccountAlreadyConnected(false);
+              setIsUserAccountConnected(false);
               setServiceProviderUserAuthTokenId(null);
             } else {
               setError(
@@ -339,7 +340,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
   };
 
   // if user is not connected and the project is connected with slack.
-  if (!isUserAccountAlreadyConnected && isProjectAccountAlreadyConnected) {
+  if (!isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = `You are disconnected from Slack (but OneUptime is already installed in your team)`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
     cardButtons = [
@@ -359,7 +360,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
                 id: projectAuthTokenId!,
               });
 
-              setIsProjectAccountAlreadyConnected(false);
+              setIsProjectAccountConnected(false);
               setServiceProviderProjectAuthTokenId(null);
             } else {
               setError(
@@ -381,7 +382,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
     ];
   }
 
-  if (!isUserAccountAlreadyConnected && !isProjectAccountAlreadyConnected) {
+  if (!isUserAccountConnected && !isProjectAccountConnected) {
     cardTitle = `Connect with Slack`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
