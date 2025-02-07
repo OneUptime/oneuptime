@@ -6,13 +6,15 @@ import NotificationRuleEventType from "Common/Types/ServiceProvider/Notification
 import ServiceProviderNotificationRuleTable from "../../Components/ServiceProvider/ServiceProviderNotificationRulesTable";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  return <div>
-    <SlackIntegration />
-    <ServiceProviderNotificationRuleTable 
-      serviceProviderType={ServiceProviderType.Slack}
-      eventType={NotificationRuleEventType.Incident}
-    />
-    </div>;
+  return (
+    <div>
+      <SlackIntegration />
+      <ServiceProviderNotificationRuleTable
+        serviceProviderType={ServiceProviderType.Slack}
+        eventType={NotificationRuleEventType.Incident}
+      />
+    </div>
+  );
 };
 
 export default Settings;

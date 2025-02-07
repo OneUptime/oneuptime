@@ -3,7 +3,12 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+} from "react";
 import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/ServiceProviderNotificationRule";
 import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
@@ -38,24 +43,31 @@ export interface ComponentProps {
   eventType: NotificationRuleEventType;
 }
 
-const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-
+const ServiceProviderNotificationRuleTable: FunctionComponent<
+  ComponentProps
+> = (props: ComponentProps): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
   const [monitors, setMonitors] = React.useState<Array<Monitor>>([]);
   const [labels, setLabels] = React.useState<Array<Label>>([]);
   const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
-  const [alertSeverities, setAlertSeverities] = React.useState<Array<AlertSeverity>>([]);
-  const [incidentSeverities, setIncidentSeverities] = React.useState<Array<IncidentSeverity>>([]);
-  const [incidentStates, setIncidentStates] = React.useState<Array<IncidentState>>([]);
-  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = React.useState<Array<ScheduledMaintenanceState>>([]);
-  const [monitorStatus, setMonitorStatus] = React.useState<Array<MonitorStatus>>([]);
+  const [alertSeverities, setAlertSeverities] = React.useState<
+    Array<AlertSeverity>
+  >([]);
+  const [incidentSeverities, setIncidentSeverities] = React.useState<
+    Array<IncidentSeverity>
+  >([]);
+  const [incidentStates, setIncidentStates] = React.useState<
+    Array<IncidentState>
+  >([]);
+  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] =
+    React.useState<Array<ScheduledMaintenanceState>>([]);
+  const [monitorStatus, setMonitorStatus] = React.useState<
+    Array<MonitorStatus>
+  >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
-
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -75,9 +87,8 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
-
 
       setMonitors(monitors.data);
 
@@ -94,7 +105,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
 
       setLabels(labels.data);
@@ -112,44 +123,47 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
 
       setAlertStates(alertStates.data);
 
-      const alertSeverities: ListResult<AlertSeverity> = await ModelAPI.getList({
-        modelType: AlertSeverity,
-        query: {
-          projectId: DashboardNavigation.getProjectId()!,
+      const alertSeverities: ListResult<AlertSeverity> = await ModelAPI.getList(
+        {
+          modelType: AlertSeverity,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            name: true,
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: {
+            name: SortOrder.Ascending,
+          },
         },
-        select: {
-          name: true,
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        }
-      });
+      );
 
       setAlertSeverities(alertSeverities.data);
 
-      const incidentSeverities: ListResult<IncidentSeverity> = await ModelAPI.getList({
-        modelType: IncidentSeverity,
-        query: {
-          projectId: DashboardNavigation.getProjectId()!,
-        },
-        select: {
-          name: true,
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        }
-      });
+      const incidentSeverities: ListResult<IncidentSeverity> =
+        await ModelAPI.getList({
+          modelType: IncidentSeverity,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            name: true,
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
       setIncidentSeverities(incidentSeverities.data);
 
@@ -166,26 +180,27 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
 
       setIncidentStates(incidentStates.data);
 
-      const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> = await ModelAPI.getList({
-        modelType: ScheduledMaintenanceState,
-        query: {
-          projectId: DashboardNavigation.getProjectId()!,
-        },
-        select: {
-          name: true,
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        }
-      });
+      const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
+        await ModelAPI.getList({
+          modelType: ScheduledMaintenanceState,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            name: true,
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
       setScheduledMaintenanceStates(scheduledMaintenanceStates.data);
 
@@ -202,7 +217,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
 
       setMonitorStatus(monitorStatus.data);
@@ -220,7 +235,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
         limit: LIMIT_PER_PROJECT,
         sort: {
           name: SortOrder.Ascending,
-        }
+        },
       });
 
       setTeams(teams.data);
@@ -235,55 +250,55 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
             name: true,
             email: true,
             _id: true,
-          }
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
           createdAt: SortOrder.Ascending,
-        }
+        },
       });
 
-      const users: Array<User> = teamMembers.data.map((teamMember: TeamMember) => {
-        return teamMember.user!;
-      });
+      const users: Array<User> = teamMembers.data.map(
+        (teamMember: TeamMember) => {
+          return teamMember.user!;
+        },
+      );
 
       // make sure user is unique by id
 
       const uniqueUsers: Array<User> = [];
 
       users.forEach((user: User) => {
-        if (!uniqueUsers.find((u: User) => u._id?.toString() === user._id?.toString())) {
+        if (
+          !uniqueUsers.find((u: User) => {
+            return u._id?.toString() === user._id?.toString();
+          })
+        ) {
           uniqueUsers.push(user);
         }
       });
 
       setUsers(uniqueUsers);
-
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
     setIsLoading(false);
   };
 
-
-
   useEffect(() => {
-    loadPage().catch((err) => {
+    loadPage().catch((err: Exception) => {
       setError(API.getFriendlyErrorMessage(err as Exception));
     });
   }, []);
 
-
-  if(isLoading){
-    return <PageLoader isVisible={true} />
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
   }
 
-
-  if(error){
-    return <ErrorMessage message={error} />
+  if (error) {
+    return <ErrorMessage message={error} />;
   }
-
 
   return (
     <Fragment>
@@ -340,23 +355,25 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
               value: FormValues<ServiceProviderNotificationRule>,
               elementProps: CustomElementProps,
             ): ReactElement => {
-              return <NotificationRuleForm
-                {...elementProps}
-                initialValue={value.notificationRule as SlackNotificationRule}
-                eventType={props.eventType}
-                monitors={monitors}
-                labels={labels}
-                alertStates={alertStates}
-                alertSeverities={alertSeverities}
-                incidentSeverities={incidentSeverities}
-                incidentStates={incidentStates}
-                scheduledMaintenanceStates={scheduledMaintenanceStates}
-                monitorStatus={monitorStatus}
-                serviceProviderType={props.serviceProviderType}
-                teams={teams}
-                users={users}
-              />;
-            }
+              return (
+                <NotificationRuleForm
+                  {...elementProps}
+                  initialValue={value.notificationRule as SlackNotificationRule}
+                  eventType={props.eventType}
+                  monitors={monitors}
+                  labels={labels}
+                  alertStates={alertStates}
+                  alertSeverities={alertSeverities}
+                  incidentSeverities={incidentSeverities}
+                  incidentStates={incidentStates}
+                  scheduledMaintenanceStates={scheduledMaintenanceStates}
+                  monitorStatus={monitorStatus}
+                  serviceProviderType={props.serviceProviderType}
+                  teams={teams}
+                  users={users}
+                />
+              );
+            },
           },
         ]}
         formSteps={[
@@ -427,11 +444,12 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<ComponentProps> = 
                     serviceProviderType={props.serviceProviderType}
                     teams={teams}
                     users={users}
-                  />;
+                  />
+                  ;
                 </Fragment>
               );
             },
-          }
+          },
         ]}
       />
     </Fragment>
