@@ -332,6 +332,13 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         }}
         showAs={ShowAs.List}
         noItemsMessage={"No notification rules found."}
+        onBeforeCreate={(values: ServiceProviderNotificationRule) => {
+          values.eventType = props.eventType;
+          values.projectId = DashboardNavigation.getProjectId()!;
+          values.serviceProviderType = props.serviceProviderType;
+
+          return Promise.resolve(values);
+        }}
         formFields={[
           {
             field: {
