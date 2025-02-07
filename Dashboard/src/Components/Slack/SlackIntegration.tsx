@@ -53,8 +53,6 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
     setIsProjectAccountConnected,
   ] = React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
-  
-
 
   useEffect(() => {
     if(isProjectAccountConnected){

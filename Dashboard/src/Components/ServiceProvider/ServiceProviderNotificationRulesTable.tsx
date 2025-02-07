@@ -317,6 +317,8 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           projectId: DashboardNavigation.getProjectId()!,
           eventType: props.eventType,
         }}
+        singularName={`${props.eventType} Notification Rule`}
+        pluralName={`${props.eventType} Notification Rules`}
         id="servie-provider-table"
         name="Settings > Service Provider Notification Rules"
         isDeleteable={true}
