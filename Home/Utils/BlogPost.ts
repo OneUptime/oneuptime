@@ -193,8 +193,8 @@ export default class BlogPostUtil {
       tags,
       postDate,
       formattedPostDate,
-      socialMediaImageUrl: `${(await this.getHomeUrl()).toString()}/posts/${fileName}/social-media.png`,
-      blogUrl: `${(await this.getHomeUrl()).toString()}/blog/post/${fileName}/view`,
+      socialMediaImageUrl: `${(await this.getHomeUrl()).toString()}blog/posts/${fileName}/social-media.png`,
+      blogUrl: `${(await this.getHomeUrl()).toString()}blog/post/${fileName}/view`,
     };
 
     return blogPost;
