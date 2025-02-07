@@ -1,13 +1,12 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NotificationRuleConditionElement from "./NotificationRuleCondition";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
+import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
 } from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
 import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
-import NotificationRuleCondition from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Label from "Common/Models/DatabaseModels/Label";

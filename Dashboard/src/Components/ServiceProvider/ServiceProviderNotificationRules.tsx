@@ -31,8 +31,8 @@ const Labels: FunctionComponent<ComponentProps> = (
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: `${props.serviceProviderType} Notification Rules`,
-          description: `Manage notification rules for ${props.serviceProviderType}.`,
+          title: `${props.eventType} - ${props.serviceProviderType} Notification Rules`,
+          description: `Manage ${props.eventType} notification rules for ${props.serviceProviderType}.`,
         }}
         noItemsMessage={"No notification rules found."}
         formFields={[

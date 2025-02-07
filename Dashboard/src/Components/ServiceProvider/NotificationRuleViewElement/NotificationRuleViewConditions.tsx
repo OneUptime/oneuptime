@@ -2,6 +2,15 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleConditionElement from "./NotificationRuleViewCondition";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleCondition from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
+import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Label from "Common/Models/DatabaseModels/Label";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 
 export interface ComponentProps {
   criteriaFilters: Array<NotificationRuleCondition>;

@@ -17,6 +17,8 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ObjectID from "Common/Types/ObjectID";
 import TeamsElement from "../../Team/TeamsElement";
+import UsersElement from "../../User/Users";
+import Field from "Common/UI/Components/Detail/Field";
 
 export interface ComponentProps {
   value: SlackNotificationRule;
@@ -37,94 +39,108 @@ export interface ComponentProps {
 const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return (
-    <Detail<SlackNotificationRule>
-      item={props.value}
-      fields={[
-        {
-          key: "filters",
-          title: "Filters",
-          fieldType: FieldType.Element,
-          getElement: () => {
-            return (
-              <NotificationRuleConditions
-                eventType={props.eventType}
-                monitors={props.monitors}
-                labels={props.labels}
-                alertStates={props.alertStates}
-                alertSeverities={props.alertSeverities}
-                incidentSeverities={props.incidentSeverities}
-                incidentStates={props.incidentStates}
-                scheduledMaintenanceStates={props.scheduledMaintenanceStates}
-                monitorStatus={props.monitorStatus}
-                filterCondition={props.value.filterCondition}
-                criteriaFilters={props.value.filters}
-              />
+  let detailFields: Array<Field<SlackNotificationRule>> = [];
+
+  if (props.serviceProviderType === ServiceProviderType.Slack) {
+    detailFields = [
+      {
+        key: "filters",
+        title: "Filters",
+        fieldType: FieldType.Element,
+        getElement: () => {
+          return (
+            <NotificationRuleConditions
+              eventType={props.eventType}
+              monitors={props.monitors}
+              labels={props.labels}
+              alertStates={props.alertStates}
+              alertSeverities={props.alertSeverities}
+              incidentSeverities={props.incidentSeverities}
+              incidentStates={props.incidentStates}
+              scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+              monitorStatus={props.monitorStatus}
+              filterCondition={props.value.filterCondition}
+              criteriaFilters={props.value.filters}
+            />
+          );
+        },
+      },
+      {
+        key: "shouldCreateSlackChannel",
+        title: "Create Slack Channel",
+        fieldType: FieldType.Boolean,
+      },
+      {
+        key: "inviteTeamsToNewSlackChannel",
+        title: "Invite Teams to New Slack Channel",
+        fieldType: FieldType.Element,
+        showIf: (formValue: SlackNotificationRule) => {
+          return formValue.shouldCreateSlackChannel;
+        },
+        getElement: () => {
+          const selectedTeams: Array<Team> = props.teams.filter((i: Team) => {
+            return props.value.inviteTeamsToNewSlackChannel.find(
+              (j: ObjectID) => {
+                return j.toString() === i._id!.toString();
+              },
             );
-          },
-        },
-        {
-          key: "shouldCreateSlackChannel",
-          title: "Create Slack Channel",
-          fieldType: FieldType.Boolean,
-        },
-        {
-          key: "inviteTeamsToNewSlackChannel",
-          title: "Invite Teams to New Slack Channel",
-          fieldType: FieldType.Element,
-          showIf: (formValue: SlackNotificationRule) => {
-            return formValue.shouldCreateSlackChannel;
-          },
-          getElement: () => {
-            const selectedTeams: Array<Team> = props.teams.filter((i: Team) => {
-              return props.value.inviteTeamsToNewSlackChannel.find(
-                (j: ObjectID) => {
-                  return j.toString() === i._id!.toString();
-                },
-              );
-            });
+          });
 
-            return <TeamsElement teams={selectedTeams} />;
-          },
+          return <TeamsElement teams={selectedTeams} />;
         },
-        {
-          key: "inviteUsersToNewSlackChannel",
-          title: "Invite Users to New Slack Channel",
-          fieldType: FieldType.Element,
+      },
+      {
+        key: "inviteUsersToNewSlackChannel",
+        title: "Invite Users to New Slack Channel",
+        fieldType: FieldType.Element,
+        getElement: () => {
+          const selectedUsers: Array<User> = props.users.filter((i: User) => {
+            return props.value.inviteTeamsToNewSlackChannel.find(
+              (j: ObjectID) => {
+                return j.toString() === i._id!.toString();
+              },
+            );
+          });
 
-          showIf: (formValue: SlackNotificationRule) => {
-            return formValue.shouldCreateSlackChannel;
-          },
+          return <UsersElement users={selectedUsers} />;
         },
-        {
-          key: "shouldAutomaticallyInviteOnCallUsersToNewSlackChannel",
-          title: "Automatically Invite On Call Users to New Slack Channel",
-          description:
-            "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
-          fieldType: FieldType.Boolean,
 
-          showIf: (formValue: SlackNotificationRule) => {
-            return formValue.shouldCreateSlackChannel;
-          },
+        showIf: (formValue: SlackNotificationRule) => {
+          return formValue.shouldCreateSlackChannel;
         },
-        {
-          key: "shouldPostToExistingSlackChannel",
-          title: "Post to Existing Slack Channel",
-          fieldType: FieldType.Boolean,
-        },
-        {
-          key: "existingSlackChannelName",
-          title: "Existing Slack Channel Name to Post To",
-          description:
-            "Please provide the name of the slack channel you want to post to.",
-          fieldType: FieldType.Text,
+      },
+      {
+        key: "shouldAutomaticallyInviteOnCallUsersToNewSlackChannel",
+        title: "Automatically Invite On Call Users to New Slack Channel",
+        description:
+          "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
+        fieldType: FieldType.Boolean,
 
-          showIf: (formValue: SlackNotificationRule) => {
-            return formValue.shouldPostToExistingSlackChannel;
-          },
+        showIf: (formValue: SlackNotificationRule) => {
+          return formValue.shouldCreateSlackChannel;
         },
-      ]}
-    />
+      },
+      {
+        key: "shouldPostToExistingSlackChannel",
+        title: "Post to Existing Slack Channel",
+        fieldType: FieldType.Boolean,
+      },
+      {
+        key: "existingSlackChannelName",
+        title: "Existing Slack Channel Name to Post To",
+        description:
+          "Please provide the name of the slack channel you want to post to.",
+        fieldType: FieldType.Text,
+
+        showIf: (formValue: SlackNotificationRule) => {
+          return formValue.shouldPostToExistingSlackChannel;
+        },
+      },
+    ];
+  }
+
+  return (
+    <Detail<SlackNotificationRule> item={props.value} fields={detailFields} />
   );
 };
 
