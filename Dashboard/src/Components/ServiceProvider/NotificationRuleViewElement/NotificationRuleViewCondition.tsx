@@ -6,8 +6,6 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import FilterCondition from "Common/Types/Filter/FilterCondition";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
 import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
 } from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
@@ -20,12 +18,11 @@ import ScheduledMaintenanceStateElement from "../../ScheduledMaintenanceState/Sc
 import MonitorStatusElement from "../../MonitorStatus/MonitorStatusElement";
 import LabelElement from "../../Label/Label";
 import MonitorElement from "../../Monitor/Monitor";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
-  filterCondition?: FilterCondition | undefined;
   value?: string | Array<string>;
-  eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
@@ -39,7 +36,7 @@ export interface ComponentProps {
 const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const getValueElement = () => {
+  const getValueElement: GetReactElementFunction = (): ReactElement => {
     let valueElement: ReactElement | undefined = undefined;
 
     if (
@@ -48,8 +45,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedAlertSeverities: Array<AlertSeverity> =
         props.alertSeverities.filter((alertSeverity: AlertSeverity) => {
-          const selectedAlertSeveritiies: Array<string> = props.notificationRuleCondition
-            ?.value as Array<string>;
+          const selectedAlertSeveritiies: Array<string> = props
+            .notificationRuleCondition?.value as Array<string>;
 
           return selectedAlertSeveritiies.includes(
             alertSeverity.id!.toString(),
@@ -71,8 +68,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedAlertStates: Array<AlertState> = props.alertStates.filter(
         (alertState: AlertState) => {
-          const selectedAlertStates: Array<string> = props.notificationRuleCondition
-            ?.value as Array<string>;
+          const selectedAlertStates: Array<string> = props
+            .notificationRuleCondition?.value as Array<string>;
 
           return selectedAlertStates.includes(alertState.id!.toString());
         },
@@ -94,8 +91,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       const selectedIncidentSeverities: Array<IncidentSeverity> =
         props.incidentSeverities.filter(
           (incidentSeverity: IncidentSeverity) => {
-            const selectedIncidentSeverities: Array<string> = props.notificationRuleCondition
-              ?.value as Array<string>;
+            const selectedIncidentSeverities: Array<string> = props
+              .notificationRuleCondition?.value as Array<string>;
 
             return selectedIncidentSeverities.includes(
               incidentSeverity.id!.toString(),
@@ -122,8 +119,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedIncidentStates: Array<IncidentState> =
         props.incidentStates.filter((incidentState: IncidentState) => {
-          const selectedIncidentStates = props.notificationRuleCondition
-            ?.value as Array<string>;
+          const selectedIncidentStates: Array<string> = props
+            .notificationRuleCondition?.value as Array<string>;
 
           return selectedIncidentStates.includes(incidentState.id!.toString());
         });
@@ -174,8 +171,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedMonitorStatuses: Array<MonitorStatus> =
         props.monitorStatus.filter((monitorStatus: MonitorStatus) => {
-          const selectedMonitorStatuses: Array<string> = props.notificationRuleCondition
-            ?.value as Array<string>;
+          const selectedMonitorStatuses: Array<string> = props
+            .notificationRuleCondition?.value as Array<string>;
 
           return selectedMonitorStatuses.includes(monitorStatus.id!.toString());
         });
@@ -222,8 +219,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedMonitors: Array<Monitor> = props.monitors.filter(
         (monitor: Monitor) => {
-          const selectedMonitors: Array<string> = props.notificationRuleCondition
-            ?.value as Array<string>;
+          const selectedMonitors: Array<string> = props
+            .notificationRuleCondition?.value as Array<string>;
 
           return selectedMonitors.includes(monitor.id!.toString());
         },
