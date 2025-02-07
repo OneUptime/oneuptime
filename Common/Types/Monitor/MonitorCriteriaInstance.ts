@@ -1,5 +1,6 @@
 import DatabaseProperty from "../Database/DatabaseProperty";
 import BadDataException from "../Exception/BadDataException";
+import FilterCondition from "../Filter/FilterCondition";
 import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
@@ -8,7 +9,6 @@ import { CriteriaAlert } from "./CriteriaAlert";
 import {
   CheckOn,
   CriteriaFilter,
-  FilterCondition,
   FilterType,
   EvaluateOverTimeType,
 } from "./CriteriaFilter";

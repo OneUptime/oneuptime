@@ -3,7 +3,6 @@ import MonitorCriteriaIncidents from "./MonitorCriteriaIncidents";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import { FilterCondition } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -14,6 +13,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;

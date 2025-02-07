@@ -164,6 +164,7 @@ import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 import ServiceProviderUserAuthToken from "./ServiceProviderUserAuthToken";
 import ServiceProviderProjectAuthToken from "./ServiceProviderProjectAuthToken";
 import ServiceProviderSetting from "./ServiceProviderSetting";
+import ServiceProviderNotificationRule from "./ServiceProviderNotificationRule";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -351,6 +352,7 @@ const AllModelTypes: Array<{
   MonitorTest,
 
   ServiceProviderSetting,
+  ServiceProviderNotificationRule,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
