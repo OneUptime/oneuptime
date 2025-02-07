@@ -48,7 +48,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedAlertSeverities: Array<AlertSeverity> =
         props.alertSeverities.filter((alertSeverity: AlertSeverity) => {
-          const selectedAlertSeveritiies = props.notificationRuleCondition
+          const selectedAlertSeveritiies: Array<string> = props.notificationRuleCondition
             ?.value as Array<string>;
 
           return selectedAlertSeveritiies.includes(
@@ -71,7 +71,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedAlertStates: Array<AlertState> = props.alertStates.filter(
         (alertState: AlertState) => {
-          const selectedAlertStates = props.notificationRuleCondition
+          const selectedAlertStates: Array<string> = props.notificationRuleCondition
             ?.value as Array<string>;
 
           return selectedAlertStates.includes(alertState.id!.toString());
@@ -94,7 +94,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       const selectedIncidentSeverities: Array<IncidentSeverity> =
         props.incidentSeverities.filter(
           (incidentSeverity: IncidentSeverity) => {
-            const selectedIncidentSeverities = props.notificationRuleCondition
+            const selectedIncidentSeverities: Array<string> = props.notificationRuleCondition
               ?.value as Array<string>;
 
             return selectedIncidentSeverities.includes(
@@ -144,7 +144,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       const selectedScheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
         props.scheduledMaintenanceStates.filter(
           (scheduledMaintenanceState: ScheduledMaintenanceState) => {
-            const selectedScheduledMaintenanceStates = props
+            const selectedScheduledMaintenanceStates: Array<string> = props
               .notificationRuleCondition?.value as Array<string>;
 
             return selectedScheduledMaintenanceStates.includes(
@@ -174,7 +174,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedMonitorStatuses: Array<MonitorStatus> =
         props.monitorStatus.filter((monitorStatus: MonitorStatus) => {
-          const selectedMonitorStatuses = props.notificationRuleCondition
+          const selectedMonitorStatuses: Array<string> = props.notificationRuleCondition
             ?.value as Array<string>;
 
           return selectedMonitorStatuses.includes(monitorStatus.id!.toString());
@@ -200,7 +200,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedLabels: Array<Label> = props.labels.filter(
         (label: Label) => {
-          const selectedLabels = props.notificationRuleCondition
+          const selectedLabels: Array<string> = props.notificationRuleCondition
             ?.value as Array<string>;
 
           return selectedLabels.includes(label.id!.toString());
@@ -222,7 +222,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const selectedMonitors: Array<Monitor> = props.monitors.filter(
         (monitor: Monitor) => {
-          const selectedMonitors = props.notificationRuleCondition
+          const selectedMonitors: Array<string> = props.notificationRuleCondition
             ?.value as Array<string>;
 
           return selectedMonitors.includes(monitor.id!.toString());
