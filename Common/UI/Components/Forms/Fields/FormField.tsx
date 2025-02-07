@@ -382,12 +382,14 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               options={
-                props.field.radioButtonOptions?.map((option: BasicRadioButtonOption) => {
-                  return {
-                    label: option.title,
-                    value: option.value,
-                  };
-                }) || []
+                props.field.radioButtonOptions?.map(
+                  (option: BasicRadioButtonOption) => {
+                    return {
+                      label: option.title,
+                      value: option.value,
+                    };
+                  },
+                ) || []
               }
               initialValue={
                 props.currentValues &&
