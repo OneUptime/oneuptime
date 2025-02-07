@@ -30,7 +30,13 @@ import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServicePr
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 
-const SlackIntegration: FunctionComponent = (): ReactElement => {
+
+export interface ComponentProps {
+  onConnected: VoidFunction;
+  onDisconnected: VoidFunction;
+}
+
+const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -47,6 +53,16 @@ const SlackIntegration: FunctionComponent = (): ReactElement => {
     setIsProjectAccountAlreadyConnected,
   ] = React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
+
+
+  useEffect(() => {
+    if(isProjectAccountAlreadyConnected){
+      props.onConnected();
+    }else{
+      props.onDisconnected();
+    }
+  }, [isProjectAccountAlreadyConnected]);
+
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {

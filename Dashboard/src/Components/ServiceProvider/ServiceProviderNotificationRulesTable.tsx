@@ -100,6 +100,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
+          color: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -118,6 +119,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
+          color: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -137,6 +139,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           select: {
             name: true,
             _id: true,
+            color: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -157,6 +160,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           select: {
             name: true,
             _id: true,
+            color: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -175,6 +179,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
+          color: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -194,6 +199,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           select: {
             name: true,
             _id: true,
+            color: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -212,6 +218,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
+          color: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -230,6 +237,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
+          
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -246,6 +254,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           projectId: DashboardNavigation.getProjectId()!,
         },
         select: {
+          _id: true,
           user: {
             name: true,
             email: true,
@@ -255,7 +264,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
-          createdAt: SortOrder.Ascending,
+          
         },
       });
 
