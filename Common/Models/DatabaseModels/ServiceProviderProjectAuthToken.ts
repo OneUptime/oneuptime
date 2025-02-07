@@ -16,6 +16,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import Permission from "../../Types/Permission";
 
 export interface MiscData {
   [key: string]: string;
@@ -30,10 +31,25 @@ export interface SlackMiscData extends MiscData {
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
-  create: [],
-  read: [],
-  delete: [],
-  update: [],
+  create: [
+    Permission.ProjectOwner, 
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+  ],
+  read: [
+    Permission.ProjectOwner, 
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+  ],
+  delete: [
+    Permission.ProjectOwner, 
+    Permission.ProjectAdmin,
+  ],
+  update: [
+    Permission.ProjectOwner, 
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+  ],
 })
 @CrudApiEndpoint(new Route("/service-provider-project-auth-token"))
 @Entity({
@@ -48,9 +64,19 @@ export interface SlackMiscData extends MiscData {
 })
 class ServiceProviderProjectAuthToken extends BaseModel {
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
@@ -74,9 +100,19 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+
+    ],
   })
   @Index()
   @TableColumn({
@@ -94,9 +130,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+
+    ],
+    update: [
+
+    ],
   })
   @TableColumn({
     title: "Auth Token",
@@ -113,9 +157,19 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public authToken?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+
+    ],
   })
   @TableColumn({
     title: "Service Provider Type",
@@ -134,9 +188,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public serviceProviderType?: ServiceProviderType = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     title: "Project ID in Service Provider",
@@ -154,9 +220,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public serviceProviderProjectId?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     title: "Misc Data",
@@ -173,9 +251,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public miscData?: MiscData = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
@@ -200,9 +290,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -218,9 +320,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "deletedByUserId",
@@ -245,9 +359,21 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public deletedByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [
+      Permission.ProjectOwner, 
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,

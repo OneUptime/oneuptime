@@ -18,14 +18,35 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
 import BaseNotificationRule from "../../Types/ServiceProvider/NotificationRules/BaseNotificationRule";
 import NotificationRuleEventType from "../../Types/ServiceProvider/NotificationRules/EventType";
+import Permission from "../../Types/Permission";
 
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
-  create: [],
-  read: [],
-  delete: [],
-  update: [],
+  create: [
+    Permission.ProjectAdmin,
+    Permission.ProjectOwner,
+    Permission.ProjectMember, 
+    Permission.CreateServiceProviderNotificationRule
+  ],
+  read: [
+    Permission.ProjectAdmin,
+    Permission.ProjectOwner,
+    Permission.ProjectMember, 
+    Permission.ReadServiceProviderNotificationRule
+  ],
+  delete: [
+    Permission.ProjectAdmin, 
+    Permission.ProjectOwner,
+    Permission.ProjectMember,
+    Permission.DeleteServiceProviderNotificationRule
+  ],
+  update: [
+    Permission.ProjectAdmin,
+    Permission.ProjectOwner,
+    Permission.ProjectMember, 
+    Permission.EditServiceProviderNotificationRule
+  ],
 })
 @CrudApiEndpoint(new Route("/service-provider-notification-rule"))
 @Entity({
@@ -40,9 +61,24 @@ import NotificationRuleEventType from "../../Types/ServiceProvider/NotificationR
 })
 class ServiceProviderNotificationRule extends BaseModel {
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
@@ -66,9 +102,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @Index()
   @TableColumn({
@@ -86,9 +137,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     title: "Rule Name",
@@ -107,9 +173,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public name?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     title: "Rule Description",
@@ -128,9 +209,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public description?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     title: "Service Provider Notification Rules",
@@ -148,9 +244,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public notificationRule?: BaseNotificationRule = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     title: "Service Provider Event Type",
@@ -169,9 +280,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public eventType?: NotificationRuleEventType = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     title: "Service Provider Type",
@@ -190,9 +316,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public serviceProviderType?: ServiceProviderType = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
@@ -217,9 +358,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -235,9 +391,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "deletedByUserId",
@@ -264,9 +435,24 @@ class ServiceProviderNotificationRule extends BaseModel {
   // deleted by userId
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateServiceProviderNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadServiceProviderNotificationRule,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditServiceProviderNotificationRule,
+    ],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,

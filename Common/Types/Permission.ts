@@ -607,6 +607,12 @@ enum Permission {
   DeleteTableView = "DeleteTableView",
   EditTableView = "EditTableView",
   ReadTableView = "ReadTableView",
+
+
+  CreateServiceProviderNotificationRule = "CreateServiceProviderNotificationRule",
+  DeleteServiceProviderNotificationRule = "DeleteServiceProviderNotificationRule",
+  EditServiceProviderNotificationRule = "EditServiceProviderNotificationRule",
+  ReadServiceProviderNotificationRule = "ReadServiceProviderNotificationRule",
 }
 
 export class PermissionHelper {
@@ -1038,6 +1044,38 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
+
+
+      {
+        permission: Permission.CreateServiceProviderNotificationRule,
+        title: "Create Service Provider Notification Rule",
+        description: "This permission can create alert states this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceProviderNotificationRule,
+        title: "Delete Service Provider Notification Rule",
+        description: "This permission can delete alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceProviderNotificationRule,
+        title: "Edit Service Provider Notification Rule",
+        description: "This permission can edit alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceProviderNotificationRule,
+        title: "Read Service Provider Notification Rule",
+        description: "This permission can read alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
 
       {
         permission: Permission.CreateIncidentStateTimeline,

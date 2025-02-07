@@ -96,7 +96,7 @@ class ServiceProviderUserAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    read: [],
     update: [],
   })
   @TableColumn({
