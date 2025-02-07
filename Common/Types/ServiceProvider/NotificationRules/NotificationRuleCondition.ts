@@ -199,7 +199,7 @@ export class NotificationRuleConditionUtil {
     eventType: NotificationRuleEventType,
   ): Array<NotificationRuleConditionCheckOn> {
     switch (eventType) {
-      case NotificationRuleEventType.IncidentCreatedOrUpdated:
+      case NotificationRuleEventType.Incident:
         return [
           NotificationRuleConditionCheckOn.IncidentName,
           NotificationRuleConditionCheckOn.IncidentDescription,
@@ -208,7 +208,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.Labels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
-      case NotificationRuleEventType.AlertCreatedOrUpdated:
+      case NotificationRuleEventType.Alert:
         return [
           NotificationRuleConditionCheckOn.AlertName,
           NotificationRuleConditionCheckOn.AlertDescription,
@@ -217,14 +217,14 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.Labels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
-      case NotificationRuleEventType.MonitorStatusChanged:
+      case NotificationRuleEventType.MonitorStatus:
         return [
           NotificationRuleConditionCheckOn.MonitorName,
           NotificationRuleConditionCheckOn.MonitorStatus,
           NotificationRuleConditionCheckOn.MonitorType,
           NotificationRuleConditionCheckOn.Monitors,
         ];
-      case NotificationRuleEventType.ScheduledMaintenanceCreatedOrUpdated:
+      case NotificationRuleEventType.ScheduledMaintenance:
         return [
           NotificationRuleConditionCheckOn.ScheduledMaintenanceName,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription,

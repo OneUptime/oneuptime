@@ -50,9 +50,6 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
                   {...props}
                   key={index}
                   notificationRuleCondition={i}
-                  filterCondition={
-                    !isLastItem ? props.filterCondition : undefined
-                  }
                 />{" "}
               </li>
             );
