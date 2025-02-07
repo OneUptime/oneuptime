@@ -36,7 +36,7 @@ export interface ComponentProps {
   users: Array<User>;
 }
 
-const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
+const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   let detailFields: Array<Field<SlackNotificationRule>> = [];
@@ -144,4 +144,4 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default NotificaitonRuleForm;
+export default NotificawtionRuleViewElement;
