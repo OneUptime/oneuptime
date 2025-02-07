@@ -44,7 +44,7 @@ export default class FormFieldSchemaTypeUtil {
         return FieldType.Color;
       case FormFieldSchemaType.Dropdown:
         return FieldType.Dropdown;
-      case FormFieldSchemaType.Radio:
+      case FormFieldSchemaType.RadioButton:
         return FieldType.Text;
       case FormFieldSchemaType.File:
         return FieldType.File;
@@ -64,7 +64,7 @@ export default class FormFieldSchemaTypeUtil {
         return FieldType.CSS;
       case FormFieldSchemaType.HTML:
         return FieldType.HTML;
-      case FormFieldSchemaType.RadioButton:
+      case FormFieldSchemaType.OptionChooserButton:
         return FieldType.Element;
       case FormFieldSchemaType.JSON:
         return FieldType.JSON;

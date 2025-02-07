@@ -182,7 +182,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   validation: {
                     minLength: 6,
                   },
-                  fieldType: FormFieldSchemaType.RadioButton,
+                  fieldType: FormFieldSchemaType.OptionChooserButton,
                   radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
                     getAllEnvVars(),
                   ).map((plan: SubscriptionPlan): RadioButton => {

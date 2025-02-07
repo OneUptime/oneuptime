@@ -16,6 +16,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 
 export interface ComponentProps {
   initialValue: Array<NotificationRuleCondition> | undefined;
@@ -46,7 +47,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {notificationRuleConditions.length === 0 && (
-        <p>This rule will trigger for all {props.eventType} events.</p>
+        <p className="text-sm text-gray-700">If no filters are added, then this rule will trigger for all {props.eventType}.</p>
       )}
 
       {notificationRuleConditions.map(
@@ -104,6 +105,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
           }}
         />
       </div>
+      <HorizontalRule />
     </div>
   );
 };

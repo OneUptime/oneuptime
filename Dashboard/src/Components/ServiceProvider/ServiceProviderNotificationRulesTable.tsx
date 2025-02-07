@@ -37,6 +37,7 @@ import NotificawtionRuleViewElement from "./NotificationRuleViewElement/Notifica
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   serviceProviderType: ServiceProviderType;
@@ -323,6 +324,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         name="Settings > Service Provider Notification Rules"
         isDeleteable={true}
         isEditable={true}
+        createEditModalWidth={ModalWidth.Large}
         isCreateable={true}
         cardProps={{
           title: `${props.eventType} - ${props.serviceProviderType} Notification Rules`,

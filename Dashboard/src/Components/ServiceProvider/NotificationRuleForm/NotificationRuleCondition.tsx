@@ -80,13 +80,13 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     setFilterTypeOptions(
       notificationRuleCondition?.checkOn
         ? NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-            notificationRuleCondition?.checkOn,
-          ).map((item: ConditionType) => {
-            return {
-              value: item,
-              label: item,
-            };
-          })
+          notificationRuleCondition?.checkOn,
+        ).map((item: ConditionType) => {
+          return {
+            value: item,
+            label: item,
+          };
+        })
         : [],
     );
     setValuePlaceholder("");
@@ -185,6 +185,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
               <div className="mt-1">
                 <FieldLabelElement title="Value" />
                 <Dropdown
+                  isMultiSelect={true}
                   options={NotificationRuleConditionUtil.getDropdownOptionsByCheckOn(
                     {
                       checkOn: notificationRuleCondition?.checkOn,
@@ -212,12 +213,30 @@ const NotificationRuleConditionFormElement: FunctionComponent<
                       alertSeverities: props.alertSeverities,
                       incidentSeverities: props.incidentSeverities,
                     },
-                  ).find((i: DropdownOption) => {
+                  ).filter((i: DropdownOption) => {
+
+                    if(notificationRuleCondition?.value && Array.isArray(notificationRuleCondition?.value)) {
+                      return notificationRuleCondition?.value.map((item)=>{
+                        return item.toString()
+                      }).includes(i.value.toString());
+                    }
+
                     return i.value === notificationRuleCondition?.value;
                   })}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
+
+                    if(Array.isArray(value)) {
+                      setNotificationRuleCondition({
+                        ...notificationRuleCondition,
+                        value: value.map((item)=>{
+                          return item.toString()
+                        }),
+                      });
+                      return;
+                    }
+
                     setNotificationRuleCondition({
                       ...notificationRuleCondition,
                       value: value?.toString(),

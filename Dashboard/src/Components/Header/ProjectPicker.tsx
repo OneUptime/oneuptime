@@ -183,7 +183,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             minLength: 6,
           },
           footerElement: getFooter(),
-          fieldType: FormFieldSchemaType.RadioButton,
+          fieldType: FormFieldSchemaType.OptionChooserButton,
           radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
             getAllEnvVars(),
           ).map((plan: SubscriptionPlan): RadioButton => {

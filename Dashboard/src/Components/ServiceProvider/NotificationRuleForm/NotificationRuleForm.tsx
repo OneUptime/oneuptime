@@ -11,7 +11,6 @@ import NotificationRuleEventType from "Common/Types/ServiceProvider/Notification
 import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, { FunctionComponent, ReactElement } from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
@@ -52,14 +51,25 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         title: "Filter Condition",
         fieldType: FormFieldSchemaType.RadioButton,
         required: true,
-        dropdownOptions:
-          DropdownUtil.getDropdownOptionsFromEnum(FilterCondition),
+        radioButtonOptions:
+          [
+            {
+              title: "Any",
+             
+              value: FilterCondition.Any,
+            },
+            {
+              title: "All",
+             
+              value: FilterCondition.All,
+            }
+          ]
       },
       {
         field: {
           filters: true,
         },
-        title: "Filters",
+        title: "Conditions",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: () => {
@@ -158,6 +168,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         description:
           "Please provide the name of the slack channel you want to post to.",
         fieldType: FormFieldSchemaType.Text,
+        placeholder: "#channel-name, #general, etc.",
         required: false,
         showIf: (formValue: FormValues<SlackNotificationRule>) => {
           return formValue.shouldPostToExistingSlackChannel || false;
@@ -171,6 +182,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       initialValue={props.initialValue}
       onChange={props.onChange}
       fields={formFields}
+      hideSubmitButton={true}
     />
   );
 };

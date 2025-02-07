@@ -31,6 +31,7 @@ import { JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
 import React, { ReactElement, useEffect } from "react";
+import Radio, { RadioValue } from "../../Radio/Radio";
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -278,6 +279,9 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
+
+
+
           {(props.field.fieldType === FormFieldSchemaType.Dropdown ||
             props.field.fieldType ===
               FormFieldSchemaType.MultiSelectDropdown) && (
@@ -352,7 +356,7 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
-          {props.field.fieldType === FormFieldSchemaType.RadioButton && (
+          {props.field.fieldType === FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
@@ -361,6 +365,30 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               options={props.field.radioButtonOptions || []}
+              initialValue={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : ""
+              }
+            />
+          )}
+
+
+{props.field.fieldType === FormFieldSchemaType.RadioButton && (
+            <Radio
+              error={props.touched && props.error ? props.error : undefined}
+              dataTestId={props.field.dataTestId}
+              onChange={async (value: RadioValue | null) => {
+                props.field.onChange && props.field.onChange(value);
+                props.setFieldValue(props.fieldName, value);
+              }}
+              options={props.field.radioButtonOptions?.map((option) => {
+                return {
+                  label: option.title,
+                  value: option.value,
+                };
+              }) || []}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
