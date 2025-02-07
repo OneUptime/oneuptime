@@ -1,5 +1,4 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -11,7 +10,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
-import BaseNotificationRule from "Common/Types/ServiceProvider/NotificationRules/BaseNotificationRule";
 import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,

@@ -12,7 +12,7 @@ const AlertSeverityElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Pill
-    isMinimal={true}
+      isMinimal={true}
       color={props.alertSeverity.color || Black}
       text={props.alertSeverity.name || "Unknown"}
     />

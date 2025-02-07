@@ -51,9 +51,8 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
           title: "Filter Condition",
           fieldType: FormFieldSchemaType.RadioButton,
           required: true,
-          dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-            FilterCondition
-          )
+          dropdownOptions:
+            DropdownUtil.getDropdownOptionsFromEnum(FilterCondition),
         },
         {
           field: {
@@ -63,28 +62,29 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           getElement: () => {
-            return <NotificationRuleConditions
-              eventType={props.eventType}
-              monitors={props.monitors}
-              labels={props.labels}
-              alertStates={props.alertStates}
-              alertSeverities={props.alertSeverities}
-              incidentSeverities={props.incidentSeverities}
-              incidentStates={props.incidentStates}
-              scheduledMaintenanceStates={props.scheduledMaintenanceStates}
-              monitorStatus={props.monitorStatus}
-              onChange={(value: Array<NotificationRuleCondition>) => {
-                if (props.onChange) {
-                  props.onChange({
-                    ...props.initialValue!,
-                    filters: value,
-                  });
-                }
-              }}
-              initialValue={props.initialValue?.filters || []}
-
-            />
-          }
+            return (
+              <NotificationRuleConditions
+                eventType={props.eventType}
+                monitors={props.monitors}
+                labels={props.labels}
+                alertStates={props.alertStates}
+                alertSeverities={props.alertSeverities}
+                incidentSeverities={props.incidentSeverities}
+                incidentStates={props.incidentStates}
+                scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+                monitorStatus={props.monitorStatus}
+                onChange={(value: Array<NotificationRuleCondition>) => {
+                  if (props.onChange) {
+                    props.onChange({
+                      ...props.initialValue!,
+                      filters: value,
+                    });
+                  }
+                }}
+                initialValue={props.initialValue?.filters || []}
+              />
+            );
+          },
         },
         {
           field: {
@@ -108,8 +108,8 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
             return {
               label: i.name,
               value: i._id!.toString()!,
-            }
-          })
+            };
+          }),
         },
         {
           field: {
@@ -125,20 +125,21 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
             return {
               label: i.name,
               value: i._id!.toString()!,
-            }
-          })
+            };
+          }),
         },
         {
           field: {
             shouldAutomaticallyInviteOnCallUsersToNewSlackChannel: true,
           },
           title: "Automatically Invite On Call Users to New Slack Channel",
-          description: "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
+          description:
+            "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
           fieldType: FormFieldSchemaType.Checkbox,
           required: false,
           showIf: (formValue: SlackNotificationRule) => {
             return formValue.shouldCreateSlackChannel;
-          }
+          },
         },
         {
           field: {
@@ -147,22 +148,22 @@ const NotificaitonRuleForm: FunctionComponent<ComponentProps> = (
           title: "Post to Existing Slack Channel",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
-
         },
         {
           field: {
             existingSlackChannelName: true,
           },
           title: "Existing Slack Channel Name to Post To",
-          description: "Please provide the name of the slack channel you want to post to.",
+          description:
+            "Please provide the name of the slack channel you want to post to.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (formValue: SlackNotificationRule) => {
             return formValue.shouldPostToExistingSlackChannel;
           },
-        }
-
-      ]} />
+        },
+      ]}
+    />
   );
 };
 

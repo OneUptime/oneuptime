@@ -4,19 +4,19 @@ import { Black } from "Common/Types/BrandColors";
 import Pill from "Common/UI/Components/Pill/Pill";
 
 export interface ComponentProps {
-    scheduledMaintenanceState: ScheduledMaintenanceState;
+  scheduledMaintenanceState: ScheduledMaintenanceState;
 }
 
 const ScheduledMaintenanceStateElement: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
-    return (
-        <Pill
-            isMinimal={true}
-            color={props.scheduledMaintenanceState.color || Black}
-            text={props.scheduledMaintenanceState.name || "Unknown"}
-        />
-    );
+  return (
+    <Pill
+      isMinimal={true}
+      color={props.scheduledMaintenanceState.color || Black}
+      text={props.scheduledMaintenanceState.name || "Unknown"}
+    />
+  );
 };
 
 export default ScheduledMaintenanceStateElement;

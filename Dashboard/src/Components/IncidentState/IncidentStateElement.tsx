@@ -12,7 +12,7 @@ const IncidentStateElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Pill
-    isMinimal={true}
+      isMinimal={true}
       color={props.incidentState.color || Black}
       text={props.incidentState.name || "Unknown"}
     />

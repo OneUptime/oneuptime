@@ -62,7 +62,6 @@ export default interface NotificationRuleCondition {
 }
 
 export class NotificationRuleConditionUtil {
-
   public static hasValueField(data: {
     checkOn: NotificationRuleConditionCheckOn;
     conditionType: ConditionType | undefined;
