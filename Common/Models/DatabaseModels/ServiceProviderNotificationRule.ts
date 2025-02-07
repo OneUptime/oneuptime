@@ -74,10 +74,7 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ReadServiceProviderNotificationRule,
     ],
     update: [
-      Permission.ProjectAdmin,
-      Permission.ProjectOwner,
-      Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      
     ],
   })
   @TableColumn({
@@ -115,10 +112,7 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ReadServiceProviderNotificationRule,
     ],
     update: [
-      Permission.ProjectAdmin,
-      Permission.ProjectOwner,
-      Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      
     ],
   })
   @Index()
