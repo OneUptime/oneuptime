@@ -238,7 +238,6 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         select: {
           name: true,
           _id: true,
-          
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -264,9 +263,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        sort: {
-          
-        },
+        sort: {},
       });
 
       const users: Array<User> = teamMembers.data.map(

@@ -24,6 +24,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   initialValue: NotificationRuleCondition | undefined;
@@ -80,13 +81,13 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     setFilterTypeOptions(
       notificationRuleCondition?.checkOn
         ? NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-          notificationRuleCondition?.checkOn,
-        ).map((item: ConditionType) => {
-          return {
-            value: item,
-            label: item,
-          };
-        })
+            notificationRuleCondition?.checkOn,
+          ).map((item: ConditionType) => {
+            return {
+              value: item,
+              label: item,
+            };
+          })
         : [],
     );
     setValuePlaceholder("");
@@ -214,11 +215,15 @@ const NotificationRuleConditionFormElement: FunctionComponent<
                       incidentSeverities: props.incidentSeverities,
                     },
                   ).filter((i: DropdownOption) => {
-
-                    if(notificationRuleCondition?.value && Array.isArray(notificationRuleCondition?.value)) {
-                      return notificationRuleCondition?.value.map((item)=>{
-                        return item.toString()
-                      }).includes(i.value.toString());
+                    if (
+                      notificationRuleCondition?.value &&
+                      Array.isArray(notificationRuleCondition?.value)
+                    ) {
+                      return notificationRuleCondition?.value
+                        .map((item: string | ObjectID) => {
+                          return item.toString();
+                        })
+                        .includes(i.value.toString());
                     }
 
                     return i.value === notificationRuleCondition?.value;
@@ -226,12 +231,11 @@ const NotificationRuleConditionFormElement: FunctionComponent<
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
-
-                    if(Array.isArray(value)) {
+                    if (Array.isArray(value)) {
                       setNotificationRuleCondition({
                         ...notificationRuleCondition,
-                        value: value.map((item)=>{
-                          return item.toString()
+                        value: value.map((item: DropdownValue) => {
+                          return item.toString();
                         }),
                       });
                       return;

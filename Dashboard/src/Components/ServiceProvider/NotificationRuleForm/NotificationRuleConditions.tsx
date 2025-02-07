@@ -47,7 +47,10 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {notificationRuleConditions.length === 0 && (
-        <p className="text-sm text-gray-700">If no filters are added, then this rule will trigger for all {props.eventType}.</p>
+        <p className="text-sm text-gray-700">
+          If no filters are added, then this rule will trigger for all{" "}
+          {props.eventType}.
+        </p>
       )}
 
       {notificationRuleConditions.map(

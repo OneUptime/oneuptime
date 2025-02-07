@@ -20,7 +20,7 @@ enum FormFieldSchemaType {
   Dropdown = "Dropdown",
   File = "File",
   MultiSelectDropdown = "MultiSelectDropdown",
-  OptionChooserButton =   "OptionChooserButton",
+  OptionChooserButton = "OptionChooserButton",
   Toggle = "Boolean",
   Port = "Port",
   EncryptedText = "EncryptedText",

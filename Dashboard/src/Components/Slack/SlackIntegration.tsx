@@ -30,13 +30,14 @@ import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServicePr
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
 
-
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
 }
 
-const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const SlackIntegration: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -48,20 +49,17 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (props: ComponentPro
     React.useState<ObjectID | null>(null);
   const [projectAuthTokenId, setServiceProviderProjectAuthTokenId] =
     React.useState<ObjectID | null>(null);
-  const [
-    isProjectAccountConnected,
-    setIsProjectAccountConnected,
-  ] = React.useState<boolean>(false);
+  const [isProjectAccountConnected, setIsProjectAccountConnected] =
+    React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
 
   useEffect(() => {
-    if(isProjectAccountConnected){
+    if (isProjectAccountConnected) {
       props.onConnected();
-    }else{
+    } else {
       props.onDisconnected();
     }
   }, [isProjectAccountConnected]);
-
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {

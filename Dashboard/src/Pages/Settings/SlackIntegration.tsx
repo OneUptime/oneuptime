@@ -8,19 +8,25 @@ import ServiceProviderNotificationRuleTable from "../../Components/ServiceProvid
 const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-
-  const [isSlackConnected, setIsSlackConnected] = React.useState<boolean>(false);
+  const [isSlackConnected, setIsSlackConnected] =
+    React.useState<boolean>(false);
 
   return (
     <div>
       <SlackIntegration
-        onConnected={() => setIsSlackConnected(true)}
-        onDisconnected={() => setIsSlackConnected(false)}
+        onConnected={() => {
+          return setIsSlackConnected(true);
+        }}
+        onDisconnected={() => {
+          return setIsSlackConnected(false);
+        }}
       />
-      {isSlackConnected && <ServiceProviderNotificationRuleTable
-        serviceProviderType={ServiceProviderType.Slack}
-        eventType={NotificationRuleEventType.Incident}
-      />}
+      {isSlackConnected && (
+        <ServiceProviderNotificationRuleTable
+          serviceProviderType={ServiceProviderType.Slack}
+          eventType={NotificationRuleEventType.Incident}
+        />
+      )}
     </div>
   );
 };

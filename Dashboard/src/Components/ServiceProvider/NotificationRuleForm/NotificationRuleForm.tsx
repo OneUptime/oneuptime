@@ -51,19 +51,18 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         title: "Filter Condition",
         fieldType: FormFieldSchemaType.RadioButton,
         required: true,
-        radioButtonOptions:
-          [
-            {
-              title: "Any",
-             
-              value: FilterCondition.Any,
-            },
-            {
-              title: "All",
-             
-              value: FilterCondition.All,
-            }
-          ]
+        radioButtonOptions: [
+          {
+            title: "Any",
+
+            value: FilterCondition.Any,
+          },
+          {
+            title: "All",
+
+            value: FilterCondition.All,
+          },
+        ],
       },
       {
         field: {

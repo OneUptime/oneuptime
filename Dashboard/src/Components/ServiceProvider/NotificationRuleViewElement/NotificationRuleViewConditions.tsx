@@ -32,7 +32,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   return (
     <div className="ml-5 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
       <ul role="list" className="space-y-6">
-        {props.criteriaFilters.map(
+        {(props.criteriaFilters || []).map(
           (i: NotificationRuleCondition, index: number) => {
             const isLastItem: boolean =
               index === props.criteriaFilters.length - 1;

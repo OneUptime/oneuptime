@@ -10,15 +10,13 @@ export interface ComponentProps {
   options: Array<RadioOption>;
   initialValue?: undefined | RadioOption;
   className?: undefined | string;
-  onChange?:
-    | undefined
-    | ((value: RadioValue | null) => void);
+  onChange?: undefined | ((value: RadioValue | null) => void);
   value?: RadioOption | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
   tabIndex?: number | undefined;
   error?: string | undefined;
-  dataTestId?: string | undefined;  
+  dataTestId?: string | undefined;
 }
 
 const Radio: FunctionComponent<ComponentProps> = (
@@ -31,7 +29,10 @@ const Radio: FunctionComponent<ComponentProps> = (
   const groupName: string = Text.generateRandomText();
 
   return (
-    <div className={`mt-2 space-y-2 ${props.className}`} data-testid={props.dataTestId}>
+    <div
+      className={`mt-2 space-y-2 ${props.className}`}
+      data-testid={props.dataTestId}
+    >
       {props.options.map((option: RadioOption, index: number) => {
         return (
           <div key={index} className="flex items-center gap-x-3">
