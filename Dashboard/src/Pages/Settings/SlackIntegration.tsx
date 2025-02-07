@@ -6,7 +6,7 @@ import NotificationRuleEventType from "Common/Types/ServiceProvider/Notification
 import ServiceProviderNotificationRuleTable from "../../Components/ServiceProvider/ServiceProviderNotificationRulesTable";
 
 const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps
+  _props: PageComponentProps,
 ): ReactElement => {
   return (
     <div>

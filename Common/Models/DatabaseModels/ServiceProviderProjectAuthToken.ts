@@ -32,21 +32,18 @@ export interface SlackMiscData extends MiscData {
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
   create: [
-    Permission.ProjectOwner, 
+    Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
   ],
   read: [
-    Permission.ProjectOwner, 
+    Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
   ],
-  delete: [
-    Permission.ProjectOwner, 
-    Permission.ProjectAdmin,
-  ],
+  delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [
-    Permission.ProjectOwner, 
+    Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
   ],
@@ -65,18 +62,16 @@ export interface SlackMiscData extends MiscData {
 class ServiceProviderProjectAuthToken extends BaseModel {
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
-    update: [
-
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
@@ -101,18 +96,16 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
-    update: [
-
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -131,16 +124,12 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
-    read: [
-
-    ],
-    update: [
-
-    ],
+    read: [],
+    update: [],
   })
   @TableColumn({
     title: "Auth Token",
@@ -158,18 +147,16 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
-    update: [
-
-    ],
+    update: [],
   })
   @TableColumn({
     title: "Service Provider Type",
@@ -189,17 +176,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
@@ -221,17 +208,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
@@ -252,17 +239,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
@@ -291,17 +278,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
@@ -321,17 +308,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
@@ -360,17 +347,17 @@ class ServiceProviderProjectAuthToken extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     read: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],
     update: [
-      Permission.ProjectOwner, 
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
     ],

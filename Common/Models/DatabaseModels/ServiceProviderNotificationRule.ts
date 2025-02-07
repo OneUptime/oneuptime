@@ -26,26 +26,26 @@ import Permission from "../../Types/Permission";
   create: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
-    Permission.ProjectMember, 
-    Permission.CreateServiceProviderNotificationRule
+    Permission.ProjectMember,
+    Permission.CreateServiceProviderNotificationRule,
   ],
   read: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
-    Permission.ProjectMember, 
-    Permission.ReadServiceProviderNotificationRule
+    Permission.ProjectMember,
+    Permission.ReadServiceProviderNotificationRule,
   ],
   delete: [
-    Permission.ProjectAdmin, 
+    Permission.ProjectAdmin,
     Permission.ProjectOwner,
     Permission.ProjectMember,
-    Permission.DeleteServiceProviderNotificationRule
+    Permission.DeleteServiceProviderNotificationRule,
   ],
   update: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
-    Permission.ProjectMember, 
-    Permission.EditServiceProviderNotificationRule
+    Permission.ProjectMember,
+    Permission.EditServiceProviderNotificationRule,
   ],
 })
 @CrudApiEndpoint(new Route("/service-provider-notification-rule"))
@@ -73,9 +73,7 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadServiceProviderNotificationRule,
     ],
-    update: [
-      
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
@@ -111,9 +109,7 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadServiceProviderNotificationRule,
     ],
-    update: [
-      
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({

@@ -608,7 +608,6 @@ enum Permission {
   EditTableView = "EditTableView",
   ReadTableView = "ReadTableView",
 
-
   CreateServiceProviderNotificationRule = "CreateServiceProviderNotificationRule",
   DeleteServiceProviderNotificationRule = "DeleteServiceProviderNotificationRule",
   EditServiceProviderNotificationRule = "EditServiceProviderNotificationRule",
@@ -1045,7 +1044,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
       {
         permission: Permission.CreateServiceProviderNotificationRule,
         title: "Create Service Provider Notification Rule",
@@ -1074,8 +1072,6 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
-
-
 
       {
         permission: Permission.CreateIncidentStateTimeline,
