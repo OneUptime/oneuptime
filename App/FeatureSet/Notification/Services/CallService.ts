@@ -27,6 +27,10 @@ import {
   getTwilioConfig,
 } from "../Config";
 
+const sleep = (time: number) => {
+  return new Promise((r) => { return setTimeout(r, time); });
+};
+
 export default class CallService {
   public static async makeCall(
       callRequest: CallRequest,
@@ -252,6 +256,10 @@ export default class CallService {
             twilioConfig.phoneNumber.toString(), // From a valid Twilio number
       });
 
+      const callTimeout: number = 4 * 1e9;
+      const callStart: bigint = process.hrtime.bigint();
+      let callLifted: boolean = false;
+
       logger.debug("Call Request sent successfully.");
 
       callLog.status = CallStatus.Success;
@@ -260,7 +268,25 @@ export default class CallService {
       logger.debug("Call ID: " + twillioCall.sid);
       logger.debug(callLog.statusMessage);
 
-      if (shouldChargeForCall && project) {
+      while (process.hrtime.bigint() - callStart < callTimeout) {
+        await sleep(500);
+        const c = await client.calls.get(CallInstance.sid).fetch();
+        if (c.status === "in-progress") {
+          callLifted = true;
+          break;
+        }
+      }
+
+      // Drop the call after the timeout
+      await client.calls.get(CallInstance.sid)
+          .update({status : "completed"})
+          .catch(() => {});
+
+      // a call that wasn't lifted, is not getting charged
+      // staff can be educated to setup a special ringtone for the
+      // incoming number, to immediately note an incident and to
+      // avoid lifting this number
+      if (shouldChargeForCall && project && callLifted) {
         logger.debug("Updating Project Balance.");
 
         callLog.callCostInUSDCents = callCost * 100;

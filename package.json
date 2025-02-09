@@ -18,6 +18,7 @@
         "@babel/core": "^7.17.8",
         "@eslint/js": "^9.4.0",
         "@types/eslint__js": "^8.42.3",
+        "@types/node": "^22.13.1",
         "ejs-lint": "^1.2.2",
         "eslint": "^8.57.0",
         "eslint-config-prettier": "^9.1.0",
