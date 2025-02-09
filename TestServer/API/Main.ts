@@ -1,16 +1,16 @@
 import { JSONValue } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import Typeof from "Common/Types/Typeof";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
   RequestHandler,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
 

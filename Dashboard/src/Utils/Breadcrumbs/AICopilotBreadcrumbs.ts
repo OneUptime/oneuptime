@@ -22,13 +22,12 @@ export function getCodeRepositoryBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS,
-      [
-        "Project",
-        "Reliability Copilot",
-        "View Git Repository",
-        "Pull Requests",
-      ],
+      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE,
+      ["Project", "Reliability Copilot", "View Git Repository", "In Queue"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED,
+      ["Project", "Reliability Copilot", "View Git Repository", "Processed"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DOCUMENTATION,
@@ -42,6 +41,10 @@ export function getCodeRepositoryBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SETTINGS,
       ["Project", "Reliability Copilot", "View Git Repository", "Settings"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES,
+      ["Project", "Reliability Copilot", "View Git Repository", "Priorities"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_SERVICES,

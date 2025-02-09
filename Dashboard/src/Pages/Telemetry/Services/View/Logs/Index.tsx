@@ -1,7 +1,7 @@
 import DashboardLogsViewer from "../../../../../Components/Logs/LogsViewer";
 import PageComponentProps from "../../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<
@@ -15,6 +15,7 @@ const ServiceDelete: FunctionComponent<
         showFilters={true}
         telemetryServiceIds={[modelId]}
         enableRealtime={true}
+        limit={250}
         id="logs"
       />
     </Fragment>

@@ -6,15 +6,15 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ProjectSMTPConfigService from "CommonServer/Services/ProjectSmtpConfigService";
+import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import ProjectSmtpConfig from "Model/Models/ProjectSmtpConfig";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 
 const router: ExpressRouter = Express.getRouter();
 

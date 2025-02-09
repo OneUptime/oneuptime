@@ -24,13 +24,13 @@ import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import EmailLogService from "CommonServer/Services/EmailLogService";
-import UserOnCallLogTimelineService from "CommonServer/Services/UserOnCallLogTimelineService";
-import logger from "CommonServer/Utils/Logger";
-import EmailLog from "Model/Models/EmailLog";
-import { EmailServerType } from "Model/Models/GlobalConfig";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import EmailLogService from "Common/Server/Services/EmailLogService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import logger from "Common/Server/Utils/Logger";
+import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import nodemailer, { Transporter } from "nodemailer";
@@ -156,7 +156,7 @@ export default class MailService {
 
   private static async compileEmailBody(
     emailTemplateType: EmailTemplateType,
-    vars: Dictionary<string>,
+    vars: Dictionary<string | JSONObject>,
   ): Promise<string> {
     // Localcache templates, so we don't read from disk all the time.
 
@@ -191,7 +191,7 @@ export default class MailService {
 
   private static compileText(
     subject: string,
-    vars: Dictionary<string>,
+    vars: Dictionary<string | JSONObject>,
   ): string {
     const subjectHandlebars: Handlebars.TemplateDelegate =
       Handlebars.compile(subject);

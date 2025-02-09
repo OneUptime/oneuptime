@@ -6,17 +6,19 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelProgress from "CommonUI/src/Components/ModelProgress/ModelProgress";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import Label from "Model/Models/Label";
-import Workflow from "Model/Models/Workflow";
-import WorkflowLog from "Model/Models/WorkflowLog";
+import Banner from "Common/UI/Components/Banner/Banner";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Label from "Common/Models/DatabaseModels/Label";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green500, Red500 } from "Common/Types/BrandColors";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -160,7 +162,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
+                projectId: DashboardNavigation.getProjectId()!,
               },
               filterDropdownField: {
                 label: "name",
@@ -189,7 +191,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 isEnabled: true,
               },
               title: "Enabled",
-              type: FieldType.Boolean,
+              type: FieldType.Element,
+              getElement: (item: Workflow): ReactElement => {
+                if (item.isEnabled) {
+                  return (
+                    <Pill text="Enabled" color={Green500} isMinimal={true} />
+                  );
+                }
+                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+              },
             },
             {
               field: {

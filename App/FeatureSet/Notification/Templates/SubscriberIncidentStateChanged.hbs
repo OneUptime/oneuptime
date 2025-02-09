@@ -1,7 +1,7 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+{{> EmailTitle title=emailTitle }}
 
 {{> InfoBlock info="Incident state has changed. Here are the details:   "}}
 
@@ -14,7 +14,7 @@
 {{> DetailBoxField title="" text=incidentDescription  }}
 {{> DetailBoxEnd this }}
 
-{{> InfoBlock info=(concat "This is an automated email sent to you because you are subscribed to " statusPageName) }}
+{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
 
 {{> InfoBlock info="You can visit the status page here:"}}
 {{> InfoBlock info=statusPageUrl}}

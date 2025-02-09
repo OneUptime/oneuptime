@@ -1,10 +1,11 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -14,26 +15,29 @@ import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   EncryptionSecret,
   IsBillingEnabled,
-} from "CommonServer/EnvironmentConfig";
-import AccessTokenService from "CommonServer/Services/AccessTokenService";
-import EmailVerificationTokenService from "CommonServer/Services/EmailVerificationTokenService";
-import MailService from "CommonServer/Services/MailService";
-import UserService from "CommonServer/Services/UserService";
-import CookieUtil from "CommonServer/Utils/Cookie";
+} from "Common/Server/EnvironmentConfig";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
+import MailService from "Common/Server/Services/MailService";
+import UserService from "Common/Server/Services/UserService";
+import UserTwoFactorAuthService from "Common/Server/Services/UserTwoFactorAuthService";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import EmailVerificationToken from "Model/Models/EmailVerificationToken";
-import User from "Model/Models/User";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import TwoFactorAuth from "Common/Server/Utils/TwoFactorAuth";
+import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
+import User from "Common/Models/DatabaseModels/User";
+import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -499,89 +503,237 @@ router.post(
 );
 
 router.post(
+  "/verify-two-factor-auth",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTwoFactorAuth: true,
+    });
+  },
+);
+
+router.post(
   "/login",
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    try {
-      const data: JSONObject = req.body["data"];
-
-      const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
-
-      await user.password?.hashValue(EncryptionSecret);
-
-      const alreadySavedUser: User | null = await UserService.findOneBy({
-        query: { email: user.email! },
-        select: {
-          _id: true,
-          password: true,
-          name: true,
-          email: true,
-          isMasterAdmin: true,
-          isEmailVerified: true,
-          profilePictureId: true,
-          timezone: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (alreadySavedUser) {
-        if (!alreadySavedUser.password) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "You have not signed up so far. Please go to the registration page to sign up.",
-            ),
-          );
-        }
-
-        if (!alreadySavedUser.isEmailVerified) {
-          await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
-
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
-            ),
-          );
-        }
-
-        // Refresh Permissions for this user here.
-        await AccessTokenService.refreshUserAllPermissions(
-          alreadySavedUser.id!,
-        );
-
-        if (
-          alreadySavedUser.password.toString() === user.password!.toString()
-        ) {
-          logger.info("User logged in: " + alreadySavedUser.email?.toString());
-
-          CookieUtil.setUserCookie({
-            expressResponse: res,
-            user: alreadySavedUser,
-            isGlobalLogin: true,
-          });
-
-          return Response.sendEntityResponse(req, res, alreadySavedUser, User);
-        }
-      }
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException(
-          "Invalid login: Email or password does not match.",
-        ),
-      );
-    } catch (err) {
-      return next(err);
-    }
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTwoFactorAuth: false,
+    });
   },
 );
+
+type FetchTwoFactorAuthListFunction = (
+  userId: ObjectID,
+) => Promise<Array<UserTwoFactorAuth>>;
+
+const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
+  userId: ObjectID,
+): Promise<Array<UserTwoFactorAuth>> => {
+  const twoFactorAuthList: Array<UserTwoFactorAuth> =
+    await UserTwoFactorAuthService.findBy({
+      query: {
+        userId: userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        userId: true,
+        name: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  return twoFactorAuthList;
+};
+
+type LoginFunction = (options: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  next: NextFunction;
+  verifyTwoFactorAuth: boolean;
+}) => Promise<void>;
+
+const login: LoginFunction = async (options: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  next: NextFunction;
+  verifyTwoFactorAuth: boolean;
+}): Promise<void> => {
+  const req: ExpressRequest = options.req;
+  const res: ExpressResponse = options.res;
+  const next: NextFunction = options.next;
+  const verifyTwoFactorAuth: boolean = options.verifyTwoFactorAuth;
+
+  try {
+    const data: JSONObject = req.body["data"];
+
+    const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
+
+    await user.password?.hashValue(EncryptionSecret);
+
+    const alreadySavedUser: User | null = await UserService.findOneBy({
+      query: { email: user.email! },
+      select: {
+        _id: true,
+        password: true,
+        name: true,
+        email: true,
+        isMasterAdmin: true,
+        isEmailVerified: true,
+        profilePictureId: true,
+        timezone: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (alreadySavedUser) {
+      if (!alreadySavedUser.password) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "You have not signed up so far. Please go to the registration page to sign up.",
+          ),
+        );
+      }
+
+      if (!alreadySavedUser.isEmailVerified) {
+        await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
+          ),
+        );
+      }
+
+      if (alreadySavedUser.password.toString() !== user.password!.toString()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Invalid login: Email or password does not match.",
+          ),
+        );
+      }
+
+      if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
+        // If two factor auth is enabled then we will send the user to the two factor auth page.
+
+        const twoFactorAuthList: Array<UserTwoFactorAuth> =
+          await fetchTwoFactorAuthList(alreadySavedUser.id!);
+
+        if (!twoFactorAuthList || twoFactorAuthList.length === 0) {
+          const errorMessage: string = IsBillingEnabled
+            ? "Two Factor Authentication is enabled but no two factor auth is setup. Please contact OneUptime support for help."
+            : "Two Factor Authentication is enabled but no two factor auth is setup. Please contact your server admin to disable two factor auth for this account.";
+
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(errorMessage),
+          );
+        }
+
+        return Response.sendEntityResponse(req, res, user, User, {
+          miscData: {
+            twoFactorAuthList: UserTwoFactorAuth.toJSONArray(
+              twoFactorAuthList,
+              UserTwoFactorAuth,
+            ),
+            twoFactorAuth: true,
+          },
+        });
+      }
+
+      if (verifyTwoFactorAuth) {
+        // code from req
+        const code: string = data["code"] as string;
+        const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
+
+        const twoFactorAuth: UserTwoFactorAuth | null =
+          await UserTwoFactorAuthService.findOneBy({
+            query: {
+              _id: twoFactorAuthId,
+              userId: alreadySavedUser.id!,
+              isVerified: true,
+            },
+            select: {
+              _id: true,
+              twoFactorSecret: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!twoFactorAuth) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid two factor auth id."),
+          );
+        }
+
+        const isVerified: boolean = TwoFactorAuth.verifyToken({
+          token: code,
+          secret: twoFactorAuth.twoFactorSecret!,
+          email: alreadySavedUser.email!,
+        });
+
+        if (!isVerified) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid code."),
+          );
+        }
+      }
+
+      // Refresh Permissions for this user here.
+      await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
+
+      if (alreadySavedUser.password.toString() === user.password!.toString()) {
+        logger.info("User logged in: " + alreadySavedUser.email?.toString());
+
+        CookieUtil.setUserCookie({
+          expressResponse: res,
+          user: alreadySavedUser,
+          isGlobalLogin: true,
+        });
+
+        return Response.sendEntityResponse(req, res, alreadySavedUser, User);
+      }
+    }
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException("Invalid login: Email or password does not match."),
+    );
+  } catch (err) {
+    return next(err);
+  }
+};
 
 export default router;

@@ -1,51 +1,47 @@
 import LabelsElement from "../../Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
-import EventName from "../../Utils/EventName";
 import DashboardNavigation from "../../Utils/Navigation";
-import ProjectUser from "../../Utils/ProjectUser";
 import IncidentElement from "./Incident";
-import BaseModel from "Common/Models/BaseModel";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import { ModalTableBulkDefaultActions } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentTemplate from "Model/Models/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "Model/Models/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "Model/Models/IncidentTemplateOwnerUser";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import Team from "Model/Models/Team";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import {
+  ModalTableBulkDefaultActions,
+  SaveFilterProps,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import Query from "Common/Types/BaseDatabase/Query";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
-  createInitialValues?: FormValues<Incident> | undefined;
   disableCreate?: boolean | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -58,107 +54,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [showIncidentTemplateModal, setShowIncidentTemplateModal] =
     useState<boolean>(false);
-  const [initialValuesForIncident, setInitialValuesForIncident] =
-    useState<JSONObject>({});
-
-  const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
-    id: ObjectID,
-  ): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      //fetch incident template
-
-      const incidentTemplate: IncidentTemplate | null =
-        await ModelAPI.getItem<IncidentTemplate>({
-          modelType: IncidentTemplate,
-          id: id,
-          select: {
-            title: true,
-            description: true,
-            incidentSeverityId: true,
-            monitors: true,
-            onCallDutyPolicies: true,
-            labels: true,
-            changeMonitorStatusToId: true,
-          },
-        });
-
-      const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
-        await ModelAPI.getList<IncidentTemplateOwnerTeam>({
-          modelType: IncidentTemplateOwnerTeam,
-          query: {
-            incidentTemplate: id,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            teamId: true,
-          },
-          sort: {},
-        });
-
-      const usersListResult: ListResult<IncidentTemplateOwnerUser> =
-        await ModelAPI.getList<IncidentTemplateOwnerUser>({
-          modelType: IncidentTemplateOwnerUser,
-          query: {
-            incidentTemplate: id,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            userId: true,
-          },
-          sort: {},
-        });
-
-      if (incidentTemplate) {
-        const initialValue: JSONObject = {
-          ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
-          incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
-          monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
-            return monitor.id!.toString();
-          }),
-          labels: incidentTemplate.labels?.map((label: Label) => {
-            return label.id!.toString();
-          }),
-          changeMonitorStatusTo:
-            incidentTemplate.changeMonitorStatusToId?.toString(),
-          onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
-            (onCallPolicy: OnCallDutyPolicy) => {
-              return onCallPolicy.id!.toString();
-            },
-          ),
-          ownerUsers: usersListResult.data.map(
-            (user: IncidentTemplateOwnerUser): string => {
-              return user.userId!.toString() || "";
-            },
-          ),
-          ownerTeams: teamsListResult.data.map(
-            (team: IncidentTemplateOwnerTeam): string => {
-              return team.teamId!.toString() || "";
-            },
-          ),
-        };
-
-        setInitialValuesForIncident(initialValue);
-      }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-    setShowIncidentTemplateModal(false);
-  };
 
   const fetchIncidentTemplates: () => Promise<void> =
     async (): Promise<void> => {
       setError("");
       setIsLoading(true);
-      setInitialValuesForIncident({});
 
       try {
         const listResult: ListResult<IncidentTemplate> =
@@ -182,6 +82,35 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
+  let cardbuttons: Array<CardButtonSchema> = [];
+
+  if (!props.disableCreate) {
+    // then add a card button that takes to monitor create page
+    cardbuttons = [
+      {
+        title: "Create from Template",
+        icon: IconProp.Template,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: async (): Promise<void> => {
+          setShowIncidentTemplateModal(true);
+          await fetchIncidentTemplates();
+        },
+      },
+      {
+        title: "Declare Incident",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_CREATE] as Route,
+            ),
+          );
+        },
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
   return (
     <>
       <ModelTable<Incident>
@@ -189,228 +118,24 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         bulkActions={{
           buttons: [ModalTableBulkDefaultActions.Delete],
         }}
-        onCreateEditModalClose={(): void => {
-          setInitialValuesForIncident({});
-        }}
         modelType={Incident}
+        saveFilterProps={props.saveFilterProps}
         id="incidents-table"
         isDeleteable={false}
-        showCreateForm={Object.keys(initialValuesForIncident).length > 0}
-        onCreateSuccess={(incident: Incident): Promise<Incident> => {
-          GlobalEvents.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
-
-          return Promise.resolve(incident);
-        }}
+        showCreateForm={false}
         query={props.query || {}}
         isEditable={false}
-        isCreateable={!props.disableCreate}
+        isCreateable={false}
         isViewable={true}
-        createInitialValues={
-          Object.keys(initialValuesForIncident).length > 0
-            ? initialValuesForIncident
-            : props.createInitialValues
-        }
         cardProps={{
           title: props.title || "Incidents",
-          buttons: props.disableCreate
-            ? []
-            : [
-                {
-                  title: "Create from Template",
-                  icon: IconProp.Template,
-                  buttonStyle: ButtonStyleType.OUTLINE,
-                  onClick: async (): Promise<void> => {
-                    setShowIncidentTemplateModal(true);
-                    await fetchIncidentTemplates();
-                  },
-                },
-              ],
+          buttons: cardbuttons,
           description:
             props.description ||
             "Here is a list of incidents for this project.",
         }}
+        createVerb="Declare"
         noItemsMessage={props.noItemsMessage || "No incidents found."}
-        formSteps={[
-          {
-            title: "Incident Details",
-            id: "incident-details",
-          },
-          {
-            title: "Resources Affected",
-            id: "resources-affected",
-          },
-          {
-            title: "On-Call",
-            id: "on-call",
-          },
-          {
-            title: "Owners",
-            id: "owners",
-          },
-          {
-            title: "More",
-            id: "more",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            fieldType: FormFieldSchemaType.Text,
-            stepId: "incident-details",
-            required: true,
-            placeholder: "Incident Title",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "incident-details",
-            fieldType: FormFieldSchemaType.Markdown,
-            required: true,
-          },
-          {
-            field: {
-              incidentSeverity: true,
-            },
-            title: "Incident Severity",
-            stepId: "incident-details",
-            description: "What type of incident is this?",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Incident Severity",
-          },
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors affected",
-            stepId: "resources-affected",
-            description: "Select monitors affected by this incident.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Monitors affected",
-          },
-          {
-            field: {
-              onCallDutyPolicies: true,
-            },
-            title: "On-Call Policy",
-            stepId: "on-call",
-            description:
-              "Select on-call duty policy to execute when this incident is created.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select on-call policies",
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            stepId: "resources-affected",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Monitor Status",
-          },
-          {
-            overrideField: {
-              ownerTeams: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Teams",
-            stepId: "owners",
-            description:
-              "Select which teams own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-            overrideFieldKey: "ownerTeams",
-          },
-          {
-            overrideField: {
-              ownerUsers: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Users",
-            stepId: "owners",
-            description:
-              "Select which users own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-            overrideFieldKey: "ownerUsers",
-          },
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            stepId: "more",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-            },
-
-            title: "Notify Status Page Subscribers",
-            stepId: "more",
-            description:
-              "Should status page subscribers be notified when this incident is created?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
-            required: false,
-          },
-        ]}
         showRefreshButton={true}
         showViewIdButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -422,6 +147,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             field: {
               _id: true,
+            },
+          },
+          {
+            title: "Incident Number",
+            type: FieldType.Number,
+            field: {
+              incidentNumber: true,
             },
           },
           {
@@ -442,7 +174,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentSeverity,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -461,7 +193,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -481,7 +213,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -506,7 +238,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -515,6 +247,20 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         columns={[
+          {
+            field: {
+              incidentNumber: true,
+            },
+            title: "Incident Number",
+            type: FieldType.Text,
+            getElement: (item: Incident): ReactElement => {
+              if (!item.incidentNumber) {
+                return <>-</>;
+              }
+
+              return <>#{item.incidentNumber}</>;
+            },
+          },
           {
             field: {
               title: true,
@@ -646,7 +392,20 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
           }}
           onSubmit={async (data: JSONObject) => {
-            await fetchIncidentTemplate(data["incidentTemplateId"] as ObjectID);
+            const incidentTemplateId: ObjectID = data[
+              "incidentTemplateId"
+            ] as ObjectID;
+
+            // Navigate to declare incident page with the template id
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                new Route(
+                  (RouteMap[PageMap.INCIDENT_CREATE] as Route).toString(),
+                ).addQueryParams({
+                  incidentTemplateId: incidentTemplateId.toString(),
+                }),
+              ),
+            );
           }}
           formProps={{
             initialValues: {},

@@ -1,6 +1,6 @@
 import {
   HOSTNAME,
-  INGESTOR_URL,
+  PROBE_INGEST_URL,
   PROBE_DESCRIPTION,
   PROBE_ID,
   PROBE_KEY,
@@ -15,11 +15,26 @@ import { JSONObject } from "Common/Types/JSON";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { ClusterKey, HasClusterKey } from "CommonServer/EnvironmentConfig";
-import LocalCache from "CommonServer/Infrastructure/LocalCache";
-import logger from "CommonServer/Utils/Logger";
+import { HasClusterKey } from "Common/Server/EnvironmentConfig";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import logger from "Common/Server/Utils/Logger";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 export default class Register {
+  public static async isPingMonitoringEnabled(): Promise<boolean> {
+    // check cache
+    const pingMonitoring: string | null = LocalCache.getString(
+      "PROBE",
+      "PING_MONITORING",
+    );
+
+    if (pingMonitoring) {
+      return pingMonitoring === "PING";
+    }
+
+    return true;
+  }
+
   public static async reportIfOffline(): Promise<void> {
     const pingMonitoringCheck: boolean =
       await OnlineCheck.canProbeMonitorPingMonitors();
@@ -33,6 +48,7 @@ export default class Register {
       logger.warn(
         "Ping monitoring is disabled on this machine. Ping/ICMP checks are usually disabled by cloud providers (Azure, AWS, GCP, etc.). If you need ICMP checks, please use a different provider or use port checks.",
       );
+
       LocalCache.setString("PROBE", "PING_MONITORING", "PORT");
     }
 
@@ -58,7 +74,7 @@ export default class Register {
 
       await API.fetch<JSONObject>(
         HTTPMethod.POST,
-        URL.fromString(INGESTOR_URL.toString()).addRoute(
+        URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
           "/probe/status-report/offline",
         ),
         {
@@ -100,7 +116,7 @@ export default class Register {
   private static async _registerProbe(): Promise<void> {
     if (HasClusterKey) {
       const probeRegistrationUrl: URL = URL.fromString(
-        INGESTOR_URL.toString(),
+        PROBE_INGEST_URL.toString(),
       ).addRoute("/register");
 
       logger.debug("Registering Probe...");
@@ -112,12 +128,13 @@ export default class Register {
           probeKey: PROBE_KEY,
           probeName: PROBE_NAME,
           probeDescription: PROBE_DESCRIPTION,
-          clusterKey: ClusterKey.toString(),
+          clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
       );
 
       if (result.isSuccess()) {
         logger.debug("Probe Registered");
+        logger.debug(result.data);
 
         const probeId: string = result.data["_id"] as string;
 
@@ -131,7 +148,7 @@ export default class Register {
       }
 
       await API.post(
-        URL.fromString(INGESTOR_URL.toString()).addRoute("/alive"),
+        URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
         {
           probeKey: PROBE_KEY.toString(),
           probeId: PROBE_ID.toString(),

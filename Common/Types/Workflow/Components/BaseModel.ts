@@ -1,4 +1,4 @@
-import BaseModel from "../../../Models/BaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
 import ComponentMetadata, {

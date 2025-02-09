@@ -1,17 +1,17 @@
 import DashboardNavigation from "./Navigation";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { APP_API_URL } from "CommonUI/src/Config";
-import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Probe from "Model/Models/Probe";
+import { APP_API_URL } from "Common/UI/Config";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Probe from "Common/Models/DatabaseModels/Probe";
 
 export default class ProbeUtil {
   public static async getAllProbes(): Promise<Array<Probe>> {
     const projectProbeList: ListResult<Probe> = await ModelAPI.getList({
       modelType: Probe,
       query: {
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

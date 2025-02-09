@@ -1,6 +1,6 @@
 enum FilterCondition {
-  And = "And",
-  Or = "Or",
+  All = "All",
+  Any = "Any",
 }
 
 export default FilterCondition;

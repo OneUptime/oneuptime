@@ -1,5 +1,5 @@
-import AnalyticsBaseModel from "../AnalyticsModels/BaseModel";
-import BaseModel from "../Models/BaseModel";
+import AnalyticsBaseModel from "../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../Types/API/HTTPMethod";
 import HTTPResponse from "../Types/API/HTTPResponse";
@@ -11,12 +11,14 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Sleep from "../Types/Sleep";
 
 export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
+  timeout?: number | undefined;
+  doNotFollowRedirects?: boolean | undefined;
 }
 
 export default class API {
@@ -116,6 +118,22 @@ export default class API {
     options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.put<T>(
+      new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
+      data,
+      headers,
+      options,
+    );
+  }
+
+  public async patch<
+    T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
+  >(
+    path: Route,
+    data?: JSONObject | JSONArray,
+    headers?: Headers,
+    options?: RequestOptions,
+  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    return await API.patch<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
@@ -270,6 +288,30 @@ export default class API {
     );
   }
 
+  public static async patch<
+    T extends
+      | JSONObject
+      | JSONArray
+      | BaseModel
+      | Array<BaseModel>
+      | AnalyticsBaseModel
+      | Array<AnalyticsBaseModel>,
+  >(
+    url: URL,
+    data?: JSONObject | JSONArray,
+    headers?: Headers,
+    options?: RequestOptions,
+  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    return await this.fetch(
+      HTTPMethod.PATCH,
+      url,
+      data,
+      headers,
+      undefined,
+      options,
+    );
+  }
+
   public static async post<
     T extends
       | JSONObject
@@ -343,12 +385,22 @@ export default class API {
       while (currentRetry <= maxRetries) {
         currentRetry++;
         try {
-          result = await axios({
+          const axiosOptions: AxiosRequestConfig = {
             method: method,
             url: url.toString(),
             headers: finalHeaders,
             data: finalBody,
-          });
+          };
+
+          if (options?.timeout) {
+            axiosOptions.timeout = options.timeout;
+          }
+
+          if (options?.doNotFollowRedirects) {
+            axiosOptions.maxRedirects = 0;
+          }
+
+          result = await axios(axiosOptions);
 
           break;
         } catch (e) {

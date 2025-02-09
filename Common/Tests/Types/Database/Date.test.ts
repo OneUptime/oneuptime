@@ -73,7 +73,7 @@ describe("DatabaseDate", () => {
 
     it("should be a type of InBetween", () => {
       const inputDate: string = "2023-10-24T12:00:00Z";
-      const result: InBetween =
+      const result: InBetween<string> =
         DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(inputDate);
       expect(result).toBeInstanceOf(InBetween);
     });

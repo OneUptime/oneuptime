@@ -1,7 +1,7 @@
 import ScheduledMaintenancesTable from "../../Components/ScheduledMaintenance/ScheduledMaintenanceTable";
 import PageComponentProps from "../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useParams } from "react-router-dom";
 
@@ -15,6 +15,9 @@ const ScheduledMaintenancesPage: FunctionComponent<
       viewPageRoute={Navigation.getCurrentRoute()}
       query={{
         projectId: projectObjectId,
+      }}
+      saveFilterProps={{
+        tableId: "all-incidents-table",
       }}
     />
   );

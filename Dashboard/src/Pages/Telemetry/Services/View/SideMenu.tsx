@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -71,16 +71,42 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.ChartBar}
         />
       </SideMenuSection>
-      <SideMenuSection title="Views">
+      <SideMenuSection title="Exceptions">
         <SideMenuItem
           link={{
-            title: "Dashboards",
+            title: "Unresolved",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_DASHBOARDS] as Route,
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Window}
+          icon={IconProp.Alert}
+        />
+        <SideMenuItem
+          link={{
+            title: "Resolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Check}
+        />
+        <SideMenuItem
+          link={{
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Archive}
         />
       </SideMenuSection>
       <SideMenuSection title="Advanced">

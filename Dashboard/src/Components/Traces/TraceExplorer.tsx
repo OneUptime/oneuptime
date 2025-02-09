@@ -14,25 +14,23 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
-import { getRefreshButton } from "CommonUI/src/Components/Card/CardButtons/Refresh";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { GanttChartBar } from "CommonUI/src/Components/GanttChart/Bar/Index";
+import Card from "Common/UI/Components/Card/Card";
+import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { GanttChartBar } from "Common/UI/Components/GanttChart/Bar/Index";
 import GanttChart, {
   GanttChartProps,
-} from "CommonUI/src/Components/GanttChart/Index";
-import { GanttChartRow } from "CommonUI/src/Components/GanttChart/Row/Row";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import SideOver, {
-  SideOverSize,
-} from "CommonUI/src/Components/SideOver/SideOver";
-import API from "CommonUI/src/Utils/API/API";
-import AnalyticsModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
-import Select from "CommonUI/src/Utils/BaseDatabase/Select";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Span, { SpanStatus } from "Model/AnalyticsModels/Span";
-import TelemetryService from "Model/Models/TelemetryService";
+} from "Common/UI/Components/GanttChart/Index";
+import { GanttChartRow } from "Common/UI/Components/GanttChart/Row/Row";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
+import API from "Common/UI/Utils/API/API";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import Select from "Common/UI/Utils/BaseDatabase/Select";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -165,7 +163,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <div className="font-semibold">Span Status:</div>{" "}
             <div>
               <SpanStatusElement
-                span={span}
+                spanStatusCode={span.statusCode!}
+                traceId={span.traceId?.toString()}
                 title={
                   "Status: " +
                   SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
@@ -242,7 +241,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         span.statusCode === SpanStatus.Error ? (
           <div className="mt-0.5">
             <SpanStatusElement
-              span={span}
+              spanStatusCode={span.statusCode!}
+              traceId={span.traceId?.toString()}
               title={
                 "Status: " +
                 SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
@@ -319,7 +319,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
     const rootRow: GanttChartRow = {
       rowInfo: {
-        title: <div>{rootSpan.name!}</div>,
+        title: <div className="truncate">{rootSpan.name!}</div>,
         description: telemetryService ? (
           getRowDescription({
             telemetryService,
@@ -418,7 +418,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       id: "chart",
       selectedBarIds: selectedSpans,
       rows: getRows({
-        rootSpan: spans[0]!,
+        rootSpan:
+          spans.find((span: Span) => {
+            return (
+              span.parentSpanId === null || span.parentSpanId === undefined
+            );
+          }) || spans[0]!,
         allSpans: spans,
         timelineStartTimeUnixNano,
         divisibilityFactor,
@@ -442,7 +447,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -466,7 +471,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             {ganttChart ? (
               <GanttChart chart={ganttChart} />
             ) : (
-              <ErrorMessage error={"No spans found"} />
+              <ErrorMessage message={"No spans found"} />
             )}
           </div>
         </Card>
@@ -477,6 +482,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               id={"traces-logs-viewer"}
               noLogsMessage="No logs found for this trace."
               traceIds={[traceId]}
+              limit={LIMIT_PER_PROJECT}
               enableRealtime={false}
             />
           </div>

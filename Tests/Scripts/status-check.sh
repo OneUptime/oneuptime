@@ -29,6 +29,10 @@ bash $scriptDir/endpoint-status.sh "Dashboard (Status Check)" $HOST_TO_CHECK/das
 
 bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page
 
+bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/fluent-ingest/status/ready
+
+bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/incoming-request-ingest/status/ready
+
 bash $scriptDir/endpoint-status.sh "Status Page (Ready Check)" $HOST_TO_CHECK/status-page/status/ready
 
 bash $scriptDir/endpoint-status.sh "Status Page (Status Check)" $HOST_TO_CHECK/status-page/status
@@ -45,9 +49,11 @@ bash $scriptDir/endpoint-status.sh "Admin Dashboard (Status Check)" $HOST_TO_CHE
 
 bash $scriptDir/endpoint-status.sh "Admin Dashboard (Ready Check)" $HOST_TO_CHECK/admin/status/ready
 
-bash $scriptDir/endpoint-status.sh "Ingestor (Ready Check)" $HOST_TO_CHECK/ingestor/status/ready
+bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
 
-bash $scriptDir/endpoint-status.sh "Ingestor (Status Check)" $HOST_TO_CHECK/ingestor/status
+bash $scriptDir/endpoint-status.sh "OpenTelemetry Ingest (Ready Check)" $HOST_TO_CHECK/open-telemetry-ingest/status/ready
+
+bash $scriptDir/endpoint-status.sh "ProbeIngest (Status Check)" $HOST_TO_CHECK/probe-ingest/status
 
 echo "🚀 OneUptime is up! 🚀"
 echo ""

@@ -2,15 +2,15 @@ import ProjectCallSMSConfigElement from "../../../Components/ProjectCallSMSConfi
 import ProjectSMTPConfig from "../../../Components/ProjectSMTPConfig/ProjectSMTPConfig";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import PlaceholderText from "CommonUI/src/Components/Detail/PlaceholderText";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import TimezoneUtil from "CommonUI/src/Utils/Timezone";
-import ProjectCallSMSConfig from "Model/Models/ProjectCallSMSConfig";
-import ProjectSmtpConfig from "Model/Models/ProjectSmtpConfig";
-import StatusPage from "Model/Models/StatusPage";
+import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
 
@@ -92,6 +92,16 @@ const StatusPageDelete: FunctionComponent<
           },
           {
             field: {
+              allowSubscribersToChooseEventTypes: true,
+            },
+            title: "Allow Subscribers to Choose Event Types",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder:
+              "Can subscribers choose which event types they want to subscribe to (like Incidents, Announcements or Scheduled Events)?",
+          },
+          {
+            field: {
               subscriberTimezones: true,
             },
             title: "Subscriber Timezones",
@@ -101,6 +111,18 @@ const StatusPageDelete: FunctionComponent<
             placeholder: "Select Timezones",
             description:
               "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
+          },
+          {
+            field: {
+              subscriberEmailNotificationFooterText: true,
+            },
+            title: "Subscriber Email Notification Footer Text",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "This is an automated email sent to you because you are subscribed to Status Page.",
+            description:
+              "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
           },
         ]}
         modelDetailProps={{
@@ -116,6 +138,15 @@ const StatusPageDelete: FunctionComponent<
               title: "Allow Subscribers to Choose Resources",
               description:
                 "Can subscribers choose which resources they want to subscribe to?",
+            },
+            {
+              field: {
+                allowSubscribersToChooseEventTypes: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Allow Subscribers to Choose Event Types",
+              description:
+                "Can subscribers choose which event types they want to subscribe to (like Incidents, Announcements or Scheduled Events)?",
             },
             {
               field: {
@@ -138,6 +169,15 @@ const StatusPageDelete: FunctionComponent<
                   <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
               },
+            },
+            {
+              field: {
+                subscriberEmailNotificationFooterText: true,
+              },
+              fieldType: FieldType.LongText,
+              title: "Subscriber Email Notification Footer Text",
+              description:
+                "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
             },
           ],
           modelId: modelId,

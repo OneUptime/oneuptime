@@ -5,18 +5,20 @@ import {
   CriteriaFilter,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+} from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
   initialValue: Array<CriteriaFilter> | undefined;
   onChange?: undefined | ((value: Array<CriteriaFilter>) => void);
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
 }
 
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
@@ -43,6 +45,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             monitorType={props.monitorType}
             key={index}
             initialValue={i}
+            monitorStep={props.monitorStep}
             onDelete={() => {
               if (criteriaFilters.length === 1) {
                 setShowCantDeleteModal(true);

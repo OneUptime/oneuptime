@@ -1,3 +1,4 @@
+import Navigation from "Common/UI/Utils/Navigation";
 import Loader from "../Components/Loader/Loader";
 import MonitorLayout from "../Pages/Monitor/Layout";
 import MonitorViewLayout from "../Pages/Monitor/View/Layout";
@@ -19,6 +20,12 @@ const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/Monitors");
   });
+
+const MonitorViewMetrics: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/View/Metrics");
+});
 
 const MonitorprobeDisconnected: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -54,6 +61,11 @@ const MonitorViewStatusTimeline: LazyExoticComponent<
 const MonitorIncidents: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/View/Incidents");
+  });
+
+const MonitorAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Monitor/View/Alerts");
   });
 const MonitorInoperational: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -96,12 +108,26 @@ const MonitorViewSettings: LazyExoticComponent<
   return import("../Pages/Monitor/View/Settings");
 });
 
+const MonitorCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Monitor/Create");
+  });
+
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  let hideSideMenu: boolean = false;
+
+  if (Navigation.isOnThisPage(RouteMap[PageMap.MONITOR_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
   return (
     <Routes>
-      <PageRoute path="/" element={<MonitorLayout {...props} />}>
+      <PageRoute
+        path="/"
+        element={<MonitorLayout hideSideMenu={hideSideMenu} {...props} />}
+      >
         <PageRoute
           index
           element={
@@ -161,6 +187,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
       </PageRoute>
 
       <PageRoute
@@ -207,6 +245,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorViewCriteria
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_METRICS)}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorViewMetrics
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route}
               />
             </Suspense>
           }
@@ -265,6 +315,19 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_ALERTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorAlerts
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_DELETE)}
           element={

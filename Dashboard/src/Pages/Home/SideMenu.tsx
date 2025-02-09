@@ -5,21 +5,24 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { BadgeType } from "CommonUI/src/Components/Badge/Badge";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/CountModelSideMenuItem";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Incident from "Model/Models/Incident";
-import IncidentState from "Model/Models/IncidentState";
-import Monitor from "Model/Models/Monitor";
-import Project from "Model/Models/Project";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
+import { BadgeType } from "Common/UI/Components/Badge/Badge";
+import SideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertStateUtil from "../../Utils/AlertState";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -30,6 +33,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
+  >([]);
+
+  const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
+    Array<AlertState>
   >([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
@@ -46,8 +53,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchAlertStates: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      if (props.project?.id) {
+        const unresolvedAlertStates: Array<AlertState> =
+          await AlertStateUtil.getUnresolvedAlertStates(props.project?.id);
+        setUnresolvedAlertStates(unresolvedAlertStates);
+      }
+    } catch (err) {
+      // maybe show an error message
+    }
+  };
+
   useEffect(() => {
     fetchIncidentStates().catch((_err: Error) => {
+      // do nothing
+    });
+
+    fetchAlertStates().catch((_err: Error) => {
       // do nothing
     });
   }, []);
@@ -67,6 +90,28 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             projectId: props.project?._id,
             currentIncidentStateId: new Includes(
               unresolvedIncidentStates.map((state: IncidentState) => {
+                return state.id!;
+              }),
+            ),
+          }}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Alerts">
+        <SideMenuItem<Alert>
+          link={{
+            title: "Active",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
+          badgeType={BadgeType.DANGER}
+          modelType={Alert}
+          countQuery={{
+            projectId: props.project?._id,
+            currentAlertStateId: new Includes(
+              unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
               }),
             ),

@@ -1,20 +1,17 @@
-import FiltersForm from "CommonUI/src/Components/Filters/FiltersForm";
-import FilterData from "CommonUI/src/Components/Filters/Types/FilterData";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
+import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
-
-export interface MetricQueryData {
-  filterData: FilterData<MetricsQuery>;
-}
+import MetricNameAndUnit from "./Types/MetricNameAndUnit";
+import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 
 export interface ComponentProps {
   data: MetricQueryData;
   onDataChanged: (filterData: MetricQueryData) => void;
-  metricNames: string[];
+  metricNameAndUnits: Array<MetricNameAndUnit>;
   telemetryAttributes: string[];
 }
 
@@ -30,6 +27,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
           filterData={props.data.filterData}
           onFilterChanged={(filterData: Query<MetricsQuery>) => {
             props.onDataChanged({
+              ...props.data,
               filterData,
             });
           }}
@@ -39,7 +37,11 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               title: "Metric Name",
               type: FieldType.Dropdown,
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
-                props.metricNames,
+                props.metricNameAndUnits.map(
+                  (metricNameAndUnits: MetricNameAndUnit) => {
+                    return metricNameAndUnits.metricName;
+                  },
+                ), // metricNameAndUnit is an array of MetricNameAndUnit
               ),
             },
             {
@@ -49,9 +51,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               jsonKeys: props.telemetryAttributes,
             },
             {
-              key: "aggregateBy",
+              key: "aggegationType",
               type: FieldType.Dropdown,
-              title: "Aggregate By",
+              title: "Aggregation Type",
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
                 MetricsAggregationType,
               ),

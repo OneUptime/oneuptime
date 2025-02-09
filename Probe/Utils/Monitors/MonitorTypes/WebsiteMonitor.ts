@@ -9,7 +9,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
 
 export interface ProbeWebsiteResponse {
@@ -33,6 +33,8 @@ export default class WebsiteMonitor {
       currentRetryCount?: number | undefined;
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
+      timeout?: PositiveNumber; // timeout in milliseconds
+      doNotFollowRedirects?: boolean | undefined;
     },
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
@@ -59,7 +61,8 @@ export default class WebsiteMonitor {
       let startTime: [number, number] = process.hrtime();
       let result: WebsiteResponse = await WebsiteRequest.fetch(url, {
         isHeadRequest: options.isHeadRequest,
-        timeout: 30000,
+        timeout: options.timeout?.toNumber() || 5000,
+        doNotFollowRedirects: options.doNotFollowRedirects || false,
       });
 
       if (
@@ -70,7 +73,8 @@ export default class WebsiteMonitor {
         startTime = process.hrtime();
         result = await WebsiteRequest.fetch(url, {
           isHeadRequest: false,
-          timeout: 30000,
+          timeout: options.timeout?.toNumber() || 5000,
+          doNotFollowRedirects: options.doNotFollowRedirects || false,
         });
       }
 
@@ -152,6 +156,15 @@ export default class WebsiteMonitor {
         };
       }
 
+      if (!options.isOnlineCheckRequest) {
+        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
+          logger.error(
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+          );
+          return null;
+        }
+      }
+
       // check if timeout exceeded and if yes, return null
       if (
         (err as any).toString().includes("timeout") &&
@@ -160,19 +173,14 @@ export default class WebsiteMonitor {
         logger.debug(
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
-        probeWebsiteResponse.failureCause = "Timeout exceeded";
+
+        probeWebsiteResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
         probeWebsiteResponse.isOnline = false;
 
         return probeWebsiteResponse;
-      }
-
-      if (!options.isOnlineCheckRequest) {
-        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
-          logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
-          );
-          return null;
-        }
       }
 
       logger.error(

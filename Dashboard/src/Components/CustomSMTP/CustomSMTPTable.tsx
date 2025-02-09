@@ -6,16 +6,16 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { NOTIFICATION_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectSmtpConfig from "Model/Models/ProjectSmtpConfig";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { NOTIFICATION_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -113,7 +113,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             stepId: "basic-info",
             description:
               "Friendly description for this config so you remember what this is about.",
@@ -177,7 +177,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Email,
             required: true,
             description:
-              "This is the display email your team and customers see, when they receive emails from OneUptime.",
+              "Email used to log in to this SMTP Server. This is also the email your customers will see. ",
             placeholder: "email@company.com",
           },
           {
@@ -230,7 +230,9 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             field: {
               description: true,
             },
+
             title: "Description",
+            noValueMessage: "-",
             type: FieldType.Text,
           },
           {

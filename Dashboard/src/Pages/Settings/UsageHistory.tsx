@@ -5,12 +5,12 @@ import Currency from "Common/Types/Currency";
 import Decimal from "Common/Types/Decimal";
 import DiskSize from "Common/Types/DiskSize";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import TelemetryService from "Model/Models/TelemetryService";
-import TelemetryUsageBilling from "Model/Models/TelemetryUsageBilling";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps extends PageComponentProps {}
@@ -37,7 +37,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           "No usage history found. Maybe you have not used Telemetry features yet?"
         }
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showRefreshButton={true}
         filters={[
@@ -68,7 +68,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: TelemetryService,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -110,6 +110,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               telemetryService: {
                 name: true,
                 _id: true,
+                serviceColor: true,
               },
             },
             title: "Telemetry Service",

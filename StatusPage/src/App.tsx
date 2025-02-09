@@ -25,7 +25,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { useEffect, useState } from "react";
 import {
   Route as PageRoute,
@@ -34,6 +34,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import ConfirmSubscription from "./Pages/Subscribe/ConfirmSubscription";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -43,10 +44,17 @@ const App: () => JSX.Element = () => {
   const [isPreview, setIsPreview] = useState<boolean>(false);
   const [enableEmailSubscribers, setenableEmailSubscribers] =
     useState<boolean>(true);
+
   const [
     allowSubscribersToChooseResources,
     setAllowSubscribersToChooseResources,
   ] = useState<boolean>(false);
+
+  const [
+    allowSubscriberToChooseEventTypes,
+    setAllowSubscriberToChooseEventTypes,
+  ] = useState<boolean>(false);
+
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
@@ -130,7 +138,16 @@ const App: () => JSX.Element = () => {
             "statusPage.allowSubscribersToChooseResources",
           ) as boolean;
 
+        const allowSubscribersToChooseEventTypes: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.allowSubscribersToChooseEventTypes",
+          ) as boolean;
+
         setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
+        setAllowSubscriberToChooseEventTypes(
+          allowSubscribersToChooseEventTypes,
+        );
 
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
@@ -310,6 +327,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               onLoadComplete={() => {
                 onPageLoadComplete();
               }}
@@ -330,6 +350,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -347,8 +370,23 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.CONFIRM_SUBSCRIPTION]?.toString() || ""}
+          element={
+            <ConfirmSubscription
+              pageRoute={RouteMap[PageMap.CONFIRM_SUBSCRIPTION] as Route}
+              onLoadComplete={() => {
+                onPageLoadComplete();
+              }}
             />
           }
         />
@@ -378,6 +416,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -395,6 +436,9 @@ const App: () => JSX.Element = () => {
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
               }
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               enableEmailSubscribers={enableEmailSubscribers}
               enableSMSSubscribers={enableSMSSubscribers}
             />
@@ -408,6 +452,9 @@ const App: () => JSX.Element = () => {
               onLoadComplete={() => {
                 onPageLoadComplete();
               }}
+              allowSubscribersToChooseEventTypes={
+                allowSubscriberToChooseEventTypes
+              }
               pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route}
               allowSubscribersToChooseResources={
                 allowSubscribersToChooseResources
@@ -548,6 +595,22 @@ const App: () => JSX.Element = () => {
             <Sso
               statusPageName={statusPageName}
               logoFileId={new ObjectID(statusPageLogoFileId)}
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]?.toString() || ""
+          }
+          element={
+            <ConfirmSubscription
+              onLoadComplete={() => {
+                onPageLoadComplete();
+              }}
+              pageRoute={
+                RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
+              }
             />
           }
         />

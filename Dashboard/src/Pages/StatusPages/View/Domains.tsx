@@ -8,30 +8,34 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL, StatusPageCNameRecord } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Domain from "Model/Models/Domain";
-import StatusPageDomain from "Model/Models/StatusPageDomain";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL, StatusPageCNameRecord } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import Domain from "Common/Models/DatabaseModels/Domain";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
+import OneUptimeDate from "Common/Types/Date";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
 
   const [showCnameModal, setShowCnameModal] = useState<boolean>(false);
 
@@ -52,13 +56,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         <ModelTable<StatusPageDomain>
           modelType={StatusPageDomain}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
             statusPageId: modelId,
           }}
           name="Status Page > Domains"
           id="domains-table"
           isDeleteable={true}
           isCreateable={true}
+          isEditable={true}
           cardProps={{
             title: "Custom Domains",
             description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
@@ -106,7 +111,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
               icon: IconProp.Check,
               isVisible: (item: StatusPageDomain): boolean => {
-                if (item["isCnameVerified"] && !item.isSslOrdered) {
+                if (
+                  !item.isCustomCertificate &&
+                  item["isCnameVerified"] &&
+                  !item.isSslOrdered
+                ) {
                   return true;
                 }
 
@@ -135,7 +144,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isSslOrdered: true,
             isSslProvisioned: true,
             isCnameVerified: true,
+            isCustomCertificate: true,
           }}
+          formSteps={[
+            {
+              title: "Basic",
+              id: "basic",
+            },
+            {
+              title: "More",
+              id: "more",
+            },
+          ]}
           formFields={[
             {
               field: {
@@ -148,6 +168,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               validation: {
                 minLength: 2,
               },
+              stepId: "basic",
             },
             {
               field: {
@@ -164,6 +185,47 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               required: true,
               placeholder: "Select domain",
+              stepId: "basic",
+            },
+            {
+              field: {
+                isCustomCertificate: true,
+              },
+              title: "Upload Custom Certificate",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              defaultValue: false,
+              stepId: "more",
+              description:
+                "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
+            },
+            {
+              field: {
+                customCertificate: true,
+              },
+              title: "Certificate",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              stepId: "more",
+              placeholder:
+                "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+              showIf: (item: FormValues<StatusPageDomain>): boolean => {
+                return Boolean(item.isCustomCertificate);
+              },
+            },
+            {
+              field: {
+                customCertificateKey: true,
+              },
+              title: "Certificate Private Key",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder:
+                "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+              stepId: "more",
+              showIf: (item: FormValues<StatusPageDomain>): boolean => {
+                return Boolean(item.isCustomCertificate);
+              },
             },
           ]}
           showRefreshButton={true}
@@ -211,6 +273,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   );
                 }
 
+                if (item.isCustomCertificate) {
+                  return (
+                    <span>
+                      No action is required. Please allow 30 minutes for the
+                      certificate to be provisioned.
+                    </span>
+                  );
+                }
+
                 if (!item.isSslOrdered) {
                   return (
                     <span>
@@ -232,7 +303,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
                 return (
                   <span>
-                    Certificate Provisioned. We will automatiucally renew this
+                    Certificate Provisioned. We will automatically renew this
                     certificate. No action required.{" "}
                   </span>
                 );
@@ -311,7 +382,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowCnameModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedStatusPageDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));
@@ -371,7 +442,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowOrderSSLModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
                 setSelectedStatusPageDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));

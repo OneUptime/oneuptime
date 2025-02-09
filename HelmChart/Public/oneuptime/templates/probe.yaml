@@ -22,6 +22,10 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
@@ -31,7 +35,9 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.nodeSelector }}
+      {{- if $val.nodeSelector }}
+      nodeSelector: {{- $val.nodeSelector | toYaml | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
       nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
       {{- end }}
       containers:
@@ -47,17 +53,24 @@ spec:
             - name: PORT
               value: {{ $.Values.port.probe | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $val.openTelemetryExporter.headers }}
+              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-              value: {{ $.Values.openTelemetryExporter.endpoint.server }}
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
             - name: ONEUPTIME_URL
-              value: http://{{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.ingestor }}
+              value: http://{{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.probeIngest }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION
               value: {{ $val.description }}
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
+              {{- if $val.monitorRetryLimit }}
+            - name: PROBE_MONITOR_RETRY_LIMIT
+              value: {{ $val.monitorRetryLimit | squote }}
+              {{- else }}
+            - name: PROBE_MONITOR_RETRY_LIMIT
+              value: {{ 3 | squote }}
+              {{- end }}
             # syntheticMonitorScriptTimeoutInMs
             - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}
@@ -74,6 +87,10 @@ spec:
               {{- end }}
             - name: PROBE_MONITOR_FETCH_LIMIT
               value: {{ $val.monitorFetchLimit | squote }}
+            {{- if $val.disableTelemetryCollection }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $val.disableTelemetryCollection | quote }}
+            {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
           
       restartPolicy: {{ $.Values.image.restartPolicy }}

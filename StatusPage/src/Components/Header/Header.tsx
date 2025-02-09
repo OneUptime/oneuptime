@@ -1,8 +1,8 @@
 import Logo from "../Logo/Logo";
 import Link from "Common/Types/Link";
-import Header from "CommonUI/src/Components/Header/Header";
-import UILink from "CommonUI/src/Components/Link/Link";
-import File from "Model/Models/File";
+import Header from "Common/UI/Components/Header/Header";
+import UILink from "Common/UI/Components/Link/Link";
+import File from "Common/Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -33,8 +33,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                       props.onLogoClicked();
                     }}
                     style={{
-                      maxWidth: "200px",
-                      maxHeight: "50px",
+                      height: "50px",
                     }}
                   />
                 </div>

@@ -5,4 +5,4 @@ export DATABASE_HOST=$DATABASE_MIGRATIONS_HOST
 export DATABASE_PORT=$DATABASE_MIGRATIONS_PORT
 
 sudo npm i -g ts-node 
-npx typeorm-ts-node-esm migration:run --dataSource=./CommonServer/Infrastructure/PostgresConfig.ts
+npx typeorm-ts-node-esm migration:run --dataSource=./Common/Server/Infrastructure/PostgresConfig.ts

@@ -1,8 +1,9 @@
 import VmAPI from "./API/VM";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Express, { ExpressApplication } from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
+import Telemetry from "Common/Server/Utils/Telemetry";
 import process from "process";
 
 const APP_NAME: string = "isolated-vm";
@@ -13,6 +14,11 @@ app.use([`/${APP_NAME}`, "/"], VmAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     // init the app
     await App.init({
       appName: APP_NAME,

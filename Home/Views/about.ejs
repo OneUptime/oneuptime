@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime | About Us</title>
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        <%- include('head') -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+
+  <div class="relative bg-white py-16 sm:py-24">
+    <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-cols-2 lg:items-start lg:gap-24 lg:px-8">
+      <div class="relative sm:py-16 lg:py-0">
+        <div aria-hidden="true" class="hidden sm:block lg:absolute lg:inset-y-0 lg:right-0 lg:w-screen">
+          <div class="absolute inset-y-0 right-1/2 w-full rounded-r-3xl bg-gray-50 lg:right-72"></div>
+          <svg class="absolute top-8 left-1/2 -ml-3 lg:-right-8 lg:left-auto lg:top-12" width="404" height="392" fill="none" viewBox="0 0 404 392">
+            <defs>
+              <pattern id="02f20b47-fd69-4224-a62a-4c9de5c763f7" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <rect x="0" y="0" width="4" height="4" class="text-gray-200" fill="currentColor" />
+              </pattern>
+            </defs>
+            <rect width="404" height="392" fill="url(#02f20b47-fd69-4224-a62a-4c9de5c763f7)" />
+          </svg>
+        </div>
+        <div class="relative mx-auto max-w-md px-6 sm:max-w-3xl lg:max-w-none lg:px-0 lg:py-20">
+          <!-- Testimonial card-->
+          <div class="relative overflow-hidden rounded-2xl pt-64 pb-10 shadow-xl">
+            <img class="absolute inset-0 h-full w-full object-cover" src="/img/code.jpg" alt="">
+            <div class="absolute inset-0 bg-indigo-500 mix-blend-multiply"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-indigo-600 via-indigo-600 opacity-90"></div>
+            <div class="relative px-8">
+              <div>
+                <img class="h-72 -ml-8" src="/img/logo-white.svg" alt="Workcation">
+              </div>
+              <blockquote class="-mt-24">
+                <div class="relative text-lg font-medium text-white md:flex-grow">
+                  <svg class="absolute top-0 left-0 h-8 w-8 -translate-x-3 -translate-y-2 transform text-indigo-400" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                    <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
+                  </svg>
+                  <p class="relative">Our goal is to build the next frontier in software observability platform. Imagine a platform that not only tells you what's wrong with your software, but automatically fixes thoses issues by writing code for you automatically. </p>
+                </div>
+  
+                <footer class="mt-4">
+                  <p class="text-base font-semibold text-indigo-200">Simon Larsen, CTO at OneUptime</p>
+                </footer>
+              </blockquote>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="relative mx-auto max-w-md px-6 sm:max-w-3xl lg:px-0">
+        <!-- Content area -->
+        <div class="pt-12 sm:pt-16 lg:pt-20">
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">On a mission to #DemocratiseOps</h2>
+          <div class="mt-6 space-y-6 text-gray-500">
+            <p class="text-lg">Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we built a platform that helps you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use.</p>
+            <p class="text-lg">OneUptime is an open-source, complete Observability platform. It is a Status Page, Monitoring and On-call system all combined into one. Today, Enterprises and Startups use services like StatusPage.io, Status.io, etc. for a hosted status page, PagerDuty for on-call alerts during downtime, and Pingdom for website monitoring. OneUptime replaces all of these and combines them into one. You have everything you need to monitor your apps, websites, API's and more, and alert your team instantly when downtime happens.</p>
+          </div>
+        </div>
+  
+        <!-- Stats section -->
+        <div class="mt-10">
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-8">
+            <div class="border-t-2 border-gray-100 pt-6">
+              <dt class="text-base font-medium text-gray-500">Stars</dt>
+              <dd class="text-3xl font-bold tracking-tight text-gray-900"><%= basicInfo.stargazers_count %></dd>
+            </div>
+  
+            <div class="border-t-2 border-gray-100 pt-6">
+              <dt class="text-base font-medium text-gray-500">Contributors</dt>
+              <dd class="text-3xl font-bold tracking-tight text-gray-900"><%= contributors.length %></dd>
+            </div>
+  
+            <div class="border-t-2 border-gray-100 pt-6">
+              <dt class="text-base font-medium text-gray-500">Code Commits</dt>
+              <dd class="text-3xl font-bold tracking-tight text-gray-900"><%= commits %></dd>
+            </div>
+  
+            <div class="border-t-2 border-gray-100 pt-6">
+              <dt class="text-base font-medium text-gray-500">License</dt>
+              <dd class="text-3xl font-bold tracking-tight text-gray-900">Apache 2</dd>
+            </div>
+          </dl>
+          <div class="mt-10">
+            <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="text-base font-medium text-indigo-600">
+              Learn more about OneUptime on GitHub
+              <span aria-hidden="true"> &rarr;</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-auto mt-32 max-w-7xl px-6 sm:mt-40 lg:px-8">
+    <div class="mx-auto max-w-2xl lg:mx-0">
+      <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Our values</h2>
+      <p class="mt-6 text-lg leading-8 text-gray-600">These are the principles we care deeply about.</p>
+    </div>
+    <dl class="mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-8 text-base leading-7 lg:mx-0 lg:max-w-none">
+      <div>
+        <dt class="font-semibold text-gray-900">Open Source Everything.</dt>
+        <dd class="mt-1 text-gray-600">At OneUptime, we pride ourselves on being a fully open-source company, not an open-core company. This means that every line of code we write is available on GitHub for everyone to view, use, and contribute to. This approach is a cornerstone of our strategy. We believe open source wins, open software wins, open protocol wins. The only way to become a standard is to be open-source. </dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-gray-900">Developers First.</dt>
+        <dd class="mt-1 text-gray-600">We prioritize our developer customers by continuously listening to their needs and working tirelessly to enhance OneUptime with features that serve them better every day.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-gray-900">Meritocracy, over diversity.</dt>
+        <dd class="mt-1 text-gray-600">We prioritize meritocracy, ensuring that talent, skills, and performance are the primary criteria for advancement and recognition within OneUptime. We believe that by fostering an environment where merit is the cornerstone, we can achieve excellence and drive innovation.</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="bg-white">
+    <div class="mx-auto max-w-7xl py-12 px-6 text-center lg:px-8 lg:py-24">
+      <div class="space-y-8 sm:space-y-12">
+        <div class="space-y-5 sm:mx-auto sm:max-w-xl sm:space-y-4 lg:max-w-5xl">
+          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">It's people who make all of this happen. </h2>
+          <p class="text-xl text-gray-500">We celebrate our top 30 open source contributors. It's they who made all of this happen.</p>
+        </div>
+        <ul role="list" class="mx-auto grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4 md:gap-x-6 lg:max-w-5xl lg:gap-x-8 lg:gap-y-12 xl:grid-cols-6">
+          <% for(var i=0; i<30; i++) {%>
+          <li>
+            <a target="_blank" href="https://github.com/<%= contributors[i].login %>" class="cursor-pointer">
+            <div class="space-y-4">
+              <img class="mx-auto h-20 w-20 rounded-full lg:h-24 lg:w-24" src="<%= contributors[i].avatar_url %>" alt="">
+              <div class="space-y-2">
+                <div class="text-xs font-medium lg:text-sm">
+                  <h3 class="text-indigo-600 text-sm"><%= contributors[i].login %></h3>
+                  <p class="text-xs">Contributions: <%= contributors[i].contributions %></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          </li>
+          <% } %>
+          
+       
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  
+
+
+<!-- This example requires Tailwind CSS v3.0+ -->
+<div class="bg-white">
+  <div class="py-24 px-6 sm:px-6 sm:py-32 lg:px-8">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-4xl font-bold tracking-tight text-gray-900"><span class="text-lg">We are hiring.</span><br>Looking to work on an open-source SRE platform?</h2>
+      <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600">We always give first priority to open-source contributors and our interview process also involves contributing to open source. Check out open roles below.</p>
+      <div class="mt-10 flex items-center justify-center gap-x-6">
+        <a href="https://github.com/OneUptime/interview" class="hover:text-white rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See open roles</a>
+        <a href="https://github.com/oneuptime/oneuptime" class="text-base font-semibold leading-7 text-gray-900">Contribute to open source project <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <%- include('footer') -%>
+</body>
+</html>

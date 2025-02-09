@@ -3,8 +3,8 @@ import ResellerAPI from "./API/Reseller";
 import SsoAPI from "./API/SSO";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
-import FeatureSet from "CommonServer/Types/FeatureSet";
-import Express, { ExpressApplication } from "CommonServer/Utils/Express";
+import FeatureSet from "Common/Server/Types/FeatureSet";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const IdentityFeatureSet: FeatureSet = {

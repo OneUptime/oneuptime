@@ -5,64 +5,44 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MetricQueryConfig, { MetricQueryConfigData } from "./MetricQueryConfig";
-import MetricGraphConfig, {
-  MetricFormulaConfigData,
-} from "./MetricFormulaConfig";
+import MetricQueryConfig from "./MetricQueryConfig";
+import MetricGraphConfig from "./MetricFormulaConfig";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
+} from "Common/UI/Components/Button/Button";
 import Text from "Common/Types/Text";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import StartAndEndDate, {
   StartAndEndDateType,
-} from "CommonUI/src/Components/Date/StartAndEndDate";
+} from "Common/UI/Components/Date/StartAndEndDate";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import Card from "CommonUI/src/Components/Card/Card";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import API from "CommonUI/src/Utils/API/API";
+import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ModelAPI from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Metric from "Model/AnalyticsModels/Metric";
-import OneUptimeDate from "Common/Types/Date";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import ChartGroup, {
-  Chart,
-  ChartGroupInterval,
-  ChartType,
-} from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
-import {
-  AxisType,
-  ChartCurve,
-  XScalePrecision,
-  XScaleType,
-  YScaleType,
-} from "CommonUI/src/Components/Charts/Line/LineChart";
-import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
-import IconProp from "Common/Types/Icon/IconProp";
-import DashboardNavigation from "../../Utils/Navigation";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "CommonUI/src/Utils/BaseDatabase/ListResult";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "CommonUI/src/Config";
-
-export interface MetricViewData {
-  queryConfigs: Array<MetricQueryConfigData>;
-  formulaConfigs: Array<MetricFormulaConfigData>;
-  startAndEndDate: InBetween | null;
-}
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import MetricNameAndUnit from "./Types/MetricNameAndUnit";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricUtil from "./Utils/Metrics";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricCharts from "./MetricCharts";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps {
   data: MetricViewData;
+  hideQueryElements?: boolean;
+  hideStartAndEndDate?: boolean;
+  onChange: (data: MetricViewData) => void;
+  hideCardInQueryElements?: boolean;
+  hideCardInCharts?: boolean;
+  chartCssClass?: string | undefined;
 }
 
 const MetricView: FunctionComponent<ComponentProps> = (
@@ -71,6 +51,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [currentQueryVariable, setCurrentQueryVariable] = useState<string>(
     Text.getLetterFromAByNumber(props.data.queryConfigs.length),
   );
+
+  const [metricNamesAndUnits, setMetricNamesAndUnits] = useState<
+    Array<MetricNameAndUnit>
+  >([]);
+
+  const [
+    showCannotRemoveOneRemainingQueryError,
+    setShowCannotRemoveOneRemainingQueryError,
+  ] = useState<boolean>(false);
 
   type GetEmptyQueryConfigFunction = () => MetricQueryConfigData;
 
@@ -84,109 +73,67 @@ const MetricView: FunctionComponent<ComponentProps> = (
           metricVariable: currentVar,
           title: "",
           description: "",
+          legend: "",
+          legendUnit: "",
         },
         metricQueryData: {
           filterData: {
             aggegationType: MetricsAggregationType.Avg,
+            metricName:
+              metricNamesAndUnits.length > 0 &&
+              metricNamesAndUnits[0] &&
+              metricNamesAndUnits[0].metricName
+                ? metricNamesAndUnits[0].metricName
+                : "",
           },
         },
       };
     };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>(
-    props.data,
-  );
-
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
-  const [allMetricNames, setAllMetricNames] = useState<Array<string>>([]);
 
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
   );
 
-  useEffect(() => {
-    fetchAggregatedResults().catch((err: Error) => {
-      setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
-    });
+  const metricViewDataRef: React.MutableRefObject<MetricViewData> =
+    React.useRef(props.data);
 
+  useEffect(() => {
     loadAllMetricsTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
 
-  type GetChartsFunction = () => Array<Chart>;
+  useEffect(() => {
+    const hasChanged: boolean = JSONFunctions.isJSONObjectDifferent(
+      metricViewDataRef.current,
+      props.data,
+    );
 
-  const getCharts: GetChartsFunction = (): Array<Chart> => {
-    const charts: Array<Chart> = [];
+    if (
+      hasChanged &&
+      props.data &&
+      props.data.startAndEndDate &&
+      props.data.startAndEndDate.startValue &&
+      props.data.startAndEndDate.endValue
+    ) {
+      setCurrentQueryVariable(
+        Text.getLetterFromAByNumber(props.data.queryConfigs.length),
+      );
+      fetchAggregatedResults().catch((err: Error) => {
+        setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+      });
 
-    let index: number = 0;
-
-    for (const queryConfig of metricViewData.queryConfigs) {
-      if (!metricResults[index]) {
-        continue;
-      }
-
-      const chart: Chart = {
-        id: index.toString(),
-        type: ChartType.LINE,
-        title:
-          queryConfig.metricAliasData.title ||
-          queryConfig.metricQueryData.filterData.metricName?.toString() ||
-          "",
-        description: queryConfig.metricAliasData.description,
-        props: {
-          data: [
-            {
-              seriesName:
-                queryConfig.metricAliasData.title ||
-                queryConfig.metricQueryData.filterData.metricName?.toString() ||
-                "",
-              data: metricResults[index]!.data.map(
-                (result: AggregatedModel) => {
-                  return {
-                    x: OneUptimeDate.fromString(result.timestamp),
-                    y: result.value,
-                  };
-                },
-              ),
-            },
-          ],
-          xScale: {
-            type: XScaleType.TIME,
-            precision: XScalePrecision.HOUR,
-            max: "auto",
-            min: "auto",
-          },
-          yScale: {
-            type: YScaleType.LINEAR,
-            max: "auto",
-            min: "auto",
-          },
-          axisBottom: {
-            legend: "Time",
-            type: AxisType.Date,
-          },
-          axisLeft: {
-            legend: "Value",
-            type: AxisType.Number,
-          },
-          curve: ChartCurve.LINEAR,
-        },
-        sync: true,
-      };
-
-      charts.push(chart);
-
-      index++;
+      metricViewDataRef.current = props.data;
     }
-
-    return charts;
-  };
+  }, [props.data]);
 
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
+
   const [isMetricResultsLoading, setIsMetricResultsLoading] =
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
@@ -195,53 +142,56 @@ const MetricView: FunctionComponent<ComponentProps> = (
     try {
       setIsPageLoading(true);
 
-      const metrics: ListResult<Metric> = await ModelAPI.getList({
-        modelType: Metric,
-        select: {
-          name: true,
-        },
-        query: {
-          projectId: DashboardNavigation.getProjectId(),
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-        groupBy: {
-          name: true,
-        },
-      });
+      const {
+        metricNamesAndUnits,
+        telemetryAttributes,
+      }: {
+        metricNamesAndUnits: Array<MetricNameAndUnit>;
+        telemetryAttributes: Array<string>;
+      } = await MetricUtil.loadAllMetricsTypes();
 
-      setAllMetricNames(
-        metrics.data.map((metric: Metric) => {
-          return metric.name!;
-        }),
-      );
-
-      const metricAttributesResponse:
-        | HTTPResponse<JSONObject>
-        | HTTPErrorResponse = await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
-          "/telemetry/metrics/get-attributes",
-        ),
-        {},
-        {
-          ...ModelAPI.getCommonHeaders(),
-        },
-      );
-
-      if (metricAttributesResponse instanceof HTTPErrorResponse) {
-        throw metricAttributesResponse;
-      } else {
-        const attributes: Array<string> = metricAttributesResponse.data[
-          "attributes"
-        ] as Array<string>;
-        setTelemetryAttributes(attributes);
-      }
+      setMetricNamesAndUnits(metricNamesAndUnits);
+      setTelemetryAttributes(telemetryAttributes);
 
       setIsPageLoading(false);
       setPageError("");
+
+      /// if there's no query then set the default query and fetch results.
+      if (
+        props.data.queryConfigs.length === 0 &&
+        metricNamesAndUnits.length > 0 &&
+        metricNamesAndUnits[0] &&
+        metricNamesAndUnits[0].metricName
+      ) {
+        // then  add a default query which would be the first
+        props.onChange &&
+          props.onChange({
+            ...props.data,
+            queryConfigs: [
+              {
+                metricAliasData: {
+                  metricVariable: "a",
+                  legend: "",
+                  title: "",
+                  description: "",
+                  legendUnit: "",
+                },
+                metricQueryData: {
+                  filterData: {
+                    metricName: metricNamesAndUnits[0].metricName,
+                    aggegationType: MetricsAggregationType.Avg,
+                  },
+                },
+              },
+            ],
+          });
+      }
+
+      if (props.data) {
+        fetchAggregatedResults().catch((err: Error) => {
+          setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
+        });
+      }
     } catch (err) {
       setIsPageLoading(false);
       setPageError(API.getFriendlyErrorMessage(err as Error));
@@ -252,49 +202,19 @@ const MetricView: FunctionComponent<ComponentProps> = (
     async (): Promise<void> => {
       setIsMetricResultsLoading(true);
 
-      const results: Array<AggregatedResult> = [];
+      if (
+        !props.data.startAndEndDate?.startValue ||
+        !props.data.startAndEndDate?.endValue
+      ) {
+        setIsMetricResultsLoading(false);
+        return;
+      }
       try {
-        for (const queryConfig of metricViewData.queryConfigs) {
-          const result: AggregatedResult = await ModelAPI.aggregate({
-            modelType: Metric,
-            aggregateBy: {
-              query: {
-                time: metricViewData.startAndEndDate,
-                name: queryConfig.metricQueryData.filterData.metricName,
-                attributes: queryConfig.metricQueryData.filterData.attributes,
-              },
-              aggregateBy:
-                (queryConfig.metricQueryData.filterData
-                  .aggregateBy as MetricsAggregationType) ||
-                MetricsAggregationType.Avg,
-              aggregateColumnName: "value",
-              aggregationTimestampColumnName: "time",
-              startTimestamp:
-                (metricViewData.startAndEndDate?.startValue as Date) ||
-                OneUptimeDate.getCurrentDate(),
-              endTimestamp:
-                (metricViewData.startAndEndDate?.endValue as Date) ||
-                OneUptimeDate.getCurrentDate(),
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-            },
-          });
-
-          result.data.map((data: AggregatedModel) => {
-            // convert to int from float
-
-            if (data.value) {
-              data.value = Math.round(data.value);
-            }
-
-            return data;
-          });
-
-          results.push(result);
-        }
+        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
+          metricViewData: props.data,
+        });
 
         setMetricResults(results);
-
         setMetricResultsError("");
       } catch (err: unknown) {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
@@ -303,128 +223,139 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsMetricResultsLoading(false);
     };
 
-  // type GetEmptyFormulaConfigFunction = () => MetricFormulaConfigData;
-
-  // const getEmptyFormulaConfigData: GetEmptyFormulaConfigFunction =
-  //   (): MetricFormulaConfigData => {
-  //     return {
-  //       metricAliasData: { metricVariable: "", title: "", description: "" },
-  //       metricFormulaData: {
-  //         metricFormula: "",
-  //       },
-  //     };
-  //   };
-
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
 
   if (pageError) {
-    return <ErrorMessage error={pageError} />;
+    return <ErrorMessage message={pageError} />;
   }
 
   return (
     <Fragment>
       <div className="space-y-3">
-        <Card>
-          <div className="-mt-5">
-            <FieldLabelElement title="Start and End Time" required={true} />
-            <StartAndEndDate
-              type={StartAndEndDateType.DateTime}
-              initialValue={props.data.startAndEndDate || undefined}
-              onValueChanged={(startAndEndDate: InBetween | null) => {
-                setMetricViewData({
-                  ...metricViewData,
-                  startAndEndDate: startAndEndDate,
-                });
-              }}
-            />
+        {!props.hideStartAndEndDate && (
+          <div className="mb-5">
+            <Card>
+              <div className="-mt-5">
+                <FieldLabelElement title="Start and End Time" required={true} />
+                <StartAndEndDate
+                  type={StartAndEndDateType.DateTime}
+                  value={props.data.startAndEndDate || undefined}
+                  onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
+                    props.onChange &&
+                      props.onChange({
+                        ...props.data,
+                        startAndEndDate: startAndEndDate,
+                      });
+                  }}
+                />
+              </div>
+            </Card>
           </div>
-        </Card>
+        )}
 
-        {metricViewData.queryConfigs.map(
-          (queryConfig: MetricQueryConfigData, index: number) => {
-            return (
-              <MetricQueryConfig
-                key={index}
-                onDataChanged={(data: MetricQueryConfigData) => {
-                  const newGraphConfigs: Array<MetricQueryConfigData> = [
-                    ...metricViewData.queryConfigs,
-                  ];
-                  newGraphConfigs[index] = data;
-                  setMetricViewData({
-                    ...metricViewData,
-                    queryConfigs: newGraphConfigs,
-                  });
-                }}
-                data={queryConfig}
-                telemetryAttributes={telemetryAttributes}
-                metricNames={allMetricNames}
-                onRemove={() => {
-                  const newGraphConfigs: Array<MetricQueryConfigData> = [
-                    ...metricViewData.queryConfigs,
-                  ];
-                  newGraphConfigs.splice(index, 1);
+        {!props.hideQueryElements && (
+          <div className="space-y-3">
+            {props.data.queryConfigs.map(
+              (queryConfig: MetricQueryConfigData, index: number) => {
+                return (
+                  <MetricQueryConfig
+                    key={index}
+                    onChange={(data: MetricQueryConfigData) => {
+                      const newGraphConfigs: Array<MetricQueryConfigData> = [
+                        ...props.data.queryConfigs,
+                      ];
+                      newGraphConfigs[index] = data;
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: newGraphConfigs,
+                        });
+                    }}
+                    data={queryConfig}
+                    hideCard={props.hideCardInQueryElements}
+                    telemetryAttributes={telemetryAttributes}
+                    metricNameAndUnits={metricNamesAndUnits}
+                    onRemove={() => {
+                      if (props.data.queryConfigs.length === 1) {
+                        setShowCannotRemoveOneRemainingQueryError(true);
+                        return;
+                      }
 
-                  setMetricViewData({
-                    ...metricViewData,
-                    queryConfigs: newGraphConfigs,
-                  });
-                }}
-              />
-            );
-          },
+                      const newGraphConfigs: Array<MetricQueryConfigData> = [
+                        ...props.data.queryConfigs,
+                      ];
+                      newGraphConfigs.splice(index, 1);
+
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: newGraphConfigs,
+                        });
+                    }}
+                  />
+                );
+              },
+            )}
+          </div>
         )}
       </div>
-      <div className="space-y-3">
-        {metricViewData.formulaConfigs.map(
-          (formulaConfig: MetricFormulaConfigData, index: number) => {
-            return (
-              <MetricGraphConfig
-                key={index}
-                onDataChanged={(data: MetricFormulaConfigData) => {
-                  const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                    ...metricViewData.formulaConfigs,
-                  ];
-                  newGraphConfigs[index] = data;
-                  setMetricViewData({
-                    ...metricViewData,
-                    formulaConfigs: newGraphConfigs,
-                  });
-                }}
-                data={formulaConfig}
-                onRemove={() => {
-                  const newGraphConfigs: Array<MetricFormulaConfigData> = [
-                    ...metricViewData.formulaConfigs,
-                  ];
-                  newGraphConfigs.splice(index, 1);
-                  setMetricViewData({
-                    ...metricViewData,
-                    formulaConfigs: newGraphConfigs,
-                  });
-                }}
-              />
-            );
-          },
-        )}
-      </div>
-      <div>
-        <div className="flex -ml-3 mt-8 justify-between w-full">
+
+      {!props.hideQueryElements && (
+        <div className="space-y-3">
+          <div className="space-y-3">
+            {props.data.formulaConfigs.map(
+              (formulaConfig: MetricFormulaConfigData, index: number) => {
+                return (
+                  <MetricGraphConfig
+                    key={index}
+                    onDataChanged={(data: MetricFormulaConfigData) => {
+                      const newGraphConfigs: Array<MetricFormulaConfigData> = [
+                        ...props.data.formulaConfigs,
+                      ];
+                      newGraphConfigs[index] = data;
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          formulaConfigs: newGraphConfigs,
+                        });
+                    }}
+                    data={formulaConfig}
+                    onRemove={() => {
+                      const newGraphConfigs: Array<MetricFormulaConfigData> = [
+                        ...props.data.formulaConfigs,
+                      ];
+                      newGraphConfigs.splice(index, 1);
+                      props.onChange &&
+                        props.onChange({
+                          ...props.data,
+                          formulaConfigs: newGraphConfigs,
+                        });
+                    }}
+                  />
+                );
+              },
+            )}
+          </div>
           <div>
-            <Button
-              title="Add Query"
-              buttonSize={ButtonSize.Small}
-              onClick={() => {
-                setMetricViewData({
-                  ...metricViewData,
-                  queryConfigs: [
-                    ...metricViewData.queryConfigs,
-                    getEmptyQueryConfigData(),
-                  ],
-                });
-              }}
-            />
-            {/* <Button
+            <div className="flex -ml-3 mt-8 justify-between w-full">
+              <div>
+                <Button
+                  title="Add Metric"
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    props.onChange &&
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: [
+                          ...props.data.queryConfigs,
+                          getEmptyQueryConfigData(),
+                        ],
+                      });
+                  }}
+                />
+                {/* <Button
               title="Add Formula"
               buttonSize={ButtonSize.Small}
               onClick={() => {
@@ -437,32 +368,43 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 });
               }}
             /> */}
+              </div>
+            </div>
           </div>
-          <div className="flex items-end -mr-3">
-            <Button
-              title="Apply"
-              icon={IconProp.Play}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              buttonSize={ButtonSize.Small}
-              onClick={fetchAggregatedResults}
-            />
-          </div>
+          <HorizontalRule />
         </div>
-      </div>
-      <HorizontalRule />
+      )}
 
       {isMetricResultsLoading && <ComponentLoader />}
 
-      {metricResultsError && <ErrorMessage error={metricResultsError} />}
+      {metricResultsError && <ErrorMessage message={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 mt-3">
           {/** charts */}
-          <ChartGroup
-            interval={ChartGroupInterval.ONE_HOUR}
-            charts={getCharts()}
+          <MetricCharts
+            hideCard={props.hideCardInCharts}
+            metricResults={metricResults}
+            metricNamesAndUnits={metricNamesAndUnits}
+            metricViewData={props.data}
+            chartCssClass={props.chartCssClass}
           />
         </div>
+      )}
+
+      {showCannotRemoveOneRemainingQueryError ? (
+        <ConfirmModal
+          title={`Cannot Remove Query`}
+          description={`Cannot remove query because there must be at least one query.`}
+          isLoading={false}
+          submitButtonText={"Close"}
+          submitButtonType={ButtonStyleType.NORMAL}
+          onSubmit={() => {
+            return setShowCannotRemoveOneRemainingQueryError(false);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </Fragment>
   );

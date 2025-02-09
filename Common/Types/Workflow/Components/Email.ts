@@ -33,14 +33,14 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.Text,
         name: "Subject",
-        description: "Email to send to",
+        description: "Subject of the email",
         required: false,
         id: "subject",
       },
       {
         type: ComponentInputType.HTML,
         name: "Email Body",
-        description: "Email to send to",
+        description: "Body of the email",
         required: false,
         id: "email-body",
       },
@@ -55,14 +55,14 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.Text,
         name: "SMTP Username",
         description: "SMTP Username to send emails from",
-        required: true,
+        required: false,
         id: "smtp-username",
       },
       {
         type: ComponentInputType.Password,
         name: "SMTP Password",
         description: "SMTP Password to send emails from",
-        required: true,
+        required: false,
         id: "smtp-password",
       },
       {

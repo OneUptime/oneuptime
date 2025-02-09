@@ -1,12 +1,12 @@
 import SchedulesElement from "../../OnCallDutySchedule/SchedulesElement";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import OnCallDutyPolicyEscalationRuleSchedule from "Model/Models/OnCallDutyPolicyEscalationRuleSchedule";
-import OnCallDutyPolicySchedule from "Model/Models/OnCallDutyPolicySchedule";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -69,7 +69,7 @@ const OnCallDutyScheduleView: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return <SchedulesElement schedules={schedules} />;

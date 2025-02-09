@@ -1,26 +1,26 @@
 import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
-import { CategoryCheckboxOptionsAndCategories } from "CommonUI/src/Components/CategoryCheckbox/Index";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { ModelField } from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   Fragment,
   FunctionComponent,
@@ -37,6 +37,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     allowSubscribersToChooseResources,
     setAllowSubscribersToChooseResources,
   ] = React.useState<boolean>(false);
+
+  const [
+    allowSubscribersToChooseEventTypes,
+    setAllowSubscribersToChooseEventTypes,
+  ] = React.useState<boolean>(false);
+
   const [isEmailSubscribersEnabled, setIsEmailSubscribersEnabled] =
     React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -66,6 +72,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         id: modelId,
         select: {
           allowSubscribersToChooseResources: true,
+          allowSubscribersToChooseEventTypes: true,
           enableEmailSubscribers: true,
         },
       });
@@ -75,6 +82,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           statusPage.allowSubscribersToChooseResources,
         );
         await fetchCheckboxOptionsAndCategories();
+      }
+
+      if (statusPage && statusPage.allowSubscribersToChooseEventTypes) {
+        setAllowSubscribersToChooseEventTypes(
+          statusPage.allowSubscribersToChooseEventTypes,
+        );
       }
 
       if (statusPage && statusPage.enableEmailSubscribers) {
@@ -117,11 +130,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       },
       {
         field: {
+          isSubscriptionConfirmed: true,
+        },
+        title: "Do not send confirmation link",
+        description:
+          "If this option is checked, then no confirmation link will be sent to the subscriber.",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        defaultValue: true,
+      },
+      {
+        field: {
           sendYouHaveSubscribedMessage: true,
         },
         title: "Send Subscription Email",
         description:
-          'Send "You have subscribed to this status page" email to this subscriber?',
+          "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,
@@ -165,6 +189,34 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
+    if (allowSubscribersToChooseEventTypes) {
+      formFields.push({
+        field: {
+          isSubscribedToAllEventTypes: true,
+        },
+        title: "Subscribe to All Event Types",
+        description:
+          "Select this option if you want to subscribe to all event types.",
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        defaultValue: true,
+      });
+
+      formFields.push({
+        field: {
+          statusPageEventTypes: true,
+        },
+        title: "Select Event Types to Subscribe",
+        description: "Please select the event types you want to subscribe to.",
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        required: false,
+        dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+        showIf: (model: FormValues<StatusPageSubscriber>) => {
+          return !model || !model.isSubscribedToAllEventTypes;
+        },
+      });
+    }
+
     setFormFields(formFields);
   }, [isLoading]);
 
@@ -172,7 +224,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!error && !isLoading ? (
         <>
@@ -193,10 +245,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isViewable={false}
             selectMoreFields={{
               subscriberPhone: true,
+              isSubscriptionConfirmed: true,
             }}
             query={{
               statusPageId: modelId,
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
               subscriberEmail: new NotNull(),
             }}
             onBeforeCreate={(
@@ -230,7 +283,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 field: {
                   isUnsubscribed: true,
                 },
-                title: "Unsubscribed",
+                title: "Unsubscribed?",
+                type: FieldType.Boolean,
+              },
+              {
+                field: {
+                  isSubscriptionConfirmed: true,
+                },
+                title: "Subscription Confirmed?",
                 type: FieldType.Boolean,
               },
               {
@@ -260,6 +320,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   if (item["isUnsubscribed"]) {
                     return <Pill color={Red} text={"Unsubscribed"} />;
                   }
+
+                  if (!item["isSubscriptionConfirmed"]) {
+                    return (
+                      <Pill
+                        color={Yellow}
+                        text={"Awaiting Confirmation"}
+                        tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription"
+                      />
+                    );
+                  }
+
                   return <Pill color={Green} text={"Subscribed"} />;
                 },
               },

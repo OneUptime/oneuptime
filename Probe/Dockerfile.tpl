@@ -3,8 +3,13 @@
 #
 
 # Pull base image nodejs image.
-FROM node:22.3.0
+FROM public.ecr.aws/docker/library/node:22.9
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
+
+RUN npm config set fetch-retries 5
+RUN npm config set fetch-retry-mintimeout 100000
+RUN npm config set fetch-retry-maxtimeout 600000
+
 
 ARG GIT_SHA
 ARG APP_VERSION
@@ -25,7 +30,7 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 RUN apt-get update
 
 # Install bash. 
-RUN apt-get install bash -y && apt-get install curl -y
+RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
 
 # Install python
 RUN apt-get update && apt-get install -y .gyp python3 make g++
@@ -49,21 +54,12 @@ RUN npm install
 COPY ./Common /usr/src/Common
 
 
-WORKDIR /usr/src/Model
-COPY ./Model/package*.json /usr/src/Model/
-# Set version in ./Model/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
-RUN npm install
-COPY ./Model /usr/src/Model
 
 
 
-WORKDIR /usr/src/CommonServer
-COPY ./CommonServer/package*.json /usr/src/CommonServer/
-# Set version in ./CommonServer/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
-RUN npm install
-COPY ./CommonServer /usr/src/CommonServer
+
+
+
 
 
 
@@ -71,15 +67,11 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
-RUN npx playwright install
+RUN npx playwright install --with-deps
 
 # Install app dependencies
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
-
-# Expose ports.
-#   - 3087: OneUptime-backend
-EXPOSE 3087
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app

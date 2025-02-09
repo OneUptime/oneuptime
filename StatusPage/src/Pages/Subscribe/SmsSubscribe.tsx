@@ -11,19 +11,19 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
-import { CategoryCheckboxOptionsAndCategories } from "CommonUI/src/Components/CategoryCheckbox/Index";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import Card from "Common/UI/Components/Card/Card";
+import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelForm, {
   FormType,
   ModelField,
-} from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import SubscriberUtil from "CommonUI/src/Utils/StatusPage";
-import StatusPageSubscriber from "Model/Models/StatusPageSubscriber";
+} from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -121,6 +121,34 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
   }
 
+  if (props.allowSubscribersToChooseEventTypes) {
+    fields.push({
+      field: {
+        isSubscribedToAllEventTypes: true,
+      },
+      title: "Subscribe to All Event Types",
+      description:
+        "Select this option if you want to subscribe to all event types.",
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
+
+    fields.push({
+      field: {
+        statusPageEventTypes: true,
+      },
+      title: "Select Event Types to Subscribe",
+      description: "Please select the event types you want to subscribe to.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllEventTypes;
+      },
+    });
+  }
+
   return (
     <Page
       title={"Subscribe"}
@@ -152,7 +180,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     >
       {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
 
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLaoding && !error ? (
         <div className="justify-center">

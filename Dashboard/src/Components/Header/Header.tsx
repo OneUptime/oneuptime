@@ -1,4 +1,3 @@
-import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 // import SearchBox from './SearchBox';
@@ -13,24 +12,30 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Header from "CommonUI/src/Components/Header/Header";
-import HeaderAlert from "CommonUI/src/Components/HeaderAlert/HeaderAlert";
-import HeaderModelAlert from "CommonUI/src/Components/HeaderAlert/HeaderModelAlert";
-import { SizeProp } from "CommonUI/src/Components/Icon/Icon";
-import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
-import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import User from "CommonUI/src/Utils/User";
-import Incident from "Model/Models/Incident";
-import Project from "Model/Models/Project";
-import TeamMember from "Model/Models/TeamMember";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Header from "Common/UI/Components/Header/Header";
+import HeaderAlert, {
+  HeaderAlertType,
+} from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
+import HeaderAlertGroup from "Common/UI/Components/HeaderAlert/HeaderAlertGroup";
+import { SizeProp } from "Common/UI/Components/Icon/Icon";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
+import User from "Common/UI/Utils/User";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import Realtime from "Common/UI/Utils/Realtime";
+import DashboardNavigation from "../../Utils/Navigation";
+import ModelEventType from "Common/Types/Realtime/ModelEventType";
+import Alert from "Common/Models/DatabaseModels/Alert";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -45,24 +50,121 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-    useState<boolean>(true);
+    useState<string>(OneUptimeDate.getCurrentDate().toString());
+
+  const [activeAlertToggleRefresh, setActiveAlertToggleRefresh] =
+    useState<string>(OneUptimeDate.getCurrentDate().toString());
 
   const refreshIncidentCount: VoidFunction = () => {
-    setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
+    setActiveIncidentToggleRefresh(OneUptimeDate.getCurrentDate().toString());
+  };
+
+  const refreshAlertCount: VoidFunction = () => {
+    setActiveAlertToggleRefresh(OneUptimeDate.getCurrentDate().toString());
+  };
+
+  const realtimeIncidentCountRefresh: () => VoidFunction = (): VoidFunction => {
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
+
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
+
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<Incident>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: Incident,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshIncidentCount();
+        },
+      );
+
+    const stopListening: VoidFunction = () => {
+      // on unmount.
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
+    };
+
+    return stopListening;
+  };
+
+  const realtimeAlertCountRefresh: () => VoidFunction = (): VoidFunction => {
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<Alert>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: Alert,
+          tenantId: DashboardNavigation.getProjectId()!,
+        },
+        () => {
+          refreshAlertCount();
+        },
+      );
+
+    const stopListening: VoidFunction = () => {
+      // on unmount.
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
+    };
+
+    return stopListening;
   };
 
   useEffect(() => {
-    GlobalEvents.addEventListener(
-      EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-      refreshIncidentCount,
-    );
+    const realtimeIncidentStop: VoidFunction = realtimeIncidentCountRefresh();
+
+    const realtimeAlertStop: VoidFunction = realtimeAlertCountRefresh();
 
     return () => {
-      // on unmount.
-      GlobalEvents.removeEventListener(
-        EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-        refreshIncidentCount,
-      );
+      realtimeIncidentStop();
+      realtimeAlertStop();
     };
   }, []);
 
@@ -109,62 +211,88 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               selectedProject={props.selectedProject}
             />
 
-            <div className="flex ml-3">
-              <HeaderModelAlert<TeamMember>
-                icon={IconProp.Folder}
-                className="rounded-md m-3 bg-indigo-500 p-3  hover:bg-indigo-600 cursor-pointer ml-0"
-                modelType={TeamMember}
-                query={{
-                  userId: User.getUserId(),
-                  hasAcceptedInvitation: false,
-                }}
-                singularName="Project Invitation"
-                pluralName="Project Invitations"
-                requestOptions={{
-                  isMultiTenantRequest: true,
-                }}
-                onClick={() => {
-                  Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!);
-                }}
-              />
+            <div className="flex">
+              <HeaderAlertGroup>
+                <HeaderModelAlert<TeamMember>
+                  icon={IconProp.Folder}
+                  modelType={TeamMember}
+                  query={{
+                    userId: User.getUserId(),
+                    hasAcceptedInvitation: false,
+                  }}
+                  alertType={HeaderAlertType.INFO}
+                  singularName="Invitation"
+                  pluralName="Invitations"
+                  tooltip="Looks like you have pending project invitations. Please click here to review and accept them."
+                  requestOptions={{
+                    isMultiTenantRequest: true,
+                  }}
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!);
+                  }}
+                />
 
-              <HeaderModelAlert<Incident>
-                icon={IconProp.Alert}
-                modelType={Incident}
-                className="rounded-md m-3 bg-red-500 p-3  hover:bg-red-600 cursor-pointer ml-0"
-                query={{
-                  currentIncidentState: {
-                    order: 1,
-                  },
-                }}
-                refreshToggle={activeIncidentToggleRefresh}
-                singularName="New Incident"
-                pluralName="New Incidents"
-                requestOptions={{
-                  isMultiTenantRequest: true,
-                }}
-                onClick={() => {
-                  Navigation.navigate(RouteMap[PageMap.NEW_INCIDENTS]!);
-                }}
-              />
+                <HeaderModelAlert<Incident>
+                  icon={IconProp.Alert}
+                  modelType={Incident}
+                  alertType={HeaderAlertType.ERROR}
+                  query={{
+                    currentIncidentState: {
+                      order: 1,
+                    },
+                  }}
+                  refreshToggle={activeIncidentToggleRefresh}
+                  singularName="Incident"
+                  pluralName="Incidents"
+                  tooltip="View all active incidents"
+                  requestOptions={{
+                    isMultiTenantRequest: true,
+                  }}
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.NEW_INCIDENTS]!);
+                  }}
+                />
 
-              {showTrialButton && (
-                <HeaderAlert
-                  icon={IconProp.Clock}
-                  className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
-                  title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                    OneUptimeDate.getCurrentDate(),
-                    props.selectedProject!.trialEndsAt!,
-                  )} ${
-                    OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                <HeaderModelAlert<Alert>
+                  icon={IconProp.ExclaimationCircle}
+                  modelType={Alert}
+                  alertType={HeaderAlertType.ERROR}
+                  query={{
+                    currentAlertState: {
+                      order: 1,
+                    },
+                  }}
+                  refreshToggle={activeAlertToggleRefresh}
+                  singularName="Alert"
+                  pluralName="Alerts"
+                  tooltip="View all active alerts"
+                  onClick={() => {
+                    Navigation.navigate(RouteMap[PageMap.ALERTS]!);
+                  }}
+                />
+
+                {showTrialButton && (
+                  <HeaderAlert
+                    icon={IconProp.Clock}
+                    tooltip="Your trial ends soon"
+                    alertType={HeaderAlertType.INFO}
+                    onClick={() => {
+                      Navigation.navigate(RouteMap[PageMap.SETTINGS_BILLING]!);
+                    }}
+                    title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                       OneUptimeDate.getCurrentDate(),
                       props.selectedProject!.trialEndsAt!,
-                    ) > 1
-                      ? "days"
-                      : "day"
-                  }`}
-                />
-              )}
+                    )} ${
+                      OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                        OneUptimeDate.getCurrentDate(),
+                        props.selectedProject!.trialEndsAt!,
+                      ) > 1
+                        ? "days"
+                        : "day"
+                    }`}
+                  />
+                )}
+              </HeaderAlertGroup>
             </div>
           </>
         }

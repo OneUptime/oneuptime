@@ -2,8 +2,8 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar from "CommonUI/src/Components/Navbar/NavBar";
-import NavBarItem from "CommonUI/src/Components/Navbar/NavBarItem";
+import NavBar from "Common/UI/Components/Navbar/NavBar";
+import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

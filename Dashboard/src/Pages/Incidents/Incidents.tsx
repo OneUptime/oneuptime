@@ -9,7 +9,10 @@ const IncidentsPage: FunctionComponent<
   return (
     <IncidentsTable
       query={{
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
+      }}
+      saveFilterProps={{
+        tableId: "all-incidents-table",
       }}
     />
   );

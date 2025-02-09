@@ -3,9 +3,9 @@ import RouteMap from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import Navigation from "Common/UI/Utils/Navigation";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallPolicyDelete: FunctionComponent<

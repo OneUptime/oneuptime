@@ -17,7 +17,9 @@ import OneUptimeDate from "./Date";
 import Dictionary from "./Dictionary";
 import Domain from "./Domain";
 import Email from "./Email";
+import Recurring from "./Events/Recurring";
 import HashedString from "./HashedString";
+import IP from "./IP/IP";
 import { ObjectType } from "./JSON";
 import MonitorCriteria from "./Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "./Monitor/MonitorCriteriaInstance";
@@ -46,6 +48,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.Version]: Version,
   [ObjectType.Route]: Route,
   [ObjectType.URL]: URL,
+  [ObjectType.IP]: IP,
   [ObjectType.Search]: Search,
   [ObjectType.GreaterThan]: GreaterThan,
   [ObjectType.GreaterThanOrEqual]: GreaterThanOrEqual,
@@ -58,6 +61,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.Includes]: Includes,
   [ObjectType.NotNull]: NotNull,
   [ObjectType.IsNull]: IsNull,
+  [ObjectType.Recurring]: Recurring,
 };
 
 export default SerializableObjectDictionary;

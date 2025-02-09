@@ -1,13 +1,14 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import User from "CommonUI/src/Utils/User";
-import UserNotificationSetting from "Model/Models/UserNotificationSetting";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import User from "Common/UI/Utils/User";
+import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Includes from "Common/Types/BaseDatabase/Includes";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetModelTableFunctionProps = {
@@ -27,9 +28,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationSetting>
         modelType={UserNotificationSetting}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
-          eventType: options.eventOptions,
+          eventType: new Includes(options.eventOptions),
         }}
         onBeforeCreate={(
           model: UserNotificationSetting,
@@ -134,12 +135,40 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         {getModelTable({
           eventOptions: [
+            NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+          ],
+          title: "Alert Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an alert.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
           ],
           title: "Incident Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an incident.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
+            NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+          ],
+          title: "Alert Notifications",
           description:
             "Here are the list of notification methods we will use when an event happens on an incident.",
         })}

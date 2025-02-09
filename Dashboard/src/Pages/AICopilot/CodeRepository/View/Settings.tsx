@@ -1,8 +1,8 @@
 import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import CodeRepository from "Model/Models/CopilotCodeRepository";
+import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import CodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<

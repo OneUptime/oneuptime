@@ -2,10 +2,7 @@ import CriteriaFilters from "./CriteriaFilters";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  CriteriaFilter,
-  FilterCondition,
-} from "Common/Types/Monitor/CriteriaFilter";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -13,30 +10,36 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
+} from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import Input from "CommonUI/src/Components/Input/Input";
-import Radio from "CommonUI/src/Components/Radio/Radio";
-import TextArea from "CommonUI/src/Components/TextArea/TextArea";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Input from "Common/UI/Components/Input/Input";
+import Radio from "Common/UI/Components/Radio/Radio";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
+import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
   initialValue?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
@@ -85,7 +88,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       Boolean(props.initialValue?.data?.monitorStatusId?.id) || false,
     );
   const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
-    (props.initialValue?.data?.incidents?.length || 0) > 0,
+    props.initialValue?.data?.createIncidents || false,
+  );
+
+  const [showAlertControl, setShowAlertControl] = useState<boolean>(
+    props.initialValue?.data?.createAlerts || false,
   );
 
   return (
@@ -226,6 +233,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         />
 
         <CriteriaFilters
+          monitorStep={props.monitorStep}
           monitorType={props.monitorType}
           initialValue={monitorCriteriaInstance?.data?.filters || []}
           onChange={(value: Array<CriteriaFilter>) => {
@@ -287,14 +295,63 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
       <div className="mt-4">
         <Toggle
+          value={showAlertControl}
+          title="When filters match, create an alert."
+          tooltip="When you create an alert, it is used to notify the team but is not shown on the status page."
+          onChange={(value: boolean) => {
+            setShowAlertControl(value);
+            monitorCriteriaInstance.setCreateAlerts(value);
+
+            if (
+              !monitorCriteriaInstance.data?.alerts ||
+              monitorCriteriaInstance.data?.alerts?.length === 0
+            ) {
+              monitorCriteriaInstance.setAlerts([
+                {
+                  title: "",
+                  description: "",
+                  alertSeverityId: undefined,
+                  id: ObjectID.generate().toString(),
+                },
+              ]);
+            }
+
+            setMonitorCriteriaInstance(
+              MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+            );
+          }}
+        />
+      </div>
+
+      {showAlertControl && (
+        <div className="mt-4">
+          <FieldLabelElement title="Create Alert" />
+
+          <MonitorCriteriaAlertsForm
+            initialValue={monitorCriteriaInstance?.data?.alerts || []}
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            onChange={(value: Array<CriteriaAlert>) => {
+              monitorCriteriaInstance.setAlerts(value);
+              setMonitorCriteriaInstance(
+                MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+              );
+            }}
+          />
+        </div>
+      )}
+
+      <div className="mt-4">
+        <Toggle
           value={showIncidentControl}
-          title="When filters match, create an incident."
+          title="When filters match, declare an incident."
+          tooltip="When you delcare an incident, it is used to notify the team and is shown on the status page as well."
           onChange={(value: boolean) => {
             setShowIncidentControl(value);
             monitorCriteriaInstance.setCreateIncidents(value);
 
             if (
-              (value && !monitorCriteriaInstance.data?.incidents) ||
+              !monitorCriteriaInstance.data?.incidents ||
               monitorCriteriaInstance.data?.incidents?.length === 0
             ) {
               monitorCriteriaInstance.setIncidents([
@@ -305,9 +362,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   id: ObjectID.generate().toString(),
                 },
               ]);
-            }
-            if (!value) {
-              monitorCriteriaInstance.setIncidents([]);
             }
 
             setMonitorCriteriaInstance(

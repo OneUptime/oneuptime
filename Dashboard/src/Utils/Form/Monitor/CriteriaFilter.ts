@@ -1,16 +1,16 @@
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeMinutes,
   EvaluateOverTimeType,
-  FilterCondition,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
@@ -28,6 +28,11 @@ export default class CriteriaFilterUtil {
     filterCondition?: FilterCondition | undefined,
   ): string {
     let text: string = "Check if ";
+
+    // add metic aggregation type to the text
+    if (criteriaFilter?.metricMonitorOptions?.metricAggregationType) {
+      text += `${criteriaFilter.metricMonitorOptions.metricAggregationType.toString()} of `;
+    }
 
     // template: the maximum percentage of disk usage on /dev/sda in the past three minutes exceeds 21%.
 
@@ -225,6 +230,24 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Logs) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.LogCount;
+      });
+    }
+
+    if (monitorType === MonitorType.Traces) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.SpanCount;
+      });
+    }
+
+    if (monitorType === MonitorType.Metrics) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.MetricValue;
+      });
+    }
+
     return options;
   }
 
@@ -245,6 +268,22 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (
+      checkOn === CheckOn.LogCount ||
+      checkOn === CheckOn.SpanCount ||
+      checkOn === CheckOn.MetricValue
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.EqualTo
         );
       });
     }
@@ -467,6 +506,10 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ServerProcessPID) {
       return "1234";
+    }
+
+    if (checkOn === CheckOn.LogCount) {
+      return "1";
     }
 
     if (checkOn === CheckOn.ServerProcessCommand) {

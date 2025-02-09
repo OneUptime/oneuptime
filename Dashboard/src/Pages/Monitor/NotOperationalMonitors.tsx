@@ -6,7 +6,7 @@ const NotOperationalMonitors: FunctionComponent = (): ReactElement => {
   return (
     <MonitorTable
       query={{
-        projectId: DashboardNavigation.getProjectId()?.toString(),
+        projectId: DashboardNavigation.getProjectId()!,
         currentMonitorStatus: {
           isOperationalState: false,
         },

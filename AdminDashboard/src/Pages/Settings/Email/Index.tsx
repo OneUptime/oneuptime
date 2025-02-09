@@ -5,16 +5,18 @@ import Route from "Common/Types/API/Route";
 import { Green, Red } from "Common/Types/BrandColors";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import Page from "CommonUI/src/Components/Page/Page";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import GlobalConfig, { EmailServerType } from "Model/Models/GlobalConfig";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Page from "Common/UI/Components/Page/Page";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import GlobalConfig, {
+  EmailServerType,
+} from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -59,7 +61,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -247,7 +249,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Email,
               required: true,
               description:
-                "This is the display email your team and customers see, when they receive emails from OneUptime.",
+                "Email used to log in to this SMTP Server. This is also the email your customers will see. ",
               placeholder: "email@company.com",
             },
             {

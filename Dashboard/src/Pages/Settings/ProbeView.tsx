@@ -8,17 +8,17 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Probe from "Model/Models/Probe";
-import ProbeOwnerTeam from "Model/Models/ProbeOwnerTeam";
-import ProbeOwnerUser from "Model/Models/ProbeOwnerUser";
-import User from "Model/Models/User";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,
@@ -26,8 +26,8 @@ import React, {
   useState,
 } from "react";
 import TeamElement from "../../Components/Team/Team";
-import Team from "Model/Models/Team";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
+import Team from "Common/Models/DatabaseModels/Team";
+import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../Components/Probe/CustomProbeDocumentation";
 
@@ -85,7 +85,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Description",
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This probe is to monitor all the internal services.",
           },
 
@@ -229,7 +229,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         query={{
           probeId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: ProbeOwnerTeam): Promise<ProbeOwnerTeam> => {
           item.probeId = modelId;
@@ -269,7 +269,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -323,7 +323,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         createVerb={"Add"}
         query={{
           probeId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: ProbeOwnerUser): Promise<ProbeOwnerUser> => {
           item.probeId = modelId;

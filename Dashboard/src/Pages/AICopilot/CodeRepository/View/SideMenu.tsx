@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -55,22 +55,47 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Code">
+      <SideMenuSection title="Code Changes">
         <SideMenuItem
           link={{
-            title: "Pull Requests",
+            title: "In Queue",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_PULL_REQUESTS
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_IN_QUEUE
               ] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Code}
+          icon={IconProp.Logs}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Processed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTIONS_PROCESSED
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CheckCircle}
         />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Actions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_ACTION_TYPES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CPUChip}
+        />
         <SideMenuItem
           link={{
             title: "Settings",
@@ -85,7 +110,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Delete Service",
+            title: "Delete",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.AI_COPILOT_CODE_REPOSITORY_VIEW_DELETE] as Route,
               { modelId: props.modelId },

@@ -2,12 +2,12 @@ import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
-import ServiceCatalogDependency from "Model/Models/ServiceCatalogDependency";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
+import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ServiceCatalogElement from "../../../Components/ServiceCatalog/ServiceElement";
 
@@ -30,7 +30,7 @@ const ServiceCatalogDelete: FunctionComponent<
         showViewIdButton={true}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogDependency,
@@ -71,7 +71,7 @@ const ServiceCatalogDelete: FunctionComponent<
             title: "Dependency Service",
             filterEntityType: ServiceCatalog,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

@@ -1,42 +1,37 @@
 import LabelsElement from "../../Components/Label/Labels";
-import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import DashboardNavigation from "../../Utils/Navigation";
-import MonitorSteps from "../Form/Monitor/MonitorSteps";
+
 import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
-import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
-} from "CommonUI/src/Components/BulkUpdate/BulkUpdateForm";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
-  CustomElementProps,
-  FormFieldStyleType,
-} from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import { ModalWidth } from "CommonUI/src/Components/Modal/Modal";
-import { ModalTableBulkDefaultActions } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
+  ModalTableBulkDefaultActions,
+  SaveFilterProps,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import Query from "Common/Types/BaseDatabase/Query";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
-import ActionButtonSchema from "CommonUI/src/Components/ActionButton/ActionButtonSchema";
-import { CardButtonSchema } from "CommonUI/src/Components/Card/Card";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Navigation from "Common/UI/Utils/Navigation";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -46,16 +41,39 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   actionButtons?: Array<ActionButtonSchema<Monitor>> | undefined;
   cardButtons?: Array<CardButtonSchema> | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  let cardbuttons: Array<CardButtonSchema> = [];
+
+  if (!props.disableCreate) {
+    // then add a card button that takes to monitor create page
+    cardbuttons = [
+      ...(props.cardButtons || []),
+      {
+        title: "Create Monitor",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_CREATE] as Route,
+            ),
+          );
+        },
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
   return (
     <ModelTable<Monitor>
       modelType={Monitor}
       name="Monitors"
       id="Monitors-table"
+      saveFilterProps={props.saveFilterProps}
       bulkActions={{
         buttons: [
           {
@@ -177,39 +195,15 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       isDeleteable={false}
       showViewIdButton={true}
       isEditable={false}
-      isCreateable={!props.disableCreate}
+      isCreateable={false}
       isViewable={true}
       query={props.query || {}}
       createEditModalWidth={ModalWidth.Large}
-      formSteps={[
-        {
-          title: "Monitor Info",
-          id: "monitor-info",
-        },
-        {
-          title: "Criteria",
-          id: "criteria",
-          showIf: (values: FormValues<Monitor>) => {
-            return values.monitorType !== MonitorType.Manual;
-          },
-        },
-        {
-          title: "Interval",
-          id: "monitoring-interval",
-          showIf: (values: FormValues<Monitor>) => {
-            return (
-              values.monitorType !== MonitorType.Manual &&
-              values.monitorType !== MonitorType.IncomingRequest &&
-              values.monitorType !== MonitorType.Server
-            );
-          },
-        },
-      ]}
       cardProps={{
         title: props.title || "Monitors",
         description:
           props.description || "Here is a list of monitors for this project.",
-        buttons: props.cardButtons,
+        buttons: cardbuttons,
       }}
       selectMoreFields={{
         disableActiveMonitoring: true,
@@ -217,106 +211,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isAllProbesDisconnectedFromThisMonitor: true,
       }}
       noItemsMessage={props.noItemsMessage || "No monitors found."}
-      formFields={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          stepId: "monitor-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Monitor Name",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          stepId: "monitor-info",
-          title: "Description",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Description",
-        },
-        {
-          field: {
-            monitorType: true,
-          },
-          title: "Monitor Type",
-          stepId: "monitor-info",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          placeholder: "Select Monitor Type",
-          dropdownOptions: MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-        },
-        {
-          field: {
-            monitorSteps: true,
-          },
-          stepId: "criteria",
-          styleType: FormFieldStyleType.Heading,
-          title: "Monitor Details",
-          fieldType: FormFieldSchemaType.CustomComponent,
-          required: true,
-          customValidation: (values: FormValues<Monitor>) => {
-            const error: string | null = MonitorStepsType.getValidationError(
-              values.monitorSteps as MonitorStepsType,
-              values.monitorType as MonitorType,
-            );
-
-            return error;
-          },
-          getCustomElement: (
-            value: FormValues<Monitor>,
-            props: CustomElementProps,
-          ) => {
-            return (
-              <MonitorSteps
-                {...props}
-                monitorType={value.monitorType || MonitorType.Manual}
-                monitorName={value.name || ""}
-              />
-            );
-          },
-        },
-        {
-          field: {
-            monitoringInterval: true,
-          },
-          stepId: "monitoring-interval",
-          title: "Monitoring Interval",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          fetchDropdownOptions: (item: FormValues<Monitor>) => {
-            let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-            if (
-              item &&
-              (item.monitorType === MonitorType.SyntheticMonitor ||
-                item.monitorType === MonitorType.CustomJavaScriptCode ||
-                item.monitorType === MonitorType.SSLCertificate)
-            ) {
-              // remove the every minute option, every 5 minsm every 10 minutes
-              interval = interval.filter((option: DropdownOption) => {
-                return (
-                  option.value !== "* * * * *" &&
-                  option.value !== "*/5 * * * *" &&
-                  option.value !== "*/10 * * * *"
-                );
-              });
-
-              return Promise.resolve(interval);
-            }
-
-            return Promise.resolve(interval);
-          },
-
-          placeholder: "Select Monitoring Interval",
-        },
-      ]}
       showRefreshButton={true}
       viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS]!)}
       filters={[
@@ -354,7 +248,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: MonitorStatus,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",
@@ -372,7 +266,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: Label,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           },
           filterDropdownField: {
             label: "name",

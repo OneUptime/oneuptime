@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "CommonUI/src/Components/Icon/Icon";
-import Link from "CommonUI/src/Components/Link/Link";
-import MonitorGroup from "Model/Models/MonitorGroup";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

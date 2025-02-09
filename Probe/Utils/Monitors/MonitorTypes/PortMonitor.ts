@@ -10,8 +10,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import net from "net";
+import Register from "../../../Services/Register";
 
 // TODO - make sure it  work for the IPV6
 export interface PortMonitorResponse {
@@ -115,7 +116,19 @@ export default class PortMonitor {
             logger.debug("Ping timeout");
 
             if (!hasPromiseResolved) {
-              reject(new UnableToReachServer("Ping timeout"));
+              // this could mean port 25 is blocked by the cloud provider and is timing out but is actually online.
+              // so we will return isOnline as true
+              if (
+                !Register.isPingMonitoringEnabled() &&
+                port.toNumber() === 25
+              ) {
+                logger.debug(
+                  "Ping monitoring is disabled because this is deployed in the cloud",
+                );
+                resolve(new PositiveNumber(timeout));
+              } else {
+                reject(new UnableToReachServer("Ping timeout"));
+              }
             }
 
             hasPromiseResolved = true;

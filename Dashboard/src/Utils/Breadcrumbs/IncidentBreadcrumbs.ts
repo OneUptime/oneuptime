@@ -14,6 +14,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Incidents",
       "Active Incidents",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_CREATE, [
+      "Project",
+      "Incidents",
+      "Declare New Incident",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW, [
       "Project",
       "Incidents",
@@ -25,6 +30,26 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Incident",
       "State Timeline",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_REMEDIATION, [
+      "Project",
+      "Incidents",
+      "View Incident",
+      "Remediation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_ROOT_CAUSE, [
+      "Project",
+      "Incidents",
+      "View Incident",
+      "Root Cause",
+    ]),
+
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_DESCRIPTION, [
+      "Project",
+      "Incidents",
+      "View Incident",
+      "Description",
+    ]),
+
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_OWNERS, [
       "Project",
       "Incidents",

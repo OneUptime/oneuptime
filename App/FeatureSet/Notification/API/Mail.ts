@@ -6,13 +6,13 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-} from "CommonServer/Utils/Express";
-import Response from "CommonServer/Utils/Response";
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
 

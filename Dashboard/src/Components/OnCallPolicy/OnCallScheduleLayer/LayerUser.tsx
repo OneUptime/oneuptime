@@ -2,15 +2,16 @@ import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import UserElement from "../../User/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Button from "CommonUI/src/Components/Button/Button";
-import { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelFormModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
-import ModelList from "CommonUI/src/Components/ModelList/ModelList";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import Button from "Common/UI/Components/Button/Button";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import ModelList from "Common/UI/Components/ModelList/ModelList";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -21,7 +22,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
-  const [reloadList, setReloadList] = useState<boolean>(false);
+  const [reloadList, setReloadList] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
 
   const getAddUserButton: GetReactElementFunction = (): ReactElement => {
     return (
@@ -45,7 +48,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         query={{
           onCallDutyPolicyScheduleId: props.layer.onCallDutyPolicyScheduleId,
           projectId: props.layer.projectId,
-          onCallDutyPolicyScheduleLayerId: props.layer.id,
+          onCallDutyPolicyScheduleLayerId: props.layer.id!,
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
@@ -94,7 +97,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           onSuccess={() => {
             setShowAddUserModal(false);
             // reload the list
-            setReloadList(!reloadList);
+            setReloadList(OneUptimeDate.getCurrentDate().toString());
           }}
           formProps={{
             name: "Add user to layer",

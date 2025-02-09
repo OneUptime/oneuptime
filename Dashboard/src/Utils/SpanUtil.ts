@@ -1,7 +1,9 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
-import TelemetryService from "Model/Models/TelemetryService";
+import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 export enum IntervalUnit {
   Nanoseconds = "ns",
@@ -16,6 +18,29 @@ export interface DivisibilityFactor {
 }
 
 export default class SpanUtil {
+  public static getSpanStatusText(status: SpanStatus): string {
+    switch (status) {
+      case SpanStatus.Ok:
+        return "Ok";
+      case SpanStatus.Error:
+        return "Error";
+      default:
+        return "Unset";
+    }
+  }
+
+  public static getSpanStatusDropdownOptions(): Array<DropdownOption> {
+    const options: Array<DropdownOption> =
+      DropdownUtil.getDropdownOptionsFromEnum(SpanStatus, true);
+    return options;
+  }
+
+  public static getSpanKindDropdownOptions(): Array<DropdownOption> {
+    const spanKindDropdownOptions: Array<DropdownOption> =
+      DropdownUtil.getDropdownOptionsFromEnum(SpanKind, true);
+    return spanKindDropdownOptions;
+  }
+
   public static getSpanDurationAsString(data: {
     divisibilityFactor: DivisibilityFactor;
     spanDurationInUnixNano: number;

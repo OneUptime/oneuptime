@@ -36,7 +36,7 @@ export default class ObjectID extends DatabaseProperty {
   }
 
   public equals(other: ObjectID): boolean {
-    return this.id.toString() === other.id.toString();
+    return (this.id?.toString() || "") === (other.id?.toString() || "");
   }
 
   public override toString(): string {
@@ -45,6 +45,19 @@ export default class ObjectID extends DatabaseProperty {
 
   public static generate(): ObjectID {
     return new this(UUID.generate());
+  }
+
+  public static toJSONArray(ids: Array<ObjectID>): Array<JSONObject> {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    return ids.map((id: ObjectID) => {
+      if (typeof id === "string") {
+        id = new ObjectID(id);
+      }
+      return id.toJSON();
+    });
   }
 
   protected static override toDatabase(
@@ -74,6 +87,12 @@ export default class ObjectID extends DatabaseProperty {
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
+  }
+
+  public static fromJSONArray(json: Array<JSONObject>): Array<ObjectID> {
+    return json.map((value: JSONObject) => {
+      return ObjectID.fromJSON(value);
+    });
   }
 
   protected static override fromDatabase(_value: string): ObjectID | null {

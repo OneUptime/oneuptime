@@ -1,8 +1,8 @@
 import CustomCodeMonitorSummaryView from "./CustomMonitorSummaryView";
 import SummaryScreenshotGroup from "./ScreenshotGroup";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,7 +15,7 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (!props.syntheticMonitorResponse) {
     return (
-      <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 

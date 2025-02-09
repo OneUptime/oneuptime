@@ -1,3 +1,4 @@
+import { Dictionary } from "lodash";
 import DatabaseProperty from "../Database/DatabaseProperty";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
@@ -97,5 +98,22 @@ export default class Route extends DatabaseProperty {
     }
 
     return null;
+  }
+
+  public addQueryParams(queryParams: Dictionary<string>): Route {
+    // make sure route ends with "?" if it doesn't have any query params
+
+    if (!this.route.includes("?")) {
+      this.route += "?";
+    }
+
+    for (const key in queryParams) {
+      this.route += `${key}=${queryParams[key]}&`;
+    }
+
+    //remove last "&" from route
+    this.route = this.route.substring(0, this.route.length - 1);
+
+    return this;
   }
 }

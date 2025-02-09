@@ -40,6 +40,7 @@ export default class MonitorSteps extends DatabaseProperty {
     onlineMonitorStatusId: ObjectID;
     offlineMonitorStatusId: ObjectID;
     defaultIncidentSeverityId: ObjectID;
+    defaultAlertSeverityId: ObjectID;
   }): MonitorSteps {
     const monitorSteps: MonitorSteps = new MonitorSteps();
 
@@ -90,7 +91,13 @@ export default class MonitorSteps extends DatabaseProperty {
     });
   }
 
-  public static override fromJSON(json: JSONObject): MonitorSteps {
+  public static override fromJSON(
+    json: JSONObject | MonitorSteps | undefined,
+  ): MonitorSteps {
+    if (!json) {
+      return new MonitorSteps();
+    }
+
     if (json instanceof MonitorSteps) {
       return json;
     }

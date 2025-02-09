@@ -6,17 +6,20 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Card from "CommonUI/src/Components/Card/Card";
-import { MonitorStepProbeResponse } from "Model/Models/MonitorProbe";
-import Probe from "Model/Models/Probe";
+import Card from "Common/UI/Components/Card/Card";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
+  telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
 }
 
 const Summary: FunctionComponent<ComponentProps> = (
@@ -81,6 +84,10 @@ const Summary: FunctionComponent<ComponentProps> = (
           probeMonitorResponses={probeResponses}
           incomingMonitorRequest={props.incomingMonitorRequest}
           serverMonitorResponse={props.serverMonitorResponse}
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
+          incomingRequestMonitorHeartbeatCheckedAt={
+            props.incomingRequestMonitorHeartbeatCheckedAt
+          }
         />
       </div>
     </Card>

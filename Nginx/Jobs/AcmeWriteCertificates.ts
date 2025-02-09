@@ -1,12 +1,12 @@
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
-import { IsDevelopment } from "CommonServer/EnvironmentConfig";
-import AcmeCertificateService from "CommonServer/Services/AcmeCertificateService";
-import BasicCron from "CommonServer/Utils/BasicCron";
-import LocalFile from "CommonServer/Utils/LocalFile";
+import { IsDevelopment } from "Common/Server/EnvironmentConfig";
+import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
+import BasicCron from "Common/Server/Utils/BasicCron";
+import LocalFile from "Common/Server/Utils/LocalFile";
 // @ts-ignore
-import logger from "CommonServer/Utils/Logger";
-import AcmeCertificate from "Model/Models/AcmeCertificate";
+import logger from "Common/Server/Utils/Logger";
+import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 
 export default class Jobs {
   public static init(): void {
@@ -53,6 +53,8 @@ export default class Jobs {
             `/etc/nginx/certs/StatusPageCerts/${cert.domain}.key`,
             cert.certificateKey?.toString() || "",
           );
+
+          logger.debug(`Wrote custom certs to disk for domain: ${cert.domain}`);
         }
       },
     });

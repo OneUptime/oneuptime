@@ -6,25 +6,25 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Card from "CommonUI/src/Components/Card/Card";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Link from "CommonUI/src/Components/Link/Link";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Banner from "Common/UI/Components/Banner/Banner";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Link from "Common/UI/Components/Link/Link";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import {
   HOST,
   HTTP_PROTOCOL,
   IDENTITY_URL,
   STATUS_PAGE_URL,
-} from "CommonUI/src/Config";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageSSO from "Model/Models/StatusPageSso";
+} from "Common/UI/Config";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, {
   Fragment,
   FunctionComponent,
@@ -52,7 +52,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         <ModelTable<StatusPageSSO>
           modelType={StatusPageSSO}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
             statusPageId: modelId.toString(),
           }}
           onBeforeCreate={(item: StatusPageSSO): Promise<StatusPageSSO> => {
@@ -79,7 +79,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formSteps={[
             {
-              title: "Baisc Info",
+              title: "Basic Info",
               id: "basic",
             },
             {

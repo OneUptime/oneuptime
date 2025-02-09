@@ -7,16 +7,16 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { Green, Red } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import ProbeElement from "CommonUI/src/Components/Probe/Probe";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Probe from "Model/Models/Probe";
+import Banner from "Common/UI/Components/Banner/Banner";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -99,7 +99,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This probe is to monitor all the internal services.",
           },
 
@@ -170,6 +170,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

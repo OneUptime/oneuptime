@@ -3,14 +3,15 @@ import { GetLlmType } from "../../Config";
 import LlmType from "../../Types/LlmType";
 import LlmBase, { CopilotPromptResult } from "./LLMBase";
 import LLMServer from "./LLMServer";
-import { CopilotActionPrompt } from "../CopilotActions/CopilotActionsBase";
+
 import OpenAI from "./OpenAI";
+import { CopilotActionPrompt } from "../CopilotActions/Types";
 
 export default class LLM extends LlmBase {
   public static override async getResponse(
     data: CopilotActionPrompt,
   ): Promise<CopilotPromptResult> {
-    if (GetLlmType() === LlmType.LLM) {
+    if (GetLlmType() === LlmType.ONEUPTIME_LLM) {
       return await LLMServer.getResponse(data);
     }
 

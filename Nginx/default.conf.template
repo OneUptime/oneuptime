@@ -6,8 +6,20 @@ upstream app {
     server ${SERVER_APP_HOSTNAME}:${APP_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream ingestor {
-    server ${SERVER_INGESTOR_HOSTNAME}:${INGESTOR_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+upstream probe-ingest {
+    server ${SERVER_PROBE_INGEST_HOSTNAME}:${PROBE_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+}
+
+upstream open-telemetry-ingest {
+    server ${SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME}:${OPEN_TELEMETRY_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+}
+
+upstream incoming-request-ingest {
+    server ${SERVER_INCOMING_REQUEST_INGEST_HOSTNAME}:${INCOMING_REQUEST_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+}
+
+upstream fluent-ingest {
+    server ${SERVER_FLUENT_INGEST_HOSTNAME}:${FLUENT_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
 upstream dashboard {
@@ -18,8 +30,29 @@ upstream admin-dashboard {
     server ${SERVER_ADMIN_DASHBOARD_HOSTNAME}:${ADMIN_DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
+upstream api-reference {
+    server ${SERVER_API_REFERENCE_HOSTNAME}:${API_REFERENCE_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+
 upstream isolated-vm {
     server ${SERVER_ISOLATED_VM_HOSTNAME}:${ISOLATED_VM_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+upstream worker {
+    server ${SERVER_WORKER_HOSTNAME}:${WORKER_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+upstream workflow {
+    server ${SERVER_WORKFLOW_HOSTNAME}:${WORKFLOW_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+upstream docs {
+    server ${SERVER_DOCS_HOSTNAME}:${DOCS_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
+upstream home {
+    server ${SERVER_HOME_HOSTNAME}:${HOME_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
 
 upstream status-page {
@@ -111,7 +144,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://ingestor/fluentd/v1/logs;
+        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
     }
 }
 
@@ -384,7 +417,7 @@ server {
         
         # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing paages for on-prem install.
         if ($billing_enabled = true) {
-            proxy_pass http://app;
+            proxy_pass http://home;
         }
 
         if ($billing_enabled != true) {
@@ -457,6 +490,43 @@ server {
         proxy_pass http://accounts;
     }
 
+     location /fluent-ingest {
+
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://fluent-ingest;
+    }
+
+
+    location /open-telemetry-ingest {
+
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://open-telemetry-ingest;
+    }
+
+     location /incoming-request-ingest {
+
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://incoming-request-ingest;
+    }
+
     location /otlp/ {
 
         # This is for nginx not to crash when service is not available. 
@@ -510,9 +580,27 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://ingestor/ingestor/fluentd/v1/logs;
+        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
     }
 
+    location /probe-ingest {
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme; 
+
+        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass http://probe-ingest;
+
+        client_max_body_size 50M;
+    }
+
+    # For backward compatibility with probes that are already deployed
     location /ingestor {
         # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
@@ -525,7 +613,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://ingestor;
+        proxy_pass http://probe-ingest;
 
         client_max_body_size 50M;
     }
@@ -542,7 +630,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://ingestor/server-monitor;
+        proxy_pass http://probe-ingest/server-monitor;
 
         client_max_body_size 50M;
     }
@@ -593,6 +681,21 @@ server {
         proxy_pass http://isolated-vm;
     }
 
+    location /worker {
+        # This is for nginx not to crash when service is not available. 
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme; 
+
+        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass http://worker;
+    }
+
     location /status-page {
         # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
@@ -636,7 +739,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/reference;
+        proxy_pass http://api-reference;
     }
 
     location /docs {
@@ -651,7 +754,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/docs;
+        proxy_pass http://docs;
     }
 
     location /file {
@@ -735,7 +838,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://ingestor/incoming-request;
+        proxy_pass http://incoming-request-ingest/incoming-request;
 
         client_max_body_size 50M;
     }
@@ -753,7 +856,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/workflow;
+        proxy_pass http://workflow;
 
         client_max_body_size 50M;
     }

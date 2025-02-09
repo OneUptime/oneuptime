@@ -10,14 +10,19 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
+import TelemetryMonitorSummaryView from "./TelemetryMonitorView";
+import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
 
 export interface ComponentProps {
   monitorType: MonitorType;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
+  telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -35,7 +40,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (!probeMonitorResponse) {
       return (
         <ErrorMessage
-          error={
+          message={
             "No summary available for the selected probe. Should be few minutes for summary to show up. "
           }
         />
@@ -85,6 +90,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (props.monitorType === MonitorType.CustomJavaScriptCode) {
+      return (
+        <CustomCodeMonitorSummaryView
+          key={key}
+          probeMonitorResponse={probeMonitorResponse}
+        />
+      );
+    }
+
     return <></>;
   };
 
@@ -94,7 +108,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <ErrorMessage
-        error={
+        message={
           "No summary available for the selected probe. Should be few minutes for summary to show up. "
         }
       />
@@ -107,8 +121,8 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <ErrorMessage
-        error={
-          "No summary available for the selected probe. Should be few minutes for summary to show up. "
+        message={
+          "No summary available. Looks like no incoming / inbound request was made."
         }
       />
     );
@@ -126,6 +140,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       {props.incomingMonitorRequest &&
       props.monitorType === MonitorType.IncomingRequest ? (
         <IncomingRequestMonitorView
+          incomingRequestMonitorHeartbeatCheckedAt={
+            props.incomingRequestMonitorHeartbeatCheckedAt
+          }
           incomingMonitorRequest={props.incomingMonitorRequest}
         />
       ) : (
@@ -139,6 +156,14 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         />
       ) : (
         <></>
+      )}
+
+      {(props.monitorType === MonitorType.Logs ||
+        props.monitorType === MonitorType.Traces ||
+        props.monitorType === MonitorType.Metrics) && (
+        <TelemetryMonitorSummaryView
+          telemetryMonitorSummary={props.telemetryMonitorSummary}
+        />
       )}
     </div>
   );

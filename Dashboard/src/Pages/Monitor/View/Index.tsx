@@ -1,9 +1,8 @@
 import LabelsElement from "../../../Components/Label/Labels";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
-import { MonitorCharts } from "../../../Components/Monitor/MonitorCharts/MonitorChart";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
-import Metrics from "../../../Components/Monitor/SummaryView/Summary";
+import Summary from "../../../Components/Monitor/SummaryView/Summary";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -13,48 +12,35 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import {
-  CheckOn,
-  CriteriaFilterUtil,
-} from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
-import Card from "CommonUI/src/Components/Card/Card";
-import ChartGroup, {
-  Chart,
-  ChartGroupInterval,
-} from "CommonUI/src/Components/Charts/ChartGroup/ChartGroup";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import MonitorUptimeGraph from "CommonUI/src/Components/MonitorGraphs/Uptime";
-import UptimeUtil from "CommonUI/src/Components/MonitorGraphs/UptimeUtil";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
-import AnalyticsModelAPI, {
-  ListResult as AnalyticsListResult,
-} from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import MonitorMetricsByMinute from "Model/AnalyticsModels/MonitorMetricsByMinute";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
+import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe, {
   MonitorStepProbeResponse,
-} from "Model/Models/MonitorProbe";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import Probe from "Model/Models/Probe";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+} from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, {
   Fragment,
   FunctionComponent,
@@ -64,6 +50,10 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
+import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
+import TraceTable from "../../../Components/Traces/TraceTable";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/MetricMonitorPreview";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -85,13 +75,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
-
-  const [monitorMetricsByMinute, setMonitorMetricsByMinute] = useState<
-    Array<MonitorMetricsByMinute>
-  >([]);
-
-  const [shouldFetchMonitorMetrics, setShouldFetchMonitorMetrics] =
-    useState<boolean>(false);
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
 
@@ -147,7 +130,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           query: {
             createdAt: new InBetween(startDate, endDate),
             monitorId: modelId,
-            projectId: ProjectUtil.getCurrentProjectId(),
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -178,6 +161,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             color: true,
           },
           incomingRequestSecretKey: true,
+          incomingRequestMonitorHeartbeatCheckedAt: true,
           serverMonitorSecretKey: true,
           serverMonitorRequestReceivedAt: true,
           incomingRequestReceivedAt: true,
@@ -185,6 +169,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           serverMonitorResponse: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
+          telemetryMonitorLastMonitorAt: true,
+          telemetryMonitorNextMonitorAt: true,
+          monitorSteps: true,
         },
       });
 
@@ -202,7 +189,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {
           modelType: MonitorStatus,
           query: {
-            projectId: ProjectUtil.getCurrentProjectId(),
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -219,43 +206,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         },
       );
 
-      let monitorMetricsByMinute: AnalyticsListResult<MonitorMetricsByMinute> =
-        {
-          data: [],
-          count: 0,
-          limit: 0,
-          skip: 0,
-        };
-
       if (!item) {
         setError(`Monitor not found`);
         return;
-      }
-
-      const shouldFetchMonitorMetrics: boolean =
-        CriteriaFilterUtil.getTimeFiltersByMonitorType(item.monitorType!)
-          .length > 0;
-
-      setShouldFetchMonitorMetrics(shouldFetchMonitorMetrics);
-
-      if (shouldFetchMonitorMetrics) {
-        monitorMetricsByMinute = await AnalyticsModelAPI.getList({
-          query: {
-            monitorId: modelId,
-          },
-          modelType: MonitorMetricsByMinute,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            createdAt: true,
-            metricType: true,
-            metricValue: true,
-            miscData: true,
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-        });
       }
 
       setMonitorType(item.monitorType);
@@ -266,7 +219,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }),
       );
       setStatusTimelines(monitorStatus.data);
-      setMonitorMetricsByMinute(monitorMetricsByMinute.data.reverse());
 
       const isMonitoredByProbe: boolean = item.monitorType
         ? MonitorTypeHelper.isProbableMonitor(item.monitorType)
@@ -324,36 +276,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setIsLoading(false);
   };
 
-  const getMonitorMetricsChartGroup: GetReactElementFunction =
-    (): ReactElement => {
-      if (isLoading) {
-        return <></>;
-      }
-
-      if (!shouldFetchMonitorMetrics) {
-        return <></>;
-      }
-
-      const chartsByDataType: Array<CheckOn> =
-        CriteriaFilterUtil.getTimeFiltersByMonitorType(monitorType!);
-
-      const charts: Array<Chart> = MonitorCharts.getMonitorCharts({
-        monitorMetricsByMinute: monitorMetricsByMinute,
-        checkOns: chartsByDataType,
-        probes: probes,
-      });
-
-      return (
-        <ChartGroup interval={ChartGroupInterval.ONE_HOUR} charts={charts} />
-      );
-    };
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -441,7 +369,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stepId: "monitor-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {
@@ -603,15 +531,71 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
       </Card>
 
-      <Metrics
+      <Summary
         monitorType={monitorType!}
         probes={probes}
         incomingMonitorRequest={incomingMonitorRequest}
+        incomingRequestMonitorHeartbeatCheckedAt={
+          monitor?.incomingRequestMonitorHeartbeatCheckedAt
+        }
         probeMonitorResponses={probeResponses}
         serverMonitorResponse={serverMonitorResponse}
+        telemetryMonitorSummary={{
+          lastCheckedAt: monitor?.telemetryMonitorLastMonitorAt,
+          nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
+        }}
       />
 
-      {shouldFetchMonitorMetrics && getMonitorMetricsChartGroup()}
+      {monitor?.monitorType === MonitorType.Logs &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
+          <div>
+            <Card
+              title={"Logs Preview"}
+              description={
+                "Preview of the logs that match the filter of this monitor."
+              }
+            >
+              <LogMonitorPreview
+                monitorStepLogMonitor={
+                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
+                    ?.logMonitor
+                }
+              />
+            </Card>
+          </div>
+        )}
+
+      {monitor?.monitorType === MonitorType.Metrics &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
+          <div>
+            <MetricMonitorPreview
+              monitorStepMetricMonitor={
+                monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
+                  ?.metricMonitor
+              }
+            />
+          </div>
+        )}
+
+      {monitor?.monitorType === MonitorType.Traces &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0] &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data!
+          .traceMonitor && (
+          <TraceTable
+            spanQuery={MonitorStepTraceMonitorUtil.toQuery(
+              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!.data!
+                .traceMonitor!,
+            )}
+          />
+        )}
     </Fragment>
   );
 };

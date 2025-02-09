@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime | Our Open Source Friends</title>
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        <%- include('head') -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <div class="relative isolate overflow-hidden bg-white">
+    <div class="py-24 sm:py-32 sm:pb-24">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+            Our Open Source Friends
+          </h1>
+          <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600">
+            We are proud to be part of the open-source community. Here are some of our friends who are doing amazing work.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mx-auto max-w-5xl">
+    <ul role="list" class="divide-y divide-gray-100">
+        <% for(var i=0; i<ossFriends.length; i++) {%>
+        <li class="flex items-center justify-between gap-x-6 py-5">
+          <div class="min-w-0">
+            <div class="flex items-start gap-x-3">
+              <p class="text-xl font-semibold leading-6 text-gray-900">
+                <%= ossFriends[i].name %>
+              </p>
+            </div>
+            <div class="mt-1 flex items-center gap-x-2 leading-5 text-gray-500">
+              <p>
+                <%= ossFriends[i].description %>
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-none items-center gap-x-4">
+            <a href="<%= ossFriends[i].repositoryUrl %>" type="_blank" class="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block">View Repository</a>
+          </div>
+        </li>
+        <% } %>
+      </ul>
+  </div>
+
+  <%- include('footer') -%>
+</body>
+</html>

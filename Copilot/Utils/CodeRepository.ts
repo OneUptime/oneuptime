@@ -14,16 +14,16 @@ import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import CodeRepositoryServerUtil from "CommonServer/Utils/CodeRepository/CodeRepository";
-import GitHubUtil from "CommonServer/Utils/CodeRepository/GitHub/GitHub";
-import LocalFile from "CommonServer/Utils/LocalFile";
-import logger from "CommonServer/Utils/Logger";
-import CopilotCodeRepository from "Model/Models/CopilotCodeRepository";
-import ServiceCopilotCodeRepository from "Model/Models/ServiceCopilotCodeRepository";
+import CodeRepositoryServerUtil from "Common/Server/Utils/CodeRepository/CodeRepository";
+import GitHubUtil from "Common/Server/Utils/CodeRepository/GitHub/GitHub";
+import LocalFile from "Common/Server/Utils/LocalFile";
+import logger from "Common/Server/Utils/Logger";
+import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
+import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import Text from "Common/Types/Text";
-import Execute from "CommonServer/Utils/Execute";
+import Execute from "Common/Server/Utils/Execute";
 import CopilotPullRequestService from "../Service/CopilotPullRequest";
-import CopilotPullRequest from "Model/Models/CopilotPullRequest";
+import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
 
 export interface CodeRepositoryResult {
   codeRepository: CopilotCodeRepository;
@@ -48,6 +48,12 @@ export default class CodeRepositoryUtil {
   public static codeRepositoryResult: CodeRepositoryResult | null = null;
   public static gitHubUtil: GitHubUtil | null = null;
   public static folderNameOfClonedRepository: string | null = null;
+
+  public static async getCurrentCommitHash(): Promise<string> {
+    return await CodeRepositoryServerUtil.getCurrentCommitHash({
+      repoPath: this.getLocalRepositoryPath(),
+    });
+  }
 
   public static isRepoCloned(): boolean {
     return Boolean(this.folderNameOfClonedRepository);
@@ -284,6 +290,8 @@ export default class CodeRepositoryUtil {
     });
 
     this.folderNameOfClonedRepository = folderName;
+
+    logger.debug(`Repository cloned to ${repoLocalPath}/${folderName}`);
   }
 
   public static async executeScript(data: { script: string }): Promise<string> {
@@ -775,36 +783,38 @@ export default class CodeRepositoryUtil {
   }
 
   public static getCodeFileExtentions(): Array<string> {
-    return [
-      ".ts",
-      ".js",
-      ".tsx",
-      ".jsx",
-      ".py",
-      ".go",
-      ".java",
-      ".c",
-      ".cpp",
-      ".cs",
-      ".swift",
-      ".php",
-      ".rb",
-      ".rs",
-      ".kt",
-      ".dart",
-      ".sh",
-      ".pl",
-      ".lua",
-      ".r",
-      ".scala",
-      ".ts",
-      ".js",
-      ".tsx",
-      ".jsx",
+    const extensions: Array<string> = [
+      "ts",
+      "js",
+      "tsx",
+      "jsx",
+      "py",
+      "go",
+      "java",
+      "c",
+      "cpp",
+      "cs",
+      "swift",
+      "php",
+      "rb",
+      "rs",
+      "kt",
+      "dart",
+      "sh",
+      "pl",
+      "lua",
+      "r",
+      "scala",
+      "ts",
+      "js",
+      "tsx",
+      "jsx",
     ];
+
+    return extensions;
   }
 
   public static getReadmeFileExtentions(): Array<string> {
-    return [".md"];
+    return ["md"];
   }
 }

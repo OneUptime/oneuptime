@@ -65,6 +65,76 @@
         },
         {
             "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Home",
+            "name": "Home: Debug with Docker",
+            "port": 9212,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Worker",
+            "name": "Worker: Debug with Docker",
+            "port": 8734,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Workflow",
+            "name": "Workflow: Debug with Docker",
+            "port": 8735,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Docs",
+            "name": "Docs: Debug with Docker",
+            "port": 8738,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/APIReference",
+            "name": "API Reference: Debug with Docker",
+            "port": 8737,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/TestServer",
             "name": "Test Server: Debug with Docker",
             "port": 9141,
@@ -81,7 +151,7 @@
             "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Probe",
             "name": "Probe: Debug with Docker",
-            "port": 9655,
+            "port": 9229,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [
@@ -93,9 +163,51 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Ingestor",
-            "name": "Ingestor: Debug with Docker",
+            "localRoot": "${workspaceFolder}/ProbeIngest",
+            "name": "ProbeIngest: Debug with Docker",
             "port": 9932,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/IncomingRequestIngest",
+            "name": "IncomingRequestIngest: Debug with Docker",
+            "port": 9933,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/OpenTelemetryIngest",
+            "name": "OpenTelemetryIngest: Debug with Docker",
+            "port": 9938,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/FluentIngest",
+            "name": "Fluent Ingest: Debug with Docker",
+            "port": 9937,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [
@@ -138,20 +250,6 @@
             "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/Workers",
-            "name": "Workers: Debug with Docker",
-            "port": 9654,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [
@@ -218,12 +316,12 @@
             "autoAttachChildProcesses": true
         },
         {
-            "name": "CommonServer: Debug Tests",
+            "name": "Common: Debug Tests",
             "type": "node",
             "restart": true,
             "autoAttachChildProcesses": true,
             "request": "launch",
-            "cwd": "${workspaceRoot}/CommonServer",
+            "cwd": "${workspaceRoot}/Common",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
                 "run-script",

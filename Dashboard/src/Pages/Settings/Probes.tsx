@@ -4,17 +4,17 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import ProbeElement from "CommonUI/src/Components/Probe/Probe";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL } from "CommonUI/src/Config";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Probe from "Model/Models/Probe";
+import Banner from "Common/UI/Components/Banner/Banner";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
   Fragment,
   FunctionComponent,
@@ -109,7 +109,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<Probe>
           modelType={Probe}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           id="probes-table"
           name="Settings > Probes"
@@ -251,7 +251,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()?.toString(),
+                projectId: DashboardNavigation.getProjectId()!,
               },
               filterDropdownField: {
                 label: "name",

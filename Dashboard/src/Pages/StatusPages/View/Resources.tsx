@@ -7,25 +7,23 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { ModelField } from "CommonUI/src/Components/Forms/ModelForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import Link from "CommonUI/src/Components/Link/Link";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import StatusPageGroup from "Model/Models/StatusPageGroup";
-import StatusPageResource, {
-  UptimePrecision,
-} from "Model/Models/StatusPageResource";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Link from "Common/UI/Components/Link/Link";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,6 +31,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -55,7 +54,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPageGroup,
           query: {
             statusPageId: modelId,
-            projectId: props.currentProject?.id,
+            projectId: props.currentProject!.id!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -268,8 +267,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
-          statusPageGroupId: statusPageGroupId,
+          projectId: DashboardNavigation.getProjectId()!,
+          statusPageGroupId: statusPageGroupId!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"
@@ -332,7 +331,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -406,7 +405,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       <>
         {isLoading ? <ComponentLoader /> : <></>}
 
-        {error ? <ErrorMessage error={error} /> : <></>}
+        {error ? <ErrorMessage message={error} /> : <></>}
 
         {!isLoading && !error ? getModelTable(null, null) : <></>}
 

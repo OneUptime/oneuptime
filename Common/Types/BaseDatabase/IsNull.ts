@@ -1,8 +1,9 @@
 import BadDataException from "../Exception/BadDataException";
+import GenericObject from "../GenericObject";
 import { JSONObject, ObjectType } from "../JSON";
-import SerializableObject from "../SerializableObject";
+import QueryOperator from "./QueryOperator";
 
-export default class IsNull extends SerializableObject {
+export default class IsNull extends QueryOperator<GenericObject> {
   public constructor() {
     super();
   }

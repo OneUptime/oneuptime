@@ -10,10 +10,19 @@ import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 import MonitorCriteria from "./MonitorCriteria";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "./MonitorStepLogMonitor";
 import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
 import { FindOperator } from "typeorm";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "./MonitorStepTraceMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "./MonitorStepMetricMonitor";
 
 export interface MonitorStepType {
   id: string;
@@ -26,6 +35,9 @@ export interface MonitorStepType {
   requestHeaders?: Dictionary<string> | undefined;
   requestBody?: string | undefined;
 
+  // this is used for API and Website monitor
+  doNotFollowRedirects?: boolean | undefined;
+
   // this is for port monitors.
   monitorDestinationPort?: Port | undefined;
 
@@ -35,6 +47,15 @@ export interface MonitorStepType {
   // this is for synthetic monitors.
   screenSizeTypes?: Array<ScreenSizeType> | undefined;
   browserTypes?: Array<BrowserType> | undefined;
+
+  // Log monitor type.
+  logMonitor?: MonitorStepLogMonitor | undefined;
+
+  // trace monitor type.
+  traceMonitor?: MonitorStepTraceMonitor | undefined;
+
+  // Metric Monitor
+  metricMonitor: MonitorStepMetricMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -46,6 +67,7 @@ export default class MonitorStep extends DatabaseProperty {
     this.data = {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: new MonitorCriteria(),
       requestType: HTTPMethod.GET,
@@ -54,6 +76,9 @@ export default class MonitorStep extends DatabaseProperty {
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
+      logMonitor: undefined,
+      traceMonitor: undefined,
+      metricMonitor: undefined,
     };
   }
 
@@ -63,12 +88,14 @@ export default class MonitorStep extends DatabaseProperty {
     onlineMonitorStatusId: ObjectID;
     offlineMonitorStatusId: ObjectID;
     defaultIncidentSeverityId: ObjectID;
+    defaultAlertSeverityId: ObjectID;
   }): MonitorStep {
     const monitorStep: MonitorStep = new MonitorStep();
 
     monitorStep.data = {
       id: ObjectID.generate().toString(),
       monitorDestination: undefined,
+      doNotFollowRedirects: undefined,
       monitorDestinationPort: undefined,
       monitorCriteria: MonitorCriteria.getDefaultMonitorCriteria(arg),
       requestType: HTTPMethod.GET,
@@ -77,6 +104,9 @@ export default class MonitorStep extends DatabaseProperty {
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
+      logMonitor: undefined,
+      traceMonitor: undefined,
+      metricMonitor: undefined,
     };
 
     return monitorStep;
@@ -116,6 +146,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDoNotFollowRedirects(doNotFollowRedirects: boolean): MonitorStep {
+    this.data!.doNotFollowRedirects = doNotFollowRedirects;
+    return this;
+  }
+
   public setPort(monitorDestinationPort: Port): MonitorStep {
     this.data!.monitorDestinationPort = monitorDestinationPort;
     return this;
@@ -130,6 +165,23 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setBrowserTypes(browserTypes: Array<BrowserType>): MonitorStep {
     this.data!.browserTypes = browserTypes;
+    return this;
+  }
+
+  public setLogMonitor(logMonitor: MonitorStepLogMonitor): MonitorStep {
+    this.data!.logMonitor = logMonitor;
+    return this;
+  }
+
+  public setMetricMonitor(
+    metricMonitor: MonitorStepMetricMonitor,
+  ): MonitorStep {
+    this.data!.metricMonitor = metricMonitor;
+    return this;
+  }
+
+  public setTraceMonitor(traceMonitor: MonitorStepTraceMonitor): MonitorStep {
+    this.data!.traceMonitor = traceMonitor;
     return this;
   }
 
@@ -149,6 +201,7 @@ export default class MonitorStep extends DatabaseProperty {
       value: {
         id: ObjectID.generate().toString(),
         monitorDestination: undefined,
+        doNotFollowRedirects: undefined,
         monitorDestinationPort: undefined,
         monitorCriteria: MonitorCriteria.getNewMonitorCriteriaAsJSON(),
         requestType: HTTPMethod.GET,
@@ -157,6 +210,7 @@ export default class MonitorStep extends DatabaseProperty {
         customCode: undefined,
         screenSizeTypes: undefined,
         browserTypes: undefined,
+        lgoMonitor: undefined,
       },
     };
   }
@@ -231,6 +285,7 @@ export default class MonitorStep extends DatabaseProperty {
           id: this.data.id,
           monitorDestination:
             this.data?.monitorDestination?.toJSON() || undefined,
+          doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
@@ -240,6 +295,20 @@ export default class MonitorStep extends DatabaseProperty {
           customCode: this.data.customCode || undefined,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
+          logMonitor: this.data.logMonitor
+            ? MonitorStepLogMonitorUtil.toJSON(
+                this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
+              )
+            : undefined,
+          metricMonitor: this.data.metricMonitor
+            ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor)
+            : undefined,
+          traceMonitor: this.data.traceMonitor
+            ? MonitorStepTraceMonitorUtil.toJSON(
+                this.data.traceMonitor ||
+                  MonitorStepTraceMonitorUtil.getDefault(),
+              )
+            : undefined,
         },
       });
     }
@@ -316,6 +385,7 @@ export default class MonitorStep extends DatabaseProperty {
     monitorStep.data = JSONFunctions.deserialize({
       id: json["id"] as string,
       monitorDestination: monitorDestination || undefined,
+      doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,
@@ -328,7 +398,29 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
+      logMonitor: json["logMonitor"]
+        ? (json["logMonitor"] as JSONObject)
+        : undefined,
+      metricMonitor: json["metricMonitor"]
+        ? (json["metricMonitor"] as JSONObject)
+        : undefined,
+      traceMonitor: json["traceMonitor"]
+        ? (json["traceMonitor"] as JSONObject)
+        : undefined,
     }) as any;
+
+    if (monitorStep.data && !monitorStep.data?.logMonitor) {
+      monitorStep.data.logMonitor = MonitorStepLogMonitorUtil.getDefault();
+    }
+
+    if (monitorStep.data && !monitorStep.data?.traceMonitor) {
+      monitorStep.data.traceMonitor = MonitorStepTraceMonitorUtil.getDefault();
+    }
+
+    if (monitorStep.data && !monitorStep.data?.metricMonitor) {
+      monitorStep.data.metricMonitor =
+        MonitorStepMetricMonitorUtil.getDefault();
+    }
 
     return monitorStep;
   }

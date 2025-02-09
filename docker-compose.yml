@@ -64,6 +64,36 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: app
+    
+    worker:
+        image:  oneuptime/worker:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: worker
+
+    docs:
+        image:  oneuptime/docs:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: docs
+
+    api-reference:
+        image:  oneuptime/api-reference:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: api-reference
+
+    workflow:
+        image:  oneuptime/workflow:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: workflow
+
+    home:
+        image:  oneuptime/home:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: home
 
     probe-1:   
         image:  oneuptime/probe:${APP_TAG}
@@ -77,11 +107,29 @@ services:
             file: ./docker-compose.base.yml
             service: probe-2
 
-    ingestor:
-        image:  oneuptime/ingestor:${APP_TAG}
+    probe-ingest:
+        image:  oneuptime/probe-ingest:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
-            service: ingestor
+            service: probe-ingest
+
+    open-telemetry-ingest:
+        image:  oneuptime/open-telemetry-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: open-telemetry-ingest
+    
+    incoming-request-ingest: 
+        image:  oneuptime/incoming-request-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: incoming-request-ingest
+
+    fluent-ingest: 
+        image:  oneuptime/fluent-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: fluent-ingest
 
     isolated-vm:
         image:  oneuptime/isolated-vm:${APP_TAG}

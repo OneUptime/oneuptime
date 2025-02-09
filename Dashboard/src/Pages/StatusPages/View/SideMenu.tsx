@@ -3,11 +3,11 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import Project from "Model/Models/Project";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -235,6 +235,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Reports",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.TextFile}
+        />
+
         <SideMenuItem
           link={{
             title: "Custom Fields",

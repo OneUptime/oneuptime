@@ -1,5 +1,5 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import Path from "path";

@@ -3,14 +3,14 @@ import Color from "Common/Types/Color";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import Loader from "CommonUI/src/Components/Loader/Loader";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import { APP_API_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Loader from "Common/UI/Components/Loader/Loader";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -57,7 +57,7 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (!currentGroupStatus) {

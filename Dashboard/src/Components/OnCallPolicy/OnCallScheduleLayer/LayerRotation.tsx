@@ -1,10 +1,10 @@
 import Recurring from "Common/Types/Events/Recurring";
-import RecurringFieldElement from "CommonUI/src/Components/Events/RecurringFieldElement";
-import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
+import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

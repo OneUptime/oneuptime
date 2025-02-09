@@ -1,34 +1,35 @@
 import OneUptimeDate from "Common/Types/Date";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Detail from "CommonUI/src/Components/Detail/Detail";
-import Field from "CommonUI/src/Components/Detail/Field";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Field from "Common/UI/Components/Detail/Field";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
-  moreDetailElement?: ReactElement;
+  moreDetailElement?: ReactElement | undefined;
   monitoredAt: Date;
 }
 
-const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
+const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.customCodeMonitorResponse) {
     return (
-      <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
-  const customMonitorResponse: CustomCodeMonitorResponse =
+  const customCodeMonitorResponse: CustomCodeMonitorResponse =
     props.customCodeMonitorResponse;
 
-  let executionTimeInMS: number = customMonitorResponse.executionTimeInMS || 0;
+  let executionTimeInMS: number =
+    customCodeMonitorResponse.executionTimeInMS || 0;
 
   if (executionTimeInMS > 0) {
     executionTimeInMS = Math.round(executionTimeInMS);
@@ -37,8 +38,8 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const fields: Array<Field<CustomCodeMonitorResponse>> = [];
 
   if (
-    customMonitorResponse.logMessages &&
-    customMonitorResponse.logMessages.length > 0
+    customCodeMonitorResponse.logMessages &&
+    customCodeMonitorResponse.logMessages.length > 0
   ) {
     fields.push({
       key: "logMessages",
@@ -48,7 +49,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.result) {
+  if (customCodeMonitorResponse.result) {
     fields.push({
       key: "result",
       title: "Result",
@@ -57,7 +58,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (customMonitorResponse.scriptError) {
+  if (customCodeMonitorResponse.scriptError) {
     fields.push({
       key: "scriptError",
       title: "Script Error",
@@ -79,7 +80,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <InfoCard
             className="w-1/3 shadow-none border-2 border-gray-100 "
             title="Error"
-            value={customMonitorResponse.scriptError ? "Yes" : "No"}
+            value={customCodeMonitorResponse.scriptError ? "Yes" : "No"}
           />
 
           <InfoCard
@@ -97,7 +98,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <div>
             <Detail<CustomCodeMonitorResponse>
               id={"custom-code-monitor-summary-detail"}
-              item={customMonitorResponse}
+              item={customCodeMonitorResponse}
               fields={fields}
               showDetailsInNumberOfColumns={1}
             />
@@ -136,4 +137,4 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default CustomCodeMonitorSummaryView;
+export default CustomMonitorSummaryView;

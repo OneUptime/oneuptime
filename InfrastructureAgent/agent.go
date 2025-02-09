@@ -1,34 +1,43 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"oneuptime-infrastructure-agent/model"
 	"oneuptime-infrastructure-agent/utils"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/gookit/greq"
 )
 
 type Agent struct {
 	SecretKey    string
 	OneUptimeURL string
+	ProxyURL     string
 	scheduler    gocron.Scheduler
 	mainJob      gocron.Job
 	shutdownHook Hook
 }
 
-func NewAgent(secretKey string, url string) *Agent {
+func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
+
 	ag := &Agent{
 		SecretKey:    secretKey,
-		OneUptimeURL: url,
+		OneUptimeURL: oneuptimeUrl,
+		ProxyURL:     proxyUrl,
 	}
+
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
 	slog.Info("Secret key: " + ag.SecretKey)
 	slog.Info("OneUptime URL: " + ag.OneUptimeURL)
+	slog.Info("Proxy URL: " + ag.ProxyURL)
 	if ag.SecretKey == "" || ag.OneUptimeURL == "" {
 		slog.Error("Secret key and OneUptime URL are required")
 		os.Exit(1)
@@ -36,8 +45,8 @@ func NewAgent(secretKey string, url string) *Agent {
 	}
 
 	// check if secret key is valid
-	if !checkIfSecretKeyIsValid(ag.SecretKey, ag.OneUptimeURL) {
-		slog.Error("Secret key is invalid")
+	if !checkIfSecretKeyIsValid(ag.SecretKey, ag.OneUptimeURL, ag.ProxyURL) {
+		slog.Error("Secret key is invalid. If you are sure that the secret key is correct, please check your network connection, OneUptime URL (" + ag.OneUptimeURL + "), Proxy URL (" + ag.ProxyURL + ") and try again.")
 		os.Exit(1)
 		return ag
 	}
@@ -49,7 +58,7 @@ func NewAgent(secretKey string, url string) *Agent {
 		return ag
 	}
 
-	job, err := scheduler.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL))
+	job, err := scheduler.NewJob(gocron.DurationJob(30*time.Second), gocron.NewTask(collectMetricsJob, ag.SecretKey, ag.OneUptimeURL, ag.ProxyURL))
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -79,7 +88,7 @@ func (ag *Agent) Close() {
 	}
 }
 
-func collectMetricsJob(secretKey string, oneuptimeURL string) {
+func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 	memMetrics := utils.GetMemoryMetrics()
 	if memMetrics == nil {
 		slog.Warn("Failed to get memory metrics")
@@ -118,32 +127,62 @@ func collectMetricsJob(secretKey string, oneuptimeURL string) {
 	}{
 		ServerMonitorResponse: metricsReport,
 	}
-	postBuilder := greq.New(oneuptimeURL).Post("/server-monitor/response/ingest/" + secretKey).
-		JSONType().JSONBody(reqData)
-	resp, err := postBuilder.Do()
+	reqBody, err := json.Marshal(reqData)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Failed to marshal request data: ", err)
+		return
 	}
-	if resp.IsFail() {
+
+	client := &http.Client{}
+
+	if proxyUrl != "" {
+		proxyURL, _ := url.Parse(proxyUrl)
+		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		client = &http.Client{Transport: transport}
+		slog.Info("Using proxy to send request:" + proxyUrl)
+	}
+
+	resp, err := client.Post(oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		slog.Error("Failed to create request: ", err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		slog.Error("Failed to ingest metrics with status code ", resp.StatusCode)
-		respJson, _ := json.Marshal(resp)
-		slog.Error("Response: ", string(respJson))
+		respBody, _ := io.ReadAll(resp.Body)
+		slog.Error("Response: ", string(respBody))
 	}
+
 	slog.Info("1 minute metrics have been sent to OneUptime.")
 }
 
-func checkIfSecretKeyIsValid(secretKey string, baseUrl string) bool {
+func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl string) bool {
+
+	// if we have a proxy, we need to use that to make the request
+
+	client := &http.Client{}
+
+	if proxyUrl != "" {
+		proxyURL, _ := url.Parse(proxyUrl)
+		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		client = &http.Client{Transport: transport}
+		slog.Info("Using proxy to send request:" + proxyUrl)
+	}
+
 	if secretKey == "" {
 		slog.Error("Secret key is empty")
 		return false
 	}
-	resp, err := greq.New(baseUrl).JSONType().GetDo("/server-monitor/secret-key/verify/" + secretKey)
+	resp, err := client.Get(oneuptimeUrl + "/server-monitor/secret-key/verify/" + secretKey)
 	if err != nil {
 		slog.Error(err.Error())
 		return false
 	}
 	if resp.StatusCode != 200 {
-		slog.Error("Secret key verification failed with status code ", resp.StatusCode)
+		slog.Error("Secret key verification failed with status code " + strconv.Itoa(resp.StatusCode))
 		return false
 	}
 	return true

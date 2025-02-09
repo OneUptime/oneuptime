@@ -6,25 +6,30 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL } from "CommonUI/src/Config";
-import BaseAPI from "CommonUI/src/Utils/API/API";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import BillingInvoice, { InvoiceStatus } from "Model/Models/BillingInvoice";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL } from "Common/UI/Config";
+import BaseAPI from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import BillingInvoice, {
+  InvoiceStatus,
+} from "Common/Models/DatabaseModels/BillingInvoice";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Project from "Common/Models/DatabaseModels/Project";
+import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -89,17 +94,48 @@ const Settings: FunctionComponent<ComponentProps> = (
           }}
           noItemsMessage={"No invoices so far."}
           query={{
-            projectId: DashboardNavigation.getProjectId()?.toString(),
+            projectId: DashboardNavigation.getProjectId()!,
           }}
           showRefreshButton={true}
           selectMoreFields={{
             currencyCode: true,
             paymentProviderCustomerId: true,
+            paymentProviderInvoiceId: true,
+          }}
+          onFetchSuccess={async () => {
+            if (ProjectUtil.isSubscriptionInactive()) {
+              // fetch project and check subscription again.
+              const project: Project | null = await ModelAPI.getItem({
+                modelType: Project,
+                id: DashboardNavigation.getProjectId()!,
+                select: {
+                  paymentProviderMeteredSubscriptionStatus: true,
+                  paymentProviderSubscriptionStatus: true,
+                },
+              });
+
+              if (project) {
+                const isSubscriptionInactive: boolean =
+                  ProjectUtil.setIsSubscriptionInactive({
+                    paymentProviderMeteredSubscriptionStatus:
+                      project.paymentProviderMeteredSubscriptionStatus ||
+                      SubscriptionStatus.Active,
+                    paymentProviderSubscriptionStatus:
+                      project.paymentProviderSubscriptionStatus ||
+                      SubscriptionStatus.Active,
+                  });
+
+                if (!isSubscriptionInactive) {
+                  // if subscription is active then reload the page.
+                  Navigation.reload();
+                }
+              }
+            }
           }}
           filters={[
             {
               field: {
-                paymentProviderInvoiceId: true,
+                invoiceNumber: true,
               },
               title: "Invoice ID",
               type: FieldType.Text,
@@ -132,10 +168,17 @@ const Settings: FunctionComponent<ComponentProps> = (
           columns={[
             {
               field: {
-                paymentProviderInvoiceId: true,
+                invoiceNumber: true,
               },
-              title: "Invoice ID",
+              title: "Invoice Number",
               type: FieldType.Text,
+            },
+            {
+              field: {
+                invoiceDate: true,
+              },
+              title: "Invoice Date",
+              type: FieldType.Date,
             },
             {
               field: {

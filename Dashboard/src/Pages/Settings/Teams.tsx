@@ -1,10 +1,10 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Team from "Model/Models/Team";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Teams: FunctionComponent<PageComponentProps> = (
@@ -26,7 +26,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No teams found."}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         showViewIdButton={true}
         formFields={[
@@ -48,7 +48,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Team Description",
           },
         ]}
@@ -82,6 +82,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

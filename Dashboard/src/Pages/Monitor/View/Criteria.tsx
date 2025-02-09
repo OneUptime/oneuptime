@@ -7,22 +7,22 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CustomElementProps,
   FormFieldStyleType,
-} from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import { ModalWidth } from "CommonUI/src/Components/Modal/Modal";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Monitor from "Model/Models/Monitor";
+} from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,
   FunctionComponent,
@@ -30,6 +30,10 @@ import React, {
   useState,
 } from "react";
 import { useAsyncEffect } from "use-async-effect";
+import MonitorTestForm from "../../../Components/Form/Monitor/MonitorTest";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
+import { ButtonSize } from "Common/UI/Components/Button/Button";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
@@ -39,6 +43,8 @@ const MonitorCriteria: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
+
+  const [probes, setProbes] = useState<Array<Probe>>([]);
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
@@ -60,6 +66,10 @@ const MonitorCriteria: FunctionComponent<
         return;
       }
 
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+
+      setProbes(probes);
+
       setMonitorType(item.monitorType);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -70,6 +80,10 @@ const MonitorCriteria: FunctionComponent<
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+
+  const [monitorSteps, setMonitorSteps] = useState<
+    MonitorStepsType | undefined
+  >(undefined);
 
   useAsyncEffect(async () => {
     // fetch the model
@@ -82,7 +96,7 @@ const MonitorCriteria: FunctionComponent<
     }
 
     if (error) {
-      return <ErrorMessage error={error} />;
+      return <ErrorMessage message={error} />;
     }
 
     if (monitorType === MonitorType.Manual) {
@@ -108,6 +122,16 @@ const MonitorCriteria: FunctionComponent<
         cardProps={{
           title: "Monitoring Criteria",
           description: "Here is the criteria we use to monitor this resource.",
+          rightElement: monitorSteps ? (
+            <MonitorTestForm
+              buttonSize={ButtonSize.Normal}
+              monitorSteps={monitorSteps}
+              monitorType={monitorType}
+              probes={probes}
+            />
+          ) : (
+            <></>
+          ),
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
@@ -143,10 +167,18 @@ const MonitorCriteria: FunctionComponent<
             },
           },
         ]}
+        onSaveSuccess={async (item: Monitor) => {
+          setMonitorSteps(item.monitorSteps);
+        }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: Monitor,
           id: "model-detail-monitors",
+          onItemLoaded: (monitor: Monitor) => {
+            if (!monitorSteps) {
+              setMonitorSteps(monitor.monitorSteps);
+            }
+          },
           fields: [
             {
               field: {

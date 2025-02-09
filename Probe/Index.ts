@@ -1,21 +1,32 @@
-import { PROBE_MONITORING_WORKERS } from "./Config";
+import {
+  PORT,
+  PROBE_MONITOR_RETRY_LIMIT,
+  PROBE_MONITORING_WORKERS,
+} from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
+import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
+import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
 
 const APP_NAME: string = "probe";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     // init the app
     await App.init({
       appName: APP_NAME,
-      port: undefined,
+      port: PORT, // some random port to start the server. Since this is the probe, it doesn't need to be exposed.
       isFrontendApp: false,
       statusOptions: {
         liveCheck: async () => {},
@@ -27,6 +38,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await App.addDefaultRoutes();
 
     try {
+      logger.debug(
+        `This probe will retyr monitor for: ${PROBE_MONITOR_RETRY_LIMIT} times`,
+      );
+
       // Register this probe.
       await Register.registerProbe();
 
@@ -35,6 +50,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       await Register.reportIfOffline();
     } catch (err) {
       logger.error("Register probe failed");
+      logger.error(err);
+      throw err;
+    }
+
+    // add test job
+
+    try {
+      new FetchMonitorTest("Monitor Test Fetcher").run();
+    } catch (err) {
+      logger.error("Monitor Test Fetcher failed");
       logger.error(err);
       throw err;
     }

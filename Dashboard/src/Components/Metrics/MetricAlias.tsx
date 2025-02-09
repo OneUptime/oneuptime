@@ -1,13 +1,8 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Input from "CommonUI/src/Components/Input/Input";
-import Icon, { ThickProp } from "CommonUI/src/Components/Icon/Icon";
+import Input from "Common/UI/Components/Input/Input";
+import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-
-export interface MetricAliasData {
-  metricVariable: string;
-  title: string;
-  description: string;
-}
+import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 
 export interface ComponentProps {
   data: MetricAliasData;
@@ -56,6 +51,34 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
             }}
             placeholder="Description..."
           />
+        </div>
+        <div className="w-1/3 flex space-x-3">
+          <div className="w-full">
+            <Input
+              value={props.data.legend}
+              onChange={(value: string) => {
+                return props.onDataChanged({
+                  ...props.data,
+                  metricVariable: props.data.metricVariable,
+                  legend: value,
+                });
+              }}
+              placeholder="Legend (e.g. Response Time)"
+            />
+          </div>
+          <div>
+            <Input
+              value={props.data.legendUnit}
+              onChange={(value: string) => {
+                return props.onDataChanged({
+                  ...props.data,
+                  metricVariable: props.data.metricVariable,
+                  legendUnit: value,
+                });
+              }}
+              placeholder="Unit (e.g. ms)"
+            />
+          </div>
         </div>
       </div>
     </Fragment>

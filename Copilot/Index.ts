@@ -1,12 +1,20 @@
 import CodeRepositoryUtil from "./Utils/CodeRepository";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import dotenv from "dotenv";
 import Init from "./Init";
+import Telemetry from "Common/Server/Utils/Telemetry";
+
+const APP_NAME: string = "copilot";
 
 dotenv.config();
 
 logger.info("OneUptime Copilot is starting...");
+
+// Initialize telemetry
+Telemetry.init({
+  serviceName: APP_NAME,
+});
 
 Init()
   .then(() => {

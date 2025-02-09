@@ -10,7 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 
 export interface APIResponse {
   url: URL;
@@ -18,7 +18,7 @@ export interface APIResponse {
   requestBody: JSONObject;
   isSecure: boolean;
   responseTimeInMS: PositiveNumber;
-  statusCode: number;
+  statusCode: number | undefined;
   responseBody: string;
   responseHeaders: Headers;
   isOnline: boolean;
@@ -36,6 +36,8 @@ export default class ApiMonitor {
       currentRetryCount?: number | undefined;
       monitorId?: ObjectID | undefined;
       isOnlineCheckRequest?: boolean | undefined;
+      timeout?: PositiveNumber; // timeout in milliseconds
+      doNotFollowRedirects?: boolean | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -62,6 +64,11 @@ export default class ApiMonitor {
           url,
           options.requestBody || undefined,
           options.requestHeaders || undefined,
+          undefined,
+          {
+            timeout: options.timeout?.toNumber() || 5000,
+            doNotFollowRedirects: options.doNotFollowRedirects || false,
+          },
         );
 
       if (
@@ -75,6 +82,11 @@ export default class ApiMonitor {
           url,
           options.requestBody || undefined,
           options.requestHeaders || undefined,
+          undefined,
+          {
+            timeout: options.timeout?.toNumber() || 5000,
+            doNotFollowRedirects: options.doNotFollowRedirects || false,
+          },
         );
       }
 
@@ -163,7 +175,7 @@ export default class ApiMonitor {
         requestHeaders: options.requestHeaders || {},
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: new PositiveNumber(0),
-        statusCode: 0,
+        statusCode: undefined,
         responseBody: "",
         responseHeaders: {},
         failureCause: API.getFriendlyErrorMessage(err as Error),
@@ -178,7 +190,10 @@ export default class ApiMonitor {
           `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        apiResponse.failureCause = "Timeout exceeded";
+        apiResponse.failureCause =
+          "Request was tried " +
+          options.currentRetryCount +
+          " times and it timed out.";
         apiResponse.isOnline = false;
       }
 

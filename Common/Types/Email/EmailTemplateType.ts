@@ -3,6 +3,7 @@ enum EmailTemplateType {
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
+  ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
   EmailVerified = "EmailVerified.hbs",
   PasswordChanged = "PasswordChanged.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
@@ -11,6 +12,7 @@ enum EmailTemplateType {
   SubscribedToStatusPage = "SubscribedToStatusPage.hbs",
   SubscriberAnnouncementCreated = "SubscriberAnnouncementCreated.hbs",
   SubscriberIncidentCreated = "SubscriberIncidentCreated.hbs",
+  StatusPageSubscriberReport = "StatusPageSubscriberReport.hbs",
   SubscriberIncidentNoteCreated = "SubscriberIncidentNoteCreated.hbs",
   SubscriberIncidentStateChanged = "SubscriberIncidentStateChanged.hbs",
   SubscriberScheduledMaintenanceEventCreated = "SubscriberScheduledMaintenanceEventCreated.hbs",
@@ -24,10 +26,17 @@ enum EmailTemplateType {
   MonitorOwnerResourceCreated = "MonitorOwnerResourceCreated.hbs",
   MonitorProbesStatus = "MonitorProbesStatus.hbs",
   MonitorOwnerStatusChanged = "MonitorOwnerStatusChanged.hbs",
+
   IncidentOwnerAdded = "IncidentOwnerAdded.hbs",
   IncidentOwnerStateChanged = "IncidentOwnerStateChanged.hbs",
   IncidentOwnerNotePosted = "IncidentOwnerNotePosted.hbs",
   IncidentOwnerResourceCreated = "IncidentOwnerResourceCreated.hbs",
+
+  AlertOwnerAdded = "AlertOwnerAdded.hbs",
+  AlertOwnerStateChanged = "AlertOwnerStateChanged.hbs",
+  AlertOwnerNotePosted = "AlertOwnerNotePosted.hbs",
+  AlertOwnerResourceCreated = "AlertOwnerResourceCreated.hbs",
+
   ScheduledMaintenanceOwnerNotePosted = "ScheduledMaintenanceOwnerNotePosted.hbs",
   ScheduledMaintenanceOwnerAdded = "ScheduledMaintenanceOwnerAdded.hbs",
   ScheduledMaintenanceOwnerStateChanged = "ScheduledMaintenanceOwnerStateChanged.hbs",
@@ -38,6 +47,7 @@ enum EmailTemplateType {
   SimpleMessage = "SimpleMessage.hbs",
   VerificationCode = "VerificationCode.hbs",
   AcknowledgeIncident = "AcknowledgeIncident.hbs",
+  AcknowledgeAlert = "AcknowledgeAlert.hbs",
 }
 
 export default EmailTemplateType;

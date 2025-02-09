@@ -1,5 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import MetricsTable from "../../Components/Metrics/MetricsTable";
 
@@ -11,7 +11,7 @@ const Services: FunctionComponent<PageComponentProps> = (
 
   if (disableTelemetryForThisProject) {
     return (
-      <ErrorMessage error="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
     );
   }
 

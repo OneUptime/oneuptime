@@ -8,42 +8,76 @@ import Exception from "Common/Types/Exception/Exception";
 import IP from "Common/Types/IP/IP";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CheckBoxList, {
   CategoryCheckboxValue,
   enumToCategoryCheckboxOption,
-} from "CommonUI/src/Components/CategoryCheckbox/CheckboxList";
-import CodeEditor from "CommonUI/src/Components/CodeEditor/CodeEditor";
-import DictionaryOfStrings from "CommonUI/src/Components/Dictionary/DictionaryOfStrings";
+} from "Common/UI/Components/CategoryCheckbox/CheckboxList";
+import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
+import DictionaryOfStrings from "Common/UI/Components/Dictionary/DictionaryOfStrings";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import Input from "CommonUI/src/Components/Input/Input";
-import Link from "CommonUI/src/Components/Link/Link";
-import { DOCS_URL } from "CommonUI/src/Config";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Input from "Common/UI/Components/Input/Input";
+import Link from "Common/UI/Components/Link/Link";
+import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
+import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DashboardNavigation from "../../../Utils/Navigation";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import API from "Common/UI/Utils/API/API";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import MonitorTestForm from "./MonitorTest";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   initialValue?: undefined | MonitorStep;
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
   monitorType: MonitorType;
+  allMonitorSteps: MonitorSteps;
+  probes: Array<Probe>;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -54,15 +88,124 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setShowAdvancedOptionsRequestBodyAndHeaders,
   ] = useState<boolean>(false);
 
+  const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
+    useState<boolean>(false);
+
   const [monitorStep, setMonitorStep] = useState<MonitorStep>(
     props.initialValue || new MonitorStep(),
   );
+
+  const [telemetryServices, setTelemetryServices] = useState<
+    Array<TelemetryService>
+  >([]);
+  const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (props.onChange && monitorStep) {
       props.onChange(monitorStep);
     }
   }, [monitorStep]);
+
+  const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/logs/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
+
+    if (attributeRepsonse instanceof HTTPErrorResponse) {
+      throw attributeRepsonse;
+    } else {
+      const attributes: Array<string> = attributeRepsonse.data[
+        "attributes"
+      ] as Array<string>;
+      setAttributeKeys(attributes);
+    }
+  };
+
+  const fetchSpanAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/traces/get-attributes",
+        ),
+        {},
+        {
+          ...ModelAPI.getCommonHeaders(),
+        },
+      );
+
+    if (attributeRepsonse instanceof HTTPErrorResponse) {
+      throw attributeRepsonse;
+    } else {
+      const attributes: Array<string> = attributeRepsonse.data[
+        "attributes"
+      ] as Array<string>;
+      setAttributeKeys(attributes);
+    }
+  };
+
+  const fetchTelemetryServices: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const telemetryServicesResult: ListResult<TelemetryService> =
+        await ModelAPI.getList<TelemetryService>({
+          modelType: TelemetryService,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      if (telemetryServicesResult instanceof HTTPErrorResponse) {
+        throw telemetryServicesResult;
+      }
+
+      setTelemetryServices(telemetryServicesResult.data);
+    };
+
+  const fetchTelemetryServicesAndAttributes: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
+      try {
+        await fetchTelemetryServices();
+
+        if (props.monitorType === MonitorType.Logs) {
+          await fetchLogAttributes();
+        }
+
+        if (props.monitorType === MonitorType.Traces) {
+          await fetchSpanAttributes();
+        }
+
+        // For metrics monitor we don't need attributes because the metric view component fetches it for us. So we don't need to fetch it here.
+      } catch (err) {
+        setError(API.getFriendlyErrorMessage(err as Error));
+      }
+
+      setIsLoading(false);
+    };
+
+  useEffect(() => {
+    fetchTelemetryServicesAndAttributes().catch((err: Error) => {
+      setError(API.getFriendlyErrorMessage(err as Error));
+    });
+  }, [props.monitorType]);
 
   const [errors, setErrors] = useState<Dictionary<string>>({});
   const [touched, setTouched] = useState<Dictionary<boolean>>({});
@@ -95,8 +238,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   if (props.monitorType === MonitorType.SyntheticMonitor) {
     codeEditorPlaceholder = `
-        // You can use axios module, and page object from Playwright here.
-        // Page Object is a class that represents a single page in a browser.
+        // Objects available in the context of the script are:
+
+        // - axios: Axios module to make HTTP requests
+        // - page: Playwright Page object to interact with the browser
+        // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+        // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
+        // - browser: Playwright Browser object to interact with the browser
 
         await page.goto('https://playwright.dev/');
         
@@ -108,6 +256,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
         screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
+
+        // To log data, use console.log
+        console.log('Hello World');
 
         // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
@@ -157,6 +308,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const isCodeMonitor: boolean =
     props.monitorType === MonitorType.CustomJavaScriptCode ||
     props.monitorType === MonitorType.SyntheticMonitor;
+
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   return (
     <div className="mt-5">
@@ -300,7 +459,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.API && (
               <div className="mt-1 -ml-3">
                 <Button
-                  title="Advanced: Add Request Headers and Body"
+                  title="Advanced: Add Request Headers, Body and more."
                   buttonStyle={ButtonStyleType.SECONDARY_LINK}
                   onClick={() => {
                     setShowAdvancedOptionsRequestBodyAndHeaders(true);
@@ -308,6 +467,20 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
+
+          {!showDoNotFollowRedirects &&
+            props.monitorType === MonitorType.Website && (
+              <div className="mt-1 -ml-3">
+                <Button
+                  title="Advanced: More Options"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  onClick={() => {
+                    setShowDoNotFollowRedirects(true);
+                  }}
+                />
+              </div>
+            )}
+
           {showAdvancedOptionsRequestBodyAndHeaders &&
             props.monitorType === MonitorType.API && (
               <div className="mt-5">
@@ -398,7 +571,73 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
               </div>
             )}
 
-          <HorizontalRule />
+          {(showDoNotFollowRedirects ||
+            showAdvancedOptionsRequestBodyAndHeaders) &&
+            (props.monitorType === MonitorType.API ||
+              props.monitorType === MonitorType.Website) && (
+              <div className="mt-5">
+                <CheckboxElement
+                  initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                  title={"Do not follow redirects"}
+                  description="Please check this if you do not want to follow redirects."
+                  onChange={(value: boolean) => {
+                    monitorStep.setDoNotFollowRedirects(value);
+                    setMonitorStep(MonitorStep.clone(monitorStep));
+                  }}
+                />
+              </div>
+            )}
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Logs && (
+        <div className="mt-5">
+          <LogMonitorStepForm
+            monitorStepLogMonitor={
+              monitorStep.data?.logMonitor ||
+              MonitorStepLogMonitorUtil.getDefault()
+            }
+            onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
+              monitorStep.setLogMonitor(value);
+              setMonitorStep(MonitorStep.clone(monitorStep));
+            }}
+            attributeKeys={attributeKeys}
+            telemetryServices={telemetryServices}
+          />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Metrics && (
+        <div className="mt-5">
+          <MetricMonitorStepForm
+            monitorStepMetricMonitor={
+              monitorStep.data?.metricMonitor ||
+              MonitorStepMetricMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepMetricMonitor) => {
+              monitorStep.setMetricMonitor(value);
+              setMonitorStep(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Traces && (
+        <div className="mt-5">
+          <TraceMonitorStepForm
+            monitorStepTraceMonitor={
+              monitorStep.data?.traceMonitor ||
+              MonitorStepTraceMonitorUtil.getDefault()
+            }
+            onMonitorStepTraceMonitorChanged={(
+              value: MonitorStepTraceMonitor,
+            ) => {
+              monitorStep.setTraceMonitor(value);
+              setMonitorStep(MonitorStep.clone(monitorStep));
+            }}
+            attributeKeys={attributeKeys}
+            telemetryServices={telemetryServices}
+          />
         </div>
       )}
 
@@ -497,23 +736,40 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {/** Monitor Test Form */}
+      <div className="mt-5 mb-2">
+        <MonitorTestForm
+          monitorSteps={props.allMonitorSteps}
+          monitorType={props.monitorType}
+          probes={props.probes}
+          buttonSize={ButtonSize.Small}
+        />
+      </div>
+
+      {/** Monitoring Critera Form */}
+
       <div className="mt-5">
         {props.monitorType !== MonitorType.IncomingRequest && (
-          <FieldLabelElement
-            title="Monitor Criteria"
-            isHeading={true}
-            description={
-              "Add Monitoring Criteria for this monitor. Monitor different properties."
-            }
-            required={true}
-          />
+          <>
+            <HorizontalRule />
+            <FieldLabelElement
+              title="Monitor Criteria"
+              isHeading={true}
+              description={
+                "Add Monitoring Criteria for this monitor. Monitor different properties."
+              }
+              required={true}
+            />
+          </>
         )}
         <MonitorCriteriaElement
           monitorType={props.monitorType}
+          monitorStep={monitorStep}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={
             props.incidentSeverityDropdownOptions
           }
+          alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           initialValue={monitorStep?.data?.monitorCriteria}
           onChange={(value: MonitorCriteria) => {

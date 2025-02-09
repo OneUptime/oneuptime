@@ -1,13 +1,15 @@
 import LabelsElement from "../../../Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import Workflow from "Model/Models/Workflow";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green500, Red500 } from "Common/Types/BrandColors";
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
@@ -52,7 +54,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stepId: "workflow-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {
@@ -109,7 +111,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 isEnabled: true,
               },
               title: "Enabled",
-              fieldType: FieldType.Boolean,
+              fieldType: FieldType.Element,
+              getElement: (item: Workflow): ReactElement => {
+                if (item.isEnabled) {
+                  return (
+                    <Pill text="Enabled" color={Green500} isMinimal={true} />
+                  );
+                }
+                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+              },
             },
             {
               field: {

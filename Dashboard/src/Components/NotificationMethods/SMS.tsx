@@ -5,17 +5,18 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import BasicFormModal from "CommonUI/src/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import User from "CommonUI/src/Utils/User";
-import UserSMS from "Model/Models/UserSMS";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import User from "Common/UI/Utils/User";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import React, { ReactElement, useEffect, useState } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 const SMS: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -26,7 +27,9 @@ const SMS: () => JSX.Element = (): ReactElement => {
 
   const [error, setError] = useState<string>("");
   const [currentItem, setCurrentItem] = useState<UserSMS | null>(null);
-  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
@@ -41,7 +44,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
       <ModelTable<UserSMS>
         modelType={UserSMS}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           userId: User.getUserId().toString(),
         }}
         refreshToggle={refreshToggle}
@@ -171,7 +174,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                   ),
                   {
                     code: item["code"],
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );
@@ -182,7 +185,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
               } else {
                 setIsLoading(false);
                 setShowVerificationCodeModal(false);
-                setRefreshToggle(!refreshToggle);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
               }
             } catch (e) {
               setError(API.getFriendlyMessage(e));
@@ -233,7 +236,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
                     "/user-sms/resend-verification-code",
                   ),
                   {
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                    projectId: DashboardNavigation.getProjectId()!,
                     itemId: currentItem["_id"],
                   },
                 );

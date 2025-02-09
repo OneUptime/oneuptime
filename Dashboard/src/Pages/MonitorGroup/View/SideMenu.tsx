@@ -3,9 +3,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -41,7 +41,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Monitors and Incidents">
+      <SideMenuSection title="More">
         <SideMenuItem
           link={{
             title: "Monitors",
@@ -62,6 +62,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Alert}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
         />
       </SideMenuSection>
 

@@ -1,6 +1,6 @@
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { IDENTITY_URL } from "CommonUI/src/Config";
+import { IDENTITY_URL } from "Common/UI/Config";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -8,6 +8,10 @@ export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
+
+export const VERIFY_TWO_FACTOR_AUTH_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/verify-two-factor-auth"));
 
 export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

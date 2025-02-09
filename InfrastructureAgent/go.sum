@@ -24,8 +24,6 @@ github.com/gookit/config/v2 v2.2.5 h1:RECbYYbtherywmzn3LNeu9NA5ZqhD7MSKEMsJ7l+Mp
 github.com/gookit/config/v2 v2.2.5/go.mod h1:NeX+yiNYn6Ei10eJvCQFXuHEPIE/IPS8bqaFIsszzaM=
 github.com/gookit/goutil v0.6.15 h1:mMQ0ElojNZoyPD0eVROk5QXJPh2uKR4g06slgPDF5Jo=
 github.com/gookit/goutil v0.6.15/go.mod h1:qdKdYEHQdEtyH+4fNdQNZfJHhI0jUZzHxQVAV3DaMDY=
-github.com/gookit/greq v0.3.0 h1:eOiKxdn0IYh4PHnfn0+svcXLyKwD2V/l87DUiZaIGIM=
-github.com/gookit/greq v0.3.0/go.mod h1:z7U/ABiJZ3tiMZPJcmg7qmgMCRJ2LPclsqv4tDsAR2Q=
 github.com/gookit/ini/v2 v2.2.3 h1:nSbN+x9OfQPcMObTFP+XuHt8ev6ndv/fWWqxFhPMu2E=
 github.com/gookit/ini/v2 v2.2.3/go.mod h1:Vu6p7P7xcfmb8KYu3L0ek8bqu/Im63N81q208SCCZY4=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=

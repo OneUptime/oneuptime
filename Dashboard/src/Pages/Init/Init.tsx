@@ -2,10 +2,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import Page from "CommonUI/src/Components/Page/Page";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Model/Models/Project";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Page from "Common/UI/Components/Page/Page";
+import Navigation from "Common/UI/Utils/Navigation";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps extends PageComponentProps {

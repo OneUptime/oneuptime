@@ -51,6 +51,3 @@ licenses/*
 certifications/*
 ApiReference/public/assets/*
 JavaScriptSDK/src/cli/server-monitor/out/scripts/prettify/*
-
-
-CommonServer/Tests/TestingUtils/__mocks__/Stripe.mock.ts

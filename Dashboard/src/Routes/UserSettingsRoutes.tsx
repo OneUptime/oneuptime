@@ -19,11 +19,18 @@ const UserSettingsNotificationMethods: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/UserSettings/NotificationMethods");
 });
-const UserSettingsNotificationRules: LazyExoticComponent<
+const UserSettingsIncidentNotificationRules: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/UserSettings/OnCallRules");
+  return import("../Pages/UserSettings/IncidentOnCallRules");
 });
+
+const UserSettingsAlertNotificationRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/AlertOnCallRules");
+});
+
 const UserSettingsNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -38,6 +45,12 @@ const UserSettingsNotiifcationSetting: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/UserSettings/NotificationSettings");
+});
+
+const UserSettingsSlackIntegration: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/SlackIntegration");
 });
 
 const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
@@ -126,14 +139,51 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES] || ""
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
-              <UserSettingsNotificationRules
+              <UserSettingsIncidentNotificationRules
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route
+                  RouteMap[
+                    PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_SLACK_INTEGRATION] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsSlackIntegration
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsAlertNotificationRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
                 }
               />
             </Suspense>

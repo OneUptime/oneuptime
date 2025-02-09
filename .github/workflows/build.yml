@@ -16,7 +16,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -31,7 +31,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -40,6 +40,81 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./IsolatedVM/Dockerfile .
 
+  docker-build-home:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./Home/Dockerfile .
+
+  docker-build-worker:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./Worker/Dockerfile .
+
+  docker-build-workflow:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./Workflow/Dockerfile .
+
+  docker-build-api-reference:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./APIReference/Dockerfile .
+
+  docker-build-docs:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Preinstall 
+        run: npm run prerun
+      
+      # build image for accounts service
+      - name: build docker image
+        run: sudo docker build -f ./Docs/Dockerfile .
+
 
   docker-build-otel-collector:
     runs-on: ubuntu-latest
@@ -47,7 +122,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -62,7 +137,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -79,7 +154,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -94,7 +169,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -110,7 +185,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -125,7 +200,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -140,7 +215,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -156,7 +231,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       - name: Preinstall 
         run: npm run prerun
@@ -165,20 +240,65 @@ jobs:
       - name: build docker image
         run: sudo docker build -f ./Probe/Dockerfile .
 
-  docker-build-ingestor:
+  docker-build-probe-ingest:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       - name: Preinstall 
         run: npm run prerun
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./Ingestor/Dockerfile .
+        run: sudo docker build -f ./ProbeIngest/Dockerfile .
+
+  docker-build-open-telemetry-ingest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./OpenTelemetryIngest/Dockerfile .
+
+  docker-build-incoming-request-ingest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./IncomingRequestIngest/Dockerfile .
+
+  docker-build-fluent-ingest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image probe api
+      - name: build docker image
+        run: sudo docker build -f ./FluentIngest/Dockerfile .
 
   docker-build-status-page:
     runs-on: ubuntu-latest
@@ -186,7 +306,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun
@@ -201,7 +321,7 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Preinstall 
         run: npm run prerun

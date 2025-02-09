@@ -13,6 +13,7 @@ import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
 import CallRequest from "./Call/CallRequest";
 import Color from "./Color";
+import { CompareType } from "./Database/CompareBase";
 import Domain from "./Domain";
 import Email from "./Email";
 import HashedString from "./HashedString";
@@ -26,6 +27,7 @@ import PositiveNumber from "./PositiveNumber";
 import StartAndEndTime from "./Time/StartAndEndTime";
 import Version from "./Version";
 import { BaseEntity } from "typeorm";
+import DashboardViewConfig from "./Dashboard/DashboardViewConfig";
 
 export enum ObjectType {
   ObjectID = "ObjectID",
@@ -63,6 +65,9 @@ export enum ObjectType {
   NotNull = "NotNull",
   IsNull = "IsNull",
   Includes = "Includes",
+
+  DashboardComponent = "DashboardComponent",
+  DashboardViewConfig = "DashboardViewConfig",
 }
 
 export type JSONValue =
@@ -102,28 +107,28 @@ export type JSONValue =
   | Array<CheckOn>
   | FilterType
   | Array<FilterType>
-  | Search
+  | Search<string>
   | Domain
   | Array<Domain>
-  | Array<Search>
-  | EqualToOrNull
-  | Array<EqualToOrNull>
-  | NotEqual
-  | Array<NotEqual>
-  | GreaterThan
-  | Array<GreaterThan>
-  | GreaterThanOrEqual
-  | Array<GreaterThanOrEqual>
+  | Array<Search<string>>
+  | EqualToOrNull<CompareType>
+  | Array<EqualToOrNull<CompareType>>
+  | NotEqual<CompareType>
+  | Array<NotEqual<CompareType>>
+  | GreaterThan<CompareType>
+  | Array<GreaterThan<CompareType>>
+  | GreaterThanOrEqual<CompareType>
+  | Array<GreaterThanOrEqual<CompareType>>
   | PositiveNumber
   | Array<PositiveNumber>
-  | LessThan
-  | Array<LessThan>
-  | InBetween
-  | Array<InBetween>
+  | LessThan<CompareType>
+  | Array<LessThan<CompareType>>
+  | InBetween<CompareType>
+  | Array<InBetween<CompareType>>
   | NotNull
   | Array<NotNull>
-  | LessThanOrEqual
-  | Array<LessThanOrEqual>
+  | LessThanOrEqual<CompareType>
+  | Array<LessThanOrEqual<CompareType>>
   | Port
   | Array<Port>
   | HashedString
@@ -140,7 +145,8 @@ export type JSONValue =
   | StartAndEndTime
   | Array<StartAndEndTime>
   | Includes
-  | Array<Includes>;
+  | Array<Includes>
+  | DashboardViewConfig;
 
 export interface JSONObject {
   [x: string]: JSONValue;

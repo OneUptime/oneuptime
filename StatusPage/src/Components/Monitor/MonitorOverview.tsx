@@ -1,16 +1,16 @@
 import { Green } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "CommonUI/src/Components/Icon/Icon";
-import MarkdownViewer from "CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer";
-import MonitorUptimeGraph from "CommonUI/src/Components/MonitorGraphs/Uptime";
-import UptimeUtil from "CommonUI/src/Components/MonitorGraphs/UptimeUtil";
-import Tooltip from "CommonUI/src/Components/Tooltip/Tooltip";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimelne from "Model/Models/MonitorStatusTimeline";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+import Icon from "Common/UI/Components/Icon/Icon";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
+import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

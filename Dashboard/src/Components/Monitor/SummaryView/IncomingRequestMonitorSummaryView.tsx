@@ -1,14 +1,15 @@
 import OneUptimeDate from "Common/Types/Date";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Detail from "CommonUI/src/Components/Detail/Detail";
-import Field from "CommonUI/src/Components/Detail/Field";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Field from "Common/UI/Components/Detail/Field";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   incomingMonitorRequest: IncomingMonitorRequest;
+  incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
 }
 
 const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
@@ -52,6 +53,17 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           className="w-1/2 shadow-none border-2 border-gray-100"
           title="Request Method"
           value={props.incomingMonitorRequest.requestMethod || "-"}
+        />
+        <InfoCard
+          className="w-1/2 shadow-none border-2 border-gray-100"
+          title="Monitor Status Check At"
+          value={
+            props.incomingRequestMonitorHeartbeatCheckedAt
+              ? OneUptimeDate.getDateAsLocalFormattedString(
+                  props.incomingRequestMonitorHeartbeatCheckedAt,
+                )
+              : "-"
+          }
         />
       </div>
 

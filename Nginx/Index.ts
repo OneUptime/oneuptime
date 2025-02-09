@@ -1,9 +1,10 @@
 import AcmeWriteCertificatesJob from "./Jobs/AcmeWriteCertificates";
+import WriteCustomCertsToDiskJob from "./Jobs/WriteCustomCertsToDisk";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { PostgresAppInstance } from "CommonServer/Infrastructure/PostgresDatabase";
-import InfrastructureStatus from "CommonServer/Infrastructure/Status";
-import logger from "CommonServer/Utils/Logger";
-import App from "CommonServer/Utils/StartServer";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import InfrastructureStatus from "Common/Server/Infrastructure/Status";
+import logger from "Common/Server/Utils/Logger";
+import App from "Common/Server/Utils/StartServer";
 
 process.env["SERVICE_NAME"] = "ingress";
 
@@ -12,10 +13,11 @@ const APP_NAME: string = process.env["SERVICE_NAME"];
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      return await InfrastructureStatus.checkStatus({
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: false,
         checkPostgresStatus: true,
         checkRedisStatus: false,
+        retryCount: 3,
       });
     };
 
@@ -31,11 +33,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     // connect to the database.
-    await PostgresAppInstance.connect(
-      PostgresAppInstance.getDatasourceOptions(),
-    );
+    await PostgresAppInstance.connect();
 
     AcmeWriteCertificatesJob.init();
+    WriteCustomCertsToDiskJob.init();
 
     // add default routes
     await App.addDefaultRoutes();

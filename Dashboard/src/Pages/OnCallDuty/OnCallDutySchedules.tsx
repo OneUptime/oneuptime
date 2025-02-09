@@ -1,12 +1,12 @@
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import OnCallDutySchedule from "Model/Models/OnCallDutyPolicySchedule";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallDutyPage: FunctionComponent<
@@ -48,7 +48,7 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {
@@ -96,7 +96,7 @@ const OnCallDutyPage: FunctionComponent<
             title: "Labels",
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -116,6 +116,7 @@ const OnCallDutyPage: FunctionComponent<
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

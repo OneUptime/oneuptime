@@ -3,7 +3,7 @@ import Faker from "../../../Utils/Faker";
 
 describe("Headers", () => {
   test("should compile", () => {
-    const apiKey: string = Faker.randomNumbers(16);
+    const apiKey: string = Faker.getRandomNumbers(16).toString();
     const headers: Headers = {
       accept: "application/json",
       "x-api-key": apiKey,

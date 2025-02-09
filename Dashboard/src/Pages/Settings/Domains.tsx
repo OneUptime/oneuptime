@@ -3,15 +3,15 @@ import PageComponentProps from "../PageComponentProps";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Domain from "Model/Models/Domain";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import Domain from "Common/Models/DatabaseModels/Domain";
 import React, {
   Fragment,
   FunctionComponent,
@@ -19,6 +19,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import OneUptimeDate from "Common/Types/Date";
 
 const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showVerificationModal, setShowVerificationModal] =
@@ -26,7 +27,9 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [currentVerificationDomain, setCurrentVerificationDomain] =
     useState<Domain | null>(null);
-  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
   const [isVerificationLoading, setIsVerificationLoading] =
     useState<boolean>(false);
 
@@ -41,7 +44,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         name="Settings > Domain"
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="domains-table"
         isDeleteable={true}
@@ -194,7 +197,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
               });
               setIsVerificationLoading(false);
               setShowVerificationModal(false);
-              setRefreshToggle(!refreshToggle);
+              setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
             } catch (err) {
               setError(API.getFriendlyMessage(err));
               setIsVerificationLoading(false);

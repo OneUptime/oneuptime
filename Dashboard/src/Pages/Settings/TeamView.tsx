@@ -11,22 +11,22 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { FormProps } from "CommonUI/src/Components/Forms/BasicForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import PermissionUtil from "CommonUI/src/Utils/Permission";
-import Label from "Model/Models/Label";
-import Team from "Model/Models/Team";
-import TeamMember from "Model/Models/TeamMember";
-import TeamPermission from "Model/Models/TeamPermission";
-import User from "Model/Models/User";
+import Banner from "Common/UI/Components/Banner/Banner";
+import { FormProps } from "Common/UI/Components/Forms/BasicForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
+import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,
@@ -84,7 +84,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         createEditFromRef={formRef}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           isBlockPermission: permissionType === PermissionType.BlockPermissions,
         }}
         onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
@@ -170,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Restrict to Labels",
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -262,7 +262,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Team Description",
           },
         ]}
@@ -305,7 +305,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
           if (!props.currentProject || !props.currentProject._id) {
@@ -369,6 +369,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               user: {
                 name: true,
                 email: true,
+                profilePictureId: true,
               },
             },
             title: "User",

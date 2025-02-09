@@ -1,28 +1,28 @@
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import { FormProps } from "CommonUI/src/Components/Forms/BasicForm";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "CommonUI/src/Components/Forms/Types/FormValues";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import ResetObjectID from "CommonUI/src/Components/ResetObjectID/ResetObjectID";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import PermissionUtil from "CommonUI/src/Utils/Permission";
-import ApiKey from "Model/Models/ApiKey";
-import ApiKeyPermission from "Model/Models/ApiKeyPermission";
-import Label from "Model/Models/Label";
-import TeamPermission from "Model/Models/TeamPermission";
+import Banner from "Common/UI/Components/Banner/Banner";
+import { FormProps } from "Common/UI/Components/Forms/BasicForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
+import Label from "Common/Models/DatabaseModels/Label";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import React, {
   Fragment,
   FunctionComponent,
@@ -81,7 +81,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         name="Settings > API Key > Permissions"
         query={{
           apiKeyId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           isBlockPermission: permissionType === PermissionType.BlockPermissions,
         }}
         onBeforeCreate={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
@@ -172,7 +172,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -265,7 +265,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "API Key Description",
           },
           {
@@ -303,6 +303,16 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
               },
               title: "Expires",
               fieldType: FieldType.Date,
+            },
+            {
+              field: {
+                projectId: true,
+              },
+              title: "Project ID",
+              fieldType: FieldType.Text,
+              opts: {
+                isCopyable: true,
+              },
             },
             {
               field: {
@@ -353,7 +363,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         modelType={ApiKey}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_APIKEYS] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+            ),
+          );
         }}
       />
     </Fragment>

@@ -25,27 +25,46 @@ x-common-variables: &common-variables
     ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
     SERVER_ACCOUNTS_HOSTNAME: accounts
-    SERVER_REALTIME_HOSTNAME: realtime
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_INGESTOR_HOSTNAME: ingestor
+    SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
+    SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME: open-telemetry-ingest
+    SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
+    SERVER_FLUENT_INGEST_HOSTNAME: fluent-ingest
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
     SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
     SERVER_ISOLATED_VM_HOSTNAME: isolated-vm
+    SERVER_WORKER_HOSTNAME: worker
+    SERVER_HOME_HOSTNAME: home
+    SERVER_WORKFLOW_HOSTNAME: workflow
+    SERVER_API_REFERENCE_HOSTNAME: api-reference
+    SERVER_DOCS_HOSTNAME: docs
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
-    INGESTOR_PORT: ${INGESTOR_PORT}
-    PROBE_PORT: ${PROBE_PORT}
+    HOME_PORT: ${HOME_PORT}
+    PROBE_INGEST_PORT: ${PROBE_INGEST_PORT}
+    OPEN_TELEMETRY_INGEST_PORT: ${OPEN_TELEMETRY_INGEST_PORT}
+    INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
+    FLUENT_INGEST_PORT: ${FLUENT_INGEST_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
     STATUS_PAGE_PORT: ${STATUS_PAGE_PORT}
     DASHBOARD_PORT: ${DASHBOARD_PORT}
     ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
     ISOLATED_VM_PORT: ${ISOLATED_VM_PORT}
+    WORKER_PORT: ${WORKER_PORT}
+    WORKFLOW_PORT: ${WORKFLOW_PORT}
+    API_REFERENCE_PORT: ${API_REFERENCE_PORT}
+    DOCS_PORT: ${DOCS_PORT}
+
+    OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+    OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+
+    SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
 
 x-common-ui-variables: &common-ui-variables
     <<: *common-variables   
@@ -73,6 +92,7 @@ x-common-server-variables: &common-server-variables
     REDIS_HOST: ${REDIS_HOST}
     REDIS_PORT: ${REDIS_PORT}
     REDIS_DB: ${REDIS_DB}
+    REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
     REDIS_TLS_CA: ${REDIS_TLS_CA}
     REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
 
@@ -94,9 +114,16 @@ x-common-server-variables: &common-server-variables
 
     DISABLE_AUTOMATIC_INCIDENT_CREATION: ${DISABLE_AUTOMATIC_INCIDENT_CREATION}
 
-    # Notification Webhooks
-    NOTIFICATION_WEBHOOK_ON_CREATED_USER: ${NOTIFICATION_WEBHOOK_ON_CREATED_USER}
+    DISABLE_AUTOMATIC_ALERT_CREATION: ${DISABLE_AUTOMATIC_ALERT_CREATION}
 
+    # Notification Webhooks
+    NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER}
+    NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT}
+    NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT}
+    NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE: ${NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE}
+
+    SLACK_APP_CLIENT_SECRET: ${SLACK_APP_CLIENT_SECRET}
+    SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
 
 services:
 
@@ -172,9 +199,7 @@ services:
         environment: 
             <<: *common-ui-variables
             PORT: ${ACCOUNTS_PORT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${CLIENT_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${ACCOUNTS_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
-
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ACCOUNTS}
         logging:
             driver: "local"
             options:
@@ -204,8 +229,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${ADMIN_DASHBOARD_PORT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${CLIENT_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${ADMIN_DASHBOARD_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ADMIN_DASHBOARD}
         logging:
             driver: "local"
             options:
@@ -218,8 +242,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${DASHBOARD_PORT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${CLIENT_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${DASHBOARD_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_DASHBOARD}
         logging:
             driver: "local"
             options:
@@ -234,8 +257,7 @@ services:
         environment:
             <<: *common-ui-variables
             PORT: ${STATUS_PAGE_PORT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${CLIENT_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${STATUS_PAGE_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_STATUS_PAGE}
         logging:
             driver: "local"
             options:
@@ -250,6 +272,7 @@ services:
         environment: 
             <<: *common-server-variables
             PORT: ${TEST_SERVER_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
         logging:
             driver: "local"
             options:
@@ -270,20 +293,78 @@ services:
             INTERNAL_SMTP_EMAIL: ${INTERNAL_SMTP_EMAIL}
             INTERNAL_SMTP_FROM_NAME: ${INTERNAL_SMTP_FROM_NAME}
             INTERNAL_SMTP_PASSWORD: ${INTERNAL_SMTP_PASSWORD}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${SERVER_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${APP_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    home:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${HOME_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    worker:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${WORKER_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    docs:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${DOCS_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    api-reference:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${API_REFERENCE_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    workflow:
+        networks:
+          - oneuptime
+        restart: always
+        environment: 
+            <<: *common-server-variables
+            PORT: ${WORKFLOW_PORT}
         logging:
             driver: "local"
             options:
                 max-size: "1000m"
 
     probe-1:   
-        networks:
-          - oneuptime
         restart: always
+        network_mode: host
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
@@ -292,20 +373,18 @@ services:
             PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${SERVER_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${PROBE_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            PORT: ${GLOBAL_PROBE_1_PORT}
         logging:
             driver: "local"
             options:
                 max-size: "1000m"
 
     probe-2:   
-        networks:
-          - oneuptime
         restart: always
+        network_mode: host
         environment:
             <<: *common-server-variables
-            PORT: ${PROBE_PORT}
             PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
@@ -314,8 +393,8 @@ services:
             PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
             PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${SERVER_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${PROBE_OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+            PORT: ${GLOBAL_PROBE_2_PORT}
         logging:
             driver: "local"
             options:
@@ -327,13 +406,28 @@ services:
           - oneuptime
         environment:
             <<: *common-variables
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OTEL_COLLECTOR}
+            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED}
+            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE}
+            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS}
+        restart: always
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+        ports: 
+          - 13133:13133 # Otel Collector Health Check Endpoint at /heath/status
+
+    fluentd:
+        networks:
+          - oneuptime
         restart: always
         logging:
             driver: "local"
             options:
                 max-size: "1000m"
 
-    fluentd:
+    fluent-bit: 
         networks:
           - oneuptime
         restart: always
@@ -349,18 +443,59 @@ services:
         environment:
             PORT: ${ISOLATED_VM_PORT}
             ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ISOLATED_VM}
         logging:
             driver: "local"
             options:
                 max-size: "1000m"
 
-    ingestor:
+    fluent-ingest:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-server-variables
-            PORT: ${INGESTOR_PORT}
+            PORT: ${FLUENT_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_FLUENT_INGEST}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    probe-ingest:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${PROBE_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    open-telemetry-ingest:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${OPEN_TELEMETRY_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OPEN_TELEMETRY_INGEST}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    incoming-request-ingest:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${INCOMING_REQUEST_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INCOMING_REQUEST_INGEST}
         logging:
             driver: "local"
             options:
@@ -406,6 +541,7 @@ services:
         environment:
             <<: *common-server-variables
             ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
         ports:
             - '${ONEUPTIME_HTTP_PORT}:7849'
             - '${STATUS_PAGE_HTTPS_PORT}:7850'

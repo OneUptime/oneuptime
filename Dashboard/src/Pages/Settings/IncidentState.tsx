@@ -2,13 +2,13 @@ import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import { ShowAs } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentState from "Model/Models/IncidentState";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const IncidentsPage: FunctionComponent<
@@ -116,7 +116,7 @@ const IncidentsPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder:
               "This incident state happens when the incident is investigated",
           },

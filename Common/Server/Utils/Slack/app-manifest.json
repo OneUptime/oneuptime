@@ -1,0 +1,67 @@
+{
+    "display_information": {
+        "name": "OneUptime",
+        "description": "The Complete Open-Source Observability Platform",
+        "background_color": "#000000",
+        "long_description": "OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors."
+    },
+    "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": false,
+            "messages_tab_read_only_enabled": false
+        },
+        "bot_user": {
+            "display_name": "OneUptime",
+            "always_online": true
+        },
+        "shortcuts": [
+            {
+                "name": "Create Scheduled Event",
+                "type": "global",
+                "callback_id": "create-scheduled-maintenance",
+                "description": "Create a new scheduled event in OneUptime"
+            },
+            {
+                "name": "Create New Incident",
+                "type": "global",
+                "callback_id": "create-incident",
+                "description": "Creates a new incident in OneUptime"
+            }
+        ],
+        "slash_commands": [
+            {
+                "command": "/oneuptime",
+                "url": "https://local.genosyn.com/api/slack/command",
+                "description": "OneUptime command",
+                "usage_hint": "incident, scheduled event.",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "redirect_urls": [
+            "https://local.genosyn.com/api/slack/auth"
+        ],
+        "scopes": {
+            "user": [
+                "identity.email",
+                "identity.basic",
+                "email"
+            ],
+            "bot": [
+                "commands"
+            ]
+        }
+    },
+    "settings": {
+        "interactivity": {
+            "is_enabled": true,
+            "request_url": "https://local.genosyn.com/api/slack/interactive",
+            "message_menu_options_url": "https://local.genosyn.com/api/slack/options-load"
+        },
+        "org_deploy_enabled": true,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}

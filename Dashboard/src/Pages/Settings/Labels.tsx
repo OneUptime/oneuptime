@@ -1,12 +1,12 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import Color from "Common/Types/Color";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -15,7 +15,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<Label>
         modelType={Label}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="labels-table"
         name="Settings > Labels"
@@ -48,7 +48,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This label is for all the internal services.",
           },
           {
@@ -103,6 +103,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

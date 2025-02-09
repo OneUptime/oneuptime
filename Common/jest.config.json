@@ -1,7 +1,6 @@
 {
-   
- "preset": "ts-jest",
-"testPathIgnorePatterns": [
+    "preset": "ts-jest",
+    "testPathIgnorePatterns": [
         "node_modules",
         "dist"
     ],
@@ -30,9 +29,6 @@
     "collectCoverageFrom": [
         "./**/*.(tsx||ts)"
     ],
-    "moduleNameMapper": {
-        "axios": "axios/dist/node/axios.cjs"
-    },
     "coverageThreshold": {
         "global": {
             "lines": 0,

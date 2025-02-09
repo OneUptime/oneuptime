@@ -1,9 +1,10 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricView from "./MetricView";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
   const metricName: string =
@@ -16,33 +17,40 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
 
-  const startAndEndDate: InBetween = new InBetween(startDate, endDate);
+  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+  const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
+    startAndEndDate: startAndEndDate,
+    queryConfigs: [
+      {
+        metricAliasData: {
+          metricVariable: "a",
+          title: "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricQueryData: {
+          filterData: {
+            metricName: metricName,
+            attributes: serviceName
+              ? {
+                  "resource.oneuptime.telemetry.service.name": serviceName,
+                }
+              : {},
+            aggegationType: MetricsAggregationType.Avg,
+          },
+        },
+      },
+    ],
+    formulaConfigs: [],
+  });
 
   return (
     <MetricView
-      data={{
-        startAndEndDate: startAndEndDate,
-        queryConfigs: [
-          {
-            metricAliasData: {
-              metricVariable: "a",
-              title: "",
-              description: "",
-            },
-            metricQueryData: {
-              filterData: {
-                metricName: metricName,
-                attributes: serviceName
-                  ? {
-                      "resource.oneuptime.telemetry.service.name": serviceName,
-                    }
-                  : {},
-                aggregateBy: MetricsAggregationType.Avg,
-              },
-            },
-          },
-        ],
-        formulaConfigs: [],
+      data={metricViewData}
+      onChange={(data: MetricViewData) => {
+        setMetricViewData(data);
       }}
     />
   );

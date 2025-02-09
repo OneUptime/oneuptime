@@ -1,3 +1,4 @@
+import Navigation from "Common/UI/Utils/Navigation";
 import Loader from "../Components/Loader/Loader";
 import Layout from "../Pages/Incidents/Layout";
 import IncidentViewLayout from "../Pages/Incidents/View/Layout";
@@ -59,12 +60,44 @@ const IncidentViewOwner: LazyExoticComponent<
   return import("../Pages/Incidents/View/Owners");
 });
 
+const IncidentViewRemediation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Remediation");
+});
+
+const IncidentViewRootCause: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/RootCause");
+});
+
+const IncidentViewDescription: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Description");
+});
+
+const IncidentCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Incidents/Create");
+  });
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  let hideSideMenu: boolean = false;
+
+  if (Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
   return (
     <Routes>
-      <PageRoute path="/" element={<Layout {...props} />}>
+      <PageRoute
+        path="/"
+        element={<Layout {...props} hideSideMenu={hideSideMenu} />}
+      >
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS] || ""}
           element={
@@ -84,6 +117,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <UnresolvedIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
               />
             </Suspense>
           }
@@ -128,6 +173,42 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_REMEDIATION)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewRemediation
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ROOT_CAUSE)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewRootCause
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_DESCRIPTION)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewDescription
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route}
               />
             </Suspense>
           }

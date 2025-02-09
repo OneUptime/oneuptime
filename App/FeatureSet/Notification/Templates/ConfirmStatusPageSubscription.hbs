@@ -1,0 +1,17 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat statusPageName " - Please confirm your subscription" ) }}
+
+{{> InfoBlock info="You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events."}}
+
+{{> ButtonBlock buttonUrl=confirmationUrl buttonText="Confirm Subscription"}}
+
+{{> InfoBlock info="You can also view the status page by visiting this link:"}}
+{{> InfoBlock info=statusPageUrl}}
+
+{{> UnsubscribeBlock this}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
@@ -44,17 +44,28 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           }}
           icon={IconProp.Settings}
         />
+      </SideMenuSection>
+      <SideMenuSection title="On-Call">
         <SideMenuItem
           link={{
-            title: "On-Call Rules",
+            title: "Incident On-Call Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
+              RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
             ),
           }}
-          icon={IconProp.Call}
+          icon={IconProp.Alert}
         />
-      </SideMenuSection>
-      <SideMenuSection title="Logs">
+
+        <SideMenuItem
+          link={{
+            title: "Alert On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
+        />
+
         <SideMenuItem
           link={{
             title: "On-Call Logs",
@@ -65,6 +76,17 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           icon={IconProp.Logs}
           subItemIcon={IconProp.Clock}
           subItemLink={subItemMenuLink}
+        />
+      </SideMenuSection>
+      <SideMenuSection title="Workspace Connections">
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
         />
       </SideMenuSection>
     </SideMenu>

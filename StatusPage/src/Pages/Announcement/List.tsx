@@ -7,7 +7,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import { getAnnouncementEventItem } from "./Detail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -18,15 +18,15 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { ComponentProps as EventHistoryDayListComponentProps } from "CommonUI/src/Components/EventHistoryList/EventHistoryDayList";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ComponentProps as EventHistoryDayListComponentProps } from "Common/UI/Components/EventHistoryList/EventHistoryDayList";
 import EventHistoryList, {
   ComponentProps as EventHistoryListComponentProps,
-} from "CommonUI/src/Components/EventHistoryList/EventHistoryList";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
+} from "Common/UI/Components/EventHistoryList/EventHistoryList";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -148,17 +148,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const activeAnnouncement: Array<StatusPageAnnouncement> =
       announcements.filter((announcement: StatusPageAnnouncement) => {
-        return OneUptimeDate.isBefore(
-          OneUptimeDate.getCurrentDate(),
-          announcement.endAnnouncementAt!,
+        return (
+          !announcement.endAnnouncementAt ||
+          (announcement.endAnnouncementAt &&
+            OneUptimeDate.isBefore(
+              OneUptimeDate.getCurrentDate(),
+              announcement.endAnnouncementAt!,
+            ))
         );
       });
 
     const pastAnnouncement: Array<StatusPageAnnouncement> =
       announcements.filter((announcement: StatusPageAnnouncement) => {
-        return OneUptimeDate.isAfter(
-          OneUptimeDate.getCurrentDate(),
-          announcement.endAnnouncementAt!,
+        return (
+          announcement.endAnnouncementAt &&
+          OneUptimeDate.isAfter(
+            OneUptimeDate.getCurrentDate(),
+            announcement.endAnnouncementAt!,
+          )
         );
       });
 
@@ -173,7 +180,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (

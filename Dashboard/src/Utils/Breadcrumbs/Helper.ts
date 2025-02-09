@@ -1,7 +1,7 @@
 import { RouteUtil } from "../RouteMap";
 import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 
 export function BuildBreadcrumbLinks(
   key: string,

@@ -1,17 +1,17 @@
 import PageComponentProps from "../../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import TelemetryService from "Model/Models/TelemetryService";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import API from "CommonUI/src/Utils/API/API";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsTable from "../../../../../Components/Metrics/MetricsTable";
 
@@ -60,7 +60,7 @@ const MetricsTablePage: FunctionComponent<
     };
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {
@@ -68,7 +68,7 @@ const MetricsTablePage: FunctionComponent<
   }
 
   if (!telemetryService) {
-    return <ErrorMessage error="Telemetry Service not found." />;
+    return <ErrorMessage message="Telemetry Service not found." />;
   }
 
   return (

@@ -11,19 +11,22 @@ export default class DatabaseProperty extends SerializableObject {
 
   protected static fromDatabase(
     _value: string | number | JSONObject | JSONArray,
-  ): DatabaseProperty | null {
+  ): DatabaseProperty | Array<DatabaseProperty> | null {
     throw new NotImplementedException();
   }
 
   protected static toDatabase(
-    _value: DatabaseProperty | FindOperator<DatabaseProperty>,
+    _value:
+      | DatabaseProperty
+      | Array<DatabaseProperty>
+      | FindOperator<DatabaseProperty>,
   ): string | number | JSONObject | JSONArray | null {
     throw new NotImplementedException();
   }
 
   protected static _fromDatabase(
     value: string | number | JSONObject | JSONArray,
-  ): DatabaseProperty | null {
+  ): DatabaseProperty | Array<DatabaseProperty> | null {
     return this.fromDatabase(value);
   }
 

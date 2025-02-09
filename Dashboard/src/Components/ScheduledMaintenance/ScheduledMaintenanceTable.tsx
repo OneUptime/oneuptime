@@ -1,23 +1,36 @@
 import DashboardNavigation from "../../Utils/Navigation";
-import ProjectUser from "../../Utils/ProjectUser";
 import LabelsElement from "../Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
-import StatusPagesElement from "../StatusPage/StatusPagesLabel";
+import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenanceState from "Model/Models/ScheduledMaintenanceState";
-import StatusPage from "Model/Models/StatusPage";
-import Team from "Model/Models/Team";
-import React, { FunctionComponent, ReactElement } from "react";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Query from "Common/Types/BaseDatabase/Query";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import React, { FunctionComponent, ReactElement, useState } from "react";
+import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import API from "Common/UI/Utils/API/API";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { SaveFilterProps } from "Common/UI/Components/ModelTable/BaseModelTable";
+import Navigation from "Common/UI/Utils/Navigation";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -25,446 +38,388 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
+  disableCreate?: boolean | undefined;
+  saveFilterProps?: SaveFilterProps | undefined;
 }
 
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return (
-    <ModelTable<ScheduledMaintenance>
-      modelType={ScheduledMaintenance}
-      id="scheduledMaintenances-table"
-      name="Scheduled Maintenance Events"
-      isDeleteable={false}
-      query={props.query || {}}
-      isEditable={false}
-      isCreateable={true}
-      isViewable={true}
-      cardProps={{
-        title: props.title || "Scheduled Maintenance Events",
-        description:
-          props.description ||
-          "Here is a list of scheduled maintenance events for this project.",
-      }}
-      noItemsMessage={
-        props.noItemsMessage || "No scheduled Maintenance Event found."
+  const [scheduledMaintenanceTemplates, setScheduledMaintenanceTemplates] =
+    useState<Array<ScheduledMaintenanceTemplate>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [
+    showScheduledMaintenanceTemplateModal,
+    setShowScheduledMaintenanceTemplateModal,
+  ] = useState<boolean>(false);
+
+  let cardbuttons: Array<CardButtonSchema> = [];
+
+  const fetchScheduledMaintenanceTemplates: () => Promise<void> =
+    async (): Promise<void> => {
+      setError("");
+      setIsLoading(true);
+
+      try {
+        const listResult: ListResult<ScheduledMaintenanceTemplate> =
+          await ModelAPI.getList<ScheduledMaintenanceTemplate>({
+            modelType: ScheduledMaintenanceTemplate,
+            query: {},
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              templateName: true,
+              _id: true,
+            },
+            sort: {},
+          });
+
+        setScheduledMaintenanceTemplates(listResult.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
       }
-      formSteps={[
-        {
-          title: "Event Info",
-          id: "event-info",
+
+      setIsLoading(false);
+    };
+
+  if (!props.disableCreate) {
+    // then add a card button that takes to monitor create page
+    cardbuttons = [
+      {
+        title: "Create from Template",
+        icon: IconProp.Template,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: async (): Promise<void> => {
+          setShowScheduledMaintenanceTemplateModal(true);
+          await fetchScheduledMaintenanceTemplates();
         },
-        {
-          title: "Event Time",
-          id: "event-time",
+      },
+      {
+        title: "Create Scheduled Maintenance Event",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+            ),
+          );
         },
-        {
-          title: "Resources Affected",
-          id: "resources-affected",
-        },
-        {
-          title: "Status Pages",
-          id: "status-pages",
-        },
-        {
-          title: "Owners",
-          id: "owners",
-        },
-        {
-          title: "More",
-          id: "more",
-        },
-      ]}
-      formFields={[
-        {
-          field: {
-            title: true,
-          },
-          title: "Title",
-          stepId: "event-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Event Title",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          stepId: "event-info",
-          fieldType: FormFieldSchemaType.Markdown,
-          required: true,
-        },
-        {
-          field: {
-            startsAt: true,
-          },
-          title: "Event Starts At",
-          stepId: "event-time",
-          fieldType: FormFieldSchemaType.DateTime,
-          required: true,
-          placeholder: "Pick Date and Time",
-        },
-        {
-          field: {
-            endsAt: true,
-          },
-          title: "Ends At",
-          stepId: "event-time",
-          fieldType: FormFieldSchemaType.DateTime,
-          required: true,
-          placeholder: "Pick Date and Time",
-        },
-        {
-          field: {
-            monitors: true,
-          },
-          title: "Monitors affected ",
-          stepId: "resources-affected",
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
+  return (
+    <div>
+      <ModelTable<ScheduledMaintenance>
+        modelType={ScheduledMaintenance}
+        id="scheduledMaintenances-table"
+        name="Scheduled Maintenance Events"
+        isDeleteable={false}
+        query={props.query || {}}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={true}
+        saveFilterProps={props.saveFilterProps}
+        showCreateForm={false}
+        cardProps={{
+          title: props.title || "Scheduled Maintenance Events",
           description:
-            "Select monitors affected by this scheduled maintenance.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Monitor,
-            labelField: "name",
-            valueField: "_id",
+            props.description ||
+            "Here is a list of scheduled maintenance events for this project.",
+          buttons: cardbuttons,
+        }}
+        noItemsMessage={
+          props.noItemsMessage || "No scheduled Maintenance Event found."
+        }
+        showViewIdButton={true}
+        viewButtonText="View Event"
+        showRefreshButton={true}
+        viewPageRoute={props.viewPageRoute}
+        filters={[
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            type: FieldType.Text,
           },
-          required: false,
-          placeholder: "Monitors affected",
-        },
-        {
-          field: {
-            changeMonitorStatusTo: true,
+          {
+            field: {
+              currentScheduledMaintenanceState: {
+                name: true,
+              },
+            },
+            title: "Current State",
+            type: FieldType.Entity,
+            filterEntityType: ScheduledMaintenanceState,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
-          title: "Change Monitor Status to ",
-          stepId: "resources-affected",
-          description:
-            "This will change the status of all the monitors attached when the event starts.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownModal: {
-            type: MonitorStatus,
-            labelField: "name",
-            valueField: "_id",
+          {
+            field: {
+              monitors: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Monitors Affected",
+            type: FieldType.EntityArray,
+            filterEntityType: Monitor,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
-          required: false,
-          placeholder: "Monitor Status",
-        },
-        {
-          field: {
-            statusPages: true,
+          {
+            field: {
+              statusPages: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Shown on Status Page",
+            type: FieldType.EntityArray,
+            filterEntityType: StatusPage,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
-          title: "Show event on these status pages ",
-          stepId: "status-pages",
-          description: "Select status pages to show this event on",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: StatusPage,
-            labelField: "name",
-            valueField: "_id",
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Created At",
+            type: FieldType.Date,
           },
-          required: false,
-          placeholder: "Select Status Pages",
-        },
-        {
-          overrideField: {
-            ownerTeams: true,
+          {
+            field: {
+              startsAt: true,
+            },
+            title: "Starts At",
+            type: FieldType.Date,
           },
-          showEvenIfPermissionDoesNotExist: true,
-          title: "Owner - Teams",
-          stepId: "owners",
-          description:
-            "Select which teams own this event. They will be notified when event status changes.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
+          {
+            field: {
+              endsAt: true,
+            },
+            title: "Ends At",
+            type: FieldType.Date,
           },
-          required: false,
-          placeholder: "Select Teams",
-          overrideFieldKey: "ownerTeams",
-        },
-        {
-          overrideField: {
-            ownerUsers: true,
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
-          showEvenIfPermissionDoesNotExist: true,
-          title: "Owner - Users",
-          stepId: "owners",
-          description:
-            "Select which users own this event. They will be notified when event status changes.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              DashboardNavigation.getProjectId()!,
-            );
+        ]}
+        columns={[
+          {
+            field: {
+              title: true,
+            },
+            title: "Title",
+            type: FieldType.Text,
           },
-          required: false,
-          placeholder: "Select Users",
-          overrideFieldKey: "ownerUsers",
-        },
-        {
-          field: {
-            labels: true,
-          },
-          title: "Labels ",
-          stepId: "more",
-          description:
-            "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Labels",
-        },
-        {
-          field: {
-            shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+          {
+            field: {
+              currentScheduledMaintenanceState: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Current State",
+            type: FieldType.Entity,
+
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              if (item["currentScheduledMaintenanceState"]) {
+                return (
+                  <Pill
+                    color={item.currentScheduledMaintenanceState.color || Black}
+                    text={
+                      item.currentScheduledMaintenanceState.name || "Unknown"
+                    }
+                  />
+                );
+              }
+
+              return <></>;
+            },
           },
 
-          title: "Event Created: Notify Status Page Subscribers",
-          stepId: "more",
-          description:
-            "Should status page subscribers be notified when this event is created?",
-          fieldType: FormFieldSchemaType.Checkbox,
-          defaultValue: true,
-          required: false,
-        },
-        {
-          field: {
-            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
-              true,
-          },
+          {
+            field: {
+              monitors: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Monitors Affected",
+            type: FieldType.EntityArray,
 
-          title: "Event Ongoing: Notify Status Page Subscribers",
-          stepId: "more",
-          description:
-            "Should status page subscribers be notified when this event state changes to ongoing?",
-          fieldType: FormFieldSchemaType.Checkbox,
-          defaultValue: true,
-          required: false,
-        },
-        {
-          field: {
-            shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              return <MonitorsElement monitors={item["monitors"] || []} />;
+            },
           },
+          {
+            field: {
+              statusPages: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+            },
+            title: "Shown on Status Page",
+            type: FieldType.EntityArray,
 
-          title: "Event Ended: Notify Status Page Subscribers",
-          stepId: "more",
-          description:
-            "Should status page subscribers be notified when this event state changes to ended?",
-          fieldType: FormFieldSchemaType.Checkbox,
-          defaultValue: true,
-          required: false,
-        },
-      ]}
-      showViewIdButton={true}
-      viewButtonText="View Event"
-      showRefreshButton={true}
-      viewPageRoute={props.viewPageRoute}
-      filters={[
-        {
-          field: {
-            title: true,
-          },
-          title: "Title",
-          type: FieldType.Text,
-        },
-        {
-          field: {
-            currentScheduledMaintenanceState: {
-              name: true,
-            },
-          },
-          title: "Current State",
-          type: FieldType.Entity,
-          filterEntityType: ScheduledMaintenanceState,
-          filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
-          },
-          filterDropdownField: {
-            label: "name",
-            value: "_id",
-          },
-        },
-        {
-          field: {
-            monitors: {
-              name: true,
-              _id: true,
-              projectId: true,
-            },
-          },
-          title: "Monitors Affected",
-          type: FieldType.EntityArray,
-          filterEntityType: Monitor,
-          filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
-          },
-          filterDropdownField: {
-            label: "name",
-            value: "_id",
-          },
-        },
-        {
-          field: {
-            statusPages: {
-              name: true,
-              _id: true,
-              projectId: true,
-            },
-          },
-          title: "Shown on Status Page",
-          type: FieldType.EntityArray,
-          filterEntityType: StatusPage,
-          filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
-          },
-          filterDropdownField: {
-            label: "name",
-            value: "_id",
-          },
-        },
-        {
-          field: {
-            createdAt: true,
-          },
-          title: "Created At",
-          type: FieldType.Date,
-        },
-        {
-          field: {
-            startsAt: true,
-          },
-          title: "Starts At",
-          type: FieldType.Date,
-        },
-        {
-          field: {
-            endsAt: true,
-          },
-          title: "Ends At",
-          type: FieldType.Date,
-        },
-        {
-          field: {
-            labels: {
-              name: true,
-              color: true,
-            },
-          },
-          title: "Labels",
-          type: FieldType.EntityArray,
-          filterEntityType: Label,
-          filterQuery: {
-            projectId: DashboardNavigation.getProjectId()?.toString(),
-          },
-          filterDropdownField: {
-            label: "name",
-            value: "_id",
-          },
-        },
-      ]}
-      columns={[
-        {
-          field: {
-            title: true,
-          },
-          title: "Title",
-          type: FieldType.Text,
-        },
-        {
-          field: {
-            currentScheduledMaintenanceState: {
-              name: true,
-              color: true,
-            },
-          },
-          title: "Current State",
-          type: FieldType.Entity,
-
-          getElement: (item: ScheduledMaintenance): ReactElement => {
-            if (item["currentScheduledMaintenanceState"]) {
+            getElement: (item: ScheduledMaintenance): ReactElement => {
               return (
-                <Pill
-                  color={item.currentScheduledMaintenanceState.color || Black}
-                  text={item.currentScheduledMaintenanceState.name || "Unknown"}
-                />
+                <StatusPagesElement statusPages={item["statusPages"] || []} />
               );
-            }
-
-            return <></>;
-          },
-        },
-
-        {
-          field: {
-            monitors: {
-              name: true,
-              _id: true,
-              projectId: true,
             },
           },
-          title: "Monitors Affected",
-          type: FieldType.EntityArray,
-
-          getElement: (item: ScheduledMaintenance): ReactElement => {
-            return <MonitorsElement monitors={item["monitors"] || []} />;
+          {
+            field: {
+              startsAt: true,
+            },
+            title: "Starts At",
+            type: FieldType.DateTime,
           },
-        },
-        {
-          field: {
-            statusPages: {
-              name: true,
-              _id: true,
-              projectId: true,
+          {
+            field: {
+              endsAt: true,
+            },
+            title: "Ends At",
+            type: FieldType.DateTime,
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
             },
           },
-          title: "Shown on Status Page",
-          type: FieldType.EntityArray,
+        ]}
+      />
 
-          getElement: (item: ScheduledMaintenance): ReactElement => {
-            return (
-              <StatusPagesElement statusPages={item["statusPages"] || []} />
+      {scheduledMaintenanceTemplates.length === 0 &&
+        showScheduledMaintenanceTemplateModal &&
+        !isLoading && (
+          <ConfirmModal
+            title={`No Scheduled Maintenance Templates`}
+            description={`No scheduled maintenance templates have been created yet. You can create these in Project Settings > Scheduled Maintenance Templates.`}
+            submitButtonText={"Close"}
+            onSubmit={() => {
+              return setShowScheduledMaintenanceTemplateModal(false);
+            }}
+          />
+        )}
+
+      {error && (
+        <ConfirmModal
+          title={`Error`}
+          description={`${error}`}
+          submitButtonText={"Close"}
+          onSubmit={() => {
+            return setError("");
+          }}
+        />
+      )}
+
+      {showScheduledMaintenanceTemplateModal &&
+      scheduledMaintenanceTemplates.length > 0 ? (
+        <BasicFormModal<JSONObject>
+          title="Create Scheduled Maintenance from Template"
+          isLoading={isLoading}
+          submitButtonText="Create from Template"
+          onClose={() => {
+            setShowScheduledMaintenanceTemplateModal(false);
+            setIsLoading(false);
+          }}
+          onSubmit={async (data: JSONObject) => {
+            const scheduledMaintenanceTemplateId: ObjectID = data[
+              "scheduledMaintenanceTemplateId"
+            ] as ObjectID;
+
+            // Navigate to create page with the template id
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                new Route(
+                  (
+                    RouteMap[
+                      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
+                    ] as Route
+                  ).toString(),
+                ).addQueryParams({
+                  scheduledMaintenanceTemplateId:
+                    scheduledMaintenanceTemplateId.toString(),
+                }),
+              ),
             );
-          },
-        },
-        {
-          field: {
-            startsAt: true,
-          },
-          title: "Starts At",
-          type: FieldType.DateTime,
-        },
-        {
-          field: {
-            endsAt: true,
-          },
-          title: "Ends At",
-          type: FieldType.DateTime,
-        },
-        {
-          field: {
-            labels: {
-              name: true,
-              color: true,
-            },
-          },
-          title: "Labels",
-          type: FieldType.EntityArray,
-
-          getElement: (item: ScheduledMaintenance): ReactElement => {
-            return <LabelsElement labels={item["labels"] || []} />;
-          },
-        },
-      ]}
-    />
+          }}
+          formProps={{
+            initialValues: {},
+            fields: [
+              {
+                field: {
+                  scheduledMaintenanceTemplateId: true,
+                },
+                title: "Select Scheduled Maintenance Template",
+                description:
+                  "Select an scheduled maintenance template to create an scheduled maintenance from.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
+                  {
+                    array: scheduledMaintenanceTemplates,
+                    labelField: "templateName",
+                    valueField: "_id",
+                  },
+                ),
+                required: true,
+                placeholder: "Select Template",
+              },
+            ],
+          }}
+        />
+      ) : (
+        <> </>
+      )}
+    </div>
   );
 };
 

@@ -10,7 +10,7 @@ import { getAnnouncementEventItem } from "../Announcement/Detail";
 import { getIncidentEventItem } from "../Incidents/Detail";
 import PageComponentProps from "../PageComponentProps";
 import { getScheduledEventEventItem } from "../ScheduledEvent/Detail";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -24,37 +24,37 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Accordion from "CommonUI/src/Components/Accordion/Accordion";
-import AccordionGroup from "CommonUI/src/Components/Accordion/AccordionGroup";
-import Alert from "CommonUI/src/Components/Alerts/Alert";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import EventItem from "CommonUI/src/Components/EventItem/EventItem";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import MarkdownViewer from "CommonUI/src/Components/Markdown.tsx/LazyMarkdownViewer";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import IncidentPublicNote from "Model/Models/IncidentPublicNote";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import ScheduledMaintenance from "Model/Models/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Model/Models/ScheduledMaintenancePublicNote";
-import ScheduledMaintenanceStateTimeline from "Model/Models/ScheduledMaintenanceStateTimeline";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageAnnouncement from "Model/Models/StatusPageAnnouncement";
-import StatusPageGroup from "Model/Models/StatusPageGroup";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
-import StatusPageResource, {
-  UptimePrecision,
-} from "Model/Models/StatusPageResource";
+import Accordion from "Common/UI/Components/Accordion/Accordion";
+import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
+import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import EventItem from "Common/UI/Components/EventItem/EventItem";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -256,14 +256,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setIncidentStateTimelines(incidentStateTimelines);
       setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
 
+      const overallStatus: MonitorStatus | null = data["overallStatus"]
+        ? BaseModel.fromJSONObject(
+            (data["overallStatus"] as JSONObject) || {},
+            MonitorStatus,
+          )
+        : null;
+
       // Parse Data.
-      setCurrentStatus(
-        getOverallMonitorStatus(
-          statusPageResources,
-          monitorStatuses,
-          monitorGroupCurrentStatuses,
-        ),
-      );
+      setCurrentStatus(overallStatus);
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -293,68 +294,84 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPrivateStatusPage(),
   ]);
 
-  type GetOverallMonitorStatusFunction = (
-    statusPageResources: Array<StatusPageResource>,
-    monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
-  ) => MonitorStatus | null;
+  type GetCurrentGroupStatusElementFunction = (data: {
+    group: StatusPageGroup;
+  }) => ReactElement;
 
-  const getOverallMonitorStatus: GetOverallMonitorStatusFunction = (
-    statusPageResources: Array<StatusPageResource>,
-    monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
-  ): MonitorStatus | null => {
-    let currentStatus: MonitorStatus | null =
-      monitorStatuses.length > 0 && monitorStatuses[0]
-        ? monitorStatuses[0]
-        : null;
+  const getCurrentGroupStatusElement: GetCurrentGroupStatusElementFunction =
+    (data: { group: StatusPageGroup }): ReactElement => {
+      const currentStatus: MonitorStatus =
+        StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+          statusPageGroup: data.group,
+          monitorStatusTimelines: monitorStatusTimelines,
+          statusPageResources: statusPageResources,
+          monitorStatuses: monitorStatuses,
+          monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+        });
 
-    const dict: Dictionary<number> = {};
+      if (
+        !(statusPage?.downtimeMonitorStatuses || []).find(
+          (downtimeStatus: MonitorStatus) => {
+            return (
+              currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
+            );
+          },
+        ) &&
+        data.group.showUptimePercent
+      ) {
+        const uptimePercent: number | null =
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: data.group,
+              monitorStatusTimelines: monitorStatusTimelines,
+              precision:
+                data.group.uptimePercentPrecision ||
+                UptimePrecision.ONE_DECIMAL,
+              downtimeMonitorStatuses:
+                statusPage?.downtimeMonitorStatuses || [],
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+            },
+          );
 
-    for (const resource of statusPageResources) {
-      if (resource.monitor?.currentMonitorStatusId) {
-        if (
-          !Object.keys(dict).includes(
-            resource.monitor?.currentMonitorStatusId.toString() || "",
-          )
-        ) {
-          dict[resource.monitor?.currentMonitorStatusId.toString()] = 1;
-        } else {
-          dict[resource.monitor?.currentMonitorStatusId.toString()]++;
+        if (uptimePercent === null) {
+          return <></>;
         }
+
+        return (
+          <div
+            className="font-medium"
+            style={{
+              color: currentStatus?.color?.toString() || Green.toString(),
+            }}
+          >
+            {uptimePercent}% uptime
+          </div>
+        );
       }
-    }
 
-    // check status of monitor groups.
-
-    for (const groupId in monitorGroupCurrentStatuses) {
-      const statusId: ObjectID | undefined =
-        monitorGroupCurrentStatuses[groupId];
-
-      if (statusId) {
-        if (!Object.keys(dict).includes(statusId.toString() || "")) {
-          dict[statusId.toString()] = 1;
-        } else {
-          dict[statusId.toString()]++;
-        }
+      if (data.group.showCurrentStatus) {
+        return (
+          <div
+            className=""
+            style={{
+              color: currentStatus?.color?.toString() || Green.toString(),
+            }}
+          >
+            {currentStatus?.name || "Operational"}
+          </div>
+        );
       }
-    }
 
-    for (const monitorStatus of monitorStatuses) {
-      if (monitorStatus._id && dict[monitorStatus._id]) {
-        currentStatus = monitorStatus;
-      }
-    }
-
-    return currentStatus;
-  };
+      return <></>;
+    };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   type GetMonitorOverviewListInGroupFunction = (
@@ -416,12 +433,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimePrecision={
                 resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
               }
-              monitorStatusTimeline={[...monitorStatusTimelines].filter(
-                (timeline: MonitorStatusTimeline) => {
-                  return (
-                    timeline.monitorId?.toString() ===
-                    resource.monitorId?.toString()
-                  );
+              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                {
+                  statusPageResource: resource,
+                  monitorStatusTimelines: monitorStatusTimelines,
+                  monitorsInGroup: monitorsInGroup,
                 },
               )}
               startDate={startDate}
@@ -468,20 +484,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
               description={resource.displayDescription || ""}
               tooltip={resource.displayTooltip || ""}
               currentStatus={currentStatus}
-              monitorStatusTimeline={[...monitorStatusTimelines].filter(
-                (timeline: MonitorStatusTimeline) => {
-                  const monitorsInThisGroup: Array<ObjectID> | undefined =
-                    monitorsInGroup[resource.monitorGroupId?.toString() || ""];
-
-                  if (!monitorsInThisGroup) {
-                    return false;
-                  }
-
-                  return monitorsInThisGroup.find((monitorId: ObjectID) => {
-                    return (
-                      monitorId.toString() === timeline.monitorId?.toString()
-                    );
-                  });
+              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                {
+                  statusPageResource: resource,
+                  monitorStatusTimelines: monitorStatusTimelines,
+                  monitorsInGroup: monitorsInGroup,
                 },
               )}
               downtimeMonitorStatuses={
@@ -502,7 +509,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (elements.length === 0) {
       elements.push(
         <div key={1} className="mb-20">
-          <ErrorMessage error="No resources added to this group." />
+          <ErrorMessage message="No resources added to this group." />
         </div>,
       );
     }
@@ -598,63 +605,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return groups;
     };
 
-  type GetRightAccordionElementFunction = (
-    group: StatusPageGroup,
-  ) => ReactElement;
-
-  const getRightAccordionElement: GetRightAccordionElementFunction = (
-    group: StatusPageGroup,
-  ): ReactElement => {
-    let currentStatus: MonitorStatus = new MonitorStatus();
-    currentStatus.name = "Operational";
-    currentStatus.color = Green;
-    let hasResource: boolean = false;
-
-    for (const resource of statusPageResources) {
-      if (
-        (resource.statusPageGroupId &&
-          resource.statusPageGroupId.toString() &&
-          group &&
-          group._id?.toString() &&
-          group._id?.toString() === resource.statusPageGroupId.toString()) ||
-        (!resource.statusPageGroupId && !group)
-      ) {
-        hasResource = true;
-        const currentMonitorStatus: MonitorStatus | undefined =
-          monitorStatuses.find((status: MonitorStatus) => {
-            return (
-              status._id?.toString() ===
-              resource.monitor?.currentMonitorStatusId?.toString()
-            );
-          });
-
-        if (
-          (currentStatus &&
-            currentStatus.priority &&
-            currentMonitorStatus?.priority &&
-            currentMonitorStatus?.priority > currentStatus.priority) ||
-          !currentStatus.priority
-        ) {
-          currentStatus = currentMonitorStatus!;
-        }
-      }
-    }
-
-    if (hasResource) {
-      return (
-        <div
-          className="bold font16"
-          style={{
-            color: currentStatus?.color?.toString() || Green.toString(),
-          }}
-        >
-          {currentStatus?.name || "Operational"}
-        </div>
-      );
-    }
-    return <></>;
-  };
-
   const activeIncidentsInIncidentGroup: Array<IncidentGroup> =
     getActiveIncidents();
   const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
@@ -663,7 +613,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   return (
     <Page>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
-      {error ? <ErrorMessage error={error} /> : <></>}
+      {error ? <ErrorMessage message={error} /> : <></>}
 
       {!isLoading && !error ? (
         <div data-testid="status-page-overview">
@@ -699,6 +649,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           <div>
             {currentStatus && statusPageResources.length > 0 && (
               <Alert
+                size={AlertSize.Large}
                 title={`${
                   currentStatus.isOperationalState ? `All` : "Some"
                 } Resources are ${
@@ -708,7 +659,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 } ${currentStatus.name}`}
                 color={currentStatus.color}
                 doNotShowIcon={true}
-                textClassName="text-white text-lg"
+                textOnRight={
+                  currentStatus.isOperationalState &&
+                  statusPage?.showOverallUptimePercentOnStatusPage
+                    ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+                        {
+                          monitorStatusTimelines: monitorStatusTimelines,
+                          statusPageResources: statusPageResources,
+                          downtimeMonitorStatuses:
+                            statusPage.downtimeMonitorStatuses || [],
+                          precision:
+                            statusPage.overallUptimePercentPrecision ||
+                            UptimePrecision.TWO_DECIMAL,
+                          resourceGroups: resourceGroups,
+                          monitorsInGroup: monitorsInGroup,
+                        },
+                      )?.toString() + "% uptime" || "100%"
+                    : undefined
+                }
+                textClassName="text-white text-lg flex justify-between w-full"
                 id="overview-alert"
               />
             )}
@@ -742,9 +711,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         return (
                           <Accordion
                             key={i}
-                            rightElement={getRightAccordionElement(
-                              resourceGroup,
-                            )}
+                            rightElement={getCurrentGroupStatusElement({
+                              group: resourceGroup,
+                            })}
                             isInitiallyExpanded={
                               resourceGroup.isExpandedByDefault
                             }

@@ -7,6 +7,6 @@ dependencies:
   version: 18.19.1
 - name: clickhouse
   repository: https://charts.bitnami.com/bitnami
-  version: 5.1.0
-digest: sha256:3e59f256a36503a20718888c0010596148f08335b40ed259548cce815a22be22
-generated: "2024-04-24T09:58:52.588777+01:00"
+  version: 7.2.0
+digest: sha256:d43f9eec9be3f32d681dedb7dff6c162f2a66dbacb4f25220ad24e9330d2cf96
+generated: "2025-01-20T15:06:11.325059664+01:00"

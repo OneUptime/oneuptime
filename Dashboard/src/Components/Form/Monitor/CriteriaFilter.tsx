@@ -1,6 +1,8 @@
 import CriteriaFilterUiUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
   CheckOn,
   CriteriaFilter,
@@ -9,19 +11,20 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
-import CheckboxElement from "CommonUI/src/Components/Checkbox/Checkbox";
-import FieldLabelElement from "CommonUI/src/Components/Detail/FieldLabel";
+} from "Common/UI/Components/Button/Button";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import Input from "CommonUI/src/Components/Input/Input";
-import Link from "CommonUI/src/Components/Link/Link";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Input from "Common/UI/Components/Input/Input";
+import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -29,6 +32,7 @@ export interface ComponentProps {
   onChange?: undefined | ((value: CriteriaFilter) => void);
   onDelete?: undefined | (() => void);
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
 }
 
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
@@ -118,6 +122,57 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
+  const metricAggregationOptions: Array<DropdownOption> = [
+    ...evalOverTimeDropdownOptions,
+  ]; // evalOverTimeDropdownOptions and metricAggregationOptions are same
+
+  const metricAggregationValue: DropdownOption | undefined =
+    metricAggregationOptions.find((i: DropdownOption) => {
+      return (
+        i.value === criteriaFilter?.metricMonitorOptions?.metricAggregationType
+      );
+    });
+
+  let metricVariables: Array<string> =
+    props.monitorStep.data?.metricMonitor?.metricViewConfig?.queryConfigs?.map(
+      (queryConfig: MetricQueryConfigData) => {
+        return queryConfig.metricAliasData?.metricVariable || "";
+      },
+    ) || [];
+
+  // push formula variables as well.
+  props.monitorStep.data?.metricMonitor?.metricViewConfig?.formulaConfigs?.forEach(
+    (formulaConfig: MetricFormulaConfigData) => {
+      metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
+    },
+  );
+
+  // remove duplicates and empty strings
+
+  metricVariables = metricVariables.filter((item: string, index: number) => {
+    return metricVariables.indexOf(item) === index && item !== "";
+  });
+
+  // now make this into dropdown options.
+  const metricVariableOptions: Array<DropdownOption> = metricVariables.map(
+    (item: string) => {
+      return {
+        value: item,
+        label: item,
+      };
+    },
+  );
+
+  let selectedMetricVariableOption: DropdownOption | undefined =
+    metricVariableOptions.find((i: DropdownOption) => {
+      return i.value === criteriaFilter?.metricMonitorOptions?.metricAlias;
+    });
+
+  if (!selectedMetricVariableOption) {
+    // select first varoable.
+    selectedMetricVariableOption = metricVariableOptions[0];
+  }
+
   return (
     <div>
       <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
@@ -153,6 +208,51 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     ...criteriaFilter,
                     serverMonitorOptions: {
                       diskPath: value,
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.MetricValue && (
+            <div className="mt-1">
+              <FieldLabelElement title="Select Metric Variable" />
+              <Dropdown
+                value={selectedMetricVariableOption}
+                options={metricVariableOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setCriteriaFilter({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      metricAlias: value?.toString(),
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.MetricValue && (
+            <div className="mt-1">
+              <FieldLabelElement title="Select Aggregation" />
+              <Dropdown
+                value={metricAggregationValue}
+                options={metricAggregationOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setCriteriaFilter({
+                    ...criteriaFilter,
+                    metricMonitorOptions: {
+                      ...criteriaFilter?.metricMonitorOptions,
+                      metricAggregationType:
+                        value?.toString() as EvaluateOverTimeType,
                     },
                   });
                 }}

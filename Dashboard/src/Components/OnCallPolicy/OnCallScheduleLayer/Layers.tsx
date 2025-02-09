@@ -1,6 +1,6 @@
 import Layer from "./Layer";
 import LayersPreview from "./LayersPreview";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -13,18 +13,18 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Card from "CommonUI/src/Components/Card/Card";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "CommonUI/src/Components/EmptyState/EmptyState";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import OnCallDutyPolicyScheduleLayer from "Model/Models/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Model/Models/OnCallDutyPolicyScheduleLayerUser";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -214,7 +214,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (

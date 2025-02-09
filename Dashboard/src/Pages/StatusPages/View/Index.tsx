@@ -2,12 +2,12 @@ import LabelsElement from "../../../Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import StatusPagePreviewLink from "./StatusPagePreviewLink";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import StatusPage from "Model/Models/StatusPage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageView: FunctionComponent<
@@ -58,7 +58,7 @@ const StatusPageView: FunctionComponent<
             stepId: "status-page-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

@@ -2,10 +2,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import { BILLING_ENABLED } from "CommonUI/src/Config";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
@@ -29,6 +29,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           }}
           icon={IconProp.Label}
+        />
+      </SideMenuSection>
+      <SideMenuSection title="Workspace Connections">
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
         />
       </SideMenuSection>
 
@@ -140,6 +151,64 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
                     icon={IconProp.TextFile}
                 /> */}
       </SideMenuSection>
+
+      <SideMenuSection title="Alerts">
+        <SideMenuItem
+          link={{
+            title: "Alert State",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERTS_STATE] as Route,
+            ),
+          }}
+          icon={IconProp.ArrowCircleRight}
+        />
+        <SideMenuItem
+          link={{
+            title: "Alert Severity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route,
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Note Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route,
+            ),
+          }}
+          icon={IconProp.Pencil}
+        />
+        <SideMenuItem
+          link={{
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS] as Route,
+            ),
+          }}
+          icon={IconProp.TableCells}
+        />
+        {/* <SideMenuItem
+                    link={{
+                        title: 'Alert Templates',
+                        to: new Route('/:projectSlug/home'),
+                    }}
+                    icon={IconProp.TextFile}
+                /> */}
+      </SideMenuSection>
+      <SideMenuSection title="Telemetry & APM">
+        <SideMenuItem
+          link={{
+            title: "Ingestion Keys",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
+            ),
+          }}
+          icon={IconProp.Terminal}
+        />
+      </SideMenuSection>
       <SideMenuSection title="Scheduled Maintenance">
         <SideMenuItem
           link={{
@@ -150,6 +219,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Clock}
         />
+
+        {/** Templates */}
+
+        <SideMenuItem
+          link={{
+            title: "Event Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.Template}
+        />
+
         <SideMenuItem
           link={{
             title: "Note Templates",

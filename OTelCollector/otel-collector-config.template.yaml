@@ -1,0 +1,101 @@
+# This is a template file for the OTel Collector configuration file. 
+# This tempate file will be passed to gomplate to generate the final configuration file.
+
+extensions:
+  # health_check will be depreacated soon, please upgrade to health_check_v2
+  health_check:
+    endpoint: "0.0.0.0:13133"
+    path: "/health/status"
+  headers_setter:
+    headers:
+      - action: upsert
+        key: x-oneuptime-token
+        from_context: x-oneuptime-token
+
+processors:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        include_metadata: true
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        cors:
+          allowed_origins: ["*"]
+          allowed_headers: ["*"]
+
+
+
+exporters:
+  otlphttp:
+    endpoint: "http://{{ .Env.SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME }}:{{ .Env.OPEN_TELEMETRY_INGEST_PORT }}/otlp"
+    headers: {"Content-Type": "application/json"}
+    auth:
+      authenticator: headers_setter
+    {{ if eq .Env.OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED "true" }}
+    sending_queue:
+      enabled: true
+      num_consumers: {{ .Env.OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS }}
+      queue_size: {{ .Env.OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE }}
+    {{ end }}
+
+service:
+  telemetry:
+{{ if or (not (index .Env "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT")) (eq .Env.DISABLE_TELEMETRY "true") }}
+    logs:
+      level: "debug"
+{{ end }}
+{{ if and (ne .Env.DISABLE_TELEMETRY "true") (index .Env "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT") }}
+    logs:
+      level: "debug"
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
+                {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                headers:
+                  # Add new line
+                  {{ "" }}
+                  {{- $headers := (strings.Split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
+                  {{- range $header := $headers }}
+                  {{- $kv := (strings.Split "=" $header) }}
+                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  {{- end }}
+                {{ end }}
+    metrics:
+      readers:
+        - periodic:
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: {{ .Env.OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT }}
+                {{ if .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS }}
+                headers:
+                  # Add new line
+                  {{ "" }}
+                  {{- $headers := (strings.Split "," .Env.OPENTELEMETRY_EXPORTER_OTLP_HEADERS) -}}
+                  {{- range $header := $headers }}
+                  {{- $kv := (strings.Split "=" $header) }}
+                  {{- (index $kv 0) }}: {{ (index $kv 1) }}
+                  {{- end }}
+                {{ end }}
+{{ end }}
+  extensions: [ headers_setter, health_check ]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp]

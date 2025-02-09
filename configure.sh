@@ -1,184 +1,211 @@
 #!/usr/bin/env bash
 
-set -a
+# Exit on error, undefined variables, and pipe failures
+set -euo pipefail
 
-# Talk to the user
-echo "Welcome to the OneUptime 🟢 Runner"
-echo ""
-echo ""
-echo ""
+# Global variables
+DOCKER_COMPOSE_VERSION="2.12.2"
+GOMPLATE_VERSION="3.11.8"
+MINIMUM_DOCKER_VERSION="20.0.0"
+MINIMUM_NODE_VERSION="14.0.0"
+NVM_VERSION="0.40.1"
+REQUIRED_PACKAGES="git curl"
 
-echo "Please enter your sudo password now:"
-sudo echo ""
-echo "Thanks! 🙏"
-echo ""
-echo "Ok! We'll take it from here 🚀"
+# Print with color
+print_info() {
+    echo -e "\033[0;34m[INFO]\033[0m $1"
+}
 
-echo "Making sure any stack that might exist is stopped"
+print_success() {
+    echo -e "\033[0;32m[SUCCESS]\033[0m $1"
+}
 
+print_error() {
+    echo -e "\033[0;31m[ERROR]\033[0m $1" >&2
+}
 
-# If Mac
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    if [[ ! $(which brew) ]]; then
-        echo "Homebrew not installed. Please install homebrew and restart installer"
-        exit
-    fi
-fi
+# Check version meets minimum requirement
+version_gt() {
+    test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
 
+# Check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
-  if [[ ${DISTRIB} = "ubuntu"* ]]; then
-    echo "Grabbing latest apt caches"
-    sudo apt-get update
-  elif [[ ${DISTRIB} = "debian"* ]]; then
-    echo "Grabbing latest apt caches"
-    sudo apt update
-  fi
-fi
-
-
-# clone oneuptime
-echo "Installing OneUptime 🟢"
-if [[ ! $(which git) ]]; then
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
-      if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
-        sudo apt install -y git curl
-      elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
-        sudo dnf install git curl -y
-      fi
-    fi
+# Install system packages based on OS
+install_system_packages() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install git curl
-    fi
-fi
-
-
-if [[ $IS_DOCKER == "true" ]]
-then
-    echo "This script should run in the docker container."
-else
-    GIT_REPO_URL=$(git config --get remote.origin.url)
-
-    if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
-    then
-        git clone https://github.com/OneUptime/oneuptime.git || true
-        cd oneuptime
-    fi
-fi
-
-
-
-# if this script is not running in CI/CD
-if [ -z "$CI_PIPELINE_ID" ]
-then
-    if [[ $IS_DOCKER == "true" ]]
-    then
-        echo "Running in docker container. Skipping git pull."
+        if ! command_exists brew; then
+            print_error "Homebrew not installed. Please install homebrew and restart installer"
+            exit 1
+        fi
+        brew install $REQUIRED_PACKAGES
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        local DISTRIB
+        DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+        
+        if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
+            print_info "Updating package cache..."
+            sudo apt-get update
+            sudo apt-get install -y $REQUIRED_PACKAGES
+        elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
+            print_info "Updating package cache..."
+            sudo dnf install -y $REQUIRED_PACKAGES
+        else
+            print_error "Unsupported Linux distribution: $DISTRIB"
+            exit 1
+        fi
+    elif [[ "$OSTYPE" == "linux-musl"* ]]; then
+        local DISTRIB
+        DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
+        
+        if [[ ${DISTRIB} = "alpine"* ]]; then
+            print_info "Updating package cache..."
+            sudo apk update
+            sudo apk add $REQUIRED_PACKAGES
+        else
+            print_error "Unsupported Linux distribution: $DISTRIB"
+            exit 1
+        fi
     else
-        git pull
+        print_error "Unsupported operating system: $OSTYPE"
+        exit 1
     fi
-fi
+}
 
-cd ..
-
-if [[ ! $(which node) && ! $(node --version) ]]; then
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-        echo "Setting up NodeJS"
-        sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-        export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-        nvm install lts/*
-        nvm use lts/*
-        sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-        sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
-    fi
-
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install nodejs
-    fi
-fi
-
-if [[ ! $(which npm) ]]; then
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      DISTRIB=$(awk -F= '/^ID/{print $2}' /etc/os-release)
-      if [[ ${DISTRIB} = "ubuntu"* ]] || [[ ${DISTRIB} = "debian"* ]]; then
-        echo "Setting up NPM"
-        sudo apt-get install -y npm
-      elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
-        echo "Setting up NPM"
-        sudo dnf install -y npm
-      fi
-    fi
-fi
-
-if [[ ! $(which docker) && ! $(docker --version) ]]; then
-  echo "Setting up Docker"
-  sudo curl -sSL https://get.docker.com/ | sh  
-fi
-
-
-# If docker still fails to install, then quit. 
-if [[ ! $(which docker) && ! $(docker --version) ]]; then
-  echo -e "Failed to install docker. Please install Docker manually here: https://docs.docker.com/install."
-  echo -e "Exiting the OneUptime installer."
-  exit
-fi
-
-
-# enable docker without sudo
-sudo usermod -aG docker "${USER}" || true
-
-if [[ ! $(which docker-compose) && ! $(docker compose --version) ]]; then
-mkdir -p /usr/local/lib/docker/cli-plugins
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-docker compose version
-fi
-
-if [[ ! $(which gomplate) ]]; then
-    ARCHITECTURE=$(uname -m)
-
-    if [[ $ARCHITECTURE == "aarch64" ]]; then
-        ARCHITECTURE="arm64"
+setup_nodejs() {
+    if ! command_exists node || ! command_exists npm; then
+        print_info "Installing Node.js..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install nodejs
+        else
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | bash
+            export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+            # shellcheck disable=SC1090
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install lts/*
+            nvm use lts/*
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+        fi
     fi
 
-    if [[ $ARCHITECTURE == "x86_64" ]]; then
-        ARCHITECTURE="amd64"
+    # Verify Node.js version
+    local NODE_VERSION
+    NODE_VERSION=$(node --version | cut -d 'v' -f 2)
+    if ! version_gt "$NODE_VERSION" "$MINIMUM_NODE_VERSION"; then
+        print_error "Node.js version $NODE_VERSION is too old. Minimum required version is $MINIMUM_NODE_VERSION"
+        exit 1
+    fi
+}
+
+setup_docker() {
+    if ! command_exists docker; then
+        print_info "Installing Docker..."
+        sudo curl -sSL https://get.docker.com/ | sh
+        sudo usermod -aG docker "${USER}"
     fi
 
-    echo "ARCHITECTURE:"
-    echo "$(uname -s) $(uname -m)"
-
-    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/v3.11.3/gomplate_$(uname -s)-$ARCHITECTURE
-    sudo chmod 755 /usr/local/bin/gomplate
-fi
-
-
-
-if [[ ! $(which ts-node) ]]; then
-    sudo npm install -g ts-node
-fi
-
-cd oneuptime
-
-# Create .env file if it does not exist. 
-touch config.env
-
-# Reload terminal with newly installed packages.
-source ~/.bashrc
-
-#Run a scirpt to merge config.env.tpl to config.env
-node ./Scripts/Install/MergeEnvTemplate.js
-
-
-# Load env values from config.env
-export $(grep -v '^#' config.env | xargs)
-
-# Write env vars in config files. 
-for directory_name in $(find . -maxdepth 1 -type d) ; do
-    if [ -f "$directory_name/Dockerfile.tpl" ]; then
-        cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
+    # Verify Docker version
+    local DOCKER_VERSION
+    DOCKER_VERSION=$(docker --version | cut -d ' ' -f 3 | cut -d ',' -f 1)
+    if ! version_gt "$DOCKER_VERSION" "$MINIMUM_DOCKER_VERSION"; then
+        print_error "Docker version $DOCKER_VERSION is too old. Minimum required version is $MINIMUM_DOCKER_VERSION"
+        exit 1
     fi
-done
+
+    if ! command_exists docker-compose && ! docker compose version >/dev/null 2>&1; then
+        print_info "Installing Docker Compose..."
+        mkdir -p /usr/local/lib/docker/cli-plugins
+        sudo curl -SL "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/lib/docker/cli-plugins/docker-compose
+        sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+    fi
+}
+
+setup_gomplate() {
+    if ! command_exists gomplate; then
+        print_info "Installing gomplate..."
+        local ARCHITECTURE
+        ARCHITECTURE=$(uname -m)
+        case $ARCHITECTURE in
+            "aarch64") ARCHITECTURE="arm64" ;;
+            "x86_64")  ARCHITECTURE="amd64" ;;
+        esac
+
+        sudo curl -o /usr/local/bin/gomplate -sSL \
+            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_$(uname -s)-$ARCHITECTURE"
+        sudo chmod 755 /usr/local/bin/gomplate
+    fi
+}
+
+clone_oneuptime() {
+    if [[ ${IS_DOCKER:-false} != "true" ]]; then
+        local GIT_REPO_URL
+        GIT_REPO_URL=$(git config --get remote.origin.url || echo "")
+        
+        if [[ $GIT_REPO_URL != *oneuptime* ]]; then
+            print_info "Cloning OneUptime repository..."
+            git clone https://github.com/OneUptime/oneuptime.git || true
+            cd oneuptime
+        fi
+
+        # Update repository if not in CI/CD
+        if [ -z "${CI_PIPELINE_ID:-}" ]; then
+            git pull
+        fi
+    fi
+}
+
+setup_tsnode() {
+    if ! command_exists ts-node; then
+        print_info "Installing ts-node..."
+        sudo npm install -g ts-node
+    fi
+}
+
+# Main installation process
+main() {
+    print_info "Welcome to the OneUptime 🟢 Runner"
+    echo ""
+    
+    # Request sudo access upfront
+    print_info "Please enter your sudo password:"
+    sudo echo ""
+    print_success "Authentication successful! 🙏"
+    
+    install_system_packages
+    setup_nodejs
+    setup_docker
+    setup_gomplate
+    setup_tsnode
+
+    
+    clone_oneuptime
+    
+    # Configure environment
+    touch config.env
+    
+    print_info "Merging environment templates..."
+    node ./Scripts/Install/MergeEnvTemplate.js
+    
+    # Load environment variables
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' config.env | xargs)
+    
+    print_info "Generating Dockerfile configurations..."
+    find . -maxdepth 1 -type d -exec sh -c '
+        for dir do
+            if [ -f "$dir/Dockerfile.tpl" ]; then
+                cat "$dir/Dockerfile.tpl" | gomplate > "$dir/Dockerfile"
+            fi
+        done
+    ' sh {} +
+    
+    print_success "OneUptime installation completed successfully! 🚀"
+}
+
+# Run main function
+main

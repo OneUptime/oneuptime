@@ -1,12 +1,8 @@
-import ChangeIncidentState, {
-  IncidentType,
-} from "../../../Components/Incident/ChangeState";
+import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
-import EventName from "../../../Utils/EventName";
 import PageComponentProps from "../../PageComponentProps";
-import BaseModel from "Common/Models/BaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -15,24 +11,23 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "CommonUI/src/Components/Checkbox/CheckboxViewer";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import ProbeElement from "CommonUI/src/Components/Probe/Probe";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import BaseAPI from "CommonUI/src/Utils/API/API";
-import GlobalEvent from "CommonUI/src/Utils/GlobalEvents";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentState from "Model/Models/IncidentState";
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline";
-import Label from "Model/Models/Label";
+import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Pill from "Common/UI/Components/Pill/Pill";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import BaseAPI from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
   FunctionComponent,
@@ -41,6 +36,20 @@ import React, {
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
+import Card from "Common/UI/Components/Card/Card";
+import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import TraceTable from "../../../Components/Traces/TraceTable";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
+import MetricView from "../../../Components/Metrics/MetricView";
+import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import IconProp from "Common/Types/Icon/IconProp";
+import HeaderAlert, {
+  HeaderAlertType,
+} from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import ColorSwatch from "Common/Types/ColorSwatch";
+import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -54,6 +63,10 @@ const IncidentView: FunctionComponent<
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
+    null,
+  );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -96,6 +109,23 @@ const IncidentView: FunctionComponent<
         sort: {},
       });
 
+      const incident: Incident | null = await ModelAPI.getItem({
+        id: modelId,
+        modelType: Incident,
+        select: {
+          telemetryQuery: true,
+        },
+      });
+
+      let telemetryQuery: TelemetryQuery | null = null;
+
+      if (incident?.telemetryQuery) {
+        telemetryQuery = JSONFunctions.deserialize(
+          incident?.telemetryQuery as any,
+        ) as any;
+      }
+
+      setTelemetryQuery(telemetryQuery);
       setIncidentStates(incidentStates.data as IncidentState[]);
       setIncidentStateTimeline(
         incidentTimelines.data as IncidentStateTimeline[],
@@ -119,7 +149,7 @@ const IncidentView: FunctionComponent<
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   type GetIncidentStateFunction = () => IncidentState | undefined;
@@ -329,11 +359,26 @@ const IncidentView: FunctionComponent<
           fields: [
             {
               field: {
+                incidentNumber: true,
+              },
+              title: "Incident Number",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                if (!item.incidentNumber) {
+                  return <>-</>;
+                }
+
+                return <>#{item.incidentNumber}</>;
+              },
+            },
+            {
+              field: {
                 _id: true,
               },
               title: "Incident ID",
               fieldType: FieldType.ObjectID,
             },
+
             {
               field: {
                 title: true,
@@ -485,63 +530,15 @@ const IncidentView: FunctionComponent<
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Acknowledge Incident",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Incident,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeIncidentState
-                    incidentId={modelId}
-                    incidentTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    incidentType={IncidentType.Ack}
-                    onActionComplete={async () => {
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "Resolve Incident",
-              fieldType: FieldType.Element,
-              getElement: (
-                _item: Incident,
-                onBeforeFetchData: JSONObject | undefined,
-              ): ReactElement => {
-                return (
-                  <ChangeIncidentState
-                    incidentId={modelId}
-                    incidentTimeline={
-                      onBeforeFetchData
-                        ? (onBeforeFetchData["data"] as Array<BaseModel>)
-                        : []
-                    }
-                    incidentType={IncidentType.Resolve}
-                    onActionComplete={async () => {
-                      GlobalEvent.dispatchEvent(
-                        EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
-                      );
-                      await fetchData();
-                    }}
-                  />
-                );
-              },
-            },
           ],
           modelId: modelId,
+        }}
+      />
+
+      <ChangeIncidentState
+        incidentId={modelId}
+        onActionComplete={async () => {
+          await fetchData();
         }}
       />
 
@@ -558,108 +555,66 @@ const IncidentView: FunctionComponent<
         />
       </div>
 
-      <CardModelDetail
-        name="Incident Description"
-        cardProps={{
-          title: "Incident Description",
-          description:
-            "Description of this incident. This is visible on Status Page and is in markdown format.",
-        }}
-        editButtonText="Edit Incident Description"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Log &&
+        telemetryQuery.telemetryQuery && (
+          <div>
+            <Card title={"Logs"} description={"Logs for this incident."}>
+              <DashboardLogsViewer
+                id="logs-preview"
+                logQuery={telemetryQuery.telemetryQuery}
+                limit={10}
+                noLogsMessage="No logs found"
+              />
+            </Card>
+          </div>
+        )}
 
-            fieldType: FormFieldSchemaType.Markdown,
-            required: true,
-            placeholder: "Description",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-description",
-          fields: [
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Trace &&
+        telemetryQuery.telemetryQuery && (
+          <div>
+            <TraceTable spanQuery={telemetryQuery.telemetryQuery} />
+          </div>
+        )}
 
-      <CardModelDetail
-        name="Root Cause"
-        cardProps={{
-          title: "Root Cause",
-          description:
-            "Why did this incident happen? Here is the root cause of this incident.",
-        }}
-        isEditable={false}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-root-cause",
-          fields: [
-            {
-              field: {
-                rootCause: true,
-              },
-              title: "",
-              placeholder: "No root cause identified for this incident.",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Metric &&
+        telemetryQuery.metricViewData && (
+          <Card
+            title={"Metrics"}
+            description={"Metrics related to this incident."}
+            rightElement={
+              telemetryQuery.metricViewData.startAndEndDate ? (
+                <HeaderAlert
+                  icon={IconProp.Clock}
+                  onClick={() => {
+                    // do nothing!
+                  }}
+                  title={OneUptimeDate.getInBetweenDatesAsFormattedString(
+                    telemetryQuery.metricViewData.startAndEndDate,
+                  )}
+                  alertType={HeaderAlertType.INFO}
+                  colorSwatch={ColorSwatch.Blue}
+                />
+              ) : (
+                <></>
+              )
+            }
+          >
+            <MetricView
+              data={telemetryQuery.metricViewData}
+              hideQueryElements={true}
+              chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
+              hideStartAndEndDate={true}
+              onChange={(_data: MetricViewData) => {
+                // do nothing!
+              }}
+            />
+          </Card>
+        )}
 
-      <CardModelDetail
-        name="Remediation Notes"
-        cardProps={{
-          title: "Remediation Notes",
-          description:
-            "What steps should be taken to resolve this incident? Here are the remediation notes.",
-        }}
-        editButtonText="Edit Remediation Notes"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              remediationNotes: true,
-            },
-            title: "Remediation Notes",
-
-            fieldType: FormFieldSchemaType.Markdown,
-            required: true,
-            placeholder: "Remediation Notes",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: Incident,
-          id: "model-detail-incident-remediation-notes",
-          fields: [
-            {
-              field: {
-                remediationNotes: true,
-              },
-              title: "Remediation Notes",
-              placeholder: "No remediation notes added for this incident.",
-              fieldType: FieldType.Markdown,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      <IncidentFeedElement incidentId={modelId} />
     </Fragment>
   );
 };

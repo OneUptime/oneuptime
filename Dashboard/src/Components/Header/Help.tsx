@@ -1,9 +1,9 @@
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
-import HeaderIconDropdownButton from "CommonUI/src/Components/Header/HeaderIconDropdownButton";
-import IconDropdownItem from "CommonUI/src/Components/Header/IconDropdown/IconDropdownItem";
-import IconDropdownMenu from "CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu";
-import IconDropdownRow from "CommonUI/src/Components/Header/IconDropdown/IconDropdownRow";
+import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
+import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
+import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
+import IconDropdownRow from "Common/UI/Components/Header/IconDropdown/IconDropdownRow";
 import React, { ReactElement, useState } from "react";
 
 const Help: () => JSX.Element = (): ReactElement => {
@@ -37,7 +37,7 @@ const Help: () => JSX.Element = (): ReactElement => {
               setIsDropdownVisible(false);
             }}
             url={URL.fromString(
-              "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ",
+              "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA",
             )}
           />
           <IconDropdownItem

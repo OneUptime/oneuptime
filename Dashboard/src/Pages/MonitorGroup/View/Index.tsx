@@ -7,25 +7,25 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "CommonUI/src/Components/Card/Card";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import MonitorUptimeGraph from "CommonUI/src/Components/MonitorGraphs/Uptime";
-import UptimeUtil from "CommonUI/src/Components/MonitorGraphs/UptimeUtil";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { APP_API_URL } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import Label from "Model/Models/Label";
-import MonitorGroup from "Model/Models/MonitorGroup";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline";
-import { UptimePrecision } from "Model/Models/StatusPageResource";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
+import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Label from "Common/Models/DatabaseModels/Label";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, {
   Fragment,
   FunctionComponent,
@@ -118,7 +118,7 @@ const MonitorGroupView: FunctionComponent<
         {
           modelType: MonitorStatus,
           query: {
-            projectId: ProjectUtil.getCurrentProjectId(),
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -163,7 +163,7 @@ const MonitorGroupView: FunctionComponent<
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -207,7 +207,7 @@ const MonitorGroupView: FunctionComponent<
             stepId: "monitor-info",
             title: "Group Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {

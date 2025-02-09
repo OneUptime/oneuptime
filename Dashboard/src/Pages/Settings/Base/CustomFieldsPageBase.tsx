@@ -1,15 +1,15 @@
 import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentCustomField from "Model/Models/IncidentCustomField";
-import MonitorCustomField from "Model/Models/MonitorCustomField";
-import OnCallDutyPolicyCustomField from "Model/Models/OnCallDutyPolicyCustomField";
-import ScheduledMaintenanceCustomField from "Model/Models/ScheduledMaintenanceCustomField";
-import StatusPageCustomField from "Model/Models/StatusPageCustomField";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
+import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
+import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import React, { Fragment, ReactElement } from "react";
 
 export type CustomFieldsBaseModels =
@@ -69,7 +69,7 @@ const CustomFieldsPageBase: (
             },
             title: "Field Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "This label is for all the internal services.",
           },
           {
@@ -126,6 +126,7 @@ const CustomFieldsPageBase: (
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Field Description",
             type: FieldType.Text,
           },

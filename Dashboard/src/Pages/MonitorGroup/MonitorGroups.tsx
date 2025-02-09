@@ -8,13 +8,13 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import MonitorGroup from "Model/Models/MonitorGroup";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
@@ -80,7 +80,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
 
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
         ]}
@@ -106,7 +106,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
 
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

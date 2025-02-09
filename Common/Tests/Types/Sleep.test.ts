@@ -2,17 +2,13 @@ import Sleep from "../../Types/Sleep";
 
 describe("Sleep.sleep", () => {
   test("should delay by given duration", async () => {
-    jest.useFakeTimers();
+    Object.defineProperty(global, "performance", {
+      writable: true,
+    });
+
     jest.spyOn(global, "setTimeout");
 
     const delay: number = 100;
-
-    // See - https://stackoverflow.com/a/51132058
-    Promise.resolve()
-      .then(() => {
-        jest.advanceTimersByTime(delay);
-      })
-      .catch(() => {});
 
     await Sleep.sleep(delay);
 

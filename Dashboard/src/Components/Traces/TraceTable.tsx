@@ -2,11 +2,10 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import DashboardNavigation from "../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import AnalyticsModelTable from "CommonUI/src/Components/ModelTable/AnalyticsModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Span, { SpanKind, SpanStatus } from "Model/AnalyticsModels/Span";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Span from "Common/Models/AnalyticsModels/Span";
 import React, {
   Fragment,
   FunctionComponent,
@@ -21,14 +20,24 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/Utils/API";
-import { APP_API_URL } from "CommonUI/src/Config";
+import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Query from "Common/Types/BaseDatabase/Query";
+import SpanUtil from "../../Utils/SpanUtil";
+import TraceElement from "./TraceElement";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
+  spanQuery?: Query<Span> | undefined;
+  isMinimalTable?: boolean | undefined;
+  noItemsMessage?: string | undefined;
 }
 
 const TraceTable: FunctionComponent<ComponentProps> = (
@@ -41,7 +50,21 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
   const [pageError, setPageError] = React.useState<string>("");
 
-  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
+  const [spanQuery, setSpanQuery] = React.useState<Query<Span> | null>(
+    props.spanQuery || null,
+  );
+
+  const [telemetryServices, setTelemetryServices] = React.useState<
+    Array<TelemetryService>
+  >([]);
+
+  useEffect(() => {
+    if (props.spanQuery) {
+      setSpanQuery(props.spanQuery);
+    }
+  }, [props.spanQuery]);
+
+  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
 
@@ -65,6 +88,26 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         setAttributes(attributes);
       }
 
+      // Load telemetry services
+      const telemetryServices: ListResult<TelemetryService> =
+        await ModelAPI.getList({
+          modelType: TelemetryService,
+          query: {
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            serviceColor: true,
+            name: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+      setTelemetryServices(telemetryServices.data || []);
+
       setIsPageLoading(false);
       setPageError("");
     } catch (err) {
@@ -74,13 +117,13 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    loadAttributes().catch((err: Error) => {
+    loadItems().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
 
   const spanKindDropdownOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(SpanKind);
+    SpanUtil.getSpanKindDropdownOptions();
 
   let viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.TELEMETRY_TRACE_ROOT]!,
@@ -100,140 +143,193 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   }
 
   if (pageError) {
-    return <ErrorMessage error={pageError} />;
+    return <ErrorMessage message={pageError} />;
   }
 
   return (
     <Fragment>
-      <AnalyticsModelTable<Span>
-        modelType={Span}
-        id="traces-table"
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        singularName="Trace"
-        pluralName="Traces"
-        name="Traces"
-        isViewable={true}
-        cardProps={{
-          title: "Traces",
-          description:
-            "Traces are the individual spans that make up a request. They are the building blocks of a trace and represent the work done by a single service.",
-        }}
-        query={{
-          projectId: DashboardNavigation.getProjectId(),
-          serviceId: modelId ? modelId : undefined,
-        }}
-        showViewIdButton={true}
-        noItemsMessage={"No traces found for this service."}
-        showRefreshButton={true}
-        sortBy="startTime"
-        sortOrder={SortOrder.Descending}
-        onViewPage={(span: Span) => {
-          return Promise.resolve(
-            new Route(viewRoute.toString()).addRoute(span.traceId!.toString()),
-          );
-        }}
-        filters={[
-          {
-            field: {
-              traceId: true,
+      <div className="rounded">
+        <AnalyticsModelTable<Span>
+          disablePagination={props.isMinimalTable}
+          modelType={Span}
+          id="traces-table"
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={false}
+          singularName="Span"
+          pluralName="Spans"
+          name="Spans"
+          isViewable={true}
+          cardProps={
+            props.isMinimalTable
+              ? undefined
+              : {
+                  title: "Spans",
+                  description:
+                    "Collection of spans make up a trace. Spans are the building blocks of a trace and represent the individual units of work done in a distributed system.",
+                }
+          }
+          query={{
+            projectId: DashboardNavigation.getProjectId()!,
+            serviceId: modelId ? modelId : undefined,
+            ...spanQuery,
+          }}
+          showViewIdButton={true}
+          noItemsMessage={
+            props.noItemsMessage ? props.noItemsMessage : "No spans found."
+          }
+          showRefreshButton={true}
+          sortBy="startTime"
+          sortOrder={SortOrder.Descending}
+          onViewPage={(span: Span) => {
+            return Promise.resolve(
+              new Route(viewRoute.toString()).addRoute(
+                span.traceId!.toString(),
+              ),
+            );
+          }}
+          filters={[
+            {
+              field: {
+                serviceId: true,
+              },
+              type: FieldType.MultiSelectDropdown,
+              filterDropdownOptions: telemetryServices.map(
+                (service: TelemetryService) => {
+                  return {
+                    label: service.name!,
+                    value: service.id!.toString(),
+                  };
+                },
+              ),
+              title: "Service",
             },
-            type: FieldType.Text,
-            title: "Trace ID",
-          },
-          {
-            field: {
-              statusCode: true,
+            {
+              field: {
+                name: true,
+              },
+              type: FieldType.Text,
+              title: "Span Name",
             },
-            type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SpanStatus,
-              true,
-            ).filter((dropdownOption: DropdownOption) => {
-              return (
-                dropdownOption.label === "Unset" ||
-                dropdownOption.label === "Ok" ||
-                dropdownOption.label === "Error"
-              );
-            }),
-            title: "Span Status",
-          },
-          {
-            field: {
-              name: true,
+            {
+              field: {
+                traceId: true,
+              },
+              type: FieldType.Text,
+              title: "Trace ID",
             },
-            type: FieldType.Text,
-            title: "Span Name",
-          },
-          {
-            field: {
-              kind: true,
+            {
+              field: {
+                statusCode: true,
+              },
+              type: FieldType.MultiSelectDropdown,
+              filterDropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
+              title: "Span Status",
             },
-            type: FieldType.Text,
-            title: "Span Kind",
-            filterDropdownOptions: spanKindDropdownOptions,
-          },
-          {
-            field: {
-              startTime: true,
+            {
+              field: {
+                kind: true,
+              },
+              type: FieldType.MultiSelectDropdown,
+              title: "Span Kind",
+              filterDropdownOptions: spanKindDropdownOptions,
             },
-            type: FieldType.DateTime,
-            title: "Seen At",
-          },
-          {
-            field: {
-              attributes: true,
+            {
+              field: {
+                startTime: true,
+              },
+              type: FieldType.DateTime,
+              title: "Seen At",
             },
-            type: FieldType.JSON,
-            title: "Attributes",
-            jsonKeys: attributes,
-          },
-        ]}
-        selectMoreFields={{
-          statusCode: true,
-        }}
-        columns={[
-          {
-            field: {
-              spanId: true,
+            {
+              field: {
+                attributes: true,
+              },
+              type: FieldType.JSON,
+              title: "Attributes",
+              jsonKeys: attributes,
             },
-            title: "Span ID",
-            type: FieldType.Element,
-            getElement: (span: Span): ReactElement => {
-              return (
-                <Fragment>
-                  <SpanStatusElement
-                    span={span}
-                    title={span.spanId?.toString()}
-                  />
-                </Fragment>
-              );
+          ]}
+          selectMoreFields={{
+            statusCode: true,
+          }}
+          columns={[
+            {
+              field: {
+                spanId: true,
+              },
+              title: "Span ID",
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                return (
+                  <Fragment>
+                    <SpanStatusElement
+                      traceId={span.traceId?.toString()}
+                      spanStatusCode={span.statusCode!}
+                      title={span.spanId?.toString()}
+                    />
+                  </Fragment>
+                );
+              },
             },
-          },
-          {
-            field: {
-              traceId: true,
+            {
+              field: {
+                traceId: true,
+              },
+              title: "Trace ID",
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                return (
+                  <Fragment>
+                    <TraceElement traceId={span.traceId?.toString()} />
+                  </Fragment>
+                );
+              },
             },
-            title: "Trace ID",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              name: true,
+            {
+              field: {
+                name: true,
+              },
+              title: "Span Name",
+              type: FieldType.Text,
             },
-            title: "Span Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              startTime: true,
+            {
+              field: {
+                serviceId: true,
+              },
+              title: "Service",
+              type: FieldType.Element,
+              getElement: (span: Span): ReactElement => {
+                const telemetryService: TelemetryService | undefined =
+                  telemetryServices.find((service: TelemetryService) => {
+                    return (
+                      service.id?.toString() === span.serviceId?.toString()
+                    );
+                  });
+
+                if (!telemetryService) {
+                  return <p>Unknown</p>;
+                }
+
+                return (
+                  <Fragment>
+                    <TelemetryServiceElement
+                      telemetryService={telemetryService}
+                    />
+                  </Fragment>
+                );
+              },
             },
-            title: "Seen At",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
+            {
+              field: {
+                startTime: true,
+              },
+              title: "Seen At",
+              type: FieldType.DateTime,
+            },
+          ]}
+        />
+      </div>
     </Fragment>
   );
 };

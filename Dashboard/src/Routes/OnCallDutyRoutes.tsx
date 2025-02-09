@@ -248,14 +248,16 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             2,
           )}
           element={
-            <OnCallDutyPolicyViewLogsView
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
-                ] as Route
-              }
-            />
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewLogsView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
           }
         />
       </PageRoute>

@@ -1,16 +1,16 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import ClusterKeyAuthorization from "CommonServer/Middleware/ClusterKeyAuthorization";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import VMRunner from "CommonServer/Utils/VM/VMRunner";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import VMRunner from "Common/Server/Utils/VM/VMRunner";
 
 const router: ExpressRouter = Express.getRouter();
 

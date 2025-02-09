@@ -14,27 +14,27 @@ import ServerException from "Common/Types/Exception/ServerException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
-import { Host, HttpProtocol } from "CommonServer/EnvironmentConfig";
-import AccessTokenService from "CommonServer/Services/AccessTokenService";
-import ProjectSSOService from "CommonServer/Services/ProjectSsoService";
-import TeamMemberService from "CommonServer/Services/TeamMemberService";
-import UserService from "CommonServer/Services/UserService";
-import QueryHelper from "CommonServer/Types/Database/QueryHelper";
-import Select from "CommonServer/Types/Database/Select";
-import CookieUtil from "CommonServer/Utils/Cookie";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserService from "Common/Server/Services/UserService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import Project from "Model/Models/Project";
-import ProjectSSO from "Model/Models/ProjectSso";
-import TeamMember from "Model/Models/TeamMember";
-import User from "Model/Models/User";
+} from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import Project from "Common/Models/DatabaseModels/Project";
+import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
 import xml2js from "xml2js";
 
 const router: ExpressRouter = Express.getRouter();
@@ -45,106 +45,112 @@ const router: ExpressRouter = Express.getRouter();
 router.get(
   "/service-provider-login",
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    if (!req.query["email"]) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("Email is required"),
-      );
-    }
+    try {
+      if (!req.query["email"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Email is required"),
+        );
+      }
 
-    const email: Email = new Email(req.query["email"] as string);
+      const email: Email = new Email(req.query["email"] as string);
 
-    if (!email) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("Email is required"),
-      );
-    }
+      if (!email) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Email is required"),
+        );
+      }
 
-    // get sso config for this user.
+      // get sso config for this user.
 
-    const user: User | null = await UserService.findOneBy({
-      query: { email: email },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!user) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("No SSO config found for this user"),
-      );
-    }
-
-    const userId: ObjectID = user.id!;
-
-    if (!userId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadRequestException("No SSO config found for this user"),
-      );
-    }
-
-    const projectUserBelongsTo: Array<ObjectID> = (
-      await TeamMemberService.findBy({
-        query: { userId: userId },
+      const user: User | null = await UserService.findOneBy({
+        query: { email: email },
         select: {
-          projectId: true,
+          _id: true,
         },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
         props: {
           isRoot: true,
         },
-      })
-    ).map((teamMember: TeamMember) => {
-      return teamMember.projectId!;
-    });
+      });
 
-    if (projectUserBelongsTo.length === 0) {
-      return Response.sendErrorResponse(
+      if (!user) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const userId: ObjectID = user.id!;
+
+      if (!userId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const projectUserBelongsTo: Array<ObjectID> = (
+        await TeamMemberService.findBy({
+          query: { userId: userId },
+          select: {
+            projectId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).map((teamMember: TeamMember) => {
+        return teamMember.projectId!;
+      });
+
+      if (projectUserBelongsTo.length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("No SSO config found for this user"),
+        );
+      }
+
+      const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
+        query: {
+          projectId: QueryHelper.any(projectUserBelongsTo),
+          isEnabled: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          description: true,
+          _id: true,
+          projectId: true,
+          project: {
+            name: true,
+          } as Select<Project>,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return Response.sendEntityArrayResponse(
         req,
         res,
-        new BadRequestException("No SSO config found for this user"),
+        projectSSOList,
+        projectSSOList.length,
+        ProjectSSO,
       );
+    } catch (err) {
+      logger.error(err);
+
+      Response.sendErrorResponse(req, res, err as Exception);
     }
-
-    const projectSSOList: Array<ProjectSSO> = await ProjectSSOService.findBy({
-      query: {
-        projectId: QueryHelper.any(projectUserBelongsTo),
-        isEnabled: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        name: true,
-        description: true,
-        _id: true,
-        projectId: true,
-        project: {
-          name: true,
-        } as Select<Project>,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Response.sendEntityArrayResponse(
-      req,
-      res,
-      projectSSOList,
-      projectSSOList.length,
-      ProjectSSO,
-    );
   },
 );
 
@@ -153,7 +159,7 @@ router.get(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction,
+    _next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.params["projectId"]) {
@@ -227,7 +233,9 @@ router.get(
 
       return Response.redirect(req, res, samlRequestUrl);
     } catch (err) {
-      return next(err);
+      logger.error(err);
+
+      Response.sendErrorResponse(req, res, err as Exception);
     }
   },
 );
@@ -522,7 +530,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     );
   } catch (err) {
     logger.error(err);
-    Response.sendErrorResponse(req, res, new ServerException());
+
+    Response.sendErrorResponse(req, res, err as Exception);
   }
 };
 

@@ -1,4 +1,4 @@
-import ToastLayout from "CommonUI/src/Components/Toast/ToastInit";
+import ToastLayout from "Common/UI/Components/Toast/ToastInit";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import ActiveIncidents from "./Pages/Global/NewIncidents";
@@ -10,6 +10,7 @@ import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
 // Pages
 import Home from "./Pages/Home/Home";
 import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
+import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
 import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
 import Logout from "./Pages/Logout/Logout";
 import Sso from "./Pages/Onboarding/SSO";
@@ -22,6 +23,7 @@ import IncidentsRoutes from "./Routes/IncidentsRoutes";
 //Routes
 import InitRoutes from "./Routes/InitRoutes";
 import MonitorGroupRoutes from "./Routes/MonitorGroupRoutes";
+import DashboardRoutes from "./Routes/DashboardRoutes";
 import MonitorsRoutes from "./Routes/MonitorsRoutes";
 import OnCallDutyRoutes from "./Routes/OnCallDutyRoutes";
 import ScheduledMaintenanceEventsRoutes from "./Routes/ScheduleMaintenaceEventsRoutes";
@@ -37,14 +39,14 @@ import RouteMap from "./Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { APP_API_URL, BILLING_ENABLED } from "CommonUI/src/Config";
-import API from "CommonUI/src/Utils/API/API";
-import GlobalEvents from "CommonUI/src/Utils/GlobalEvents";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import BillingPaymentMethod from "Model/Models/BillingPaymentMethod";
-import Project from "Model/Models/Project";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
+import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { useEffect, useState } from "react";
 import {
   Route as PageRoute,
@@ -54,6 +56,8 @@ import {
   useParams,
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
+import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
+import AlertsRoutes from "./Routes/AlertRoutes";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -264,6 +268,16 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
+          element={
+            <HomeActiveAlerts
+              {...commonPageProps}
+              pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={
             RouteMap[
               PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
@@ -306,6 +320,12 @@ const App: () => JSX.Element = () => {
           element={<StatusPagesRoutes {...commonPageProps} />}
         />
 
+        {/* Dashboards */}
+        <PageRoute
+          path={RouteMap[PageMap.DASHBOARDS_ROOT]?.toString() || ""}
+          element={<DashboardRoutes {...commonPageProps} />}
+        />
+
         {/* Service Catalog */}
         <PageRoute
           path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
@@ -322,6 +342,12 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ""}
           element={<IncidentsRoutes {...commonPageProps} />}
+        />
+
+        {/* Incidents */}
+        <PageRoute
+          path={RouteMap[PageMap.ALERTS_ROOT]?.toString() || ""}
+          element={<AlertsRoutes {...commonPageProps} />}
         />
 
         {/* Scheduled Events */}
@@ -403,6 +429,16 @@ const App: () => JSX.Element = () => {
             <UserProfilePassword
               {...commonPageProps}
               pageRoute={RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() || ""}
+          element={
+            <UseTwoFactorAuth
+              {...commonPageProps}
+              pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
             />
           }
         />

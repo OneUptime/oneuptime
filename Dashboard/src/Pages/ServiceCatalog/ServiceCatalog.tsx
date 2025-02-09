@@ -6,14 +6,14 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import ServiceCatalog from "Model/Models/ServiceCatalog";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceCatalogPage: FunctionComponent<
@@ -30,7 +30,7 @@ const ServiceCatalogPage: FunctionComponent<
         {
           title: "Service Catalog",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
+            RouteMap[PageMap.SERVICE_CATALOG] as Route,
           ),
         },
       ]}
@@ -71,7 +71,7 @@ const ServiceCatalogPage: FunctionComponent<
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
           {
@@ -115,7 +115,7 @@ const ServiceCatalogPage: FunctionComponent<
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -142,6 +142,7 @@ const ServiceCatalogPage: FunctionComponent<
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

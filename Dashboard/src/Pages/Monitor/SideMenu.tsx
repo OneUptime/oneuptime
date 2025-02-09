@@ -2,13 +2,13 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import { BadgeType } from "CommonUI/src/Components/Badge/Badge";
-import CountModelSideMenuItem from "CommonUI/src/Components/SideMenu/CountModelSideMenuItem";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
-import Monitor from "Model/Models/Monitor";
-import Project from "Model/Models/Project";
+import { BadgeType } from "Common/UI/Components/Badge/Badge";
+import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -48,23 +48,23 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           }}
         />
-
-        {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
-          <SideMenuSection title="Monitor Groups">
-            <SideMenuItem
-              link={{
-                title: "All Groups",
-                to: RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.MONITOR_GROUPS] as Route,
-                ),
-              }}
-              icon={IconProp.Squares}
-            />
-          </SideMenuSection>
-        ) : (
-          <></>
-        )}
       </SideMenuSection>
+
+      {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
+        <SideMenuSection title="Monitor Groups">
+          <SideMenuItem
+            link={{
+              title: "All Groups",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_GROUPS] as Route,
+              ),
+            }}
+            icon={IconProp.Squares}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Not Being Monitored">
         <CountModelSideMenuItem<Monitor>

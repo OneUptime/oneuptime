@@ -1,11 +1,11 @@
 import App from "./App";
-import Telemetry from "CommonUI/src/Utils/Telemetry";
+import Telemetry from "Common/UI/Utils/Telemetry";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 Telemetry.init({
-  serviceName: "Dashboard",
+  serviceName: "dashboard",
 });
 
 const root: any = ReactDOM.createRoot(

@@ -7,16 +7,16 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import { ShowAs } from "CommonUI/src/Components/ModelTable/BaseModelTable";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import OnCallDutyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicySchedule from "Model/Models/OnCallDutyPolicySchedule";
-import Team from "Model/Models/Team";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
@@ -44,7 +44,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
         }}
         query={{
           onCallDutyPolicyId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: OnCallDutyEscalationRule,
@@ -97,7 +97,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             title: "Description",
             stepId: "overview",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             description:
               "The description of the escalation rule. This is used to describe the rule.",
           },
@@ -212,7 +212,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             field: {
               description: true,
             },
-
+            noValueMessage: "-",
             title: "Description",
             description: "The description of the escalation rule.",
             type: FieldType.Text,

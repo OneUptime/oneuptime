@@ -6,27 +6,33 @@ import CodeType from "Common/Types/Code/CodeType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import Accordion from "CommonUI/src/Components/Accordion/Accordion";
-import AccordionGroup from "CommonUI/src/Components/Accordion/AccordionGroup";
-import CodeEditor from "CommonUI/src/Components/CodeEditor/CodeEditor";
-import Detail from "CommonUI/src/Components/Detail/Detail";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import LogsViewer from "CommonUI/src/Components/LogsViewer/LogsViewer";
-import { TabType } from "CommonUI/src/Components/Tabs/Tab";
-import Tabs from "CommonUI/src/Components/Tabs/Tabs";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import API from "CommonUI/src/Utils/API/API";
+import Accordion from "Common/UI/Components/Accordion/Accordion";
+import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
+import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
+import Detail from "Common/UI/Components/Detail/Detail";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import LogsViewer from "Common/UI/Components/LogsViewer/LogsViewer";
+import { TabType } from "Common/UI/Components/Tabs/Tab";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
-} from "CommonUI/src/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Select from "CommonUI/src/Utils/BaseDatabase/Select";
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import Log from "Model/AnalyticsModels/Log";
-import Span, { SpanEvent, SpanEventType } from "Model/AnalyticsModels/Span";
-import TelemetryService from "Model/Models/TelemetryService";
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Select from "Common/UI/Utils/BaseDatabase/Select";
+import ProjectUtil from "Common/UI/Utils/Project";
+import Log from "Common/Models/AnalyticsModels/Log";
+import Span, {
+  SpanEvent,
+  SpanEventType,
+} from "Common/Models/AnalyticsModels/Span";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { JSONObject } from "Common/Types/JSON";
+import Text from "Common/Types/Text";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 
 export interface ComponentProps {
   id: string;
@@ -44,6 +50,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [span, setSpan] = React.useState<Span | null>(null);
+  const [exceptions, setExceptions] = React.useState<Array<ExceptionInstance>>(
+    [],
+  );
 
   const { telemetryService, onClose } = props;
 
@@ -71,6 +80,16 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     attributes: true,
     durationUnixNano: true,
     name: true,
+  };
+
+  const selectTelemeryException: Select<ExceptionInstance> = {
+    message: true,
+    exceptionType: true,
+    stackTrace: true,
+    fingerprint: true,
+    attributes: true,
+    time: true,
+    timeUnixNano: true,
   };
 
   useEffect(() => {
@@ -121,6 +140,24 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
       if (spanResult.data.length > 0) {
         setSpan(spanResult.data[0] || null);
       }
+
+      // fetch exceptions
+      const exceptionsResult: ListResult<ExceptionInstance> =
+        await AnalyticsModelAPI.getList<ExceptionInstance>({
+          modelType: ExceptionInstance,
+          query: {
+            spanId: props.openTelemetrySpanId,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: selectTelemeryException,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            time: SortOrder.Descending,
+          },
+        });
+
+      setExceptions(exceptionsResult.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -129,7 +166,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   };
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {
@@ -152,7 +189,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
   const getAttributesContentElement: GetReactElementFunction =
     (): ReactElement => {
       if (!span) {
-        return <ErrorMessage error="Span not found" />;
+        return <ErrorMessage message="Span not found" />;
       }
 
       return (
@@ -187,11 +224,11 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     event: SpanEvent,
   ): ReactElement => {
     if (!span) {
-      return <ErrorMessage error="No span found" />;
+      return <ErrorMessage message="No span found" />;
     }
 
     if (!event) {
-      return <ErrorMessage error="No event found" />;
+      return <ErrorMessage message="No event found" />;
     }
 
     return (
@@ -285,9 +322,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
 
     if (!eventsToShow || eventsToShow.length === 0) {
       if (eventType === SpanEventType.Exception) {
-        return <ErrorMessage error="No exceptions found for this span." />;
+        return <ErrorMessage message="No exceptions found for this span." />;
       }
-      return <ErrorMessage error="No events found for this span." />;
+      return <ErrorMessage message="No events found for this span." />;
     }
 
     let bgColorClassName: string = "bg-indigo-500";
@@ -299,6 +336,26 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     return (
       <AccordionGroup>
         {eventsToShow.map((event: SpanEvent, index: number) => {
+          let eventName: string | undefined = event.name;
+
+          if (eventName === SpanEventType.Exception) {
+            // then show message as name.
+
+            eventName = (event.attributes as JSONObject)?.[
+              "exception.message"
+            ]?.toString();
+
+            if (!eventName) {
+              eventName = (event.attributes as JSONObject)?.[
+                "exception.type"
+              ]?.toString();
+
+              if (!eventName) {
+                eventName = "Exception";
+              }
+            }
+          }
+
           return (
             <Accordion
               titleClassName="text-sm"
@@ -308,10 +365,10 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                     <div
                       className={`rounded-md text-white p-1 text-xs font-semibold ${bgColorClassName}`}
                     >
-                      {eventType}: {index + 1}
+                      {Text.uppercaseFirstLetter(eventType)}: {index + 1}
                     </div>
                     <div className="flex space-x-1">
-                      <div className="mt-0.5 font-medium">{event.name}</div>
+                      <div className="mt-0.5 font-medium">{eventName}</div>
                       <div className="text-gray-500 mt-0.5">
                         {" "}
                         at{" "}
@@ -336,14 +393,122 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const getExceptionsContentElement: GetReactElementFunction =
+  type GetExceptionsFunction = () => ReactElement;
+
+  const getExceptionsContentElement: GetExceptionsFunction =
     (): ReactElement => {
-      return getEvents(SpanEventType.Exception);
+      if (!exceptions || exceptions.length === 0) {
+        return <ErrorMessage message="No exceptions found for this span." />;
+      }
+
+      const bgColorClassName: string = "bg-red-500";
+
+      return (
+        <AccordionGroup>
+          {exceptions.map((exception: ExceptionInstance, index: number) => {
+            const exceptionName: string =
+              exception.message || exception.exceptionType || "Exception";
+
+            return (
+              <Accordion
+                titleClassName="text-sm"
+                title={
+                  <div className="flex space-x-2">
+                    <div className="flex space-x-2">
+                      <div
+                        className={`rounded-md text-white p-1 text-xs font-semibold ${bgColorClassName}`}
+                      >
+                        Exception: {index + 1}
+                      </div>
+                      <div className="flex space-x-1">
+                        <div className="mt-0.5 font-medium">
+                          {exceptionName}
+                        </div>
+                        <div className="text-gray-500 mt-0.5">
+                          {" "}
+                          at{" "}
+                          {SpanUtil.getSpanEventTimeAsString({
+                            timelineStartTimeUnixNano:
+                              props.traceStartTimeInUnixNano,
+                            divisibilityFactor: props.divisibilityFactor,
+                            spanEventTimeUnixNano: exception.timeUnixNano!,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+                key={index}
+              >
+                {getExceptionContent(exception)}
+              </Accordion>
+            );
+          })}
+        </AccordionGroup>
+      );
     };
+
+  type GetExceptionsContentElementFunction = (
+    exception: ExceptionInstance,
+  ) => ReactElement;
+
+  const getExceptionContent: GetExceptionsContentElementFunction = (
+    exception: ExceptionInstance,
+  ): ReactElement => {
+    return (
+      <Detail<ExceptionInstance>
+        item={exception}
+        fields={[
+          {
+            key: "message",
+            title: "Message",
+            description: "The message of the exception.",
+          },
+          {
+            key: "exceptionType",
+            title: "Exception Type",
+            description: "The type of the exception.",
+          },
+          {
+            key: "stackTrace",
+            title: "Stack Trace",
+            description: "The stack trace of the exception.",
+            fieldType: FieldType.Element,
+            getElement: (exception: ExceptionInstance) => {
+              return (
+                <CodeEditor
+                  type={CodeType.Text}
+                  initialValue={exception.stackTrace?.replace(/\\n/g, "\n")}
+                  readOnly={true}
+                />
+              );
+            },
+          },
+          {
+            key: "attributes",
+            title: "Exception Attributes",
+            description: "The attributes of the exception.",
+            fieldType: FieldType.Element,
+            getElement: (exception: ExceptionInstance) => {
+              return (
+                <CodeEditor
+                  type={CodeType.JSON}
+                  initialValue={JSONFunctions.toFormattedString(
+                    JSONFunctions.nestJson(exception.attributes || {}),
+                  )}
+                  readOnly={true}
+                />
+              );
+            },
+          },
+        ]}
+      />
+    );
+  };
 
   const getBasicInfo: GetReactElementFunction = (): ReactElement => {
     if (!span) {
-      return <ErrorMessage error="Span not found" />;
+      return <ErrorMessage message="Span not found" />;
     }
 
     return (
@@ -374,7 +539,8 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
               return (
                 <div>
                   <SpanStatusElement
-                    span={span}
+                    traceId={span.traceId?.toString()}
+                    spanStatusCode={span.statusCode!}
                     title={
                       "Status: " +
                       SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
@@ -506,9 +672,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
           {
             name: "Events",
             children: getEventsContentElement(),
-            countBadge: span?.events?.filter((event: SpanEvent) => {
-              return event.name !== SpanEventType.Exception.toLowerCase();
-            }).length,
+            countBadge: exceptions.length,
             tabType: TabType.Info,
           },
           {

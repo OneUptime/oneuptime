@@ -20,11 +20,9 @@
     "@types/ping": "^0.4.4",
     "axios": "^1.7.2",
     "Common": "file:../Common",
-    "CommonServer": "file:../CommonServer",
     "ejs": "^3.1.10",
-    "Model": "file:../Model",
     "ping": "^0.4.4",
-    "playwright": "^1.44.1",
+    "playwright": "^1.50.0",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {

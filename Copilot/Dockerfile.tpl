@@ -3,8 +3,13 @@
 #
 
 # Pull base image nodejs image.
-FROM node:22.3.0
+FROM public.ecr.aws/docker/library/node:22.3.0
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
+
+RUN npm config set fetch-retries 5
+RUN npm config set fetch-retry-mintimeout 100000
+RUN npm config set fetch-retry-maxtimeout 600000
+
 
 ARG GIT_SHA
 ARG APP_VERSION
@@ -37,28 +42,13 @@ RUN npm install
 COPY ./Common /usr/src/Common
 
 
-WORKDIR /usr/src/Model
-COPY ./Model/package*.json /usr/src/Model/
-# Set version in ./Model/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Model/package.json
-RUN npm install
-COPY ./Model /usr/src/Model
 
 
-WORKDIR /usr/src/CommonServer
-COPY ./CommonServer/package*.json /usr/src/CommonServer/
-# Set version in ./CommonServer/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonServer/package.json
-RUN npm install
-COPY ./CommonServer /usr/src/CommonServer
 
 
-WORKDIR /usr/src/CommonUI
-COPY ./CommonUI/package*.json /usr/src/CommonUI/
-# Set version in ./CommonServer/package.json to the APP_VERSION
-RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/CommonUI/package.json
-RUN npm install
-COPY ./CommonUI /usr/src/CommonUI
+
+
+
 
 ENV PRODUCTION=true
 

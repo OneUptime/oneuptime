@@ -1,14 +1,23 @@
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
-import CopilotActionBase, {
-  CopilotActionPrompt,
-  CopilotProcess,
-  PromptRole,
-} from "./CopilotActionsBase";
+import CopilotActionBase from "./CopilotActionsBase";
 import CodeRepositoryUtil from "../../Utils/CodeRepository";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import { CopilotPromptResult } from "../LLM/LLMBase";
-import CodeRepositoryFile from "CommonServer/Utils/CodeRepository/CodeRepositoryFile";
 import Text from "Common/Types/Text";
+import { CopilotActionPrompt, CopilotProcess } from "./Types";
+import { PromptRole } from "../LLM/Prompt";
+import logger from "Common/Server/Utils/Logger";
+import FileActionProp from "Common/Types/Copilot/CopilotActionProps/FileActionProp";
+import CodeRepositoryFile from "Common/Server/Utils/CodeRepository/CodeRepositoryFile";
+import CopilotActionUtil from "../../Utils/CopilotAction";
+import ObjectID from "Common/Types/ObjectID";
+import CopilotAction from "Common/Models/DatabaseModels/CopilotAction";
+import ServiceRepositoryUtil from "../../Utils/ServiceRepository";
+import Dictionary from "Common/Types/Dictionary";
+import ArrayUtil from "Common/Utils/Array";
+import CopilotActionProp from "Common/Types/Copilot/CopilotActionProps/Index";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import LocalFile from "Common/Server/Utils/LocalFile";
 
 export default class ImproveComments extends CopilotActionBase {
   public isRequirementsMet: boolean = false;
@@ -19,11 +28,223 @@ export default class ImproveComments extends CopilotActionBase {
     this.acceptFileExtentions = CodeRepositoryUtil.getCodeFileExtentions();
   }
 
+  protected override async isActionRequired(data: {
+    serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
+    copilotActionProp: FileActionProp;
+  }): Promise<boolean> {
+    // check if the action has already been processed for this file.
+    const existingAction: CopilotAction | null =
+      await CopilotActionUtil.getExistingAction({
+        serviceCatalogId: data.serviceCatalogId,
+        actionType: this.copilotActionType,
+        actionProps: {
+          filePath: data.copilotActionProp.filePath, // has this action run on this file before?
+        },
+      });
+
+    if (!existingAction) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public override async getActionPropsToQueue(data: {
+    serviceCatalogId: ObjectID;
+    serviceRepositoryId: ObjectID;
+    maxActionsToQueue: number;
+  }): Promise<Array<CopilotActionProp>> {
+    // get files in the repo.
+    logger.debug(
+      `${this.copilotActionType} - Getting files to queue for improve comments.`,
+    );
+
+    let totalActionsToQueue: number = 0;
+
+    logger.debug(`${this.copilotActionType} - Reading files in the service.`);
+
+    const files: Dictionary<CodeRepositoryFile> =
+      await ServiceRepositoryUtil.getFilesByServiceCatalogId({
+        serviceCatalogId: data.serviceCatalogId,
+      });
+
+    logger.debug(
+      `${this.copilotActionType} - Files read. ${Object.keys(files).length} files found.`,
+    );
+
+    // get keys in random order.
+    let fileKeys: string[] = Object.keys(files);
+
+    //randomize the order of the files.
+    fileKeys = ArrayUtil.shuffle(fileKeys);
+
+    const actionsPropsQueued: Array<CopilotActionProp> = [];
+
+    logger.debug(
+      `${this.copilotActionType} - Accepted File Extentions: ${this.acceptFileExtentions}`,
+    );
+
+    for (const fileKey of fileKeys) {
+      logger.debug(
+        `${this.copilotActionType} - Checking file: ${files[fileKey]!.filePath}`,
+      );
+
+      // check if the file is in accepted file extentions.
+      const fileExtention: string = LocalFile.getFileExtension(
+        files[fileKey]!.filePath,
+      );
+
+      logger.debug(
+        `${this.copilotActionType} - File Extention: ${fileExtention}`,
+      );
+
+      if (!this.acceptFileExtentions.includes(fileExtention)) {
+        logger.debug(
+          `${this.copilotActionType} - File is not in accepted file extentions. Skipping.`,
+        );
+        continue;
+      }
+
+      const file: CodeRepositoryFile = files[fileKey]!;
+
+      logger.debug(
+        `${this.copilotActionType} - Checking file: ${file.filePath}`,
+      );
+
+      if (
+        await this.isActionRequired({
+          serviceCatalogId: data.serviceCatalogId,
+          serviceRepositoryId: data.serviceRepositoryId,
+          copilotActionProp: {
+            filePath: file.filePath,
+          },
+        })
+      ) {
+        actionsPropsQueued.push({
+          filePath: file.filePath,
+        });
+
+        totalActionsToQueue++;
+      }
+
+      if (totalActionsToQueue >= data.maxActionsToQueue) {
+        break;
+      }
+    }
+
+    return actionsPropsQueued;
+  }
+
+  public override async getCommitMessage(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestTitle(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return (
+      "Improved comments on " + (data.actionProp as FileActionProp).filePath
+    );
+  }
+
+  public override async getPullRequestBody(
+    data: CopilotProcess,
+  ): Promise<string> {
+    return `Improved comments on ${(data.actionProp as FileActionProp).filePath}
+    
+    ${await this.getDefaultPullRequestBody()}
+    `;
+  }
+
   public override isActionComplete(_data: CopilotProcess): Promise<boolean> {
     return Promise.resolve(this.isRequirementsMet);
   }
 
-  public async commentCodePart(options: {
+  public override async onExecutionStep(
+    data: CopilotProcess,
+  ): Promise<CopilotProcess> {
+    const filePath: string = (data.actionProp as FileActionProp).filePath;
+
+    if (!filePath) {
+      throw new BadDataException("File Path is not set in the action prop.");
+    }
+
+    const fileContent: string = await ServiceRepositoryUtil.getFileContent({
+      filePath: filePath,
+    });
+
+    const codeParts: string[] = await this.splitInputCode({
+      code: fileContent,
+      itemSize: 500,
+    });
+
+    let newContent: string = "";
+
+    let isWellCommented: boolean = true;
+
+    for (const codePart of codeParts) {
+      const codePartResult: {
+        newCode: string;
+        isWellCommented: boolean;
+      } = await this.commentCodePart({
+        data: data,
+        codePart: codePart,
+        currentRetryCount: 0,
+        maxRetryCount: 3,
+      });
+
+      if (!codePartResult.isWellCommented) {
+        isWellCommented = false;
+        newContent += codePartResult.newCode + "\n";
+      } else {
+        newContent += codePart + "\n";
+      }
+    }
+
+    if (isWellCommented) {
+      this.isRequirementsMet = true;
+      return data;
+    }
+
+    newContent = newContent.trim();
+
+    logger.debug("New Content:");
+    logger.debug(newContent);
+
+    const fileActionProps: FileActionProp = data.actionProp as FileActionProp;
+
+    // add to result.
+    data.result.files[fileActionProps.filePath] = {
+      fileContent: newContent,
+    } as CodeRepositoryFile;
+
+    this.isRequirementsMet = true;
+    return data;
+  }
+
+  private async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
+    const validationResponse: string = data.output as string;
+    if (validationResponse === "--no--") {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async isFileAlreadyWellCommented(content: string): Promise<boolean> {
+    if (content.includes("--all-good--")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async commentCodePart(options: {
     data: CopilotProcess;
     codePart: string;
     currentRetryCount: number;
@@ -91,74 +312,7 @@ export default class ImproveComments extends CopilotActionBase {
     };
   }
 
-  public override async onExecutionStep(
-    data: CopilotProcess,
-  ): Promise<CopilotProcess> {
-    // Action Prompt
-
-    const codeParts: string[] = await this.splitInputCode({
-      copilotProcess: data,
-      itemSize: 500,
-    });
-
-    let newContent: string = "";
-
-    let isWellCommented: boolean = true;
-
-    for (const codePart of codeParts) {
-      const codePartResult: {
-        newCode: string;
-        isWellCommented: boolean;
-      } = await this.commentCodePart({
-        data: data,
-        codePart: codePart,
-        currentRetryCount: 0,
-        maxRetryCount: 3,
-      });
-
-      if (!codePartResult.isWellCommented) {
-        isWellCommented = false;
-        newContent += codePartResult.newCode + "\n";
-      } else {
-        newContent += codePart + "\n";
-      }
-    }
-
-    if (isWellCommented) {
-      this.isRequirementsMet = true;
-      return data;
-    }
-
-    newContent = newContent.trim();
-
-    // add to result.
-    data.result.files[data.input.currentFilePath] = {
-      ...data.input.files[data.input.currentFilePath],
-      fileContent: newContent,
-    } as CodeRepositoryFile;
-
-    this.isRequirementsMet = true;
-    return data;
-  }
-
-  public async didPassValidation(data: CopilotPromptResult): Promise<boolean> {
-    const validationResponse: string = data.output as string;
-    if (validationResponse === "--no--") {
-      return true;
-    }
-
-    return false;
-  }
-
-  public async isFileAlreadyWellCommented(content: string): Promise<boolean> {
-    if (content.includes("--all-good--")) {
-      return true;
-    }
-
-    return false;
-  }
-
-  public async getValidationPrompt(data: {
+  private async getValidationPrompt(data: {
     oldCode: string;
     newCode: string;
   }): Promise<CopilotActionPrompt> {
@@ -201,11 +355,13 @@ export default class ImproveComments extends CopilotActionBase {
   }
 
   public override async getPrompt(
-    data: CopilotProcess,
+    _data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt> {
-    const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
-      ?.fileLanguage as TechStack;
+    // const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
+    //   ?.fileLanguage as TechStack;
+
+    const fileLanguage: TechStack = TechStack.TypeScript;
 
     const prompt: string = `Please improve the comments in this code. Please only add minimal comments and comment code which is hard to understand. Please add comments in new line and do not add inline comments. 
 
@@ -271,6 +427,7 @@ export default class ImproveComments extends CopilotActionBase {
     );
 
     const lastWordOfInputCode: string = Text.getLastWord(data.inputCode);
+
     extractedCode = Text.trimEndUntilThisWord(
       extractedCode,
       lastWordOfInputCode,

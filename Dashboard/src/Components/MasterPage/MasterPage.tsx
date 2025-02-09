@@ -4,17 +4,16 @@ import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import Route from "Common/Types/API/Route";
-import { SubscriptionStatusUtil } from "Common/Types/Billing/SubscriptionStatus";
+import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
-import Link from "CommonUI/src/Components/Link/Link";
-import MasterPage from "CommonUI/src/Components/MasterPage/MasterPage";
-import TopAlert, {
-  TopAlertType,
-} from "CommonUI/src/Components/TopAlert/TopAlert";
-import { BILLING_ENABLED } from "CommonUI/src/Config";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Model/Models/Project";
+import Link from "Common/UI/Components/Link/Link";
+import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
+import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -53,17 +52,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   let isSubscriptionInactive: boolean = false;
 
   if (props.selectedProject) {
-    const isMeteredSubscriptionInactive: boolean =
-      SubscriptionStatusUtil.isSubscriptionInactive(
-        props.selectedProject?.paymentProviderMeteredSubscriptionStatus,
-      );
-    const isProjectSubscriptionInactive: boolean =
-      SubscriptionStatusUtil.isSubscriptionInactive(
-        props.selectedProject?.paymentProviderSubscriptionStatus,
-      );
-
-    isSubscriptionInactive =
-      isMeteredSubscriptionInactive || isProjectSubscriptionInactive;
+    isSubscriptionInactive = ProjectUtil.setIsSubscriptionInactive({
+      paymentProviderMeteredSubscriptionStatus:
+        props.selectedProject?.paymentProviderMeteredSubscriptionStatus ||
+        SubscriptionStatus.Active,
+      paymentProviderSubscriptionStatus:
+        props.selectedProject?.paymentProviderSubscriptionStatus ||
+        SubscriptionStatus.Active,
+    });
   }
 
   return (

@@ -1,10 +1,10 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import ApiKey from "Model/Models/ApiKey";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -13,7 +13,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<ApiKey>
         modelType={ApiKey}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         id="api-keys-table"
         name="Settings > API Keys"
@@ -47,7 +47,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "API Key Description",
           },
           {
@@ -100,6 +100,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },

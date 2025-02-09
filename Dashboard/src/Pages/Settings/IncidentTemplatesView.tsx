@@ -12,23 +12,23 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import IncidentTemplate from "Model/Models/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "Model/Models/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "Model/Models/IncidentTemplateOwnerUser";
-import Label from "Model/Models/Label";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import Team from "Model/Models/Team";
-import User from "Model/Models/User";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -113,7 +113,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Description",
             stepId: "incident-details",
             fieldType: FormFieldSchemaType.Markdown,
-            required: true,
+            required: false,
           },
           {
             field: {
@@ -323,7 +323,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         query={{
           incidentTemplateId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentTemplateOwnerTeam,
@@ -409,7 +409,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         createVerb={"Add"}
         query={{
           incidentTemplateId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentTemplateOwnerUser,

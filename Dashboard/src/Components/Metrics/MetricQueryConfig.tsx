@@ -1,67 +1,92 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import MetricAlias, { MetricAliasData } from "./MetricAlias";
-import MetricQuery, { MetricQueryData } from "./MetricQuery";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Card from "CommonUI/src/Components/Card/Card";
+import MetricAlias from "./MetricAlias";
+import MetricQuery from "./MetricQuery";
+import Card from "Common/UI/Components/Card/Card";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
-
-export interface MetricQueryConfigData {
-  metricAliasData: MetricAliasData;
-  metricQueryData: MetricQueryData;
-}
+} from "Common/UI/Components/Button/Button";
+import MetricNameAndUnit from "./Types/MetricNameAndUnit";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
+import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
-  onDataChanged: (data: MetricQueryConfigData) => void;
-  metricNames: string[];
+  onChange?: ((data: MetricQueryConfigData) => void) | undefined;
+  metricNameAndUnits: Array<MetricNameAndUnit>;
   telemetryAttributes: string[];
-  onRemove: () => void;
+  onRemove?: (() => void) | undefined;
+  error?: string | undefined;
+  onFocus?: (() => void) | undefined;
+  onBlur?: (() => void) | undefined;
+  tabIndex?: number | undefined;
+  hideCard?: boolean | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.data.metricAliasData) {
-    throw new BadDataException("MetricAlias is required");
-  }
+  const getContent: GetReactElementFunction = (): ReactElement => {
+    return (
+      <div>
+        {props.data?.metricAliasData && (
+          <MetricAlias
+            data={props.data?.metricAliasData || {}}
+            onDataChanged={(data: MetricAliasData) => {
+              props.onBlur?.();
+              props.onFocus?.();
+              props.onChange &&
+                props.onChange({ ...props.data, metricAliasData: data });
+            }}
+            isFormula={false}
+          />
+        )}
+        {props.data?.metricQueryData && (
+          <MetricQuery
+            data={props.data?.metricQueryData || {}}
+            onDataChanged={(data: MetricQueryData) => {
+              props.onBlur?.();
+              props.onFocus?.();
+              props.onChange &&
+                props.onChange({ ...props.data, metricQueryData: data });
+            }}
+            metricNameAndUnits={props.metricNameAndUnits}
+            telemetryAttributes={props.telemetryAttributes}
+          />
+        )}
+        {props.onRemove && (
+          <div className="-ml-3">
+            <Button
+              title={"Remove"}
+              onClick={() => {
+                props.onBlur?.();
+                props.onFocus?.();
+                return props.onRemove && props.onRemove();
+              }}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            />
+          </div>
+        )}
+        {props.error && (
+          <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+            {props.error}
+          </p>
+        )}
+      </div>
+    );
+  };
 
-  if (!props.data.metricQueryData) {
-    throw new BadDataException("Either MetricQuery is required");
+  if (props.hideCard) {
+    return getContent();
   }
 
   return (
     <Card>
-      <div className="-mt-5">
-        <MetricAlias
-          data={props.data.metricAliasData}
-          onDataChanged={(data: MetricAliasData) => {
-            props.onDataChanged({ ...props.data, metricAliasData: data });
-          }}
-          isFormula={false}
-        />
-        {props.data.metricQueryData && (
-          <MetricQuery
-            data={props.data.metricQueryData}
-            onDataChanged={(data: MetricQueryData) => {
-              props.onDataChanged({ ...props.data, metricQueryData: data });
-            }}
-            metricNames={props.metricNames}
-            telemetryAttributes={props.telemetryAttributes}
-          />
-        )}
-        <div className="-ml-3">
-          <Button
-            title={"Remove"}
-            onClick={() => {
-              return props.onRemove();
-            }}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-          />
-        </div>
+      <div className="-mt-5" tabIndex={props.tabIndex}>
+        {getContent()}
       </div>
     </Card>
   );

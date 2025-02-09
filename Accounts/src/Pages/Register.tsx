@@ -3,23 +3,23 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import ModelForm, { FormType } from "CommonUI/src/Components/Forms/ModelForm";
-import Fields from "CommonUI/src/Components/Forms/Types/Fields";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import Link from "CommonUI/src/Components/Link/Link";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import { BILLING_ENABLED, DASHBOARD_URL } from "CommonUI/src/Config";
-import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg";
-import BaseAPI from "CommonUI/src/Utils/API/API";
-import UiAnalytics from "CommonUI/src/Utils/Analytics";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import LoginUtil from "CommonUI/src/Utils/Login";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import UserUtil from "CommonUI/src/Utils/User";
-import Reseller from "Model/Models/Reseller";
-import User from "Model/Models/User";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import Fields from "Common/UI/Components/Forms/Types/Fields";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Link from "Common/UI/Components/Link/Link";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { BILLING_ENABLED, DASHBOARD_URL } from "Common/UI/Config";
+import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import BaseAPI from "Common/UI/Utils/API/API";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import LoginUtil from "Common/UI/Utils/Login";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import UserUtil from "Common/UI/Utils/User";
+import Reseller from "Common/Models/DatabaseModels/Reseller";
+import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -179,7 +179,7 @@ const RegisterPage: () => JSX.Element = () => {
   ]);
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (isLoading) {

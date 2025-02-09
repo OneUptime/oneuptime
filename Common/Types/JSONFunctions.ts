@@ -1,6 +1,8 @@
-import BaseModel from "../Models/BaseModel";
+import BaseModel from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import OneUptimeDate from "./Date";
+import DiskSize from "./DiskSize";
+import GenericObject from "./GenericObject";
 import { JSONArray, JSONObject, JSONValue, ObjectType } from "./JSON";
 import SerializableObject from "./SerializableObject";
 import SerializableObjectDictionary from "./SerializableObjectDictionary";
@@ -8,6 +10,19 @@ import Typeof from "./Typeof";
 import JSON5 from "json5";
 
 export default class JSONFunctions {
+  public static getSizeOfJSONinGB(obj: JSONObject): number {
+    const sizeInBytes: number = Buffer.byteLength(JSON.stringify(obj));
+    const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
+    return sizeToGb;
+  }
+
+  public static isJSONObjectDifferent(
+    obj1: GenericObject,
+    obj2: GenericObject,
+  ): boolean {
+    return JSON.stringify(obj1) !== JSON.stringify(obj2);
+  }
+
   public static nestJson(obj: JSONObject): JSONObject {
     // obj could be in this format:
 
@@ -254,6 +269,8 @@ export default class JSONFunctions {
       return val;
     } else if (val instanceof DatabaseProperty) {
       return val;
+    } else if (val instanceof SerializableObject) {
+      return val;
     } else if (
       val &&
       typeof val === Typeof.Object &&
@@ -352,6 +369,45 @@ export default class JSONFunctions {
 
   public static anyObjectToJSONObject(val: any): JSONObject {
     return JSON.parse(JSON.stringify(val));
+  }
+
+  public static unflattenArray(val: JSONArray): JSONArray {
+    const returnArr: JSONArray = [];
+
+    for (const obj of val) {
+      returnArr.push(this.unflattenObject(obj as JSONObject));
+    }
+
+    return returnArr;
+  }
+
+  public static unflattenObject(val: JSONObject): JSONObject {
+    const returnObj: JSONObject = {};
+
+    for (const key in val) {
+      const keys: Array<string> = key.split(".");
+      let currentObj: JSONObject = returnObj;
+
+      for (let i: number = 0; i < keys.length; i++) {
+        const k: string | undefined = keys[i];
+
+        if (!k) {
+          continue;
+        }
+
+        if (i === keys.length - 1) {
+          currentObj[k] = val[key];
+        } else {
+          if (!currentObj[k]) {
+            currentObj[k] = {};
+          }
+
+          currentObj = currentObj[k] as JSONObject;
+        }
+      }
+    }
+
+    return returnObj;
   }
 
   public static flattenObject(val: JSONObject): JSONObject {

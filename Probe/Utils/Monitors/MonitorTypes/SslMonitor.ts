@@ -2,18 +2,18 @@ import OnlineCheck from "../../OnlineCheck";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import SSLMonitorReponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
+import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import ObjectUtil from "Common/Utils/ObjectUtil";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import { ClientRequest, IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
 import tls, { TLSSocket } from "tls";
 
-export interface SslResponse extends SSLMonitorReponse {
+export interface SslResponse extends SslMonitorResponse {
   isOnline: boolean;
   failureCause: string;
 }
@@ -79,6 +79,16 @@ export default class SSLMonitor {
         return await this.ping(url, pingOptions);
       }
 
+      // check if the probe is online.
+      if (!pingOptions.isOnlineCheckRequest) {
+        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
+          logger.error(
+            `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${url.toString()} - ERROR: ${err}`,
+          );
+          return null;
+        }
+      }
+
       // check if timeout exceeded and if yes, return null
       if (
         (err as any).toString().includes("timeout") &&
@@ -90,18 +100,11 @@ export default class SSLMonitor {
 
         return {
           isOnline: false,
-          failureCause: "Timeout exceeded",
+          failureCause:
+            "Request was tried " +
+            pingOptions.currentRetryCount +
+            " times and it timed out.",
         };
-      }
-
-      // check if the probe is online.
-      if (!pingOptions.isOnlineCheckRequest) {
-        if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
-          logger.error(
-            `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${url.toString()} - ERROR: ${err}`,
-          );
-          return null;
-        }
       }
 
       return {

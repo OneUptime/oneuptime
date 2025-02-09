@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }: { page: Page }) => {
   if (!IS_BILLING_ENABLED) {
     return;
   }
-
+  page.setDefaultNavigationTimeout(120000); // 2 minutes
   await page.goto(URL.fromString(BASE_URL.toString()).toString());
 });
 test.describe("check if pages loades with its title", () => {

@@ -1,71 +1,100 @@
-import APIReferenceRoutes from "./FeatureSet/ApiReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
-import DocsRoutes from "./FeatureSet/Docs/Index";
-import HomeRoutes from "./FeatureSet/Home/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
-import Workers from "./FeatureSet/Workers/Index";
-import Workflow from "./FeatureSet/Workflow/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { ClickhouseAppInstance } from "CommonServer/Infrastructure/ClickhouseDatabase";
-import { PostgresAppInstance } from "CommonServer/Infrastructure/PostgresDatabase";
-import Redis from "CommonServer/Infrastructure/Redis";
-import InfrastructureStatus from "CommonServer/Infrastructure/Status";
-import logger from "CommonServer/Utils/Logger";
-import Realtime from "CommonServer/Utils/Realtime";
-import App from "CommonServer/Utils/StartServer";
-import "CommonServer/Utils/Telemetry";
+import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import Redis from "Common/Server/Infrastructure/Redis";
+import InfrastructureStatus from "Common/Server/Infrastructure/Status";
+import logger from "Common/Server/Utils/Logger";
+import Realtime from "Common/Server/Utils/Realtime";
+import App from "Common/Server/Utils/StartServer";
+import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
 
-process.env["SERVICE_NAME"] = "app";
+const APP_NAME: string = "api";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize telemetry
+    Telemetry.init({
+      serviceName: APP_NAME,
+    });
+
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      return await InfrastructureStatus.checkStatus({
+      // Check the status of infrastructure components
+      return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
         checkRedisStatus: true,
+        retryCount: 3,
       });
     };
 
-    // init the app
+    const globalCacheCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of cache
+      return await InfrastructureStatus.checkStatusWithRetry({
+        checkClickhouseStatus: false,
+        checkPostgresStatus: false,
+        checkRedisStatus: true,
+        retryCount: 3,
+      });
+    };
+
+    const analyticsDatabaseCheck: PromiseVoidFunction =
+      async (): Promise<void> => {
+        // Check the status of analytics database
+        return await InfrastructureStatus.checkStatusWithRetry({
+          checkClickhouseStatus: true,
+          checkPostgresStatus: false,
+          checkRedisStatus: false,
+          retryCount: 3,
+        });
+      };
+
+    const databaseCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Check the status of database
+      return await InfrastructureStatus.checkStatusWithRetry({
+        checkClickhouseStatus: false,
+        checkPostgresStatus: true,
+        checkRedisStatus: false,
+        retryCount: 3,
+      });
+    };
+
+    // Initialize the app with service name and status checks
     await App.init({
-      appName: process.env["SERVICE_NAME"] || "app",
+      appName: APP_NAME,
       statusOptions: {
         liveCheck: statusCheck,
         readyCheck: statusCheck,
+        globalCacheCheck: globalCacheCheck,
+        analyticsDatabaseCheck: analyticsDatabaseCheck,
+        databaseCheck: databaseCheck,
       },
     });
 
-    // connect to the database.
-    await PostgresAppInstance.connect(
-      PostgresAppInstance.getDatasourceOptions(),
-    );
+    // Connect to Postgres database
+    await PostgresAppInstance.connect();
 
-    // connect redis
+    // Connect to Redis
     await Redis.connect();
 
+    // Connect to Clickhouse database
     await ClickhouseAppInstance.connect(
       ClickhouseAppInstance.getDatasourceOptions(),
     );
 
+    // Initialize real-time functionalities
     await Realtime.init();
 
-    // init featuresets
+    // Initialize feature sets
     await IdentityRoutes.init();
     await NotificationRoutes.init();
-    await DocsRoutes.init();
     await BaseAPIRoutes.init();
-    await APIReferenceRoutes.init();
-    await Workers.init();
-    await Workflow.init();
 
-    // home should be in the end because it has the catch all route.
-    await HomeRoutes.init();
-
-    // add default routes
+    // Add default routes to the app
     await App.addDefaultRoutes();
   } catch (err) {
     logger.error("App Init Failed:");
@@ -74,6 +103,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   }
 };
 
+// Call the initialization function and handle errors
 init().catch((err: Error) => {
   logger.error(err);
   logger.error("Exiting node process");

@@ -5,6 +5,7 @@ enum MimeType {
   png = "image/png",
   jpg = "image/jpeg",
   jpeg = "image/jpeg",
+  svg = "image/svg+xml",
 
   // TODO add more mime types.
 }

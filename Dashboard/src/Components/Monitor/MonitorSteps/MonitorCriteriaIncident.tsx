@@ -3,11 +3,11 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import ObjectID from "Common/Types/ObjectID";
-import Detail from "CommonUI/src/Components/Detail/Detail";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

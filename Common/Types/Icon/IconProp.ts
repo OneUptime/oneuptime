@@ -1,11 +1,13 @@
 enum IconProp {
   Equals = "Equals",
+  Archive = "Archive",
   File = "File",
   Automation = "Automation",
   Workflow = "Workflow",
   TableCells = "TableCells",
   Layout = "Layout",
   Compass = "Compass",
+  ShieldCheck = "ShieldCheck",
   User = "User",
   Disc = "Disc",
   Settings = "Settings",
@@ -13,7 +15,15 @@ enum IconProp {
   Notification = "Notification",
   CursorArrowRays = "CursorArrowRays",
   ArrowUpDown = "ArrowUpDown",
+  Bold = "Bold",
+  Italic = "Italic",
+  Underline = "Underline",
+  WrenchScrewdriver = "WrenchScrewdriver",
   Cube = "Cube",
+  Expand = "Expand",
+  Collapse = "Collapse",
+  Unarchive = "Unarchive",
+  CPUChip = "CPUChip",
   Swatch = "Swatch",
   Squares = "Squares",
   RectangleStack = "RectangleStack",
@@ -124,6 +134,7 @@ enum IconProp {
   NoSignal = "NoSignal",
   EyeSlash = "EyeSlash",
   SquareStack3D = "SquareStack3D",
+  ExclaimationCircle = "ExclaimationCircle",
 }
 
 export default IconProp;

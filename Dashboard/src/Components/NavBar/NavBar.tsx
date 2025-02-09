@@ -4,10 +4,10 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar from "CommonUI/src/Components/Navbar/NavBar";
-import NavBarItem from "CommonUI/src/Components/Navbar/NavBarItem";
-import NavBarMenu from "CommonUI/src/Components/Navbar/NavBarMenu";
-import NavBarMenuItem from "CommonUI/src/Components/Navbar/NavBarMenuItem";
+import NavBar from "Common/UI/Components/Navbar/NavBar";
+import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
+import NavBarMenu from "Common/UI/Components/Navbar/NavBarMenu";
+import NavBarMenuItem from "Common/UI/Components/Navbar/NavBarMenuItem";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -85,6 +85,13 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       ></NavBarItem>
 
       <NavBarItem
+        title="Alerts"
+        activeRoute={RouteMap[PageMap.ALERTS]}
+        route={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route)}
+        icon={IconProp.ExclaimationCircle}
+      ></NavBarItem>
+
+      <NavBarItem
         title="Incidents"
         activeRoute={RouteMap[PageMap.INCIDENTS]}
         route={RouteUtil.populateRouteParams(
@@ -108,6 +115,15 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         icon={IconProp.CheckCircle}
         route={RouteUtil.populateRouteParams(
           RouteMap[PageMap.STATUS_PAGES] as Route,
+        )}
+      ></NavBarItem>
+
+      <NavBarItem
+        title="Dashboards"
+        activeRoute={RouteMap[PageMap.DASHBOARDS]}
+        icon={IconProp.Window}
+        route={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DASHBOARDS] as Route,
         )}
       ></NavBarItem>
 

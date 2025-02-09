@@ -1,7 +1,7 @@
 import ExecutionLogTimelineTable from "../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable";
 import PageComponentProps from "../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {

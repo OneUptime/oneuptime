@@ -29,7 +29,7 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run() {
-	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL)
+	p.agent = NewAgent(p.config.SecretKey, p.config.OneUptimeURL, p.config.ProxyURL)
 	p.agent.Start()
 	if service.Interactive() {
 		slog.Info("Running in terminal.")
@@ -58,6 +58,8 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func main() {
+
+	slog.Info("OneUptime Infrastructure Agent")
 	// Set up the configuration
 	config.WithOptions(config.WithTagName("json"))
 	cfg := newConfigFile()
@@ -92,28 +94,43 @@ func main() {
 		switch cmd {
 		case "configure":
 			installFlags := flag.NewFlagSet("configure", flag.ExitOnError)
-			secretKey := installFlags.String("secret-key", "", "Secret key (required)")
+			secretKey := installFlags.String("secret-key", "", "Secret key of this monitor. You can find this on OneUptime dashboard (required)")
 			oneuptimeURL := installFlags.String("oneuptime-url", "", "Oneuptime endpoint root URL (required)")
+
+			// Take input - proxy URL, proxy port, username / password - all optional
+
+			proxyURL := installFlags.String("proxy-url", "", "Proxy URL - if you are using a proxy (optional)")
+
 			err := installFlags.Parse(os.Args[2:])
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
+
 			prg.config.SecretKey = *secretKey
 			prg.config.OneUptimeURL = *oneuptimeURL
+			prg.config.ProxyURL = *proxyURL
+
 			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
 				slog.Error("The --secret-key and --oneuptime-url flags are required for the 'configure' command")
 				os.Exit(2)
 			}
+
+			slog.Info("Configuring service...")
+			slog.Info("Secret key: " + *secretKey)
+			slog.Info("OneUptime URL: " + *oneuptimeURL)
+			slog.Info("Proxy URL: " + *proxyURL)
+
 			// save configuration
-			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL)
+			err = prg.config.save(prg.config.SecretKey, prg.config.OneUptimeURL, prg.config.ProxyURL)
+
 			if err != nil {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
 			// Install the service
 			if err := s.Install(); err != nil {
-				slog.Error("Failed to configure service: ", err)
+				slog.Error("Failed to configure service. Please consider uninstalling the service by running 'oneuptime-infrastructure-agent uninstall' and run configure again. \n", err)
 				os.Exit(2)
 			}
 			fmt.Println("Service installed. Run the service using 'oneuptime-infrastructure-agent start'")

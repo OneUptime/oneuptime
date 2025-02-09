@@ -1,10 +1,12 @@
-import BaseModel, { BaseModelType } from "Common/Models/BaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   item: BaseModel;
-  modelType: BaseModelType;
+  modelType: DatabaseBaseModelType;
 }
 
 const NotificationMethodView: FunctionComponent<ComponentProps> = (

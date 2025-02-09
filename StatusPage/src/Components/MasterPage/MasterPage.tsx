@@ -9,7 +9,7 @@ import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -19,14 +19,14 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { ImageFunctions } from "CommonUI/src/Components/Image/Image";
-import PageLoader from "CommonUI/src/Components/Loader/PageLoader";
-import MasterPage from "CommonUI/src/Components/MasterPage/MasterPage";
-import JSONWebToken from "CommonUI/src/Utils/JsonWebToken";
-import LocalStorage from "CommonUI/src/Utils/LocalStorage";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import File from "Model/Models/File";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ImageFunctions } from "Common/UI/Components/Image/Image";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
+import JSONWebToken from "Common/UI/Utils/JsonWebToken";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import Navigation from "Common/UI/Utils/Navigation";
+import File from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -238,7 +238,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   if (

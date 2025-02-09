@@ -1,13 +1,13 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import Image from "CommonUI/src/Components/Image/Image";
-import { FILE_URL } from "CommonUI/src/Config";
-import BlankProfilePic from "CommonUI/src/Images/users/blank-profile.svg";
-import User from "Model/Models/User";
+import Image from "Common/UI/Components/Image/Image";
+import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import FileUtil from "Common/UI/Utils/File";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   user?: User | JSONObject | undefined | null;
@@ -69,8 +69,8 @@ const UserElement: FunctionComponent<ComponentProps> = (
           {props.user?.profilePictureId && (
             <Image
               className="h-8 w-8 rounded-full"
-              imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
-                "/image/" + props.user?.profilePictureId.toString(),
+              imageUrl={FileUtil.getFileRoute(
+                props.user!.profilePictureId as ObjectID,
               )}
               alt={user["name"]?.toString() || "User"}
             />

@@ -4,7 +4,7 @@ import OneUptimeDate from "../Date";
 export default class DatabaseDate {
   public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
     date: string | Date,
-  ): InBetween {
+  ): InBetween<string> {
     let startValue: string | Date = date;
 
     if (!(startValue instanceof Date)) {

@@ -2,7 +2,7 @@ import SummarysScreenshot from "./Screenshot";
 import Screenshots, {
   Screenshot,
 } from "Common/Types/Monitor/SyntheticMonitors/Screenshot";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -17,7 +17,7 @@ const SummaryScreenshotGroup: FunctionComponent<ComponentProps> = (
       <div className="mt-2 mb-2">Screenshots:</div>
       <div className="space-y-5">
         {!props.screenshots || Object.keys(props.screenshots).length === 0 ? (
-          <ErrorMessage error="No screenshots available." />
+          <ErrorMessage message="No screenshots available." />
         ) : (
           Object.keys(props.screenshots)?.map(
             (screenshotName: string, index: number) => {

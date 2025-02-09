@@ -3,18 +3,18 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import Field from "CommonUI/src/Components/Forms/Types/Field";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import { RadioButton } from "CommonUI/src/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "CommonUI/src/Components/Toggle/Toggle";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { BILLING_ENABLED, getAllEnvVars } from "CommonUI/src/Config";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Project from "Model/Models/Project";
-import User from "Model/Models/User";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Page from "Common/UI/Components/Page/Page";
+import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import Navigation from "Common/UI/Utils/Navigation";
+import Project from "Common/Models/DatabaseModels/Project";
+import User from "Common/Models/DatabaseModels/User";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -75,7 +75,7 @@ const Projects: FunctionComponent = (): ReactElement => {
             minLength: 6,
           },
           footerElement: getFooter(),
-          fieldType: FormFieldSchemaType.RadioButton,
+          fieldType: FormFieldSchemaType.OptionChooserButton,
           radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
             getAllEnvVars(),
           ).map((plan: SubscriptionPlan): RadioButton => {
@@ -187,7 +187,7 @@ const Projects: FunctionComponent = (): ReactElement => {
         isEditable={false}
         isCreateable={true}
         name="Projects"
-        isViewable={false}
+        isViewable={true}
         cardProps={{
           title: "Projects",
           description: "Here is a list of proejcts in OneUptime.",

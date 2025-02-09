@@ -1,14 +1,14 @@
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "CommonUI/src/Components/Alerts/Alert";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Monitor from "Model/Models/Monitor";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 
 export interface ComponentProps {
   monitorId: ObjectID;
-  refreshToggle?: boolean | undefined;
+  refreshToggle?: string | undefined;
 }
 
 const DisabledWarning: FunctionComponent<ComponentProps> = (

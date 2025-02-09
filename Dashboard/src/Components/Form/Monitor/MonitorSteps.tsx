@@ -5,21 +5,24 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
-import HorizontalRule from "CommonUI/src/Components/HorizontalRule/HorizontalRule";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -39,8 +42,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
+  const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
+    React.useState<Array<DropdownOption>>([]);
+
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
+
+  const [probes, setProbes] = React.useState<Array<Probe>>([]);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
@@ -94,6 +102,21 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           },
         });
 
+      const alertSeverityList: ListResult<AlertSeverity> =
+        await ModelAPI.getList({
+          modelType: AlertSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            order: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
+
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
         await ModelAPI.getList({
           modelType: OnCallDutyPolicy,
@@ -109,6 +132,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       if (incidentSeverityList.data) {
         setIncidentSeverityDropdownOptions(
           incidentSeverityList.data.map((i: IncidentSeverity) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
+
+      if (alertSeverityList.data) {
+        setAlertSeverityDropdownOptions(
+          alertSeverityList.data.map((i: AlertSeverity) => {
             return {
               value: i._id!,
               label: i.name!,
@@ -151,9 +185,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               },
             )!.id!,
             defaultIncidentSeverityId: incidentSeverityList.data[0]!.id!,
+            defaultAlertSeverityId: alertSeverityList.data[0]!.id!,
           }),
         );
       }
+
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+      setProbes(probes);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -166,7 +204,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [monitorSteps, setMonitorSteps] = React.useState<
     MonitorSteps | undefined
-  >(props.initialValue);
+  >(props.initialValue ? MonitorSteps.fromJSON(props.initialValue) : undefined);
 
   useEffect(() => {
     if (monitorSteps && props.onChange) {
@@ -184,16 +222,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {monitorSteps?.data?.monitorStepsInstanceArray.map(
+      {monitorSteps?.data?.monitorStepsInstanceArray?.map(
         (i: MonitorStep, index: number) => {
           return (
             <MonitorStepElement
               monitorType={props.monitorType}
+              allMonitorSteps={monitorSteps}
               key={index}
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
+              alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               initialValue={i}
+              probes={probes}
               // onDelete={() => {
               //     // remove the criteria filter
               // const index: number | undefined =

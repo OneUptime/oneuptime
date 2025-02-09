@@ -1,9 +1,9 @@
 import OneUptimeDate from "Common/Types/Date";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import InfoCard from "CommonUI/src/Components/InfoCard/InfoCard";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,7 +15,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (!props.probeMonitorResponse || !props.probeMonitorResponse.sslResponse) {
     return (
-      <ErrorMessage error="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
     );
   }
 

@@ -6,18 +6,19 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ComponentLoader from "CommonUI/src/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "CommonUI/src/Components/ErrorMessage/ErrorMessage";
-import { CustomElementProps } from "CommonUI/src/Components/Forms/Types/Field";
-import Icon from "CommonUI/src/Components/Icon/Icon";
-import Statusbubble from "CommonUI/src/Components/StatusBubble/StatusBubble";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI, { ListResult } from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import IncidentSeverity from "Model/Models/IncidentSeverity";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 
 export interface ComponentProps extends CustomElementProps {
   monitorSteps: MonitorSteps;
@@ -33,6 +34,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [incidentSeverityOptions, setIncidentSeverityOptions] = React.useState<
     Array<IncidentSeverity>
+  >([]);
+
+  const [alertSeverityOptions, setAlertSeverityOptions] = React.useState<
+    Array<AlertSeverity>
   >([]);
 
   const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<
@@ -86,6 +91,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           sort: {},
         });
 
+      const alertSeverityList: ListResult<AlertSeverity> =
+        await ModelAPI.getList({
+          modelType: AlertSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            color: true,
+          },
+          sort: {},
+        });
+
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
         await ModelAPI.getList({
           modelType: OnCallDutyPolicy,
@@ -102,6 +120,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setIncidentSeverityOptions(
           incidentSeverityList.data as Array<IncidentSeverity>,
         );
+      }
+
+      if (alertSeverityList.data) {
+        setAlertSeverityOptions(alertSeverityList.data as Array<AlertSeverity>);
       }
 
       if (onCallPolicyList.data) {
@@ -128,7 +150,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage error={error} />;
+    return <ErrorMessage message={error} />;
   }
 
   return (
@@ -141,6 +163,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               key={index}
               monitorStatusOptions={monitorStatusOptions}
               incidentSeverityOptions={incidentSeverityOptions}
+              alertSeverityOptions={alertSeverityOptions}
               monitorStep={i}
               onCallPolicyOptions={onCallPolicyOptions}
             />

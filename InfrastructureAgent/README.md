@@ -57,6 +57,8 @@ This section is for developers who want to contribute to the agent. The agent is
 ### Building the agent
 
 ```bash
+go mod tidy
+go install
 go build
 ```
 

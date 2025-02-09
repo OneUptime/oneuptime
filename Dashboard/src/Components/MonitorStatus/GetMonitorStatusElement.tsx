@@ -1,9 +1,9 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import API from "CommonUI/src/Utils/API/API";
-import ModelAPI from "CommonUI/src/Utils/ModelAPI/ModelAPI";
-import Monitor from "Model/Models/Monitor";
-import MonitorStatus from "Model/Models/MonitorStatus";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -11,10 +11,11 @@ import React, {
   useState,
 } from "react";
 import MonitorStatusElement from "./MonitorStatusElement";
-import Loader, { LoaderType } from "CommonUI/src/Components/Loader/Loader";
+import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 
 export interface ComponentProps {
   monitorId: ObjectID;
+  shouldAnimate: boolean;
 }
 
 const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
@@ -81,7 +82,12 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
     return <p>Monitor status not found</p>;
   }
 
-  return <MonitorStatusElement monitorStatus={monitorStatus} />;
+  return (
+    <MonitorStatusElement
+      monitorStatus={monitorStatus}
+      shouldAnimate={props.shouldAnimate}
+    />
+  );
 };
 
 export default GetMonitorStatusElement;

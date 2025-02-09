@@ -2,13 +2,14 @@ import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
-} from "CommonUI/src/Components/Button/Button";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+} from "Common/UI/Components/Button/Button";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -16,8 +17,10 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorCriteria) => void);
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
+  alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
+  monitorStep: MonitorStep;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -44,11 +47,15 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             <div className="mt-10 mb-10" key={i.data?.id}>
               <MonitorCriteriaInstanceElement
                 monitorType={props.monitorType}
+                monitorStep={props.monitorStep}
                 monitorStatusDropdownOptions={
                   props.monitorStatusDropdownOptions
                 }
                 incidentSeverityDropdownOptions={
                   props.incidentSeverityDropdownOptions
+                }
+                alertSeverityDropdownOptions={
+                  props.alertSeverityDropdownOptions
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
                 initialValue={i}

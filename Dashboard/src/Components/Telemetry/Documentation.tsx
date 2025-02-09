@@ -14,8 +14,8 @@ import SyslogImage from "../Images/SvgImages/syslog.svg";
 import SystemdImage from "../Images/SvgImages/systemd.svg";
 import TypeScriptImage from "../Images/SvgImages/typescript.svg";
 import Route from "Common/Types/API/Route";
-import Card from "CommonUI/src/Components/Card/Card";
-import ImageTiles from "CommonUI/src/Components/ImageTiles/ImageTiles";
+import Card from "Common/UI/Components/Card/Card";
+import ImageTiles from "Common/UI/Components/ImageTiles/ImageTiles";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
@@ -24,6 +24,8 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
   );
 
   const fluentdDocUrl: Route = Route.fromString("/docs/telemetry/fluentd");
+
+  const fluentBitDocUrl: Route = Route.fromString("/docs/telemetry/fluentbit");
 
   return (
     <Card
@@ -116,6 +118,43 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
           {
             image: MoreSourcesImage,
             navigateToUrl: fluentdDocUrl,
+            title: "+ 1000 more sources",
+          },
+        ]}
+      />
+
+      <ImageTiles
+        title="Integrate with FluentBit"
+        description="OneUptime supports a native integration with FluentBit. FluentBit is an open source data collector for unified logging and telemetry layer. FluentBit allows you to unify data collection and consumption for a better use and understanding of data."
+        tiles={[
+          {
+            image: DockerImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Docker",
+          },
+          {
+            image: SyslogImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Syslog",
+          },
+          {
+            image: PostgresSQLImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "PostgresSQL",
+          },
+          {
+            image: MySQLImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "MySQL",
+          },
+          {
+            image: SystemdImage,
+            navigateToUrl: fluentBitDocUrl,
+            title: "Systemd",
+          },
+          {
+            image: MoreSourcesImage,
+            navigateToUrl: fluentBitDocUrl,
             title: "+ 1000 more sources",
           },
         ]}

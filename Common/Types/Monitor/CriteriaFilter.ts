@@ -1,5 +1,3 @@
-import MonitorType from "./MonitorType";
-
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
   ResponseStatusCode = "Response Status Code",
@@ -34,6 +32,15 @@ export enum CheckOn {
 
   ScreenSizeType = "Screen Size",
   BrowserType = "Browser Type",
+
+  // Log monitors.
+  LogCount = "Log Count",
+
+  // Trace monitors.
+  SpanCount = "Span Count",
+
+  // Metric Monitors.
+  MetricValue = "Metric Value",
 }
 
 export interface ServerMonitorOptions {
@@ -47,6 +54,11 @@ export enum EvaluateOverTimeType {
   MunimumValue = "Minimum Value",
   AllValues = "All Values",
   AnyValue = "Any Value",
+}
+
+export interface MetricMonitorOptions {
+  metricAlias?: string | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -69,6 +81,7 @@ export interface EvaluateOverTimeOptions {
 export interface CriteriaFilter {
   checkOn: CheckOn;
   serverMonitorOptions?: ServerMonitorOptions | undefined;
+  metricMonitorOptions?: MetricMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   eveluateOverTime?: boolean | undefined;
@@ -95,11 +108,6 @@ export enum FilterType {
   EvaluatesToTrue = "Evaluates To True",
   IsExecuting = "Is Executing",
   IsNotExecuting = "Is Not Executing",
-}
-
-export enum FilterCondition {
-  All = "All",
-  Any = "Any",
 }
 
 export class CriteriaFilterUtil {
@@ -133,34 +141,5 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.MemoryUsagePercent ||
       checkOn === CheckOn.IsOnline
     );
-  }
-
-  public static getTimeFiltersByMonitorType(
-    monitorType: MonitorType,
-  ): Array<CheckOn> {
-    if (
-      monitorType === MonitorType.API ||
-      monitorType === MonitorType.Website
-    ) {
-      return [
-        CheckOn.IsOnline,
-        CheckOn.ResponseStatusCode,
-        CheckOn.ResponseTime,
-      ];
-    } else if (
-      monitorType === MonitorType.Ping ||
-      monitorType === MonitorType.IP ||
-      monitorType === MonitorType.Port
-    ) {
-      return [CheckOn.IsOnline, CheckOn.ResponseTime];
-    } else if (monitorType === MonitorType.Server) {
-      return [
-        CheckOn.IsOnline,
-        CheckOn.DiskUsagePercent,
-        CheckOn.CPUUsagePercent,
-        CheckOn.MemoryUsagePercent,
-      ];
-    }
-    return [];
   }
 }

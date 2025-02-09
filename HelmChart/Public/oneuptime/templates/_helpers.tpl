@@ -12,6 +12,16 @@ Usage:
 {{- end -}}
 
 {{- define "oneuptime.env.common" }}
+{{- if $.Values.openTelemetryExporter.endpoint }}
+- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+  value: {{ $.Values.openTelemetryExporter.endpoint }}
+{{- end }}
+{{- if $.Values.openTelemetryExporter.headers }}
+- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+  value: {{ $.Values.openTelemetryExporter.headers }}
+{{- end }}
+- name: SLACK_APP_CLIENT_ID
+  value: {{ $.Values.slackApp.clientId }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
@@ -48,10 +58,26 @@ Usage:
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ISOLATED_VM_HOSTNAME
   value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_WORKFLOW_HOSTNAME
+  value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_WORKER_HOSTNAME
+  value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_API_REFERENCE_HOSTNAME
+  value: {{ $.Release.Name }}-api-reference.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_HOME_HOSTNAME
+  value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_INGESTOR_HOSTNAME
-  value: {{ $.Release.Name }}-ingestor.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_PROBE_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: OPEN_TELEMETRY_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-open-telemetry-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-incoming-request-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_FLUENT_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-fluent-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-open-telemetry-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
@@ -62,34 +88,47 @@ Usage:
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_DOCS_HOSTNAME
+  value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
 - name: APP_PORT
   value: {{ $.Values.port.app | squote }}
-- name: INGESTOR_PORT
-  value: {{ $.Values.port.ingestor | squote }}
-- name: PROBE_PORT
-  value: {{ $.Values.port.probe | squote }}
+- name: PROBE_INGEST_PORT
+  value: {{ $.Values.port.probeIngest | squote }}
+- name: OPEN_TELEMETRY_INGEST_PORT
+  value: {{ $.Values.port.openTelemetryIngest | squote }}
+- name: INCOMING_REQUEST_INGEST_PORT
+  value: {{ $.Values.port.incomingRequestIngest | squote }}
+- name: FLUENT_INGEST_PORT
+  value: {{ $.Values.port.fluentIngest | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.port.testServer | squote }}
 - name: ACCOUNTS_PORT
   value: {{ $.Values.port.accounts | squote }}
 - name: ISOLATED_VM_PORT
   value: {{ $.Values.port.isolatedVM | squote }}
+- name: HOME_PORT
+  value: {{ $.Values.port.home | squote }}
+- name: WORKER_PORT
+  value: {{ $.Values.port.worker | squote }}
+- name: WORKFLOW_PORT
+  value: {{ $.Values.port.workflow | squote }}
 - name: STATUS_PAGE_PORT
   value: {{ $.Values.port.statusPage | squote }}
 - name: DASHBOARD_PORT
   value: {{ $.Values.port.dashboard | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.port.adminDashboard | squote }}
+- name: API_REFERENCE_PORT
+  value: {{ $.Values.port.apiReference | squote }}
+- name: DOCS_PORT
+  value: {{ $.Values.port.docs | squote }}
 {{- end }}
 
 
 {{- define "oneuptime.env.commonUi" }}
 - name: IS_SERVER
   value: {{ printf "false" | squote }}
-
-- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint.client }}
 {{- end }}
 
 {{- define "oneuptime.env.oneuptimeSecret" }}
@@ -97,10 +136,17 @@ Usage:
   {{- if $.Values.oneuptimeSecret }}
   value: {{ $.Values.oneuptimeSecret }}
   {{- else }}
+  {{- if $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+        key: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: oneuptime-secret
+  {{- end }}
   {{- end }}
 {{- end }}
 
@@ -108,11 +154,23 @@ Usage:
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
 
-- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint.server }}
+- name: SLACK_APP_CLIENT_SECRET
+  value: {{ $.Values.slackApp.clientSecret }}
 
-- name: NOTIFICATION_WEBHOOK_ON_CREATED_USER
-  value: {{ $.Values.notifications.webhooks.onCreateUser }}
+- name: SLACK_APP_SIGNING_SECRET
+  value: {{ $.Values.slackApp.signingSecret }}
+
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
+  value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
+
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT
+  value: {{ $.Values.notifications.webhooks.slack.onCreateProject }}
+
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT
+  value: {{ $.Values.notifications.webhooks.slack.onDeleteProject }}
+
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE
+  value: {{ $.Values.notifications.webhooks.slack.onSubscriptionUpdate }}
 
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
   value: {{ $.Values.letsEncrypt.email }}
@@ -124,10 +182,17 @@ Usage:
   {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}
   {{- else }}
+  {{- if $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+  valueFrom:
+    secretKeyRef:
+        name: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+        key: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.passwordKey }}
+  {{- else }}
   valueFrom:
     secretKeyRef:
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: encryption-secret
+  {{- end }}
   {{- end }}
 
 - name: CLICKHOUSE_USER
@@ -145,19 +210,19 @@ Usage:
   {{- end }}
 - name: CLICKHOUSE_PASSWORD
   {{- if $.Values.clickhouse.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
   {{- else }}
   {{- if $.Values.externalClickhouse.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalClickhouse.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalClickhouse.existingSecret.name }}
         key: {{ $.Values.externalClickhouse.existingSecret.passwordKey }}
@@ -183,7 +248,7 @@ Usage:
   {{- end }}
 
 
-## REDIS SSL BLOCK 
+## REDIS SSL BLOCK
 {{- if $.Values.clickhouse.enabled }}
 # do nothing here.
 {{- else }}
@@ -191,7 +256,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.ca }}
 - name: CLICKHOUSE_TLS_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-ca
@@ -199,7 +264,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.cert }}
 - name: CLICKHOUSE_TLS_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-cert
@@ -207,7 +272,7 @@ Usage:
 
 {{- if $.Values.externalClickhouse.tls.key }}
 - name: CLICKHOUSE_TLS_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-clickhouse"  }}
         key: tls-key
@@ -233,23 +298,29 @@ Usage:
   {{- end }}
 - name: REDIS_PASSWORD
   {{- if $.Values.redis.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "redis"  }}
         key: redis-password
   {{- else }}
   {{- if $.Values.externalRedis.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalRedis.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalRedis.existingSecret.name }}
         key: {{ $.Values.externalRedis.existingSecret.passwordKey }}
   {{- end }}
+  {{- end }}
+- name: REDIS_IP_FAMILY
+  {{- if $.Values.redis.enabled }}
+  value: {{ $.Values.redis.ipFamily | quote }}
+  {{- else }}
+  value: {{ $.Values.externalRedis.ipFamily | quote }}
   {{- end }}
 - name: REDIS_DB
   {{- if $.Values.redis.enabled }}
@@ -265,7 +336,7 @@ Usage:
   {{- end }}
 
 
-## REDIS SSL BLOCK 
+## REDIS SSL BLOCK
 {{- if $.Values.redis.enabled }}
 # do nothing here.
 {{- else }}
@@ -273,7 +344,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.ca }}
 - name: REDIS_TLS_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-ca
@@ -281,7 +352,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.cert }}
 - name: REDIS_TLS_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-cert
@@ -289,7 +360,7 @@ Usage:
 
 {{- if $.Values.externalRedis.tls.key }}
 - name: REDIS_TLS_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
         key: tls-key
@@ -305,7 +376,7 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.host }}
   {{- end }}
-- name: DATABASE_PORT 
+- name: DATABASE_PORT
   {{- if $.Values.postgresql.enabled }}
   value: {{ printf "%s" $.Values.postgresql.primary.service.ports.postgresql | squote }}
   {{- else }}
@@ -317,27 +388,27 @@ Usage:
   {{- else }}
   value: {{ $.Values.externalPostgres.username }}
   {{- end }}
-- name: DATABASE_PASSWORD 
+- name: DATABASE_PASSWORD
   {{- if $.Values.postgresql.enabled }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "postgresql"  }}
         key: postgres-password
   {{- else }}
   {{- if $.Values.externalPostgres.password }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: password
   {{- end }}
   {{- if $.Values.externalPostgres.existingSecret.name }}
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s" $.Values.externalPostgres.existingSecret.name }}
         key: {{ $.Values.externalPostgres.existingSecret.passwordKey }}
   {{- end }}
   {{- end }}
-- name: DATABASE_NAME 
+- name: DATABASE_NAME
   {{- if $.Values.postgresql.enabled }}
   value: {{ $.Values.postgresql.auth.database }}
   {{- else }}
@@ -345,7 +416,7 @@ Usage:
   {{- end }}
 
 
-## DATABASE SSL BLOCK 
+## DATABASE SSL BLOCK
 {{- if $.Values.postgresql.enabled }}
 # do nothing here.
 {{- else }}
@@ -353,7 +424,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.ca }}
 - name: DATABASE_SSL_CA
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-ca
@@ -361,7 +432,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.cert }}
 - name: DATABASE_SSL_CERT
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-cert
@@ -369,7 +440,7 @@ Usage:
 
 {{- if $.Values.externalPostgres.ssl.key }}
 - name: DATABASE_SSL_KEY
-  valueFrom: 
+  valueFrom:
     secretKeyRef:
         name: {{ printf "%s-%s" $.Release.Name "external-postgres"  }}
         key: ssl-key
@@ -378,13 +449,16 @@ Usage:
 {{- end }}
 {{- end }}
 
-## DATABASE SSL ENDS HERE 
+## DATABASE SSL ENDS HERE
 
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
+
+- name: DISABLE_AUTOMATIC_ALERT_CREATION
+  value: {{ $.Values.alerts.disableAutomaticCreation | squote }}
 
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
@@ -479,6 +553,10 @@ spec:
         date: "{{ now | unixEpoch }}"
         appname: oneuptime
     spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
       {{- if $.Values.podSecurityContext }}
       securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
@@ -552,7 +630,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
   namespace: {{ $.Release.Namespace }}
-  labels: 
+  labels:
     appname: oneuptime
 spec:
   scaleTargetRef:
@@ -587,7 +665,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ printf "%s-%s" $.Release.Name $.Name  }}
-  labels: 
+  labels:
     appname: oneuptime
 spec:
   accessModes:

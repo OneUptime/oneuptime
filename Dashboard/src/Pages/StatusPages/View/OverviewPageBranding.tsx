@@ -4,15 +4,18 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import MonitorStatus from "Model/Models/MonitorStatus";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPageHistoryChartBarColorRule from "Model/Models/StatusPageHistoryChartBarColorRule";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -70,7 +73,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"
@@ -190,6 +193,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 if (item["downtimeMonitorStatuses"]) {
                   return (
                     <MonitorStatuesElement
+                      shouldAnimate={false}
                       monitorStatuses={
                         (item[
                           "downtimeMonitorStatuses"
@@ -238,6 +242,66 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Color,
               title: "Default Bar Color",
               placeholder: "No color set.",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Settings"
+        cardProps={{
+          title: "Overall Uptime Percent",
+          description: "Settings for overall uptime percent on status page",
+        }}
+        editButtonText="Edit Settings"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              showOverallUptimePercentOnStatusPage: true,
+            },
+            title: "Show Overall Uptime Percent",
+            description:
+              "Show or hide the overall uptime percent on the status page",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            placeholder: "No",
+          },
+          {
+            field: {
+              overallUptimePercentPrecision: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+            showIf: (item: FormValues<StatusPage>): boolean => {
+              return Boolean(item.showOverallUptimePercentOnStatusPage);
+            },
+            title: "Select Uptime Precision",
+            defaultValue: UptimePrecision.TWO_DECIMAL,
+            required: true,
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page",
+          fields: [
+            {
+              field: {
+                showOverallUptimePercentOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Overall Uptime Percent",
+            },
+
+            {
+              field: {
+                overallUptimePercentPrecision: true,
+              },
+              title: "Overall Uptime Precision",
+              fieldType: FieldType.Text,
             },
           ],
           modelId: modelId,

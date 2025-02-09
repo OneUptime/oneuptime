@@ -1,9 +1,9 @@
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "CommonUI/src/Components/Dropdown/Dropdown";
-import FieldLabelElement from "CommonUI/src/Components/Forms/Fields/FieldLabel";
-import Probe from "Model/Models/Probe";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -1,10 +1,10 @@
 import Help from "./Help";
 import Logo from "./Logo";
 import UserProfile from "./UserProfile";
-import Button, { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import Header from "CommonUI/src/Components/Header/Header";
-import { DASHBOARD_URL } from "CommonUI/src/Config";
-import Navigation from "CommonUI/src/Utils/Navigation";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Header from "Common/UI/Components/Header/Header";
+import { DASHBOARD_URL } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DashboardHeader: FunctionComponent = (): ReactElement => {

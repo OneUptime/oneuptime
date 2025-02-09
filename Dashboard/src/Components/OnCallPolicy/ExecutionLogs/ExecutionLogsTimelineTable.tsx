@@ -1,21 +1,21 @@
 import DashboardNavigation from "../../../Utils/Navigation";
 import UserElement from "../../User/User";
 import EscalationRule from "../EscalationRule/EscalationRule";
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import { GetReactElementFunction } from "CommonUI/src/Types/FunctionTypes";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import OnCallDutyPolicyEscalationRule from "Model/Models/OnCallDutyPolicyEscalationRule";
-import OnCallDutyPolicyExecutionLogTimeline from "Model/Models/OnCallDutyPolicyExecutionLogTimeline";
-import User from "Model/Models/User";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
+import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -34,7 +34,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
       <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
         modelType={OnCallDutyPolicyExecutionLogTimeline}
         query={{
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
           onCallDutyPolicyExecutionLogId:
             props.onCallPolicyExecutionLogId.toString(),
         }}
@@ -84,7 +84,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             title: "Escalation Rule",
             filterEntityType: OnCallDutyPolicyEscalationRule,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",

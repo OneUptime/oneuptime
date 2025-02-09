@@ -1,24 +1,27 @@
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
+import Port from "Common/Types/Port";
 
-if (!process.env["INGESTOR_URL"] && !process.env["ONEUPTIME_URL"]) {
-  logger.error("INGESTOR_URL or ONEUPTIME_URL is not set");
+if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
+  logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
   process.exit();
 }
 
-export let INGESTOR_URL: URL = URL.fromString(
+export let PROBE_INGEST_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"] ||
-    process.env["INGESTOR_URL"] ||
+    process.env["PROBE_INGEST_URL"] ||
     "https://oneuptime.com",
 );
 
 // If probe api does not have the path. Add it.
 if (
-  !INGESTOR_URL.toString().endsWith("ingestor") &&
-  !INGESTOR_URL.toString().endsWith("ingestor/")
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest") &&
+  !PROBE_INGEST_URL.toString().endsWith("probe-ingest/")
 ) {
-  INGESTOR_URL = URL.fromString(INGESTOR_URL.addRoute("/ingestor").toString());
+  PROBE_INGEST_URL = URL.fromString(
+    PROBE_INGEST_URL.addRoute("/probe-ingest").toString(),
+  );
 }
 
 export const PROBE_NAME: string | null = process.env["PROBE_NAME"] || null;
@@ -71,3 +74,13 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number = process
       process.env["PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS"].toString(),
     )
   : 60000;
+
+export const PROBE_MONITOR_RETRY_LIMIT: number = process.env[
+  "PROBE_MONITOR_RETRY_LIMIT"
+]
+  ? parseInt(process.env["PROBE_MONITOR_RETRY_LIMIT"].toString())
+  : 3;
+
+export const PORT: Port = new Port(
+  process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874,
+);

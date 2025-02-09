@@ -14,11 +14,12 @@ import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import logger from "CommonServer/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
+import CopilotActionTypeUtil from "./CopilotActionTypes";
 
 export default class InitUtil {
   public static async init(): Promise<CodeRepositoryResult> {
-    if (GetLlmType() === LlmType.LLM) {
+    if (GetLlmType() === LlmType.ONEUPTIME_LLM) {
       const llmServerUrl: URL = GetLlmServerUrl();
       // check status of ll, server
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -26,7 +27,7 @@ export default class InitUtil {
 
       if (result instanceof HTTPErrorResponse) {
         throw new BadDataException(
-          "Llama server is not reachable. Please check the server URL in the environment variables.",
+          "OneUptime LLM server is not reachable. Please check the server URL in the environment variables.",
         );
       }
     }
@@ -71,6 +72,9 @@ export default class InitUtil {
         "GitHub token is required for this repository. Please provide the GitHub token in the environment variables.",
       );
     }
+
+    // check copilot action types enabled and print it out for user.
+    CopilotActionTypeUtil.printEnabledAndDisabledActionTypes();
 
     return codeRepositoryResult;
   }

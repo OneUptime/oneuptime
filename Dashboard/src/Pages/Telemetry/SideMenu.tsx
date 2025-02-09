@@ -2,9 +2,9 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "CommonUI/src/Components/SideMenu/SideMenu";
-import SideMenuItem from "CommonUI/src/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "CommonUI/src/Components/SideMenu/SideMenuSection";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
@@ -19,6 +19,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             ),
           }}
           icon={IconProp.SquareStack}
+        />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_DOCUMENTATION] as Route,
+            ),
+          }}
+          icon={IconProp.Info}
         />
       </SideMenuSection>
       <SideMenuSection title="Telemetry">
@@ -50,15 +59,33 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           icon={IconProp.ChartBar}
         />
       </SideMenuSection>
-      <SideMenuSection title="Views">
+      <SideMenuSection title="Exceptions">
         <SideMenuItem
           link={{
-            title: "Dashboards",
+            title: "Unresolved",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_DASHBOARDS] as Route,
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED] as Route,
             ),
           }}
-          icon={IconProp.Window}
+          icon={IconProp.Alert}
+        />
+        <SideMenuItem
+          link={{
+            title: "Resolved",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED] as Route,
+            ),
+          }}
+          icon={IconProp.Check}
+        />
+        <SideMenuItem
+          link={{
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED] as Route,
+            ),
+          }}
+          icon={IconProp.Archive}
         />
       </SideMenuSection>
     </SideMenu>

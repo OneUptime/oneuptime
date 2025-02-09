@@ -2,8 +2,8 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Link from "CommonUI/src/Components/Link/Link";
-import Incident from "Model/Models/Incident";
+import Link from "Common/UI/Components/Link/Link";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

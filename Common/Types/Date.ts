@@ -9,8 +9,25 @@ import Timezone from "./Timezone";
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
-  public getNanoSecondsFromSeconds(seconds: number): number {
+  public static getInBetweenDatesAsFormattedString(
+    inBetween: InBetween<Date>,
+  ): string {
+    return (
+      this.getDateAsFormattedString(inBetween.startValue) +
+      " - " +
+      this.getDateAsFormattedString(inBetween.endValue)
+    );
+  }
+  public static convertMinutesToMilliseconds(minutes: number): number {
+    return minutes * 60 * 1000;
+  }
+
+  public static getNanoSecondsFromSeconds(seconds: number): number {
     return seconds * 1000 * 1000 * 1000;
+  }
+
+  public static now(): Date {
+    return this.getCurrentDate();
   }
 
   public static getDateFromYYYYMMDD(
@@ -837,6 +854,18 @@ export default class OneUptimeDate {
     return minutes;
   }
 
+  public static getDifferenceInSeconds(date: Date, date2: Date): number {
+    date = this.fromString(date);
+    date2 = this.fromString(date2);
+    const seconds: number = moment(date).diff(moment(date2), "seconds");
+
+    if (seconds < 0) {
+      return seconds * -1;
+    }
+
+    return seconds;
+  }
+
   public static getDifferenceInMonths(date: Date, date2: Date): number {
     date = this.fromString(date);
     date2 = this.fromString(date2);
@@ -847,6 +876,49 @@ export default class OneUptimeDate {
     }
 
     return months;
+  }
+
+  public static convertSecondsToDaysHoursMinutesAndSeconds(
+    seconds: number,
+  ): string {
+    // should output 2 days, 3 hours, 4 minutes and 5 seconds. If the days are 0, it should not show the days. If the hours are 0, it should not show the hours. If the minutes are 0, it should not show the minutes. If the seconds are 0, it should not show the seconds.
+
+    const days: number = Math.floor(seconds / (24 * 60 * 60));
+    const hours: number = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes: number = Math.floor((seconds % (60 * 60)) / 60);
+    const secs: number = seconds % 60;
+
+    let formattedString: string = "";
+
+    if (days > 0) {
+      formattedString += days + " days";
+    }
+
+    if (hours > 0) {
+      if (formattedString.length > 0) {
+        formattedString += ", ";
+      }
+
+      formattedString += hours + " hours";
+    }
+
+    if (minutes > 0) {
+      if (formattedString.length > 0) {
+        formattedString += ", ";
+      }
+
+      formattedString += minutes + " minutes";
+    }
+
+    if (secs > 0) {
+      if (formattedString.length > 0) {
+        formattedString += ", ";
+      }
+
+      formattedString += secs + " seconds";
+    }
+
+    return formattedString;
   }
 
   public static convertMinutesToDaysHoursAndMinutes(minutes: number): string {
@@ -890,6 +962,10 @@ export default class OneUptimeDate {
   ): string {
     const offset: number = this.getGmtOffsetByTimezone(timezone);
     return this.getGmtOffsetFriendlyString(offset) + " " + timezone;
+  }
+
+  public static isValidDateString(date: string): boolean {
+    return moment(date).isValid();
   }
 
   public static getGmtOffsetFriendlyString(offset: number): string {
@@ -1080,7 +1156,9 @@ export default class OneUptimeDate {
     return moment(date).local().format(formatstring);
   }
 
-  public static asFilterDateForDatabaseQuery(date: string | Date): InBetween {
+  public static asFilterDateForDatabaseQuery(
+    date: string | Date,
+  ): InBetween<Date> {
     date = this.fromString(date);
     const formattedDate: Date = moment(date).toDate();
     return new InBetween(

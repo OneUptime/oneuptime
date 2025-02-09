@@ -9,26 +9,28 @@ import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import { Host, HttpProtocol } from "CommonServer/EnvironmentConfig";
-import StatusPagePrivateUserService from "CommonServer/Services/StatusPagePrivateUserService";
-import StatusPageService from "CommonServer/Services/StatusPageService";
-import StatusPageSsoService from "CommonServer/Services/StatusPageSsoService";
-import CookieUtil from "CommonServer/Utils/Cookie";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageSsoService from "Common/Server/Services/StatusPageSsoService";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
-import StatusPageSSO from "Model/Models/StatusPageSso";
+} from "Common/Server/Utils/Express";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import xml2js from "xml2js";
 
+// Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
 
+// Define a GET route for SSO in a status page context.
 router.get(
   "/status-page-sso/:statusPageId/:statusPageSsoId",
   async (
@@ -37,6 +39,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // Check if statusPageId parameter is present.
       if (!req.params["statusPageId"]) {
         return Response.sendErrorResponse(
           req,
@@ -45,6 +48,7 @@ router.get(
         );
       }
 
+      // Check if statusPageSsoId parameter is present.
       if (!req.params["statusPageSsoId"]) {
         return Response.sendErrorResponse(
           req,
@@ -53,14 +57,16 @@ router.get(
         );
       }
 
+      // Create ObjectID instance from statusPageId parameter.
       const statusPageId: ObjectID = new ObjectID(req.params["statusPageId"]);
 
+      // Find SSO record in the database with specific query parameters.
       const statusPageSSO: StatusPageSSO | null =
         await StatusPageSsoService.findOneBy({
           query: {
-            statusPageId: statusPageId,
-            _id: req.params["statusPageSsoId"],
-            isEnabled: true,
+            statusPageId: statusPageId, // Ensure that statusPageId matches.
+            _id: req.params["statusPageSsoId"], // Ensure SSO ID matches.
+            isEnabled: true, // Ensure the SSO is enabled.
           },
           select: {
             signOnURL: true,
@@ -235,6 +241,7 @@ router.post(
       if (statusPageSSO.issuerURL.toString() !== issuerUrl) {
         return Response.sendErrorResponse(
           req,
+
           res,
           new BadRequestException("Issuer URL does not match"),
         );
@@ -285,6 +292,7 @@ router.post(
         res,
         CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
         token,
+
         {
           httpOnly: true,
           maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),

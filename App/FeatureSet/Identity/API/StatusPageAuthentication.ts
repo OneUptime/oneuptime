@@ -1,4 +1,4 @@
-import BaseModel from "Common/Models/BaseModel";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -10,23 +10,23 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import DatabaseConfig from "CommonServer/DatabaseConfig";
-import { EncryptionSecret } from "CommonServer/EnvironmentConfig";
-import MailService from "CommonServer/Services/MailService";
-import StatusPagePrivateUserService from "CommonServer/Services/StatusPagePrivateUserService";
-import StatusPageService from "CommonServer/Services/StatusPageService";
-import CookieUtil from "CommonServer/Utils/Cookie";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import MailService from "Common/Server/Services/MailService";
+import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-} from "CommonServer/Utils/Express";
-import JSONWebToken from "CommonServer/Utils/JsonWebToken";
-import logger from "CommonServer/Utils/Logger";
-import Response from "CommonServer/Utils/Response";
-import StatusPage from "Model/Models/StatusPage";
-import StatusPagePrivateUser from "Model/Models/StatusPagePrivateUser";
+} from "Common/Server/Utils/Express";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import logger from "Common/Server/Utils/Logger";
+import Response from "Common/Server/Utils/Response";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 
 const router: ExpressRouter = Express.getRouter();
 

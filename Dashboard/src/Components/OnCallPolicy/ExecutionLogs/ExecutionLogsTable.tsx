@@ -6,20 +6,22 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { ButtonStyleType } from "CommonUI/src/Components/Button/Button";
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
-import Filter from "CommonUI/src/Components/ModelFilter/Filter";
-import Columns from "CommonUI/src/Components/ModelTable/Columns";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Pill from "CommonUI/src/Components/Pill/Pill";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Query from "CommonUI/src/Utils/BaseDatabase/Query";
-import DropdownUtil from "CommonUI/src/Utils/Dropdown";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Incident from "Model/Models/Incident";
-import OnCallDutyPolicy from "Model/Models/OnCallDutyPolicy";
-import OnCallDutyPolicyExecutionLog from "Model/Models/OnCallDutyPolicyExecutionLog";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Filter from "Common/UI/Components/ModelFilter/Filter";
+import Columns from "Common/UI/Components/ModelTable/Columns";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Query from "Common/Types/BaseDatabase/Query";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Navigation from "Common/UI/Utils/Navigation";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertView from "../../../Components/Alert/Alert";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -33,7 +35,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
-    projectId: DashboardNavigation.getProjectId()?.toString(),
+    projectId: DashboardNavigation.getProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
@@ -76,7 +78,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         filterEntityType: OnCallDutyPolicy,
         filterQuery: {
-          projectId: DashboardNavigation.getProjectId()?.toString(),
+          projectId: DashboardNavigation.getProjectId()!,
         },
         filterDropdownField: {
           label: "name",
@@ -113,15 +115,30 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           title: true,
         },
       },
-      title: "Triggered By Incident",
+      title: "Triggered By",
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
-        if (item["triggeredByIncident"]) {
+        if (item.triggeredByIncident) {
           return (
-            <IncidentView incident={item["triggeredByIncident"] as Incident} />
+            <div>
+              <p>Incident:</p>
+              <IncidentView
+                incident={item["triggeredByIncident"] as Incident}
+              />
+            </div>
           );
         }
-        return <p>No incident.</p>;
+
+        if (item.triggeredByAlert) {
+          return (
+            <div>
+              <p>Alert:</p>
+              <AlertView alert={item["triggeredByAlert"] as Alert} />
+            </div>
+          );
+        }
+
+        return <p>-</p>;
       },
     },
     {
@@ -194,6 +211,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         selectMoreFields={{
           statusMessage: true,
           onCallDutyPolicyId: true,
+          triggeredByAlert: {
+            title: true,
+          },
         }}
         noItemsMessage={"This policy has not executed so far."}
         viewPageRoute={Navigation.getCurrentRoute()}

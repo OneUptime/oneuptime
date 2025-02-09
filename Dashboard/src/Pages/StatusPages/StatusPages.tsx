@@ -1,38 +1,20 @@
 import LabelsElement from "../../Components/Label/Labels";
 import DashboardNavigation from "../../Utils/Navigation";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import Banner from "CommonUI/src/Components/Banner/Banner";
-import FormFieldSchemaType from "CommonUI/src/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "CommonUI/src/Components/ModelTable/ModelTable";
-import Page from "CommonUI/src/Components/Page/Page";
-import FieldType from "CommonUI/src/Components/Types/FieldType";
-import Navigation from "CommonUI/src/Utils/Navigation";
-import Label from "Model/Models/Label";
-import StatusPage from "Model/Models/StatusPage";
+import Banner from "Common/UI/Components/Banner/Banner";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
+import Label from "Common/Models/DatabaseModels/Label";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
-import StatusPageElement from "../../Components/StatusPage/StatusPageLabel";
+import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
-    <Page
-      title={"Status Pages"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Status Pages",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
-          ),
-        },
-      ]}
-    >
+    <div>
       <Banner
         openInNewTab={true}
         title="Need a demo of status pages?"
@@ -72,10 +54,13 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "Description",
           },
         ]}
+        saveFilterProps={{
+          tableId: "all-status-pages-table",
+        }}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -104,7 +89,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()?.toString(),
+              projectId: DashboardNavigation.getProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -127,6 +112,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
+            noValueMessage: "-",
             title: "Description",
             type: FieldType.Text,
           },
@@ -146,7 +132,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
-    </Page>
+    </div>
   );
 };
 
