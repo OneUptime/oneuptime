@@ -268,7 +268,7 @@ export default class CallService {
 
       while (process.hrtime.bigint() - callStart < callTimeout) {
         await sleep(500);
-        const c = await client.calls.get(CallInstance.sid).fetch();
+        const c = await client.calls.get(twillioCall.sid).fetch();
         if (c.status === "in-progress") {
           callLifted = true;
           break;
@@ -276,7 +276,7 @@ export default class CallService {
       }
 
       // Drop the call after the timeout
-      await client.calls.get(CallInstance.sid)
+      await client.calls.get(twillioCall.sid)
           .update({status : "completed"})
           .catch(() => {});
 
