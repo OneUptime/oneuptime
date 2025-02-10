@@ -48,6 +48,11 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
         title: "Filters",
         fieldType: FieldType.Element,
         getElement: () => {
+
+          if(props.value.filters === undefined || props.value.filters.length === 0) {
+            return <div className="text-gray-700 text-sm">No filters have been set. This rule will be executed for all {props.eventType}</div>;
+          }
+
           return (
             <NotificationRuleConditions
               eventType={props.eventType}
@@ -68,11 +73,13 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
       {
         key: "shouldCreateSlackChannel",
         title: "Create Slack Channel",
+        description: "If this is enabled then a new slack channel will be created for this rule.",
         fieldType: FieldType.Boolean,
       },
       {
         key: "inviteTeamsToNewSlackChannel",
         title: "Invite Teams to New Slack Channel",
+        description: "These teams will be invited to the new slack channel.",
         fieldType: FieldType.Element,
         showIf: (formValue: SlackNotificationRule) => {
           return formValue.shouldCreateSlackChannel;
@@ -92,6 +99,7 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
       {
         key: "inviteUsersToNewSlackChannel",
         title: "Invite Users to New Slack Channel",
+        description: "These users will be invited to the new slack channel.",
         fieldType: FieldType.Element,
         getElement: () => {
           const selectedUsers: Array<User> = props.users.filter((i: User) => {
@@ -123,13 +131,14 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
       {
         key: "shouldPostToExistingSlackChannel",
         title: "Post to Existing Slack Channel",
+        description: "If this is enabled then the alert will be posted to an existing slack channel.",
         fieldType: FieldType.Boolean,
       },
       {
         key: "existingSlackChannelName",
         title: "Existing Slack Channel Name to Post To",
         description:
-          "Please provide the name of the slack channel you want to post to.",
+          "These are the slack channels that will be updated to when the rule is triggered.",
         fieldType: FieldType.Text,
 
         showIf: (formValue: SlackNotificationRule) => {

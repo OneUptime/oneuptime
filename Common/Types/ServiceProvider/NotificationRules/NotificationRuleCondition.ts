@@ -25,8 +25,12 @@ export enum NotificationRuleConditionCheckOn {
   ScheduledMaintenanceName = "Scheduled Maintenance Name",
   ScheduledMaintenanceDescription = "Scheduled Maintenance Description",
   ScheduledMaintenanceState = "Scheduled Maintenance State",
-  Labels = "Labels",
+  IncidentLabels = "Incident Labels",
+  AlertLabels = "Alert Labels",
+  MonitorLabels = "Monitor Labels",
+  ScheduledMaintenanceLabels = "Scheduled Maintenance Labels",
   Monitors = "Monitors", // like monitor contains in the incident or scheduled event.
+
 }
 
 export enum ConditionType {
@@ -53,12 +57,12 @@ export default interface NotificationRuleCondition {
   checkOn: NotificationRuleConditionCheckOn;
   conditionType: ConditionType | undefined;
   value:
-    | string
-    | number
-    | boolean
-    | Array<string>
-    | Array<ObjectID>
-    | undefined;
+  | string
+  | number
+  | boolean
+  | Array<string>
+  | Array<ObjectID>
+  | undefined;
 }
 
 export class NotificationRuleConditionUtil {
@@ -95,7 +99,10 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
       case NotificationRuleConditionCheckOn.IncidentSeverity:
       case NotificationRuleConditionCheckOn.AlertSeverity:
-      case NotificationRuleConditionCheckOn.Labels:
+      case NotificationRuleConditionCheckOn.MonitorLabels:
+      case NotificationRuleConditionCheckOn.IncidentLabels:
+      case NotificationRuleConditionCheckOn.AlertLabels:
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.Monitors:
         return true;
       default:
@@ -164,7 +171,7 @@ export class NotificationRuleConditionUtil {
       );
     }
 
-    if (data.checkOn === NotificationRuleConditionCheckOn.Labels) {
+    if (data.checkOn === NotificationRuleConditionCheckOn.MonitorLabels || data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels || data.checkOn === NotificationRuleConditionCheckOn.AlertLabels || data.checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels) {
       return data.labels.map((label: Label) => {
         return {
           value: label.id!.toString(),
@@ -205,7 +212,8 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.IncidentDescription,
           NotificationRuleConditionCheckOn.IncidentSeverity,
           NotificationRuleConditionCheckOn.IncidentState,
-          NotificationRuleConditionCheckOn.Labels,
+          NotificationRuleConditionCheckOn.IncidentLabels,
+          NotificationRuleConditionCheckOn.MonitorLabels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
       case NotificationRuleEventType.Alert:
@@ -214,7 +222,10 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.AlertDescription,
           NotificationRuleConditionCheckOn.AlertSeverity,
           NotificationRuleConditionCheckOn.AlertState,
-          NotificationRuleConditionCheckOn.Labels,
+
+          NotificationRuleConditionCheckOn.AlertLabels,
+          NotificationRuleConditionCheckOn.MonitorLabels,
+
           NotificationRuleConditionCheckOn.Monitors,
         ];
       case NotificationRuleEventType.MonitorStatus:
@@ -223,13 +234,15 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.MonitorStatus,
           NotificationRuleConditionCheckOn.MonitorType,
           NotificationRuleConditionCheckOn.Monitors,
+          NotificationRuleConditionCheckOn.MonitorLabels,
         ];
       case NotificationRuleEventType.ScheduledMaintenance:
         return [
           NotificationRuleConditionCheckOn.ScheduledMaintenanceName,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceState,
-          NotificationRuleConditionCheckOn.Labels,
+          NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels,
+          NotificationRuleConditionCheckOn.MonitorLabels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
       default:
@@ -266,7 +279,10 @@ export class NotificationRuleConditionUtil {
         return [ConditionType.Contains, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.MonitorType:
         return [ConditionType.Contains, ConditionType.NotContains];
-      case NotificationRuleConditionCheckOn.Labels:
+      case NotificationRuleConditionCheckOn.AlertLabels:
+      case NotificationRuleConditionCheckOn.IncidentLabels:
+      case NotificationRuleConditionCheckOn.MonitorLabels:
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
         return [
           ConditionType.Contains,
           ConditionType.NotContains,

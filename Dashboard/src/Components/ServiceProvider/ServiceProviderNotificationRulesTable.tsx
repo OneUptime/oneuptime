@@ -410,14 +410,14 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
               name: true,
             },
             type: FieldType.Text,
-            title: "Name",
+            title: "Rule Name",
           },
           {
             field: {
               description: true,
             },
             type: FieldType.Text,
-            title: "Description",
+            title: "Rule Description",
           },
         ]}
         columns={[
@@ -425,7 +425,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
             field: {
               name: true,
             },
-            title: "Name",
+            title: "Rule Name",
             type: FieldType.Text,
           },
           {
@@ -433,7 +433,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
               description: true,
             },
             noValueMessage: "-",
-            title: "Description",
+            title: "Rule Description",
             type: FieldType.Text,
           },
           {
@@ -462,7 +462,6 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
                     teams={teams}
                     users={users}
                   />
-                  ;
                 </Fragment>
               );
             },

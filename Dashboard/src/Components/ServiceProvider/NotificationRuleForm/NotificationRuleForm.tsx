@@ -153,9 +153,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         showIf: (formValue: FormValues<SlackNotificationRule>) => {
           return formValue.shouldCreateSlackChannel || false;
         },
-        showHorizontalRule: true,
+       
       },
       {
+        showHorizontalRuleAbove: true,
         field: {
           shouldPostToExistingSlackChannel: true,
         },

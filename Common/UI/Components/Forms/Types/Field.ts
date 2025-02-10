@@ -53,7 +53,8 @@ export default interface Field<TEntity> {
   fetchDropdownOptions?:
   | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
   | undefined;
-  showHorizontalRule?: boolean | undefined;
+  showHorizontalRuleBelow?: boolean | undefined;
+  showHorizontalRuleAbove?: boolean | undefined;
   dropdownModal?: {
     type: DatabaseBaseModelType;
     labelField: string;
