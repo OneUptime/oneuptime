@@ -352,6 +352,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           fields: [
             {
               field: {
+                alertNumber: true,
+              },
+              title: "Alert Number",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                if (!item.alertNumber) {
+                  return <>-</>;
+                }
+
+                return <>#{item.alertNumber}</>;
+              },
+            },
+            {
+              field: {
                 _id: true,
               },
               title: "Alert ID",

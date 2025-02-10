@@ -1006,4 +1006,34 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public telemetryQuery?: TelemetryQuery = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Number,
+    title: "Alert Number",
+    description: "Alert Number",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public alertNumber?: number = undefined;
 }

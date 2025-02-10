@@ -81,6 +81,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            title: "Alert Number",
+            type: FieldType.Number,
+            field: {
+              alertNumber: true,
+            },
+          },
+          {
             field: {
               title: true,
             },
@@ -171,6 +178,20 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         columns={[
+          {
+            field: {
+              alertNumber: true,
+            },
+            title: "Alert Number",
+            type: FieldType.Text,
+            getElement: (item: Alert): ReactElement => {
+              if (!item.alertNumber) {
+                return <>-</>;
+              }
+
+              return <>#{item.alertNumber}</>;
+            },
+          },
           {
             field: {
               title: true,
