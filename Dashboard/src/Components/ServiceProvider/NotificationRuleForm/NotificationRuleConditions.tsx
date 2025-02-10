@@ -19,7 +19,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 
 export interface ComponentProps {
-  initialValue: Array<NotificationRuleCondition> | undefined;
+  value: Array<NotificationRuleCondition> | undefined;
   onChange?: undefined | ((value: Array<NotificationRuleCondition>) => void);
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
@@ -36,7 +36,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [notificationRuleConditions, setNotificationRuleConditions] =
-    React.useState<Array<NotificationRuleCondition>>(props.initialValue || []);
+    React.useState<Array<NotificationRuleCondition>>(props.value || []);
 
   useEffect(() => {
     if (notificationRuleConditions && props.onChange) {

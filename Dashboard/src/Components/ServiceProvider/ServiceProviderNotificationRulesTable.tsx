@@ -415,7 +415,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
               return (
                 <NotificationRuleForm
                   {...elementProps}
-                  initialValue={value.notificationRule as SlackNotificationRule}
+                  value={value.notificationRule as SlackNotificationRule}
                   eventType={props.eventType}
                   monitors={monitors}
                   labels={labels}

@@ -21,7 +21,7 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps {
-  initialValue?: undefined | SlackNotificationRule;
+  value?: undefined | SlackNotificationRule;
   onChange?: undefined | ((value: SlackNotificationRule) => void);
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
@@ -85,12 +85,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
               onChange={(value: Array<NotificationRuleCondition>) => {
                 if (props.onChange) {
                   props.onChange({
-                    ...props.initialValue!,
+                    ...props.value!,
                     filters: value,
                   });
                 }
               }}
-              initialValue={props.initialValue?.filters || []}
+              value={props.value?.filters || []}
             />
           );
         },
@@ -184,7 +184,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
 
   return (
     <BasicForm
-      initialValues={props.initialValue}
+      values={props.value}
       onChange={props.onChange}
       fields={formFields}
       hideSubmitButton={true}
