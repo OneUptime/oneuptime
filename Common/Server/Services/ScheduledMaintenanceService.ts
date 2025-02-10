@@ -61,8 +61,6 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-
-
   public async getExistingScheduledMaintenanceNumberForProject(data: {
     projectId: ObjectID;
   }): Promise<number> {
@@ -417,17 +415,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-
-
-
-
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenane.",
       );
     }
 
-    const projectId: ObjectID = createBy.props.tenantId || createBy.data.projectId!; 
+    const projectId: ObjectID =
+      createBy.props.tenantId || createBy.data.projectId!;
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
@@ -452,13 +447,13 @@ export class Service extends DatabaseService<Model> {
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
 
-
-      const scheduledMaintenanceNumberForThisScheduledMaintenance: number =
+    const scheduledMaintenanceNumberForThisScheduledMaintenance: number =
       (await this.getExistingScheduledMaintenanceNumberForProject({
         projectId: projectId,
       })) + 1;
 
-    createBy.data.scheduledMaintenanceNumber = scheduledMaintenanceNumberForThisScheduledMaintenance;
+    createBy.data.scheduledMaintenanceNumber =
+      scheduledMaintenanceNumberForThisScheduledMaintenance;
 
     // get next notification date.
 

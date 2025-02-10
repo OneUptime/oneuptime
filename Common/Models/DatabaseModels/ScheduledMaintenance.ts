@@ -951,7 +951,6 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -98,7 +98,6 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
-
   public async getExistingAlertNumberForProject(data: {
     projectId: ObjectID;
   }): Promise<number> {
@@ -183,7 +182,8 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("ProjectId required to create alert.");
     }
 
-    const projectId: ObjectID = createBy.props.tenantId || createBy.data.projectId!;
+    const projectId: ObjectID =
+      createBy.props.tenantId || createBy.data.projectId!;
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -205,7 +205,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.currentAlertStateId = alertState.id;
-
 
     const alertNumberForThisAlert: number =
       (await this.getExistingAlertNumberForProject({
@@ -333,9 +332,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -614,10 +613,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-                .map((label: Label) => {
-                  return `- ${label.name}`;
-                })
-                .join("\n")}
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
 `;
 
             shouldAddAlertFeed = true;
@@ -770,7 +769,7 @@ ${alertSeverity.name}
       lastAlertStatusTimeline &&
       lastAlertStatusTimeline.alertStateId &&
       lastAlertStatusTimeline.alertStateId.toString() ===
-      alertStateId.toString()
+        alertStateId.toString()
     ) {
       return;
     }
@@ -970,7 +969,7 @@ ${alertSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the alert";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedAlertStateTimeline?.startsAt ||
-          OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getCurrentDate(),
           alertStartsAt,
         );
         timeToResolveMetric.unit = "seconds";

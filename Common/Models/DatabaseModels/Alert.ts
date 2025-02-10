@@ -1007,7 +1007,6 @@ export default class Alert extends BaseModel {
   })
   public telemetryQuery?: TelemetryQuery = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

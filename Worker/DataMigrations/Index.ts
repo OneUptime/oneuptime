@@ -92,7 +92,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RenameRuleTypeInUserNotificationRule(),
   new AddSubscriberFooterTextToStatusPage(),
   new AddAlertNumber(),
-  new AddScheduledMaintenanceNumber()
+  new AddScheduledMaintenanceNumber(),
 ];
 
 export default DataMigrations;

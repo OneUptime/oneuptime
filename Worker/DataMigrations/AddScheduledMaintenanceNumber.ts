@@ -31,26 +31,29 @@ export default class AddScheduledMaintenanceNumber extends DataMigrationBase {
       // first fetch resolved state. Ended state order is -1 of resolved state.
 
       // get all incicents for this project
-      const scheduledMaintenances: Array<ScheduledMaintenance> = await ScheduledMaintenanceService.findBy({
-        query: {
-          projectId: project.id!,
-        },
-        select: {
-          _id: true,
-          scheduledMaintenanceNumber: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const scheduledMaintenances: Array<ScheduledMaintenance> =
+        await ScheduledMaintenanceService.findBy({
+          query: {
+            projectId: project.id!,
+          },
+          select: {
+            _id: true,
+            scheduledMaintenanceNumber: true,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
-      const totalScheduledMaintenanceForProject: number = scheduledMaintenances.length;
-      let scheduledMaintenanceCounter: number = totalScheduledMaintenanceForProject; // start from the last scheduledMaintenance number
+      const totalScheduledMaintenanceForProject: number =
+        scheduledMaintenances.length;
+      let scheduledMaintenanceCounter: number =
+        totalScheduledMaintenanceForProject; // start from the last scheduledMaintenance number
 
       for (const scheduledMaintenance of scheduledMaintenances) {
         await ScheduledMaintenanceService.updateOneById({
