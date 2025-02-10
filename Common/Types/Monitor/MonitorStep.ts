@@ -252,7 +252,7 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     if (
-      !MonitorCriteria.getValidationError(
+      MonitorCriteria.getValidationError(
         value.data.monitorCriteria,
         monitorType,
       )
