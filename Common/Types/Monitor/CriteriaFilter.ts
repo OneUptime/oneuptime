@@ -111,6 +111,40 @@ export enum FilterType {
 }
 
 export class CriteriaFilterUtil {
+
+
+  public static hasValueField(data: {
+    checkOn: CheckOn;
+    filterType: FilterType | undefined;
+  }): boolean {
+    const { checkOn } = data;
+
+    if (checkOn === CheckOn.IsOnline) {
+      return false;
+    }
+
+    if (
+      checkOn === CheckOn.IsValidCertificate ||
+      checkOn === CheckOn.IsSelfSignedCertificate ||
+      checkOn === CheckOn.IsExpiredCertificate ||
+      checkOn === CheckOn.IsNotAValidCertificate
+    ) {
+      return false;
+    }
+
+    if (
+      FilterType.IsEmpty === data.filterType ||
+      FilterType.IsNotEmpty === data.filterType ||
+      FilterType.True === data.filterType ||
+      FilterType.False === data.filterType
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
   ): Array<EvaluateOverTimeType> {

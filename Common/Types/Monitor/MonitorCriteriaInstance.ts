@@ -11,6 +11,7 @@ import {
   CriteriaFilter,
   FilterType,
   EvaluateOverTimeType,
+  CriteriaFilterUtil,
 } from "./CriteriaFilter";
 import { CriteriaIncident } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";
@@ -732,6 +733,25 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       }
     }
 
+
+    for (const alert of value.data.alerts) {
+      if (!alert) {
+        continue;
+      }
+
+      if (!alert.title) {
+        return "Monitor Criteria alert title is required";
+      }
+
+      if (!alert.description) {
+        return "Monitor Criteria alert description is required";
+      }
+
+      if (!alert.alertSeverityId) {
+        return "Monitor Criteria alert severity is required";
+      }
+    }
+
     for (const filter of value.data.filters) {
       if (!filter.checkOn) {
         return "Monitor Criteria filter check on is required";
@@ -750,6 +770,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         !filter.serverMonitorOptions?.diskPath
       ) {
         return "Disk Path is required for Disk Usage Percent";
+      }
+
+
+      if(CriteriaFilterUtil.hasValueField(
+        {
+          checkOn: filter.checkOn,
+          filterType: filter.filterType,
+        }
+      )){
+        if(!filter.value && filter.value !== 0){
+          return "Monitor Criteria filter value is required";
+        }
       }
     }
 

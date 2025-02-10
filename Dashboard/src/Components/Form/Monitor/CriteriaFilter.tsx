@@ -377,7 +377,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         {!criteriaFilter?.checkOn ||
           (criteriaFilter?.checkOn &&
-            CriteriaFilterUiUtil.hasValueField({
+            CriteriaFilterUtil.hasValueField({
               checkOn: criteriaFilter?.checkOn,
               filterType: criteriaFilter?.filterType,
             }) &&
@@ -401,7 +401,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         {!criteriaFilter?.checkOn ||
           (criteriaFilter?.checkOn &&
-            CriteriaFilterUiUtil.hasValueField({
+            CriteriaFilterUtil.hasValueField({
               checkOn: criteriaFilter?.checkOn,
               filterType: criteriaFilter?.filterType,
             }) &&
