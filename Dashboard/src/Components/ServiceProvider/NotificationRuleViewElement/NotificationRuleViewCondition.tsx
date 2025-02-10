@@ -55,9 +55,16 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
 
       valueElement = (
         <div className="flex space-x-2 py-1">
-          {selectedAlertSeverities.map((alertSeverity: AlertSeverity, index: number) => {
-            return <AlertSeverityElement alertSeverity={alertSeverity} key={index} />;
-          })}
+          {selectedAlertSeverities.map(
+            (alertSeverity: AlertSeverity, index: number) => {
+              return (
+                <AlertSeverityElement
+                  alertSeverity={alertSeverity}
+                  key={index}
+                />
+              );
+            },
+          )}
         </div>
       );
     }
@@ -103,9 +110,12 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="flex space-x-2 py-1">
           {selectedIncidentSeverities.map(
-            (incidentSeverity: IncidentSeverity, index: number ) => {
+            (incidentSeverity: IncidentSeverity, index: number) => {
               return (
-                <IncidentSeverityElement incidentSeverity={incidentSeverity} key={index} />
+                <IncidentSeverityElement
+                  incidentSeverity={incidentSeverity}
+                  key={index}
+                />
               );
             },
           )}
@@ -127,9 +137,16 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
 
       valueElement = (
         <div className="flex space-x-2 py-1">
-          {selectedIncidentStates.map((incidentState: IncidentState, index: number) => {
-            return <IncidentStateElement incidentState={incidentState} key={index} />;
-          })}
+          {selectedIncidentStates.map(
+            (incidentState: IncidentState, index: number) => {
+              return (
+                <IncidentStateElement
+                  incidentState={incidentState}
+                  key={index}
+                />
+              );
+            },
+          )}
         </div>
       );
     }
@@ -153,7 +170,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="flex space-x-2 py-1">
           {selectedScheduledMaintenanceStates.map(
-            (scheduledMaintenanceState: ScheduledMaintenanceState, index: number) => {
+            (
+              scheduledMaintenanceState: ScheduledMaintenanceState,
+              index: number,
+            ) => {
               return (
                 <ScheduledMaintenanceStateElement
                   scheduledMaintenanceState={scheduledMaintenanceState}
@@ -194,14 +214,13 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
 
     if (
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.AlertLabels || 
+        NotificationRuleConditionCheckOn.AlertLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.IncidentLabels
-      || 
+        NotificationRuleConditionCheckOn.IncidentLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.MonitorLabels  || 
+        NotificationRuleConditionCheckOn.MonitorLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
     ) {
       const selectedLabels: Array<Label> = props.labels.filter(
         (label: Label) => {

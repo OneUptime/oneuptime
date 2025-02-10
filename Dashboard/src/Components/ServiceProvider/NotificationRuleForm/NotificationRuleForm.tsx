@@ -100,7 +100,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           shouldCreateSlackChannel: true,
         },
         title: "Create Slack Channel",
-        description: "When above conditions are met, create a new slack channel.",
+        description:
+          "When above conditions are met, create a new slack channel.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
@@ -152,7 +153,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         showIf: (formValue: FormValues<SlackNotificationRule>) => {
           return formValue.shouldCreateSlackChannel || false;
         },
-       
       },
       {
         showHorizontalRuleAbove: true,
@@ -160,7 +160,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           shouldPostToExistingSlackChannel: true,
         },
         title: "Post to Existing Slack Channel",
-        description: "When above conditions are met, post to an existing slack channel.",
+        description:
+          "When above conditions are met, post to an existing slack channel.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },

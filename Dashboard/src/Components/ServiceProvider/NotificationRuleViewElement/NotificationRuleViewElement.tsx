@@ -48,9 +48,16 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
         title: "",
         fieldType: FieldType.Element,
         getElement: () => {
-
-          if(props.value.filters === undefined || props.value.filters.length === 0) {
-            return <div className="text-gray-700 text-sm">No filters have been set. This rule will be executed for all {props.eventType}</div>;
+          if (
+            props.value.filters === undefined ||
+            props.value.filters.length === 0
+          ) {
+            return (
+              <div className="text-gray-700 text-sm">
+                No filters have been set. This rule will be executed for all{" "}
+                {props.eventType}
+              </div>
+            );
           }
 
           return (
@@ -73,7 +80,8 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
       {
         key: "shouldCreateSlackChannel",
         title: "Create Slack Channel",
-        description: "If this is enabled then a new slack channel will be created for this rule.",
+        description:
+          "If this is enabled then a new slack channel will be created for this rule.",
         fieldType: FieldType.Boolean,
       },
       {
@@ -131,7 +139,8 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
       {
         key: "shouldPostToExistingSlackChannel",
         title: "Post to Existing Slack Channel",
-        description: "If this is enabled then the alert will be posted to an existing slack channel.",
+        description:
+          "If this is enabled then the alert will be posted to an existing slack channel.",
         fieldType: FieldType.Boolean,
       },
       {

@@ -207,8 +207,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           required={true}
         />
         <Radio
-          value={monitorCriteriaInstance?.data?.filterCondition ||
-            FilterCondition.All}
+          value={
+            monitorCriteriaInstance?.data?.filterCondition ||
+            FilterCondition.All
+          }
           options={filterConditionOptions}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             monitorCriteriaInstance.setFilterCondition(

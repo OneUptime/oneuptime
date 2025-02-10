@@ -22,7 +22,9 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import ServiceProviderProjectAuthToken, { SlackMiscData } from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthToken, {
+  SlackMiscData,
+} from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
@@ -88,7 +90,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
-        let slackTeamName: string | undefined = (projectAuth.data[0]!.miscData! as SlackMiscData).teamName;
+        const slackTeamName: string | undefined = (
+          projectAuth.data[0]!.miscData! as SlackMiscData
+        ).teamName;
         setServiceProviderProjectAuthTokenId(projectAuth.data[0]!.id);
         setSlackTeamName(slackTeamName);
       }

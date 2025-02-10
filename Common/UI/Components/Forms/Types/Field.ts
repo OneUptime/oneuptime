@@ -51,8 +51,8 @@ export default interface Field<TEntity> {
   required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
   dropdownOptions?: Array<DropdownOption> | undefined;
   fetchDropdownOptions?:
-  | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
-  | undefined;
+    | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
+    | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
   dropdownModal?: {
@@ -78,8 +78,8 @@ export default interface Field<TEntity> {
     dateShouldBeInTheFuture?: boolean | undefined;
   };
   customValidation?:
-  | ((values: FormValues<TEntity>) => string | null)
-  | undefined;
+    | ((values: FormValues<TEntity>) => string | null)
+    | undefined;
   styleType?: FormFieldStyleType | undefined;
   showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
   onChange?: ((value: any) => void) | undefined;

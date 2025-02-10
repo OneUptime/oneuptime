@@ -249,9 +249,7 @@ const FormField: <T extends GenericObject>(
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
         {/*** Do not display label on checkbox because checkbox can display its own label */}
 
-        {props.field.showHorizontalRuleAbove && (
-            <HorizontalRule/ > 
-            )}
+        {props.field.showHorizontalRuleAbove && <HorizontalRule />}
 
         {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
           <FieldLabelElement
@@ -682,10 +680,7 @@ const FormField: <T extends GenericObject>(
         {showMultiSelectCheckboxCategoryModal &&
           getMultiSelectCheckboxCategoryModal()}
 
-
-          {props.field.showHorizontalRuleBelow && (
-            <HorizontalRule/ > 
-            )}
+        {props.field.showHorizontalRuleBelow && <HorizontalRule />}
       </div>
     );
   };

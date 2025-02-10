@@ -30,7 +30,6 @@ export enum NotificationRuleConditionCheckOn {
   MonitorLabels = "Monitor Labels",
   ScheduledMaintenanceLabels = "Scheduled Maintenance Labels",
   Monitors = "Monitors", // like monitor contains in the incident or scheduled event.
-
 }
 
 export enum ConditionType {
@@ -57,12 +56,12 @@ export default interface NotificationRuleCondition {
   checkOn: NotificationRuleConditionCheckOn;
   conditionType: ConditionType | undefined;
   value:
-  | string
-  | number
-  | boolean
-  | Array<string>
-  | Array<ObjectID>
-  | undefined;
+    | string
+    | number
+    | boolean
+    | Array<string>
+    | Array<ObjectID>
+    | undefined;
 }
 
 export class NotificationRuleConditionUtil {
@@ -171,7 +170,13 @@ export class NotificationRuleConditionUtil {
       );
     }
 
-    if (data.checkOn === NotificationRuleConditionCheckOn.MonitorLabels || data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels || data.checkOn === NotificationRuleConditionCheckOn.AlertLabels || data.checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels) {
+    if (
+      data.checkOn === NotificationRuleConditionCheckOn.MonitorLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.AlertLabels ||
+      data.checkOn ===
+        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+    ) {
       return data.labels.map((label: Label) => {
         return {
           value: label.id!.toString(),

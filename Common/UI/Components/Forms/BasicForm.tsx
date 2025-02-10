@@ -619,10 +619,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                           }
 
                           return true;
-                        }).filter((field: Field<T>) => {
-                          const currentValues: FormValues<T> = refCurrentValue.current;
+                        })
+                        .filter((field: Field<T>) => {
+                          const currentValues: FormValues<T> =
+                            refCurrentValue.current;
                           if (field.showIf && !field.showIf(currentValues)) {
-                            return false; 
+                            return false;
                           }
 
                           return true;
