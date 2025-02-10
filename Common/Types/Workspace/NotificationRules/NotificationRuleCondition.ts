@@ -67,46 +67,46 @@ export default interface NotificationRuleCondition {
 }
 
 export class NotificationRuleConditionUtil {
-
   public static getValidationError(data: {
-    notificationRule: SlackNotificationRule; 
+    notificationRule: SlackNotificationRule;
     eventType: NotificationRuleEventType;
     workspaceType: WorkspaceType;
-  }){
+  }): string | null {
     const { notificationRule, eventType, workspaceType } = data;
 
-
-
-    for(const condition of notificationRule.filters){
-      if(!condition.checkOn){
+    for (const condition of notificationRule.filters) {
+      if (!condition.checkOn) {
         return "Check On is required";
       }
 
-      if(!condition.conditionType){
+      if (!condition.conditionType) {
         return `Filter Condition is required for ${condition.checkOn}`;
       }
 
-      if(!condition.value){
+      if (!condition.value) {
         return `Value is required for ${condition.checkOn}`;
       }
 
-      if(Array.isArray(condition.value) && condition.value.length === 0){
+      if (Array.isArray(condition.value) && condition.value.length === 0) {
         return `Value is required for ${condition.checkOn}`;
       }
     }
 
+    if (eventType === NotificationRuleEventType.Incident) {
+      // either create slack channel or select existing one should be active.
 
-    if(eventType === NotificationRuleEventType.Incident){
-      // either create slack channel or select existing one should be active. 
+      if (workspaceType === WorkspaceType.Slack) {
+        if (
+          !notificationRule.shouldCreateSlackChannel ||
+          !notificationRule.shouldPostToExistingSlackChannel
+        ) {
+          return "Please select either create slack channel or post to existing slack channel";
+        }
 
-      if(!notificationRule.shouldCreateSlackChannel || !notificationRule.shouldPostToExistingSlackChannel){
-        return "Please select either create slack channel or post to existing slack channel";
-      }
-
-
-      if(notificationRule.shouldPostToExistingSlackChannel){
-        if(!notificationRule.existingSlackChannelName?.trim()){
-          return "Existing Slack channel name is required";
+        if (notificationRule.shouldPostToExistingSlackChannel) {
+          if (!notificationRule.existingSlackChannelName?.trim()) {
+            return "Existing Slack channel name is required";
+          }
         }
       }
     }
