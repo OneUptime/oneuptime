@@ -35,6 +35,7 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   teams: Array<Team>;
   users: Array<User>;
+  error?: string | undefined;
 }
 
 const NotificationRuleForm: FunctionComponent<ComponentProps> = (
@@ -183,12 +184,15 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <BasicForm
-      values={props.value}
-      onChange={props.onChange}
-      fields={formFields}
-      hideSubmitButton={true}
-    />
+    <div>
+      <BasicForm
+        error={props.error}
+        values={props.value}
+        onChange={props.onChange}
+        fields={formFields}
+        hideSubmitButton={true}
+      />
+    </div>
   );
 };
 

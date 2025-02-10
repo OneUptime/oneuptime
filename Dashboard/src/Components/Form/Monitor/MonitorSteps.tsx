@@ -23,6 +23,7 @@ import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -332,9 +333,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       </div>
 
       {error ? (
-        <p data-testid="error-message" className="mt-3 text-sm text-red-400">
-          {error}
-        </p>
+        <div className="mt-4">
+        <Alert title={error} type={AlertType.DANGER} />
+        </div>
       ) : (
         <></>
       )}

@@ -700,61 +700,60 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType,
   ): string | null {
     if (!value.data) {
-      return "Monitor Step is required";
+      return `Monitor Step is required.`;
     }
 
     if (value.data.filters.length === 0) {
-      return "Monitor Criteria filter is required";
+      return `Filter is required for criteria "${value.data.name}"`;
     }
 
     if (!value.data.name) {
-      return "Monitor Criteria name is required";
+      return `Name is required for criteria "${value.data.name}"`;
     }
 
     if (!value.data.description) {
-      return "Monitor Criteria description is required";
+      return `Description is required for criteria "${value.data.name}"`;
     }
 
     for (const incident of value.data.incidents) {
       if (!incident) {
-        continue;
+      continue;
       }
 
       if (!incident.title) {
-        return "Monitor Criteria incident title is required";
+      return `Incident title is required for criteria "${value.data.name}"`;
       }
 
       if (!incident.description) {
-        return "Monitor Criteria incident description is required";
+      return `Incident description is required for criteria "${value.data.name}"`;
       }
 
       if (!incident.incidentSeverityId) {
-        return "Monitor Criteria incident severity is required";
+      return `Incident severity is required for criteria "${value.data.name}"`;
       }
     }
 
-
     for (const alert of value.data.alerts) {
       if (!alert) {
-        continue;
+      continue;
       }
 
       if (!alert.title) {
-        return "Monitor Criteria alert title is required";
+      return `Alert title is required for criteria "${value.data.name}"`;
       }
 
       if (!alert.description) {
-        return "Monitor Criteria alert description is required";
+      return `Alert description is required for criteria "${value.data.name}"`;
       }
 
       if (!alert.alertSeverityId) {
-        return "Monitor Criteria alert severity is required";
+      return `Alert severity is required for criteria "${value.data.name}"`;
       }
     }
 
     for (const filter of value.data.filters) {
       if (!filter.checkOn) {
-        return "Monitor Criteria filter check on is required";
+        return `Filter Type is required for criteria "${value.data.name}"`;
       }
 
       if (
@@ -762,7 +761,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filter.checkOn !== CheckOn.IsOnline &&
         filter.checkOn !== CheckOn.ResponseTime
       ) {
-        return "Ping  Monitor cannot have filter criteria: " + filter.checkOn;
+        return "Ping Monitor cannot have filter type: " + filter.checkOn;
       }
 
       if (
@@ -780,7 +779,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         }
       )){
         if(!filter.value && filter.value !== 0){
-          return "Monitor Criteria filter value is required";
+            return `Value is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
         }
       }
     }
