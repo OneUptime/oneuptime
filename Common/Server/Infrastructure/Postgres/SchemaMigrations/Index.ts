@@ -100,6 +100,7 @@ import { MigrationName1737713529424 } from "./1737713529424-MigrationName";
 import { MigrationName1737715240684 } from "./1737715240684-MigrationName";
 import { MigrationName1737997557974 } from "./1737997557974-MigrationName";
 import { MigrationName1739209832500 } from "./1739209832500-MigrationName";
+import { MigrationName1739210586538 } from "./1739210586538-MigrationName";
 
 export default [
   InitialMigration,
@@ -204,4 +205,5 @@ export default [
   MigrationName1737715240684,
   MigrationName1737997557974,
   MigrationName1739209832500,
+  MigrationName1739210586538
 ];
