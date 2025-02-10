@@ -104,6 +104,8 @@ export class ProjectService extends DatabaseService<Model> {
       );
     }
 
+    logger.debug("Creating project for user " + data.props.userId);
+
     const user: User | null = await UserService.findOneById({
       id: data.props.userId,
       select: {
