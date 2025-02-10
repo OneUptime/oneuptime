@@ -45,7 +45,7 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
     detailFields = [
       {
         key: "filters",
-        title: "Filters",
+        title: "",
         fieldType: FieldType.Element,
         getElement: () => {
 
@@ -138,7 +138,7 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
         key: "existingSlackChannelName",
         title: "Existing Slack Channel Name to Post To",
         description:
-          "These are the slack channels that will be updated to when the rule is triggered.",
+          "These slack channels will be updated when the rule is triggered.",
         fieldType: FieldType.Text,
 
         showIf: (formValue: SlackNotificationRule) => {

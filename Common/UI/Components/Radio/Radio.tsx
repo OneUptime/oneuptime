@@ -8,10 +8,10 @@ export type RadioValue = DropdownValue;
 
 export interface ComponentProps {
   options: Array<RadioOption>;
-  initialValue?: undefined | RadioOption;
+  initialValue?: undefined | RadioValue;
   className?: undefined | string;
   onChange?: undefined | ((value: RadioValue | null) => void);
-  value?: RadioOption | undefined;
+  value?: RadioValue | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
   tabIndex?: number | undefined;
@@ -22,8 +22,8 @@ export interface ComponentProps {
 const Radio: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [value, setValue] = useState<RadioOption | undefined>(
-    props.initialValue || props.value,
+  const [value, setValue] = useState<RadioValue | undefined>(
+    props.initialValue || props.value || undefined,
   );
 
   const groupName: string = Text.generateRandomText();
@@ -38,9 +38,9 @@ const Radio: FunctionComponent<ComponentProps> = (
           <div key={index} className="flex items-center gap-x-3">
             <input
               tabIndex={props.tabIndex}
-              defaultChecked={value?.value === option.value}
+              defaultChecked={value === option.value}
               onClick={() => {
-                setValue(option);
+                setValue(option.value);
                 props.onChange && props.onChange(option.value);
                 props.onBlur && props.onBlur();
                 props.onFocus && props.onFocus();

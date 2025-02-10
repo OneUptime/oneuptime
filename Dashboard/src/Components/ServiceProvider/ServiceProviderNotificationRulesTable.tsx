@@ -38,6 +38,7 @@ import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 
 export interface ComponentProps {
   serviceProviderType: ServiceProviderType;
@@ -307,6 +308,26 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+
+  const removeFiltersWithoValues = (notificationRule: SlackNotificationRule): SlackNotificationRule => {
+    if (notificationRule.filters && notificationRule.filters.length > 0) {
+      notificationRule.filters = notificationRule.filters.filter((filter) => {
+        if (filter.value && (filter.value && Array.isArray(filter.value) && filter.value.length > 0)) { 
+          return true;
+        }
+
+        return false;
+      });
+
+
+      if(!notificationRule.filterCondition){
+        notificationRule.filterCondition = FilterCondition.Any;
+      }
+    }
+
+    return notificationRule;
+  }
+
   return (
     <Fragment>
       <ModelTable<ServiceProviderNotificationRule>
@@ -333,7 +354,11 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
           values.eventType = props.eventType;
           values.projectId = DashboardNavigation.getProjectId()!;
           values.serviceProviderType = props.serviceProviderType;
-
+          values.notificationRule = removeFiltersWithoValues(values.notificationRule as SlackNotificationRule);
+          return Promise.resolve(values);
+        }}
+        onBeforeEdit={(values: ServiceProviderNotificationRule) => {
+          values.notificationRule = removeFiltersWithoValues(values.notificationRule as SlackNotificationRule);
           return Promise.resolve(values);
         }}
         formFields={[

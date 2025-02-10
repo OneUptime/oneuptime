@@ -54,7 +54,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         radioButtonOptions: [
           {
             title: "Any",
-
             value: FilterCondition.Any,
           },
           {
@@ -184,7 +183,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
 
   return (
     <BasicForm
-      initialValue={props.initialValue}
+      initialValues={props.initialValue}
       onChange={props.onChange}
       fields={formFields}
       hideSubmitButton={true}
