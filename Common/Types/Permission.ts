@@ -608,10 +608,10 @@ enum Permission {
   EditTableView = "EditTableView",
   ReadTableView = "ReadTableView",
 
-  CreateServiceProviderNotificationRule = "CreateServiceProviderNotificationRule",
-  DeleteServiceProviderNotificationRule = "DeleteServiceProviderNotificationRule",
-  EditServiceProviderNotificationRule = "EditServiceProviderNotificationRule",
-  ReadServiceProviderNotificationRule = "ReadServiceProviderNotificationRule",
+  CreateWorkspaceNotificationRule = "CreateWorkspaceNotificationRule",
+  DeleteWorkspaceNotificationRule = "DeleteWorkspaceNotificationRule",
+  EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
+  ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
 }
 
 export class PermissionHelper {
@@ -1045,29 +1045,29 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateServiceProviderNotificationRule,
-        title: "Create Service Provider Notification Rule",
+        permission: Permission.CreateWorkspaceNotificationRule,
+        title: "Create Workspace Notification Rule",
         description: "This permission can create alert states this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceProviderNotificationRule,
-        title: "Delete Service Provider Notification Rule",
+        permission: Permission.DeleteWorkspaceNotificationRule,
+        title: "Delete Workspace Notification Rule",
         description: "This permission can delete alert states of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceProviderNotificationRule,
-        title: "Edit Service Provider Notification Rule",
+        permission: Permission.EditWorkspaceNotificationRule,
+        title: "Edit Workspace Notification Rule",
         description: "This permission can edit alert states of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceProviderNotificationRule,
-        title: "Read Service Provider Notification Rule",
+        permission: Permission.ReadWorkspaceNotificationRule,
+        title: "Read Workspace Notification Rule",
         description: "This permission can read alert states of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,

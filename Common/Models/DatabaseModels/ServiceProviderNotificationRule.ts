@@ -15,9 +15,9 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
-import BaseNotificationRule from "../../Types/ServiceProvider/NotificationRules/BaseNotificationRule";
-import NotificationRuleEventType from "../../Types/ServiceProvider/NotificationRules/EventType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import Permission from "../../Types/Permission";
 
 @TenantColumn("projectId")
@@ -27,51 +27,51 @@ import Permission from "../../Types/Permission";
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
     Permission.ProjectMember,
-    Permission.CreateServiceProviderNotificationRule,
+    Permission.CreateWorkspaceNotificationRule,
   ],
   read: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
     Permission.ProjectMember,
-    Permission.ReadServiceProviderNotificationRule,
+    Permission.ReadWorkspaceNotificationRule,
   ],
   delete: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
     Permission.ProjectMember,
-    Permission.DeleteServiceProviderNotificationRule,
+    Permission.DeleteWorkspaceNotificationRule,
   ],
   update: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,
     Permission.ProjectMember,
-    Permission.EditServiceProviderNotificationRule,
+    Permission.EditWorkspaceNotificationRule,
   ],
 })
-@CrudApiEndpoint(new Route("/service-provider-notification-rule"))
+@CrudApiEndpoint(new Route("/workspace-notification-rule"))
 @Entity({
-  name: "ServiceProviderNotificationRule",
+  name: "WorkspaceNotificationRule",
 })
 @TableMetadata({
-  tableName: "ServiceProviderNotificationRule",
-  singularName: "Service Provider Notification Rule",
-  pluralName: "Service Provider Notification Rules",
+  tableName: "WorkspaceNotificationRule",
+  singularName: "Workspace Notification Rule",
+  pluralName: "Workspace Notification Rules",
   icon: IconProp.Logs,
-  tableDescription: "Notification Rule for Third Party Service Providers",
+  tableDescription: "Notification Rule for Third Party Workspaces",
 })
-class ServiceProviderNotificationRule extends BaseModel {
+class WorkspaceNotificationRule extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [],
   })
@@ -101,13 +101,13 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [],
   })
@@ -131,19 +131,19 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -167,19 +167,19 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -203,24 +203,24 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
-    title: "Service Provider Notification Rules",
-    description: "Notification Rules for the Service Provider",
+    title: "Workspace Notification Rules",
+    description: "Notification Rules for the Workspace",
     required: true,
     unique: false,
     type: TableColumnType.JSON,
@@ -238,25 +238,25 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
-    title: "Service Provider Event Type",
+    title: "Workspace Event Type",
     description:
-      "Event Type for the Service Provider like Incident Created, Monitor Status Updated, etc.",
+      "Event Type for the Workspace like Incident Created, Monitor Status Updated, etc.",
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
@@ -274,24 +274,24 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
-    title: "Service Provider Type",
-    description: "Type of Service Provider - slack, microsoft teams etc.",
+    title: "Workspace Type",
+    description: "Type of Workspace - slack, microsoft teams etc.",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -303,26 +303,26 @@ class ServiceProviderNotificationRule extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ServiceProviderType = undefined;
+  public workspaceType?: WorkspaceType = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -352,19 +352,19 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -385,19 +385,19 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -429,19 +429,19 @@ class ServiceProviderNotificationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.CreateServiceProviderNotificationRule,
+      Permission.CreateWorkspaceNotificationRule,
     ],
     read: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.ReadServiceProviderNotificationRule,
+      Permission.ReadWorkspaceNotificationRule,
     ],
     update: [
       Permission.ProjectAdmin,
       Permission.ProjectOwner,
       Permission.ProjectMember,
-      Permission.EditServiceProviderNotificationRule,
+      Permission.EditWorkspaceNotificationRule,
     ],
   })
   @TableColumn({
@@ -458,4 +458,4 @@ class ServiceProviderNotificationRule extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 }
 
-export default ServiceProviderNotificationRule;
+export default WorkspaceNotificationRule;

@@ -1,9 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import SlackIntegration from "../../Components/Slack/SlackIntegration";
-import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
-import ServiceProviderNotificationRuleTable from "../../Components/ServiceProvider/ServiceProviderNotificationRulesTable";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
 
 const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -22,8 +22,8 @@ const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
         }}
       />
       {isSlackConnected && (
-        <ServiceProviderNotificationRuleTable
-          serviceProviderType={ServiceProviderType.Slack}
+        <WorkspaceNotificationRuleTable
+          workspaceType={WorkspaceType.Slack}
           eventType={NotificationRuleEventType.Incident}
         />
       )}

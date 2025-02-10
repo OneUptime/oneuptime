@@ -1,8 +1,8 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleConditionElement from "./NotificationRuleViewCondition";
 import React, { FunctionComponent, ReactElement } from "react";
-import NotificationRuleCondition from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
+import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";

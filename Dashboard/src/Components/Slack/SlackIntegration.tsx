@@ -22,15 +22,15 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import ServiceProviderProjectAuthToken, {
+import WorkspaceProjectAuthToken, {
   SlackMiscData,
-} from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
-import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -47,9 +47,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [manifest, setManifest] = React.useState<JSONObject | null>(null);
   const [isUserAccountConnected, setIsUserAccountConnected] =
     React.useState<boolean>(false);
-  const [userAuthTokenId, setServiceProviderUserAuthTokenId] =
+  const [userAuthTokenId, setWorkspaceUserAuthTokenId] =
     React.useState<ObjectID | null>(null);
-  const [projectAuthTokenId, setServiceProviderProjectAuthTokenId] =
+  const [projectAuthTokenId, setWorkspaceProjectAuthTokenId] =
     React.useState<ObjectID | null>(null);
   const [isProjectAccountConnected, setIsProjectAccountConnected] =
     React.useState<boolean>(false);
@@ -70,12 +70,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
 
       // check if the project is already connected with slack.
-      const projectAuth: ListResult<ServiceProviderProjectAuthToken> =
-        await ModelAPI.getList<ServiceProviderProjectAuthToken>({
-          modelType: ServiceProviderProjectAuthToken,
+      const projectAuth: ListResult<WorkspaceProjectAuthToken> =
+        await ModelAPI.getList<WorkspaceProjectAuthToken>({
+          modelType: WorkspaceProjectAuthToken,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
-            serviceProviderType: ServiceProviderType.Slack,
+            workspaceType: WorkspaceType.Slack,
           },
           select: {
             _id: true,
@@ -93,18 +93,18 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         const slackTeamName: string | undefined = (
           projectAuth.data[0]!.miscData! as SlackMiscData
         ).teamName;
-        setServiceProviderProjectAuthTokenId(projectAuth.data[0]!.id);
+        setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
         setSlackTeamName(slackTeamName);
       }
 
       // fetch user auth token.
 
-      const userAuth: ListResult<ServiceProviderUserAuthToken> =
-        await ModelAPI.getList<ServiceProviderUserAuthToken>({
-          modelType: ServiceProviderUserAuthToken,
+      const userAuth: ListResult<WorkspaceUserAuthToken> =
+        await ModelAPI.getList<WorkspaceUserAuthToken>({
+          modelType: WorkspaceUserAuthToken,
           query: {
             userId: UserUtil.getUserId()!,
-            serviceProviderType: ServiceProviderType.Slack,
+            workspaceType: WorkspaceType.Slack,
           },
           select: {
             _id: true,
@@ -118,7 +118,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       if (userAuth.data.length > 0) {
         setIsUserAccountConnected(true);
-        setServiceProviderUserAuthTokenId(userAuth.data[0]!.id);
+        setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
       }
 
       if (!isUserAccountConnected || !isProjectAccountConnected) {
@@ -188,12 +188,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             setError(null);
             if (userAuthTokenId) {
               await ModelAPI.deleteItem({
-                modelType: ServiceProviderUserAuthToken,
+                modelType: WorkspaceUserAuthToken,
                 id: userAuthTokenId!,
               });
 
               setIsUserAccountConnected(false);
-              setServiceProviderUserAuthTokenId(null);
+              setWorkspaceUserAuthTokenId(null);
             } else {
               setError(
                 <div>
@@ -360,12 +360,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             setError(null);
             if (projectAuthTokenId) {
               await ModelAPI.deleteItem({
-                modelType: ServiceProviderProjectAuthToken,
+                modelType: WorkspaceProjectAuthToken,
                 id: projectAuthTokenId!,
               });
 
               setIsProjectAccountConnected(false);
-              setServiceProviderProjectAuthTokenId(null);
+              setWorkspaceProjectAuthTokenId(null);
             } else {
               setError(
                 <div>

@@ -1,9 +1,9 @@
 import ObjectID from "../../Types/ObjectID";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
   SlackMiscData,
-} from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+} from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
   public async doesExist(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    serviceProviderType: ServiceProviderType;
+    workspaceType: WorkspaceType;
   }): Promise<boolean> {
     return (
       (
@@ -21,7 +21,7 @@ export class Service extends DatabaseService<Model> {
           query: {
             projectId: data.projectId,
             userId: data.userId,
-            serviceProviderType: data.serviceProviderType,
+            workspaceType: data.workspaceType,
           },
           skip: 0,
           limit: 1,
@@ -36,16 +36,16 @@ export class Service extends DatabaseService<Model> {
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    serviceProviderType: ServiceProviderType;
+    workspaceType: WorkspaceType;
     authToken: string;
-    serviceProviderUserId: string;
+    workspaceUserId: string;
     miscData: SlackMiscData;
   }): Promise<void> {
     let userAuth: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
         userId: data.userId,
-        serviceProviderType: data.serviceProviderType,
+        workspaceType: data.workspaceType,
       },
       select: {
         _id: true,
@@ -61,8 +61,8 @@ export class Service extends DatabaseService<Model> {
       userAuth.projectId = data.projectId;
       userAuth.userId = data.userId;
       userAuth.authToken = data.authToken;
-      userAuth.serviceProviderType = data.serviceProviderType;
-      userAuth.serviceProviderUserId = data.serviceProviderUserId;
+      userAuth.workspaceType = data.workspaceType;
+      userAuth.workspaceUserId = data.workspaceUserId;
       userAuth.miscData = data.miscData;
 
       await this.create({
@@ -76,7 +76,7 @@ export class Service extends DatabaseService<Model> {
         id: userAuth.id!,
         data: {
           authToken: data.authToken,
-          serviceProviderUserId: data.serviceProviderUserId,
+          workspaceUserId: data.workspaceUserId,
           miscData: data.miscData,
         },
         props: {

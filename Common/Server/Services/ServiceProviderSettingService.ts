@@ -1,9 +1,9 @@
 import ObjectID from "../../Types/ObjectID";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
   SlackSettings,
-} from "Common/Models/DatabaseModels/ServiceProviderSetting";
+} from "Common/Models/DatabaseModels/WorkspaceSetting";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -12,14 +12,14 @@ export class Service extends DatabaseService<Model> {
 
   public async doesExist(data: {
     projectId: ObjectID;
-    serviceProviderType: ServiceProviderType;
+    workspaceType: WorkspaceType;
   }): Promise<boolean> {
     return (
       (
         await this.countBy({
           query: {
             projectId: data.projectId,
-            serviceProviderType: data.serviceProviderType,
+            workspaceType: data.workspaceType,
           },
           skip: 0,
           limit: 1,
@@ -33,13 +33,13 @@ export class Service extends DatabaseService<Model> {
 
   public async refreshSetting(data: {
     projectId: ObjectID;
-    serviceProviderType: ServiceProviderType;
+    workspaceType: WorkspaceType;
     settings: SlackSettings;
   }): Promise<void> {
-    let serviceProviderSetting: Model | null = await this.findOneBy({
+    let workspaceSetting: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
-        serviceProviderType: data.serviceProviderType,
+        workspaceType: data.workspaceType,
       },
       select: {
         _id: true,
@@ -49,22 +49,22 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if (!serviceProviderSetting) {
-      serviceProviderSetting = new Model();
+    if (!workspaceSetting) {
+      workspaceSetting = new Model();
 
-      serviceProviderSetting.projectId = data.projectId;
-      serviceProviderSetting.settings = data.settings;
-      serviceProviderSetting.serviceProviderType = data.serviceProviderType;
+      workspaceSetting.projectId = data.projectId;
+      workspaceSetting.settings = data.settings;
+      workspaceSetting.workspaceType = data.workspaceType;
 
       await this.create({
-        data: serviceProviderSetting,
+        data: workspaceSetting,
         props: {
           isRoot: true,
         },
       });
     } else {
       await this.updateOneById({
-        id: serviceProviderSetting.id!,
+        id: workspaceSetting.id!,
         data: {
           settings: data.settings,
         },

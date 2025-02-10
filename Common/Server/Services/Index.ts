@@ -152,10 +152,10 @@ import AlertFeedService from "./AlertFeedService";
 import IncidentFeedService from "./IncidentFeedService";
 
 import MonitorTestService from "./MonitorTestService";
-import ServiceProviderProjectAuthTokenService from "./ServiceProviderProjectAuthTokenService";
-import ServiceProviderUserAuthTokenService from "./ServiceProviderUserAuthTokenService";
-import ServiceProviderSettingService from "./ServiceProviderSettingService";
-import ServiveProviderNotificationRuleService from "./ServiceProviderNotificationRuleService";
+import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import WorkspaceSettingService from "./WorkspaceSettingService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -322,10 +322,10 @@ const services: Array<BaseService> = [
   TableViewService,
   MonitorTestService,
 
-  ServiceProviderProjectAuthTokenService,
-  ServiceProviderUserAuthTokenService,
-  ServiceProviderSettingService,
-  ServiveProviderNotificationRuleService,
+  WorkspaceProjectAuthTokenService,
+  WorkspaceUserAuthTokenService,
+  WorkspaceSettingService,
+  WorkspaceNotificationRuleService,
 ];
 
 export const AnalyticsServices: Array<

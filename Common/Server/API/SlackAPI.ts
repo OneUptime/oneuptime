@@ -20,10 +20,10 @@ import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
-import ServiceProviderProjectAuthTokenService from "../Services/ServiceProviderProjectAuthTokenService";
+import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
-import ServiceProviderUserAuthTokenService from "../Services/ServiceProviderUserAuthTokenService";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -220,11 +220,11 @@ export default class SlackAPI {
           botUserId = responseBody["bot_user_id"]?.toString();
         }
 
-        await ServiceProviderProjectAuthTokenService.refreshAuthToken({
+        await WorkspaceProjectAuthTokenService.refreshAuthToken({
           projectId: new ObjectID(projectId),
-          serviceProviderType: ServiceProviderType.Slack,
+          workspaceType: WorkspaceType.Slack,
           authToken: slackBotAccessToken || "",
-          serviceProviderProjectId: slackTeamId || "",
+          workspaceProjectId: slackTeamId || "",
           miscData: {
             teamId: slackTeamId || "",
             teamName: slackTeamName || "",
@@ -232,12 +232,12 @@ export default class SlackAPI {
           },
         });
 
-        await ServiceProviderUserAuthTokenService.refreshAuthToken({
+        await WorkspaceUserAuthTokenService.refreshAuthToken({
           projectId: new ObjectID(projectId),
           userId: new ObjectID(userId),
-          serviceProviderType: ServiceProviderType.Slack,
+          workspaceType: WorkspaceType.Slack,
           authToken: slackUserAccessToken || "",
-          serviceProviderUserId: slackUserId || "",
+          workspaceUserId: slackUserId || "",
           miscData: {
             userId: slackUserId || "",
           },

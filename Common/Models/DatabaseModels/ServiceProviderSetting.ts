@@ -15,7 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export interface Settings {
   [key: string]: string;
@@ -35,18 +35,18 @@ export interface SlackSettings extends Settings {
   delete: [],
   update: [],
 })
-@CrudApiEndpoint(new Route("/service-provider-setting"))
+@CrudApiEndpoint(new Route("/workspace-setting"))
 @Entity({
-  name: "ServiceProviderSetting",
+  name: "WorkspaceSetting",
 })
 @TableMetadata({
-  tableName: "ServiceProviderSetting",
-  singularName: "Service Provider Setting",
-  pluralName: "Service Provider Settings",
+  tableName: "WorkspaceSetting",
+  singularName: "Workspace Setting",
+  pluralName: "Workspace Settings",
   icon: IconProp.Settings,
-  tableDescription: "Settings for Third Party Service Providers",
+  tableDescription: "Settings for Third Party Workspaces",
 })
-class ServiceProviderSetting extends BaseModel {
+class WorkspaceSetting extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -99,8 +99,8 @@ class ServiceProviderSetting extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Service Provider Settings",
-    description: "Settings for the Service Provider",
+    title: "Workspace Settings",
+    description: "Settings for the Workspace",
     required: true,
     unique: false,
     type: TableColumnType.JSON,
@@ -119,8 +119,8 @@ class ServiceProviderSetting extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Service Provider Type",
-    description: "Type of Service Provider - slack, microsoft teams etc.",
+    title: "Workspace Type",
+    description: "Type of Workspace - slack, microsoft teams etc.",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -132,7 +132,7 @@ class ServiceProviderSetting extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ServiceProviderType = undefined;
+  public workspaceType?: WorkspaceType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -227,4 +227,4 @@ class ServiceProviderSetting extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 }
 
-export default ServiceProviderSetting;
+export default WorkspaceSetting;

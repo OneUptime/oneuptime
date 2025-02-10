@@ -9,9 +9,9 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
-import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
-import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/ServiceProviderNotificationRule";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -32,21 +32,21 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import NotificationRuleForm from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import SlackNotificationRule from "Common/Types/ServiceProvider/NotificationRules/SlackNotificationRule";
+import SlackNotificationRule from "Common/Types/Workspace/NotificationRules/SlackNotificationRule";
 import NotificawtionRuleViewElement from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import NotificationRuleCondition from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 
 export interface ComponentProps {
-  serviceProviderType: ServiceProviderType;
+  workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
 }
 
-const ServiceProviderNotificationRuleTable: FunctionComponent<
+const WorkspaceNotificationRuleTable: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -341,8 +341,8 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
 
   return (
     <Fragment>
-      <ModelTable<ServiceProviderNotificationRule>
-        modelType={ServiceProviderNotificationRule}
+      <ModelTable<WorkspaceNotificationRule>
+        modelType={WorkspaceNotificationRule}
         query={{
           projectId: DashboardNavigation.getProjectId()!,
           eventType: props.eventType,
@@ -350,27 +350,27 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
         singularName={`${props.eventType} Notification Rule`}
         pluralName={`${props.eventType} Notification Rules`}
         id="servie-provider-table"
-        name="Settings > Service Provider Notification Rules"
+        name="Settings > Workspace Notification Rules"
         isDeleteable={true}
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}
         cardProps={{
-          title: `${props.eventType} - ${props.serviceProviderType} Notification Rules`,
-          description: `Manage ${props.eventType} notification rules for ${props.serviceProviderType}.`,
+          title: `${props.eventType} - ${props.workspaceType} Notification Rules`,
+          description: `Manage ${props.eventType} notification rules for ${props.workspaceType}.`,
         }}
         showAs={ShowAs.List}
         noItemsMessage={"No notification rules found."}
-        onBeforeCreate={(values: ServiceProviderNotificationRule) => {
+        onBeforeCreate={(values: WorkspaceNotificationRule) => {
           values.eventType = props.eventType;
           values.projectId = DashboardNavigation.getProjectId()!;
-          values.serviceProviderType = props.serviceProviderType;
+          values.workspaceType = props.workspaceType;
           values.notificationRule = removeFiltersWithNoValues(
             values.notificationRule as SlackNotificationRule,
           );
           return Promise.resolve(values);
         }}
-        onBeforeEdit={(values: ServiceProviderNotificationRule) => {
+        onBeforeEdit={(values: WorkspaceNotificationRule) => {
           values.notificationRule = removeFiltersWithNoValues(
             values.notificationRule as SlackNotificationRule,
           );
@@ -409,7 +409,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
             required: true,
             stepId: "rules",
             getCustomElement: (
-              value: FormValues<ServiceProviderNotificationRule>,
+              value: FormValues<WorkspaceNotificationRule>,
               elementProps: CustomElementProps,
             ): ReactElement => {
               return (
@@ -425,7 +425,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
                   incidentStates={incidentStates}
                   scheduledMaintenanceStates={scheduledMaintenanceStates}
                   monitorStatus={monitorStatus}
-                  serviceProviderType={props.serviceProviderType}
+                  workspaceType={props.workspaceType}
                   teams={teams}
                   users={users}
                 />
@@ -483,7 +483,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
             title: "Notification Rules",
             type: FieldType.Element,
             getElement: (
-              value: ServiceProviderNotificationRule,
+              value: WorkspaceNotificationRule,
             ): ReactElement => {
               return (
                 <Fragment>
@@ -498,7 +498,7 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
                     incidentStates={incidentStates}
                     scheduledMaintenanceStates={scheduledMaintenanceStates}
                     monitorStatus={monitorStatus}
-                    serviceProviderType={props.serviceProviderType}
+                    workspaceType={props.workspaceType}
                     teams={teams}
                     users={users}
                   />
@@ -512,4 +512,4 @@ const ServiceProviderNotificationRuleTable: FunctionComponent<
   );
 };
 
-export default ServiceProviderNotificationRuleTable;
+export default WorkspaceNotificationRuleTable;

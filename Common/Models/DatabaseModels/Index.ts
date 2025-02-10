@@ -161,17 +161,17 @@ import Dashboard from "./Dashboard";
 import MonitorTest from "./MonitorTest";
 import ScheduledMaintenanceFeed from "./ScheduledMaintenanceFeed";
 
-import ServiceProviderUserAuthToken from "./ServiceProviderUserAuthToken";
-import ServiceProviderProjectAuthToken from "./ServiceProviderProjectAuthToken";
-import ServiceProviderSetting from "./ServiceProviderSetting";
-import ServiceProviderNotificationRule from "./ServiceProviderNotificationRule";
+import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
+import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
+import WorkspaceSetting from "./WorkspaceSetting";
+import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [
   User,
-  ServiceProviderUserAuthToken,
-  ServiceProviderProjectAuthToken,
+  WorkspaceUserAuthToken,
+  WorkspaceProjectAuthToken,
   Probe,
   Project,
   EmailVerificationToken,
@@ -351,8 +351,8 @@ const AllModelTypes: Array<{
 
   MonitorTest,
 
-  ServiceProviderSetting,
-  ServiceProviderNotificationRule,
+  WorkspaceSetting,
+  WorkspaceNotificationRule,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

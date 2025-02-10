@@ -15,7 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Permission from "../../Types/Permission";
 
 export interface MiscData {
@@ -48,18 +48,18 @@ export interface SlackMiscData extends MiscData {
     Permission.ProjectMember,
   ],
 })
-@CrudApiEndpoint(new Route("/service-provider-project-auth-token"))
+@CrudApiEndpoint(new Route("/workspace-project-auth-token"))
 @Entity({
-  name: "ServiceProviderProjectAuthToken",
+  name: "WorkspaceProjectAuthToken",
 })
 @TableMetadata({
-  tableName: "ServiceProviderProjectAuthToken",
-  singularName: "Service Provider Project Auth Token",
-  pluralName: "Service Provider Project Auth Tokens",
+  tableName: "WorkspaceProjectAuthToken",
+  singularName: "Workspace Project Auth Token",
+  pluralName: "Workspace Project Auth Tokens",
   icon: IconProp.Lock,
   tableDescription: "Third Party Auth Token for the Project",
 })
-class ServiceProviderProjectAuthToken extends BaseModel {
+class WorkspaceProjectAuthToken extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -159,8 +159,8 @@ class ServiceProviderProjectAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Service Provider Type",
-    description: "Type of Service Provider - slack, microsoft teams etc.",
+    title: "Workspace Type",
+    description: "Type of Workspace - slack, microsoft teams etc.",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -172,7 +172,7 @@ class ServiceProviderProjectAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ServiceProviderType = undefined;
+  public workspaceType?: WorkspaceType = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -192,7 +192,7 @@ class ServiceProviderProjectAuthToken extends BaseModel {
     ],
   })
   @TableColumn({
-    title: "Project ID in Service Provider",
+    title: "Project ID in Workspace",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -204,7 +204,7 @@ class ServiceProviderProjectAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderProjectId?: string = undefined;
+  public workspaceProjectId?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -376,4 +376,4 @@ class ServiceProviderProjectAuthToken extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 }
 
-export default ServiceProviderProjectAuthToken;
+export default WorkspaceProjectAuthToken;

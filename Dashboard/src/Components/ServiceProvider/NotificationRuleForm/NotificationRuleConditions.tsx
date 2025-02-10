@@ -5,8 +5,8 @@ import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
-} from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Label from "Common/Models/DatabaseModels/Label";

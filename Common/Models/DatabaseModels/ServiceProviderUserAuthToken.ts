@@ -17,7 +17,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-import ServiceProviderType from "../../Types/ServiceProvider/ServiceProviderType";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export interface MiscData {
   [key: string]: any;
@@ -35,19 +35,19 @@ export interface SlackMiscData extends MiscData {
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/service-provider-user-auth-token"))
+@CrudApiEndpoint(new Route("/workspace-user-auth-token"))
 @Entity({
-  name: "ServiceProviderUserAuthToken",
+  name: "WorkspaceUserAuthToken",
 })
 @TableMetadata({
-  tableName: "ServiceProviderUserAuthToken",
-  singularName: "Service Provider User Auth Token",
-  pluralName: "Service Provider User Auth Tokens",
+  tableName: "WorkspaceUserAuthToken",
+  singularName: "Workspace User Auth Token",
+  pluralName: "Workspace User Auth Tokens",
   icon: IconProp.Lock,
   tableDescription: "Third Party Auth Token for the User",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class ServiceProviderUserAuthToken extends BaseModel {
+class WorkspaceUserAuthToken extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -120,7 +120,7 @@ class ServiceProviderUserAuthToken extends BaseModel {
   })
   @TableColumn({
     title: "User ID in Service",
-    description: "User ID in the Service Provider",
+    description: "User ID in the Workspace",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -132,7 +132,7 @@ class ServiceProviderUserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderUserId?: string = undefined;
+  public workspaceUserId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -140,8 +140,8 @@ class ServiceProviderUserAuthToken extends BaseModel {
     update: [],
   })
   @TableColumn({
-    title: "Service Provider Type",
-    description: "Type of Service Provider - slack, microsoft teams etc.",
+    title: "Workspace Type",
+    description: "Type of Workspace - slack, microsoft teams etc.",
     required: true,
     unique: false,
     type: TableColumnType.LongText,
@@ -153,7 +153,7 @@ class ServiceProviderUserAuthToken extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public serviceProviderType?: ServiceProviderType = undefined;
+  public workspaceType?: WorkspaceType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -309,4 +309,4 @@ class ServiceProviderUserAuthToken extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 }
 
-export default ServiceProviderUserAuthToken;
+export default WorkspaceUserAuthToken;

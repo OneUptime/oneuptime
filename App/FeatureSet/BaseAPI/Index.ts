@@ -514,26 +514,26 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 
-import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
-import ServiceProviderProjectAuthTokenService, {
-  Service as ServiceProviderProjectAuthTokenServiceType,
-} from "Common/Server/Services/ServiceProviderProjectAuthTokenService";
+import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthTokenService, {
+  Service as WorkspaceProjectAuthTokenServiceType,
+} from "Common/Server/Services/WorkspaceProjectAuthTokenService";
 
-import ServiceProviderUserAuthToken from "Common/Models/DatabaseModels/ServiceProviderUserAuthToken";
+import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 
-import ServiceProviderUserAuthTokenService, {
-  Service as ServiceProviderUserAuthTokenServiceType,
-} from "Common/Server/Services/ServiceProviderUserAuthTokenService";
+import WorkspaceUserAuthTokenService, {
+  Service as WorkspaceUserAuthTokenServiceType,
+} from "Common/Server/Services/WorkspaceUserAuthTokenService";
 
-import ServiceProviderSetting from "Common/Models/DatabaseModels/ServiceProviderSetting";
-import ServiceProviderSettingService, {
-  Service as ServiceProviderSettingServiceType,
-} from "Common/Server/Services/ServiceProviderSettingService";
+import WorkspaceSetting from "Common/Models/DatabaseModels/WorkspaceSetting";
+import WorkspaceSettingService, {
+  Service as WorkspaceSettingServiceType,
+} from "Common/Server/Services/WorkspaceSettingService";
 
-import ServiceProviderNotificationRule from "Common/Models/DatabaseModels/ServiceProviderNotificationRule";
-import ServiceProviderNotificationRuleService, {
-  Service as ServiceProviderNotificationRuleServiceType,
-} from "Common/Server/Services/ServiceProviderNotificationRuleService";
+import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleService, {
+  Service as WorkspaceNotificationRuleServiceType,
+} from "Common/Server/Services/WorkspaceNotificationRuleService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -562,11 +562,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
-        ServiceProviderNotificationRule,
-        ServiceProviderNotificationRuleServiceType
+        WorkspaceNotificationRule,
+        WorkspaceNotificationRuleServiceType
       >(
-        ServiceProviderNotificationRule,
-        ServiceProviderNotificationRuleService,
+        WorkspaceNotificationRule,
+        WorkspaceNotificationRuleService,
       ).getRouter(),
     );
 
@@ -581,9 +581,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     //service provider setting
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceProviderSetting, ServiceProviderSettingServiceType>(
-        ServiceProviderSetting,
-        ServiceProviderSettingService,
+      new BaseAPI<WorkspaceSetting, WorkspaceSettingServiceType>(
+        WorkspaceSetting,
+        WorkspaceSettingService,
       ).getRouter(),
     );
 
@@ -622,11 +622,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
-        ServiceProviderProjectAuthToken,
-        ServiceProviderProjectAuthTokenServiceType
+        WorkspaceProjectAuthToken,
+        WorkspaceProjectAuthTokenServiceType
       >(
-        ServiceProviderProjectAuthToken,
-        ServiceProviderProjectAuthTokenService,
+        WorkspaceProjectAuthToken,
+        WorkspaceProjectAuthTokenService,
       ).getRouter(),
     );
 
@@ -634,11 +634,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
-        ServiceProviderUserAuthToken,
-        ServiceProviderUserAuthTokenServiceType
+        WorkspaceUserAuthToken,
+        WorkspaceUserAuthTokenServiceType
       >(
-        ServiceProviderUserAuthToken,
-        ServiceProviderUserAuthTokenService,
+        WorkspaceUserAuthToken,
+        WorkspaceUserAuthTokenService,
       ).getRouter(),
     );
 

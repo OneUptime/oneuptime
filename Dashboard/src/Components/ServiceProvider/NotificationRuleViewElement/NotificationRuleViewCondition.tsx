@@ -8,7 +8,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
-} from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import React, { FunctionComponent, ReactElement } from "react";
 import AlertSeverityElement from "../../AlertSeverity/AlertSeverityElement";
 import AlertStateElement from "../../AlertState/AlertStateElement";

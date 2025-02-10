@@ -6,9 +6,9 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import SlackNotificationRule from "Common/Types/ServiceProvider/NotificationRules/SlackNotificationRule";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
-import ServiceProviderType from "Common/Types/ServiceProvider/ServiceProviderType";
+import SlackNotificationRule from "Common/Types/Workspace/NotificationRules/SlackNotificationRule";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -16,7 +16,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleConditions from "./NotificationRuleConditions";
-import NotificationRuleCondition from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
@@ -32,7 +32,7 @@ export interface ComponentProps {
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   monitorStatus: Array<MonitorStatus>;
-  serviceProviderType: ServiceProviderType;
+  workspaceType: WorkspaceType;
   teams: Array<Team>;
   users: Array<User>;
 }
@@ -42,7 +42,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   let formFields: Array<Field<SlackNotificationRule>> = [];
 
-  if (props.serviceProviderType === ServiceProviderType.Slack) {
+  if (props.workspaceType === WorkspaceType.Slack) {
     formFields = [
       {
         field: {

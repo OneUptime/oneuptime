@@ -14,14 +14,14 @@ import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
-} from "Common/Types/ServiceProvider/NotificationRules/NotificationRuleCondition";
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import NotificationRuleEventType from "Common/Types/ServiceProvider/NotificationRules/EventType";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ObjectID from "Common/Types/ObjectID";
