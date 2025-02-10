@@ -33,6 +33,7 @@ import Typeof from "Common/Types/Typeof";
 import React, { ReactElement, useEffect } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
+import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -676,6 +677,10 @@ const FormField: <T extends GenericObject>(
 
         {showMultiSelectCheckboxCategoryModal &&
           getMultiSelectCheckboxCategoryModal()}
+
+
+          {props.field.showHorizontalRule && (
+            <HorizontalRule/ > )}
       </div>
     );
   };
