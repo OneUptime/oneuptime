@@ -39,7 +39,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition, { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -409,6 +409,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             stepId: "rules",
+            customValidation: (values: FormValues<WorkspaceNotificationRule>) => {
+              const error: string | null =
+                NotificationRuleConditionUtil.getValidationError(
+                  {
+                    notificationRule: values.notificationRule as SlackNotificationRule,
+                    eventType: props.eventType,
+                    workspaceType: props.workspaceType,
+                  }
+                );
+
+              return error;
+            },
             getCustomElement: (
               value: FormValues<WorkspaceNotificationRule>,
               elementProps: CustomElementProps,

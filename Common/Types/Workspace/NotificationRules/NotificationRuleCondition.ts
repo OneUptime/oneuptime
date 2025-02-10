@@ -8,7 +8,9 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import ObjectID from "../../ObjectID";
+import WorkspaceType from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
+import SlackNotificationRule from "./SlackNotificationRule";
 
 export enum NotificationRuleConditionCheckOn {
   MonitorName = "Monitor Name",
@@ -65,6 +67,53 @@ export default interface NotificationRuleCondition {
 }
 
 export class NotificationRuleConditionUtil {
+
+  public static getValidationError(data: {
+    notificationRule: SlackNotificationRule; 
+    eventType: NotificationRuleEventType;
+    workspaceType: WorkspaceType;
+  }){
+    const { notificationRule, eventType, workspaceType } = data;
+
+
+
+    for(const condition of notificationRule.filters){
+      if(!condition.checkOn){
+        return "Check On is required";
+      }
+
+      if(!condition.conditionType){
+        return `Filter Condition is required for ${condition.checkOn}`;
+      }
+
+      if(!condition.value){
+        return `Value is required for ${condition.checkOn}`;
+      }
+
+      if(Array.isArray(condition.value) && condition.value.length === 0){
+        return `Value is required for ${condition.checkOn}`;
+      }
+    }
+
+
+    if(eventType === NotificationRuleEventType.Incident){
+      // either create slack channel or select existing one should be active. 
+
+      if(!notificationRule.shouldCreateSlackChannel || !notificationRule.shouldPostToExistingSlackChannel){
+        return "Please select either create slack channel or post to existing slack channel";
+      }
+
+
+      if(notificationRule.shouldPostToExistingSlackChannel){
+        if(!notificationRule.existingSlackChannelName?.trim()){
+          return "Existing Slack channel name is required";
+        }
+      }
+    }
+
+    return null;
+  }
+
   public static hasValueField(data: {
     checkOn: NotificationRuleConditionCheckOn;
     conditionType: ConditionType | undefined;
