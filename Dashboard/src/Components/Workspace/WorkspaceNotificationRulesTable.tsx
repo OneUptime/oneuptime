@@ -46,9 +46,9 @@ export interface ComponentProps {
   eventType: NotificationRuleEventType;
 }
 
-const WorkspaceNotificationRuleTable: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
+const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
@@ -309,7 +309,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-
   type RemoveFilterWithNoValues = (
     notificationRule: SlackNotificationRule,
   ) => SlackNotificationRule;
@@ -318,18 +317,20 @@ const WorkspaceNotificationRuleTable: FunctionComponent<
     notificationRule: SlackNotificationRule,
   ): SlackNotificationRule => {
     if (notificationRule.filters && notificationRule.filters.length > 0) {
-      notificationRule.filters = notificationRule.filters.filter((filter: NotificationRuleCondition) => {
-        if (
-          filter.value &&
-          filter.value &&
-          Array.isArray(filter.value) &&
-          filter.value.length > 0
-        ) {
-          return true;
-        }
+      notificationRule.filters = notificationRule.filters.filter(
+        (filter: NotificationRuleCondition) => {
+          if (
+            filter.value &&
+            filter.value &&
+            Array.isArray(filter.value) &&
+            filter.value.length > 0
+          ) {
+            return true;
+          }
 
-        return false;
-      });
+          return false;
+        },
+      );
 
       if (!notificationRule.filterCondition) {
         notificationRule.filterCondition = FilterCondition.Any;
@@ -482,9 +483,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<
             },
             title: "Notification Rules",
             type: FieldType.Element,
-            getElement: (
-              value: WorkspaceNotificationRule,
-            ): ReactElement => {
+            getElement: (value: WorkspaceNotificationRule): ReactElement => {
               return (
                 <Fragment>
                   <NotificawtionRuleViewElement

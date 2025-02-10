@@ -633,10 +633,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // user auth token
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        WorkspaceUserAuthToken,
-        WorkspaceUserAuthTokenServiceType
-      >(
+      new BaseAPI<WorkspaceUserAuthToken, WorkspaceUserAuthTokenServiceType>(
         WorkspaceUserAuthToken,
         WorkspaceUserAuthTokenService,
       ).getRouter(),

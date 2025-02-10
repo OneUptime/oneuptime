@@ -1,5 +1,7 @@
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import { WorkspaceNotificationPayload } from "../../Types/Workspace/WorkspaceNotificationPayload";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 
@@ -8,14 +10,13 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
-  public async notifyWorkspace(
-    workspaceType: WorkspaceType; 
+  public async notifyWorkspace(data: {
+    workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
-
-
-  ): Promise<void> {
-
+    workspaceNotificationPayload: WorkspaceNotificationPayload;
+  }): Promise<void> {
+    logger.debug("Notify Workspace");
+    logger.debug(data);
   }
 }
 export default new Service();
