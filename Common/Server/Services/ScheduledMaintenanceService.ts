@@ -61,6 +61,34 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+
+
+  public async getExistingScheduledMaintenanceNumberForProject(data: {
+    projectId: ObjectID;
+  }): Promise<number> {
+    // get last scheduledMaintenance number.
+    const lastScheduledMaintenance: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        scheduledMaintenanceNumber: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!lastScheduledMaintenance) {
+      return 0;
+    }
+
+    return lastScheduledMaintenance.scheduledMaintenanceNumber || 0;
+  }
+
   public async notififySubscribersOnEventScheduled(
     scheduledEvents: Array<Model>,
   ): Promise<void> {
@@ -389,16 +417,22 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+
+
+
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenane.",
       );
     }
 
+    const projectId: ObjectID = createBy.props.tenantId || createBy.data.projectId!; 
+
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
         query: {
-          projectId: createBy.props.tenantId,
+          projectId: projectId,
           isScheduledState: true,
         },
         select: {
@@ -417,6 +451,14 @@ export class Service extends DatabaseService<Model> {
 
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
+
+
+      const scheduledMaintenanceNumberForThisScheduledMaintenance: number =
+      (await this.getExistingScheduledMaintenanceNumberForProject({
+        projectId: projectId,
+      })) + 1;
+
+    createBy.data.scheduledMaintenanceNumber = scheduledMaintenanceNumberForThisScheduledMaintenance;
 
     // get next notification date.
 
@@ -455,7 +497,7 @@ export class Service extends DatabaseService<Model> {
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
       displayColor: Red500,
-      feedInfoInMarkdown: `**Scheduled Maintenance Created**: 
+      feedInfoInMarkdown: `**Scheduled Maintenance #${createdItem.scheduledMaintenanceNumber?.toString()} Created**: 
           
 **Scheduled Maintenance Title**:
 

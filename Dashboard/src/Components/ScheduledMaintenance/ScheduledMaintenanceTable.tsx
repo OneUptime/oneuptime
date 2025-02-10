@@ -139,6 +139,20 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         viewPageRoute={props.viewPageRoute}
         filters={[
           {
+            title: "Scheduled Maintenance ID",
+            type: FieldType.Text,
+            field: {
+              _id: true,
+            },
+          },
+          {
+            title: "Scheduled Maintenance Number",
+            type: FieldType.Number,
+            field: {
+              scheduledMaintenanceNumber: true,
+            },
+          },
+          {
             field: {
               title: true,
             },
@@ -241,6 +255,20 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         columns={[
+          {
+            field: {
+              scheduledMaintenanceNumber: true,
+            },
+            title: "Scheduled Maintenance Number",
+            type: FieldType.Text,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              if (!item.scheduledMaintenanceNumber) {
+                return <>-</>;
+              }
+
+              return <>#{item.scheduledMaintenanceNumber}</>;
+            },
+          },
           {
             field: {
               title: true,

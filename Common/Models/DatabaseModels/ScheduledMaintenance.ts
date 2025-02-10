@@ -950,4 +950,34 @@ export default class ScheduledMaintenance extends BaseModel {
     nullable: true,
   })
   public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Number,
+    title: "Scheduled Maintenance Number",
+    description: "Scheduled Maintenance Number",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public scheduledMaintenanceNumber?: number = undefined;
 }

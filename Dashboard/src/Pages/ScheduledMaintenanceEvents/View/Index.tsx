@@ -262,6 +262,20 @@ const ScheduledMaintenanceView: FunctionComponent<
           fields: [
             {
               field: {
+                scheduledMaintenanceNumber: true,
+              },
+              title: "Scheduled Maintenance Number",
+              fieldType: FieldType.Element,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (!item.scheduledMaintenanceNumber) {
+                  return <>-</>;
+                }
+
+                return <>#{item.scheduledMaintenanceNumber}</>;
+              },
+            },
+            {
+              field: {
                 _id: true,
               },
               title: "Scheduled Maintenance ID",
