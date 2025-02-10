@@ -47,8 +47,8 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {notificationRuleConditions.length === 0 && (
-        <p className="text-sm text-gray-700">
-          If no filters are added, then this rule will trigger for all{" "}
+        <p className="text-sm text-gray-700 text-semibold">
+          If no filters are added, then this rule will trigger for every{" "}
           {props.eventType}.
         </p>
       )}
@@ -81,7 +81,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
       )}
       <div className="mt-3 -ml-3">
         <Button
-          title="Add Filter"
+          title="Add Condition"
           buttonSize={ButtonSize.Small}
           icon={IconProp.Add}
           onClick={() => {

@@ -22,7 +22,7 @@ import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import ServiceProviderProjectAuthToken from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
+import ServiceProviderProjectAuthToken, { SlackMiscData } from "Common/Models/DatabaseModels/ServiceProviderProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
@@ -52,6 +52,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [isProjectAccountConnected, setIsProjectAccountConnected] =
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
+  const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -76,6 +77,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           },
           select: {
             _id: true,
+            miscData: true,
           },
           limit: 1,
           skip: 0,
@@ -86,7 +88,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
+        let slackTeamName: string | undefined = (projectAuth.data[0]!.miscData! as SlackMiscData).teamName;
         setServiceProviderProjectAuthTokenId(projectAuth.data[0]!.id);
+        setSlackTeamName(slackTeamName);
       }
 
       // fetch user auth token.
@@ -167,7 +171,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   // if user and project both connected with slack, then.
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with Slack`;
+    cardTitle = `You are connected with ${slackTeamName} team on Slack`;
     cardDescription = `Your account is already connected with Slack.`;
     cardButtons = [
       {
@@ -337,7 +341,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   // if user is not connected and the project is connected with slack.
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in your team)`;
+    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in ${slackTeamName} team)`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
     cardButtons = [
       // connect with slack button.

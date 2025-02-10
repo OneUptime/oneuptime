@@ -101,6 +101,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           shouldCreateSlackChannel: true,
         },
         title: "Create Slack Channel",
+        description: "When above conditions are met, create a new slack channel.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
@@ -109,6 +110,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           inviteTeamsToNewSlackChannel: true,
         },
         title: "Invite Teams to New Slack Channel",
+        description: "When new slack channel is created, invite these teams.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
         showIf: (formValue: FormValues<SlackNotificationRule>) => {
@@ -126,6 +128,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           inviteUsersToNewSlackChannel: true,
         },
         title: "Invite Users to New Slack Channel",
+        description: "When new slack channel is created, invite these users.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
         showIf: (formValue: FormValues<SlackNotificationRule>) => {
@@ -156,6 +159,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           shouldPostToExistingSlackChannel: true,
         },
         title: "Post to Existing Slack Channel",
+        description: "When above conditions are met, post to an existing slack channel.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
