@@ -49,6 +49,8 @@ metalLb:
 
 nginx:
   disableTelemetryCollection: false
+  listenAddress: ""
+  listenOptions: ""
   service:
     loadBalancerIP:
     type: LoadBalancer
