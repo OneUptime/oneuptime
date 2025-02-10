@@ -541,6 +541,8 @@ services:
         environment:
             <<: *common-server-variables
             ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
+            NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
+            NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
         ports:
             - '${ONEUPTIME_HTTP_PORT}:7849'

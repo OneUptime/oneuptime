@@ -119,7 +119,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 7849;
+    listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
     http2  on;
 
     server_name oneuptime-fluentd-collector ${FLUENTD_HOST};
@@ -157,7 +157,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
    
-    listen 7849 default_server;
+    listen ${NGINX_LISTEN_ADDRESS}7849 default_server ${NGINX_LISTEN_OPTIONS};
 
     server_name  _; # All domains. 
 
@@ -282,7 +282,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
 
-    listen 7850 ssl default_server; # Port HTTPS
+    listen ${NGINX_LISTEN_ADDRESS}7850 ssl default_server ${NGINX_LISTEN_OPTIONS}; # Port HTTPS
 
 
     ssl_certificate /etc/nginx/certs/StatusPageCerts/$ssl_server_name.crt; 
@@ -388,7 +388,7 @@ server {
     gzip_proxied    no-cache no-store private expired auth;
     gzip_min_length 1000;
     
-    listen 7849;
+    listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
     http2  on;
 
     server_name localhost ingress ${HOST}; #All domains
