@@ -717,37 +717,37 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     for (const incident of value.data.incidents) {
       if (!incident) {
-      continue;
+        continue;
       }
 
       if (!incident.title) {
-      return `Incident title is required for criteria "${value.data.name}"`;
+        return `Incident title is required for criteria "${value.data.name}"`;
       }
 
       if (!incident.description) {
-      return `Incident description is required for criteria "${value.data.name}"`;
+        return `Incident description is required for criteria "${value.data.name}"`;
       }
 
       if (!incident.incidentSeverityId) {
-      return `Incident severity is required for criteria "${value.data.name}"`;
+        return `Incident severity is required for criteria "${value.data.name}"`;
       }
     }
 
     for (const alert of value.data.alerts) {
       if (!alert) {
-      continue;
+        continue;
       }
 
       if (!alert.title) {
-      return `Alert title is required for criteria "${value.data.name}"`;
+        return `Alert title is required for criteria "${value.data.name}"`;
       }
 
       if (!alert.description) {
-      return `Alert description is required for criteria "${value.data.name}"`;
+        return `Alert description is required for criteria "${value.data.name}"`;
       }
 
       if (!alert.alertSeverityId) {
-      return `Alert severity is required for criteria "${value.data.name}"`;
+        return `Alert severity is required for criteria "${value.data.name}"`;
       }
     }
 
@@ -771,15 +771,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return "Disk Path is required for Disk Usage Percent";
       }
 
-
-      if(CriteriaFilterUtil.hasValueField(
-        {
+      if (
+        CriteriaFilterUtil.hasValueField({
           checkOn: filter.checkOn,
           filterType: filter.filterType,
-        }
-      )){
-        if(!filter.value && filter.value !== 0){
-            return `Value is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
+        })
+      ) {
+        if (!filter.value && filter.value !== 0) {
+          return `Value is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
         }
       }
     }

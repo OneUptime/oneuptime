@@ -334,7 +334,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       {error ? (
         <div className="mt-4">
-        <Alert title={error} type={AlertType.DANGER} />
+          <Alert title={error} type={AlertType.DANGER} />
         </div>
       ) : (
         <></>

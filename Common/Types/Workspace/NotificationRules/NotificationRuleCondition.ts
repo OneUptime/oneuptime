@@ -97,7 +97,7 @@ export class NotificationRuleConditionUtil {
 
       if (workspaceType === WorkspaceType.Slack) {
         if (
-          !notificationRule.shouldCreateSlackChannel ||
+          !notificationRule.shouldCreateSlackChannel &&
           !notificationRule.shouldPostToExistingSlackChannel
         ) {
           return "Please select either create slack channel or post to existing slack channel";

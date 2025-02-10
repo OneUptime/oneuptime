@@ -431,7 +431,6 @@ export default class CriteriaFilterUtil {
     return options;
   }
 
-
   public static isDropdownValueField(data: {
     checkOn?: CheckOn | undefined;
   }): boolean {

@@ -111,8 +111,6 @@ export enum FilterType {
 }
 
 export class CriteriaFilterUtil {
-
-
   public static hasValueField(data: {
     checkOn: CheckOn;
     filterType: FilterType | undefined;
@@ -144,7 +142,6 @@ export class CriteriaFilterUtil {
     return true;
   }
 
-  
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
   ): Array<EvaluateOverTimeType> {

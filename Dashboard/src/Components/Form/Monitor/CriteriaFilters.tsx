@@ -107,5 +107,4 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
   );
 };
 
-
 export default CriteriaFilters;
