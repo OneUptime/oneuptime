@@ -1121,14 +1121,9 @@ export default class Incident extends BaseModel {
   })
   public incidentNumber?: number = undefined;
 
-
   @ColumnAccessControl({
-    create: [
-      
-    ],
-    read: [
-      
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -1140,6 +1135,7 @@ export default class Incident extends BaseModel {
   })
   @Column({
     type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
     nullable: true,
   })
   public postUpdatesToSlackChannelId?: number = undefined;

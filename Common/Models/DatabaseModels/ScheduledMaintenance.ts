@@ -980,14 +980,9 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public scheduledMaintenanceNumber?: number = undefined;
 
-
   @ColumnAccessControl({
-    create: [
-      
-    ],
-    read: [
-      
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -999,6 +994,7 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   @Column({
     type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
     nullable: true,
   })
   public postUpdatesToSlackChannelId?: number = undefined;

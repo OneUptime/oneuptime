@@ -1036,14 +1036,9 @@ export default class Alert extends BaseModel {
   })
   public alertNumber?: number = undefined;
 
-
   @ColumnAccessControl({
-    create: [
-      
-    ],
-    read: [
-      
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -1055,6 +1050,7 @@ export default class Alert extends BaseModel {
   })
   @Column({
     type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
     nullable: true,
   })
   public postUpdatesToSlackChannelId?: number = undefined;
