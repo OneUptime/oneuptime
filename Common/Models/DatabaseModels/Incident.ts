@@ -1120,4 +1120,27 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public incidentNumber?: number = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      
+    ],
+    read: [
+      
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Post Updates To Slack Channel ID",
+    description: "Post Updates To Slack Channel ID",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public postUpdatesToSlackChannelId?: number = undefined;
 }
