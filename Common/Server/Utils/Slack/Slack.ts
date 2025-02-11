@@ -3,15 +3,16 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import WorkspaceNotificationPayload, {
-  WorkspaceNotificationPayloadButton,
+import WorkspaceMessagePayload, {
+  WorkspaceMessagePayloadButton,
   WorkspacePayloadButtons,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
-} from "../../../Types/Workspace/WorkspaceNotificationPayload";
+} from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../Logger";
 import Dictionary from "../../../Types/Dictionary";
 import BadRequestException from "../../../Types/Exception/BadRequestException";
+import WorkspaceChannelInvitationPayload from "../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 
 export interface JobResponse {
   isSuccessful: boolean;
@@ -24,16 +25,81 @@ export interface SlackChannel {
 }
 
 export default class SlackUtil {
+
+  public static async inviteUsersToChannels(data: {
+    authToken: string;
+    workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
+  }): Promise<void> {
+   const channelIds: Array<string> = data.workspaceChannelInvitationPayload.workspaceChannelIds || [];
+
+    for (const channelName of data.workspaceChannelInvitationPayload.workspaceChannelNames) {
+      const channel: SlackChannel = await this.createChannel({
+        authToken: data.authToken,
+        channelName: channelName,
+      });
+
+      channelIds.push(channel.id);
+    }
+
+    for (const channelId of channelIds) {
+      await this.inviteUsersToChannel({
+        authToken: data.authToken,
+        channelId: channelId,
+        userIds: data.workspaceChannelInvitationPayload.workspaceUserIds,
+      });
+    }
+  }
+
+  private static async inviteUsersToChannel(data: {
+    authToken: string;
+    channelId: string;
+    userIds: Array<string>;
+  }): Promise<void> {
+    for (const userId of data.userIds) {
+      await this.inviteUserToChannel({
+        authToken: data.authToken,
+        channelId: data.channelId,
+        userId: userId,
+      });
+    }
+  }
+
+  private static async inviteUserToChannel(data: {
+    authToken: string;
+    channelId: string;
+    userId: string;
+  }): Promise<void> {
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post(
+        URL.fromString("https://slack.com/api/conversations.invite"),
+        {
+          channel: data.channelId,
+          users: data.userId,
+        },
+        {
+          Authorization: `Bearer ${data.authToken}`,
+        },
+      );
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      throw new BadRequestException("Invalid response");
+    }
+  }
+
   public static async sendMessage(data: {
-    workspaceNotificationPayload: WorkspaceNotificationPayload;
+    workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
   }): Promise<void> {
     logger.debug("Notify Slack");
     logger.debug(data);
 
     const blocks: Array<JSONObject> =
-      this.getSlackBlocksFromWorkspaceNotificationPayload(
-        data.workspaceNotificationPayload,
+      this.getSlackBlocksFromWorkspaceMessagePayload(
+        data.workspaceMessagePayload,
       );
 
     const existingSlackChannels: Dictionary<SlackChannel> =
@@ -41,16 +107,16 @@ export default class SlackUtil {
         authToken: data.authToken,
       });
 
-    const channelIdsToPostTo: Array<string> = data.workspaceNotificationPayload.channelIds || [];
+    const channelIdsToPostTo: Array<string> = data.workspaceMessagePayload.channelIds || [];
 
-    for (const channelName of data.workspaceNotificationPayload.channelNames) {
+    for (const channelName of data.workspaceMessagePayload.channelNames) {
       // get channel ids from existingSlackChannels. IF channel doesn't exist, create it if createChannelsIfItDoesNotExist is true.
       let channel: SlackChannel | null = null;
 
       if (existingSlackChannels[channelName]) {
         channel = existingSlackChannels[channelName]!;
       } else if (
-        data.workspaceNotificationPayload.createChannelsIfItDoesNotExist
+        data.workspaceMessagePayload.createChannelsIfItDoesNotExist
       ) {
         channel = await this.createChannel({
           authToken: data.authToken,
@@ -83,10 +149,10 @@ export default class SlackUtil {
   }
 
   public static async sendPayloadBlocksToChannel(data: {
-      authToken: string;
-      channelId: string;
-      blocks: Array<JSONObject>;
-    }): Promise<void> {
+    authToken: string;
+    channelId: string;
+    blocks: Array<JSONObject>;
+  }): Promise<void> {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
         URL.fromString("https://slack.com/api/chat.postMessage"),
@@ -204,7 +270,7 @@ export default class SlackUtil {
   }
 
   public static getButtonBlock(data: {
-    payloadButtonBlock: WorkspaceNotificationPayloadButton;
+    payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
     return {
       type: "button",
@@ -239,12 +305,12 @@ export default class SlackUtil {
     return apiResult;
   }
 
-  private static getSlackBlocksFromWorkspaceNotificationPayload(
-    data: WorkspaceNotificationPayload,
+  private static getSlackBlocksFromWorkspaceMessagePayload(
+    data: WorkspaceMessagePayload,
   ): Array<JSONObject> {
     const blocks: Array<JSONObject> = [];
     const buttons: Array<JSONObject> = [];
-    for (const block of data.blocks) {
+    for (const block of data.messageBlocks) {
       switch (block._type) {
         case "WorkspacePayloadHeader":
           blocks.push(

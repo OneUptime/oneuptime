@@ -1,7 +1,7 @@
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../Types/ObjectID";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceNotificationPayload, { WorkspacePayloadBlock } from "../../Types/Workspace/WorkspaceNotificationPayload";
+import WorkspaceMessagePayload, { WorkspacePayloadBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
 import SlackUtil from "../Utils/Slack/Slack";
@@ -22,7 +22,6 @@ export class Service extends DatabaseService<Model> {
     alreadyCreatedChannelIds: Array<string>;
     notificationFor: {
       incidentId?: ObjectID | undefined;
-
     }
   }): Promise<void> {
     logger.debug("Notify Workspaces");
@@ -51,17 +50,17 @@ export class Service extends DatabaseService<Model> {
   }
 
 
-  public getWorkspaceNotificationPayload(data: {
+  public getWorkspaceMessagePayload(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
     workspacePayloadBlocks: Array<WorkspacePayloadBlock>;
     alreadyCreatedChannelIds: Array<string>;
     notificationRules: Array<SlackNotificationRule>
-  }): WorkspaceNotificationPayload {
+  }): WorkspaceMessagePayload {
 
-    const workspaceNotificationPayload: WorkspaceNotificationPayload = {
-      _type: "WorkspaceNotificationPayload",
+    const workspaceMessagePayload: WorkspaceMessagePayload = {
+      _type: "WorkspaceMessagePayload",
       channelNames: [],
       channelIds: data.alreadyCreatedChannelIds || [],
       blocks: data.workspacePayloadBlocks,
@@ -79,7 +78,7 @@ export class Service extends DatabaseService<Model> {
     }
 
 
-    return workspaceNotificationPayload;
+    return workspaceMessagePayload;
   }
 
   private async executeNotificationRuleForWorkspace(data: {
@@ -99,7 +98,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const workspaceNotificationPayload: WorkspaceNotificationPayload = this.getWorkspaceNotificationPayload({
+    const workspaceMessagePayload: WorkspaceMessagePayload = this.getWorkspaceMessagePayload({
       projectId: data.projectId,
       workspaceType: data.workspaceType,
       notificationRuleEventType: data.notificationRuleEventType,
@@ -109,7 +108,7 @@ export class Service extends DatabaseService<Model> {
 
     if (data.workspaceType === WorkspaceType.Slack) {
       await SlackUtil.sendMessage({
-        workspaceNotificationPayload: workspaceNotificationPayload,
+        workspaceMessagePayload: workspaceMessagePayload,
         authToken: data.projectAuth.authToken, // send from bot token.
       });
     }

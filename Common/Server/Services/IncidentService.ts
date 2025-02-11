@@ -54,7 +54,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
-import { WorkspacePayloadBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceNotificationPayload";
+import { WorkspacePayloadBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

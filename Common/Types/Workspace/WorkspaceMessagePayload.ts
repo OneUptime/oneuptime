@@ -2,7 +2,7 @@ export interface WorkspacePayloadBlock {
   _type: string;
 }
 
-export interface WorkspaceNotificationPayloadButton {
+export interface WorkspaceMessagePayloadButton {
   title: string; // Button title.
 }
 
@@ -18,11 +18,11 @@ export interface WorkspacePayloadMarkdown extends WorkspacePayloadBlock {
 
 export interface WorkspacePayloadButtons extends WorkspacePayloadBlock {
   _type: "WorkspacePayloadButtons";
-  buttons: Array<WorkspaceNotificationPayloadButton>;
+  buttons: Array<WorkspaceMessagePayloadButton>;
 }
 
-export default interface WorkspaceNotificationPayload {
-  _type: "WorkspaceNotificationPayload";
+export default interface WorkspaceMessagePayload {
+  _type: "WorkspaceMessagePayload";
   channelNames: Array<string>; // which channels to post to.
   channelIds: Array<string>; // If you know the channel IDs, you can provide them here.
   messageBlocks: Array<WorkspacePayloadBlock>; // Message to add to blocks. 
