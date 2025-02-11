@@ -1,34 +1,65 @@
+import _ from "lodash";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
   SlackMiscData,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
 
+
+  public async getProjectAuth(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      },
+      select: {
+        authToken: true,
+        workspaceProjectId: true,
+        miscData: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+
+  public async getProjectAuths(data: {
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    return await this.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        authToken: true,
+        workspaceProjectId: true,
+        miscData: true,
+        workspaceType: true
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   public async doesExist(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
   }): Promise<boolean> {
-    return (
-      (
-        await this.countBy({
-          query: {
-            projectId: data.projectId,
-            workspaceType: data.workspaceType,
-          },
-          skip: 0,
-          limit: 1,
-          props: {
-            isRoot: true,
-          },
-        })
-      ).toNumber() > 0
-    );
+    return Boolean(await this.getProjectAuth(data));
   }
 
   public async refreshAuthToken(data: {

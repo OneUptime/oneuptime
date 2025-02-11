@@ -1360,7 +1360,7 @@ ${incidentSeverity.name}
       const markdownBlock2: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Incident Title**:
-      ${incident.title}`,
+${incident.title}`,
       };
       blocks.push(markdownBlock2);
     }
@@ -1369,7 +1369,7 @@ ${incidentSeverity.name}
       const markdownBlock3: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Description**:
-      ${incident.description}`,
+${incident.description}`,
       };
       blocks.push(markdownBlock3);
     }
@@ -1378,7 +1378,7 @@ ${incidentSeverity.name}
       const markdownBlock4: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Severity**:
-      ${incident.incidentSeverity.name}`,
+${incident.incidentSeverity.name}`,
       };
       blocks.push(markdownBlock4);
     }
@@ -1387,7 +1387,7 @@ ${incidentSeverity.name}
       const markdownBlock5: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Root Cause**:
-      ${incident.rootCause}`,
+${incident.rootCause}`,
       };
       blocks.push(markdownBlock5);
     }
@@ -1396,7 +1396,7 @@ ${incidentSeverity.name}
       const markdownBlock6: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Remediation Notes**:
-      ${incident.remediationNotes}`,
+${incident.remediationNotes}`,
       };
       blocks.push(markdownBlock6);
     }
@@ -1405,7 +1405,7 @@ ${incidentSeverity.name}
       const markdownBlock7: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: `**Incident State**:
-      ${incident.currentIncidentState.name}`,
+${incident.currentIncidentState.name}`,
       };
       blocks.push(markdownBlock7);
     }

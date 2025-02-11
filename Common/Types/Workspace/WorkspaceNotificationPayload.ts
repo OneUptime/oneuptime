@@ -25,6 +25,6 @@ export default interface WorkspaceNotificationPayload {
   _type: "WorkspaceNotificationPayload";
   channelNames: Array<string>; // which channels to post to.
   channelIds: Array<string>; // If you know the channel IDs, you can provide them here.
-  blocks: Array<WorkspacePayloadBlock>; // Buttons to add to the message.
+  messageBlocks: Array<WorkspacePayloadBlock>; // Message to add to blocks. 
   createChannelsIfItDoesNotExist: boolean; // Should we create the channels if they don't exist.
 }
