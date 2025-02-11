@@ -69,7 +69,7 @@ export default class SendMessageToChannel extends ComponentCode {
 
     try {
       // https://api.slack.com/messaging/webhooks#advanced_message_formatting
-      apiResult = await SlackUtil.sendMessageToChannel({
+      apiResult = await SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: args["webhook-url"] as URL,
         text: args["text"] as string,
       });

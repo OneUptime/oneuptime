@@ -139,15 +139,9 @@ export default class SSOUtil {
     }
   }
 
-
   public static getUserFullName(payload: JSONObject): Name | null {
-
-
-    logger.debug('Get User Full Name Payload: ');
-    logger.debug(JSON.stringify(payload, null, 2));
-
     if (!payload["saml2p:Response"] && !payload["samlp:Response"]) {
-      throw new BadRequestException("SAML Response not found.");
+      return null;
     }
 
     payload =
@@ -161,28 +155,36 @@ export default class SSOUtil {
       (payload["Assertion"] as JSONArray);
 
     if (!samlAssertion || samlAssertion.length === 0) {
-      throw new BadRequestException("SAML Assertion not found");
+      return null;
     }
 
     const samlAttributeStatement: JSONArray =
-      ((samlAssertion[0] as JSONObject)["saml2:AttributeStatement"] as JSONArray) ||
-      ((samlAssertion[0] as JSONObject)["saml:AttributeStatement"] as JSONArray) ||
+      ((samlAssertion[0] as JSONObject)[
+        "saml2:AttributeStatement"
+      ] as JSONArray) ||
+      ((samlAssertion[0] as JSONObject)[
+        "saml:AttributeStatement"
+      ] as JSONArray) ||
       ((samlAssertion[0] as JSONObject)["AttributeStatement"] as JSONArray);
 
     if (!samlAttributeStatement || samlAttributeStatement.length === 0) {
-      throw new BadRequestException("SAML Attribute Statement not found");
+      return null;
     }
 
     const samlAttribute: JSONArray =
-      ((samlAttributeStatement[0] as JSONObject)["saml2:Attribute"] as JSONArray) ||
-      ((samlAttributeStatement[0] as JSONObject)["saml:Attribute"] as JSONArray) ||
+      ((samlAttributeStatement[0] as JSONObject)[
+        "saml2:Attribute"
+      ] as JSONArray) ||
+      ((samlAttributeStatement[0] as JSONObject)[
+        "saml:Attribute"
+      ] as JSONArray) ||
       ((samlAttributeStatement[0] as JSONObject)["Attribute"] as JSONArray);
 
     if (!samlAttribute || samlAttribute.length === 0) {
-      throw new BadRequestException("SAML Attribute not found");
+      return null;
     }
 
-    // get displayName attribute. 
+    // get displayName attribute.
     //   {
     //     "$": {
     //         "Name": "http://schemas.microsoft.com/identity/claims/displayname"
@@ -192,14 +194,25 @@ export default class SSOUtil {
     //     ]
     // },
 
-    for (let i = 0; i < samlAttribute.length; i++) {
-      const attribute = samlAttribute[i] as JSONObject;
-      if (attribute["$"] && (attribute["$"] as JSONObject)["Name"]?.toString()) {
-        const name = (attribute["$"] as JSONObject)["Name"]?.toString();
-        if (name === "http://schemas.microsoft.com/identity/claims/displayname" && attribute["AttributeValue"] && Array.isArray(attribute["AttributeValue"]) && attribute["AttributeValue"].length > 0) {
-          const fullName = new Name(attribute["AttributeValue"][0]!.toString() as string);
-          logger.debug('Full Name: ');
-          logger.debug(fullName);
+    for (let i: number = 0; i < samlAttribute.length; i++) {
+      const attribute: JSONObject = samlAttribute[i] as JSONObject;
+      if (
+        attribute["$"] &&
+        (attribute["$"] as JSONObject)["Name"]?.toString()
+      ) {
+        const name: string | undefined = (attribute["$"] as JSONObject)[
+          "Name"
+        ]?.toString();
+        if (
+          name &&
+          name === "http://schemas.microsoft.com/identity/claims/displayname" &&
+          attribute["AttributeValue"] &&
+          Array.isArray(attribute["AttributeValue"]) &&
+          attribute["AttributeValue"].length > 0
+        ) {
+          const fullName: Name = new Name(
+            attribute["AttributeValue"][0]!.toString() as string,
+          );
           return fullName;
         }
       }

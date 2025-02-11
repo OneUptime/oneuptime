@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
     logger.debug("Notify Workspace");
     logger.debug(data);
 
-    if(data.workspaceType === WorkspaceType.Slack){
+    if (data.workspaceType === WorkspaceType.Slack) {
       await SlackUtil.sendMessage({
         workspaceNotificationPayload: data.workspaceNotificationPayload,
         authToken: data.authToken,
