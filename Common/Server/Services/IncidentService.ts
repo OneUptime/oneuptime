@@ -54,6 +54,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
+import { WorkspacePayloadBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceNotificationPayload";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1313,6 +1314,106 @@ ${incidentSeverity.name}
     }).catch((err: Error) => {
       logger.error(err);
     });
+  }
+
+
+  public async getWorkspacePayloadForIncidentCreate(data: {
+    incidentId: ObjectID;
+  }): Promise<Array<WorkspacePayloadBlock>> {
+
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        projectId: true,
+        incidentNumber: true,
+        title: true,
+        description: true,
+        incidentSeverity: {
+          name: true,
+        },
+        rootCause: true,
+        remediationNotes: true,
+        currentIncidentState: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if(!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    const blocks = [];
+
+    if (incident.incidentNumber) {
+      const markdownBlock1: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Incident #${incident.incidentNumber} Created**`,
+      };
+      blocks.push(markdownBlock1);
+    }
+
+    if (incident.title) {
+      const markdownBlock2: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Incident Title**:
+      ${incident.title}`,
+      };
+      blocks.push(markdownBlock2);
+    }
+
+    if (incident.description) {
+      const markdownBlock3: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Description**:
+      ${incident.description}`,
+      };
+      blocks.push(markdownBlock3);
+    }
+
+    if (incident.incidentSeverity?.name) {
+      const markdownBlock4: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Severity**:
+      ${incident.incidentSeverity.name}`,
+      };
+      blocks.push(markdownBlock4);
+    }
+
+    if (incident.rootCause) {
+      const markdownBlock5: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Root Cause**:
+      ${incident.rootCause}`,
+      };
+      blocks.push(markdownBlock5);
+    }
+
+    if (incident.remediationNotes) {
+      const markdownBlock6: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Remediation Notes**:
+      ${incident.remediationNotes}`,
+      };
+      blocks.push(markdownBlock6);
+    }
+
+    if (incident.currentIncidentState?.name) {
+      const markdownBlock7: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: `**Incident State**:
+      ${incident.currentIncidentState.name}`,
+      };
+      blocks.push(markdownBlock7);
+    }
+
+    // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc. 
+
+    return blocks as Array<WorkspacePayloadBlock>; 
+    
   }
 }
 export default new Service();

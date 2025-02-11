@@ -41,6 +41,8 @@ export default class SlackUtil {
         authToken: data.authToken,
       });
 
+    const channelIdsToPostTo: Array<string> = data.workspaceNotificationPayload.channelIds || [];
+
     for (const channelName of data.workspaceNotificationPayload.channelNames) {
       // get channel ids from existingSlackChannels. IF channel doesn't exist, create it if createChannelsIfItDoesNotExist is true.
       let channel: SlackChannel | null = null;
@@ -57,24 +59,34 @@ export default class SlackUtil {
       }
 
       if (channel) {
-        await this.sendPayloadBlocksToChannel({
-          authToken: data.authToken,
-          channelId: channel.id,
-          blocks: blocks,
-        });
+        channelIdsToPostTo.push(channel.id);
       } else {
         logger.debug(
           `Channel ${channelName} does not exist and createChannelsIfItDoesNotExist is false.`,
         );
       }
     }
+
+
+    for (const channelId of channelIdsToPostTo) {
+      try {
+        // try catch here to prevent failure of one channel to prevent posting to other channels.
+        await this.sendPayloadBlocksToChannel({
+          authToken: data.authToken,
+          channelId: channelId,
+          blocks: blocks,
+        });
+      } catch (e) {
+        logger.error(e);
+      }
+    }
   }
 
   public static async sendPayloadBlocksToChannel(data: {
-    authToken: string;
-    channelId: string;
-    blocks: Array<JSONObject>;
-  }): Promise<void> {
+      authToken: string;
+      channelId: string;
+      blocks: Array<JSONObject>;
+    }): Promise<void> {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
         URL.fromString("https://slack.com/api/chat.postMessage"),

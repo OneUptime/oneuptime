@@ -1,4 +1,4 @@
-export interface WorkspacePayloadBlocks {
+export interface WorkspacePayloadBlock {
   _type: string;
 }
 
@@ -6,17 +6,17 @@ export interface WorkspaceNotificationPayloadButton {
   title: string; // Button title.
 }
 
-export interface WorkspacePayloadHeader extends WorkspacePayloadBlocks {
+export interface WorkspacePayloadHeader extends WorkspacePayloadBlock {
   _type: "WorkspacePayloadHeader";
   text: string;
 }
 
-export interface WorkspacePayloadMarkdown extends WorkspacePayloadBlocks {
+export interface WorkspacePayloadMarkdown extends WorkspacePayloadBlock {
   _type: "WorkspacePayloadMarkdown";
   text: string;
 }
 
-export interface WorkspacePayloadButtons extends WorkspacePayloadBlocks {
+export interface WorkspacePayloadButtons extends WorkspacePayloadBlock {
   _type: "WorkspacePayloadButtons";
   buttons: Array<WorkspaceNotificationPayloadButton>;
 }
@@ -24,6 +24,7 @@ export interface WorkspacePayloadButtons extends WorkspacePayloadBlocks {
 export default interface WorkspaceNotificationPayload {
   _type: "WorkspaceNotificationPayload";
   channelNames: Array<string>; // which channels to post to.
-  blocks: Array<WorkspacePayloadBlocks>; // Buttons to add to the message.
+  channelIds: Array<string>; // If you know the channel IDs, you can provide them here.
+  blocks: Array<WorkspacePayloadBlock>; // Buttons to add to the message.
   createChannelsIfItDoesNotExist: boolean; // Should we create the channels if they don't exist.
 }
