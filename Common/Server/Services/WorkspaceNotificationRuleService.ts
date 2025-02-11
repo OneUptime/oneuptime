@@ -1,7 +1,7 @@
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../Types/ObjectID";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceMessagePayload, { WorkspacePayloadBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMessagePayload, { WorkspaceMessageBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
 import SlackUtil from "../Utils/Slack/Slack";
@@ -10,19 +10,25 @@ import Model from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import SlackNotificationRule from "../../Types/Workspace/NotificationRules/SlackNotificationRule";
 
+
+export interface NotificationFor {
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  monitorStatusTimelineId?: ObjectID | undefined;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
 
-  public async executeNotificationRules(data: {
+  public async sendMessageAccordingToNotificationRules(data: {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
-    workspacePayloadBlocks: Array<WorkspacePayloadBlock>;
+    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
     alreadyCreatedChannelIds: Array<string>;
-    notificationFor: {
-      incidentId?: ObjectID | undefined;
-    }
+    notificationFor: NotificationFor;
   }): Promise<void> {
     logger.debug("Notify Workspaces");
     logger.debug(data);
@@ -38,13 +44,14 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      await this.executeNotificationRuleForWorkspace({
+      await this.sendMessageAccordingToNotificationRulesByWorkspace({
         projectId: data.projectId,
         projectAuth: projectAuth,
         workspaceType: projectAuth.workspaceType!,
         notificationRuleEventType: data.notificationRuleEventType,
         alreadyCreatedChannelIds: data.alreadyCreatedChannelIds,
-        workspacePayloadBlocks: data.workspacePayloadBlocks
+        workspaceMessageBlocks: data.workspaceMessageBlocks,
+        notificaitonFor: data.notificationFor,
       });
     }
   }
@@ -54,7 +61,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
-    workspacePayloadBlocks: Array<WorkspacePayloadBlock>;
+    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
     alreadyCreatedChannelIds: Array<string>;
     notificationRules: Array<SlackNotificationRule>
   }): WorkspaceMessagePayload {
@@ -63,7 +70,7 @@ export class Service extends DatabaseService<Model> {
       _type: "WorkspaceMessagePayload",
       channelNames: [],
       channelIds: data.alreadyCreatedChannelIds || [],
-      blocks: data.workspacePayloadBlocks,
+      blocks: data.workspaceMessageBlocks,
       createChannelsIfItDoesNotExist: false,
     };
 
@@ -81,11 +88,11 @@ export class Service extends DatabaseService<Model> {
     return workspaceMessagePayload;
   }
 
-  private async executeNotificationRuleForWorkspace(data: {
+  private async sendMessageAccordingToNotificationRulesByWorkspace(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
-    workspacePayloadBlocks: Array<WorkspacePayloadBlock>;
+    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
     projectAuth: WorkspaceProjectAuthToken;
     alreadyCreatedChannelIds: Array<string>;
   }): Promise<void> {
@@ -102,7 +109,7 @@ export class Service extends DatabaseService<Model> {
       projectId: data.projectId,
       workspaceType: data.workspaceType,
       notificationRuleEventType: data.notificationRuleEventType,
-      workspacePayloadBlocks: data.workspacePayloadBlocks,
+      workspaceMessageBlocks: data.workspaceMessageBlocks,
       alreadyCreatedChannelIds: data.alreadyCreatedChannelIds,
     });
 
