@@ -90,6 +90,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         isNewUser = true;
         user = await UserService.createByEmail({
           email,
+          name: undefined, // name is not required for now.
           props: {
             isRoot: true,
           },

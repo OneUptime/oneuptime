@@ -36,6 +36,7 @@ import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import xml2js from "xml2js";
+import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -283,6 +284,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
     let issuerUrl: string = "";
     let email: Email | null = null;
+    let fullName: Name | null = null;
 
     if (!req.params["projectId"]) {
       return Response.sendErrorResponse(
@@ -372,6 +374,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
       issuerUrl = SSOUtil.getIssuer(response);
       email = SSOUtil.getEmail(response);
+      fullName = SSOUtil.getUserFullName(response);
     } catch (err: unknown) {
       if (err instanceof Exception) {
         return Response.sendErrorResponse(req, res, err);
@@ -420,6 +423,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
       alreadySavedUser = await UserService.createByEmail({
         email,
+        name: fullName || undefined,
         isEmailVerified: true,
         generateRandomPassword: true,
         props: {

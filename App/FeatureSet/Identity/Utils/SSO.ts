@@ -8,6 +8,7 @@ import logger from "Common/Server/Utils/Logger";
 import xmlCrypto, { FileKeyInfo } from "xml-crypto";
 import xmldom from "xmldom";
 import zlib from "zlib";
+import Name from "Common/Types/Name";
 
 export default class SSOUtil {
   public static createSAMLRequestUrl(data: {
@@ -136,6 +137,75 @@ export default class SSOUtil {
       logger.error(err);
       return false;
     }
+  }
+
+
+  public static getUserFullName(payload: JSONObject): Name | null {
+
+
+    logger.debug('Get User Full Name Payload: ');
+    logger.debug(JSON.stringify(payload, null, 2));
+
+    if (!payload["saml2p:Response"] && !payload["samlp:Response"]) {
+      throw new BadRequestException("SAML Response not found.");
+    }
+
+    payload =
+      (payload["saml2p:Response"] as JSONObject) ||
+      (payload["samlp:Response"] as JSONObject) ||
+      (payload["Response"] as JSONObject);
+
+    const samlAssertion: JSONArray =
+      (payload["saml2:Assertion"] as JSONArray) ||
+      (payload["saml:Assertion"] as JSONArray) ||
+      (payload["Assertion"] as JSONArray);
+
+    if (!samlAssertion || samlAssertion.length === 0) {
+      throw new BadRequestException("SAML Assertion not found");
+    }
+
+    const samlAttributeStatement: JSONArray =
+      ((samlAssertion[0] as JSONObject)["saml2:AttributeStatement"] as JSONArray) ||
+      ((samlAssertion[0] as JSONObject)["saml:AttributeStatement"] as JSONArray) ||
+      ((samlAssertion[0] as JSONObject)["AttributeStatement"] as JSONArray);
+
+    if (!samlAttributeStatement || samlAttributeStatement.length === 0) {
+      throw new BadRequestException("SAML Attribute Statement not found");
+    }
+
+    const samlAttribute: JSONArray =
+      ((samlAttributeStatement[0] as JSONObject)["saml2:Attribute"] as JSONArray) ||
+      ((samlAttributeStatement[0] as JSONObject)["saml:Attribute"] as JSONArray) ||
+      ((samlAttributeStatement[0] as JSONObject)["Attribute"] as JSONArray);
+
+    if (!samlAttribute || samlAttribute.length === 0) {
+      throw new BadRequestException("SAML Attribute not found");
+    }
+
+    // get displayName attribute. 
+    //   {
+    //     "$": {
+    //         "Name": "http://schemas.microsoft.com/identity/claims/displayname"
+    //     },
+    //     "AttributeValue": [
+    //         "Nawaz Dhandala"
+    //     ]
+    // },
+
+    for (let i = 0; i < samlAttribute.length; i++) {
+      const attribute = samlAttribute[i] as JSONObject;
+      if (attribute["$"] && (attribute["$"] as JSONObject)["Name"]?.toString()) {
+        const name = (attribute["$"] as JSONObject)["Name"]?.toString();
+        if (name === "http://schemas.microsoft.com/identity/claims/displayname" && attribute["AttributeValue"] && Array.isArray(attribute["AttributeValue"]) && attribute["AttributeValue"].length > 0) {
+          const fullName = new Name(attribute["AttributeValue"][0]!.toString() as string);
+          logger.debug('Full Name: ');
+          logger.debug(fullName);
+          return fullName;
+        }
+      }
+    }
+
+    return null;
   }
 
   public static getEmail(payload: JSONObject): Email {

@@ -465,7 +465,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
       }
 
-      SlackUtil.sendMessageToChannel({
+      SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
         text: slackMessage,
       }).catch((error: Exception) => {
@@ -668,7 +668,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
         }
 
-        SlackUtil.sendMessageToChannel({
+        SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(NotificationSlackWebhookOnCreateProject),
           text: slackMessage,
         }).catch((error: Exception) => {
@@ -1178,7 +1178,7 @@ export class ProjectService extends DatabaseService<Model> {
 `;
         }
 
-        SlackUtil.sendMessageToChannel({
+        SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(NotificationSlackWebhookOnDeleteProject),
           text: slackMessage,
         }).catch((err: Error) => {

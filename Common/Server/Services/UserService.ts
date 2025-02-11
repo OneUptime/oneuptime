@@ -32,6 +32,7 @@ import SlackUtil from "../Utils/Slack/Slack";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Name from "../../Types/Name";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -43,7 +44,7 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (NotificationSlackWebhookOnCreateUser) {
-      SlackUtil.sendMessageToChannel({
+      SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: URL.fromString(NotificationSlackWebhookOnCreateUser),
         text: `*New OneUptime User:* 
   *Email:* ${createdItem.email?.toString() || "N/A"}
@@ -292,6 +293,7 @@ export class Service extends DatabaseService<Model> {
 
   public async createByEmail(data: {
     email: Email;
+    name: Name | undefined;
     isEmailVerified?: boolean;
     generateRandomPassword?: boolean;
     props: DatabaseCommonInteractionProps;
@@ -300,6 +302,9 @@ export class Service extends DatabaseService<Model> {
 
     const user: Model = new Model();
     user.email = email;
+    if (data.name) {
+      user.name = data.name;
+    }
     user.isEmailVerified = data.isEmailVerified || false;
 
     if (data.generateRandomPassword) {
