@@ -1130,13 +1130,13 @@ export default class Incident extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.ShortText,
-    title: "Post Updates To Slack Channel Name",
-    description: "Post Updates To Slack Channel Name",
+    title: "Post Updates To Workspace Channel Name",
+    description: "Post Updates To Workspace Channel Name",
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: true,
   })
-  public postUpdatesToSlackChannelName?: number = undefined;
+  public postUpdatesToWorkspaceChannelName?: number = undefined;
 }

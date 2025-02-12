@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class MigrationName1739374537088 implements MigrationInterface {
-    public name = 'MigrationName1739374537088'
+export class MigrationName1739383060497 implements MigrationInterface {
+    public name = 'MigrationName1739383060497'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "Incident" RENAME COLUMN "postUpdatesToSlackChannelId" TO "postUpdatesToWorkspaceChannelName"`);
