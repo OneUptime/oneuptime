@@ -54,7 +54,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
-import { WorkspacePayloadBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
+import { WorkspaceMessageBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1317,9 +1317,9 @@ ${incidentSeverity.name}
   }
 
 
-  public async getWorkspacePayloadForIncidentCreate(data: {
+  public async getWorkspaceMessageBlocksForIncidentCreate(data: {
     incidentId: ObjectID;
-  }): Promise<Array<WorkspacePayloadBlock>> {
+  }): Promise<Array<WorkspaceMessageBlock>> {
 
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
@@ -1412,7 +1412,7 @@ ${incident.currentIncidentState.name}`,
 
     // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc. 
 
-    return blocks as Array<WorkspacePayloadBlock>; 
+    return blocks as Array<WorkspaceMessageBlock>; 
     
   }
 }

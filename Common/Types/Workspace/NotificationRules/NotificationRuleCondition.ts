@@ -7,24 +7,23 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
-import ObjectID from "../../ObjectID";
 import WorkspaceType from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import SlackNotificationRule from "./SlackNotificationRule";
 
 export enum NotificationRuleConditionCheckOn {
   MonitorName = "Monitor Name",
-  IncidentName = "Incident Name",
+  IncidentTitle = "Incident Title",
   IncidentDescription = "Incident Description",
   IncidentSeverity = "Incident Severity",
   IncidentState = "Incident State",
   MonitorType = "Monitor Type",
   MonitorStatus = "Monitor Status",
-  AlertName = "Alert Name",
+  AlertTitle = "Alert Title",
   AlertDescription = "Alert Description",
   AlertSeverity = "Alert Severity",
   AlertState = "Alert State",
-  ScheduledMaintenanceName = "Scheduled Maintenance Name",
+  ScheduledMaintenanceTitle = "Scheduled Maintenance Title",
   ScheduledMaintenanceDescription = "Scheduled Maintenance Description",
   ScheduledMaintenanceState = "Scheduled Maintenance State",
   IncidentLabels = "Incident Labels",
@@ -41,7 +40,7 @@ export enum ConditionType {
   LessThan = "Less Than",
   GreaterThanOrEqualTo = "Greater Than Or Equal To",
   LessThanOrEqualTo = "Less Than Or Equal To",
-  Contains = "Contains",
+  ContainsAny = "Contains Any",
   NotContains = "Not Contains",
   StartsWith = "Starts With",
   EndsWith = "Ends With",
@@ -49,8 +48,6 @@ export enum ConditionType {
   IsNotEmpty = "Is Not Empty",
   True = "True",
   False = "False",
-
-  // could be used for labels.
   ContainsAll = "Contains All",
 }
 
@@ -59,10 +56,7 @@ export default interface NotificationRuleCondition {
   conditionType: ConditionType | undefined;
   value:
     | string
-    | number
-    | boolean
     | Array<string>
-    | Array<ObjectID>
     | undefined;
 }
 

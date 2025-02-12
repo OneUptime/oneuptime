@@ -52,6 +52,7 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
 import StatusPageResourceService from "./StatusPageResourceService";
+import Label from "../../Models/DatabaseModels/Label";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -641,6 +642,52 @@ export class Service extends DatabaseService<Model> {
         isProbeDisconnected: false,
       });
     }
+  }
+
+
+  public async getLabelsForMonitors(data: {
+    monitorIds: Array<ObjectID>;
+  }): Promise<Array<Label>> {
+    if (data.monitorIds.length === 0) {
+      return [];
+    }
+
+
+    const  monitors: Array<Model> =  await this.findBy({
+      query: {
+        _id: QueryHelper.any(data.monitorIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        labels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+    const labels: Array<Label> = [];
+
+    for (const monitor of monitors) {
+      if (monitor.labels) {
+        for (const label of monitor.labels) {
+          const isLabelAlreadyAdded: boolean = labels.some((l: Label) => {
+            return l.id!.toString() === label.id!.toString();
+          });
+
+          if (!isLabelAlreadyAdded) {
+            labels.push(label);
+          }
+        }
+      }
+    }
+
+
+    return   labels;
+
   }
 
   public async notifyOwnersWhenNoProbeIsEnabled(data: {
