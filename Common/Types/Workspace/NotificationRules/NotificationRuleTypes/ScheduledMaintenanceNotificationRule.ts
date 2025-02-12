@@ -10,6 +10,6 @@ export default interface ScheduledMaintenanceNotificationRule extends BaseNotifi
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
 
-  inviteOwnersToNewChannel: boolean;
+  shouldInviteOwnersToNewChannel: boolean;
 
 }

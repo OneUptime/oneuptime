@@ -11,7 +11,7 @@ export default interface IncidentNotificationRule extends BaseNotificationRule {
   inviteUsersToNewChannel: Array<ObjectID>;
 
 
-  inviteOwnersToNewChannel: boolean;
+  shouldInviteOwnersToNewChannel: boolean;
 
   shouldAutomaticallyInviteOnCallUsersToNewChannel: boolean;
 

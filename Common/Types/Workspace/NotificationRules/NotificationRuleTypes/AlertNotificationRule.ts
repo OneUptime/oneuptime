@@ -10,7 +10,7 @@ export default interface AlertNotificationRule extends BaseNotificationRule {
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
 
-  inviteOwnersToNewChannel: boolean;
+  shouldInviteOwnersToNewChannel: boolean;
 
   shouldAutomaticallyInviteOnCallUsersToNewChannel: boolean;
 

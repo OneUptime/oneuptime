@@ -145,6 +145,18 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
+          shouldInviteOwnersToNewChannel: true,
+        },
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+        },
+        title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
+        description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+      },
+      {
+        field: {
           inviteTeamsToNewChannel: true,
         },
         title: `Invite Teams to New ${props.workspaceType} Channel`,
