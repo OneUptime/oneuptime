@@ -1,9 +1,11 @@
 export interface WorkspaceMessageBlock {
   _type: string;
+  onlyPostToTheseChannelNames?: Array<string>; 
 }
 
 export interface WorkspaceMessagePayloadButton {
   title: string; // Button title.
+  onlyPostToTheseChannelNames?: Array<string>; // Channel names to send message to.
 }
 
 export interface WorkspacePayloadHeader extends WorkspaceMessageBlock {
@@ -23,8 +25,6 @@ export interface WorkspacePayloadButtons extends WorkspaceMessageBlock {
 
 export default interface WorkspaceMessagePayload {
   _type: "WorkspaceMessagePayload";
-  channelNames: Array<string>; // which channels to post to.
-  channelIds: Array<string>; // If you know the channel IDs, you can provide them here.
+  channelNames: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks. 
-  createChannelsIfItDoesNotExist: boolean; // Should we create the channels if they don't exist.
 }

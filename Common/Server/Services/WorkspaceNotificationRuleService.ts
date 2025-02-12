@@ -23,7 +23,6 @@ import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenan
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
-import TeamService from "./TeamService";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 
@@ -44,8 +43,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
     workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    newlyCreatedChannelIds: Array<string>;
-    createNewChannelName: string;
+    channelsToCreate: Array<string>;
     notificationFor: NotificationFor;
   }): Promise<void> {
     logger.debug("Notify Workspaces");
@@ -63,13 +61,18 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
+      // if no auth token then skip it.
+      if (!projectAuth.authToken) {
+        logger.debug("No auth token. Skipping...");
+        continue;
+      }
+
       await this.executeNotificationRulesForWorkspace({
         projectId: data.projectId,
-        projectAuth: projectAuth,
+        authToken: projectAuth.authToken!,  
         workspaceType: projectAuth.workspaceType!,
         notificationRuleEventType: data.notificationRuleEventType,
-        newlyCreatedChannelIds: data.newlyCreatedChannelIds,
-        createNewChannelName: data.createNewChannelName,
+        channelsToCreate: data.channelsToCreate,
         workspaceMessageBlocks: data.workspaceMessageBlocks,
         notificationFor: data.notificationFor,
       });
@@ -81,9 +84,8 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
     workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    projectAuth: WorkspaceProjectAuthToken;
-    newlyCreatedChannelIds: Array<string>;
-    createNewChannelName: string;
+    authToken: string;
+    channelsToCreate: Array<string>;
     notificationFor: NotificationFor;
   }): Promise<void> {
 
@@ -91,7 +93,7 @@ export class Service extends DatabaseService<Model> {
     logger.debug(data);
 
 
-    if (!data.projectAuth.authToken) {
+    if (!data.authToken) {
       logger.debug("No auth token. Skipping...");
       return;
     }
@@ -117,7 +119,8 @@ export class Service extends DatabaseService<Model> {
 
     let usersToInviteToChannel: Array<ObjectID> = []; 
 
-    if(data.newlyCreatedChannelIds.length === 0 && data.createNewChannelName) {
+    // If no channels are created but, a new channel is to be created then invite users to the channel.
+    if(data.alreadyCreatedChannelIds.length === 0 && data.createNewChannelName) {
       // if a new channel is to be created then... 
       usersToInviteToChannel = await this.getUsersIdsToInviteToChannel({
         notificationRules: matchedNotificationRules,
@@ -127,13 +130,13 @@ export class Service extends DatabaseService<Model> {
     // Execution steps...
     // 1 - Create channel if the channel is not created. 
     // 2 - If the new channel is to be created then, invite users to the channel.
-    // 3 - Then, post the message to the channel.
+    // 3 - Then, post the message to the existing channel and the new channel.
       
 
     if (data.workspaceType === WorkspaceType.Slack) {
       await SlackUtil.sendMessage({
         workspaceMessagePayload: workspaceMessagePayload,
-        authToken: data.projectAuth.authToken, // send from bot token.
+        authToken: data.authToken
       });
     }
   }

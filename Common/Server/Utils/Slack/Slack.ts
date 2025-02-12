@@ -90,6 +90,76 @@ export default class SlackUtil {
     }
   }
 
+
+  public static async createChannelIfDoesNotExist(data: {
+    authToken: string;
+    channelNamesToCreate: Array<string>;
+  }): Promise<Array<string>> {
+    // check existing channels and only create if they dont exist. 
+    const channelIds: Array<string> = [];
+    const existingSlackChannels: Dictionary<SlackChannel> =
+      await this.getSlackChannels({
+        authToken: data.authToken,
+      });
+
+    for (const channelName of data.channelNamesToCreate) {
+
+      if (existingSlackChannels[channelName]) {
+        logger.debug(
+          `Channel ${channelName} already exists.`,
+        );
+
+        channelIds.push(existingSlackChannels[channelName]!.id);
+
+        continue;
+      }
+
+      const channel: SlackChannel = await this.createChannel({
+        authToken: data.authToken,
+        channelName: channelName,
+      });
+
+      if(channel) {
+        channelIds.push(channel.id);
+      }
+    }
+
+    return channelIds;
+  }
+
+
+  public static async getChannelNameFromChannelId(data: {
+    authToken: string;
+    channelId: string;
+  }): Promise<string> {
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get<JSONObject>(
+        URL.fromString("https://slack.com/api/conversations.info"),
+        {
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+          },
+          params: {
+            channel: data.channelId,
+          },
+        },
+      );
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    if (
+      !((response.jsonData as JSONObject)?.["channel"] as JSONObject)?.["name"]
+    ) {
+      throw new Error("Invalid response");
+    }
+
+    return ((response.jsonData as JSONObject)["channel"] as JSONObject)[
+      "name"
+    ] as string;
+  }
+
   public static async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
@@ -107,32 +177,49 @@ export default class SlackUtil {
         authToken: data.authToken,
       });
 
-    const channelIdsToPostTo: Array<string> = data.workspaceMessagePayload.channelIds || [];
+    const channelIdsToPostTo: Array<string> = data.workspaceMessagePayload.existingChannelIds || [];
 
-    for (const channelName of data.workspaceMessagePayload.channelNames) {
+    for (const channelName of data.workspaceMessagePayload.existingChannelNames) {
       // get channel ids from existingSlackChannels. IF channel doesn't exist, create it if createChannelsIfItDoesNotExist is true.
       let channel: SlackChannel | null = null;
 
       if (existingSlackChannels[channelName]) {
         channel = existingSlackChannels[channelName]!;
-      } else if (
-        data.workspaceMessagePayload.createChannelsIfItDoesNotExist
-      ) {
-        channel = await this.createChannel({
-          authToken: data.authToken,
-          channelName: channelName,
-        });
+      } 
+
+      if (channel) {
+        channelIdsToPostTo.push(channel.id);
+      } else {
+        logger.debug(
+          `Channel ${channelName} does not exist.`,
+        );
+      }
+    }
+
+    // channels to create
+    for(const channelName of data.workspaceMessagePayload.channelsToCreate) {
+      // check if they exist in existingSlackChannels
+      let channel: SlackChannel | null = null;
+
+      if (existingSlackChannels[channelName]) {
+        channel = existingSlackChannels[channelName]!;
       }
 
       if (channel) {
         channelIdsToPostTo.push(channel.id);
       } else {
         logger.debug(
-          `Channel ${channelName} does not exist and createChannelsIfItDoesNotExist is false.`,
+          `Channel ${channelName} does not exist and createChannelsIfItDoesNotExist is true.`,
         );
+
+        channel = await this.createChannel({
+          authToken: data.authToken,
+          channelName: channelName,
+        });
+
+        channelIdsToPostTo.push(channel.id);
       }
     }
-
 
     for (const channelId of channelIdsToPostTo) {
       try {
