@@ -23,6 +23,9 @@ import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenan
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
+import TeamService from "./TeamService";
+import TeamMemberService from "./TeamMemberService";
+import User from "../../Models/DatabaseModels/User";
 
 
 export interface NotificationFor {
@@ -41,7 +44,8 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
     workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    alreadyCreatedChannelIds: Array<string>;
+    newlyCreatedChannelIds: Array<string>;
+    createNewChannelName: string;
     notificationFor: NotificationFor;
   }): Promise<void> {
     logger.debug("Notify Workspaces");
@@ -64,9 +68,10 @@ export class Service extends DatabaseService<Model> {
         projectAuth: projectAuth,
         workspaceType: projectAuth.workspaceType!,
         notificationRuleEventType: data.notificationRuleEventType,
-        alreadyCreatedChannelIds: data.alreadyCreatedChannelIds,
+        newlyCreatedChannelIds: data.newlyCreatedChannelIds,
+        createNewChannelName: data.createNewChannelName,
         workspaceMessageBlocks: data.workspaceMessageBlocks,
-        notificaitonFor: data.notificationFor,
+        notificationFor: data.notificationFor,
       });
     }
   }
@@ -77,7 +82,8 @@ export class Service extends DatabaseService<Model> {
     notificationRuleEventType: NotificationRuleEventType;
     workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
     projectAuth: WorkspaceProjectAuthToken;
-    alreadyCreatedChannelIds: Array<string>;
+    newlyCreatedChannelIds: Array<string>;
+    createNewChannelName: string;
     notificationFor: NotificationFor;
   }): Promise<void> {
 
@@ -98,18 +104,31 @@ export class Service extends DatabaseService<Model> {
     });
 
 
-    if(matchedNotificationRules.length === 0) {
+    if (matchedNotificationRules.length === 0) {
       logger.debug("No matching notification rules found. Skipping...");
       return;
     }
 
-    const workspaceMessagePayload: WorkspaceMessagePayload = this.getWorkspaceMessagePayload({
-      projectId: data.projectId,
-      workspaceType: data.workspaceType,
-      notificationRuleEventType: data.notificationRuleEventType,
-      workspaceMessageBlocks: data.workspaceMessageBlocks,
-      alreadyCreatedChannelIds: data.alreadyCreatedChannelIds,
+
+    const channelNames: Array<string> = this.getChannelNamesFromNotificaitonRules({
+      notificationRules: matchedNotificationRules,
     });
+
+
+    let usersToInviteToChannel: Array<ObjectID> = []; 
+
+    if(data.newlyCreatedChannelIds.length === 0 && data.createNewChannelName) {
+      // if a new channel is to be created then... 
+      usersToInviteToChannel = await this.getUsersIdsToInviteToChannel({
+        notificationRules: matchedNotificationRules,
+      });
+    }
+
+    // Execution steps...
+    // 1 - Create channel if the channel is not created. 
+    // 2 - If the new channel is to be created then, invite users to the channel.
+    // 3 - Then, post the message to the channel.
+      
 
     if (data.workspaceType === WorkspaceType.Slack) {
       await SlackUtil.sendMessage({
@@ -118,6 +137,106 @@ export class Service extends DatabaseService<Model> {
       });
     }
   }
+
+
+  private async getUsersIdsToInviteToChannel(data: {
+    notificationRules: Array<Model>;
+  }): Promise<Array<ObjectID>> {
+    const inviteUserIds: Array<ObjectID> = [];
+
+    for (const notificationRule of data.notificationRules) {
+      const workspaceRules: SlackNotificationRule = notificationRule.notificationRule as SlackNotificationRule;
+
+      if (workspaceRules.shouldCreateNewSlackChannel) {
+        if (workspaceRules.inviteUsersToNewSlackChannel && workspaceRules.inviteUsersToNewSlackChannel.length > 0) {
+          const userIds: Array<ObjectID> = workspaceRules.inviteUsersToNewSlackChannel || [];
+
+          for (const userId of userIds) {
+            if (!inviteUserIds.find((id) => id.toString() === userId.toString())) {
+              inviteUserIds.push(new ObjectID(userId.toString()));
+            }
+          }
+        }
+
+        if (workspaceRules.inviteTeamsToNewSlackChannel && workspaceRules.inviteTeamsToNewSlackChannel.length > 0) {
+
+
+          let teamIds: Array<ObjectID> = workspaceRules.inviteTeamsToNewSlackChannel || [];
+
+          teamIds = teamIds.map((teamId) => {
+            return new ObjectID(teamId.toString());
+          });
+
+
+          const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(teamIds)
+
+
+          for (const user of usersInTeam) {
+            if (!inviteUserIds.find((id) => id.toString() === user._id?.toString())) {
+              const userId: string | undefined = user._id?.toString();
+              if (userId) {
+                inviteUserIds.push(new ObjectID(userId));
+              }
+            }
+          }
+
+        }
+
+      }
+    }
+
+    return inviteUserIds;
+  }
+
+
+  private getChannelNamesFromNotificaitonRules(data: {
+    notificationRules: Array<Model>;
+  }): Array<string> {
+
+    const channelNames: Array<string> = [];
+
+    for (const notificationRule of data.notificationRules) {
+
+      const workspaceRules: SlackNotificationRule = notificationRule.notificationRule as SlackNotificationRule;
+
+      if (workspaceRules.shouldPostToExistingSlackChannel) {
+        const existingChannelNames: Array<string> = workspaceRules.existingSlackChannelNames.split(",");
+
+        for (const channelName of existingChannelNames) {
+
+          if (!channelName) {
+            // if channel name is empty then skip it.
+            continue;
+          }
+
+          if (!channelNames.includes(channelName)) {
+            // if channel name is not already added then add it.
+            channelNames.push(channelName);
+          }
+
+        }
+      }
+
+    }
+
+    return channelNames;
+  }
+
+  private getMessagePaylaodFromBlocks(data: {
+    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
+    channelNames?: Array<string>;
+    channelIds?: Array<string>;
+    createChannelsIfItDoesNotExist?: boolean;
+  }): WorkspaceMessagePayload {
+    return {
+      _type: "WorkspaceMessagePayload",
+      channelNames: [],
+      channelIds: [],
+      messageBlocks: data.workspaceMessageBlocks,
+      createChannelsIfItDoesNotExist: false,
+    }
+  }
+
 
 
   private async getNotificationRules(data: {
@@ -394,7 +513,7 @@ export class Service extends DatabaseService<Model> {
     const matchingNotificationRules: Array<Model> = [];
 
     for (const notificationRule of notificationRules) {
-      if(WorkspaceNotificationRuleUtil.isRuleMatching({
+      if (WorkspaceNotificationRuleUtil.isRuleMatching({
         notificationRule: notificationRule.notificationRule as SlackNotificationRule,
         values: values,
       })) {

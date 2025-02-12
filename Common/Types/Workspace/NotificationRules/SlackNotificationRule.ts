@@ -9,11 +9,11 @@ export default interface SlackNotificationRule extends BaseNotificationRule {
   filters: Array<NotificationRuleCondition>; // if this array is empty then it will be considered as all filters are matched.
 
   // if filters match then do:
-  shouldCreateSlackChannel: boolean;
+  shouldCreateNewSlackChannel: boolean;
   inviteTeamsToNewSlackChannel: Array<ObjectID>;
   inviteUsersToNewSlackChannel: Array<ObjectID>;
   shouldAutomaticallyInviteOnCallUsersToNewSlackChannel: boolean;
 
   shouldPostToExistingSlackChannel: boolean;
-  existingSlackChannelName: string; // seperate by comma
+  existingSlackChannelNames: string; // seperate by comma
 }
