@@ -19,6 +19,10 @@ import NotificationRuleConditions from "./NotificationRuleConditions";
 import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import BaseNotificationRule from "Common/Types/Workspace/NotificationRules/BaseNotificationRule";
+import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
+import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
+import MonitorStatusNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorStatusNotificationRule";
 
 export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
@@ -41,7 +45,13 @@ export interface ComponentProps {
 const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let formFields: Array<Field<IncidentNotificationRule>> = [];
+
+  type NotificationRulesType = IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule;
+  type CreateNewSlackChannelNotificationRuleType = IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule;
+
+  let formFields: Array<Field<NotificationRulesType>> = [];
+
+
 
   formFields = [
     {
@@ -96,63 +106,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
     {
-      field: {
-        shouldCreateNewChannel: true,
-      },
-      title: `Create ${props.workspaceType} Channel`,
-      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-    },
-    {
-      field: {
-        inviteTeamsToNewChannel: true,
-      },
-      title: `Invite Teams to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      showIf: (formValue: FormValues<IncidentNotificationRule>) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-      dropdownOptions: props.teams.map((i: Team) => {
-        return {
-          label: i.name?.toString() || "",
-          value: i._id!.toString()!,
-        };
-      }),
-    },
-    {
-      field: {
-        inviteUsersToNewChannel: true,
-      },
-      title: `Invite Users to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these users.`,
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      showIf: (formValue: FormValues<IncidentNotificationRule>) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-      dropdownOptions: props.users.map((i: User) => {
-        return {
-          label: i.name?.toString() || "",
-          value: i._id!.toString()!,
-        };
-      }),
-    },
-    {
-      field: {
-        shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
-      },
-      title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
-      description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      showIf: (formValue: FormValues<IncidentNotificationRule>) => {
-        return formValue.shouldCreateNewChannel || false;
-      },
-    },
-    {
       showHorizontalRuleAbove: true,
       field: {
         shouldPostToExistingChannel: true,
@@ -171,11 +124,82 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Text,
       placeholder: `#channel-name, #general, etc.`,
       required: false,
-      showIf: (formValue: FormValues<IncidentNotificationRule>) => {
-        return formValue.shouldPostToExistingChannel || false;
+      showIf: (formValue: FormValues<BaseNotificationRule>) => {
+        return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
     },
   ];
+
+  if (props.eventType === NotificationRuleEventType.Incident || props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
+
+
+    formFields = formFields.concat([
+      {
+        field: {
+          shouldCreateNewChannel: true,
+        },
+        title: `Create ${props.workspaceType} Channel`,
+        description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+      },
+      {
+        field: {
+          inviteTeamsToNewChannel: true,
+        },
+        title: `Invite Teams to New ${props.workspaceType} Channel`,
+        description: `When new ${props.workspaceType} channel is created, invite these teams.`,
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        required: false,
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+        },
+        dropdownOptions: props.teams.map((i: Team) => {
+          return {
+            label: i.name?.toString() || "",
+            value: i._id!.toString()!,
+          };
+        }),
+      },
+      {
+        field: {
+          inviteUsersToNewChannel: true,
+        },
+        title: `Invite Users to New ${props.workspaceType} Channel`,
+        description: `When new ${props.workspaceType} channel is created, invite these users.`,
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        required: false,
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+        },
+        dropdownOptions: props.users.map((i: User) => {
+          return {
+            label: i.name?.toString() || "",
+            value: i._id!.toString()!,
+          };
+        }),
+      }]);
+  }
+
+  // if alerts or incidents
+
+  if (props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.Incident) {
+
+    formFields = formFields.concat([
+      {
+        field: {
+          shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
+        },
+        title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
+        description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+        },
+      }
+    ])
+  }
 
 
   return (
