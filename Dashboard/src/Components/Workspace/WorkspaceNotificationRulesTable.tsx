@@ -32,7 +32,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import NotificationRuleForm from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import SlackNotificationRule from "Common/Types/Workspace/NotificationRules/SlackNotificationRule";
+import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/IncidentNotificationRule";
 import NotificawtionRuleViewElement from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -312,12 +312,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   }
 
   type RemoveFilterWithNoValues = (
-    notificationRule: SlackNotificationRule,
-  ) => SlackNotificationRule;
+    notificationRule: IncidentNotificationRule,
+  ) => IncidentNotificationRule;
 
   const removeFiltersWithNoValues: RemoveFilterWithNoValues = (
-    notificationRule: SlackNotificationRule,
-  ): SlackNotificationRule => {
+    notificationRule: IncidentNotificationRule,
+  ): IncidentNotificationRule => {
     if (notificationRule.filters && notificationRule.filters.length > 0) {
       notificationRule.filters = notificationRule.filters.filter(
         (filter: NotificationRuleCondition) => {
@@ -369,13 +369,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           values.projectId = DashboardNavigation.getProjectId()!;
           values.workspaceType = props.workspaceType;
           values.notificationRule = removeFiltersWithNoValues(
-            values.notificationRule as SlackNotificationRule,
+            values.notificationRule as IncidentNotificationRule,
           );
           return Promise.resolve(values);
         }}
         onBeforeEdit={(values: WorkspaceNotificationRule) => {
           values.notificationRule = removeFiltersWithNoValues(
-            values.notificationRule as SlackNotificationRule,
+            values.notificationRule as IncidentNotificationRule,
           );
           return Promise.resolve(values);
         }}
@@ -417,7 +417,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               const error: string | null =
                 NotificationRuleConditionUtil.getValidationError({
                   notificationRule:
-                    values.notificationRule as SlackNotificationRule,
+                    values.notificationRule as IncidentNotificationRule,
                   eventType: props.eventType,
                   workspaceType: props.workspaceType,
                 });
@@ -431,7 +431,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               return (
                 <NotificationRuleForm
                   {...elementProps}
-                  value={value.notificationRule as SlackNotificationRule}
+                  value={value.notificationRule as IncidentNotificationRule}
                   eventType={props.eventType}
                   monitors={monitors}
                   labels={labels}
@@ -502,7 +502,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               return (
                 <Fragment>
                   <NotificawtionRuleViewElement
-                    value={value.notificationRule as SlackNotificationRule}
+                    value={value.notificationRule as IncidentNotificationRule}
                     eventType={props.eventType}
                     monitors={monitors}
                     labels={labels}

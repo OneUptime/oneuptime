@@ -8,7 +8,7 @@ import SlackUtil from "../Utils/Slack/Slack";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
-import SlackNotificationRule from "../../Types/Workspace/NotificationRules/SlackNotificationRule";
+import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
@@ -148,11 +148,11 @@ export class Service extends DatabaseService<Model> {
     const inviteUserIds: Array<ObjectID> = [];
 
     for (const notificationRule of data.notificationRules) {
-      const workspaceRules: SlackNotificationRule = notificationRule.notificationRule as SlackNotificationRule;
+      const workspaceRules: IncidentNotificationRule = notificationRule.notificationRule as IncidentNotificationRule;
 
       if (workspaceRules.shouldCreateNewSlackChannel) {
-        if (workspaceRules.inviteUsersToNewSlackChannel && workspaceRules.inviteUsersToNewSlackChannel.length > 0) {
-          const userIds: Array<ObjectID> = workspaceRules.inviteUsersToNewSlackChannel || [];
+        if (workspaceRules.inviteUsersToNewChannel && workspaceRules.inviteUsersToNewChannel.length > 0) {
+          const userIds: Array<ObjectID> = workspaceRules.inviteUsersToNewChannel || [];
 
           for (const userId of userIds) {
             if (!inviteUserIds.find((id) => id.toString() === userId.toString())) {
@@ -161,10 +161,10 @@ export class Service extends DatabaseService<Model> {
           }
         }
 
-        if (workspaceRules.inviteTeamsToNewSlackChannel && workspaceRules.inviteTeamsToNewSlackChannel.length > 0) {
+        if (workspaceRules.inviteTeamsToNewChannel && workspaceRules.inviteTeamsToNewChannel.length > 0) {
 
 
-          let teamIds: Array<ObjectID> = workspaceRules.inviteTeamsToNewSlackChannel || [];
+          let teamIds: Array<ObjectID> = workspaceRules.inviteTeamsToNewChannel || [];
 
           teamIds = teamIds.map((teamId) => {
             return new ObjectID(teamId.toString());
@@ -200,10 +200,10 @@ export class Service extends DatabaseService<Model> {
 
     for (const notificationRule of data.notificationRules) {
 
-      const workspaceRules: SlackNotificationRule = notificationRule.notificationRule as SlackNotificationRule;
+      const workspaceRules: IncidentNotificationRule = notificationRule.notificationRule as IncidentNotificationRule;
 
-      if (workspaceRules.shouldPostToExistingSlackChannel) {
-        const existingChannelNames: Array<string> = workspaceRules.existingSlackChannelNames.split(",");
+      if (workspaceRules.shouldPostToExistingChannel) {
+        const existingChannelNames: Array<string> = workspaceRules.existingChannelNamess.split(",");
 
         for (const channelName of existingChannelNames) {
 
@@ -517,7 +517,7 @@ export class Service extends DatabaseService<Model> {
 
     for (const notificationRule of notificationRules) {
       if (WorkspaceNotificationRuleUtil.isRuleMatching({
-        notificationRule: notificationRule.notificationRule as SlackNotificationRule,
+        notificationRule: notificationRule.notificationRule as IncidentNotificationRule,
         values: values,
       })) {
         matchingNotificationRules.push(notificationRule);

@@ -6,7 +6,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import SlackNotificationRule from "Common/Types/Workspace/NotificationRules/SlackNotificationRule";
+import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -21,8 +21,8 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps {
-  value?: undefined | SlackNotificationRule;
-  onChange?: undefined | ((value: SlackNotificationRule) => void);
+  value?: undefined | IncidentNotificationRule;
+  onChange?: undefined | ((value: IncidentNotificationRule) => void);
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
@@ -41,9 +41,8 @@ export interface ComponentProps {
 const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let formFields: Array<Field<SlackNotificationRule>> = [];
+  let formFields: Array<Field<IncidentNotificationRule>> = [];
 
-  if (props.workspaceType === WorkspaceType.Slack) {
     formFields = [
       {
         field: {
@@ -98,7 +97,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          shouldCreateSlackChannel: true,
+          shouldCreateNewChannel: true,
         },
         title: "Create Slack Channel",
         description:
@@ -108,14 +107,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          inviteTeamsToNewSlackChannel: true,
+          inviteTeamsToNewChannel: true,
         },
         title: "Invite Teams to New Slack Channel",
         description: "When new slack channel is created, invite these teams.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
-        showIf: (formValue: FormValues<SlackNotificationRule>) => {
-          return formValue.shouldCreateSlackChannel || false;
+        showIf: (formValue: FormValues<IncidentNotificationRule>) => {
+          return formValue.shouldCreateNewChannel || false;
         },
         dropdownOptions: props.teams.map((i: Team) => {
           return {
@@ -126,14 +125,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          inviteUsersToNewSlackChannel: true,
+          inviteUsersToNewChannel: true,
         },
         title: "Invite Users to New Slack Channel",
         description: "When new slack channel is created, invite these users.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
-        showIf: (formValue: FormValues<SlackNotificationRule>) => {
-          return formValue.shouldCreateSlackChannel || false;
+        showIf: (formValue: FormValues<IncidentNotificationRule>) => {
+          return formValue.shouldCreateNewChannel || false;
         },
         dropdownOptions: props.users.map((i: User) => {
           return {
@@ -151,14 +150,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
-        showIf: (formValue: FormValues<SlackNotificationRule>) => {
-          return formValue.shouldCreateSlackChannel || false;
+        showIf: (formValue: FormValues<IncidentNotificationRule>) => {
+          return formValue.shouldCreateNewChannel || false;
         },
       },
       {
         showHorizontalRuleAbove: true,
         field: {
-          shouldPostToExistingSlackChannel: true,
+          shouldPostToExistingChannel: true,
         },
         title: "Post to Existing Slack Channel",
         description:
@@ -168,7 +167,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          existingSlackChannelName: true,
+          existingChannelNames: true,
         },
         title: "Existing Slack Channel Name to Post To",
         description:
@@ -176,12 +175,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.Text,
         placeholder: "#channel-name, #general, etc.",
         required: false,
-        showIf: (formValue: FormValues<SlackNotificationRule>) => {
-          return formValue.shouldPostToExistingSlackChannel || false;
+        showIf: (formValue: FormValues<IncidentNotificationRule>) => {
+          return formValue.shouldPostToExistingChannel || false;
         },
       },
     ];
-  }
+
 
   return (
     <div>

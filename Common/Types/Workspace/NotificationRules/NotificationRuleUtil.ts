@@ -1,16 +1,16 @@
 import FilterCondition from "../../Filter/FilterCondition";
 import { ConditionType, NotificationRuleConditionCheckOn } from "./NotificationRuleCondition";
-import SlackNotificationRule from "./SlackNotificationRule";
+import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
 
 export class WorkspaceNotificationRuleUtil {
     public static isRuleMatching(data: {
-        notificationRule: SlackNotificationRule;
+        notificationRule: IncidentNotificationRule;
         values: {
             [key in NotificationRuleConditionCheckOn]: string | Array<string> | undefined;
         }
     }): boolean {
 
-        const notificationRule: SlackNotificationRule = data.notificationRule;
+        const notificationRule: IncidentNotificationRule = data.notificationRule;
 
         // no filters means all filters are matched
         if (data.notificationRule.filters.length === 0) {

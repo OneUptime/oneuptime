@@ -9,7 +9,7 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import WorkspaceType from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
-import SlackNotificationRule from "./SlackNotificationRule";
+import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
 
 export enum NotificationRuleConditionCheckOn {
   MonitorName = "Monitor Name",
@@ -62,7 +62,7 @@ export default interface NotificationRuleCondition {
 
 export class NotificationRuleConditionUtil {
   public static getValidationError(data: {
-    notificationRule: SlackNotificationRule;
+    notificationRule: IncidentNotificationRule;
     eventType: NotificationRuleEventType;
     workspaceType: WorkspaceType;
   }): string | null {
@@ -91,14 +91,14 @@ export class NotificationRuleConditionUtil {
 
       if (workspaceType === WorkspaceType.Slack) {
         if (
-          !notificationRule.shouldCreateSlackChannel &&
-          !notificationRule.shouldPostToExistingSlackChannel
+          !notificationRule.shouldCreateNewChannel &&
+          !notificationRule.shouldPostToExistingChannel
         ) {
           return "Please select either create slack channel or post to existing slack channel";
         }
 
-        if (notificationRule.shouldPostToExistingSlackChannel) {
-          if (!notificationRule.existingSlackChannelName?.trim()) {
+        if (notificationRule.shouldPostToExistingChannel) {
+          if (!notificationRule.existingChannelNames?.trim()) {
             return "Existing Slack channel name is required";
           }
         }
