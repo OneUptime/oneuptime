@@ -126,7 +126,7 @@ const NotificawtionRuleViewElement: FunctionComponent<ComponentProps> = (
         },
       },
       {
-        key: "shouldAutomaticallyInviteOnCallUsersToNewSlackChannel",
+        key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
         title: "Automatically Invite On Call Users to New Slack Channel",
         description:
           "If this is enabled then all on call users will be invited to the new slack channel as they are alerted.",
