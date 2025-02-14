@@ -1,15 +1,7 @@
-import ObjectID from "../../../ObjectID";
-import BaseNotificationRule from "../BaseNotificationRule";
+import CreateChannelNotificationRule from "../CreateChannelNotificationRule";
 
-export default interface IncidentNotificationRule extends BaseNotificationRule {
+export default interface IncidentNotificationRule extends CreateChannelNotificationRule {
   _type: "IncidentNotificationRule";
-
-  // if filters match then do:
-  shouldCreateNewChannel: boolean;
-  inviteTeamsToNewChannel: Array<ObjectID>;
-  inviteUsersToNewChannel: Array<ObjectID>;
-
-  shouldInviteOwnersToNewChannel: boolean;
 
   shouldAutomaticallyInviteOnCallUsersToNewChannel: boolean;
 }

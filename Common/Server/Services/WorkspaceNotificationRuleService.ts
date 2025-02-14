@@ -23,6 +23,7 @@ import User from "../../Models/DatabaseModels/User";
 import AlertNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
 import ScheduledMaintenanceNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
+import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
 
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
@@ -103,7 +104,7 @@ export class Service extends DatabaseService<Model> {
     return inviteUserIds;
   }
 
-  public getChannelNamesFromNotificaitonRules(data: {
+  public getExistingChannelNamesFromNotificaitonRules(data: {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
     const channelNames: Array<string> = [];
@@ -126,6 +127,34 @@ export class Service extends DatabaseService<Model> {
             channelNames.push(channelName);
           }
         }
+      }
+    }
+
+    return channelNames;
+  }
+
+
+  public getNewChannelNamesFromNotificaitonRules(data: {
+    notificationRules: Array<CreateChannelNotificationRule>;
+    channelNameSiffix: string;
+  }): Array<string> {
+    const channelNames: Array<string> = [];
+
+    for (const notificationRule of data.notificationRules) {
+      const workspaceRules: CreateChannelNotificationRule = notificationRule;
+
+      if (workspaceRules.shouldCreateNewChannel && workspaceRules.newChannelTemplateName) {
+        const newChannelName:string =
+          workspaceRules.newChannelTemplateName;
+
+        // add suffix and then check if it is already added or not.
+        const channelName:string = newChannelName + data.channelNameSiffix;
+
+        if (!channelNames.includes(channelName)) {
+          // if channel name is not already added then add it.
+          channelNames.push(channelName);
+        }
+
       }
     }
 

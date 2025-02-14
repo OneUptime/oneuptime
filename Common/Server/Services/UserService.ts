@@ -28,7 +28,7 @@ import Text from "../../Types/Text";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Model from "Common/Models/DatabaseModels/User";
-import SlackUtil from "../Utils/Slack/Slack";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "../../Types/Exception/BadDataException";

@@ -8,7 +8,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import SlackComponents from "Common/Types/Workflow/Components/Slack";
-import SlackUtil from "../../../../Utils/Slack/Slack";
+import SlackUtil from "../../../../Utils/Workspace/Slack/Slack";
 
 export default class SendMessageToChannel extends ComponentCode {
   public constructor() {

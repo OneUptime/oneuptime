@@ -15,7 +15,7 @@ import {
   SlackAppClientId,
   SlackAppClientSecret,
 } from "../EnvironmentConfig";
-import SlackAppManifest from "../Utils/Slack/app-manifest.json";
+import SlackAppManifest from "../Utils/Workspace/Slack/app-manifest.json";
 import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
