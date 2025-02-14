@@ -32,7 +32,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import NotificationRuleForm from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/IncidentNotificationRule";
+import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificawtionRuleViewElement from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
