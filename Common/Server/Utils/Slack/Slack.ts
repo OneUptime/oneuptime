@@ -29,8 +29,7 @@ export default class SlackUtil {
     authToken: string;
     workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
   }): Promise<void> {
-    const channelIds: Array<string> =
-       [];
+    const channelIds: Array<string> = [];
 
     for (const channelName of data.workspaceChannelInvitationPayload
       .workspaceChannelNames) {
@@ -173,8 +172,7 @@ export default class SlackUtil {
         authToken: data.authToken,
       });
 
-    const channelIdsToPostTo: Array<string> =
-      [];
+    const channelIdsToPostTo: Array<string> = [];
 
     for (const channelName of data.workspaceMessagePayload.channelNames) {
       // get channel ids from existingSlackChannels. IF channel doesn't exist, create it if createChannelsIfItDoesNotExist is true.
