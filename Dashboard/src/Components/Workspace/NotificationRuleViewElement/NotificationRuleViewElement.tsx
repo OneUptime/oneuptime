@@ -24,7 +24,11 @@ import TeamsElement from "../../Team/TeamsElement";
 import UsersElement from "../../User/Users";
 
 export interface ComponentProps {
-  value: IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule;
+  value:
+    | IncidentNotificationRule
+    | AlertNotificationRule
+    | ScheduledMaintenanceNotificationRule
+    | MonitorStatusNotificationRule;
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
@@ -42,7 +46,14 @@ export interface ComponentProps {
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let detailFields: Array<Field<IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule>> = [
+  let detailFields: Array<
+    Field<
+      | IncidentNotificationRule
+      | AlertNotificationRule
+      | ScheduledMaintenanceNotificationRule
+      | MonitorStatusNotificationRule
+    >
+  > = [
     {
       key: "filters",
       title: "",
@@ -88,14 +99,30 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       title: `Existing ${props.workspaceType} Channel Name to Post To`,
       description: `Please provide the name of the ${props.workspaceType} channel you want to post to.`,
       fieldType: FieldType.Text,
-      showIf: (formValue: IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule) => {
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule
+          | MonitorStatusNotificationRule,
+      ) => {
         return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
     },
   ];
 
-  if (props.eventType === NotificationRuleEventType.Incident || props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-    const incidentAlertMaintenanceFields: Array<Field<IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule>> = [
+  if (
+    props.eventType === NotificationRuleEventType.Incident ||
+    props.eventType === NotificationRuleEventType.Alert ||
+    props.eventType === NotificationRuleEventType.ScheduledMaintenance
+  ) {
+    const incidentAlertMaintenanceFields: Array<
+      Field<
+        | IncidentNotificationRule
+        | AlertNotificationRule
+        | ScheduledMaintenanceNotificationRule
+      >
+    > = [
       {
         key: "shouldCreateNewChannel",
         title: `Create ${props.workspaceType} Channel`,
@@ -107,7 +134,12 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
         description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
         fieldType: FieldType.Boolean,
-        showIf: (formValue: IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule) => {
+        showIf: (
+          formValue:
+            | IncidentNotificationRule
+            | AlertNotificationRule
+            | ScheduledMaintenanceNotificationRule,
+        ) => {
           return formValue.shouldCreateNewChannel || false;
         },
       },
@@ -116,16 +148,24 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         title: `Invite Teams to New ${props.workspaceType} Channel`,
         description: `When new ${props.workspaceType} channel is created, invite these teams.`,
         fieldType: FieldType.Element,
-        showIf: (formValue: IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule) => {
+        showIf: (
+          formValue:
+            | IncidentNotificationRule
+            | AlertNotificationRule
+            | ScheduledMaintenanceNotificationRule,
+        ) => {
           return formValue.shouldCreateNewChannel || false;
         },
         getElement: () => {
           const selectedTeams: Array<Team> = props.teams.filter((i: Team) => {
-            return (props.value as IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule).inviteTeamsToNewChannel.find(
-              (j: ObjectID) => {
-                return j.toString() === i._id!.toString();
-              },
-            );
+            return (
+              props.value as
+                | IncidentNotificationRule
+                | AlertNotificationRule
+                | ScheduledMaintenanceNotificationRule
+            ).inviteTeamsToNewChannel.find((j: ObjectID) => {
+              return j.toString() === i._id!.toString();
+            });
           });
 
           return <TeamsElement teams={selectedTeams} />;
@@ -136,16 +176,24 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         title: `Invite Users to New ${props.workspaceType} Channel`,
         description: `When new ${props.workspaceType} channel is created, invite these users.`,
         fieldType: FieldType.Element,
-        showIf: (formValue: IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule) => {
+        showIf: (
+          formValue:
+            | IncidentNotificationRule
+            | AlertNotificationRule
+            | ScheduledMaintenanceNotificationRule,
+        ) => {
           return formValue.shouldCreateNewChannel || false;
         },
         getElement: () => {
           const selectedUsers: Array<User> = props.users.filter((i: User) => {
-            return (props.value as IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule).inviteUsersToNewChannel.find(
-              (j: ObjectID) => {
-                return j.toString() === i._id!.toString();
-              },
-            );
+            return (
+              props.value as
+                | IncidentNotificationRule
+                | AlertNotificationRule
+                | ScheduledMaintenanceNotificationRule
+            ).inviteUsersToNewChannel.find((j: ObjectID) => {
+              return j.toString() === i._id!.toString();
+            });
           });
 
           return <UsersElement users={selectedUsers} />;
@@ -153,27 +201,56 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
     ];
 
-    detailFields = detailFields.concat(incidentAlertMaintenanceFields as Field<IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule>[]);
+    detailFields = detailFields.concat(
+      incidentAlertMaintenanceFields as Field<
+        | IncidentNotificationRule
+        | AlertNotificationRule
+        | ScheduledMaintenanceNotificationRule
+        | MonitorStatusNotificationRule
+      >[],
+    );
   }
 
-  if (props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.Incident) {
-   const alertIncidentField: Array<Field<AlertNotificationRule | IncidentNotificationRule>> = [
+  if (
+    props.eventType === NotificationRuleEventType.Alert ||
+    props.eventType === NotificationRuleEventType.Incident
+  ) {
+    const alertIncidentField: Array<
+      Field<AlertNotificationRule | IncidentNotificationRule>
+    > = [
       {
         key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
         title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
         description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
         fieldType: FieldType.Boolean,
-        showIf: (formValue: IncidentNotificationRule | AlertNotificationRule) => {
+        showIf: (
+          formValue: IncidentNotificationRule | AlertNotificationRule,
+        ) => {
           return formValue.shouldCreateNewChannel || false;
         },
       },
-    ]; 
+    ];
 
-    detailFields = detailFields.concat(alertIncidentField as Field<IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule>[]);
+    detailFields = detailFields.concat(
+      alertIncidentField as Field<
+        | IncidentNotificationRule
+        | AlertNotificationRule
+        | ScheduledMaintenanceNotificationRule
+        | MonitorStatusNotificationRule
+      >[],
+    );
   }
 
   return (
-    <Detail<IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule> item={props.value} fields={detailFields} />
+    <Detail<
+      | IncidentNotificationRule
+      | AlertNotificationRule
+      | ScheduledMaintenanceNotificationRule
+      | MonitorStatusNotificationRule
+    >
+      item={props.value}
+      fields={detailFields}
+    />
   );
 };
 

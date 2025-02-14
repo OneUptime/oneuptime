@@ -45,13 +45,17 @@ export interface ComponentProps {
 const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
-  type NotificationRulesType = IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule | MonitorStatusNotificationRule;
-  type CreateNewSlackChannelNotificationRuleType = IncidentNotificationRule | AlertNotificationRule | ScheduledMaintenanceNotificationRule;
+  type NotificationRulesType =
+    | IncidentNotificationRule
+    | AlertNotificationRule
+    | ScheduledMaintenanceNotificationRule
+    | MonitorStatusNotificationRule;
+  type CreateNewSlackChannelNotificationRuleType =
+    | IncidentNotificationRule
+    | AlertNotificationRule
+    | ScheduledMaintenanceNotificationRule;
 
   let formFields: Array<Field<NotificationRulesType>> = [];
-
-
 
   formFields = [
     {
@@ -130,9 +134,11 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  if (props.eventType === NotificationRuleEventType.Incident || props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-
-
+  if (
+    props.eventType === NotificationRuleEventType.Incident ||
+    props.eventType === NotificationRuleEventType.Alert ||
+    props.eventType === NotificationRuleEventType.ScheduledMaintenance
+  ) {
     formFields = formFields.concat([
       {
         field: {
@@ -148,7 +154,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           shouldInviteOwnersToNewChannel: true,
         },
         showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+          return (
+            (formValue as CreateNewSlackChannelNotificationRuleType)
+              .shouldCreateNewChannel || false
+          );
         },
         title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
         description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
@@ -164,7 +173,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
         showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+          return (
+            (formValue as CreateNewSlackChannelNotificationRuleType)
+              .shouldCreateNewChannel || false
+          );
         },
         dropdownOptions: props.teams.map((i: Team) => {
           return {
@@ -182,7 +194,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
         showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+          return (
+            (formValue as CreateNewSlackChannelNotificationRuleType)
+              .shouldCreateNewChannel || false
+          );
         },
         dropdownOptions: props.users.map((i: User) => {
           return {
@@ -190,13 +205,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             value: i._id!.toString()!,
           };
         }),
-      }]);
+      },
+    ]);
   }
 
   // if alerts or incidents
 
-  if (props.eventType === NotificationRuleEventType.Alert || props.eventType === NotificationRuleEventType.Incident) {
-
+  if (
+    props.eventType === NotificationRuleEventType.Alert ||
+    props.eventType === NotificationRuleEventType.Incident
+  ) {
     formFields = formFields.concat([
       {
         field: {
@@ -207,12 +225,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (formValue as CreateNewSlackChannelNotificationRuleType).shouldCreateNewChannel || false;
+          return (
+            (formValue as CreateNewSlackChannelNotificationRuleType)
+              .shouldCreateNewChannel || false
+          );
         },
-      }
-    ])
+      },
+    ]);
   }
-
 
   return (
     <div>

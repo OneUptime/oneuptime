@@ -1,7 +1,6 @@
 import FilterCondition from "../../Filter/FilterCondition";
 import NotificationRuleCondition from "./NotificationRuleCondition";
 
-
 export default interface BaseNotificationRule {
   _type: string;
   // filters for notification rule
@@ -11,4 +10,3 @@ export default interface BaseNotificationRule {
   shouldPostToExistingChannel: boolean;
   existingChannelNames: string; // seperate by comma
 }
-

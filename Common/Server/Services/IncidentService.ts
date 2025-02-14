@@ -54,7 +54,10 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
-import { WorkspaceMessageBlock, WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
+import {
+  WorkspaceMessageBlock,
+  WorkspacePayloadMarkdown,
+} from "../../Types/Workspace/WorkspaceMessagePayload";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1316,11 +1319,9 @@ ${incidentSeverity.name}
     });
   }
 
-
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {
     incidentId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
@@ -1342,24 +1343,24 @@ ${incidentSeverity.name}
       },
     });
 
-    if(!incident) {
+    if (!incident) {
       throw new BadDataException("Incident not found");
     }
 
-    const blocks = [];
+    const blocks: Array<WorkspaceMessageBlock> = [];
 
     if (incident.incidentNumber) {
       const markdownBlock1: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Incident #${incident.incidentNumber} Created**`,
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Incident #${incident.incidentNumber} Created**`,
       };
       blocks.push(markdownBlock1);
     }
 
     if (incident.title) {
       const markdownBlock2: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Incident Title**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Incident Title**:
 ${incident.title}`,
       };
       blocks.push(markdownBlock2);
@@ -1367,8 +1368,8 @@ ${incident.title}`,
 
     if (incident.description) {
       const markdownBlock3: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Description**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Description**:
 ${incident.description}`,
       };
       blocks.push(markdownBlock3);
@@ -1376,8 +1377,8 @@ ${incident.description}`,
 
     if (incident.incidentSeverity?.name) {
       const markdownBlock4: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Severity**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Severity**:
 ${incident.incidentSeverity.name}`,
       };
       blocks.push(markdownBlock4);
@@ -1385,8 +1386,8 @@ ${incident.incidentSeverity.name}`,
 
     if (incident.rootCause) {
       const markdownBlock5: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Root Cause**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Root Cause**:
 ${incident.rootCause}`,
       };
       blocks.push(markdownBlock5);
@@ -1394,8 +1395,8 @@ ${incident.rootCause}`,
 
     if (incident.remediationNotes) {
       const markdownBlock6: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Remediation Notes**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Remediation Notes**:
 ${incident.remediationNotes}`,
       };
       blocks.push(markdownBlock6);
@@ -1403,22 +1404,16 @@ ${incident.remediationNotes}`,
 
     if (incident.currentIncidentState?.name) {
       const markdownBlock7: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: `**Incident State**:
+        _type: "WorkspacePayloadMarkdown",
+        text: `**Incident State**:
 ${incident.currentIncidentState.name}`,
       };
       blocks.push(markdownBlock7);
     }
 
-    // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc. 
+    // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc.
 
-    return blocks as Array<WorkspaceMessageBlock>; 
-    
+    return blocks as Array<WorkspaceMessageBlock>;
   }
-
-
-
-  
-
 }
 export default new Service();

@@ -1,4 +1,3 @@
-import _ from "lodash";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
@@ -11,7 +10,6 @@ export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
-
 
   public async getProjectAuth(data: {
     projectId: ObjectID;
@@ -33,7 +31,6 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-
   public async getProjectAuths(data: {
     projectId: ObjectID;
   }): Promise<Array<Model>> {
@@ -45,7 +42,7 @@ export class Service extends DatabaseService<Model> {
         authToken: true,
         workspaceProjectId: true,
         miscData: true,
-        workspaceType: true
+        workspaceType: true,
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,

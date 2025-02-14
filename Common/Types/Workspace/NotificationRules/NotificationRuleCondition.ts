@@ -54,10 +54,7 @@ export enum ConditionType {
 export default interface NotificationRuleCondition {
   checkOn: NotificationRuleConditionCheckOn;
   conditionType: ConditionType | undefined;
-  value:
-    | string
-    | Array<string>
-    | undefined;
+  value: string | Array<string> | undefined;
 }
 
 export class NotificationRuleConditionUtil {

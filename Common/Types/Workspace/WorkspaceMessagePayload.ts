@@ -1,6 +1,6 @@
 export interface WorkspaceMessageBlock {
   _type: string;
-  onlyPostToTheseChannelNames?: Array<string>; 
+  onlyPostToTheseChannelNames?: Array<string>;
 }
 
 export interface WorkspaceMessagePayloadButton {
@@ -26,5 +26,5 @@ export interface WorkspacePayloadButtons extends WorkspaceMessageBlock {
 export default interface WorkspaceMessagePayload {
   _type: "WorkspaceMessagePayload";
   channelNames: Array<string>; // Channel ids to send message to.
-  messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks. 
+  messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
 }

@@ -1,8 +1,8 @@
 import ObjectID from "../../../ObjectID";
 import BaseNotificationRule from "../BaseNotificationRule";
 
-
-export default interface ScheduledMaintenanceNotificationRule extends BaseNotificationRule {
+export default interface ScheduledMaintenanceNotificationRule
+  extends BaseNotificationRule {
   _type: "ScheduledMaintenanceNotificationRule";
 
   // if filters match then do:
@@ -11,5 +11,4 @@ export default interface ScheduledMaintenanceNotificationRule extends BaseNotifi
   inviteUsersToNewChannel: Array<ObjectID>;
 
   shouldInviteOwnersToNewChannel: boolean;
-
 }

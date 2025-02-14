@@ -644,7 +644,6 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-
   public async getLabelsForMonitors(data: {
     monitorIds: Array<ObjectID>;
   }): Promise<Array<Label>> {
@@ -652,8 +651,7 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-
-    const  monitors: Array<Model> =  await this.findBy({
+    const monitors: Array<Model> = await this.findBy({
       query: {
         _id: QueryHelper.any(data.monitorIds),
       },
@@ -685,9 +683,7 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
-    return   labels;
-
+    return labels;
   }
 
   public async notifyOwnersWhenNoProbeIsEnabled(data: {

@@ -1,7 +1,6 @@
 import ObjectID from "../../../ObjectID";
 import BaseNotificationRule from "../BaseNotificationRule";
 
-
 export default interface AlertNotificationRule extends BaseNotificationRule {
   _type: "AlertNotificationRule";
 
@@ -13,5 +12,4 @@ export default interface AlertNotificationRule extends BaseNotificationRule {
   shouldInviteOwnersToNewChannel: boolean;
 
   shouldAutomaticallyInviteOnCallUsersToNewChannel: boolean;
-
 }

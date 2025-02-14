@@ -25,14 +25,15 @@ export interface SlackChannel {
 }
 
 export default class SlackUtil {
-
   public static async inviteUsersToChannels(data: {
     authToken: string;
     workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
   }): Promise<void> {
-   const channelIds: Array<string> = data.workspaceChannelInvitationPayload.workspaceChannelIds || [];
+    const channelIds: Array<string> =
+      data.workspaceChannelInvitationPayload.workspaceChannelIds || [];
 
-    for (const channelName of data.workspaceChannelInvitationPayload.workspaceChannelNames) {
+    for (const channelName of data.workspaceChannelInvitationPayload
+      .workspaceChannelNames) {
       const channel: SlackChannel = await this.createChannel({
         authToken: data.authToken,
         channelName: channelName,
@@ -90,12 +91,11 @@ export default class SlackUtil {
     }
   }
 
-
   public static async createChannelIfDoesNotExist(data: {
     authToken: string;
     channelNamesToCreate: Array<string>;
   }): Promise<Array<string>> {
-    // check existing channels and only create if they dont exist. 
+    // check existing channels and only create if they dont exist.
     const channelIds: Array<string> = [];
     const existingSlackChannels: Dictionary<SlackChannel> =
       await this.getSlackChannels({
@@ -103,11 +103,8 @@ export default class SlackUtil {
       });
 
     for (const channelName of data.channelNamesToCreate) {
-
       if (existingSlackChannels[channelName]) {
-        logger.debug(
-          `Channel ${channelName} already exists.`,
-        );
+        logger.debug(`Channel ${channelName} already exists.`);
 
         channelIds.push(existingSlackChannels[channelName]!.id);
 
@@ -119,14 +116,13 @@ export default class SlackUtil {
         channelName: channelName,
       });
 
-      if(channel) {
+      if (channel) {
         channelIds.push(channel.id);
       }
     }
 
     return channelIds;
   }
-
 
   public static async getChannelNameFromChannelId(data: {
     authToken: string;
@@ -177,27 +173,27 @@ export default class SlackUtil {
         authToken: data.authToken,
       });
 
-    const channelIdsToPostTo: Array<string> = data.workspaceMessagePayload.existingChannelIds || [];
+    const channelIdsToPostTo: Array<string> =
+      data.workspaceMessagePayload.existingChannelIds || [];
 
-    for (const channelName of data.workspaceMessagePayload.existingChannelNames) {
+    for (const channelName of data.workspaceMessagePayload
+      .existingChannelNames) {
       // get channel ids from existingSlackChannels. IF channel doesn't exist, create it if createChannelsIfItDoesNotExist is true.
       let channel: SlackChannel | null = null;
 
       if (existingSlackChannels[channelName]) {
         channel = existingSlackChannels[channelName]!;
-      } 
+      }
 
       if (channel) {
         channelIdsToPostTo.push(channel.id);
       } else {
-        logger.debug(
-          `Channel ${channelName} does not exist.`,
-        );
+        logger.debug(`Channel ${channelName} does not exist.`);
       }
     }
 
     // channels to create
-    for(const channelName of data.workspaceMessagePayload.channelsToCreate) {
+    for (const channelName of data.workspaceMessagePayload.channelsToCreate) {
       // check if they exist in existingSlackChannels
       let channel: SlackChannel | null = null;
 
