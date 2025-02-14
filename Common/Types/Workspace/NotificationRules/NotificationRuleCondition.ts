@@ -83,23 +83,29 @@ export class NotificationRuleConditionUtil {
       }
     }
 
-    if (eventType === NotificationRuleEventType.Incident) {
+    if (eventType === NotificationRuleEventType.Incident || eventType === NotificationRuleEventType.Alert || eventType === NotificationRuleEventType.ScheduledMaintenance) {
       // either create slack channel or select existing one should be active.
 
-      if (workspaceType === WorkspaceType.Slack) {
-        if (
-          !notificationRule.shouldCreateNewChannel &&
-          !notificationRule.shouldPostToExistingChannel
-        ) {
-          return "Please select either create slack channel or post to existing slack channel";
-        }
 
-        if (notificationRule.shouldPostToExistingChannel) {
-          if (!notificationRule.existingChannelNames?.trim()) {
-            return "Existing Slack channel name is required";
-          }
+      if (
+        !notificationRule.shouldCreateNewChannel &&
+        !notificationRule.shouldPostToExistingChannel
+      ) {
+        return "Please select either create slack channel or post to existing " + workspaceType + " channel";
+      }
+
+      if (notificationRule.shouldPostToExistingChannel) {
+        if (!notificationRule.existingChannelNames?.trim()) {
+          return "Existing " + workspaceType + " channel name is required";
         }
       }
+
+      if(notificationRule.shouldCreateNewChannel) {
+        if (!notificationRule.newChannelTemplateName?.trim()) {
+          return "New " + workspaceType + " channel name is required";
+        }
+      }
+
     }
 
     return null;
@@ -215,7 +221,7 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.AlertLabels ||
       data.checkOn ===
-        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+      NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
     ) {
       return data.labels.map((label: Label) => {
         return {

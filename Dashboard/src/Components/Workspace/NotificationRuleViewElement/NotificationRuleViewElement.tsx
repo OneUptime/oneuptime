@@ -130,6 +130,12 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Boolean,
       },
       {
+        key: "newChannelTemplateName",
+        title: `${props.workspaceType} Channel Template Name`,
+        description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+        fieldType: FieldType.Text,
+      },
+      {
         key: "shouldInviteOwnersToNewChannel",
         title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
         description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,

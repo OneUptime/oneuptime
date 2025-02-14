@@ -31,7 +31,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Label}
         />
       </SideMenuSection>
-      {/* <SideMenuSection title="Workspace Connections">
+      
+      <SideMenuSection title="Workspace Connections">
         <SideMenuItem
           link={{
             title: "Slack",
@@ -41,7 +42,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Slack}
         />
-      </SideMenuSection> */}
+      </SideMenuSection>
 
       <SideMenuSection title="Monitors">
         <SideMenuItem

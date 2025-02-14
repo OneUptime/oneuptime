@@ -110,7 +110,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
     {
-      showHorizontalRuleAbove: true,
+      showHorizontalRuleBelow: true,
       field: {
         shouldPostToExistingChannel: true,
       },
@@ -148,6 +148,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
+      },
+      {
+        field: {
+          newChannelTemplateName: true,
+         
+        },
+        title: `New ${props.workspaceType} Channel Name`,
+        description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: `oneupitme-${props.eventType.toLowerCase()}-`,
       },
       {
         field: {
