@@ -133,7 +133,6 @@ export class Service extends DatabaseService<Model> {
     return channelNames;
   }
 
-
   public getNewChannelNamesFromNotificaitonRules(data: {
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNameSiffix: string;
@@ -143,18 +142,19 @@ export class Service extends DatabaseService<Model> {
     for (const notificationRule of data.notificationRules) {
       const workspaceRules: CreateChannelNotificationRule = notificationRule;
 
-      if (workspaceRules.shouldCreateNewChannel && workspaceRules.newChannelTemplateName) {
-        const newChannelName:string =
-          workspaceRules.newChannelTemplateName;
+      if (
+        workspaceRules.shouldCreateNewChannel &&
+        workspaceRules.newChannelTemplateName
+      ) {
+        const newChannelName: string = workspaceRules.newChannelTemplateName;
 
         // add suffix and then check if it is already added or not.
-        const channelName:string = newChannelName + data.channelNameSiffix;
+        const channelName: string = newChannelName + data.channelNameSiffix;
 
         if (!channelNames.includes(channelName)) {
           // if channel name is not already added then add it.
           channelNames.push(channelName);
         }
-
       }
     }
 

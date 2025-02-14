@@ -5,68 +5,34 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
-  WorkspacePayloadButtons,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
-import WorkspaceChannelInvitationPayload from "../../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceBase, { WorkspaceChannel } from "../WorkspaceBase";
 
-
 export default class SlackUtil extends WorkspaceBase {
-  public static async inviteUsersToChannels(data: {
+
+  public static override async inviteUserToChannel(data: {
     authToken: string;
-    workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
+    channelName: string;
+    workspaceUserId: string;
   }): Promise<void> {
-    const channelIds: Array<string> = [];
-
-    for (const channelName of data.workspaceChannelInvitationPayload
-      .workspaceChannelNames) {
-      const channel: WorkspaceChannel = await this.createChannel({
+    const channelId: string = (
+      await this.getWorkspaceChannelFromChannelId({
         authToken: data.authToken,
-        channelName: channelName,
-      });
+        channelId: data.channelName,
+      })
+    ).id;
 
-      channelIds.push(channel.id);
-    }
-
-    for (const channelId of channelIds) {
-      await this.inviteUsersToChannel({
-        authToken: data.authToken,
-        channelId: channelId,
-        userIds: data.workspaceChannelInvitationPayload.workspaceUserIds,
-      });
-    }
-  }
-
-  private static async inviteUsersToChannel(data: {
-    authToken: string;
-    channelId: string;
-    userIds: Array<string>;
-  }): Promise<void> {
-    for (const userId of data.userIds) {
-      await this.inviteUserToChannel({
-        authToken: data.authToken,
-        channelId: data.channelId,
-        userId: userId,
-      });
-    }
-  }
-
-  private static async inviteUserToChannel(data: {
-    authToken: string;
-    channelId: string;
-    userId: string;
-  }): Promise<void> {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
         URL.fromString("https://slack.com/api/conversations.invite"),
         {
-          channel: data.channelId,
-          users: data.userId,
+          channel: channelId,
+          users: data.workspaceUserId,
         },
         {
           Authorization: `Bearer ${data.authToken}`,
@@ -82,14 +48,14 @@ export default class SlackUtil extends WorkspaceBase {
     }
   }
 
-  public static async createChannelsIfDoesNotExist(data: {
+  public static override async createChannelsIfDoesNotExist(data: {
     authToken: string;
     channelNames: Array<string>;
   }): Promise<Array<WorkspaceChannel>> {
     // check existing channels and only create if they dont exist.
     const workspaceChannels: Array<WorkspaceChannel> = [];
     const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
-      await this.getChannels({
+      await this.getAllWorkspaceChannels({
         authToken: data.authToken,
       });
 
@@ -115,7 +81,7 @@ export default class SlackUtil extends WorkspaceBase {
     return workspaceChannels;
   }
 
-  public static async getWorkspaceChannelFromChannelId(data: {
+  public static override async getWorkspaceChannelFromChannelId(data: {
     authToken: string;
     channelId: string;
   }): Promise<WorkspaceChannel> {
@@ -147,10 +113,10 @@ export default class SlackUtil extends WorkspaceBase {
         "name"
       ] as string,
       id: data.channelId,
-    }
+    };
   }
 
-  public static async getAllWorkspaceChannels(data: {
+  public static override async getAllWorkspaceChannels(data: {
     authToken: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -185,18 +151,16 @@ export default class SlackUtil extends WorkspaceBase {
     return channels;
   }
 
-
-  public static async sendMessage(data: {
+  public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
   }): Promise<void> {
     logger.debug("Notify Slack");
     logger.debug(data);
 
-    const blocks: Array<JSONObject> =
-      this.getWorkspacelocksFromWorkspaceMessagePayload(
-        data.workspaceMessagePayload,
-      );
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      data.workspaceMessagePayload,
+    );
 
     const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
       await this.getAllWorkspaceChannels({
@@ -234,7 +198,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
   }
 
-  private static async sendPayloadBlocksToChannel(data: {
+  public static override async sendPayloadBlocksToChannel(data: {
     authToken: string;
     channelId: string;
     blocks: Array<JSONObject>;
@@ -260,7 +224,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
   }
 
-  public static async createChannel(data: {
+  public static override async createChannel(data: {
     authToken: string;
     channelName: string;
   }): Promise<WorkspaceChannel> {
@@ -296,7 +260,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
-  public static getHeaderBlock(data: {
+  public static override getHeaderBlock(data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
   }): JSONObject {
     return {
@@ -308,7 +272,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
-  public static getMarkdownBlock(data: {
+  public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
     return {
@@ -320,7 +284,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
-  public static getButtonBlock(data: {
+  public static override getButtonBlock(data: {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
     return {
@@ -334,7 +298,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
-  public static async sendMessageToChannelViaIncomingWebhook(data: {
+  public static override async sendMessageToChannelViaIncomingWebhook(data: {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
@@ -355,6 +319,4 @@ export default class SlackUtil extends WorkspaceBase {
 
     return apiResult;
   }
-
-
 }
