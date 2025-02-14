@@ -12,14 +12,14 @@
       </h2>
 
       <script>
-         function showPermissions(id){
-            var permissionsblock = document.getElementById(id+"-permissions");
-            var viewPermissionsBtn = document.getElementById(id+"-view-permissions");
+         function showPermissions(id) {
+            var permissionsblock = document.getElementById(id + "-permissions");
+            var viewPermissionsBtn = document.getElementById(id + "-view-permissions");
 
-            if(permissionsblock.style.display === "none"){
+            if (permissionsblock.style.display === "none") {
                permissionsblock.style.display = "block";
                viewPermissionsBtn.innerHTML = "Hide Permissions";
-            }else{
+            } else {
                permissionsblock.style.display = "none";
                viewPermissionsBtn.innerHTML = "View Permissions";
             }
@@ -48,11 +48,16 @@
                      <dt class="sr-only">Description</dt>
                      <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                         <p>
-                           <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%> <a class="text-gray-500 hover:underline cursor-pointer text-xs" id="<%= Object.keys(pageData.columns)[i] -%>-view-permissions" onclick="showPermissions('<%= Object.keys(pageData.columns)[i] -%>')">View Permissions</a>
+                           <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%> <a
+                                 class="text-gray-500 hover:underline cursor-pointer text-xs"
+                                 id="<%= Object.keys(pageData.columns)[i] -%>-view-permissions"
+                                 onclick="showPermissions('<%= Object.keys(pageData.columns)[i] -%>')">View
+                                 Permissions</a>
                         </p>
                      </dd>
 
-                     <dd class="font-mono text-xs" style="display: none;" id="<%= Object.keys(pageData.columns)[i] -%>-permissions">
+                     <dd class="font-mono text-xs" style="display: none;"
+                        id="<%= Object.keys(pageData.columns)[i] -%>-permissions">
 
                         <div class="mb-3 mt-3">
                            <span class="text-gray-700  text-xs">Permissions to Create:&nbsp;</span>
@@ -319,8 +324,7 @@
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
                   <%- include('../partials/code', {title: "Example Item Request" , requestUrl:
-                     pageData.apiPath+"/:id/get-item", code: pageData.itemRequest, requestType: "POST" })
-                     -%>
+                     pageData.apiPath+"/:id/get-item", code: pageData.itemRequest, requestType: "POST" }) -%>
                      <%- include('../partials/code', {title: "Example Item Response" , code: pageData.itemResponse,
                         requestType: "" }) -%>
                </div>
@@ -469,7 +473,30 @@
 
                      </ul>
                   </div>
+                  <div class="border border-gray-100 bg-gray-50 rounded-md p-4 text-sm mt-10">
+                     <h4 class="font-semibold text-gray-700 ">For clients that do not support PUT requests<h4>
+                           <p class="text-gray-500 text-xs mt-4">
+                              You can also update an object by sending a POST or GET request to these endpoints with the
+                              same
+                              request headers and body.
+                           </p>
+
+                           <div class="flex items-center gap-x-3 mt-10"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+                                 class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
+                                 class="font-mono text-xs text-zinc-400">
+                                 <%= pageData.apiPath -%>/:id/update-item
+                              </span></div>
+                           <div class="flex items-center gap-x-3 mt-10"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300  bg-emerald-400/10 text-emerald-500 ">GET</span><span
+                                 class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
+                                 class="font-mono text-xs text-zinc-400">
+                                 <%= pageData.apiPath -%>/:id/update-item
+                              </span></div>
+                  </div>
                </div>
+
+
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
                   <%- include('../partials/code', {title: "Example Update Request" , requestUrl:
@@ -496,6 +523,29 @@
             <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                   <p>This endpoint allows you to delete object by its ID. </p>
+
+
+                  <div class="border border-gray-100 bg-gray-50 rounded-md p-4 text-sm mt-10">
+                     <h4 class="font-semibold text-gray-700 ">For clients that do not support DELETE requests<h4>
+                           <p class="text-gray-500 text-xs mt-4">
+                              You can also delete an object by sending a POST or GET request to these endpoints with the
+                              same
+                              request headers and body.
+                           </p>
+
+                           <div class="flex items-center gap-x-3 mt-10"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-sky-300  bg-sky-400/10 text-sky-500 ">POST</span><span
+                                 class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
+                                 class="font-mono text-xs text-zinc-400">
+                                 <%= pageData.apiPath -%>/:id/delete-item
+                              </span></div>
+                           <div class="flex items-center gap-x-3 mt-10"><span
+                                 class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-1.5 ring-1 ring-inset ring-emerald-300  bg-emerald-400/10 text-emerald-500 ">GET</span><span
+                                 class="h-0.5 w-0.5 rounded-full bg-zinc-300 "></span><span
+                                 class="font-mono text-xs text-zinc-400">
+                                 <%= pageData.apiPath -%>/:id/delete-item
+                              </span></div>
+                  </div>
 
 
                </div>
