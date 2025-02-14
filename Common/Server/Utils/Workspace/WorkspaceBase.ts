@@ -28,33 +28,33 @@ export default class WorkspaceBase {
   }
 
   public static async inviteUsersToChannels(data: {
-      authToken: string;
-      workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
-    }): Promise<void> {
-      for (const channelName of data.workspaceChannelInvitationPayload
-        .channelNames) {
-        await this.inviteUsersToChannel({
-          authToken: data.authToken,
-          channelName: channelName,
-          workspaceUserIds:
-            data.workspaceChannelInvitationPayload.workspaceUserIds,
-        });
-      }
+    authToken: string;
+    workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
+  }): Promise<void> {
+    for (const channelName of data.workspaceChannelInvitationPayload
+      .channelNames) {
+      await this.inviteUsersToChannel({
+        authToken: data.authToken,
+        channelName: channelName,
+        workspaceUserIds:
+          data.workspaceChannelInvitationPayload.workspaceUserIds,
+      });
     }
-  
-    public static async inviteUsersToChannel(data: {
-      authToken: string;
-      channelName: string;
-      workspaceUserIds: Array<string>;
-    }): Promise<void> {
-      for (const userId of data.workspaceUserIds) {
-        await this.inviteUserToChannel({
-          authToken: data.authToken,
-          channelName: data.channelName,
-          workspaceUserId: userId,
-        });
-      }
+  }
+
+  public static async inviteUsersToChannel(data: {
+    authToken: string;
+    channelName: string;
+    workspaceUserIds: Array<string>;
+  }): Promise<void> {
+    for (const userId of data.workspaceUserIds) {
+      await this.inviteUserToChannel({
+        authToken: data.authToken,
+        channelName: data.channelName,
+        workspaceUserId: userId,
+      });
     }
+  }
 
   public static async inviteUserToChannel(_data: {
     authToken: string;

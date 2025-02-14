@@ -58,12 +58,8 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
-import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1330,20 +1326,20 @@ ${incidentSeverity.name}
     incidentId: ObjectID;
     incidentNumber: number;
   }): Promise<void> {
-
     // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
-    await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules({
-      projectId: data.projectId,
-     notificationFor: {
-      incidentId: data.incidentId
-     }, 
-     notificationRuleEventType: NotificationRuleEventType.Incident, 
-     channelNameSiffix: data.incidentNumber.toString(), 
-     messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
-        incidentId: data.incidentId
-      })
-    });
-   
+    await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          incidentId: data.incidentId,
+        },
+        notificationRuleEventType: NotificationRuleEventType.Incident,
+        channelNameSiffix: data.incidentNumber.toString(),
+        messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
+          incidentId: data.incidentId,
+        }),
+      },
+    );
   }
 
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {

@@ -14,7 +14,6 @@ import BadRequestException from "../../../../Types/Exception/BadRequestException
 import WorkspaceBase, { WorkspaceChannel } from "../WorkspaceBase";
 
 export default class SlackUtil extends WorkspaceBase {
-
   public static override async inviteUserToChannel(data: {
     authToken: string;
     channelName: string;
