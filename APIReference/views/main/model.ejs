@@ -319,7 +319,7 @@
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
                   <%- include('../partials/code', {title: "Example Item Request" , requestUrl:
-                     pageData.apiPath+"/3599ee69-43a7-42d7/get-item", code: pageData.itemRequest, requestType: "POST" })
+                     pageData.apiPath+"/:id/get-item", code: pageData.itemRequest, requestType: "POST" })
                      -%>
                      <%- include('../partials/code', {title: "Example Item Response" , code: pageData.itemResponse,
                         requestType: "" }) -%>
@@ -473,7 +473,7 @@
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
                   <%- include('../partials/code', {title: "Example Update Request" , requestUrl:
-                     pageData.apiPath+"/3599ee69-43a7-42d7", code: pageData.updateRequest, requestType: "PUT" }) -%>
+                     pageData.apiPath+"/:id", code: pageData.updateRequest, requestType: "PUT" }) -%>
                      <%- include('../partials/code', {title: "Example Update Response" , code: pageData.updateResponse,
                         requestType: "" }) -%>
                </div>
@@ -502,7 +502,7 @@
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
                   <%- include('../partials/code', {title: "Example Delete Request" , requestUrl:
-                     pageData.apiPath+"/3599ee69-43a7-42d7", code: pageData.deleteRequest, requestType: "DELETE" }) -%>
+                     pageData.apiPath+"/:id", code: pageData.deleteRequest, requestType: "DELETE" }) -%>
                      <%- include('../partials/code', {title: "Example Delete Response" , code: pageData.deleteResponse,
                         requestType: "" }) -%>
                </div>
