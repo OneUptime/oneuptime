@@ -98,6 +98,7 @@ export class Service extends DatabaseService<Model> {
             return rule.notificationRule as CreateChannelNotificationRule;
           }),
           channelNameSiffix: data.channelNameSiffix,
+          notificationEventType: data.notificationRuleEventType,
         });
 
       await this.inviteUsersAndTeamsToChannelsBasedOnRules({
@@ -227,6 +228,7 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNameSiffix: string;
+    notificationEventType: NotificationRuleEventType;
   }): Promise<Array<WorkspaceChannel>> {
     const createdWorkspaceChannels: Array<WorkspaceChannel> = [];
     const createdChannelNames: Array<string> = [];
@@ -235,6 +237,7 @@ export class Service extends DatabaseService<Model> {
       this.getNewChannelNamesFromNotificationRules({
         notificationRules: data.notificationRules,
         channelNameSiffix: data.channelNameSiffix,
+        notificationEventType: data.notificationEventType,
       });
 
     if (!newChannelNames || newChannelNames.length === 0) {
@@ -354,6 +357,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public getNewChannelNamesFromNotificationRules(data: {
+    notificationEventType: NotificationRuleEventType;
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNameSiffix: string;
   }): Array<string> {
@@ -366,7 +370,7 @@ export class Service extends DatabaseService<Model> {
         workspaceRules.shouldCreateNewChannel &&
         workspaceRules.newChannelTemplateName
       ) {
-        const newChannelName: string = workspaceRules.newChannelTemplateName;
+        const newChannelName: string = workspaceRules.newChannelTemplateName || `oneuptime-${data.notificationEventType.toLowerCase()}-`;
 
         // add suffix and then check if it is already added or not.
         const channelName: string = newChannelName + data.channelNameSiffix;

@@ -110,7 +110,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
     {
-      showHorizontalRuleBelow: true,
+      
       field: {
         shouldPostToExistingChannel: true,
       },
@@ -127,7 +127,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       description: `Please provide the name of the ${props.workspaceType} channel you want to post to.`,
       fieldType: FormFieldSchemaType.Text,
       placeholder: `#channel-name, #general, etc.`,
-      required: false,
+      required: true,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
         return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
@@ -147,6 +147,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         title: `Create ${props.workspaceType} Channel`,
         description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
         fieldType: FormFieldSchemaType.Toggle,
+        showHorizontalRuleAbove: true,
         required: false,
       },
       {
@@ -155,7 +156,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
          
         },
         title: `New ${props.workspaceType} Channel Name`,
-        description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return (
+            (formValue as CreateNewSlackChannelNotificationRuleType)
+              .shouldCreateNewChannel || false
+          );
+        },
+        required: true,
+        description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} number in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
         fieldType: FormFieldSchemaType.Text,
         placeholder: `oneupitme-${props.eventType.toLowerCase()}-`,
       },
