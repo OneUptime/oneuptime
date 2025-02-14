@@ -143,7 +143,6 @@ export default class BaseAPI<
       },
     );
 
-
     router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/update-item`,
       UserMiddleware.getUserMiddleware,
