@@ -60,6 +60,7 @@ import {
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -237,16 +238,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -324,16 +325,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -375,9 +376,9 @@ ${createdItem.description || "No description provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -432,9 +433,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -472,6 +473,30 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
           },
         });
       }
+    }
+
+
+    // send message to workspaces - slack, teams,   etc.
+    const createdChannels: {
+      channelsCreated: Array<WorkspaceChannel>;
+    } | null = await this.notifyWorkspaceOnIncidentCreate({
+      projectId: createdItem.projectId,
+      incidentId: createdItem.id!,
+      incidentNumber: createdItem.incidentNumber!,
+    });
+
+
+    if (createdChannels && createdChannels.channelsCreated && createdChannels.channelsCreated.length > 0) {
+      // update incident with these channels. 
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: createdChannels.channelsCreated,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     }
 
     return createdItem;
@@ -735,10 +760,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
+                .map((label: Label) => {
+                  return `- ${label.name}`;
+                })
+                .join("\n")}
 `;
 
             shouldAddIncidentFeed = true;
@@ -893,7 +918,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -1006,7 +1031,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -1224,7 +1249,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
@@ -1325,21 +1350,31 @@ ${incidentSeverity.name}
     projectId: ObjectID;
     incidentId: ObjectID;
     incidentNumber: number;
-  }): Promise<void> {
-    // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
-    await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules(
-      {
-        projectId: data.projectId,
-        notificationFor: {
-          incidentId: data.incidentId,
+  }): Promise<{
+    channelsCreated: WorkspaceChannel[];
+  } | null> {
+
+    try {
+
+      // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
+      return await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules(
+        {
+          projectId: data.projectId,
+          notificationFor: {
+            incidentId: data.incidentId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.Incident,
+          channelNameSiffix: data.incidentNumber.toString(),
+          messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
+            incidentId: data.incidentId,
+          }),
         },
-        notificationRuleEventType: NotificationRuleEventType.Incident,
-        channelNameSiffix: data.incidentNumber.toString(),
-        messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
-          incidentId: data.incidentId,
-        }),
-      },
-    );
+      );
+    } catch (err) {
+      // log the error and continue.
+      logger.error(err);
+      return null;
+    }
   }
 
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {

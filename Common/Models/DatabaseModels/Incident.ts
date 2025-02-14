@@ -37,6 +37,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
+import { WorkspaceChannel } from "../../Server/Utils/Workspace/WorkspaceBase";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1129,14 +1130,13 @@ export default class Incident extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: false,
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.JSON,
     title: "Post Updates To Workspace Channel Name",
     description: "Post Updates To Workspace Channel Name",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.JSON,
     nullable: true,
   })
-  public postUpdatesToWorkspaceChannelName?: number = undefined;
+  public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
 }
