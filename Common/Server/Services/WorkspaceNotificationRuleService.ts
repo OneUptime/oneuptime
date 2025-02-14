@@ -50,7 +50,12 @@ export class Service extends DatabaseService<Model> {
     notificationFor: NotificationFor;
     channelNameSiffix: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
-  }): Promise<void> {
+  }): Promise<{
+    channelsCreated: Array<WorkspaceChannel>;
+  } | null> {
+
+    const channelsCreated: Array<WorkspaceChannel> = [];
+
     const projectAuths: Array<WorkspaceProjectAuthToken> =
       await WorkspaceProjectAuthTokenService.getProjectAuths({
         projectId: data.projectId,
@@ -58,7 +63,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!projectAuths || projectAuths.length === 0) {
       // do nothing.
-      return;
+      return null;
     }
 
     for (const projectAuth of projectAuths) {
@@ -82,7 +87,7 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (!notificationRules || notificationRules.length === 0) {
-        return;
+        return null;
       }
 
       const createdWorkspaceChannels: Array<WorkspaceChannel> =
@@ -132,7 +137,13 @@ export class Service extends DatabaseService<Model> {
           messageBlocks: data.messageBlocks,
         },
       });
+
+      channelsCreated.push(...createdWorkspaceChannels);
     }
+
+    return {
+      channelsCreated: channelsCreated,
+    };
   }
 
   public async postToWorkspaceChannels(data: {

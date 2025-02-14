@@ -10,12 +10,14 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import URL from "Common/Types/API/URL";
 
 export interface WorkspaceChannel {
   id: string;
   name: string;
+  workspaceType: WorkspaceType; 
 }
 
 export default class WorkspaceBase {
