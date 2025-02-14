@@ -1,15 +1,8 @@
-import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../Types/ObjectID";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceMessagePayload, {
-  WorkspaceMessageBlock,
-} from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import logger from "../Utils/Logger";
-import SlackUtil from "../Utils/Slack/Slack";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
-import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -27,6 +20,9 @@ import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
+import AlertNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
+import ScheduledMaintenanceNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
+import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
@@ -40,117 +36,22 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  public async executeNotificationRules(data: {
-    projectId: ObjectID;
-    notificationRuleEventType: NotificationRuleEventType;
-    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    channelsToCreate: Array<string>;
-    notificationFor: NotificationFor;
-  }): Promise<void> {
-    logger.debug("Notify Workspaces");
-    logger.debug(data);
-
-    // this is an array because, slack and teams can both be connected.
-    const projectAuths: Array<WorkspaceProjectAuthToken> =
-      await WorkspaceProjectAuthTokenService.getProjectAuths({
-        projectId: data.projectId,
-      });
-
-    for (const projectAuth of projectAuths) {
-      if (!projectAuth.workspaceType) {
-        // No workspace type. Skipping...
-        continue;
-      }
-
-      // if no auth token then skip it.
-      if (!projectAuth.authToken) {
-        logger.debug("No auth token. Skipping...");
-        continue;
-      }
-
-      await this.executeNotificationRulesForWorkspace({
-        projectId: data.projectId,
-        authToken: projectAuth.authToken!,
-        workspaceType: projectAuth.workspaceType!,
-        notificationRuleEventType: data.notificationRuleEventType,
-        channelsToCreate: data.channelsToCreate,
-        workspaceMessageBlocks: data.workspaceMessageBlocks,
-        notificationFor: data.notificationFor,
-      });
-    }
-  }
-
-  private async executeNotificationRulesForWorkspace(data: {
-    projectId: ObjectID;
-    workspaceType: WorkspaceType;
-    notificationRuleEventType: NotificationRuleEventType;
-    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    authToken: string;
-    channelsToCreate: Array<string>;
-    notificationFor: NotificationFor;
-  }): Promise<void> {
-    logger.debug("Notify Workspace");
-    logger.debug(data);
-
-    if (!data.authToken) {
-      logger.debug("No auth token. Skipping...");
-      return;
-    }
-
-    const matchedNotificationRules: Array<Model> =
-      await this.getMatchingNotificationRules({
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
-        notificationRuleEventType: data.notificationRuleEventType,
-        notificationFor: data.notificationFor,
-      });
-
-    if (matchedNotificationRules.length === 0) {
-      logger.debug("No matching notification rules found. Skipping...");
-      return;
-    }
-
-    const channelNames: Array<string> =
-      this.getChannelNamesFromNotificaitonRules({
-        notificationRules: matchedNotificationRules,
-      });
-
-    let usersToInviteToChannel: Array<ObjectID> = [];
-
-    // If no channels are created but, a new channel is to be created then invite users to the channel.
-    if (
-      data.alreadyCreatedChannelIds.length === 0 &&
-      data.createNewChannelName
-    ) {
-      // if a new channel is to be created then...
-      usersToInviteToChannel = await this.getUsersIdsToInviteToChannel({
-        notificationRules: matchedNotificationRules,
-      });
-    }
-
-    // Execution steps...
-    // 1 - Create channel if the channel is not created.
-    // 2 - If the new channel is to be created then, invite users to the channel.
-    // 3 - Then, post the message to the existing channel and the new channel.
-
-    if (data.workspaceType === WorkspaceType.Slack) {
-      await SlackUtil.sendMessage({
-        workspaceMessagePayload: workspaceMessagePayload,
-        authToken: data.authToken,
-      });
-    }
-  }
-
-  private async getUsersIdsToInviteToChannel(data: {
-    notificationRules: Array<Model>;
+  public async getUsersIdsToInviteToChannel(data: {
+    notificationRules: Array<
+      | IncidentNotificationRule
+      | AlertNotificationRule
+      | ScheduledMaintenanceNotificationRule
+    >;
   }): Promise<Array<ObjectID>> {
     const inviteUserIds: Array<ObjectID> = [];
 
     for (const notificationRule of data.notificationRules) {
-      const workspaceRules: IncidentNotificationRule =
-        notificationRule.notificationRule as IncidentNotificationRule;
+      const workspaceRules:
+        | IncidentNotificationRule
+        | AlertNotificationRule
+        | ScheduledMaintenanceNotificationRule = notificationRule;
 
-      if (workspaceRules.shouldCreateNewSlackChannel) {
+      if (workspaceRules.shouldCreateNewChannel) {
         if (
           workspaceRules.inviteUsersToNewChannel &&
           workspaceRules.inviteUsersToNewChannel.length > 0
@@ -160,7 +61,7 @@ export class Service extends DatabaseService<Model> {
 
           for (const userId of userIds) {
             if (
-              !inviteUserIds.find((id) => {
+              !inviteUserIds.find((id: ObjectID) => {
                 return id.toString() === userId.toString();
               })
             ) {
@@ -176,7 +77,7 @@ export class Service extends DatabaseService<Model> {
           let teamIds: Array<ObjectID> =
             workspaceRules.inviteTeamsToNewChannel || [];
 
-          teamIds = teamIds.map((teamId) => {
+          teamIds = teamIds.map((teamId: ObjectID) => {
             return new ObjectID(teamId.toString());
           });
 
@@ -185,7 +86,7 @@ export class Service extends DatabaseService<Model> {
 
           for (const user of usersInTeam) {
             if (
-              !inviteUserIds.find((id) => {
+              !inviteUserIds.find((id: ObjectID) => {
                 return id.toString() === user._id?.toString();
               })
             ) {
@@ -202,18 +103,17 @@ export class Service extends DatabaseService<Model> {
     return inviteUserIds;
   }
 
-  private getChannelNamesFromNotificaitonRules(data: {
-    notificationRules: Array<Model>;
+  public getChannelNamesFromNotificaitonRules(data: {
+    notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
     const channelNames: Array<string> = [];
 
     for (const notificationRule of data.notificationRules) {
-      const workspaceRules: IncidentNotificationRule =
-        notificationRule.notificationRule as IncidentNotificationRule;
+      const workspaceRules: BaseNotificationRule = notificationRule;
 
       if (workspaceRules.shouldPostToExistingChannel) {
         const existingChannelNames: Array<string> =
-          workspaceRules.existingChannelNamess.split(",");
+          workspaceRules.existingChannelNames.split(",");
 
         for (const channelName of existingChannelNames) {
           if (!channelName) {
@@ -230,21 +130,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return channelNames;
-  }
-
-  private getMessagePaylaodFromBlocks(data: {
-    workspaceMessageBlocks: Array<WorkspaceMessageBlock>;
-    channelNames?: Array<string>;
-    channelIds?: Array<string>;
-    createChannelsIfItDoesNotExist?: boolean;
-  }): WorkspaceMessagePayload {
-    return {
-      _type: "WorkspaceMessagePayload",
-      channelNames: [],
-      channelIds: [],
-      messageBlocks: data.workspaceMessageBlocks,
-      createChannelsIfItDoesNotExist: false,
-    };
   }
 
   private async getNotificationRules(data: {
@@ -300,7 +185,7 @@ export class Service extends DatabaseService<Model> {
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
           monitorIds:
-            incident.monitors?.map((monitor) => {
+            incident.monitors?.map((monitor: Incident) => {
               return monitor.id!;
             }) || [],
         });
@@ -325,18 +210,18 @@ export class Service extends DatabaseService<Model> {
           undefined,
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentLabels]:
-          incident.labels?.map((label) => {
+          incident.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorLabels]:
-          monitorLabels.map((label) => {
+          monitorLabels.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
           undefined,
         [NotificationRuleConditionCheckOn.Monitors]:
-          incident.monitors?.map((monitor) => {
+          incident.monitors?.map((monitor: Incident) => {
             return monitor._id?.toString() || "";
           }) || [],
       };
@@ -364,7 +249,7 @@ export class Service extends DatabaseService<Model> {
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
-          monitorIds: alert.monitor?.id! ? [alert.monitor?.id!] : [],
+          monitorIds: alert?.monitor?.id! ? [alert?.monitor?.id!] : [],
         });
 
       return {
@@ -388,11 +273,11 @@ export class Service extends DatabaseService<Model> {
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
         [NotificationRuleConditionCheckOn.AlertLabels]:
-          alert.labels?.map((label) => {
+          alert.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.MonitorLabels]:
-          monitorLabels.map((label) => {
+          monitorLabels.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
@@ -426,9 +311,11 @@ export class Service extends DatabaseService<Model> {
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
           monitorIds:
-            scheduledMaintenance.monitors?.map((monitor) => {
-              return monitor.id!;
-            }) || [],
+            scheduledMaintenance.monitors?.map(
+              (monitor: ScheduledMaintenance) => {
+                return monitor.id!;
+              },
+            ) || [],
         });
 
       return {
@@ -453,17 +340,19 @@ export class Service extends DatabaseService<Model> {
         [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
         [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorLabels]:
-          monitorLabels.map((label) => {
+          monitorLabels.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
-          scheduledMaintenance.labels?.map((label) => {
+          scheduledMaintenance.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.Monitors]:
-          scheduledMaintenance.monitors?.map((monitor) => {
-            return monitor._id?.toString() || "";
-          }) || [],
+          scheduledMaintenance.monitors?.map(
+            (monitor: ScheduledMaintenance) => {
+              return monitor._id?.toString() || "";
+            },
+          ) || [],
       };
     }
 
@@ -513,7 +402,7 @@ export class Service extends DatabaseService<Model> {
         [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
         [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorLabels]:
-          monitorLabels.map((label) => {
+          monitorLabels.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:

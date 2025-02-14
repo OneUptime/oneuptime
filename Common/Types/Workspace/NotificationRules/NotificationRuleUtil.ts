@@ -65,154 +65,197 @@ export class WorkspaceNotificationRuleUtil {
   }
 
   private static didConditionMatch(data: {
-        value: string | Array<string> | undefined;
-        condition: ConditionType;
-        filterValue: string | Array<string> | undefined;
-    }): boolean {
-        const value: string | Array<string> | undefined = data.value;
-        const condition: ConditionType = data.condition;
-        const filterValue: string | Array<string> | undefined = data.filterValue;
-        
-        if(value === undefined || filterValue === undefined) {
-            return false;
-        }
+    value: string | Array<string> | undefined;
+    condition: ConditionType;
+    filterValue: string | Array<string> | undefined;
+  }): boolean {
+    const value: string | Array<string> | undefined = data.value;
+    const condition: ConditionType = data.condition;
+    const filterValue: string | Array<string> | undefined = data.filterValue;
 
-        switch(condition) {
-            case ConditionType.EqualTo: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.includes(val));
-                } 
-                    return value === filterValue;
-                
-            }
-
-            case ConditionType.NotEqualTo: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return !value.every(val => filterValue.includes(val));
-                } else {
-                    return value !== filterValue;
-                }
-            }
-
-            case ConditionType.GreaterThan: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.every(fVal => val > fVal));
-                } else if (value !== undefined && filterValue !== undefined) {
-                    return value > filterValue;
-                }
-                return false;
-            }
-
-            case ConditionType.LessThan: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.every(fVal => val < fVal));
-                } else if (value !== undefined && filterValue !== undefined) {
-                    return value < filterValue;
-                }
-                return false;
-            }
-
-            case ConditionType.GreaterThanOrEqualTo: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.every(fVal => val >= fVal));
-                } else if (value !== undefined && filterValue !== undefined) {
-                    return value >= filterValue;
-                }
-                return false;
-            }
-
-            case ConditionType.LessThanOrEqualTo: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.every(fVal => val <= fVal));
-                } else if (value !== undefined && filterValue !== undefined) {
-                    return value <= filterValue;
-                }
-                return false;
-            }
-
-            case ConditionType.ContainsAny: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.some(val => filterValue.includes(val));
-                } else if (value !== undefined && filterValue !== undefined && typeof value === "string") {
-                    return filterValue.includes(value);
-                }
-                return false;
-            }
-
-            case ConditionType.NotContains: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return !value.some(val => filterValue.includes(val));
-                } else if (value !== undefined && filterValue !== undefined && typeof value === "string") {
-                    return !filterValue.includes(value);
-                }
-                return false;
-            }
-
-            case ConditionType.StartsWith: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val => filterValue.every(fVal => val.startsWith(fVal)));
-                } else if (value !== undefined && filterValue !== undefined && typeof value === "string") {
-                    return value.startsWith(filterValue.toString());
-                }
-                return false;
-            }
-
-            case ConditionType.EndsWith: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return value.every(val =>
-                        filterValue.every(fVal => val.endsWith(fVal)),
-                    );
-                } else if (value !== undefined && filterValue !== undefined && typeof value === "string") {
-                    return value.endsWith(filterValue.toString());
-                }
-                return false;
-            }
-
-            case ConditionType.IsEmpty: {
-                if (Array.isArray(value)) {
-                    return value.length === 0;
-                } else {
-                    return value === "" || value === undefined;
-                }
-            }
-
-            case ConditionType.IsNotEmpty: {
-                if (Array.isArray(value)) {
-                    return value.length > 0;
-                } else {
-                    return value !== "" && value !== undefined;
-                }
-            }
-
-            case ConditionType.True: {
-                if (Array.isArray(value)) {
-                    return value.every(val => val === "true");
-                } else {
-                    return value === "true";
-                }
-            }
-
-            case ConditionType.False: {
-                if (Array.isArray(value)) {
-                    return value.every(val => val === "false");
-                } else {
-                    return value === "false";
-                }
-            }
-
-            case ConditionType.ContainsAll: {
-                if (Array.isArray(value) && Array.isArray(filterValue)) {
-                    return filterValue.every(fVal => value.includes(fVal));
-                }
-                return false;
-            }
-
-            default: {
-                return false;
-            }
-
-        }
-                
-
+    if (value === undefined || filterValue === undefined) {
+      return false;
     }
+
+    switch (condition) {
+      case ConditionType.EqualTo: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.includes(val);
+          });
+        }
+        return value === filterValue;
+      }
+
+      case ConditionType.NotEqualTo: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return !value.every((val: string) => {
+            return filterValue.includes(val);
+          });
+        }
+        return value !== filterValue;
+      }
+
+      case ConditionType.GreaterThan: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val > fVal;
+            });
+          });
+        } else if (value !== undefined && filterValue !== undefined) {
+          return value > filterValue;
+        }
+        return false;
+      }
+
+      case ConditionType.LessThan: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val < fVal;
+            });
+          });
+        } else if (value !== undefined && filterValue !== undefined) {
+          return value < filterValue;
+        }
+        return false;
+      }
+
+      case ConditionType.GreaterThanOrEqualTo: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val >= fVal;
+            });
+          });
+        } else if (value !== undefined && filterValue !== undefined) {
+          return value >= filterValue;
+        }
+        return false;
+      }
+
+      case ConditionType.LessThanOrEqualTo: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val <= fVal;
+            });
+          });
+        } else if (value !== undefined && filterValue !== undefined) {
+          return value <= filterValue;
+        }
+        return false;
+      }
+
+      case ConditionType.ContainsAny: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.some((val: string) => {
+            return filterValue.includes(val);
+          });
+        } else if (
+          value !== undefined &&
+          filterValue !== undefined &&
+          typeof value === "string"
+        ) {
+          return filterValue.includes(value);
+        }
+        return false;
+      }
+
+      case ConditionType.NotContains: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return !value.some((val: string) => {
+            return filterValue.includes(val);
+          });
+        } else if (
+          value !== undefined &&
+          filterValue !== undefined &&
+          typeof value === "string"
+        ) {
+          return !filterValue.includes(value);
+        }
+        return false;
+      }
+
+      case ConditionType.StartsWith: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val.startsWith(fVal);
+            });
+          });
+        } else if (
+          value !== undefined &&
+          filterValue !== undefined &&
+          typeof value === "string"
+        ) {
+          return value.startsWith(filterValue.toString());
+        }
+        return false;
+      }
+
+      case ConditionType.EndsWith: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return value.every((val: string) => {
+            return filterValue.every((fVal: string) => {
+              return val.endsWith(fVal);
+            });
+          });
+        } else if (
+          value !== undefined &&
+          filterValue !== undefined &&
+          typeof value === "string"
+        ) {
+          return value.endsWith(filterValue.toString());
+        }
+        return false;
+      }
+
+      case ConditionType.IsEmpty: {
+        if (Array.isArray(value)) {
+          return value.length === 0;
+        }
+        return value === "" || value === undefined;
+      }
+
+      case ConditionType.IsNotEmpty: {
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        return value !== "" && value !== undefined;
+      }
+
+      case ConditionType.True: {
+        if (Array.isArray(value)) {
+          return value.every((val: string) => {
+            return val === "true";
+          });
+        }
+        return value === "true";
+      }
+
+      case ConditionType.False: {
+        if (Array.isArray(value)) {
+          return value.every((val: string) => {
+            return val === "false";
+          });
+        }
+        return value === "false";
+      }
+
+      case ConditionType.ContainsAll: {
+        if (Array.isArray(value) && Array.isArray(filterValue)) {
+          return filterValue.every((fVal: string) => {
+            return value.includes(fVal);
+          });
+        }
+        return false;
+      }
+
+      default: {
+        return false;
+      }
+    }
+  }
 }
