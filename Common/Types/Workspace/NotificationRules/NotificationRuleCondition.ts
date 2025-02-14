@@ -253,7 +253,7 @@ export class NotificationRuleConditionUtil {
     switch (eventType) {
       case NotificationRuleEventType.Incident:
         return [
-          NotificationRuleConditionCheckOn.IncidentName,
+          NotificationRuleConditionCheckOn.IncidentTitle,
           NotificationRuleConditionCheckOn.IncidentDescription,
           NotificationRuleConditionCheckOn.IncidentSeverity,
           NotificationRuleConditionCheckOn.IncidentState,
@@ -263,7 +263,7 @@ export class NotificationRuleConditionUtil {
         ];
       case NotificationRuleEventType.Alert:
         return [
-          NotificationRuleConditionCheckOn.AlertName,
+          NotificationRuleConditionCheckOn.AlertTitle,
           NotificationRuleConditionCheckOn.AlertDescription,
           NotificationRuleConditionCheckOn.AlertSeverity,
           NotificationRuleConditionCheckOn.AlertState,
@@ -283,7 +283,7 @@ export class NotificationRuleConditionUtil {
         ];
       case NotificationRuleEventType.ScheduledMaintenance:
         return [
-          NotificationRuleConditionCheckOn.ScheduledMaintenanceName,
+          NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceState,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels,
@@ -300,42 +300,42 @@ export class NotificationRuleConditionUtil {
   ): Array<ConditionType> {
     switch (checkOn) {
       case NotificationRuleConditionCheckOn.MonitorName:
-      case NotificationRuleConditionCheckOn.IncidentName:
+      case NotificationRuleConditionCheckOn.IncidentTitle:
       case NotificationRuleConditionCheckOn.IncidentDescription:
-      case NotificationRuleConditionCheckOn.AlertName:
+      case NotificationRuleConditionCheckOn.AlertTitle:
       case NotificationRuleConditionCheckOn.AlertDescription:
-      case NotificationRuleConditionCheckOn.ScheduledMaintenanceName:
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription:
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,
-          ConditionType.Contains,
+          ConditionType.ContainsAny,
           ConditionType.NotContains,
           ConditionType.StartsWith,
           ConditionType.EndsWith,
         ];
       case NotificationRuleConditionCheckOn.IncidentSeverity:
       case NotificationRuleConditionCheckOn.AlertSeverity:
-        return [ConditionType.Contains, ConditionType.NotContains];
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.IncidentState:
       case NotificationRuleConditionCheckOn.AlertState:
       case NotificationRuleConditionCheckOn.MonitorStatus:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
-        return [ConditionType.Contains, ConditionType.NotContains];
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.MonitorType:
-        return [ConditionType.Contains, ConditionType.NotContains];
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.AlertLabels:
       case NotificationRuleConditionCheckOn.IncidentLabels:
       case NotificationRuleConditionCheckOn.MonitorLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
         return [
-          ConditionType.Contains,
+          ConditionType.ContainsAny,
           ConditionType.NotContains,
           ConditionType.ContainsAll,
         ];
       case NotificationRuleConditionCheckOn.Monitors:
         return [
-          ConditionType.Contains,
+          ConditionType.ContainsAny,
           ConditionType.NotContains,
           ConditionType.ContainsAll,
         ];

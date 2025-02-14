@@ -416,7 +416,7 @@ export class Service extends DatabaseService<Model> {
     throw new BadDataException("NotificationFor is not supported");
   }
 
-  private async getMatchingNotificationRules(data: {
+  public async getMatchingNotificationRules(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
