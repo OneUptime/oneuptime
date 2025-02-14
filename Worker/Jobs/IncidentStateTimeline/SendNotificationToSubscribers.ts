@@ -300,7 +300,7 @@ RunCron(
       }
 
       logger.debug(
-        "Notificaiton sent to subscribers for incident state change",
+        "Notification sent to subscribers for incident state change",
       );
 
       await IncidentFeedService.createIncidentFeed({

@@ -557,7 +557,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // notificaiton rule
+    // notification rule
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

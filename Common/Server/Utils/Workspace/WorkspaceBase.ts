@@ -32,7 +32,7 @@ export default class WorkspaceBase {
       workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
     }): Promise<void> {
       for (const channelName of data.workspaceChannelInvitationPayload
-        .workspaceChannelNames) {
+        .channelNames) {
         await this.inviteUsersToChannel({
           authToken: data.authToken,
           channelName: channelName,

@@ -4,7 +4,7 @@ import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsWorkspace from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 
-export default class Workspace { 
+export default class WorkspaceUtil { 
     public static getWorkspaceTypeUtil(workspaceType: WorkspaceType): typeof WorkspaceBase { 
         if(workspaceType === WorkspaceType.Slack){
             return SlackWorkspace; 

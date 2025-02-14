@@ -1328,128 +1328,22 @@ ${incidentSeverity.name}
   public async notifyWorkspaceOnIncidentCreate(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    incidentNumber: number;
   }): Promise<void> {
+
     // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
-
-    const projectAuths: Array<WorkspaceProjectAuthToken> =
-      await WorkspaceProjectAuthTokenService.getProjectAuths({
-        projectId: data.projectId,
-      });
-
-    if (!projectAuths || projectAuths.length === 0) {
-      // do nothing.
-      return;
-    }
-
-    const incident: Model | null = await this.findOneById({
-      id: data.incidentId,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules({
+      projectId: data.projectId,
+     notificationFor: {
+      incidentId: data.incidentId
+     }, 
+     notificationRuleEventType: NotificationRuleEventType.Incident, 
+     channelNameSiffix: data.incidentNumber.toString(), 
+     messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
+        incidentId: data.incidentId
+      })
     });
-
-    if (!incident) {
-      throw new BadDataException("Incident not found");
-    }
-
-    const incidentNumber: number = incident?.incidentNumber || 0;
-
-    if (!incidentNumber) {
-      throw new BadDataException("Incident number not found");
-    }
-
-    for (const projectAuth of projectAuths) {
-      if (!projectAuth.workspaceType) {
-        throw new BadDataException("Workspace type not found in project auth");
-      }
-
-      const workspaceNotificationRules: Array<WorkspaceNotificationRule> =
-        await WorkspaceNotificationRuleService.getMatchingNotificationRules({
-          projectId: data.projectId,
-          workspaceType: projectAuth.workspaceType,
-          notificationRuleEventType: NotificationRuleEventType.Incident,
-          notificationFor: {
-            incidentId: data.incidentId,
-          },
-        });
-
-      // if length 0, then no rules found. and continue.
-      if (workspaceNotificationRules.length === 0) {
-        continue;
-      }
-
-      const notificationRuleConfigs: Array<CreateChannelNotificationRule> =
-        workspaceNotificationRules.map((rule: WorkspaceNotificationRule) => {
-          return rule.notificationRule as CreateChannelNotificationRule;
-        });
-
-      // if no rules found, then continue.
-      if (notificationRuleConfigs.length === 0) {
-        continue;
-      }
-
-      // Execution Rules:
-      // Check if the channel needs to be created, if yes - cretae channel.
-      // Check if the user needs to be invited, if yes - invite user.
-      // Check if message needs to be posted to toher channel, if yes - post message to other channel and the newly created channel.
-      // So now we begin:
-
-      const newChannelNames: Array<string> =
-        WorkspaceNotificationRuleService.getNewChannelNamesFromNotificaitonRules(
-          {
-            notificationRules: notificationRuleConfigs,
-            channelNameSiffix: incidentNumber.toString(), // incident number is basically the channel name suffix.
-          },
-        );
-
-      for (const newChannelName of newChannelNames) {
-        // create channel.
-        const channel: WorkspaceChannel =
-          await WorkspaceChannelService.createChannel({
-            projectId: data.projectId,
-            channelName: newChannelName,
-            workspaceType: projectAuth.workspaceType,
-            workspaceId: projectAuth.workspaceId,
-            props: {
-              isRoot: true,
-            },
-          });
-
-        // invite users.
-        const usersToInvite: Array<ObjectID> =
-          WorkspaceNotificationRuleService.getUsersToInviteFromNotificationRules(
-            {
-              notificationRules: notificationRuleConfigs,
-            },
-          );
-
-        for (const userToInvite of usersToInvite) {
-          await WorkspaceChannelService.inviteUserToChannel({
-            channelId: channel.id!,
-            userId: userToInvite,
-            workspaceType: projectAuth.workspaceType,
-            workspaceId: projectAuth.workspaceId,
-          });
-        }
-
-        // post message to channel.
-        const messageBlocks: Array<WorkspaceMessageBlock> =
-          await this.getWorkspaceMessageBlocksForIncidentCreate({
-            incidentId: data.incidentId,
-          });
-
-        await WorkspaceChannelService.postMessageToChannel({
-          channelId: channel.id!,
-          workspaceType: projectAuth.workspaceType,
-          workspaceId: projectAuth.workspaceId,
-          messageBlocks: messageBlocks,
-        });
-      }
-    }
+   
   }
 
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {

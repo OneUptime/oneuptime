@@ -20,10 +20,15 @@ import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
-import AlertNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
-import ScheduledMaintenanceNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import WorkspaceMessagePayload, { WorkspaceMessageBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
@@ -37,20 +42,238 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+
+  public async createInviteAndPostToChannelsBasedOnRules(data: {
+    projectId: ObjectID;
+    notificationRuleEventType: NotificationRuleEventType;
+    notificationFor: NotificationFor;
+    channelNameSiffix: string;
+    messageBlocks: Array<WorkspaceMessageBlock>
+  }): Promise<void> {
+
+
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.getProjectAuths({
+        projectId: data.projectId,
+      });
+
+    if (!projectAuths || projectAuths.length === 0) {
+      // do nothing.
+      return;
+    }
+
+    for (const projectAuth of projectAuths) {
+
+      if(!projectAuth.authToken){
+        continue;
+      }
+
+      if(!projectAuth.workspaceType){
+        continue;
+      }
+
+      const authToken: string = projectAuth.authToken;
+      const workspaceType: WorkspaceType = projectAuth.workspaceType;
+
+      const notificationRules: Array<Model> =
+        await this.getMatchingNotificationRules({
+          projectId: data.projectId,
+          workspaceType: workspaceType,
+          notificationRuleEventType: data.notificationRuleEventType,
+          notificationFor: data.notificationFor,
+        });
+
+      if (!notificationRules || notificationRules.length === 0) {
+        return;
+      }
+
+
+      const createdWorkspaceChannels: Array<WorkspaceChannel> =
+        await this.createChannelsBasedOnRules({
+          projectOrUserAuthTokenForWorkspasce: authToken,
+          workspaceType: workspaceType,
+          notificationRules: notificationRules.map((rule: Model) => {
+            return rule.notificationRule as CreateChannelNotificationRule;
+          }),
+          channelNameSiffix: data.channelNameSiffix,
+        });
+
+      await this.inviteUsersAndTeamsToChannelsBasedOnRules({
+        projectId: data.projectId,
+        projectOrUserAuthTokenForWorkspasce: authToken,
+        workspaceType: workspaceType,
+        notificationRules: notificationRules.map((rule: Model) => {
+          return rule.notificationRule as CreateChannelNotificationRule;
+        }),
+        channelNames: createdWorkspaceChannels.map((channel: WorkspaceChannel) => {
+          return channel.name;
+        }),
+      });
+
+
+      const existingChannelNames: Array<string> =
+        this.getExistingChannelNamesFromNotificationRules({
+          notificationRules: notificationRules.map((rule: Model) => {
+            return rule.notificationRule as BaseNotificationRule;
+          }),
+        }) || [];
+
+      // add created channel names to existing channel names.
+      for (const channel of createdWorkspaceChannels) {
+        if (!existingChannelNames.includes(channel.name)) {
+          existingChannelNames.push(channel.name);
+        }
+      }
+
+      await this.postToWorkspaceChannels({
+        projectOrUserAuthTokenForWorkspasce: authToken,
+        workspaceType: workspaceType,
+        workspaceMessagePayload: {
+          _type: "WorkspaceMessagePayload",
+          channelNames: existingChannelNames,
+          messageBlocks: data.messageBlocks
+        }
+      });
+    }
+  }
+
+
+  public async postToWorkspaceChannels(data: {
+    projectOrUserAuthTokenForWorkspasce: string;
+    workspaceType: WorkspaceType;
+    workspaceMessagePayload: WorkspaceMessagePayload
+  }): Promise<void> {
+
+    await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
+      workspaceMessagePayload: data.workspaceMessagePayload,
+      authToken: data.projectOrUserAuthTokenForWorkspasce,
+    });
+
+  }
+
+
+  public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
+    projectId: ObjectID;
+    projectOrUserAuthTokenForWorkspasce: string;
+    workspaceType: WorkspaceType;
+    notificationRules: Array<CreateChannelNotificationRule>;
+    channelNames: Array<string>;
+  }): Promise<void> {
+
+    const inviteUserIds: Array<ObjectID> =
+      await this.getUsersIdsToInviteToChannel({
+        notificationRules: data.notificationRules,
+      });
+
+    const workspaceUserIds: Array<string> = [];
+
+    for (const userId of inviteUserIds) {
+      const workspaceUserId: string | null = await this.getWorkspaceUserIdFromOneUptimeUserId({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        oneupitmeUserId: userId,
+      });
+
+      if (workspaceUserId) {
+        workspaceUserIds.push(workspaceUserId);
+      }
+    }
+
+
+    await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).inviteUsersToChannels({
+      authToken: data.projectOrUserAuthTokenForWorkspasce,
+      workspaceChannelInvitationPayload: {
+        channelNames: data.channelNames,
+        workspaceUserIds: workspaceUserIds,
+      }
+    });
+
+  }
+
+
+  public async getWorkspaceUserIdFromOneUptimeUserId(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    oneupitmeUserId: ObjectID;
+  }): Promise<string | null> {
+    const userAuth: WorkspaceUserAuthToken | null = await WorkspaceUserAuthTokenService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        userId: data.oneupitmeUserId,
+      },
+      select: {
+        workspaceUserId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!userAuth) {
+      return null;
+    }
+
+    return userAuth.workspaceUserId?.toString() || null;
+  }
+
+
+  public async createChannelsBasedOnRules(data: {
+    projectOrUserAuthTokenForWorkspasce: string;
+    workspaceType: WorkspaceType;
+    notificationRules: Array<CreateChannelNotificationRule>;
+    channelNameSiffix: string;
+  }): Promise<Array<WorkspaceChannel>> {
+
+
+    const createdWorkspaceChannels: Array<WorkspaceChannel> = [];
+    const createdChannelNames: Array<string> = [];
+
+    const newChannelNames: Array<string> =
+      this.getNewChannelNamesFromNotificationRules(
+        {
+          notificationRules: data.notificationRules,
+          channelNameSiffix: data.channelNameSiffix
+        },
+      );
+
+    if (!newChannelNames || newChannelNames.length === 0) {
+      return [];
+    }
+
+    for (const newChannelName of newChannelNames) {
+
+      // if already created then skip it.
+      if (createdChannelNames.includes(newChannelName)) {
+        continue;
+      }
+
+      // create channel.
+      const channel: WorkspaceChannel =
+        await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).createChannel({
+          authToken: data.projectOrUserAuthTokenForWorkspasce,
+          channelName: newChannelName,
+        });
+
+      createdChannelNames.push(channel.name);
+
+      createdWorkspaceChannels.push(channel);
+    }
+
+    return createdWorkspaceChannels;
+  }
+
+
   public async getUsersIdsToInviteToChannel(data: {
     notificationRules: Array<
-      | IncidentNotificationRule
-      | AlertNotificationRule
-      | ScheduledMaintenanceNotificationRule
+      CreateChannelNotificationRule
     >;
   }): Promise<Array<ObjectID>> {
     const inviteUserIds: Array<ObjectID> = [];
 
     for (const notificationRule of data.notificationRules) {
       const workspaceRules:
-        | IncidentNotificationRule
-        | AlertNotificationRule
-        | ScheduledMaintenanceNotificationRule = notificationRule;
+        CreateChannelNotificationRule = notificationRule;
 
       if (workspaceRules.shouldCreateNewChannel) {
         if (
@@ -104,7 +327,7 @@ export class Service extends DatabaseService<Model> {
     return inviteUserIds;
   }
 
-  public getExistingChannelNamesFromNotificaitonRules(data: {
+  public getExistingChannelNamesFromNotificationRules(data: {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
     const channelNames: Array<string> = [];
@@ -133,7 +356,7 @@ export class Service extends DatabaseService<Model> {
     return channelNames;
   }
 
-  public getNewChannelNamesFromNotificaitonRules(data: {
+  public getNewChannelNamesFromNotificationRules(data: {
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNameSiffix: string;
   }): Array<string> {
@@ -187,9 +410,9 @@ export class Service extends DatabaseService<Model> {
     notificationFor: NotificationFor;
   }): Promise<{
     [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
+    | string
+    | Array<string>
+    | undefined;
   }> {
     if (data.notificationFor.incidentId) {
       const incident: Incident | null = await IncidentService.findOneById({
@@ -459,9 +682,9 @@ export class Service extends DatabaseService<Model> {
 
     const values: {
       [key in NotificationRuleConditionCheckOn]:
-        | string
-        | Array<string>
-        | undefined;
+      | string
+      | Array<string>
+      | undefined;
     } = await this.getValuesBasedOnNotificationFor({
       notificationFor: data.notificationFor,
     });
