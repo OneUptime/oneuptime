@@ -110,7 +110,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
     {
-      
       field: {
         shouldPostToExistingChannel: true,
       },
@@ -153,7 +152,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       {
         field: {
           newChannelTemplateName: true,
-         
         },
         title: `New ${props.workspaceType} Channel Name`,
         showIf: (formValue: FormValues<NotificationRulesType>) => {

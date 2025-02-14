@@ -83,15 +83,22 @@ export class NotificationRuleConditionUtil {
       }
     }
 
-    if (eventType === NotificationRuleEventType.Incident || eventType === NotificationRuleEventType.Alert || eventType === NotificationRuleEventType.ScheduledMaintenance) {
+    if (
+      eventType === NotificationRuleEventType.Incident ||
+      eventType === NotificationRuleEventType.Alert ||
+      eventType === NotificationRuleEventType.ScheduledMaintenance
+    ) {
       // either create slack channel or select existing one should be active.
-
 
       if (
         !notificationRule.shouldCreateNewChannel &&
         !notificationRule.shouldPostToExistingChannel
       ) {
-        return "Please select either create slack channel or post to existing " + workspaceType + " channel";
+        return (
+          "Please select either create slack channel or post to existing " +
+          workspaceType +
+          " channel"
+        );
       }
 
       if (notificationRule.shouldPostToExistingChannel) {
@@ -100,12 +107,11 @@ export class NotificationRuleConditionUtil {
         }
       }
 
-      if(notificationRule.shouldCreateNewChannel) {
+      if (notificationRule.shouldCreateNewChannel) {
         if (!notificationRule.newChannelTemplateName?.trim()) {
           return "New " + workspaceType + " channel name is required";
         }
       }
-
     }
 
     return null;
@@ -221,7 +227,7 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.AlertLabels ||
       data.checkOn ===
-      NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
     ) {
       return data.labels.map((label: Label) => {
         return {

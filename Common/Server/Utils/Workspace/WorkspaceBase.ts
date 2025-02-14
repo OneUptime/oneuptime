@@ -17,7 +17,7 @@ import URL from "Common/Types/API/URL";
 export interface WorkspaceChannel {
   id: string;
   name: string;
-  workspaceType: WorkspaceType; 
+  workspaceType: WorkspaceType;
 }
 
 export default class WorkspaceBase {

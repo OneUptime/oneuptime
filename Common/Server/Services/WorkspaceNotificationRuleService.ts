@@ -53,7 +53,6 @@ export class Service extends DatabaseService<Model> {
   }): Promise<{
     channelsCreated: Array<WorkspaceChannel>;
   } | null> {
-
     const channelsCreated: Array<WorkspaceChannel> = [];
 
     const projectAuths: Array<WorkspaceProjectAuthToken> =
@@ -370,7 +369,9 @@ export class Service extends DatabaseService<Model> {
         workspaceRules.shouldCreateNewChannel &&
         workspaceRules.newChannelTemplateName
       ) {
-        const newChannelName: string = workspaceRules.newChannelTemplateName || `oneuptime-${data.notificationEventType.toLowerCase()}-`;
+        const newChannelName: string =
+          workspaceRules.newChannelTemplateName ||
+          `oneuptime-${data.notificationEventType.toLowerCase()}-`;
 
         // add suffix and then check if it is already added or not.
         const channelName: string = newChannelName + data.channelNameSiffix;

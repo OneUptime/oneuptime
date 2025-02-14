@@ -113,7 +113,7 @@ export default class SlackUtil extends WorkspaceBase {
         "name"
       ] as string,
       id: data.channelId,
-      workspaceType: WorkspaceType.Slack
+      workspaceType: WorkspaceType.Slack,
     };
   }
 
@@ -146,7 +146,7 @@ export default class SlackUtil extends WorkspaceBase {
       channels[channel["name"].toString()] = {
         id: channel["id"] as string,
         name: channel["name"] as string,
-        workspaceType: WorkspaceType.Slack
+        workspaceType: WorkspaceType.Slack,
       };
     }
 
@@ -259,7 +259,7 @@ export default class SlackUtil extends WorkspaceBase {
       name: ((response.jsonData as JSONObject)["channel"] as JSONObject)[
         "name"
       ] as string,
-      workspaceType: WorkspaceType.Slack
+      workspaceType: WorkspaceType.Slack,
     };
   }
 

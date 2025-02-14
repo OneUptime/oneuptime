@@ -31,7 +31,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Label}
         />
       </SideMenuSection>
-      
+
       <SideMenuSection title="Workspace Connections">
         <SideMenuItem
           link={{
