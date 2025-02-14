@@ -249,7 +249,7 @@ export class Service extends DatabaseService<Model> {
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
-          monitorIds: alert?.monitor?.id! ? [alert?.monitor?.id!] : [],
+          monitorIds: alert?.monitor?.id ? [alert?.monitor?.id] : [],
         });
 
       return {

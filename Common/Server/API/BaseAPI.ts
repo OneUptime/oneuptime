@@ -131,9 +131,58 @@ export default class BaseAPI<
       },
     );
 
+    router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/update-item`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.updateItem(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+
+    router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/update-item`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.updateItem(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     // Delete
     router.delete(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.deleteItem(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/delete-item`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.deleteItem(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/delete-item`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
