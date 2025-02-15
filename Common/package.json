@@ -129,7 +129,7 @@
         "stripe": "^10.17.0",
         "tailwind-merge": "^2.5.2",
         "tippy.js": "^6.3.7",
-        "twilio": "^4.22.0",
+        "twilio": "^5.4.4",
         "typeorm": "^0.3.20",
         "typeorm-extension": "^2.2.13",
         "universal-cookie": "^7.2.1",
