@@ -74,6 +74,8 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
+import MonitorService from "../Services/MonitorService";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -517,6 +519,128 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/overview/:statusPageId/uptime-percent`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+
+          // This reosurce ID can be of a status page resource OR a status page group.
+          const statusPageResourceId: ObjectID = new ObjectID(
+            req.params["statusPageResourceId"] as string,
+          );
+
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          if(!statusPageId || !statusPageResourceId){
+            throw new BadDataException("Status Page or Resource not found");
+          }
+
+          // get start and end date from request body. 
+          // if no end date is provided then it will be current date.
+          // if no start date is provided then it will be 14 days ago from end date.
+
+          let startDate: Date = OneUptimeDate.getSomeDaysAgo(14)
+          let endDate: Date = OneUptimeDate.getCurrentDate();
+
+          if(req.body["startDate"]){
+            startDate = OneUptimeDate.fromString(req.body["startDate"] as string);
+          }
+
+          if(req.body["endDate"]){
+            endDate = OneUptimeDate.fromString(req.body["endDate"] as string);
+          }
+
+         const monitorStatusTimelines: Array<MonitorStatusTimeline> = []; 
+
+
+         // get monitor or group. 
+
+         // get status page group. 
+
+         const monitorsInResource: Array<ObjectID> = [];
+
+          const statusPageGroup: StatusPageGroup | null = await StatusPageGroupService.findOneBy({
+            query: {
+              _id: statusPageResourceId,
+              statusPageId: statusPageId,
+            },
+            select: {
+              _id: true,
+              statusPageId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+
+          if(statusPageGroup){
+            // get all monitors in group. 
+            const groupResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
+              query: {
+                statusPageGroupId: statusPageResourceId,
+              },
+              select: {
+                monitorId: true,
+                monitorGroupId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+            });
+
+            monitorsInGroup.push(...groupResources.map((resource: StatusPageResource) => {
+              return resource.monitorId!;
+            }).filter((id: ObjectID) => {
+              return Boolean(id);
+            }));
+
+            
+          }
+
+         const monitor: Monitor | null = await MonitorService.findOneBy({
+            query: {
+              _id: statusPageResourceId,
+            },
+            select: {
+              _id: true,
+              name: true,
+              monitorGroupId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+
+         const uptimePercent: number | null = null; 
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: data.group,
+              monitorStatusTimelines: monitorStatusTimelines,
+              precision:
+                data.group.uptimePercentPrecision ||
+                UptimePrecision.ONE_DECIMAL,
+              downtimeMonitorStatuses:
+                statusPage?.downtimeMonitorStatuses || [],
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+            },
+          );
+        } catch (err) {
+
+          next(err);
+
+        }
+      });
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
