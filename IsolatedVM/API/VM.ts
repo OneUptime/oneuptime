@@ -32,7 +32,7 @@ router.post(
       }
 
       logger.debug("Running code in sandbox");
-      logger.debug(req.body.code);
+      logger.debug(req.body);
 
       let result: ReturnResult | null = null;
 
