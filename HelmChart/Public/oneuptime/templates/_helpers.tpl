@@ -463,6 +463,9 @@ Usage:
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
+- name: WORKFLOW_TIMEOUT_IN_MS
+  value: {{ $.Values.workflow.workflowTimeoutInMs | squote }}
+
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}

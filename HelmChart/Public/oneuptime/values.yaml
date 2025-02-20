@@ -446,6 +446,7 @@ worker:
 
 workflow:
   disableTelemetryCollection: false
+  workflowTimeoutInMs: 5000
 
 apiReference:
   disableTelemetryCollection: false

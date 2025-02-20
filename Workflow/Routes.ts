@@ -13,6 +13,7 @@ import Express, {
   ExpressResponse,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import { WorkflowTimeoutInMs } from "Common/Server/EnvironmentConfig";
 
 const APP_NAME: string = "workflow";
 
@@ -50,7 +51,7 @@ const WorkflowFeatureSet: FeatureSet = {
               ? new ObjectID(job.data["workflowLogId"] as string)
               : null,
             arguments: job.data.data as JSONObject,
-            timeout: 5000,
+            timeout: WorkflowTimeoutInMs || 5000,
           });
         },
         { concurrency: 100 },
