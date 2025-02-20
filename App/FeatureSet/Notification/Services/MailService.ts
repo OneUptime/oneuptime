@@ -208,6 +208,9 @@ export default class MailService {
       host: emailServer.host.toString(),
       port: emailServer.port.toNumber(),
       secure: emailServer.secure,
+      tls: {
+        rejectUnauthorized: false,
+      },
       auth:
         emailServer.username && emailServer.password
           ? {
