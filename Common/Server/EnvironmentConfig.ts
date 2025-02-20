@@ -260,9 +260,7 @@ export const WorkflowScriptTimeoutInMS: number = process.env[
   ? parseInt(process.env["WORKFLOW_SCRIPT_TIMEOUT_IN_MS"].toString())
   : 5000;
 
-export const WorkflowTimeoutInMs: number = process.env[
-  "WORKFLOW_TIMEOUT_IN_MS"
-]
+export const WorkflowTimeoutInMs: number = process.env["WORKFLOW_TIMEOUT_IN_MS"]
   ? parseInt(process.env["WORKFLOW_TIMEOUT_IN_MS"].toString())
   : 5000;
 
