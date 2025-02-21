@@ -818,6 +818,7 @@ export default class StatusPageAPI extends BaseAPI<
                 currentIncidentStateId: QueryHelper.any(
                   unresolvedIncidentStateIds,
                 ),
+                isVisibleOnStatusPage: true,
                 projectId: statusPage.projectId!,
               },
               select: select,
@@ -962,6 +963,7 @@ export default class StatusPageAPI extends BaseAPI<
                 } as any,
                 statusPages: objectId as any,
                 projectId: statusPage.projectId!,
+                isVisibleOnStatusPage: true,
               },
               select: scheduledEventsSelect,
               sort: {
@@ -982,6 +984,7 @@ export default class StatusPageAPI extends BaseAPI<
                 } as any,
                 statusPages: objectId as any,
                 projectId: statusPage.projectId!,
+                isVisibleOnStatusPage: true,
               },
               select: scheduledEventsSelect,
               sort: {
@@ -1427,6 +1430,7 @@ export default class StatusPageAPI extends BaseAPI<
       startsAt: QueryHelper.inBetween(historyDays, today),
       statusPages: [statusPageId] as any,
       projectId: statusPage.projectId!,
+      isVisibleOnStatusPage: true,
     };
 
     if (scheduledMaintenanceId) {
@@ -1494,6 +1498,7 @@ export default class StatusPageAPI extends BaseAPI<
             } as any,
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
+            isVisibleOnStatusPage: true,
           },
           select: scheduledEventsSelect,
           sort: {
@@ -2097,6 +2102,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitors: monitorsOnStatusPage as any,
       projectId: statusPage.projectId!,
       createdAt: QueryHelper.inBetween(historyDays, today),
+      isVisibleOnStatusPage: true,
     };
 
     if (incidentId) {
@@ -2174,6 +2180,7 @@ export default class StatusPageAPI extends BaseAPI<
         activeIncidents = await IncidentService.findBy({
           query: {
             monitors: monitorsOnStatusPage as any,
+            isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(
               unresolvbedIncidentStateIds,
             ),
