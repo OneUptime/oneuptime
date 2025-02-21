@@ -17,8 +17,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<
       name="Scheduled Maintenance Settings"
       cardProps={{
         title: "Scheduled Maintenance Settings",
-        description:
-          "Manage your scheduled maintenance event settings here.",
+        description: "Manage your scheduled maintenance event settings here.",
       }}
       editButtonText="Edit Settings"
       isEditable={true}

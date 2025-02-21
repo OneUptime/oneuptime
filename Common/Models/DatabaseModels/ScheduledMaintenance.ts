@@ -1023,13 +1023,12 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Should be visible on status page?",
-    description:
-      "Should this incident be visible on the status page?",
+    description: "Should this incident be visible on the status page?",
   })
   @Column({
     type: ColumnType.Boolean,
     default: true,
-    nullable: true
+    nullable: true,
   })
   public isVisibleOnStatusPage?: boolean = undefined;
 }

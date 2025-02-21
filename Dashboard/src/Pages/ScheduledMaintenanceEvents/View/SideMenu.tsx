@@ -54,7 +54,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "State Timeline",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -92,7 +92,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -104,9 +104,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-              PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS
-              ] as Route,
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS] as Route,
               { modelId: props.modelId },
             ),
           }}

@@ -120,7 +120,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.TableCells}
         />
 
-<SideMenuItem
+        <SideMenuItem
           link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(

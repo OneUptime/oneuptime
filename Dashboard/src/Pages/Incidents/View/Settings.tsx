@@ -17,8 +17,7 @@ const IncidentDelete: FunctionComponent<
       name="Incident Settings"
       cardProps={{
         title: "Incident Settings",
-        description:
-          "Manage settings for this incident here.",
+        description: "Manage settings for this incident here.",
       }}
       isEditable={true}
       editButtonText="Edit Settings"

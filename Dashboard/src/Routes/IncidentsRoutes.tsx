@@ -169,7 +169,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SETTINGS)}
           element={
             <Suspense fallback={Loader}>
