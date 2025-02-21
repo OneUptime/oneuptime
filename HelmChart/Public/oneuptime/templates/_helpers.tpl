@@ -56,6 +56,8 @@ Usage:
   value: {{ $.Values.analytics.host }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_SERVER_MONITOR_INGEST_HOSTNAME
+  value: {{ $.Release.Name }}-server-monitor-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ISOLATED_VM_HOSTNAME
   value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
@@ -95,6 +97,8 @@ Usage:
   value: {{ $.Values.port.app | squote }}
 - name: PROBE_INGEST_PORT
   value: {{ $.Values.port.probeIngest | squote }}
+- name: SERVER_MONITOR_INGEST_PORT
+  value: {{ $.Values.port.serverMonitorIngest | squote }}
 - name: OPEN_TELEMETRY_INGEST_PORT
   value: {{ $.Values.port.openTelemetryIngest | squote }}
 - name: INCOMING_REQUEST_INGEST_PORT
