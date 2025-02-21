@@ -42,6 +42,14 @@ const ScheduledMaintenanceEventViewOwner: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/ScheduledMaintenanceEvents/View/Owners");
 });
+
+
+const ScheduledMaintenanceEventsViewSettings: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/View/Settings");
+});
+
 const ScheduledMaintenanceEventViewStateTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -185,6 +193,23 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceEventsViewSettings
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS
                   ] as Route
                 }
               />

@@ -71,6 +71,12 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Custom Fields",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE, [
       "Project",
       "Scheduled Maintenance Events",

@@ -1,51 +1,48 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import Incident from "Common/Models/DatabaseModels/Incident";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FieldType from "Common/UI/Components/Types/FieldType";
 
-const IncidentDelete: FunctionComponent<
+const ScheduledMaintenanceDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <CardModelDetail
-      name="Root Cause"
+      name="Scheduled Maintenance Settings"
       cardProps={{
-        title: "Root Cause",
+        title: "Scheduled Maintenance Settings",
         description:
-          "Why did this incident happen? Here is the root cause of this incident.",
+          "Manage your scheduled maintenance event settings here.",
       }}
+      editButtonText="Edit Settings"
       isEditable={true}
-      editButtonText="Edit Root Cause"
       formFields={[
         {
           field: {
-            description: true,
+            isVisibleOnStatusPage: true,
           },
-          title: "Root Cause",
-
-          fieldType: FormFieldSchemaType.Markdown,
+          title: "Visible on Status Page",
+          fieldType: FormFieldSchemaType.Toggle,
           required: false,
-          placeholder: "Root Cause",
         },
       ]}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
-        modelType: Incident,
-        id: "model-detail-incident-root-cause",
+        modelType: ScheduledMaintenance,
+        id: "model-detail-incident-settings",
         fields: [
           {
             field: {
-              rootCause: true,
+              isVisibleOnStatusPage: true,
             },
-            title: "",
-            placeholder: "No root cause identified for this incident.",
-            fieldType: FieldType.Markdown,
+            title: "Visible on Status Page",
+            fieldType: FieldType.Boolean,
           },
         ],
         modelId: modelId,
@@ -54,4 +51,4 @@ const IncidentDelete: FunctionComponent<
   );
 };
 
-export default IncidentDelete;
+export default ScheduledMaintenanceDelete;

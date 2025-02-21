@@ -5,6 +5,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -20,6 +21,17 @@ const IncidentDelete: FunctionComponent<
           "Manage settings for this incident here.",
       }}
       isEditable={true}
+      editButtonText="Edit Settings"
+      formFields={[
+        {
+          field: {
+            isVisibleOnStatusPage: true,
+          },
+          title: "Visible on Status Page",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+      ]}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
         modelType: Incident,
