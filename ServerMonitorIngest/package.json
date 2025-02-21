@@ -1,5 +1,5 @@
 {
-    "name": "@oneuptime/probe-ingest",
+    "name": "@oneuptime/server-monitor-ingest",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
