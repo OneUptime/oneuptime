@@ -80,6 +80,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Incident",
       "Delete Incident",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_SETTINGS, [
+      "Project",
+      "Incidents",
+      "View Incident",
+      "Settings",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

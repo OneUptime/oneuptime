@@ -120,6 +120,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.TableCells}
         />
 
+<SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+
         <SideMenuItem
           link={{
             title: "Delete Incident",

@@ -1139,4 +1139,39 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should be visible on status page?",
+    description:
+      "Should this incident be visible on the status page?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: true
+  })
+  public isVisibleOnStatusPage?: boolean = undefined;
 }

@@ -35,6 +35,7 @@ import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import nodemailer, { Transporter } from "nodemailer";
 import Path from "path";
+import * as tls from "tls";
 
 export default class MailService {
   public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -204,13 +205,19 @@ export default class MailService {
       timeout?: number | undefined;
     },
   ): Transporter {
+    let tlsOptions: tls.ConnectionOptions | undefined = undefined;
+
+    if (!emailServer.secure) {
+      tlsOptions = {
+        rejectUnauthorized: false,
+      };
+    }
+
     const privateMailer: Transporter = nodemailer.createTransport({
       host: emailServer.host.toString(),
       port: emailServer.port.toNumber(),
       secure: emailServer.secure,
-      tls: {
-        rejectUnauthorized: false,
-      },
+      tls: tlsOptions,
       auth:
         emailServer.username && emailServer.password
           ? {

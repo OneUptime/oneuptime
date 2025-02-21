@@ -998,4 +998,38 @@ export default class ScheduledMaintenance extends BaseModel {
     nullable: true,
   })
   public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should be visible on status page?",
+    description:
+      "Should this incident be visible on the status page?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: true
+  })
+  public isVisibleOnStatusPage?: boolean = undefined;
 }

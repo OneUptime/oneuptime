@@ -148,6 +148,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.INCIDENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.INCIDENT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.INCIDENT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
   [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
@@ -552,6 +553,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_SETTINGS]
     }`,
   ),
 

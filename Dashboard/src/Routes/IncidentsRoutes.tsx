@@ -20,6 +20,13 @@ const Incidents: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
     return import("../Pages/Incidents/Incidents");
   },
 );
+
+const IncidentViewSettings: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Settings");
+});
+
 const IncidentView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Incidents/View/Index");
@@ -157,6 +164,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <IncidentViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SETTINGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewSettings
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route}
               />
             </Suspense>
           }
