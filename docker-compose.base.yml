@@ -42,6 +42,7 @@ x-common-variables: &common-variables
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_API_REFERENCE_HOSTNAME: api-reference
     SERVER_DOCS_HOSTNAME: docs
+    SERVER_SERVER_MONITOR_INGEST_HOSTNAME: server-monitor-ingest
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
@@ -60,6 +61,7 @@ x-common-variables: &common-variables
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     API_REFERENCE_PORT: ${API_REFERENCE_PORT}
     DOCS_PORT: ${DOCS_PORT}
+    SERVER_MONITOR_INGEST_PORT: ${SERVER_MONITOR_INGEST_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -471,6 +473,19 @@ services:
             <<: *common-server-variables
             PORT: ${PROBE_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
+    server-monitor-ingest:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-server-variables
+            PORT: ${SERVER_MONITOR_INGEST_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_SERVER_MONITOR_INGEST}
         logging:
             driver: "local"
             options:

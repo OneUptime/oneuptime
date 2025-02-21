@@ -1,6 +1,4 @@
-import MonitorAPI from "./API/Monitor";
-import ProbeIngest from "./API/Probe";
-import RegisterAPI from "./API/Register";
+import ServerMonitorAPI from "./API/ServerMonitor";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -11,16 +9,12 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
-import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = "probe-ingest";
+const APP_NAME: string = "server-monitor-ingest";
 
-// "/ingestor" is used here for backward compatibility because probes are already deployed with this path in client environments.
-app.use([`/${APP_NAME}`, "/ingestor", "/"], RegisterAPI);
-app.use([`/${APP_NAME}`, "/ingestor", "/"], MonitorAPI);
-app.use([`/${APP_NAME}`, "/ingestor", "/"], ProbeIngest);
+app.use([`/${APP_NAME}`, "/"], ServerMonitorAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {

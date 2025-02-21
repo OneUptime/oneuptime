@@ -113,6 +113,12 @@ services:
             file: ./docker-compose.base.yml
             service: probe-ingest
 
+    server-monitor-ingest:
+        image:  oneuptime/server-monitor-ingest:${APP_TAG}
+        extends:
+            file: ./docker-compose.base.yml
+            service: server-monitor-ingest
+
     open-telemetry-ingest:
         image:  oneuptime/open-telemetry-ingest:${APP_TAG}
         extends:

@@ -31,6 +31,8 @@ deployment:
   replicaCount: 1
   probeIngest:
     replicaCount:
+  serverMonitorIngest:
+    replicaCount:
   openTelemetryIngest: 
     replicaCount:
   fluentIngest:
@@ -221,6 +223,7 @@ probes:
 port:
   app: 3002
   probeIngest: 3400
+  serverMonitorIngest: 3404
   openTelemetryIngest: 3403
   fluentIngest: 3401
   incomingRequestIngest: 3402
@@ -470,6 +473,9 @@ incomingRequestIngest:
   disableTelemetryCollection: false
 
 isolatedVM:
+  disableTelemetryCollection: false
+
+serverMonitorIngest:
   disableTelemetryCollection: false
 
 

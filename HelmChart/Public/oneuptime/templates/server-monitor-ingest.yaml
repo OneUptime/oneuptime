@@ -1,0 +1,113 @@
+# OneUptime server-monitor-ingest Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    date: "{{ now | unixEpoch }}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
+  {{- if $.Values.deployment.serverMonitorIngest.replicaCount }}
+  replicas: {{ $.Values.deployment.serverMonitorIngest.replicaCount }}
+  {{- else }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
+        date: "{{ now | unixEpoch }}"
+        appname: oneuptime
+    spec:
+      volumes:
+        - name: greenlockrc
+          emptyDir:
+            sizeLimit: "1Gi"
+      {{- if $.Values.podSecurityContext }}
+      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.nodeSelector }}
+      nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "server-monitor-ingest" $.Values.image.tag }}
+          name: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
+          {{- if $.Values.startupProbe.enabled }}
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.serverMonitorIngest }}
+            periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- if $.Values.livenessProbe.enabled }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.port.serverMonitorIngest }}
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
+          {{- end }}
+          {{- if $.Values.readinessProbe.enabled }}
+          # Readyness Probe
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: {{ $.Values.port.serverMonitorIngest }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if $.Values.containerSecurityContext }}
+          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
+            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            - name: PORT
+              value: {{ $.Values.port.serverMonitorIngest | quote }} 
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.serverMonitorIngest.disableTelemetryCollection | quote }}
+          ports:
+            - containerPort: {{ $.Values.port.serverMonitorIngest }}
+              protocol: TCP
+              name: http
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+
+# OneUptime server-monitor-ingest Service
+{{- $serverMonitorIngestPorts := dict "port" $.Values.port.serverMonitorIngest -}}
+{{- $serverMonitorIngestServiceArgs := dict "ServiceName" "server-monitor-ingest" "Ports" $serverMonitorIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $serverMonitorIngestServiceArgs }}
+---
+
+# OneUptime server-monitor-ingest autoscaler
+{{- $serverMonitorIngestAutoScalerArgs := dict "ServiceName" "server-monitor-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $serverMonitorIngestAutoScalerArgs }}
+---
