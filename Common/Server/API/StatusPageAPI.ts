@@ -646,7 +646,7 @@ export default class StatusPageAPI extends BaseAPI<
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                      resource.statusPageGroupId.toString()) ||
+                    resource.statusPageGroupId.toString()) ||
                   (!resource.statusPageGroupId && !group)
                 ) {
                   // if its not a monitor or a monitor group, then continue. This should ideally not happen.
@@ -917,26 +917,29 @@ export default class StatusPageAPI extends BaseAPI<
                 return state.id!;
               });
 
-            activeIncidents = await IncidentService.findBy({
-              query: {
-                monitors: monitorsOnStatusPage as any,
-                currentIncidentStateId: QueryHelper.any(
-                  unresolvedIncidentStateIds,
-                ),
-                isVisibleOnStatusPage: true,
-                projectId: statusPage.projectId!,
-              },
-              select: select,
-              sort: {
-                createdAt: SortOrder.Ascending,
-              },
+            if (statusPage.showIncidentsOnStatusPage) {
 
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: {
-                isRoot: true,
-              },
-            });
+              activeIncidents = await IncidentService.findBy({
+                query: {
+                  monitors: monitorsOnStatusPage as any,
+                  currentIncidentStateId: QueryHelper.any(
+                    unresolvedIncidentStateIds,
+                  ),
+                  isVisibleOnStatusPage: true,
+                  projectId: statusPage.projectId!,
+                },
+                select: select,
+                sort: {
+                  createdAt: SortOrder.Ascending,
+                },
+
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              });
+            }
           }
 
           const incidentsOnStatusPage: Array<ObjectID> = activeIncidents.map(
@@ -1006,8 +1009,10 @@ export default class StatusPageAPI extends BaseAPI<
 
           const today: Date = OneUptimeDate.getCurrentDate();
 
-          const activeAnnouncements: Array<StatusPageAnnouncement> =
-            await StatusPageAnnouncementService.findBy({
+          let activeAnnouncements: Array<StatusPageAnnouncement> = [];
+
+          if (statusPage.showAnnouncementsOnStatusPage) {
+            activeAnnouncements = await StatusPageAnnouncementService.findBy({
               query: {
                 statusPages: objectId as any,
                 showAnnouncementAt: QueryHelper.lessThan(today),
@@ -1028,6 +1033,7 @@ export default class StatusPageAPI extends BaseAPI<
                 isRoot: true,
               },
             });
+          }
 
           // check if status page has active scheduled events.
 
@@ -1060,8 +1066,10 @@ export default class StatusPageAPI extends BaseAPI<
             };
           }
 
-          const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
+          let scheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+
+          if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+            scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
               query: {
                 currentScheduledMaintenanceState: {
                   isOngoingState: true,
@@ -1080,9 +1088,12 @@ export default class StatusPageAPI extends BaseAPI<
                 isRoot: true,
               },
             });
+          }
 
-          const futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
+          let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+
+          if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+            futureScheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
               query: {
                 currentScheduledMaintenanceState: {
                   isScheduledState: true,
@@ -1101,6 +1112,7 @@ export default class StatusPageAPI extends BaseAPI<
                 isRoot: true,
               },
             });
+          }
 
           futureScheduledMaintenanceEvents.forEach(
             (event: ScheduledMaintenance) => {
@@ -1523,7 +1535,7 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    if(!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+    if (!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       throw new BadDataException("Scheduled Maintenance Events are not enabled on this status page");
     }
 
@@ -1837,7 +1849,7 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    if(!statusPage.showAnnouncementsOnStatusPage) {
+    if (!statusPage.showAnnouncementsOnStatusPage) {
       throw new BadDataException("Announcements are not enabled for this status page.");
     }
 
@@ -2201,7 +2213,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
 
-    if(!statusPage.showIncidentsOnStatusPage) {
+    if (!statusPage.showIncidentsOnStatusPage) {
       throw new BadDataException("Incidents are not enabled on this status page.");
     }
 
@@ -2510,6 +2522,9 @@ export default class StatusPageAPI extends BaseAPI<
         defaultBarColor: true,
         showOverallUptimePercentOnStatusPage: true,
         overallUptimePercentPrecision: true,
+        showAnnouncementsOnStatusPage: true,
+        showIncidentsOnStatusPage: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
       },
       props: {
         isRoot: true,
