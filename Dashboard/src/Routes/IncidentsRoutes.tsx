@@ -240,12 +240,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_INTERNAL_NOTE)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_INTERNAL_NOTE,
+          )}
           element={
             <Suspense fallback={Loader}>
               <IncidentInternalNote
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route
+                }
               />
             </Suspense>
           }
@@ -291,13 +295,19 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS)}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS,
+          )}
           element={
             <Suspense fallback={Loader}>
               <IncidentViewOnCallPolicyExecutionLogs
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS] as Route}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+                  ] as Route
+                }
               />
             </Suspense>
           }

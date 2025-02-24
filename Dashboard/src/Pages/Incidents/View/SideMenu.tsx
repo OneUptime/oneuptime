@@ -90,13 +90,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "On Call Executions",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS] as Route,
+              RouteMap[
+                PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.Call}
         />
-
       </SideMenuSection>
 
       <SideMenuSection title="Incident Notes">

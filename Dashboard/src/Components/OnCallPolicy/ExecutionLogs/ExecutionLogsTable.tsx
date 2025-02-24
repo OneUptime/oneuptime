@@ -44,7 +44,6 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
     query.onCallDutyPolicyId = props.onCallDutyPolicyId.toString();
   }
 
-
   if (props.incidentId) {
     query.triggeredByIncidentId = props.incidentId;
   }

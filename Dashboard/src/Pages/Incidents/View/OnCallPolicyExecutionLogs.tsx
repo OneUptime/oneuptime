@@ -9,10 +9,7 @@ const IncidentDelete: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <ExecutionLogsTable 
-        incidentId={modelId} />
-  );
+  return <ExecutionLogsTable incidentId={modelId} />;
 };
 
 export default IncidentDelete;
