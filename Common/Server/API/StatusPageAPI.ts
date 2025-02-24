@@ -524,7 +524,7 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/overview/:statusPageId/uptime`,
+        ?.toString()}/uptime/:statusPageId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -588,17 +588,17 @@ export default class StatusPageAPI extends BaseAPI<
             statusPage.downtimeMonitorStatuses || [];
 
           type ResourceUptime = {
-            resourceId: ObjectID;
+            statusPageResourceId: ObjectID;
             uptimePercent: number | null;
-            resourceName: string;
+            statusPageResourceName: string;
             currentStatus: MonitorStatus | null;
           };
 
           type StatusPageGroupUptime = {
-            groupId: ObjectID | null;
+            statusPageGroupId: ObjectID | null;
             uptimePercent: number | null;
-            resourceUptime: Array<ResourceUptime>;
-            groupName: string | null;
+            statusPageResourceUptimes: Array<ResourceUptime>;
+            statusPageGroupName: string | null;
             currentStatus: MonitorStatus | null;
           };
 
@@ -611,13 +611,13 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageGroup: StatusPageGroup | null;
             }): StatusPageGroupUptime => {
               const groupUptime: StatusPageGroupUptime = {
-                groupId:
+                statusPageGroupId:
                   data && data.statusPageGroup
                     ? data.statusPageGroup?.id
                     : null,
-                uptimePercent: 0,
-                resourceUptime: [],
-                groupName: null,
+                uptimePercent: null,
+                statusPageResourceUptimes: [],
+                statusPageGroupName: data.statusPageGroup?.name || null,
                 currentStatus: null,
               };
 
@@ -640,9 +640,9 @@ export default class StatusPageAPI extends BaseAPI<
                   }
 
                   const resourceUptime: ResourceUptime = {
-                    resourceId: resource.id!,
+                    statusPageResourceId: resource.id!,
                     uptimePercent: null,
-                    resourceName:
+                    statusPageResourceName:
                       resource.displayName || resource.monitor?.name || "",
                     currentStatus: null,
                   };
@@ -667,6 +667,8 @@ export default class StatusPageAPI extends BaseAPI<
                       currentStatus.name = "Operational";
                       currentStatus.color = Green;
 
+                      resourceUptime.currentStatus = currentStatus;
+                    } else {
                       resourceUptime.currentStatus = currentStatus;
                     }
 
@@ -694,7 +696,7 @@ export default class StatusPageAPI extends BaseAPI<
                       resourceUptime.uptimePercent = uptimePercent;
                     }
 
-                    groupUptime.resourceUptime.push(resourceUptime);
+                    groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
 
                   // if its a monitor group, then...
@@ -715,6 +717,8 @@ export default class StatusPageAPI extends BaseAPI<
                       currentStatus.name = "Operational";
                       currentStatus.color = Green;
 
+                      resourceUptime.currentStatus = currentStatus;
+                    } else {
                       resourceUptime.currentStatus = currentStatus;
                     }
 
@@ -742,11 +746,43 @@ export default class StatusPageAPI extends BaseAPI<
                       resourceUptime.uptimePercent = uptimePercent;
                     }
 
-                    groupUptime.resourceUptime.push(resourceUptime);
+                    groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
                 }
+              }
 
-                return groupUptime;
+              if (group?.showUptimePercent) {
+                // calculate uptime percent for the group.
+                const avgUptimePercent: number =
+                  UptimeUtil.calculateAvgUptimePercentage({
+                    uptimePercentages: groupUptime.statusPageResourceUptimes
+                      .filter((resource: ResourceUptime) => {
+                        return resource.uptimePercent !== null;
+                      })
+                      .map((resource: ResourceUptime) => {
+                        return resource.uptimePercent || 0;
+                      }),
+                    precision:
+                      group.uptimePercentPrecision ||
+                      UptimePrecision.ONE_DECIMAL,
+                  });
+
+                groupUptime.uptimePercent = avgUptimePercent;
+              }
+
+              if (group?.showCurrentStatus) {
+                const currentStatusId: ObjectID | null =
+                  monitorGroupCurrentStatuses[group.id?.toString() || ""] ||
+                  null;
+
+                if (currentStatusId) {
+                  groupUptime.currentStatus =
+                    monitorStatuses.find((status: MonitorStatus) => {
+                      return (
+                        status.id?.toString() === currentStatusId.toString()
+                      );
+                    }) || null;
+                }
               }
 
               return groupUptime;
@@ -761,7 +797,13 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           return Response.sendJsonObjectResponse(req, res, {
-            uptime: groupUptimes,
+            statusPageResourceUptimes: [
+              ...getUptimeByStatusPageGroup({ statusPageGroup: null })
+                .statusPageResourceUptimes,
+            ],
+            groupUptimes: groupUptimes,
+            startDate: startDate,
+            endDate: endDate,
           });
         } catch (err) {
           next(err);

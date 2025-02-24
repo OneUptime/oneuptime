@@ -355,4 +355,30 @@ export default class UptimeUtil {
       precision,
     });
   }
+
+  public static calculateAvgUptimePercentage(data: {
+    uptimePercentages: Array<number>;
+    precision: UptimePrecision;
+  }): number {
+    // calculate percentage.
+
+    const { uptimePercentages, precision } = data;
+
+    if (uptimePercentages.length === 0) {
+      return 100;
+    }
+
+    let totalUptimePercentage: number = 0;
+
+    for (const uptimePercentage of uptimePercentages) {
+      totalUptimePercentage += uptimePercentage;
+    }
+
+    const percentage: number = totalUptimePercentage / uptimePercentages.length;
+
+    return this.roundToPrecision({
+      number: percentage,
+      precision,
+    });
+  }
 }

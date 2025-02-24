@@ -158,6 +158,104 @@ This is the response from the API:
 }
 ```
 
+#### Uptime API
+
+This API will fetch all the uptime of all the resources on status page.
+
+To get overall uptime of all the resources, you can make a POST request to the following endpoint:
+
+```bash
+curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
+```
+
+**Request Body (optional):**
+
+You can send startDate and endDate as request body. 
+
+```
+{
+    "startDate": "2021-09-01T00:00:00Z",
+    "endDate": "2021-09-30T23:59:59Z"
+}
+```
+
+These dates should not be more than 90 days apart.
+
+**Example Response:**
+
+This is the example response from the API: 
+
+```json
+{
+    "statusPageResourceUptimes": [
+        {
+            "statusPageResourceId": {
+                "_type": "ObjectID",
+                "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
+            },
+            "uptimePercent": 99.98,
+            "statusPageResourceName": "Status Page Resource Name",
+            "currentStatus": {
+                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+                "isPermissionIf": {},
+                "name": "Operational",
+                "color": {
+                    "_type": "Color",
+                    "value": "#2ab57d"
+                },
+                "isOperationalState": true,
+                "priority": 1
+            }
+        }
+    ],
+    "groupUptimes": [
+        {
+            "statusPageGroupId": {
+                "_type": "ObjectID",
+                "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
+            },
+            "uptimePercent": 99.98,
+            "statusPageResourceUptimes": [
+                {
+                    "statusPageResourceId": {
+                        "_type": "ObjectID",
+                        "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
+                    },
+                    "uptimePercent": 99.98,
+                    "statusPageResourceName": "dfg",
+                    "currentStatus": {
+                        "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+                        "isPermissionIf": {},
+                        "name": "Operational",
+                        "color": {
+                            "_type": "Color",
+                            "value": "#2ab57d"
+                        },
+                        "isOperationalState": true,
+                        "priority": 1
+                    }
+                }
+            ],
+            "statusPageGroupName": "Group Name",
+            "currentStatus": {
+                "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+                "isPermissionIf": {},
+                "name": "Operational",
+                "color": {
+                    "_type": "Color",
+                    "value": "#2ab57d"
+                },
+                "isOperationalState": true,
+                "priority": 1
+            }
+        }
+    ],
+    "startDate": "2021-09-01T00:00:00Z",
+    "endDate": "2021-09-30T23:59:59Z"
+}
+```
+
+
 ### Incident API
 
 This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a POST request to the following endpoint:
