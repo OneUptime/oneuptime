@@ -25,6 +25,9 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -274,6 +277,59 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             noItemsMessage="Looks like there are no items in this feed for this incident."
           />
         )}
+
+        {showOnCallPolicyModal && (
+          <ModelFormModal
+            modelType={OnCallDutyPolicyExecutionLog}
+            modalWidth={ModalWidth.Normal}
+            name={"execute-on-call-policy"}
+            title={"Execute On-Call Policy"}
+            description={
+              "Execute the on-call policy for this incident. This will notify the on-call team members and start the on-call process."
+            }
+            onClose={() => {
+              setShowOnCallPolicyModal(false);
+            }}
+            submitButtonText="Execute Policy"
+            onBeforeCreate={async (model: OnCallDutyPolicyExecutionLog) => {
+              model.triggeredByIncidentId = props.incidentId!;
+              model.userNotificationEventType = UserNotificationEventType.IncidentCreated; 
+              return model;
+            }}
+            onSuccess={() => {
+              setShowOnCallPolicyModal(false);
+              fetchItems().catch((err: unknown) => {
+                setError(API.getFriendlyMessage(err as Exception));
+              });
+            }}
+            formProps={{
+              name: "create-on-call-policy-log",
+              modelType: OnCallDutyPolicyExecutionLog,
+              id: "create-on-call-policy-log",
+              fields: [
+                {
+                  field: {
+                    onCallDutyPolicy: true,
+                  },
+                  title: "Select On-Call Policy",
+                  description: "Select the on-call policy to execute for this incident.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: OnCallDutyPolicy,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: true,
+                  placeholder: "Select On-Call Policy",
+                }
+              ],
+              formType: FormType.Create,
+            }}
+          />
+        )}
+
+
+
 
         {showPublicNoteModal && (
           <ModelFormModal

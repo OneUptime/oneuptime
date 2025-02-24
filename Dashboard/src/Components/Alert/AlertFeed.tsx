@@ -23,6 +23,9 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -34,6 +37,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
+  const [showOnCallPolicyModal, setShowOnCallPolicyModal] = React.useState<boolean>(false);
 
   const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
@@ -190,6 +194,14 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       }
       buttons={[
         {
+          title: "Execute On-Call Policy",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Call,
+          onClick: () => {
+            setShowOnCallPolicyModal(true);
+          },
+        },
+        {
           title: "Add Private Note",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Lock,
@@ -214,6 +226,56 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this alert."
+          />
+        )}
+
+        {showOnCallPolicyModal && (
+          <ModelFormModal
+            modelType={OnCallDutyPolicyExecutionLog}
+            modalWidth={ModalWidth.Normal}
+            name={"execute-on-call-policy"}
+            title={"Execute On-Call Policy"}
+            description={
+              "Execute the on-call policy for this alert. This will notify the on-call team members and start the on-call process."
+            }
+            onClose={() => {
+              setShowOnCallPolicyModal(false);
+            }}
+            submitButtonText="Execute Policy"
+            onBeforeCreate={async (model: OnCallDutyPolicyExecutionLog) => {
+              model.triggeredByAlertId = props.alertId!;
+              model.userNotificationEventType = UserNotificationEventType.AlertCreated;
+              return model;
+            }}
+            onSuccess={() => {
+              setShowOnCallPolicyModal(false);
+              fetchItems().catch((err: unknown) => {
+                setError(API.getFriendlyMessage(err as Exception));
+              });
+            }}
+            formProps={{
+              name: "create-on-call-policy-log",
+              modelType: OnCallDutyPolicyExecutionLog,
+              id: "create-on-call-policy-log",
+              fields: [
+                {
+                  field: {
+                    onCallDutyPolicy: true,
+                  },
+                  title: "Select On-Call Policy",
+                  description: "Select the on-call policy to execute for this alert.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: OnCallDutyPolicy,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: true,
+                  placeholder: "Select On-Call Policy",
+                }
+              ],
+              formType: FormType.Create,
+            }}
           />
         )}
 
