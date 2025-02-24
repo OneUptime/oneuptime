@@ -11,7 +11,7 @@ const IncidentDelete: FunctionComponent<
 
   return (
     <ExecutionLogsTable 
-        incidentId={modelId} />
+        alertId={modelId} />
   );
 };
 
