@@ -36,6 +36,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
+  const [showOnCallPolicyModal, setShowOnCallPolicyModal] = React.useState<boolean>(false);
 
   const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
@@ -231,6 +232,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       }
       buttons={[
         {
+          title: "Execute On-Call Policy",
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Call,
+          onClick: () => {
+            setShowOnCallPolicyModal(true);
+          },
+        },
+        {
           title: "Add Public Note",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Team,
@@ -265,6 +274,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             noItemsMessage="Looks like there are no items in this feed for this incident."
           />
         )}
+
         {showPublicNoteModal && (
           <ModelFormModal
             modelType={IncidentPublicNote}

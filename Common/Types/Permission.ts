@@ -504,6 +504,7 @@ enum Permission {
 
   ReadProjectOnCallDutyPolicyExecutionLogTimeline = "ReadProjectOnCallDutyPolicyExecutionLogTimeline",
   ReadProjectOnCallDutyPolicyExecutionLog = "ReadProjectOnCallDutyPolicyExecutionLog",
+  CreateProjectOnCallDutyPolicyExecutionLog = "CreateProjectOnCallDutyPolicyExecutionLog",
 
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicyEscalationRule = "CreateProjectOnCallDutyPolicyEscalationRule",
@@ -2201,7 +2202,15 @@ export class PermissionHelper {
         permission: Permission.ReadProjectOnCallDutyPolicyExecutionLog,
         title: "Read On-Call Duty Policy Execution Log",
         description:
-          "This permission can read teams in on-call duty execution log.",
+          "This permission can read on-call duty execution log.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+        title: "Create On-Call Duty Policy Execution Log",
+        description:
+          "This permission can create on-call duty execution log.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
