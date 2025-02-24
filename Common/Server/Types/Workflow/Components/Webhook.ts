@@ -1,4 +1,8 @@
-import { ExpressRequest, ExpressResponse, NextFunction } from "../../../Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
@@ -52,7 +56,7 @@ export default class WebhookTrigger extends TriggerCode {
         try {
           await this.initTrigger(req, res, props);
         } catch (e) {
-          next(e)
+          next(e);
         }
       },
     );
@@ -63,7 +67,7 @@ export default class WebhookTrigger extends TriggerCode {
         try {
           await this.initTrigger(req, res, props);
         } catch (e) {
-          next(e)
+          next(e);
         }
       },
     );
