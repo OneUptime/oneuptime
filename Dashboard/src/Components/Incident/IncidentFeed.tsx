@@ -39,7 +39,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-  const [showOnCallPolicyModal, setShowOnCallPolicyModal] = React.useState<boolean>(false);
+  const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
+    React.useState<boolean>(false);
 
   const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
@@ -293,7 +294,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             submitButtonText="Execute Policy"
             onBeforeCreate={async (model: OnCallDutyPolicyExecutionLog) => {
               model.triggeredByIncidentId = props.incidentId!;
-              model.userNotificationEventType = UserNotificationEventType.IncidentCreated; 
+              model.userNotificationEventType =
+                UserNotificationEventType.IncidentCreated;
               return model;
             }}
             onSuccess={() => {
@@ -312,7 +314,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                     onCallDutyPolicy: true,
                   },
                   title: "Select On-Call Policy",
-                  description: "Select the on-call policy to execute for this incident.",
+                  description:
+                    "Select the on-call policy to execute for this incident.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,
@@ -321,15 +324,12 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",
-                }
+                },
               ],
               formType: FormType.Create,
             }}
           />
         )}
-
-
-
 
         {showPublicNoteModal && (
           <ModelFormModal

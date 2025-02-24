@@ -37,7 +37,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-  const [showOnCallPolicyModal, setShowOnCallPolicyModal] = React.useState<boolean>(false);
+  const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
+    React.useState<boolean>(false);
 
   const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
@@ -244,7 +245,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             submitButtonText="Execute Policy"
             onBeforeCreate={async (model: OnCallDutyPolicyExecutionLog) => {
               model.triggeredByAlertId = props.alertId!;
-              model.userNotificationEventType = UserNotificationEventType.AlertCreated;
+              model.userNotificationEventType =
+                UserNotificationEventType.AlertCreated;
               return model;
             }}
             onSuccess={() => {
@@ -263,7 +265,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
                     onCallDutyPolicy: true,
                   },
                   title: "Select On-Call Policy",
-                  description: "Select the on-call policy to execute for this alert.",
+                  description:
+                    "Select the on-call policy to execute for this alert.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,
@@ -272,7 +275,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",
-                }
+                },
               ],
               formType: FormType.Create,
             }}

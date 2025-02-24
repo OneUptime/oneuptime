@@ -25,6 +25,8 @@ import AlertView from "../../../Components/Alert/Alert";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
 }
 
 const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
@@ -40,6 +42,15 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
   if (props.onCallDutyPolicyId) {
     query.onCallDutyPolicyId = props.onCallDutyPolicyId.toString();
+  }
+
+
+  if (props.incidentId) {
+    query.triggeredByIncidentId = props.incidentId;
+  }
+
+  if (props.alertId) {
+    query.triggeredByAlertId = props.alertId;
   }
 
   let columns: Columns<OnCallDutyPolicyExecutionLog> = [];

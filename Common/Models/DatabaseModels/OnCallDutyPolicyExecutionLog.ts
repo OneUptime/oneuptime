@@ -451,9 +451,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
 
-
-  
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -858,7 +855,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   public onCallPolicyExecutionRepeatCount?: number = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -879,8 +875,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Triggered by User",
-    description:
-      "Relation to User who triggered on-clal policy",
+    description: "Relation to User who triggered on-clal policy",
   })
   @ManyToOne(
     () => {
@@ -895,7 +890,6 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   )
   @JoinColumn({ name: "triggeredByUserId" })
   public triggeredByUser?: User = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -915,8 +909,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered by User ID",
-    description:
-      "User ID who triggered this on-call policy",
+    description: "User ID who triggered this on-call policy",
   })
   @Column({
     type: ColumnType.ObjectID,

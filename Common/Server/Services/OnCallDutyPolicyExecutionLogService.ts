@@ -33,11 +33,11 @@ export class Service extends DatabaseService<Model> {
       createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
     }
 
-    if(!createBy.data.statusMessage){
+    if (!createBy.data.statusMessage) {
       createBy.data.statusMessage = "Scheduled.";
     }
 
-    if(createBy.props.userId){
+    if (createBy.props.userId) {
       createBy.data.triggeredByUserId = createBy.props.userId;
     }
 
