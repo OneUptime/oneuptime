@@ -36,7 +36,9 @@ RunCron(
           workflowStatus: WorkflowStatus.Error,
           logs: `${
             stalledWorkflowLog.logs
-          } \n ${OneUptimeDate.getCurrentDateAsFormattedString()}: Workflow was not picked up by the runner and has timed out.`,
+          } \n ${OneUptimeDate.getCurrentDateAsFormattedString({
+            showSeconds: true,
+          })}: Workflow was not picked up by the runner and has timed out.`,
         },
         props: {
           isRoot: true,

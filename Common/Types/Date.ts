@@ -819,26 +819,37 @@ export default class OneUptimeDate {
     return moment(date).isBefore(endDate);
   }
 
-  public static getCurrentDateAsFormattedString(): string {
-    return this.getDateAsFormattedString(new Date());
+  public static getCurrentDateAsFormattedString(options?: {
+    onlyShowDate?: boolean;
+    showSeconds?: boolean;
+  }): string {
+    return this.getDateAsFormattedString(new Date(), options);
   }
+  
 
   public static getDateAsFormattedString(
     date: string | Date,
-    onlyShowDate?: boolean,
+    options?: {
+      onlyShowDate?: boolean;
+      showSeconds?: boolean;
+    }
   ): string {
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
 
-    if (onlyShowDate) {
+    if(options?.showSeconds){
+      formatstring = "MMM DD YYYY, HH:mm:ss";
+    }
+
+    if (options?.onlyShowDate) {
       formatstring = "MMM DD, YYYY";
     }
 
     return (
       moment(date).format(formatstring) +
       " " +
-      (onlyShowDate ? "" : this.getCurrentTimezoneString())
+      (options?.onlyShowDate ? "" : this.getCurrentTimezoneString())
     );
   }
 
