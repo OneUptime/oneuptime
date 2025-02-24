@@ -825,20 +825,19 @@ export default class OneUptimeDate {
   }): string {
     return this.getDateAsFormattedString(new Date(), options);
   }
-  
 
   public static getDateAsFormattedString(
     date: string | Date,
     options?: {
       onlyShowDate?: boolean;
       showSeconds?: boolean;
-    }
+    },
   ): string {
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
 
-    if(options?.showSeconds){
+    if (options?.showSeconds) {
       formatstring = "MMM DD YYYY, HH:mm:ss";
     }
 

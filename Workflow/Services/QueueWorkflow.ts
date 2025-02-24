@@ -102,8 +102,7 @@ export default class QueueWorkflow {
       runLog.logs =
         OneUptimeDate.getCurrentDateAsFormattedString({
           showSeconds: true,
-        }) +
-        ": Workflow cannot run because subscription is unpaid.";
+        }) + ": Workflow cannot run because subscription is unpaid.";
 
       await WorkflowLogService.create({
         data: runLog,
@@ -166,8 +165,7 @@ export default class QueueWorkflow {
       runLog.logs =
         OneUptimeDate.getCurrentDateAsFormattedString({
           showSeconds: true,
-        }) +
-        `: Workflow ${workflowId.toString()} Scheduled.`;
+        }) + `: Workflow ${workflowId.toString()} Scheduled.`;
 
       workflowLog = await WorkflowLogService.create({
         data: runLog,
