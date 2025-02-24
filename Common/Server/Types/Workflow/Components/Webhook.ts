@@ -1,4 +1,4 @@
-import { ExpressRequest, ExpressResponse } from "../../../Utils/Express";
+import { ExpressRequest, ExpressResponse, NextFunction } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
@@ -48,15 +48,23 @@ export default class WebhookTrigger extends TriggerCode {
   public override async init(props: InitProps): Promise<void> {
     props.router.get(
       `/trigger/:workflowId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        await this.initTrigger(req, res, props);
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.initTrigger(req, res, props);
+        } catch (e) {
+          next(e)
+        }
       },
     );
 
     props.router.post(
       `/trigger/:workflowId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        await this.initTrigger(req, res, props);
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.initTrigger(req, res, props);
+        } catch (e) {
+          next(e)
+        }
       },
     );
   }
