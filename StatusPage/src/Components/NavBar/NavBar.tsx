@@ -12,6 +12,9 @@ export interface ComponentProps {
   isPrivateStatusPage: boolean;
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
+  showIncidentsOnStatusPage: boolean;
+  showAnnouncementsOnStatusPage: boolean;
+  showScheduledMaintenanceEventsOnStatusPage: boolean;
 }
 
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
@@ -35,7 +38,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
       ></NavBarItem>
 
-      <NavBarItem
+      {props.showIncidentsOnStatusPage ? <NavBarItem
         id="incidents-nav-bar-item"
         title="Incidents"
         icon={IconProp.Alert}
@@ -45,9 +48,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
             : (RouteMap[PageMap.INCIDENT_LIST] as Route),
         )}
-      ></NavBarItem>
+      ></NavBarItem>: <></>}
 
-      <NavBarItem
+      {props.showAnnouncementsOnStatusPage ? <NavBarItem
         id="announcements-nav-bar-item"
         title="Announcements"
         icon={IconProp.Announcement}
@@ -57,9 +60,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
             : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
         )}
-      ></NavBarItem>
+      ></NavBarItem> : <></>}
 
-      <NavBarItem
+      {props.showScheduledMaintenanceEventsOnStatusPage ? <NavBarItem
         id="scheduled-events-nav-bar-item"
         title="Scheduled Events"
         icon={IconProp.Clock}
@@ -69,7 +72,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
         )}
-      ></NavBarItem>
+      ></NavBarItem> : <></>}
 
       {props.enableEmailSubscribers || props.enableSMSSubscribers ? (
         <NavBarItem

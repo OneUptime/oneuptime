@@ -335,6 +335,9 @@ export default class StatusPageAPI extends BaseAPI<
               type: true,
               name: true,
             },
+            showIncidentsOnStatusPage: true,
+            showAnnouncementsOnStatusPage: true,
+            showScheduledMaintenanceEventsOnStatusPage: true,
           };
 
           const hasEnabledSSO: PositiveNumber =
@@ -1509,6 +1512,7 @@ export default class StatusPageAPI extends BaseAPI<
         projectId: true,
         showScheduledEventHistoryInDays: true,
         showScheduledEventLabelsOnStatusPage: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
       },
       props: {
         isRoot: true,
@@ -1517,6 +1521,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage) {
       throw new BadDataException("Status Page not found");
+    }
+
+    if(!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+      throw new BadDataException("Scheduled Maintenance Events are not enabled on this status page");
     }
 
     // get monitors on status page.
@@ -1818,6 +1826,7 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         projectId: true,
         showAnnouncementHistoryInDays: true,
+        showAnnouncementsOnStatusPage: true,
       },
       props: {
         isRoot: true,
@@ -1826,6 +1835,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage) {
       throw new BadDataException("Status Page not found");
+    }
+
+    if(!statusPage.showAnnouncementsOnStatusPage) {
+      throw new BadDataException("Announcements are not enabled for this status page.");
     }
 
     // check if status page has active announcement.
@@ -2176,6 +2189,7 @@ export default class StatusPageAPI extends BaseAPI<
         projectId: true,
         showIncidentHistoryInDays: true,
         showIncidentLabelsOnStatusPage: true,
+        showIncidentsOnStatusPage: true,
       },
       props: {
         isRoot: true,
@@ -2184,6 +2198,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage) {
       throw new BadDataException("Status Page not found");
+    }
+
+
+    if(!statusPage.showIncidentsOnStatusPage) {
+      throw new BadDataException("Incidents are not enabled on this status page.");
     }
 
     // get monitors on status page.

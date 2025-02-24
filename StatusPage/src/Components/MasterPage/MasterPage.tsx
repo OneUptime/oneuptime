@@ -34,6 +34,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -57,6 +58,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   const [headerHtml, setHeaderHtml] = useState<null | string>(null);
   const [footerHtml, setFooterHTML] = useState<null | string>(null);
+
+
+  const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
 
   const [hidePoweredByOneUptimeBranding, setHidePoweredByOneUptimeBranding] =
     useState<boolean>(false);
@@ -170,11 +174,16 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       );
       setMasterPageData(response.data);
 
+      // set status page.
+      const statusPage: StatusPage = BaseModel.fromJSONObject(
+              (response.data["statusPage"] as JSONObject) || [],
+              StatusPage,
+            );
+
+      setStatusPage(statusPage);
+
       // setfavicon.
-      const favIcon: File | null = JSONFunctions.getJSONValueInPath(
-        response.data || {},
-        "statusPage.faviconFile",
-      ) as File | null;
+      const favIcon: File | undefined = statusPage.faviconFile; 
       if (favIcon && favIcon.file) {
         const link: any = document.createElement("link");
         link.rel = "icon";
@@ -183,36 +192,23 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       }
 
       // setcss.
-      const css: string | null = JSONFunctions.getJSONValueInPath(
-        response.data || {},
-        "statusPage.customCSS",
-      ) as string | null;
-
+      const css: string | null = statusPage.customCSS || null; 
       if (css) {
         const style: any = document.createElement("style");
         style.innerText = css;
         (document as any).getElementsByTagName("head")[0].appendChild(style);
       }
 
-      const headHtml: string | null = JSONFunctions.getJSONValueInPath(
-        response.data || {},
-        "statusPage.headerHTML",
-      ) as string | null;
+      const headHtml: string | null = statusPage.headerHTML || null;
 
       const hidePoweredByOneUptimeBranding: boolean | null =
-        JSONFunctions.getJSONValueInPath(
-          response.data || {},
-          "statusPage.hidePoweredByOneUptimeBranding",
-        ) as boolean | null;
+        statusPage.hidePoweredByOneUptimeBranding || false
 
       setHidePoweredByOneUptimeBranding(
         Boolean(hidePoweredByOneUptimeBranding),
       );
 
-      const footHTML: string | null = JSONFunctions.getJSONValueInPath(
-        response.data || {},
-        "statusPage.footerHTML",
-      ) as string | null;
+      const footHTML: string | null = statusPage.footerHTML || null;
 
       if (headHtml) {
         setHeaderHtml(headHtml);
@@ -314,6 +310,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             isPreview={true}
             enableEmailSubscribers={props.enableEmailSubscribers}
             enableSMSSubscribers={props.enableSMSSubscribers}
+            showIncidentsOnStatusPage={statusPage?.showIncidentsOnStatusPage || false}
+            showAnnouncementsOnStatusPage={statusPage?.showAnnouncementsOnStatusPage || false}
+            showScheduledMaintenanceEventsOnStatusPage={statusPage?.showScheduledMaintenanceEventsOnStatusPage || false}
           />
           {props.children}
           {!footerHtml ? (
