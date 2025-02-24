@@ -75,7 +75,9 @@ import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
-import MonitorService from "../Services/MonitorService";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import { Green } from "../../Types/BrandColors";
+import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -519,15 +521,13 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
-
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/overview/:statusPageId/uptime-percent`,
+        ?.toString()}/overview/:statusPageId/uptime`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-
           // This reosurce ID can be of a status page resource OR a status page group.
           const statusPageResourceId: ObjectID = new ObjectID(
             req.params["statusPageResourceId"] as string,
@@ -537,110 +537,238 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
-          if(!statusPageId || !statusPageResourceId){
+          if (!statusPageId || !statusPageResourceId) {
             throw new BadDataException("Status Page or Resource not found");
           }
 
-          // get start and end date from request body. 
+          if (
+            !(await this.service.hasReadAccess(
+              statusPageId,
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+              req,
+            ))
+          ) {
+            throw new NotAuthenticatedException(
+              "You are not authenticated to access this status page",
+            );
+          }
+
+          // get start and end date from request body.
           // if no end date is provided then it will be current date.
           // if no start date is provided then it will be 14 days ago from end date.
 
-          let startDate: Date = OneUptimeDate.getSomeDaysAgo(14)
+          let startDate: Date = OneUptimeDate.getSomeDaysAgo(14);
           let endDate: Date = OneUptimeDate.getCurrentDate();
 
-          if(req.body["startDate"]){
-            startDate = OneUptimeDate.fromString(req.body["startDate"] as string);
+          if (req.body["startDate"]) {
+            startDate = OneUptimeDate.fromString(
+              req.body["startDate"] as string,
+            );
           }
 
-          if(req.body["endDate"]){
+          if (req.body["endDate"]) {
             endDate = OneUptimeDate.fromString(req.body["endDate"] as string);
           }
 
-         const monitorStatusTimelines: Array<MonitorStatusTimeline> = []; 
-
-
-         // get monitor or group. 
-
-         // get status page group. 
-
-         const monitorsInResource: Array<ObjectID> = [];
-
-          const statusPageGroup: StatusPageGroup | null = await StatusPageGroupService.findOneBy({
-            query: {
-              _id: statusPageResourceId,
-              statusPageId: statusPageId,
-            },
-            select: {
-              _id: true,
-              statusPageId: true,
-            },
-            props: {
-              isRoot: true,
-            },
+          const {
+            monitorStatuses,
+            monitorGroupCurrentStatuses,
+            statusPageResources,
+            statusPage,
+            monitorStatusTimelines,
+            statusPageGroups,
+            monitorsInGroup,
+          } = await this.getStatusPageResourcesAndTimelines({
+            statusPageId: statusPageId,
+            startDateForMonitorTimeline: startDate,
+            endDateForMonitorTimeline: endDate,
           });
 
+          const downtimeMonitorStatuses: Array<MonitorStatus> =
+            statusPage.downtimeMonitorStatuses || [];
 
-          if(statusPageGroup){
-            // get all monitors in group. 
-            const groupResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-              query: {
-                statusPageGroupId: statusPageResourceId,
-              },
-              select: {
-                monitorId: true,
-                monitorGroupId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-            });
+          type ResourceUptime = {
+            resourceId: ObjectID;
+            uptimePercent: number | null;
+            resourceName: string;
+            currentStatus: MonitorStatus | null;
+          };
 
-            monitorsInGroup.push(...groupResources.map((resource: StatusPageResource) => {
-              return resource.monitorId!;
-            }).filter((id: ObjectID) => {
-              return Boolean(id);
-            }));
+          type StatusPageGroupUptime = {
+            groupId: ObjectID | null;
+            uptimePercent: number | null;
+            resourceUptime: Array<ResourceUptime>;
+            groupName: string | null;
+            currentStatus: MonitorStatus | null;
+          };
 
-            
+          type GetUptimeByStatusPageGroup = (data: {
+            statusPageGroup: StatusPageGroup | null;
+          }) => StatusPageGroupUptime;
+
+          const getUptimeByStatusPageGroup: GetUptimeByStatusPageGroup =
+            (data: {
+              statusPageGroup: StatusPageGroup | null;
+            }): StatusPageGroupUptime => {
+              const groupUptime: StatusPageGroupUptime = {
+                groupId:
+                  data && data.statusPageGroup
+                    ? data.statusPageGroup?.id
+                    : null,
+                uptimePercent: 0,
+                resourceUptime: [],
+                groupName: null,
+                currentStatus: null,
+              };
+
+              const group: StatusPageGroup | null = data.statusPageGroup;
+
+              for (const resource of statusPageResources) {
+                if (
+                  (resource.statusPageGroupId &&
+                    resource.statusPageGroupId.toString() &&
+                    group &&
+                    group._id?.toString() &&
+                    group._id?.toString() ===
+                      resource.statusPageGroupId.toString()) ||
+                  (!resource.statusPageGroupId && !group)
+                ) {
+                  // if its not a monitor or a monitor group, then continue. This should ideally not happen.
+
+                  if (!resource.monitor && !resource.monitorGroupId) {
+                    continue;
+                  }
+
+                  const resourceUptime: ResourceUptime = {
+                    resourceId: resource.id!,
+                    uptimePercent: null,
+                    resourceName:
+                      resource.displayName || resource.monitor?.name || "",
+                    currentStatus: null,
+                  };
+
+                  // if its a monitor
+
+                  const precision: UptimePrecision =
+                    resource.uptimePercentPrecision ||
+                    UptimePrecision.ONE_DECIMAL;
+
+                  if (resource.monitor) {
+                    let currentStatus: MonitorStatus | undefined =
+                      monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                          status._id?.toString() ===
+                          resource.monitor?.currentMonitorStatusId?.toString()
+                        );
+                      });
+
+                    if (!currentStatus) {
+                      currentStatus = new MonitorStatus();
+                      currentStatus.name = "Operational";
+                      currentStatus.color = Green;
+
+                      resourceUptime.currentStatus = currentStatus;
+                    }
+
+                    if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                      StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                        {
+                          statusPageResource: resource,
+                          monitorStatusTimelines: monitorStatusTimelines,
+                          monitorsInGroup: monitorsInGroup,
+                        },
+                      );
+
+                    if (resource.showUptimePercent) {
+                      const uptimePercent: number =
+                        UptimeUtil.calculateUptimePercentage(
+                          resourceStatusTimelines,
+                          precision,
+                          downtimeMonitorStatuses,
+                        );
+
+                      resourceUptime.uptimePercent = uptimePercent;
+                    }
+
+                    groupUptime.resourceUptime.push(resourceUptime);
+                  }
+
+                  // if its a monitor group, then...
+
+                  if (resource.monitorGroupId) {
+                    let currentStatus: MonitorStatus | undefined =
+                      monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                          status._id?.toString() ===
+                          monitorGroupCurrentStatuses[
+                            resource.monitorGroupId?.toString() || ""
+                          ]?.toString()
+                        );
+                      });
+
+                    if (!currentStatus) {
+                      currentStatus = new MonitorStatus();
+                      currentStatus.name = "Operational";
+                      currentStatus.color = Green;
+
+                      resourceUptime.currentStatus = currentStatus;
+                    }
+
+                    if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    if (resource.showUptimePercent) {
+                      const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                        StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                          {
+                            statusPageResource: resource,
+                            monitorStatusTimelines: monitorStatusTimelines,
+                            monitorsInGroup: monitorsInGroup,
+                          },
+                        );
+
+                      const uptimePercent: number =
+                        UptimeUtil.calculateUptimePercentage(
+                          resourceStatusTimelines,
+                          precision,
+                          downtimeMonitorStatuses,
+                        );
+
+                      resourceUptime.uptimePercent = uptimePercent;
+                    }
+
+                    groupUptime.resourceUptime.push(resourceUptime);
+                  }
+                }
+
+                return groupUptime;
+              }
+
+              return groupUptime;
+            };
+
+          const groupUptimes: Array<StatusPageGroupUptime> = [];
+
+          for (const group of statusPageGroups) {
+            groupUptimes.push(
+              getUptimeByStatusPageGroup({ statusPageGroup: group }),
+            );
           }
 
-         const monitor: Monitor | null = await MonitorService.findOneBy({
-            query: {
-              _id: statusPageResourceId,
-            },
-            select: {
-              _id: true,
-              name: true,
-              monitorGroupId: true,
-            },
-            props: {
-              isRoot: true,
-            },
+          return Response.sendJsonObjectResponse(req, res, {
+            uptime: groupUptimes,
           });
-
-
-         const uptimePercent: number | null = null; 
-          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
-            {
-              statusPageGroup: data.group,
-              monitorStatusTimelines: monitorStatusTimelines,
-              precision:
-                data.group.uptimePercentPrecision ||
-                UptimePrecision.ONE_DECIMAL,
-              downtimeMonitorStatuses:
-                statusPage?.downtimeMonitorStatuses || [],
-              statusPageResources: statusPageResources,
-              monitorsInGroup: monitorsInGroup,
-            },
-          );
         } catch (err) {
-
           next(err);
-
         }
-      });
+      },
+    );
+
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
@@ -664,231 +792,23 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
-              query: {
-                _id: objectId.toString(),
-              },
-              select: {
-                _id: true,
-                projectId: true,
-                isPublicStatusPage: true,
-                overviewPageDescription: true,
-                showIncidentLabelsOnStatusPage: true,
-                showScheduledEventLabelsOnStatusPage: true,
-                downtimeMonitorStatuses: {
-                  _id: true,
-                },
-                defaultBarColor: true,
-                showOverallUptimePercentOnStatusPage: true,
-                overallUptimePercentPrecision: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
+          const endDate: Date = OneUptimeDate.getCurrentDate();
 
-          if (!statusPage) {
-            throw new BadDataException("Status Page not found");
-          }
-
-          //get monitor statuses
-
-          const monitorStatuses: Array<MonitorStatus> =
-            await MonitorStatusService.findBy({
-              query: {
-                projectId: statusPage.projectId!,
-              },
-              select: {
-                name: true,
-                color: true,
-                priority: true,
-                isOperationalState: true,
-              },
-              sort: {
-                priority: SortOrder.Ascending,
-              },
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // get resource groups.
-
-          const groups: Array<StatusPageGroup> =
-            await StatusPageGroupService.findBy({
-              query: {
-                statusPageId: objectId,
-              },
-              select: {
-                name: true,
-                order: true,
-                description: true,
-                isExpandedByDefault: true,
-                showCurrentStatus: true,
-                showUptimePercent: true,
-                uptimePercentPrecision: true,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // get monitors on status page.
-          const statusPageResources: Array<StatusPageResource> =
-            await StatusPageResourceService.findBy({
-              query: {
-                statusPageId: objectId,
-              },
-              select: {
-                statusPageGroupId: true,
-                monitorId: true,
-                displayTooltip: true,
-                displayDescription: true,
-                displayName: true,
-                showStatusHistoryChart: true,
-                showCurrentStatus: true,
-                order: true,
-                monitor: {
-                  _id: true,
-                  currentMonitorStatusId: true,
-                },
-                monitorGroupId: true,
-                showUptimePercent: true,
-                uptimePercentPrecision: true,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          const monitorGroupIds: Array<ObjectID> = statusPageResources
-            .map((resource: StatusPageResource) => {
-              return resource.monitorGroupId!;
-            })
-            .filter((id: ObjectID) => {
-              return Boolean(id); // remove nulls
-            });
-
-          // get monitors in the group.
-          const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
-          const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
-
-          // get monitor status charts.
-          const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
-            .map((monitor: StatusPageResource) => {
-              return monitor.monitorId!;
-            })
-            .filter((id: ObjectID) => {
-              return Boolean(id); // remove nulls
-            });
-
-          const monitorsOnStatusPageForTimeline: Array<ObjectID> =
-            statusPageResources
-              .filter((monitor: StatusPageResource) => {
-                return (
-                  monitor.showStatusHistoryChart || monitor.showUptimePercent
-                );
-              })
-              .map((monitor: StatusPageResource) => {
-                return monitor.monitorId!;
-              })
-              .filter((id: ObjectID) => {
-                return Boolean(id); // remove nulls
-              });
-
-          for (const monitorGroupId of monitorGroupIds) {
-            // get current status of monitors in the group.
-
-            const currentStatus: MonitorStatus =
-              await MonitorGroupService.getCurrentStatus(monitorGroupId, {
-                isRoot: true,
-              });
-
-            monitorGroupCurrentStatuses[monitorGroupId.toString()] =
-              currentStatus.id!;
-
-            // get monitors in the group.
-
-            const groupResources: Array<MonitorGroupResource> =
-              await MonitorGroupResourceService.findBy({
-                query: {
-                  monitorGroupId: monitorGroupId,
-                },
-                select: {
-                  monitorId: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-              });
-
-            const monitorsInGroupIds: Array<ObjectID> = groupResources
-              .map((resource: MonitorGroupResource) => {
-                return resource.monitorId!;
-              })
-              .filter((id: ObjectID) => {
-                return Boolean(id); // remove nulls
-              });
-
-            const shouldShowTimelineForThisGroup: boolean = Boolean(
-              statusPageResources.find((resource: StatusPageResource) => {
-                return (
-                  resource.monitorGroupId?.toString() ===
-                    monitorGroupId.toString() &&
-                  (resource.showStatusHistoryChart ||
-                    resource.showUptimePercent)
-                );
-              }),
-            );
-
-            for (const monitorId of monitorsInGroupIds) {
-              if (!monitorId) {
-                continue;
-              }
-
-              if (
-                !monitorsOnStatusPage.find((item: ObjectID) => {
-                  return item.toString() === monitorId.toString();
-                })
-              ) {
-                monitorsOnStatusPage.push(monitorId);
-              }
-
-              // add this to the timeline event for this group.
-
-              if (
-                shouldShowTimelineForThisGroup &&
-                !monitorsOnStatusPageForTimeline.find((item: ObjectID) => {
-                  return item.toString() === monitorId.toString();
-                })
-              ) {
-                monitorsOnStatusPageForTimeline.push(monitorId);
-              }
-            }
-
-            monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
-          }
-
-          const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-            await StatusPageService.getMonitorStatusTimelineForStatusPage({
-              monitorIds: monitorsOnStatusPageForTimeline,
-              historyDays: 90,
-            });
+          const {
+            monitorStatuses,
+            monitorGroupCurrentStatuses,
+            statusPageResources,
+            statusPage,
+            monitorsOnStatusPage,
+            monitorStatusTimelines,
+            statusPageGroups,
+            monitorsInGroup,
+          } = await this.getStatusPageResourcesAndTimelines({
+            statusPageId: objectId,
+            startDateForMonitorTimeline: startDate,
+            endDateForMonitorTimeline: endDate,
+          });
 
           // check if status page has active incident.
           let activeIncidents: Array<Incident> = [];
@@ -1259,7 +1179,10 @@ export default class StatusPageAPI extends BaseAPI<
               monitorStatusTimelines,
               MonitorStatusTimeline,
             ),
-            resourceGroups: BaseModel.toJSONArray(groups, StatusPageGroup),
+            resourceGroups: BaseModel.toJSONArray(
+              statusPageGroups,
+              StatusPageGroup,
+            ),
             monitorStatuses: BaseModel.toJSONArray(
               monitorStatuses,
               MonitorStatus,
@@ -2475,5 +2398,255 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     return currentStatus;
+  }
+
+  public async getStatusPageResourcesAndTimelines(data: {
+    statusPageId: ObjectID;
+    startDateForMonitorTimeline: Date;
+    endDateForMonitorTimeline: Date;
+  }): Promise<{
+    statusPageResources: StatusPageResource[];
+    monitorStatuses: MonitorStatus[];
+    monitorStatusTimelines: MonitorStatusTimeline[];
+    monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    statusPageGroups: StatusPageGroup[];
+    statusPage: StatusPage;
+    monitorsOnStatusPage: ObjectID[];
+    monitorsInGroup: Dictionary<ObjectID[]>;
+  }> {
+    const objectId: ObjectID = data.statusPageId;
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: objectId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        isPublicStatusPage: true,
+        overviewPageDescription: true,
+        showIncidentLabelsOnStatusPage: true,
+        showScheduledEventLabelsOnStatusPage: true,
+        downtimeMonitorStatuses: {
+          _id: true,
+        },
+        defaultBarColor: true,
+        showOverallUptimePercentOnStatusPage: true,
+        overallUptimePercentPrecision: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    //get monitor statuses
+
+    const monitorStatuses: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          name: true,
+          color: true,
+          priority: true,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // get resource groups.
+
+    const groups: Array<StatusPageGroup> = await StatusPageGroupService.findBy({
+      query: {
+        statusPageId: objectId,
+      },
+      select: {
+        name: true,
+        order: true,
+        description: true,
+        isExpandedByDefault: true,
+        showCurrentStatus: true,
+        showUptimePercent: true,
+        uptimePercentPrecision: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageResourceService.findBy({
+        query: {
+          statusPageId: objectId,
+        },
+        select: {
+          statusPageGroupId: true,
+          monitorId: true,
+          displayTooltip: true,
+          displayDescription: true,
+          displayName: true,
+          showStatusHistoryChart: true,
+          showCurrentStatus: true,
+          order: true,
+          monitor: {
+            _id: true,
+            currentMonitorStatusId: true,
+          },
+          monitorGroupId: true,
+          showUptimePercent: true,
+          uptimePercentPrecision: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // get monitors in the group.
+    const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    const monitorsOnStatusPageForTimeline: Array<ObjectID> = statusPageResources
+      .filter((monitor: StatusPageResource) => {
+        return monitor.showStatusHistoryChart || monitor.showUptimePercent;
+      })
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get current status of monitors in the group.
+
+      const currentStatus: MonitorStatus =
+        await MonitorGroupService.getCurrentStatus(monitorGroupId, {
+          isRoot: true,
+        });
+
+      monitorGroupCurrentStatuses[monitorGroupId.toString()] =
+        currentStatus.id!;
+
+      // get monitors in the group.
+
+      const groupResources: Array<MonitorGroupResource> =
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroupId,
+          },
+          select: {
+            monitorId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+        });
+
+      const monitorsInGroupIds: Array<ObjectID> = groupResources
+        .map((resource: MonitorGroupResource) => {
+          return resource.monitorId!;
+        })
+        .filter((id: ObjectID) => {
+          return Boolean(id); // remove nulls
+        });
+
+      const shouldShowTimelineForThisGroup: boolean = Boolean(
+        statusPageResources.find((resource: StatusPageResource) => {
+          return (
+            resource.monitorGroupId?.toString() === monitorGroupId.toString() &&
+            (resource.showStatusHistoryChart || resource.showUptimePercent)
+          );
+        }),
+      );
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (!monitorId) {
+          continue;
+        }
+
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+
+        // add this to the timeline event for this group.
+
+        if (
+          shouldShowTimelineForThisGroup &&
+          !monitorsOnStatusPageForTimeline.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPageForTimeline.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
+    const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+      await StatusPageService.getMonitorStatusTimelineForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: data.startDateForMonitorTimeline,
+        endDate: data.endDateForMonitorTimeline,
+      });
+
+    // return everything.
+
+    return {
+      statusPageResources,
+      monitorStatuses,
+      monitorGroupCurrentStatuses,
+      statusPageGroups: groups,
+      monitorStatusTimelines,
+      statusPage,
+      monitorsOnStatusPage,
+      monitorsInGroup,
+    };
   }
 }

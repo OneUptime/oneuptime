@@ -380,12 +380,11 @@ export class Service extends DatabaseService<StatusPage> {
 
   public async getMonitorStatusTimelineForStatusPage(data: {
     monitorIds: Array<ObjectID>;
-    historyDays: number;
+    startDate: Date;
+    endDate: Date;
   }): Promise<Array<MonitorStatusTimeline>> {
-    const startDate: Date = OneUptimeDate.getSomeDaysAgo(
-      data.historyDays || 14,
-    );
-    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = data.startDate;
+    const endDate: Date = data.endDate;
 
     let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
 
@@ -756,9 +755,9 @@ export class Service extends DatabaseService<StatusPage> {
 
     const numberOfDays: number = data.historyDays || 14;
 
-    const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const endDate: Date = OneUptimeDate.getCurrentDate();
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(numberOfDays);
-    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(currentDate, true)})`;
+    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(endDate, true)})`;
 
     if (statusPageResources.length === 0) {
       return {
@@ -786,7 +785,8 @@ export class Service extends DatabaseService<StatusPage> {
     const timeline: Array<MonitorStatusTimeline> =
       await this.getMonitorStatusTimelineForStatusPage({
         monitorIds: monitors.monitorsOnStatusPage,
-        historyDays: data.historyDays,
+        startDate: startDate,
+        endDate: endDate,
       });
 
     const reportItems: Array<StatusPageReportItem> = [];
