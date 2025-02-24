@@ -38,41 +38,53 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
       ></NavBarItem>
 
-      {props.showIncidentsOnStatusPage ? <NavBarItem
-        id="incidents-nav-bar-item"
-        title="Incidents"
-        icon={IconProp.Alert}
-        exact={true}
-        route={RouteUtil.populateRouteParams(
-          props.isPreview
-            ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
-            : (RouteMap[PageMap.INCIDENT_LIST] as Route),
-        )}
-      ></NavBarItem>: <></>}
+      {props.showIncidentsOnStatusPage ? (
+        <NavBarItem
+          id="incidents-nav-bar-item"
+          title="Incidents"
+          icon={IconProp.Alert}
+          exact={true}
+          route={RouteUtil.populateRouteParams(
+            props.isPreview
+              ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+              : (RouteMap[PageMap.INCIDENT_LIST] as Route),
+          )}
+        ></NavBarItem>
+      ) : (
+        <></>
+      )}
 
-      {props.showAnnouncementsOnStatusPage ? <NavBarItem
-        id="announcements-nav-bar-item"
-        title="Announcements"
-        icon={IconProp.Announcement}
-        exact={true}
-        route={RouteUtil.populateRouteParams(
-          props.isPreview
-            ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
-            : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
-        )}
-      ></NavBarItem> : <></>}
+      {props.showAnnouncementsOnStatusPage ? (
+        <NavBarItem
+          id="announcements-nav-bar-item"
+          title="Announcements"
+          icon={IconProp.Announcement}
+          exact={true}
+          route={RouteUtil.populateRouteParams(
+            props.isPreview
+              ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
+              : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
+          )}
+        ></NavBarItem>
+      ) : (
+        <></>
+      )}
 
-      {props.showScheduledMaintenanceEventsOnStatusPage ? <NavBarItem
-        id="scheduled-events-nav-bar-item"
-        title="Scheduled Events"
-        icon={IconProp.Clock}
-        exact={true}
-        route={RouteUtil.populateRouteParams(
-          props.isPreview
-            ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
-            : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
-        )}
-      ></NavBarItem> : <></>}
+      {props.showScheduledMaintenanceEventsOnStatusPage ? (
+        <NavBarItem
+          id="scheduled-events-nav-bar-item"
+          title="Scheduled Events"
+          icon={IconProp.Clock}
+          exact={true}
+          route={RouteUtil.populateRouteParams(
+            props.isPreview
+              ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
+              : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
+          )}
+        ></NavBarItem>
+      ) : (
+        <></>
+      )}
 
       {props.enableEmailSubscribers || props.enableSMSSubscribers ? (
         <NavBarItem

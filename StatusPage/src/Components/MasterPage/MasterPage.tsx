@@ -59,7 +59,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   const [headerHtml, setHeaderHtml] = useState<null | string>(null);
   const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
-
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
 
   const [hidePoweredByOneUptimeBranding, setHidePoweredByOneUptimeBranding] =
@@ -176,14 +175,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       // set status page.
       const statusPage: StatusPage = BaseModel.fromJSONObject(
-              (response.data["statusPage"] as JSONObject) || [],
-              StatusPage,
-            );
+        (response.data["statusPage"] as JSONObject) || [],
+        StatusPage,
+      );
 
       setStatusPage(statusPage);
 
       // setfavicon.
-      const favIcon: File | undefined = statusPage.faviconFile; 
+      const favIcon: File | undefined = statusPage.faviconFile;
       if (favIcon && favIcon.file) {
         const link: any = document.createElement("link");
         link.rel = "icon";
@@ -192,7 +191,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       }
 
       // setcss.
-      const css: string | null = statusPage.customCSS || null; 
+      const css: string | null = statusPage.customCSS || null;
       if (css) {
         const style: any = document.createElement("style");
         style.innerText = css;
@@ -202,7 +201,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       const headHtml: string | null = statusPage.headerHTML || null;
 
       const hidePoweredByOneUptimeBranding: boolean | null =
-        statusPage.hidePoweredByOneUptimeBranding || false
+        statusPage.hidePoweredByOneUptimeBranding || false;
 
       setHidePoweredByOneUptimeBranding(
         Boolean(hidePoweredByOneUptimeBranding),
@@ -310,9 +309,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             isPreview={true}
             enableEmailSubscribers={props.enableEmailSubscribers}
             enableSMSSubscribers={props.enableSMSSubscribers}
-            showIncidentsOnStatusPage={statusPage?.showIncidentsOnStatusPage || false}
-            showAnnouncementsOnStatusPage={statusPage?.showAnnouncementsOnStatusPage || false}
-            showScheduledMaintenanceEventsOnStatusPage={statusPage?.showScheduledMaintenanceEventsOnStatusPage || false}
+            showIncidentsOnStatusPage={
+              statusPage?.showIncidentsOnStatusPage || false
+            }
+            showAnnouncementsOnStatusPage={
+              statusPage?.showAnnouncementsOnStatusPage || false
+            }
+            showScheduledMaintenanceEventsOnStatusPage={
+              statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
+            }
           />
           {props.children}
           {!footerHtml ? (
