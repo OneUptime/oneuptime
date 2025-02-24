@@ -2007,7 +2007,6 @@ export default class StatusPage extends BaseModel {
   })
   public subscriberEmailNotificationFooterText?: string = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2037,7 +2036,7 @@ export default class StatusPage extends BaseModel {
   @Column({
     type: ColumnType.Boolean,
     default: true,
-    nullable: false
+    nullable: false,
   })
   @ColumnBillingAccessControl({
     read: PlanType.Free,
@@ -2045,7 +2044,6 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public showIncidentsOnStatusPage?: boolean = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -2076,7 +2074,7 @@ export default class StatusPage extends BaseModel {
   @Column({
     type: ColumnType.Boolean,
     default: true,
-    nullable: false
+    nullable: false,
   })
   @ColumnBillingAccessControl({
     read: PlanType.Free,
@@ -2084,7 +2082,6 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public showAnnouncementsOnStatusPage?: boolean = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -2115,7 +2112,7 @@ export default class StatusPage extends BaseModel {
   @Column({
     type: ColumnType.Boolean,
     default: true,
-    nullable: false
+    nullable: false,
   })
   @ColumnBillingAccessControl({
     read: PlanType.Free,
@@ -2123,5 +2120,4 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public showScheduledMaintenanceEventsOnStatusPage?: boolean = undefined;
-
 }

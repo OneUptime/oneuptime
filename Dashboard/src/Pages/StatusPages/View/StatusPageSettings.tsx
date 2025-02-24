@@ -25,6 +25,14 @@ const StatusPageDelete: FunctionComponent<
         formFields={[
           {
             field: {
+              showIncidentsOnStatusPage: true,
+            },
+            title: "Show Incidents",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               showIncidentHistoryInDays: true,
             },
             title: "Show Incident History (in days)",
@@ -46,6 +54,14 @@ const StatusPageDelete: FunctionComponent<
           modelType: StatusPage,
           id: "model-detail-status-page",
           fields: [
+            {
+              field: {
+                showIncidentsOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Incidents",
+              placeholder: "No",
+            },
             {
               field: {
                 showIncidentHistoryInDays: true,
@@ -77,6 +93,14 @@ const StatusPageDelete: FunctionComponent<
         formFields={[
           {
             field: {
+              showAnnouncementsOnStatusPage: true,
+            },
+            title: "Show Announcements",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               showAnnouncementHistoryInDays: true,
             },
             title: "Show Announcement History (in days)",
@@ -90,6 +114,14 @@ const StatusPageDelete: FunctionComponent<
           modelType: StatusPage,
           id: "model-detail-status-page",
           fields: [
+            {
+              field: {
+                showAnnouncementsOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Announcements",
+              placeholder: "No",
+            },
             {
               field: {
                 showAnnouncementHistoryInDays: true,
@@ -113,6 +145,14 @@ const StatusPageDelete: FunctionComponent<
         formFields={[
           {
             field: {
+              showScheduledMaintenanceEventsOnStatusPage: true,
+            },
+            title: "Show Scheduled Maintenance Events",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               showScheduledEventHistoryInDays: true,
             },
             title: "Show Scheduled Event History (in days)",
@@ -134,6 +174,14 @@ const StatusPageDelete: FunctionComponent<
           modelType: StatusPage,
           id: "model-detail-status-page",
           fields: [
+            {
+              field: {
+                showScheduledMaintenanceEventsOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Scheduled Maintenance Events",
+              placeholder: "No",
+            },
             {
               field: {
                 showScheduledEventHistoryInDays: true,
