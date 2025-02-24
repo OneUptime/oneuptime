@@ -570,6 +570,19 @@ export default class StatusPageAPI extends BaseAPI<
             endDate = OneUptimeDate.fromString(req.body["endDate"] as string);
           }
 
+          if (OneUptimeDate.isAfter(startDate, endDate)) {
+            throw new BadDataException("Start date cannot be after end date");
+          }
+
+          if (
+            OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) >
+            90
+          ) {
+            throw new BadDataException(
+              "You can only get uptime for 90 days. Please select a date range within 90 days.",
+            );
+          }
+
           const {
             monitorStatuses,
             monitorGroupCurrentStatuses,
@@ -771,18 +784,21 @@ export default class StatusPageAPI extends BaseAPI<
               }
 
               if (group?.showCurrentStatus) {
-                const currentStatusId: ObjectID | null =
-                  monitorGroupCurrentStatuses[group.id?.toString() || ""] ||
-                  null;
+                const currentStatuses: Array<MonitorStatus> =
+                  groupUptime.statusPageResourceUptimes
+                    .filter((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus !== null;
+                    })
+                    .map((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus!;
+                    });
 
-                if (currentStatusId) {
-                  groupUptime.currentStatus =
-                    monitorStatuses.find((status: MonitorStatus) => {
-                      return (
-                        status.id?.toString() === currentStatusId.toString()
-                      );
-                    }) || null;
-                }
+                const worstStatus: MonitorStatus | null =
+                  StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                    monitorStatuses: currentStatuses,
+                  });
+
+                groupUptime.currentStatus = worstStatus;
               }
 
               return groupUptime;

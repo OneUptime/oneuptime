@@ -9,6 +9,29 @@ import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import UptimeUtil from "../Uptime/UptimeUtil";
 
 export default class StatusPageResourceUptimeUtil {
+  public static getWorstMonitorStatus(data: {
+    monitorStatuses: Array<MonitorStatus>;
+  }): MonitorStatus {
+    let worstStatus: MonitorStatus = new MonitorStatus();
+    worstStatus.name = "Operational";
+    worstStatus.color = Green;
+
+    for (const status of data.monitorStatuses) {
+      if (
+        (worstStatus &&
+          worstStatus.priority &&
+          status.priority &&
+          status.priority > worstStatus.priority) ||
+        !worstStatus ||
+        !worstStatus.priority
+      ) {
+        worstStatus = status;
+      }
+    }
+
+    return worstStatus;
+  }
+
   public static getMonitorStatusTimelineForResource(data: {
     statusPageResource: StatusPageResource;
     monitorStatusTimelines: Array<MonitorStatusTimeline>;

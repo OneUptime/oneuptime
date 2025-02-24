@@ -179,7 +179,7 @@ You can send startDate and endDate as request body.
 }
 ```
 
-These dates should not be more than 90 days apart.
+These dates should not be more than 90 days apart. If you do not provide the dates, the API will return the uptime for the last 14 days.
 
 **Example Response:**
 
