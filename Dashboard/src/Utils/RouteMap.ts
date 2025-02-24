@@ -147,11 +147,12 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
   [PageMap.INCIDENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.INCIDENT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
-  [PageMap.INCIDENT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
-  [PageMap.INCIDENT_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
+  [PageMap.INCIDENT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+  [PageMap.INCIDENT_VIEW_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
@@ -159,12 +160,13 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.ALERT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
   [PageMap.ALERT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.ALERT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.ALERT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
   [PageMap.ALERT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
   [PageMap.ALERT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
-  [PageMap.ALERT_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
+  [PageMap.ALERT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
 };
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
@@ -440,6 +442,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]
+    }`,
+  ),
+
   [PageMap.ALERT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW_DELETE]
@@ -470,9 +478,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERT_INTERNAL_NOTE]: new Route(
+  [PageMap.ALERT_VIEW_INTERNAL_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERT_INTERNAL_NOTE]
+      AlertsRoutePath[PageMap.ALERT_VIEW_INTERNAL_NOTE]
     }`,
   ),
 
@@ -551,6 +559,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]
+    }`,
+  ),
+
   [PageMap.INCIDENT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_DELETE]
@@ -569,15 +583,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
+  [PageMap.INCIDENT_VIEW_INTERNAL_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENT_INTERNAL_NOTE]
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_INTERNAL_NOTE]
     }`,
   ),
 
-  [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
+  [PageMap.INCIDENT_VIEW_PUBLIC_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENT_PUBLIC_NOTE]
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_PUBLIC_NOTE]
     }`,
   ),
 

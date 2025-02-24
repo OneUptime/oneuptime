@@ -24,6 +24,14 @@ const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
     return import("../Pages/Alerts/View/Index");
   },
 );
+
+
+const AlertOnCallPolicyExecutionLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
+  () => {
+    return import("../Pages/Alerts/View/OnCallPolicyExecutionLogs");
+  },
+);
+
 const AlertViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Alerts/View/Delete");
@@ -178,12 +186,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ALERT_INTERNAL_NOTE)}
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_INTERNAL_NOTE)}
           element={
             <Suspense fallback={Loader}>
               <AlertInternalNote
                 {...props}
-                pageRoute={RouteMap[PageMap.ALERT_INTERNAL_NOTE] as Route}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route}
               />
             </Suspense>
           }
@@ -208,6 +216,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               <AlertViewOwner
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertOnCallPolicyExecutionLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS] as Route}
               />
             </Suspense>
           }

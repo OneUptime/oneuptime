@@ -27,6 +27,12 @@ const IncidentViewSettings: LazyExoticComponent<
   return import("../Pages/Incidents/View/Settings");
 });
 
+const IncidentViewOnCallPolicyExecutionLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/OnCallPolicyExecutionLogs");
+});
+
 const IncidentView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Incidents/View/Index");
@@ -234,12 +240,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_INTERNAL_NOTE)}
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_INTERNAL_NOTE)}
           element={
             <Suspense fallback={Loader}>
               <IncidentInternalNote
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route}
               />
             </Suspense>
           }
@@ -262,12 +268,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_PUBLIC_NOTE)}
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_PUBLIC_NOTE)}
           element={
             <Suspense fallback={Loader}>
               <IncidentPublicNote
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUBLIC_NOTE] as Route}
               />
             </Suspense>
           }
@@ -280,6 +286,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <IncidentViewOwner
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewOnCallPolicyExecutionLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS] as Route}
               />
             </Suspense>
           }

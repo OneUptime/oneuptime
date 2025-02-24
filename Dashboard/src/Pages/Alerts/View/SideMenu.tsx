@@ -85,12 +85,26 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="On Call">
+      <SideMenuItem
+          link={{
+            title: "On Call Executions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Call}
+        />
+
+      </SideMenuSection>
+
       <SideMenuSection title="Alert Notes">
         <SideMenuItem
           link={{
             title: "Private Notes",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_INTERNAL_NOTE] as Route,
+              RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route,
               { modelId: props.modelId },
             ),
           }}
