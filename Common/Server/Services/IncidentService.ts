@@ -475,31 +475,31 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
       }
     }
 
-    // // send message to workspaces - slack, teams,   etc.
-    // const createdChannels: {
-    //   channelsCreated: Array<WorkspaceChannel>;
-    // } | null = await this.notifyWorkspaceOnIncidentCreate({
-    //   projectId: createdItem.projectId,
-    //   incidentId: createdItem.id!,
-    //   incidentNumber: createdItem.incidentNumber!,
-    // });
+    // send message to workspaces - slack, teams,   etc.
+    const createdChannels: {
+      channelsCreated: Array<WorkspaceChannel>;
+    } | null = await this.notifyWorkspaceOnIncidentCreate({
+      projectId: createdItem.projectId,
+      incidentId: createdItem.id!,
+      incidentNumber: createdItem.incidentNumber!,
+    });
 
-    // if (
-    //   createdChannels &&
-    //   createdChannels.channelsCreated &&
-    //   createdChannels.channelsCreated.length > 0
-    // ) {
-    //   // update incident with these channels.
-    //   await this.updateOneById({
-    //     id: createdItem.id!,
-    //     data: {
-    //       postUpdatesToWorkspaceChannels: createdChannels.channelsCreated,
-    //     },
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
-    // }
+    if (
+      createdChannels &&
+      createdChannels.channelsCreated &&
+      createdChannels.channelsCreated.length > 0
+    ) {
+      // update incident with these channels.
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: createdChannels.channelsCreated,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
