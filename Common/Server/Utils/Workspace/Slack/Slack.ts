@@ -129,6 +129,13 @@ export default class SlackUtil extends WorkspaceBase {
       throw response;
     }
 
+    // check for ok response
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
     if (
       !((response.jsonData as JSONObject)?.["channel"] as JSONObject)?.["name"]
     ) {
@@ -172,6 +179,13 @@ export default class SlackUtil extends WorkspaceBase {
       logger.error("Error response from Slack API:");
       logger.error(response);
       throw response;
+    }
+
+    // check for ok response
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
     }
 
     const channels: Dictionary<WorkspaceChannel> = {};
@@ -314,6 +328,13 @@ export default class SlackUtil extends WorkspaceBase {
       logger.error("Error response from Slack API:");
       logger.error(response);
       throw response;
+    }
+
+    // check for ok response
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
     }
 
     if (
