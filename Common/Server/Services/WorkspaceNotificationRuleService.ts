@@ -281,6 +281,9 @@ export class Service extends DatabaseService<Model> {
     channelNameSiffix: string;
     notificationEventType: NotificationRuleEventType;
   }): Promise<Array<WorkspaceChannel>> {
+    logger.debug("createChannelsBasedOnRules called with data:");
+    logger.debug(data);
+
     const createdWorkspaceChannels: Array<WorkspaceChannel> = [];
     const createdChannelNames: Array<string> = [];
 
@@ -291,17 +294,21 @@ export class Service extends DatabaseService<Model> {
         notificationEventType: data.notificationEventType,
       });
 
+    logger.debug("New channel names to be created:");
+    logger.debug(newChannelNames);
+
     if (!newChannelNames || newChannelNames.length === 0) {
+      logger.debug("No new channel names found. Returning empty array.");
       return [];
     }
 
     for (const newChannelName of newChannelNames) {
-      // if already created then skip it.
       if (createdChannelNames.includes(newChannelName)) {
+        logger.debug(`Channel name ${newChannelName} already created. Skipping.`);
         continue;
       }
 
-      // create channel.
+      logger.debug(`Creating new channel with name: ${newChannelName}`);
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
           data.workspaceType,
@@ -310,10 +317,15 @@ export class Service extends DatabaseService<Model> {
           channelName: newChannelName,
         });
 
-      createdChannelNames.push(channel.name);
+      logger.debug("Channel created:");
+      logger.debug(channel);
 
+      createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(channel);
     }
+
+    logger.debug("Returning created workspace channels:");
+    logger.debug(createdWorkspaceChannels);
 
     return createdWorkspaceChannels;
   }
@@ -321,6 +333,9 @@ export class Service extends DatabaseService<Model> {
   public async getUsersIdsToInviteToChannel(data: {
     notificationRules: Array<CreateChannelNotificationRule>;
   }): Promise<Array<ObjectID>> {
+    logger.debug("getUsersIdsToInviteToChannel called with data:");
+    logger.debug(data);
+
     const inviteUserIds: Array<ObjectID> = [];
 
     for (const notificationRule of data.notificationRules) {
@@ -333,6 +348,9 @@ export class Service extends DatabaseService<Model> {
         ) {
           const userIds: Array<ObjectID> =
             workspaceRules.inviteUsersToNewChannel || [];
+
+          logger.debug("User IDs to invite from rule:");
+          logger.debug(userIds);
 
           for (const userId of userIds) {
             if (
@@ -356,8 +374,14 @@ export class Service extends DatabaseService<Model> {
             return new ObjectID(teamId.toString());
           });
 
+          logger.debug("Team IDs to invite from rule:");
+          logger.debug(teamIds);
+
           const usersInTeam: Array<User> =
             await TeamMemberService.getUsersInTeams(teamIds);
+
+          logger.debug("Users in teams:");
+          logger.debug(usersInTeam);
 
           for (const user of usersInTeam) {
             if (
@@ -375,12 +399,18 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    logger.debug("Final list of user IDs to invite:");
+    logger.debug(inviteUserIds);
+
     return inviteUserIds;
   }
 
   public getExistingChannelNamesFromNotificationRules(data: {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
+    logger.debug("getExistingChannelNamesFromNotificationRules called with data:");
+    logger.debug(data);
+
     const channelNames: Array<string> = [];
 
     for (const notificationRule of data.notificationRules) {
@@ -390,19 +420,24 @@ export class Service extends DatabaseService<Model> {
         const existingChannelNames: Array<string> =
           workspaceRules.existingChannelNames.split(",");
 
+        logger.debug("Existing channel names from rule:");
+        logger.debug(existingChannelNames);
+
         for (const channelName of existingChannelNames) {
           if (!channelName) {
-            // if channel name is empty then skip it.
+            logger.debug("Empty channel name found. Skipping.");
             continue;
           }
 
           if (!channelNames.includes(channelName)) {
-            // if channel name is not already added then add it.
             channelNames.push(channelName);
           }
         }
       }
     }
+
+    logger.debug("Final list of existing channel names:");
+    logger.debug(channelNames);
 
     return channelNames;
   }
@@ -412,10 +447,16 @@ export class Service extends DatabaseService<Model> {
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNameSiffix: string;
   }): Array<string> {
+    logger.debug("getNewChannelNamesFromNotificationRules called with data:");
+    logger.debug(data);
+
     const channelNames: Array<string> = [];
 
     for (const notificationRule of data.notificationRules) {
       const workspaceRules: CreateChannelNotificationRule = notificationRule;
+
+      logger.debug("Processing notification rule:");
+      logger.debug(workspaceRules);
 
       if (
         workspaceRules.shouldCreateNewChannel &&
@@ -425,15 +466,27 @@ export class Service extends DatabaseService<Model> {
           workspaceRules.newChannelTemplateName ||
           `oneuptime-${data.notificationEventType.toLowerCase()}-`;
 
+        logger.debug("New channel template name:");
+        logger.debug(newChannelName);
+
         // add suffix and then check if it is already added or not.
         const channelName: string = newChannelName + data.channelNameSiffix;
+
+        logger.debug("Final channel name with suffix:");
+        logger.debug(channelName);
 
         if (!channelNames.includes(channelName)) {
           // if channel name is not already added then add it.
           channelNames.push(channelName);
+          logger.debug(`Channel name ${channelName} added to the list.`);
+        } else {
+          logger.debug(`Channel name ${channelName} already exists in the list. Skipping.`);
         }
       }
     }
+
+    logger.debug("Final list of new channel names:");
+    logger.debug(channelNames);
 
     return channelNames;
   }
@@ -443,7 +496,10 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
   }): Promise<Array<Model>> {
-    return await this.findBy({
+    logger.debug("getNotificationRules called with data:");
+    logger.debug(data);
+
+    const notificationRules: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
         workspaceType: data.workspaceType,
@@ -458,6 +514,11 @@ export class Service extends DatabaseService<Model> {
       skip: 0,
       limit: LIMIT_PER_PROJECT,
     });
+
+    logger.debug("Notification rules retrieved:");
+    logger.debug(notificationRules);
+
+    return notificationRules;
   }
 
   private async getValuesBasedOnNotificationFor(data: {
@@ -468,7 +529,13 @@ export class Service extends DatabaseService<Model> {
     | Array<string>
     | undefined;
   }> {
+    logger.debug("getValuesBasedOnNotificationFor called with data:");
+    logger.debug(data);
+
     if (data.notificationFor.incidentId) {
+      logger.debug("Fetching incident details for incident ID:");
+      logger.debug(data.notificationFor.incidentId);
+
       const incident: Incident | null = await IncidentService.findOneById({
         id: data.notificationFor.incidentId,
         select: {
@@ -485,8 +552,13 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (!incident) {
+        logger.debug("Incident not found for ID:");
+        logger.debug(data.notificationFor.incidentId);
         throw new BadDataException("Incident ID not found");
       }
+
+      logger.debug("Incident details retrieved:");
+      logger.debug(incident);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
@@ -495,6 +567,9 @@ export class Service extends DatabaseService<Model> {
               return monitor.id!;
             }) || [],
         });
+
+      logger.debug("Monitor labels retrieved:");
+      logger.debug(monitorLabels);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -534,6 +609,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (data.notificationFor.alertId) {
+      logger.debug("Fetching alert details for alert ID:");
+      logger.debug(data.notificationFor.alertId);
+
       const alert: Alert | null = await AlertService.findOneById({
         id: data.notificationFor.alertId,
         select: {
@@ -550,13 +628,21 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (!alert) {
+        logger.debug("Alert not found for ID:");
+        logger.debug(data.notificationFor.alertId);
         throw new BadDataException("Alert ID not found");
       }
+
+      logger.debug("Alert details retrieved:");
+      logger.debug(alert);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
           monitorIds: alert?.monitor?.id ? [alert?.monitor?.id] : [],
         });
+
+      logger.debug("Monitor labels retrieved:");
+      logger.debug(monitorLabels);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -595,6 +681,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (data.notificationFor.scheduledMaintenanceId) {
+      logger.debug("Fetching scheduled maintenance details for ID:");
+      logger.debug(data.notificationFor.scheduledMaintenanceId);
+
       const scheduledMaintenance: ScheduledMaintenance | null =
         await ScheduledMaintenanceService.findOneById({
           id: data.notificationFor.scheduledMaintenanceId,
@@ -611,8 +700,13 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (!scheduledMaintenance) {
+        logger.debug("Scheduled maintenance not found for ID:");
+        logger.debug(data.notificationFor.scheduledMaintenanceId);
         throw new BadDataException("Scheduled Maintenance ID not found");
       }
+
+      logger.debug("Scheduled maintenance details retrieved:");
+      logger.debug(scheduledMaintenance);
 
       const monitorLabels: Array<Label> =
         await MonitorService.getLabelsForMonitors({
@@ -623,6 +717,9 @@ export class Service extends DatabaseService<Model> {
               },
             ) || [],
         });
+
+      logger.debug("Monitor labels retrieved:");
+      logger.debug(monitorLabels);
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
@@ -663,6 +760,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (data.notificationFor.monitorStatusTimelineId) {
+      logger.debug("Fetching monitor status timeline details for ID:");
+      logger.debug(data.notificationFor.monitorStatusTimelineId);
+
       const monitorStatusTimeline: MonitorStatusTimeline | null =
         await MonitorStatusTimelineService.findOneById({
           id: data.notificationFor.monitorStatusTimelineId,
@@ -680,6 +780,8 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (!monitorStatusTimeline) {
+        logger.debug("Monitor status timeline not found for ID:");
+        logger.debug(data.notificationFor.monitorStatusTimelineId);
         throw new BadDataException("Monitor Status Timeline ID not found");
       }
 
