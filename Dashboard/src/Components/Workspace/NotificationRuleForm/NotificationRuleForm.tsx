@@ -163,7 +163,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         required: true,
         description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} number in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
         fieldType: FormFieldSchemaType.Text,
-        placeholder: `oneupitme-${props.eventType.toLowerCase()}-`,
+        placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
       },
       {
         field: {

@@ -176,7 +176,7 @@ export class Service extends DatabaseService<Model> {
         await this.getWorkspaceUserIdFromOneUptimeUserId({
           projectId: data.projectId,
           workspaceType: data.workspaceType,
-          oneupitmeUserId: userId,
+          oneuptimeUserId: userId,
         });
 
       if (workspaceUserId) {
@@ -198,14 +198,14 @@ export class Service extends DatabaseService<Model> {
   public async getWorkspaceUserIdFromOneUptimeUserId(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
-    oneupitmeUserId: ObjectID;
+    oneuptimeUserId: ObjectID;
   }): Promise<string | null> {
     const userAuth: WorkspaceUserAuthToken | null =
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
           projectId: data.projectId,
           workspaceType: data.workspaceType,
-          userId: data.oneupitmeUserId,
+          userId: data.oneuptimeUserId,
         },
         select: {
           workspaceUserId: true,
