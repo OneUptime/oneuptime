@@ -16,6 +16,45 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackUtil extends WorkspaceBase {
 
+  public static override async joinChannel(data: {
+    authToken: string;
+    channelId: string;
+  }): Promise<void> {
+    logger.debug("Joining channel with data:");
+    logger.debug(data);
+
+    // Join channel
+    const response = await API.post(
+      URL.fromString("https://slack.com/api/conversations.join"),
+      {
+        channel: data.channelId,
+      },
+      {
+        Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
+      },
+    ); 
+
+    logger.debug("Response from Slack API for joining channel:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
+    logger.debug("Channel joined successfully with data:");
+    logger.debug(data);
+
+  }
+
   public static override async inviteUserToChannelByChannelId(data: {
     authToken: string;
     channelId: string;
@@ -33,6 +72,7 @@ export default class SlackUtil extends WorkspaceBase {
         },
         {
           Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
         },
       );
 
@@ -69,9 +109,9 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const channelId: string = (
-      await this.getWorkspaceChannelFromChannelId({
+      await this.getWorkspaceChannelFromChannelName({
         authToken: data.authToken,
-        channelId: data.channelName,
+        channelName: data.channelName,
       })
     ).id;
 
@@ -128,6 +168,32 @@ export default class SlackUtil extends WorkspaceBase {
     return workspaceChannels;
   }
 
+
+  public static override async getWorkspaceChannelFromChannelName(data: {
+    authToken: string;
+    channelName: string;
+  }): Promise<WorkspaceChannel> {
+    logger.debug("Getting workspace channel ID from channel name with data:");
+    logger.debug(data);
+
+    const channels: Dictionary<WorkspaceChannel> = await this.getAllWorkspaceChannels({
+      authToken: data.authToken,
+    });
+
+    logger.debug("All workspace channels:");
+    logger.debug(channels);
+
+    if (!channels[data.channelName]) {
+      logger.error("Channel not found.");
+      throw new Error("Channel not found.");
+    }
+
+    logger.debug("Workspace channel ID obtained:");
+    logger.debug(channels[data.channelName]!.id);
+
+    return channels[data.channelName]!; 
+  }
+
   public static override async getWorkspaceChannelFromChannelId(data: {
     authToken: string;
     channelId: string;
@@ -136,13 +202,14 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get<JSONObject>(
+      await API.post<JSONObject>(
         URL.fromString("https://slack.com/api/conversations.info"),
         {
           channel: data.channelId,
         },
         {
           Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
         },
       );
 
@@ -190,11 +257,12 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get<JSONObject>(
+      await API.post<JSONObject>(
         URL.fromString("https://slack.com/api/conversations.list"),
         {},
         {
           Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
         },
       );
 
@@ -295,10 +363,9 @@ export default class SlackUtil extends WorkspaceBase {
 
         if(!isUserInChannel) {
           // add user to the channel 
-          await this.inviteUserToChannelByChannelName({
+          await this.joinChannel({
             authToken: data.authToken,
-            channelName: channelId,
-            workspaceUserId: data.userId,
+            channelId: channelId
           });
         }
 
@@ -307,7 +374,9 @@ export default class SlackUtil extends WorkspaceBase {
           channelId: channelId,
           blocks: blocks,
         });
+
         logger.debug(`Message sent to channel ID ${channelId} successfully.`);
+
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channelId}:`);
         logger.error(e);
@@ -321,7 +390,7 @@ export default class SlackUtil extends WorkspaceBase {
     blocks: Array<JSONObject>;
   }): Promise<void> {
     logger.debug("Sending payload blocks to channel with data:");
-    logger.debug(data);
+    logger.debug(JSON.stringify(data, null, 2));
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
@@ -332,6 +401,7 @@ export default class SlackUtil extends WorkspaceBase {
         },
         {
           Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/json",
         },
       );
 
@@ -368,6 +438,7 @@ export default class SlackUtil extends WorkspaceBase {
         },
         {
           Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
         },
       );
 
@@ -468,15 +539,21 @@ export default class SlackUtil extends WorkspaceBase {
     
     // check if the user is in the channel, return true if they are, false if they are not
 
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get<JSONObject>(
+    const requestBody: JSONObject = {
+      channel: data.channelId,
+      limit: 1000,
+    };
+
+    if(cursor) {
+      requestBody["cursor"] = cursor;
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post<JSONObject>(
       URL.fromString("https://slack.com/api/conversations.members"),
-      {
-        channel: data.channelId,
-        limit: 1000,
-        cursor: cursor,
-      },
+      requestBody,
       {
         Authorization: `Bearer ${data.authToken}`,
+        ['Content-Type']: "application/x-www-form-urlencoded",
       },
     );
 

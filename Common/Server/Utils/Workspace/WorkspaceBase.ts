@@ -21,6 +21,14 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
+
+  public static async joinChannel(_data: {
+    authToken: string;
+    channelId: string;
+  }): Promise<void> {
+    throw new NotImplementedException();
+  }
+
   public static async sendPayloadBlocksToChannel(_data: {
     authToken: string;
     channelId: string;
@@ -98,6 +106,13 @@ export default class WorkspaceBase {
   public static async getAllWorkspaceChannels(_data: {
     authToken: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
+    throw new NotImplementedException();
+  }
+
+  public static async getWorkspaceChannelFromChannelName(_data: {
+    authToken: string;
+    channelName: string;
+  }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }
 
