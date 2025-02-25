@@ -134,6 +134,15 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         title: `${props.workspaceType} Channel Template Name`,
         description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
         fieldType: FieldType.Text,
+        placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
+        showIf: (
+          formValue:
+            | IncidentNotificationRule
+            | AlertNotificationRule
+            | ScheduledMaintenanceNotificationRule,
+        ) => {
+          return formValue.shouldCreateNewChannel || false;
+        },
       },
       {
         key: "shouldInviteOwnersToNewChannel",
