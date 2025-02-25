@@ -113,12 +113,10 @@ export default class SlackUtil extends WorkspaceBase {
       await API.get<JSONObject>(
         URL.fromString("https://slack.com/api/conversations.info"),
         {
-          headers: {
-            Authorization: `Bearer ${data.authToken}`,
-          },
-          params: {
-            channel: data.channelId,
-          },
+          channel: data.channelId,
+        },
+        {
+          Authorization: `Bearer ${data.authToken}`,
         },
       );
 
@@ -161,10 +159,9 @@ export default class SlackUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>(
         URL.fromString("https://slack.com/api/conversations.list"),
+        {},
         {
-          headers: {
-            Authorization: `Bearer ${data.authToken}`,
-          },
+          Authorization: `Bearer ${data.authToken}`,
         },
       );
 
