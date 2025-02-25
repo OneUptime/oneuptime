@@ -45,11 +45,10 @@
         ],
         "scopes": {
             "user": [
-                "identity.email",
-                "identity.basic",
-                "email"
+                "users:read"
             ],
             "bot": [
+                "app_mentions:read",
                 "commands"
             ]
         }
