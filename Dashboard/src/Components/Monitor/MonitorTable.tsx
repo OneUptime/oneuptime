@@ -47,7 +47,9 @@ export interface ComponentProps {
 const MonitorsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let cardbuttons: Array<CardButtonSchema> = [];
+  let cardbuttons: Array<CardButtonSchema> = props.cardButtons
+    ? [...props.cardButtons]
+    : [];
 
   if (!props.disableCreate) {
     // then add a card button that takes to monitor create page
