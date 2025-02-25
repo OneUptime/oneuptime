@@ -31,6 +31,7 @@ import WorkspaceMessagePayload, {
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
+import logger from "../Utils/Logger";
 
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
@@ -53,12 +54,19 @@ export class Service extends DatabaseService<Model> {
   }): Promise<{
     channelsCreated: Array<WorkspaceChannel>;
   } | null> {
+
+    logger.debug("WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules");
+    logger.debug(data);
+
     const channelsCreated: Array<WorkspaceChannel> = [];
 
     const projectAuths: Array<WorkspaceProjectAuthToken> =
       await WorkspaceProjectAuthTokenService.getProjectAuths({
         projectId: data.projectId,
       });
+
+    logger.debug("projectAuths");
+    logger.debug(projectAuths);
 
     if (!projectAuths || projectAuths.length === 0) {
       // do nothing.
@@ -85,10 +93,15 @@ export class Service extends DatabaseService<Model> {
           notificationFor: data.notificationFor,
         });
 
+
+      logger.debug("notificationRules");
+      logger.debug(notificationRules);
+
       if (!notificationRules || notificationRules.length === 0) {
         return null;
       }
 
+      logger.debug("Creating channels based on rules");
       const createdWorkspaceChannels: Array<WorkspaceChannel> =
         await this.createChannelsBasedOnRules({
           projectOrUserAuthTokenForWorkspasce: authToken,
@@ -100,6 +113,10 @@ export class Service extends DatabaseService<Model> {
           notificationEventType: data.notificationRuleEventType,
         });
 
+      logger.debug("createdWorkspaceChannels");
+      logger.debug(createdWorkspaceChannels);
+
+      logger.debug("Inviting users and teams to channels based on rules");
       await this.inviteUsersAndTeamsToChannelsBasedOnRules({
         projectId: data.projectId,
         projectOrUserAuthTokenForWorkspasce: authToken,
@@ -114,6 +131,7 @@ export class Service extends DatabaseService<Model> {
         ),
       });
 
+      logger.debug("Getting existing channel names from notification rules");
       const existingChannelNames: Array<string> =
         this.getExistingChannelNamesFromNotificationRules({
           notificationRules: notificationRules.map((rule: Model) => {
@@ -121,13 +139,20 @@ export class Service extends DatabaseService<Model> {
           }),
         }) || [];
 
-      // add created channel names to existing channel names.
+      logger.debug("Existing channel names:");
+      logger.debug(existingChannelNames);
+
+      logger.debug("Adding created channel names to existing channel names");
       for (const channel of createdWorkspaceChannels) {
         if (!existingChannelNames.includes(channel.name)) {
           existingChannelNames.push(channel.name);
         }
       }
 
+      logger.debug("Final list of channel names to post messages to:");
+      logger.debug(existingChannelNames);
+
+      logger.debug("Posting messages to workspace channels");
       await this.postToWorkspaceChannels({
         projectOrUserAuthTokenForWorkspasce: authToken,
         workspaceType: workspaceType,
@@ -138,9 +163,13 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      logger.debug("Channels created:");
+      logger.debug(createdWorkspaceChannels);
+
       channelsCreated.push(...createdWorkspaceChannels);
     }
 
+    logger.debug("Returning created channels");
     return {
       channelsCreated: channelsCreated,
     };
@@ -151,10 +180,15 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     workspaceMessagePayload: WorkspaceMessagePayload;
   }): Promise<void> {
+    logger.debug("postToWorkspaceChannels called with data:");
+    logger.debug(data);
+
     await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
       workspaceMessagePayload: data.workspaceMessagePayload,
       authToken: data.projectOrUserAuthTokenForWorkspasce,
     });
+
+    logger.debug("Message posted to workspace channels successfully");
   }
 
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
@@ -164,10 +198,16 @@ export class Service extends DatabaseService<Model> {
     notificationRules: Array<CreateChannelNotificationRule>;
     channelNames: Array<string>;
   }): Promise<void> {
+    logger.debug("inviteUsersAndTeamsToChannelsBasedOnRules called with data:");
+    logger.debug(data);
+
     const inviteUserIds: Array<ObjectID> =
       await this.getUsersIdsToInviteToChannel({
         notificationRules: data.notificationRules,
       });
+
+    logger.debug("User IDs to invite:");
+    logger.debug(inviteUserIds);
 
     const workspaceUserIds: Array<string> = [];
 
@@ -184,6 +224,9 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    logger.debug("Workspace User IDs to invite:");
+    logger.debug(workspaceUserIds);
+
     await WorkspaceUtil.getWorkspaceTypeUtil(
       data.workspaceType,
     ).inviteUsersToChannels({
@@ -193,6 +236,8 @@ export class Service extends DatabaseService<Model> {
         workspaceUserIds: workspaceUserIds,
       },
     });
+
+    logger.debug("Users invited to channels successfully");
   }
 
   public async getWorkspaceUserIdFromOneUptimeUserId(data: {
@@ -200,6 +245,9 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     oneuptimeUserId: ObjectID;
   }): Promise<string | null> {
+    logger.debug("getWorkspaceUserIdFromOneUptimeUserId called with data:");
+    logger.debug(data);
+
     const userAuth: WorkspaceUserAuthToken | null =
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
@@ -216,8 +264,12 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (!userAuth) {
+      logger.debug("No userAuth found for given data");
       return null;
     }
+
+    logger.debug("Found userAuth:");
+    logger.debug(userAuth);
 
     return userAuth.workspaceUserId?.toString() || null;
   }
@@ -412,9 +464,9 @@ export class Service extends DatabaseService<Model> {
     notificationFor: NotificationFor;
   }): Promise<{
     [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
+    | string
+    | Array<string>
+    | undefined;
   }> {
     if (data.notificationFor.incidentId) {
       const incident: Incident | null = await IncidentService.findOneById({
@@ -684,9 +736,9 @@ export class Service extends DatabaseService<Model> {
 
     const values: {
       [key in NotificationRuleConditionCheckOn]:
-        | string
-        | Array<string>
-        | undefined;
+      | string
+      | Array<string>
+      | undefined;
     } = await this.getValuesBasedOnNotificationFor({
       notificationFor: data.notificationFor,
     });
