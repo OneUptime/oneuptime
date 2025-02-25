@@ -54,8 +54,9 @@ export class Service extends DatabaseService<Model> {
   }): Promise<{
     channelsCreated: Array<WorkspaceChannel>;
   } | null> {
-
-    logger.debug("WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules");
+    logger.debug(
+      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
+    );
     logger.debug(data);
 
     const channelsCreated: Array<WorkspaceChannel> = [];
@@ -92,7 +93,6 @@ export class Service extends DatabaseService<Model> {
           notificationRuleEventType: data.notificationRuleEventType,
           notificationFor: data.notificationFor,
         });
-
 
       logger.debug("notificationRules");
       logger.debug(notificationRules);
@@ -304,7 +304,9 @@ export class Service extends DatabaseService<Model> {
 
     for (const newChannelName of newChannelNames) {
       if (createdChannelNames.includes(newChannelName)) {
-        logger.debug(`Channel name ${newChannelName} already created. Skipping.`);
+        logger.debug(
+          `Channel name ${newChannelName} already created. Skipping.`,
+        );
         continue;
       }
 
@@ -408,7 +410,9 @@ export class Service extends DatabaseService<Model> {
   public getExistingChannelNamesFromNotificationRules(data: {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
-    logger.debug("getExistingChannelNamesFromNotificationRules called with data:");
+    logger.debug(
+      "getExistingChannelNamesFromNotificationRules called with data:",
+    );
     logger.debug(data);
 
     const channelNames: Array<string> = [];
@@ -480,7 +484,9 @@ export class Service extends DatabaseService<Model> {
           channelNames.push(channelName);
           logger.debug(`Channel name ${channelName} added to the list.`);
         } else {
-          logger.debug(`Channel name ${channelName} already exists in the list. Skipping.`);
+          logger.debug(
+            `Channel name ${channelName} already exists in the list. Skipping.`,
+          );
         }
       }
     }
@@ -525,9 +531,9 @@ export class Service extends DatabaseService<Model> {
     notificationFor: NotificationFor;
   }): Promise<{
     [key in NotificationRuleConditionCheckOn]:
-    | string
-    | Array<string>
-    | undefined;
+      | string
+      | Array<string>
+      | undefined;
   }> {
     logger.debug("getValuesBasedOnNotificationFor called with data:");
     logger.debug(data);
@@ -838,9 +844,9 @@ export class Service extends DatabaseService<Model> {
 
     const values: {
       [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
+        | string
+        | Array<string>
+        | undefined;
     } = await this.getValuesBasedOnNotificationFor({
       notificationFor: data.notificationFor,
     });
