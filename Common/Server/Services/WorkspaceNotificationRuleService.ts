@@ -29,7 +29,7 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, { MiscData, SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger from "../Utils/Logger";
 
@@ -44,6 +44,30 @@ export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
+
+  public getBotUserIdFromprojectAuthToken(data: {
+    projectAuthToken: WorkspaceProjectAuthToken;
+    workspaceType: WorkspaceType;
+  }): string {
+    const miscData: MiscData | undefined = data.projectAuthToken.miscData;
+
+    if (!miscData) {
+       throw new BadDataException("Misc data not found in project auth token");
+    }
+
+    if(data.workspaceType === WorkspaceType.Slack) {
+      const userId: string =  (miscData as SlackMiscData).botUserId;
+
+      if (!userId) {
+        throw new BadDataException("Bot user ID not found in project auth token");
+      }
+
+      return userId;
+    }
+
+    throw new BadDataException("Workspace type not supported");
+  }
+
 
   public async createInviteAndPostToChannelsBasedOnRules(data: {
     projectId: ObjectID;
@@ -154,6 +178,10 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug("Posting messages to workspace channels");
       await this.postToWorkspaceChannels({
+        workspaceUserId: this.getBotUserIdFromprojectAuthToken({
+          projectAuthToken: projectAuth,
+          workspaceType: workspaceType,
+        }),
         projectOrUserAuthTokenForWorkspasce: authToken,
         workspaceType: workspaceType,
         workspaceMessagePayload: {
@@ -176,6 +204,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async postToWorkspaceChannels(data: {
+    workspaceUserId: string;
     projectOrUserAuthTokenForWorkspasce: string;
     workspaceType: WorkspaceType;
     workspaceMessagePayload: WorkspaceMessagePayload;
@@ -184,6 +213,7 @@ export class Service extends DatabaseService<Model> {
     logger.debug(data);
 
     await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
+      userId: data.workspaceUserId,
       workspaceMessagePayload: data.workspaceMessagePayload,
       authToken: data.projectOrUserAuthTokenForWorkspasce,
     });

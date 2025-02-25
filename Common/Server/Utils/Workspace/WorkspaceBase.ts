@@ -50,7 +50,7 @@ export default class WorkspaceBase {
     workspaceUserIds: Array<string>;
   }): Promise<void> {
     for (const userId of data.workspaceUserIds) {
-      await this.inviteUserToChannel({
+      await this.inviteUserToChannelByChannelName({
         authToken: data.authToken,
         channelName: data.channelName,
         workspaceUserId: userId,
@@ -58,12 +58,19 @@ export default class WorkspaceBase {
     }
   }
 
-  public static async inviteUserToChannel(_data: {
+  public static async inviteUserToChannelByChannelName(_data: {
     authToken: string;
     channelName: string;
     workspaceUserId: string;
   }): Promise<void> {
     throw new NotImplementedException();
+  }
+
+  public static async inviteUserToChannelByChannelId(_data: {
+    authToken: string;
+    channelId: string;
+    workspaceUserId: string;
+  }): Promise<void> {
   }
 
   public static async createChannelsIfDoesNotExist(_data: {
@@ -83,6 +90,7 @@ export default class WorkspaceBase {
   public static async sendMessage(_data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
+    userId: string;
   }): Promise<void> {
     throw new NotImplementedException();
   }
@@ -164,6 +172,14 @@ export default class WorkspaceBase {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    throw new NotImplementedException();
+  }
+
+  public static async isUserInChannel(_data: {
+    authToken: string;
+    channelId: string;
+    userId: string;
+  }): Promise<boolean> {
     throw new NotImplementedException();
   }
 }

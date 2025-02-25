@@ -15,28 +15,20 @@ import WorkspaceBase, { WorkspaceChannel } from "../WorkspaceBase";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackUtil extends WorkspaceBase {
-  public static override async inviteUserToChannel(data: {
+
+  public static override async inviteUserToChannelByChannelId(data: {
     authToken: string;
-    channelName: string;
+    channelId: string;
     workspaceUserId: string;
   }): Promise<void> {
     logger.debug("Inviting user to channel with data:");
     logger.debug(data);
 
-    const channelId: string = (
-      await this.getWorkspaceChannelFromChannelId({
-        authToken: data.authToken,
-        channelId: data.channelName,
-      })
-    ).id;
-
-    logger.debug(`Channel ID for channel name ${data.channelName}: ${channelId}`);
-
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
         URL.fromString("https://slack.com/api/conversations.invite"),
         {
-          channel: channelId,
+          channel: data.channelId,
           users: data.workspaceUserId,
         },
         {
@@ -62,6 +54,34 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("User invited to channel successfully.");
   }
 
+  public static override async inviteUserToChannelByChannelName(data: {
+    authToken: string;
+    channelName: string;
+    workspaceUserId: string;
+  }): Promise<void> {
+
+    if(data.channelName && data.channelName.startsWith("#")) {
+      // trim # from channel name
+      data.channelName = data.channelName.substring(1);
+    }
+
+    logger.debug("Inviting user to channel with data:");
+    logger.debug(data);
+
+    const channelId: string = (
+      await this.getWorkspaceChannelFromChannelId({
+        authToken: data.authToken,
+        channelId: data.channelName,
+      })
+    ).id;
+
+    return this.inviteUserToChannelByChannelId({
+      authToken: data.authToken,
+      channelId: channelId,
+      workspaceUserId: data.workspaceUserId,
+    });
+  }
+
   public static override async createChannelsIfDoesNotExist(data: {
     authToken: string;
     channelNames: Array<string>;
@@ -78,7 +98,13 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Existing workspace channels:");
     logger.debug(existingWorkspaceChannels);
 
-    for (const channelName of data.channelNames) {
+    for (let channelName of data.channelNames) {
+      
+      // if channel name starts with #, remove it
+      if(channelName && channelName.startsWith("#")) {
+        channelName = channelName.substring(1);
+      }
+
       if (existingWorkspaceChannels[channelName]) {
         logger.debug(`Channel ${channelName} already exists.`);
         workspaceChannels.push(existingWorkspaceChannels[channelName]!);
@@ -212,6 +238,7 @@ export default class SlackUtil extends WorkspaceBase {
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
+    userId: string;
   }): Promise<void> {
     logger.debug("Sending message to Slack with data:");
     logger.debug(data);
@@ -233,7 +260,13 @@ export default class SlackUtil extends WorkspaceBase {
 
     const channelIdsToPostTo: Array<string> = [];
 
-    for (const channelName of data.workspaceMessagePayload.channelNames) {
+    for (let channelName of data.workspaceMessagePayload.channelNames) {
+
+      if(channelName && channelName.startsWith("#")) {
+        // trim # from channel name
+        channelName = channelName.substring(1);
+      }
+
       let channel: WorkspaceChannel | null = null;
 
       if (existingWorkspaceChannels[channelName]) {
@@ -252,6 +285,23 @@ export default class SlackUtil extends WorkspaceBase {
 
     for (const channelId of channelIdsToPostTo) {
       try {
+
+        // check if the user is in the channel. 
+        const isUserInChannel = await this.isUserInChannel({
+          authToken: data.authToken,
+          channelId: channelId,
+          userId: data.userId,
+        });
+
+        if(!isUserInChannel) {
+          // add user to the channel 
+          await this.inviteUserToChannelByChannelName({
+            authToken: data.authToken,
+            channelName: channelId,
+            workspaceUserId: data.userId,
+          });
+        }
+
         await this.sendPayloadBlocksToChannel({
           authToken: data.authToken,
           channelId: channelId,
@@ -397,6 +447,75 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Markdown block generated:");
     logger.debug(markdownBlock);
     return markdownBlock;
+  }
+
+
+  public static override async isUserInChannel(data: {
+    authToken: string;
+    channelId: string;
+    userId: string;
+  }): Promise<boolean> {
+
+
+    const members: Array<string> = []; 
+
+    logger.debug("Checking if user is in channel with data:");
+    logger.debug(data);
+
+    let cursor: string | undefined = undefined;
+
+    do {
+    
+    // check if the user is in the channel, return true if they are, false if they are not
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get<JSONObject>(
+      URL.fromString("https://slack.com/api/conversations.members"),
+      {
+        channel: data.channelId,
+        limit: 1000,
+        cursor: cursor,
+      },
+      {
+        Authorization: `Bearer ${data.authToken}`,
+      },
+    );
+
+    logger.debug("Response from Slack API for getting channel members:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+
+    // check for ok response
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
+    // check if the user is in the channel
+    const membersOnThisPage: Array<string> = (response.jsonData as JSONObject)["members"] as Array<string>;
+
+    members.push(...membersOnThisPage);
+
+    cursor = ((response.jsonData as JSONObject)["response_metadata"] as JSONObject)?.["next_cursor"] as string;
+
+  } while(cursor);
+
+    
+
+    if(members.includes(data.userId)) {
+      return true;
+    }
+
+    return false;
+
+
   }
 
   public static override getButtonBlock(data: {
