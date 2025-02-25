@@ -24,6 +24,7 @@ export class Service extends DatabaseService<Model> {
         authToken: true,
         workspaceProjectId: true,
         miscData: true,
+        workspaceType: true,
       },
       props: {
         isRoot: true,
