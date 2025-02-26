@@ -56,11 +56,16 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
 import {
   WorkspaceMessageBlock,
+  WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
+  WorkspacePayloadDivider,
+  WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import { WorkspaceChannel, WorkspaceSendMessageResponse } from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -238,16 +243,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -325,16 +330,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -376,9 +381,9 @@ ${createdItem.description || "No description provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -433,9 +438,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -476,30 +481,29 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
     }
 
     // send message to workspaces - slack, teams,   etc.
-    const createdChannels: {
+    const workspaceResult: {
       channelsCreated: Array<WorkspaceChannel>;
+      workspaceSendMessageResponse: WorkspaceSendMessageResponse;
     } | null = await this.notifyWorkspaceOnIncidentCreate({
       projectId: createdItem.projectId,
       incidentId: createdItem.id!,
       incidentNumber: createdItem.incidentNumber!,
     });
 
-    if (
-      createdChannels &&
-      createdChannels.channelsCreated &&
-      createdChannels.channelsCreated.length > 0
-    ) {
+    if (workspaceResult && (workspaceResult.channelsCreated?.length > 0 || workspaceResult?.workspaceSendMessageResponse?.threads?.length > 0)) {
       // update incident with these channels.
       await this.updateOneById({
         id: createdItem.id!,
         data: {
-          postUpdatesToWorkspaceChannels: createdChannels.channelsCreated,
+          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
+          workspaceSendMessageResponse: workspaceResult.workspaceSendMessageResponse
         },
         props: {
           isRoot: true,
         },
       });
     }
+
 
     return createdItem;
   }
@@ -762,10 +766,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
+                .map((label: Label) => {
+                  return `- ${label.name}`;
+                })
+                .join("\n")}
 `;
 
             shouldAddIncidentFeed = true;
@@ -920,7 +924,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -1033,7 +1037,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -1251,7 +1255,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
@@ -1354,6 +1358,7 @@ ${incidentSeverity.name}
     incidentNumber: number;
   }): Promise<{
     channelsCreated: WorkspaceChannel[];
+    workspaceSendMessageResponse: WorkspaceSendMessageResponse;
   } | null> {
     try {
       // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
@@ -1365,7 +1370,7 @@ ${incidentSeverity.name}
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
           channelNameSiffix: data.incidentNumber.toString(),
-          messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
+          messageBlocksByWorkspaceType: await this.getWorkspaceMessageBlocksForIncidentCreate({
             incidentId: data.incidentId,
           }),
         },
@@ -1379,7 +1384,12 @@ ${incidentSeverity.name}
 
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {
     incidentId: ObjectID;
-  }): Promise<Array<WorkspaceMessageBlock>> {
+  }): Promise<Array<MessageBlocksByWorkspaceType>> {
+
+    const messageBlocks: Array<MessageBlocksByWorkspaceType> = [];
+
+    // slack and teams workspasce types. 
+
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
@@ -1395,6 +1405,10 @@ ${incidentSeverity.name}
         currentIncidentState: {
           name: true,
         },
+        monitors: {
+          name: true,
+          _id: true,
+        }
       },
       props: {
         isRoot: true,
@@ -1405,73 +1419,192 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found");
     }
 
-    const blocks: Array<WorkspaceMessageBlock> = [];
+    // Slack. 
+
+    const blockSlack: Array<WorkspaceMessageBlock> = [];
 
     if (incident.incidentNumber) {
-      const markdownBlock1: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Incident #${incident.incidentNumber} Created**`,
+      const markdownBlock1: WorkspacePayloadHeader = {
+        _type: "WorkspacePayloadHeader",
+        text: `:rotating_light: **Incident #${incident.incidentNumber}**`,
       };
-      blocks.push(markdownBlock1);
+      blockSlack.push(markdownBlock1);
     }
 
     if (incident.title) {
       const markdownBlock2: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `**Incident Title**:
-${incident.title}`,
+        text: `**[${incident.title}](${(await this.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**`,
       };
-      blocks.push(markdownBlock2);
+      blockSlack.push(markdownBlock2);
     }
 
     if (incident.description) {
       const markdownBlock3: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `**Description**:
-${incident.description}`,
+        text: `${incident.description}`,
       };
-      blocks.push(markdownBlock3);
-    }
-
-    if (incident.incidentSeverity?.name) {
-      const markdownBlock4: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Severity**:
-${incident.incidentSeverity.name}`,
-      };
-      blocks.push(markdownBlock4);
-    }
-
-    if (incident.rootCause) {
-      const markdownBlock5: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Root Cause**:
-${incident.rootCause}`,
-      };
-      blocks.push(markdownBlock5);
-    }
-
-    if (incident.remediationNotes) {
-      const markdownBlock6: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Remediation Notes**:
-${incident.remediationNotes}`,
-      };
-      blocks.push(markdownBlock6);
+      blockSlack.push(markdownBlock3);
     }
 
     if (incident.currentIncidentState?.name) {
       const markdownBlock7: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `**Incident State**:
-${incident.currentIncidentState.name}`,
+        text: `:arrow_right: **Incident State**: ${incident.currentIncidentState.name}`,
       };
-      blocks.push(markdownBlock7);
+      blockSlack.push(markdownBlock7);
     }
 
-    // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc.
+    if (incident.incidentSeverity?.name) {
+      const markdownBlock4: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: `:warning: **Severity**: ${incident.incidentSeverity.name}`,
+      };
+      blockSlack.push(markdownBlock4);
+    }
 
-    return blocks as Array<WorkspaceMessageBlock>;
+    // check for monitors. 
+    if (incident.monitors && incident.monitors.length > 0) {
+      let text: string = `:earth_americas: *Resources Affected*:\n`;
+
+      for (const monitor of incident.monitors) {
+        text += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
+      }
+
+      // now add text to markdwon block. 
+      const markdownBlock5: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: text,
+      };
+
+      blockSlack.push(markdownBlock5);
+    }
+
+    if (incident.rootCause) {
+      const markdownBlock5: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: `:page_facing_up: **Root Cause**:
+${incident.rootCause}`,
+      };
+      blockSlack.push(markdownBlock5);
+    }
+
+    if (incident.remediationNotes) {
+      const markdownBlock6: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: `:dart: **Remediation Notes**:
+${incident.remediationNotes}`,
+      };
+      blockSlack.push(markdownBlock6);
+    }
+
+    // add divider. 
+
+    const dividerBlock: WorkspacePayloadDivider = {
+      _type: "WorkspacePayloadDivider",
+    };
+
+
+    blockSlack.push(dividerBlock);
+
+
+    // now add buttons. 
+    // View Incident. 
+    // Execute On Call
+    // Acknowledge incident
+    // Resolve Incident. 
+    // Change Incident State.
+    // Add Note. 
+
+    const buttons: Array<WorkspaceMessagePayloadButton> = [];
+
+    // view incident.
+    const viewIncidentButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: "View Incident",
+      url: (await this.getIncidentLinkInDashboard(incident.projectId!, incident.id!)),
+      value: "view_incident",
+      actionId: "view_incident",
+    };
+
+    buttons.push(viewIncidentButton);
+
+    // execute on call.
+    const executeOnCallButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: ":telephone_receiver: Execute On Call",
+      value: "execute_on_call",
+      actionId: "execute_on_call",
+    };
+
+    buttons.push(executeOnCallButton);
+
+    // acknowledge incident.
+    const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: ":eyes: Acknowledge Incident",
+      value: "acknowledge_incident",
+      actionId: "acknowledge_incident",
+    };
+
+    buttons.push(acknowledgeIncidentButton);
+
+    // resolve incident.
+    const resolveIncidentButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: ":white_check_mark: Resolve Incident",
+      value: "resolve_incident",
+      actionId: "resolve_incident",
+    };
+
+    buttons.push(resolveIncidentButton);
+
+    // change incident state.
+    const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: ":arrow_right: Change Incident State",
+      value: "change_incident_state",
+      actionId: "change_incident_state",
+    };
+
+    buttons.push(changeIncidentStateButton);
+
+    // add note.
+    const addNoteButton: WorkspaceMessagePayloadButton = {
+      _type: "WorkspaceMessagePayloadButton",
+      title: ":page_facing_up: Add Note",
+      value: "add_note",
+      actionId: "add_note",
+    };
+
+    buttons.push(addNoteButton);
+
+    const workspacePayloadButtons: WorkspacePayloadButtons = {
+      buttons: buttons,
+      _type: "WorkspacePayloadButtons",
+    };
+
+    blockSlack.push(workspacePayloadButtons);
+
+
+    messageBlocks.push({
+      workspaceType: WorkspaceType.Slack,
+      messageBlocks: blockSlack,
+    });
+
+    // teams. 
+
+    const blocksTeams: Array<WorkspaceMessageBlock> = [];
+
+
+    // TODO: Add teams blocks. 
+
+    messageBlocks.push({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      messageBlocks: blocksTeams,
+    })
+
+    return messageBlocks;
   }
 }
 export default new Service();

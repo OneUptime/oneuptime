@@ -1,11 +1,16 @@
+import URL from "../API/URL";
+
 export interface WorkspaceMessageBlock {
   _type: string;
   onlyPostToTheseChannelNames?: Array<string>;
 }
 
 export interface WorkspaceMessagePayloadButton {
+  _type: "WorkspaceMessagePayloadButton";
   title: string; // Button title.
-  onlyPostToTheseChannelNames?: Array<string>; // Channel names to send message to.
+  value: string; // Button value.
+  actionId: string; // Button action id.
+  url?: URL | undefined; // Button url.
 }
 
 export interface WorkspacePayloadHeader extends WorkspaceMessageBlock {
@@ -16,6 +21,10 @@ export interface WorkspacePayloadHeader extends WorkspaceMessageBlock {
 export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadMarkdown";
   text: string;
+}
+
+export interface WorkspacePayloadDivider extends WorkspaceMessageBlock {
+  _type: "WorkspacePayloadDivider";
 }
 
 export interface WorkspacePayloadButtons extends WorkspaceMessageBlock {

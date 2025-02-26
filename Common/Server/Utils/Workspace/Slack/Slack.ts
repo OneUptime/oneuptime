@@ -5,14 +5,16 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
-import WorkspaceBase, { WorkspaceChannel } from "../WorkspaceBase";
+import WorkspaceBase, { WorkspaceChannel, WorkspaceSendMessageResponse, WorkspaceThread } from "../WorkspaceBase";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import SlackifyMarkdown from "slackify-markdown";
 
 export default class SlackUtil extends WorkspaceBase {
   public static override async joinChannel(data: {
@@ -300,11 +302,19 @@ export default class SlackUtil extends WorkspaceBase {
     return channels;
   }
 
+    public static override getDividerBlock(): JSONObject {
+      return {
+        type: "divider",
+      };
+    }
+
+
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
     userId: string;
-  }): Promise<void> {
+  }): Promise<WorkspaceSendMessageResponse> {
+
     logger.debug("Sending message to Slack with data:");
     logger.debug(data);
 
@@ -323,7 +333,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Existing workspace channels:");
     logger.debug(existingWorkspaceChannels);
 
-    const channelIdsToPostTo: Array<string> = [];
+    const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
     for (let channelName of data.workspaceMessagePayload.channelNames) {
       if (channelName && channelName.startsWith("#")) {
@@ -338,21 +348,26 @@ export default class SlackUtil extends WorkspaceBase {
       }
 
       if (channel) {
-        channelIdsToPostTo.push(channel.id);
+        workspaceChannelsToPostTo.push(channel);
       } else {
         logger.debug(`Channel ${channelName} does not exist.`);
       }
     }
 
     logger.debug("Channel IDs to post to:");
-    logger.debug(channelIdsToPostTo);
+    logger.debug(workspaceChannelsToPostTo);
 
-    for (const channelId of channelIdsToPostTo) {
+
+    const workspaspaceMessageResponse: WorkspaceSendMessageResponse = { 
+      threads: []
+    };
+
+    for (const channel of workspaceChannelsToPostTo) {
       try {
         // check if the user is in the channel.
         const isUserInChannel: boolean = await this.isUserInChannel({
           authToken: data.authToken,
-          channelId: channelId,
+          channelId: channel.id,
           userId: data.userId,
         });
 
@@ -360,29 +375,36 @@ export default class SlackUtil extends WorkspaceBase {
           // add user to the channel
           await this.joinChannel({
             authToken: data.authToken,
-            channelId: channelId,
+            channelId: channel.id,
           });
         }
 
-        await this.sendPayloadBlocksToChannel({
+        const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({
           authToken: data.authToken,
-          channelId: channelId,
+          workspaceChannel: channel,
           blocks: blocks,
         });
 
-        logger.debug(`Message sent to channel ID ${channelId} successfully.`);
+        workspaspaceMessageResponse.threads.push(thread);
+
+        logger.debug(`Message sent to channel ID ${channel.id} successfully.`);
       } catch (e) {
-        logger.error(`Error sending message to channel ID ${channelId}:`);
+        logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);
       }
     }
+
+    logger.debug("Message sent successfully.");
+    logger.debug(workspaspaceMessageResponse);
+
+    return workspaspaceMessageResponse;
   }
 
   public static override async sendPayloadBlocksToChannel(data: {
     authToken: string;
-    channelId: string;
+    workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
-  }): Promise<void> {
+  }): Promise<WorkspaceThread> {
     logger.debug("Sending payload blocks to channel with data:");
     logger.debug(JSON.stringify(data, null, 2));
 
@@ -390,7 +412,7 @@ export default class SlackUtil extends WorkspaceBase {
       await API.post(
         URL.fromString("https://slack.com/api/chat.postMessage"),
         {
-          channel: data.channelId,
+          channel: data.workspaceChannel.id,
           blocks: data.blocks,
         },
         {
@@ -415,6 +437,29 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Payload blocks sent to channel successfully.");
+
+    return {
+      channel: data.workspaceChannel,
+      threadId: (response.jsonData as JSONObject)["ts"] as string,
+    }
+  }
+
+  public static override getButtonsBlock(data: {
+    payloadButtonsBlock: WorkspacePayloadButtons;
+  }): JSONObject {
+    logger.debug("Getting buttons block with data:");
+    logger.debug(data);
+
+    const buttonsBlock: JSONObject = {
+      type: "actions",
+      elements: data.payloadButtonsBlock.buttons.map((button: WorkspaceMessagePayloadButton) => {
+        return this.getButtonBlock({ payloadButtonBlock: button });
+      }),
+    };
+
+    logger.debug("Buttons block generated:");
+    logger.debug(buttonsBlock);
+    return buttonsBlock;
   }
 
   public static override async createChannel(data: {
@@ -505,7 +550,7 @@ export default class SlackUtil extends WorkspaceBase {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: data.payloadMarkdownBlock.text,
+        text: data.payloadMarkdownBlock.text ? SlackifyMarkdown(data.payloadMarkdownBlock.text) : "",
       },
     };
 
@@ -595,9 +640,12 @@ export default class SlackUtil extends WorkspaceBase {
       text: {
         type: "plain_text",
         text: data.payloadButtonBlock.title,
+        emoji: true,
       },
-      value: data.payloadButtonBlock.title,
-      action_id: data.payloadButtonBlock.title,
+      value: data.payloadButtonBlock.value,
+      action_id: data.payloadButtonBlock.actionId,
+      url: data.payloadButtonBlock.url ? data.payloadButtonBlock.url.toString() : undefined,
+
     };
 
     logger.debug("Button block generated:");

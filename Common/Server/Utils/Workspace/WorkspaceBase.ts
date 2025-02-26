@@ -14,6 +14,15 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import URL from "Common/Types/API/URL";
 
+export interface WorkspaceThread {
+  channel: WorkspaceChannel;
+  threadId: string;
+}
+
+export interface WorkspaceSendMessageResponse {
+  threads: Array<WorkspaceThread>;
+}
+
 export interface WorkspaceChannel {
   id: string;
   name: string;
@@ -30,9 +39,9 @@ export default class WorkspaceBase {
 
   public static async sendPayloadBlocksToChannel(_data: {
     authToken: string;
-    channelId: string;
+    workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
-  }): Promise<void> {
+  }): Promise<WorkspaceThread> {
     throw new NotImplementedException();
   }
 
@@ -77,7 +86,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelId: string;
     workspaceUserId: string;
-  }): Promise<void> {}
+  }): Promise<void> { }
 
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;
@@ -97,7 +106,7 @@ export default class WorkspaceBase {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
     userId: string;
-  }): Promise<void> {
+  }): Promise<WorkspaceSendMessageResponse> {
     throw new NotImplementedException();
   }
 
@@ -127,6 +136,11 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+
+  public static getDividerBlock(): JSONObject {
+    throw new NotImplementedException();
+  }
+
   public static getMarkdownBlock(_data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
@@ -143,7 +157,6 @@ export default class WorkspaceBase {
     data: WorkspaceMessagePayload,
   ): Array<JSONObject> {
     const blocks: Array<JSONObject> = [];
-    const buttons: Array<JSONObject> = [];
     for (const block of data.messageBlocks) {
       switch (block._type) {
         case "WorkspacePayloadHeader":
@@ -160,18 +173,13 @@ export default class WorkspaceBase {
             }),
           );
           break;
+        case "WorkspacePayloadDivider":
+          blocks.push(this.getDividerBlock());
+          break;
         case "WorkspacePayloadButtons":
-          for (const button of (block as WorkspacePayloadButtons).buttons) {
-            buttons.push(
-              this.getButtonBlock({
-                payloadButtonBlock: button,
-              }),
-            );
-          }
-          blocks.push({
-            type: "actions",
-            elements: buttons,
-          });
+          blocks.push(this.getButtonsBlock({
+            payloadButtonsBlock: block as WorkspacePayloadButtons
+          }));
           break;
         default:
           logger.error("Unknown block type: " + block._type);
@@ -179,6 +187,12 @@ export default class WorkspaceBase {
       }
     }
     return blocks;
+  }
+
+  public static getButtonsBlock(_data: {
+    payloadButtonsBlock: WorkspacePayloadButtons;
+  }): JSONObject {
+    throw new NotImplementedException();
   }
 
   public static async sendMessageToChannelViaIncomingWebhook(_data: {

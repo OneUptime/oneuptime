@@ -123,6 +123,7 @@
         "redis-semaphore": "^5.5.1",
         "reflect-metadata": "^0.2.2",
         "remark-gfm": "^3.0.1",
+        "slackify-markdown": "^4.4.0",
         "slugify": "^1.6.5",
         "socket.io": "^4.7.4",
         "socket.io-client": "^4.7.5",
