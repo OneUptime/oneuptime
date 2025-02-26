@@ -13,6 +13,7 @@ const components: Array<ComponentMetadata> = [
     description: "Run this workflow on particular schedule",
     iconProp: IconProp.Clock,
     componentType: ComponentType.Trigger,
+    runWorkflowManuallyArguments: [],
     arguments: [
       {
         type: ComponentInputType.CronTab,

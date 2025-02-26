@@ -3,7 +3,7 @@ import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormValues from "../Forms/Types/FormValues";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import { JSONObject } from "Common/Types/JSON";
-import { NodeDataProp, ReturnValue } from "Common/Types/Workflow/Component";
+import { Argument, NodeDataProp } from "Common/Types/Workflow/Component";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -38,34 +38,32 @@ const RunForm: FunctionComponent<ComponentProps> = (
     <div className="mb-3 mt-3">
       <div className="mt-5 mb-5">
         <h2 className="text-base font-medium text-gray-500">
-          Return Values from Trigger
+          Run {component.metadata.title}
         </h2>
         <p className="text-sm font-medium text-gray-400 mb-5">
-          This workflow has a trigger to get it to run. Since this trigger
-          returns some values to work. You can pass these return values from
-          trigger manually and test this workflow.
+          {component.metadata.description}
         </p>
-        {component.metadata.returnValues &&
-          component.metadata.returnValues.length === 0 && (
+        {component.metadata.runWorkflowManuallyArguments &&
+          component.metadata.runWorkflowManuallyArguments.length === 0 && (
             <ErrorMessage
               message={
-                'This workflow trigger does not take any return values. You can run it by clicking the "Run" button below.'
+                'This workflow trigger does not take any values. You can run it by clicking the "Run" button below.'
               }
             />
           )}
-        {component.metadata.returnValues &&
-          component.metadata.returnValues.length > 0 && (
+        {component.metadata.runWorkflowManuallyArguments &&
+          component.metadata.runWorkflowManuallyArguments.length > 0 && (
             <BasicForm
               hideSubmitButton={true}
               ref={formRef}
               initialValues={{
-                ...(component.returnValues || {}),
+                ...(component.arguments || {}),
               }}
               onChange={(values: FormValues<JSONObject>) => {
                 setComponent({
                   ...component,
-                  returnValues: {
-                    ...((component.returnValues as JSONObject) || {}),
+                  arguments: {
+                    ...((component.arguments as JSONObject) || {}),
                     ...((values as JSONObject) || {}),
                   },
                 });
@@ -74,25 +72,25 @@ const RunForm: FunctionComponent<ComponentProps> = (
                 setHasFormValidationErrors(hasError);
               }}
               fields={
-                component.metadata.returnValues &&
-                component.metadata.returnValues.map(
-                  (returnValue: ReturnValue) => {
+                component.metadata.runWorkflowManuallyArguments &&
+                component.metadata.runWorkflowManuallyArguments.map(
+                  (argument: Argument) => {
                     return {
-                      title: `${returnValue.name}`,
+                      title: `${argument.name}`,
 
                       description: `${
-                        returnValue.required ? "Required" : "Optional"
-                      }. ${returnValue.description}`,
+                        argument.required ? "Required" : "Optional"
+                      }. ${argument.description}`,
                       field: {
-                        [returnValue.id]: true,
+                        [argument.id]: true,
                       },
-                      required: returnValue.required,
-                      placeholder: returnValue.placeholder,
+                      required: argument.required,
+                      placeholder: argument.placeholder,
                       ...componentInputTypeToFormFieldType(
-                        returnValue.type,
+                        argument.type,
                         component.returnValues &&
-                          component.returnValues[returnValue.id]
-                          ? component.returnValues[returnValue.id]
+                          component.returnValues[argument.id]
+                          ? component.returnValues[argument.id]
                           : null,
                       ),
                     };

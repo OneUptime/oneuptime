@@ -29,7 +29,10 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceProjectAuthToken, { MiscData, SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  MiscData,
+  SlackMiscData,
+} from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger from "../Utils/Logger";
 
@@ -52,14 +55,16 @@ export class Service extends DatabaseService<Model> {
     const miscData: MiscData | undefined = data.projectAuthToken.miscData;
 
     if (!miscData) {
-       throw new BadDataException("Misc data not found in project auth token");
+      throw new BadDataException("Misc data not found in project auth token");
     }
 
-    if(data.workspaceType === WorkspaceType.Slack) {
-      const userId: string =  (miscData as SlackMiscData).botUserId;
+    if (data.workspaceType === WorkspaceType.Slack) {
+      const userId: string = (miscData as SlackMiscData).botUserId;
 
       if (!userId) {
-        throw new BadDataException("Bot user ID not found in project auth token");
+        throw new BadDataException(
+          "Bot user ID not found in project auth token",
+        );
       }
 
       return userId;
@@ -67,7 +72,6 @@ export class Service extends DatabaseService<Model> {
 
     throw new BadDataException("Workspace type not supported");
   }
-
 
   public async createInviteAndPostToChannelsBasedOnRules(data: {
     projectId: ObjectID;

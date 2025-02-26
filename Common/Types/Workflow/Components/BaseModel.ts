@@ -157,6 +157,16 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        runWorkflowManuallyArguments: [
+          {
+            type: ComponentInputType.Text,
+            name: `${model.singularName} ID`,
+            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+            required: true,
+            id: "_id",
+            placeholder: `ID of the ${model.singularName}`,
+          },
+        ],
         arguments: [],
         returnValues: [
           {
@@ -288,6 +298,16 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        runWorkflowManuallyArguments: [
+          {
+            type: ComponentInputType.Text,
+            name: `${model.singularName} ID`,
+            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+            required: true,
+            id: "_id",
+            placeholder: `ID of the ${model.singularName}`,
+          },
+        ],
         arguments: [
           {
             type: ComponentInputType.Select,
@@ -430,6 +450,16 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        runWorkflowManuallyArguments: [
+          {
+            type: ComponentInputType.Text,
+            name: `${model.singularName} ID`,
+            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+            required: true,
+            id: "_id",
+            placeholder: `ID of the ${model.singularName}`,
+          },
+        ],
         arguments: [
           {
             type: ComponentInputType.Select,

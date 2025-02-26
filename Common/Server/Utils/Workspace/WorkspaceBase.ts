@@ -21,7 +21,6 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
-
   public static async joinChannel(_data: {
     authToken: string;
     channelId: string;
@@ -78,8 +77,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelId: string;
     workspaceUserId: string;
-  }): Promise<void> {
-  }
+  }): Promise<void> {}
 
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;

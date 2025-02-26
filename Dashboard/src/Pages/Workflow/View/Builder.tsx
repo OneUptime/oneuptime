@@ -312,16 +312,17 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
               onRun={async (component: NodeDataProp) => {
                 try {
-                  const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-                    URL.fromString(WORKFLOW_URL.toString()).addRoute(
-                      "/manual/run/" + modelId.toString(),
-                    ),
-                    {
-                      data: component.returnValues,
-                    },
-                  );
+                  const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                    await API.post(
+                      URL.fromString(WORKFLOW_URL.toString()).addRoute(
+                        "/manual/run/" + modelId.toString(),
+                      ),
+                      {
+                        data: component.arguments,
+                      },
+                    );
 
-                  if(result instanceof HTTPErrorResponse) {
+                  if (result instanceof HTTPErrorResponse) {
                     throw result;
                   }
 

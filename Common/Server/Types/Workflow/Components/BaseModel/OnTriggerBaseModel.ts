@@ -74,7 +74,15 @@ export default class OnTriggerBaseModel<
     args: JSONObject,
     options: RunOptions,
   ): Promise<RunReturnType> {
-    const data: JSONObject = args["data"] as JSONObject;
+    let data: JSONObject = args["data"] as JSONObject;
+
+    if (!data) {
+      data = {};
+    }
+
+    if (args["_id"]) {
+      data["_id"] = args["_id"];
+    }
 
     const miscData: JSONObject = (data?.["miscData"] as JSONObject) || {};
 
@@ -106,14 +114,15 @@ export default class OnTriggerBaseModel<
 
     let select: Select<TBaseModel> = args["select"] as Select<TBaseModel>;
 
-    if (select) {
-      select = JSONFunctions.deserialize(
-        args["select"] as JSONObject,
-      ) as Select<TBaseModel>;
+    logger.debug("Select: ");
+    logger.debug(select);
+
+    if (select && typeof select === "string") {
+      select = JSONFunctions.parse(select) as Select<TBaseModel>;
     }
 
     const model: TBaseModel | null = await this.service!.findOneById({
-      id: new ObjectID(data["_id"] as string),
+      id: new ObjectID(data["_id"].toString()),
       props: {
         isRoot: true,
       },
@@ -124,8 +133,10 @@ export default class OnTriggerBaseModel<
     });
 
     if (!model) {
+      options.log("Model not found with id " + data["_id"].toString());
+
       throw new BadDataException(
-        ("Model not found with id " + args["_id"]) as string,
+        ("Model not found with id " + data["_id"].toString()) as string,
       );
     }
 

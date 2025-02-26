@@ -90,6 +90,7 @@ export default interface ComponentMetadata {
   outPorts: Array<Port>;
   tableName?: string | undefined;
   documentationLink?: Route;
+  runWorkflowManuallyArguments?: Array<Argument> | undefined;
 }
 
 export interface ComponentCategory {
