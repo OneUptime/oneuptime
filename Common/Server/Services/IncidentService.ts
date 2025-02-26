@@ -121,6 +121,62 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
+
+  public async resolveIncident(
+    incidentId: ObjectID,
+    resolvedByUserId: ObjectID,
+  ): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    const incidentState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: incident.projectId,
+          isResolvedState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentState || !incidentState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const incidentStateTimeline: IncidentStateTimeline =
+      new IncidentStateTimeline();
+    incidentStateTimeline.projectId = incident.projectId;
+    incidentStateTimeline.incidentId = incidentId;
+    incidentStateTimeline.incidentStateId = incidentState.id;
+    incidentStateTimeline.createdByUserId = resolvedByUserId;
+
+    await IncidentStateTimelineService.create({
+      data: incidentStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store incident metric
+  }
+
   public async acknowledgeIncident(
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,

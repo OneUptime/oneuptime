@@ -29,6 +29,7 @@ import WorkspaceProjectAuthToken, { SlackMiscData } from "../../Models/DatabaseM
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
+import IncidentService from "../Services/IncidentService";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -275,6 +276,15 @@ export default class SlackAPI {
         const slackChannelId: string | undefined = req.body["channel"]["id"];
 
 
+        if(!actionValue) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request"),
+          );
+        }
+
+
 
         const slackMessageId: string | undefined = req.body["message"]["ts"];
         const slackUserName: string | undefined = req.body["user"]["name"];
@@ -360,7 +370,151 @@ export default class SlackAPI {
 
         // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
 
-        
+        if(actionType === SlackActionType.AcknowledgeIncident){
+
+          const incidentId: ObjectID = new ObjectID(actionValue);
+
+          await IncidentService.acknowledgeIncident(incidentId, userId); 
+          
+          // send a message to the channel that the incident has been acknowledged. 
+
+          const markdwonPayload: WorkspacePayloadMarkdown = {
+            _type: "WorkspacePayloadMarkdown",
+            text: `${slackUserName} has acknowledged the incident.`,
+          }
+
+          await SlackUtil.sendMessage({
+            workspaceMessagePayload: {
+              _type: "WorkspaceMessagePayload",
+              messageBlocks: [
+                markdwonPayload
+              ],
+              channelNames: [],
+              channelIds: slackChannelId ? [slackChannelId]: [],  
+            },
+            authToken: projectAuth.authToken!,
+            userId: botUserId,
+          })
+
+          // clear response. 
+          return Response.sendJsonObjectResponse(req, res, {
+            response_action: "clear",
+          });
+        }
+
+
+        if(actionType === SlackActionType.ResolveIncident){
+          
+          const incidentId: ObjectID = new ObjectID(actionValue);
+
+          await IncidentService.resolveIncident(incidentId, userId); 
+          
+          // send a message to the channel that the incident has been acknowledged. 
+
+          const markdwonPayload: WorkspacePayloadMarkdown = {
+            _type: "WorkspacePayloadMarkdown",
+            text: `${slackUserName} has resolved the incident.`,
+          }
+
+          await SlackUtil.sendMessage({
+            workspaceMessagePayload: {
+              _type: "WorkspaceMessagePayload",
+              messageBlocks: [
+                markdwonPayload
+              ],
+              channelNames: [],
+              channelIds: slackChannelId ? [slackChannelId]: [],  
+            },
+            authToken: projectAuth.authToken!,
+            userId: botUserId,
+          })
+
+          // clear response. 
+          return Response.sendJsonObjectResponse(req, res, {
+            response_action: "clear",
+          }); 
+        }
+
+
+        if(actionType === SlackActionType.AddIncidentNote){
+          
+          const incidentId: ObjectID = new ObjectID(actionValue);
+
+          // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note. 
+
+          return Response.sendJsonObjectResponse(req, res, {
+            type: "modal",
+            title: {
+              type: "plain_text",
+              text: "Add Note",
+            },
+            blocks: [
+              {
+                type: "input",
+                block_id: "note_type",
+                element: {
+                  type: "static_select",
+                  action_id: "note_type",
+                  placeholder: {
+                    type: "plain_text",
+                    text: "Select Note Type",
+                  },
+                  options: [
+                    {
+                      text: {
+                        type: "plain_text",
+                        text: "Public Note",
+                      },
+                      value: "public",
+                    },
+                    {
+                      text: {
+                        type: "plain_text",
+                        text: "Private Note",
+                      },
+                      value: "private",
+                    },
+                  ],
+                },
+                label: {
+                  type: "plain_text",
+                  text: "Note Type",
+                },
+              },
+              {
+                type: "input",
+                block_id: "note",
+                element: {
+                  type: "plain_text_input",
+                  action_id: "note",
+                  placeholder: {
+                    type: "plain_text",
+                    text: "Note",
+                  },
+                },
+                label: {
+                  type: "plain_text",
+                  text: "Note",
+                },
+              },
+              // button
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    text: {
+                      type: "plain_text",
+                      text: "Submit",
+                    },
+                    style: "primary",
+                    value: incidentId.toString(),
+                  },
+                ],
+              },
+            ],
+          });
+        }
 
       },
     );
