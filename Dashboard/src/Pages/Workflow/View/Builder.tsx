@@ -35,6 +35,8 @@ import React, {
 } from "react";
 import { Edge, Node } from "reactflow";
 import { useAsyncEffect } from "use-async-effect";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -310,7 +312,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
               onRun={async (component: NodeDataProp) => {
                 try {
-                  await API.post(
+                  const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
                     URL.fromString(WORKFLOW_URL.toString()).addRoute(
                       "/manual/run/" + modelId.toString(),
                     ),
@@ -318,6 +320,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       data: component.returnValues,
                     },
                   );
+
+                  if(result instanceof HTTPErrorResponse) {
+                    throw result;
+                  }
 
                   setShowRunSuccessConfirmation(true);
                 } catch (err) {
