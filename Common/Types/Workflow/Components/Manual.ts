@@ -22,7 +22,7 @@ const components: Array<ComponentMetadata> = [
         required: false,
         id: "value",
         placeholder: '{"key1": "value1", "key2": "value2", ....}',
-      },  
+      },
     ],
     returnValues: [
       {
