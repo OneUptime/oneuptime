@@ -14,6 +14,16 @@ const components: Array<ComponentMetadata> = [
     iconProp: IconProp.Play,
     componentType: ComponentType.Trigger,
     arguments: [],
+    runWorkflowManuallyArguments: [
+      {
+        type: ComponentInputType.JSON,
+        name: "JSON",
+        description: "Enter JSON value that you need to run this workflow",
+        required: false,
+        id: "value",
+        placeholder: '{"key1": "value1", "key2": "value2", ....}',
+      },  
+    ],
     returnValues: [
       {
         type: ComponentInputType.JSON,
