@@ -5,6 +5,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
@@ -22,24 +23,31 @@ export default class ManualAPI {
   public async manuallyRunWorkflow(
     req: ExpressRequest,
     res: ExpressResponse,
+    next: NextFunction
   ): Promise<void> {
-    // add this workflow to the run queue and return the 200 response.
 
-    if (!req.params["workflowId"]) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("workflowId not found in URL"),
-      );
+    try {
+      // add this workflow to the run queue and return the 200 response.
+
+      if (!req.params["workflowId"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("workflowId not found in URL"),
+        );
+      }
+
+      await QueueWorkflow.addWorkflowToQueue({
+        workflowId: new ObjectID(req.params["workflowId"] as string),
+        returnValues: req.body.data || {},
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        status: "Scheduled",
+      });
+
+    } catch (err) {
+      next(err);
     }
-
-    await QueueWorkflow.addWorkflowToQueue({
-      workflowId: new ObjectID(req.params["workflowId"] as string),
-      returnValues: req.body.data || {},
-    });
-
-    return Response.sendJsonObjectResponse(req, res, {
-      status: "Scheduled",
-    });
   }
 }
