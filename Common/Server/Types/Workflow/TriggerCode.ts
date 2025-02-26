@@ -10,6 +10,8 @@ import { Port } from "Common/Types/Workflow/Component";
 export interface ExecuteWorkflowType {
   workflowId: ObjectID;
   returnValues: JSONObject;
+  // is this workflow triggered manually or not
+  isManualExecution: boolean;
 }
 
 export interface InitProps {

@@ -187,6 +187,7 @@ export default class QueueWorkflow {
         data: executeWorkflow.returnValues,
         workflowLogId: workflowLog?._id || null,
         workflowId: workflow._id,
+        isManualExecution: executeWorkflow.isManualExecution, // this is to check if the workflow is triggered manually or not.
       },
       {
         scheduleAt: scheduleAt,

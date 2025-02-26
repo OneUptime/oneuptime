@@ -53,6 +53,7 @@ export default class WebhookTrigger extends TriggerCode {
       const executeWorkflow: ExecuteWorkflowType = {
         workflowId: new ObjectID(workflow._id!),
         returnValues: {},
+        isManualExecution: false,
       };
 
       if (
@@ -122,6 +123,7 @@ export default class WebhookTrigger extends TriggerCode {
     const executeWorkflow: ExecuteWorkflowType = {
       workflowId: new ObjectID(workflow._id!),
       returnValues: {},
+      isManualExecution: false,
     };
 
     if (

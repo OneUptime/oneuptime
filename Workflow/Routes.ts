@@ -52,6 +52,7 @@ const WorkflowFeatureSet: FeatureSet = {
               : null,
             arguments: job.data.data as JSONObject,
             timeout: WorkflowTimeoutInMs || 5000,
+            isManualExecution: job.data.isManualExecution || false,
           });
         },
         { concurrency: 100 },

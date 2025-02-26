@@ -23,9 +23,8 @@ export default class ManualAPI {
   public async manuallyRunWorkflow(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
-
     try {
       // add this workflow to the run queue and return the 200 response.
 
@@ -40,12 +39,12 @@ export default class ManualAPI {
       await QueueWorkflow.addWorkflowToQueue({
         workflowId: new ObjectID(req.params["workflowId"] as string),
         returnValues: req.body.data || {},
+        isManualExecution: true,
       });
 
       return Response.sendJsonObjectResponse(req, res, {
         status: "Scheduled",
       });
-
     } catch (err) {
       next(err);
     }

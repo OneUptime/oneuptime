@@ -135,7 +135,9 @@ export default class RunWorkflow {
 
       // form a run stack.
 
-      const runStack: RunStack = await this.makeRunStack(workflow.graph);
+      const runStack: RunStack = await this.makeRunStack({
+        graph: workflow.graph,
+      });
 
       const getVariableResult: {
         storageMap: StorageMap;
@@ -212,14 +214,32 @@ export default class RunWorkflow {
         this.log(args);
         this.log("Component Logs: " + executeComponentId);
 
-        const result: RunReturnType = await this.runComponent(
-          args,
-          stackItem.node,
-          setDidErrorOut,
-        );
+        let result: RunReturnType | null = null;
+
+        if (
+          runProps.isManualExecution &&
+          stackItem.node.componentType === ComponentType.Trigger
+        ) {
+          // skip the trigger component if this is a manual execution.
+          result = {
+            returnValues: runProps.arguments,
+            executePort: stackItem.node.metadata.outPorts[0] || undefined,
+          };
+        } else {
+          result = await this.runComponent(
+            args,
+            stackItem.node,
+            setDidErrorOut,
+          );
+        }
 
         if (didWorkflowErrorOut) {
           throw new BadDataException("Workflow stopped because of an error");
+        }
+
+        if (!result) {
+          this.log("No result returned from component: " + executeComponentId);
+          break;
         }
 
         this.log("Completed Execution Component: " + executeComponentId);
@@ -503,7 +523,9 @@ export default class RunWorkflow {
     }
   }
 
-  public async makeRunStack(graph: JSONObject): Promise<RunStack> {
+  public async makeRunStack(data: { graph: JSONObject }): Promise<RunStack> {
+    const graph: JSONObject = data.graph;
+
     const nodes: Array<any> = graph["nodes"] as Array<any>;
 
     const edges: Array<any> = graph["edges"] as Array<any>;

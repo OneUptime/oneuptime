@@ -6,4 +6,5 @@ export interface RunProps {
   workflowId: ObjectID;
   workflowLogId: ObjectID | null;
   timeout: number;
+  isManualExecution: boolean;
 }

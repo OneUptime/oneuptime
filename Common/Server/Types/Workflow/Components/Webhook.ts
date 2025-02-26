@@ -89,6 +89,7 @@ export default class WebhookTrigger extends TriggerCode {
         "request-params": req.query,
         "request-body": req.body,
       },
+      isManualExecution: false,
     };
 
     await props.executeWorkflow(executeWorkflow);

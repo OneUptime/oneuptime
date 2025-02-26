@@ -90,6 +90,8 @@ export default interface ComponentMetadata {
   outPorts: Array<Port>;
   tableName?: string | undefined;
   documentationLink?: Route;
+  // this is used in trigger component to show the manual execution button
+  runWorkflowManuallyArguments?: Array<Argument> | undefined;
 }
 
 export interface ComponentCategory {

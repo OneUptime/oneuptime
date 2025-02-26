@@ -222,6 +222,7 @@ export default class OnTriggerBaseModel<
         returnValues: {
           data: requestData,
         },
+        isManualExecution: false,
       };
 
       promises.push(props.executeWorkflow(executeWorkflow));
