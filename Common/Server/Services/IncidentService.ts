@@ -66,6 +66,7 @@ import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import { WorkspaceChannel, WorkspaceSendMessageResponse } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import SlackActionType from "../Utils/Workspace/Slack/ActionTypes";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1524,7 +1525,7 @@ ${incident.remediationNotes}`,
       title: "View Incident",
       url: (await this.getIncidentLinkInDashboard(incident.projectId!, incident.id!)),
       value: "view_incident",
-      actionId: "view_incident",
+      actionId: SlackActionType.ViewIncident,
     };
 
     buttons.push(viewIncidentButton);
@@ -1534,7 +1535,7 @@ ${incident.remediationNotes}`,
       _type: "WorkspaceMessagePayloadButton",
       title: ":telephone_receiver: Execute On Call",
       value: "execute_on_call",
-      actionId: "execute_on_call",
+      actionId: SlackActionType.ExecuteIncidentOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
@@ -1544,7 +1545,7 @@ ${incident.remediationNotes}`,
       _type: "WorkspaceMessagePayloadButton",
       title: ":eyes: Acknowledge Incident",
       value: "acknowledge_incident",
-      actionId: "acknowledge_incident",
+      actionId: SlackActionType.AcknowledgeIncident,
     };
 
     buttons.push(acknowledgeIncidentButton);
@@ -1554,7 +1555,7 @@ ${incident.remediationNotes}`,
       _type: "WorkspaceMessagePayloadButton",
       title: ":white_check_mark: Resolve Incident",
       value: "resolve_incident",
-      actionId: "resolve_incident",
+      actionId: SlackActionType.ResolveIncident,
     };
 
     buttons.push(resolveIncidentButton);
@@ -1564,7 +1565,7 @@ ${incident.remediationNotes}`,
       _type: "WorkspaceMessagePayloadButton",
       title: ":arrow_right: Change Incident State",
       value: "change_incident_state",
-      actionId: "change_incident_state",
+      actionId: SlackActionType.ChangeIncidentState,
     };
 
     buttons.push(changeIncidentStateButton);
@@ -1574,7 +1575,7 @@ ${incident.remediationNotes}`,
       _type: "WorkspaceMessagePayloadButton",
       title: ":page_facing_up: Add Note",
       value: "add_note",
-      actionId: "add_note",
+      actionId: SlackActionType.AddIncidentNote,
     };
 
     buttons.push(addNoteButton);

@@ -24,6 +24,11 @@ import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTo
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import SlackActionType from "../Utils/Workspace/Slack/ActionTypes";
+import WorkspaceProjectAuthToken, { SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -81,7 +86,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
+          `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -251,10 +256,112 @@ export default class SlackAPI {
     router.post(
       "/slack/interactive",
       SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendJsonObjectResponse(req, res, {
-          response_action: "clear",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+
+        const slackUserId: string | undefined = req.body["user"]["id"];
+        const slackTeamId: string | undefined = req.body["team"]["id"];
+
+
+        // if there are no actions then return.
+        if (!req.body["actions"] || req.body["actions"].length === 0) {
+          return Response.sendJsonObjectResponse(req, res, {
+            response_action: "clear",
+          });
+        }
+
+        // interaction value. 
+        const actionValue: string | undefined = req.body["actions"][0]["value"];
+        const actionType: SlackActionType | undefined = req.body["actions"][0]["action_id"] as SlackActionType;
+        const slackChannelId: string | undefined = req.body["channel"]["id"];
+
+
+
+        const slackMessageId: string | undefined = req.body["message"]["ts"];
+        const slackUserName: string | undefined = req.body["user"]["name"];
+
+        const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.findOneBy({
+          query: {
+            workspaceProjectId: slackTeamId,
+          },
+          select: {
+            projectId: true,
+            authToken: true,
+            miscData: true,
+          },
+          props: {
+            isRoot: true,
+          },
         });
+
+        if (!projectAuth) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request"),
+          );
+        }
+
+        const projectId: ObjectID | undefined = projectAuth.projectId; 
+
+        if(!projectId) {
+
+         return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request"),
+          );
+
+        }
+
+        const userAuth: WorkspaceUserAuthToken | null = await WorkspaceUserAuthTokenService.findOneBy({
+          query: {
+            workspaceUserId: slackUserId,
+            projectId: projectId,
+          },
+          select: {
+            userId: true,
+            authToken: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const botUserId: string | undefined = (projectAuth.miscData as SlackMiscData)?.botUserId; 
+
+
+        const userId: ObjectID | undefined = userAuth?.userId;
+
+        if(!userId) {
+
+          const markdwonPayload: WorkspacePayloadMarkdown = {
+            _type: "WorkspacePayloadMarkdown",
+            text: `${slackUserName}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and connect then your slack account.`,
+          }
+
+          await SlackUtil.sendMessage({
+            workspaceMessagePayload: {
+              _type: "WorkspaceMessagePayload",
+              messageBlocks: [
+                markdwonPayload
+              ],
+              channelNames: [],
+              channelIds: slackChannelId ? [slackChannelId]: [],  
+            },
+            authToken: projectAuth.authToken!,
+            userId: botUserId,
+          })
+
+          // clear response. 
+          return Response.sendJsonObjectResponse(req, res, {
+            response_action: "clear",
+          });
+        }
+
+        // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
+
+        
+
       },
     );
 

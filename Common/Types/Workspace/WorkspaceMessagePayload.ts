@@ -35,5 +35,6 @@ export interface WorkspacePayloadButtons extends WorkspaceMessageBlock {
 export default interface WorkspaceMessagePayload {
   _type: "WorkspaceMessagePayload";
   channelNames: Array<string>; // Channel ids to send message to.
+  channelIds: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
 }
