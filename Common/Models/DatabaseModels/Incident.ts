@@ -37,7 +37,10 @@ import {
   ManyToOne,
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
-import { WorkspaceChannel, WorkspaceSendMessageResponse } from "../../Server/Utils/Workspace/WorkspaceBase";
+import {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "../../Server/Utils/Workspace/WorkspaceBase";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1140,7 +1143,6 @@ export default class Incident extends BaseModel {
   })
   public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -1157,7 +1159,8 @@ export default class Incident extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public workspaceSendMessageResponse?: WorkspaceSendMessageResponse = undefined;
+  public workspaceSendMessageResponse?: WorkspaceSendMessageResponse =
+    undefined;
 
   @ColumnAccessControl({
     create: [

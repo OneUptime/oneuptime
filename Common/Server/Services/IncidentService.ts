@@ -62,11 +62,16 @@ import {
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, {
+  MessageBlocksByWorkspaceType,
+} from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import { WorkspaceChannel, WorkspaceSendMessageResponse } from "../Utils/Workspace/WorkspaceBase";
+import {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import SlackActionType from "../Utils/Workspace/Slack/ActionTypes";
+import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -120,7 +125,6 @@ export class Service extends DatabaseService<Model> {
 
     return false;
   }
-
 
   public async resolveIncident(
     incidentId: ObjectID,
@@ -300,16 +304,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -387,16 +391,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -438,9 +442,9 @@ ${createdItem.description || "No description provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-        "Status was changed because incident " +
-        createdItem.id.toString() +
-        " was created.",
+          "Status was changed because incident " +
+            createdItem.id.toString() +
+            " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -495,9 +499,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -547,20 +551,24 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
       incidentNumber: createdItem.incidentNumber!,
     });
 
-    if (workspaceResult && (workspaceResult.channelsCreated?.length > 0 || workspaceResult?.workspaceSendMessageResponse?.threads?.length > 0)) {
+    if (
+      workspaceResult &&
+      (workspaceResult.channelsCreated?.length > 0 ||
+        workspaceResult?.workspaceSendMessageResponse?.threads?.length > 0)
+    ) {
       // update incident with these channels.
       await this.updateOneById({
         id: createdItem.id!,
         data: {
           postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-          workspaceSendMessageResponse: workspaceResult.workspaceSendMessageResponse
+          workspaceSendMessageResponse:
+            workspaceResult.workspaceSendMessageResponse,
         },
         props: {
           isRoot: true,
         },
       });
     }
-
 
     return createdItem;
   }
@@ -823,10 +831,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-                .map((label: Label) => {
-                  return `- ${label.name}`;
-                })
-                .join("\n")}
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
 `;
 
             shouldAddIncidentFeed = true;
@@ -981,7 +989,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-            resolvedMonitorState.id!.toString()
+              resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -1094,7 +1102,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-      incidentStateId.toString()
+        incidentStateId.toString()
     ) {
       return;
     }
@@ -1312,7 +1320,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-          OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";
@@ -1427,9 +1435,10 @@ ${incidentSeverity.name}
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
           channelNameSiffix: data.incidentNumber.toString(),
-          messageBlocksByWorkspaceType: await this.getWorkspaceMessageBlocksForIncidentCreate({
-            incidentId: data.incidentId,
-          }),
+          messageBlocksByWorkspaceType:
+            await this.getWorkspaceMessageBlocksForIncidentCreate({
+              incidentId: data.incidentId,
+            }),
         },
       );
     } catch (err) {
@@ -1442,10 +1451,9 @@ ${incidentSeverity.name}
   public async getWorkspaceMessageBlocksForIncidentCreate(data: {
     incidentId: ObjectID;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
-
     const messageBlocks: Array<MessageBlocksByWorkspaceType> = [];
 
-    // slack and teams workspasce types. 
+    // slack and teams workspasce types.
 
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
@@ -1465,7 +1473,7 @@ ${incidentSeverity.name}
         monitors: {
           name: true,
           _id: true,
-        }
+        },
       },
       props: {
         isRoot: true,
@@ -1476,7 +1484,7 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found");
     }
 
-    // Slack. 
+    // Slack.
 
     const blockSlack: Array<WorkspaceMessageBlock> = [];
 
@@ -1520,7 +1528,7 @@ ${incidentSeverity.name}
       blockSlack.push(markdownBlock4);
     }
 
-    // check for monitors. 
+    // check for monitors.
     if (incident.monitors && incident.monitors.length > 0) {
       let text: string = `:earth_americas: *Resources Affected*:\n`;
 
@@ -1528,7 +1536,7 @@ ${incidentSeverity.name}
         text += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
       }
 
-      // now add text to markdwon block. 
+      // now add text to markdwon block.
       const markdownBlock5: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
         text: text,
@@ -1555,23 +1563,21 @@ ${incident.remediationNotes}`,
       blockSlack.push(markdownBlock6);
     }
 
-    // add divider. 
+    // add divider.
 
     const dividerBlock: WorkspacePayloadDivider = {
       _type: "WorkspacePayloadDivider",
     };
 
-
     blockSlack.push(dividerBlock);
 
-
-    // now add buttons. 
-    // View Incident. 
+    // now add buttons.
+    // View Incident.
     // Execute On Call
     // Acknowledge incident
-    // Resolve Incident. 
+    // Resolve Incident.
     // Change Incident State.
-    // Add Note. 
+    // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
@@ -1579,7 +1585,10 @@ ${incident.remediationNotes}`,
     const viewIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "View Incident",
-      url: (await this.getIncidentLinkInDashboard(incident.projectId!, incident.id!)),
+      url: await this.getIncidentLinkInDashboard(
+        incident.projectId!,
+        incident.id!,
+      ),
       value: "view_incident",
       actionId: SlackActionType.ViewIncident,
     };
@@ -1643,23 +1652,21 @@ ${incident.remediationNotes}`,
 
     blockSlack.push(workspacePayloadButtons);
 
-
     messageBlocks.push({
       workspaceType: WorkspaceType.Slack,
       messageBlocks: blockSlack,
     });
 
-    // teams. 
+    // teams.
 
     const blocksTeams: Array<WorkspaceMessageBlock> = [];
 
-
-    // TODO: Add teams blocks. 
+    // TODO: Add teams blocks.
 
     messageBlocks.push({
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: blocksTeams,
-    })
+    });
 
     return messageBlocks;
   }

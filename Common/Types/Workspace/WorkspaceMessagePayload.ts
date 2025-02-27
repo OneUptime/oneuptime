@@ -1,3 +1,4 @@
+import { DropdownOption } from "../../UI/Components/Dropdown/Dropdown";
 import URL from "../API/URL";
 
 export interface WorkspaceMessageBlock {
@@ -16,6 +17,47 @@ export interface WorkspaceMessagePayloadButton {
 export interface WorkspacePayloadHeader extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadHeader";
   text: string;
+}
+
+export interface WorkspaceTextAreaBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceTextAreaBlock";
+  label: string;
+  blockId: string;
+  placeholder: string;
+  initialValue?: string | undefined;
+}
+
+export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceTextBoxBlock";
+  label: string;
+  blockId: string;
+  placeholder: string;
+  initialValue?: string | undefined;
+}
+
+export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
+  _type: "WorkspacePayloadImage";
+  imageUrl: URL;
+  altText: string;
+}
+
+export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceDropdownBlock";
+  label: string;
+  blockId: string;
+  options: Array<DropdownOption>;
+  placeholder: string;
+  initialValue?: string | undefined;
+}
+
+export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceModalBlock";
+  title: string;
+  submitButtonTitle: string;
+  cancelButtonTitle: string;
+  submitButtonActionId?: string | undefined;
+  submitButtonValue?: string | undefined;
+  blocks: Array<WorkspaceMessageBlock>;
 }
 
 export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {

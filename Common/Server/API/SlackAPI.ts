@@ -24,12 +24,10 @@ import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTo
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import SlackActionType from "../Utils/Workspace/Slack/ActionTypes";
-import WorkspaceProjectAuthToken, { SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
-import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
-import IncidentService from "../Services/IncidentService";
+import SlackAuthAction, {
+  SlackRequest,
+} from "../Utils/Workspace/Slack/Actions/Auth";
+import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -87,7 +85,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-          `/${projectId.toString()}/settings/slack-integration`,
+            `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -258,25 +256,11 @@ export default class SlackAPI {
       "/slack/interactive",
       SlackAuthorization.isAuthorizedSlackRequest,
       async (req: ExpressRequest, res: ExpressResponse) => {
+        const authResult: SlackRequest = await SlackAuthAction.isAuthorized({
+          req: req,
+        });
 
-        const slackUserId: string | undefined = req.body["user"]["id"];
-        const slackTeamId: string | undefined = req.body["team"]["id"];
-
-
-        // if there are no actions then return.
-        if (!req.body["actions"] || req.body["actions"].length === 0) {
-          return Response.sendJsonObjectResponse(req, res, {
-            response_action: "clear",
-          });
-        }
-
-        // interaction value. 
-        const actionValue: string | undefined = req.body["actions"][0]["value"];
-        const actionType: SlackActionType | undefined = req.body["actions"][0]["action_id"] as SlackActionType;
-        const slackChannelId: string | undefined = req.body["channel"]["id"];
-
-
-        if(!actionValue) {
+        if (authResult.isAuthorized === false) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -284,26 +268,7 @@ export default class SlackAPI {
           );
         }
 
-
-
-        const slackMessageId: string | undefined = req.body["message"]["ts"];
-        const slackUserName: string | undefined = req.body["user"]["name"];
-
-        const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.findOneBy({
-          query: {
-            workspaceProjectId: slackTeamId,
-          },
-          select: {
-            projectId: true,
-            authToken: true,
-            miscData: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!projectAuth) {
+        if (!authResult.actionType) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -311,211 +276,17 @@ export default class SlackAPI {
           );
         }
 
-        const projectId: ObjectID | undefined = projectAuth.projectId; 
-
-        if(!projectId) {
-
-         return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-
-        }
-
-        const userAuth: WorkspaceUserAuthToken | null = await WorkspaceUserAuthTokenService.findOneBy({
-          query: {
-            workspaceUserId: slackUserId,
-            projectId: projectId,
-          },
-          select: {
-            userId: true,
-            authToken: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        const botUserId: string | undefined = (projectAuth.miscData as SlackMiscData)?.botUserId; 
-
-
-        const userId: ObjectID | undefined = userAuth?.userId;
-
-        if(!userId) {
-
-          const markdwonPayload: WorkspacePayloadMarkdown = {
-            _type: "WorkspacePayloadMarkdown",
-            text: `${slackUserName}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and connect then your slack account.`,
-          }
-
-          await SlackUtil.sendMessage({
-            workspaceMessagePayload: {
-              _type: "WorkspaceMessagePayload",
-              messageBlocks: [
-                markdwonPayload
-              ],
-              channelNames: [],
-              channelIds: slackChannelId ? [slackChannelId]: [],  
-            },
-            authToken: projectAuth.authToken!,
-            userId: botUserId,
+        if (
+          SlackIncidentActions.isIncidentAction({
+            actionType: authResult.actionType,
           })
-
-          // clear response. 
-          return Response.sendJsonObjectResponse(req, res, {
-            response_action: "clear",
+        ) {
+          return SlackIncidentActions.handleIncidentAction({
+            slackRequest: authResult,
+            req: req,
+            res: res,
           });
         }
-
-        // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
-
-        if(actionType === SlackActionType.AcknowledgeIncident){
-
-          const incidentId: ObjectID = new ObjectID(actionValue);
-
-          await IncidentService.acknowledgeIncident(incidentId, userId); 
-          
-          // send a message to the channel that the incident has been acknowledged. 
-
-          const markdwonPayload: WorkspacePayloadMarkdown = {
-            _type: "WorkspacePayloadMarkdown",
-            text: `${slackUserName} has acknowledged the incident.`,
-          }
-
-          await SlackUtil.sendMessage({
-            workspaceMessagePayload: {
-              _type: "WorkspaceMessagePayload",
-              messageBlocks: [
-                markdwonPayload
-              ],
-              channelNames: [],
-              channelIds: slackChannelId ? [slackChannelId]: [],  
-            },
-            authToken: projectAuth.authToken!,
-            userId: botUserId,
-          })
-
-          // clear response. 
-          return Response.sendJsonObjectResponse(req, res, {
-            response_action: "clear",
-          });
-        }
-
-
-        if(actionType === SlackActionType.ResolveIncident){
-          
-          const incidentId: ObjectID = new ObjectID(actionValue);
-
-          await IncidentService.resolveIncident(incidentId, userId); 
-          
-          // send a message to the channel that the incident has been acknowledged. 
-
-          const markdwonPayload: WorkspacePayloadMarkdown = {
-            _type: "WorkspacePayloadMarkdown",
-            text: `${slackUserName} has resolved the incident.`,
-          }
-
-          await SlackUtil.sendMessage({
-            workspaceMessagePayload: {
-              _type: "WorkspaceMessagePayload",
-              messageBlocks: [
-                markdwonPayload
-              ],
-              channelNames: [],
-              channelIds: slackChannelId ? [slackChannelId]: [],  
-            },
-            authToken: projectAuth.authToken!,
-            userId: botUserId,
-          })
-
-          // clear response. 
-          return Response.sendJsonObjectResponse(req, res, {
-            response_action: "clear",
-          }); 
-        }
-
-
-        if(actionType === SlackActionType.AddIncidentNote){
-          
-          const incidentId: ObjectID = new ObjectID(actionValue);
-
-          // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note. 
-
-          return Response.sendJsonObjectResponse(req, res, {
-            type: "modal",
-            title: {
-              type: "plain_text",
-              text: "Add Note",
-            },
-            blocks: [
-              {
-                type: "input",
-                block_id: "note_type",
-                element: {
-                  type: "static_select",
-                  action_id: "note_type",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Select Note Type",
-                  },
-                  options: [
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: "Public Note",
-                      },
-                      value: "public",
-                    },
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: "Private Note",
-                      },
-                      value: "private",
-                    },
-                  ],
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Note Type",
-                },
-              },
-              {
-                type: "input",
-                block_id: "note",
-                element: {
-                  type: "plain_text_input",
-                  action_id: "note",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Note",
-                  },
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Note",
-                },
-              },
-              // button
-              {
-                type: "actions",
-                elements: [
-                  {
-                    type: "button",
-                    text: {
-                      type: "plain_text",
-                      text: "Submit",
-                    },
-                    style: "primary",
-                    value: incidentId.toString(),
-                  },
-                ],
-              },
-            ],
-          });
-        }
-
       },
     );
 
@@ -538,89 +309,6 @@ export default class SlackAPI {
         return Response.sendJsonObjectResponse(req, res, {
           response_action: "clear",
         });
-      },
-    );
-
-    router.post(
-      "/slack/events",
-      SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        // respond to slack challenge
-
-        const body: any = req.body;
-
-        if (body.challenge) {
-          return Response.sendJsonObjectResponse(req, res, {
-            challenge: body.challenge,
-          });
-        }
-
-        // if event is "create-incident" then show the incident create modal with title and description and add a button to submit the form.
-
-        if (body.event && body.event.type === "create-incident") {
-          return Response.sendJsonObjectResponse(req, res, {
-            type: "modal",
-            title: {
-              type: "plain_text",
-              text: "Create Incident",
-            },
-            blocks: [
-              {
-                type: "input",
-                block_id: "title",
-                element: {
-                  type: "plain_text_input",
-                  action_id: "title",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Incident Title",
-                  },
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Title",
-                },
-              },
-              {
-                type: "input",
-                block_id: "description",
-                element: {
-                  type: "plain_text_input",
-                  action_id: "description",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Incident Description",
-                  },
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Description",
-                },
-              },
-              // button
-              {
-                type: "actions",
-                elements: [
-                  {
-                    type: "button",
-                    text: {
-                      type: "plain_text",
-                      text: "Submit",
-                    },
-                    style: "primary",
-                    value: "submit",
-                  },
-                ],
-              },
-            ],
-          });
-        }
-
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Invalid request"),
-        );
       },
     );
 
