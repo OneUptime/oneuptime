@@ -206,7 +206,19 @@ func main() {
 		// add help command
 		case "help":
 			fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart")
-
+		case "status":
+			s, err := s.Status()
+			if err != nil {
+				slog.Error(err.Error())
+				os.Exit(2)
+			}
+			if s == service.StatusRunning {
+				slog.Info("Service is running")
+			} else if s == service.StatusStopped {
+				slog.Info("Service is stopped")
+			} else {
+				slog.Info("Service status unknown")
+			}
 		default:
 			slog.Error("Invalid command")
 			os.Exit(2)
