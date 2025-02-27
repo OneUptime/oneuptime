@@ -84,11 +84,6 @@ func main() {
 		os.Exit(2)
 	}
 
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(2)
-	}
-
 	if len(os.Args) > 1 {
 		cmd := os.Args[1]
 		switch cmd {
@@ -145,7 +140,7 @@ func main() {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
-			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
+			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
 				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
@@ -167,7 +162,7 @@ func main() {
 				slog.Error(err.Error())
 				os.Exit(2)
 			}
-			if err != nil || prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
+			if prg.config.SecretKey == "" || prg.config.OneUptimeURL == "" {
 				slog.Error("Service configuration not found or is incomplete. Please run 'oneuptime-infrastructure-agent configure' to configure the service.")
 				os.Exit(2)
 			}
