@@ -284,5 +284,20 @@ export default class SlackIncidentActions {
     if (actionType === SlackActionType.AddIncidentNote) {
       return await this.addIncidentNote(data);
     }
+
+    if(actionType === SlackActionType.ViewIncident) {
+      // do nothing. This is just a view incident action.
+      // clear response.
+      return Response.sendJsonObjectResponse(data.req, data.res, {
+        response_action: "clear",
+      });
+    }
+
+    // invalid action type.
+    return Response.sendErrorResponse(
+      data.req,
+      data.res,
+      new BadDataException("Invalid Action Type"),
+    );
   }
 }

@@ -260,6 +260,9 @@ export default class SlackAPI {
           req: req,
         });
 
+        logger.debug("Slack Interactive Auth Result: ");
+        logger.debug(authResult);
+
         if (authResult.isAuthorized === false) {
           return Response.sendErrorResponse(
             req,
