@@ -15,7 +15,10 @@ export default class SlackAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
+    logger.debug("Starting Slack request authorization");
+
     if (!SlackAppSigningSecret) {
+      logger.error("SLACK_APP_SIGNING_SECRET env variable not found.");
       return Response.sendErrorResponse(
         req,
         res,
@@ -41,6 +44,8 @@ export default class SlackAuthorization {
     const baseString: string = `v0:${timestamp}:${requestBody}`;
     const signature: string = `v0=${crypto.createHmac("sha256", slackSigningSecret).update(baseString).digest("hex")}`;
 
+    logger.debug(`Generated signature: ${signature}`);
+
     // check if the signature is valid
     if (
       !crypto.timingSafeEqual(
@@ -48,6 +53,7 @@ export default class SlackAuthorization {
         Buffer.from(slackSignature),
       )
     ) {
+      logger.error("Slack Signature Verification Failed.");
       return Response.sendErrorResponse(
         req,
         res,
@@ -55,6 +61,7 @@ export default class SlackAuthorization {
       );
     }
 
+    logger.debug("Slack request authorized successfully");
     next();
   }
 }
