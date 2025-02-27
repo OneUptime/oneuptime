@@ -421,6 +421,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           channel: data.workspaceChannel.id,
           blocks: data.blocks,
+          unfurl_links: false,
         },
         {
           Authorization: `Bearer ${data.authToken}`,
