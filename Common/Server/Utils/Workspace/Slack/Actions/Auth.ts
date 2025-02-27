@@ -9,6 +9,8 @@ import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
+import logger from "../../../Logger";
+import { JSONObject } from "../../../../../Types/JSON";
 
 export interface SlackRequest {
   isAuthorized: boolean;
@@ -29,6 +31,16 @@ export default class SlackAuthAction {
     req: ExpressRequest;
   }): Promise<SlackRequest> {
     const { req } = data;
+
+    logger.debug("Starting Slack request authorization");
+    logger.debug(`Request body: `);
+    logger.debug(req.body);
+
+    let payload: JSONObject = req.body;
+
+    if(payload['payload'] && typeof payload['payload'] === 'string') {
+      payload = JSON.parse(payload['payload']);
+    }
 
     const slackUserId: string | undefined = req.body["user"]["id"];
     const slackTeamId: string | undefined = req.body["team"]["id"];
