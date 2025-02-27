@@ -200,9 +200,11 @@ export class Service extends DatabaseService<Model> {
       logger.debug("Posting messages to workspace channels");
 
       const messageBlocks: Array<WorkspaceMessageBlock> =
-        data.messageBlocksByWorkspaceType.find((messageBlock: MessageBlocksByWorkspaceType) => {
-          return messageBlock.workspaceType === workspaceType;
-        })?.messageBlocks || [];
+        data.messageBlocksByWorkspaceType.find(
+          (messageBlock: MessageBlocksByWorkspaceType) => {
+            return messageBlock.workspaceType === workspaceType;
+          },
+        )?.messageBlocks || [];
 
       if (messageBlocks.length > 0) {
         workspaceSendMessageResponse = await this.postToWorkspaceChannels({
@@ -215,7 +217,7 @@ export class Service extends DatabaseService<Model> {
           workspaceMessagePayload: {
             _type: "WorkspaceMessagePayload",
             channelNames: existingChannelNames,
-            channelIds:[],
+            channelIds: [],
             messageBlocks: messageBlocks,
           },
         });

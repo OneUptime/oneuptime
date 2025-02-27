@@ -270,7 +270,8 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
-    const actionType: SlackActionType | undefined = data.slackRequest.actionType;
+    const actionType: SlackActionType | undefined =
+      data.slackRequest.actionType;
 
     if (actionType === SlackActionType.AcknowledgeIncident) {
       return await this.acknowledgeIncident(data);
