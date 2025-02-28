@@ -53,6 +53,7 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
   _type: "WorkspaceModalBlock";
   title: string;
+  callbackId: string;
   submitButtonTitle: string;
   cancelButtonTitle: string;
   submitButtonActionId?: string | undefined;

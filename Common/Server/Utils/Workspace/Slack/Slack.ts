@@ -28,6 +28,59 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
+
+  public static override async showModalToUser(data: {
+    authToken: string;
+    triggerId: string;
+    modalBlock: WorkspaceModalBlock;
+  }): Promise<void> {
+
+    logger.debug("Showing modal to user with data:");
+    logger.debug(data);
+
+    // Show modal to user
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: [data.modalBlock],
+      },
+    );
+
+  // use view.open API to show modal
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      URL.fromString("https://slack.com/api/views.open"),
+      {
+        trigger_id: data.triggerId,
+        view: {
+          type: "modal",
+          callback_id: data.modalBlock.callbackId,
+          title: {
+            type: "plain_text",
+            text: data.modalBlock.title,
+          },
+          blocks: blocks,
+        },
+      },
+      {
+        Authorization: `Bearer ${data.authToken}`,
+        ["Content-Type"]: "application/json",
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(result);
+      throw result;
+    }
+
+    if ((result.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(result.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
+    logger.debug("Modal shown to user successfully.");
+  }
+
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;

@@ -30,6 +30,7 @@ export interface SlackRequest {
   slackUserId?: string | undefined;
   slackUsername?: string | undefined;
   actions?: SlackAction[] | undefined;
+  triggerId?: string | undefined;
 }
 
 export default class SlackAuthAction {
@@ -88,6 +89,9 @@ export default class SlackAuthAction {
     const slackUsername: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
     )["username"] as string;
+
+
+    const triggerId: string | undefined = payload["trigger_id"] as string;
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
@@ -175,6 +179,7 @@ export default class SlackAuthAction {
       slackMessageId: slackMessageId,
       slackUserFullName: slackUserFullName,
       actions: actions,
+      triggerId: triggerId,
     };
   }
 }

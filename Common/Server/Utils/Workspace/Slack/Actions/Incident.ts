@@ -8,10 +8,10 @@ import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
   WorkspaceDropdownBlock,
+  WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
-import { JSONObject } from "../../../../../Types/JSON";
 import WorkspaceNotificationRuleService from "../../../../Services/WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
@@ -319,6 +319,11 @@ export default class SlackIncidentActions {
       );
     }
 
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
     const incidentId: ObjectID = new ObjectID(actionValue);
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
@@ -347,19 +352,25 @@ export default class SlackIncidentActions {
       placeholder: "Note",
     };
 
-    const modal: JSONObject = SlackUtil.getModalBlock({
-      payloadModalBlock: {
-        _type: "WorkspaceModalBlock",
-        title: "Add Note",
-        submitButtonTitle: "Submit",
-        submitButtonActionId: SlackActionType.SubmitIncidentNote,
-        cancelButtonTitle: "Cancel",
-        submitButtonValue: incidentId.toString(),
-        blocks: [notePickerDropdown, noteTextArea],
-      },
-    });
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "Add Note",
+      submitButtonTitle: "Submit",
+      submitButtonActionId: SlackActionType.SubmitIncidentNote,
+      cancelButtonTitle: "Cancel",
+      callbackId: "add_incident_note",
+      submitButtonValue: incidentId.toString(),
+      blocks: [notePickerDropdown, noteTextArea],
+    }; 
 
-    return Response.sendJsonObjectResponse(req, res, modal);
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    })
+
+
   }
 
   public static async handleIncidentAction(data: {
