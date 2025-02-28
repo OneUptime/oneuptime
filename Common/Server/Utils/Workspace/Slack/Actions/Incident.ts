@@ -324,7 +324,7 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    const incidentId: ObjectID = new ObjectID(actionValue);
+    // const incidentId: ObjectID = new ObjectID(actionValue);
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
@@ -356,10 +356,8 @@ export default class SlackIncidentActions {
       _type: "WorkspaceModalBlock",
       title: "Add Note",
       submitButtonTitle: "Submit",
-      submitButtonActionId: SlackActionType.SubmitIncidentNote,
       cancelButtonTitle: "Cancel",
       callbackId: "add_incident_note",
-      submitButtonValue: incidentId.toString(),
       blocks: [notePickerDropdown, noteTextArea],
     }; 
 
