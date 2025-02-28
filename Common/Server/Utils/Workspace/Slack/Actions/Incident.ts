@@ -129,7 +129,7 @@ export default class SlackIncidentActions {
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `@${slackUsername} has **acknowledged** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
+        text: `:eyes: @${slackUsername} has **acknowledged** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
           incident.projectId!,
           incident.id!
         )})**.`,
@@ -259,7 +259,7 @@ export default class SlackIncidentActions {
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `@${slackUsername} has **resolved** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
+        text: `:white_check_mark: @${slackUsername} has **resolved** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
           incident.projectId!,
           incident.id!
         )})**.`,
