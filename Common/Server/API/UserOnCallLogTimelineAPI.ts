@@ -93,7 +93,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       },
     );
 
-
     // We have this ack page to show the user a confirmation page before acknowledging the notification.
     // this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
     // so we need to create this page for the user to confirm that they want to acknowledge the notification.
@@ -123,13 +122,13 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               triggeredByIncidentId: true,
               triggeredByIncident: {
                 title: true,
-                description: true
+                description: true,
               },
               triggeredByAlertId: true,
               triggeredByAlert: {
                 title: true,
-                description: true
-              }
+                description: true,
+              },
             },
             props: {
               isRoot: true,
@@ -144,27 +143,34 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           );
         }
 
-        const notificationType: string = timelineItem.triggeredByIncidentId ? "Incident" : "Alert";
+        const notificationType: string = timelineItem.triggeredByIncidentId
+          ? "Incident"
+          : "Alert";
 
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-        return Response.render(req, res, "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs", {
-          title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
-          message: `Do you want to acknowledge this ${notificationType}?`,
-          acknowledgeText: `Acknowledge ${notificationType}`,
-          acknowledgeUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute("/acknowledge/" + itemId.toString()),
-          ).toString()
-        })
-      });
+        return Response.render(
+          req,
+          res,
+          "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
+          {
+            title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+            message: `Do you want to acknowledge this ${notificationType}?`,
+            acknowledgeText: `Acknowledge ${notificationType}`,
+            acknowledgeUrl: new URL(
+              httpProtocol,
+              host,
+              new Route(AppApiRoute.toString())
+                .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+                .addRoute("/acknowledge/" + itemId.toString()),
+            ).toString(),
+          },
+        );
+      },
+    );
 
-
-      // This is the link that actually acknowledges the notification.
+    // This is the link that actually acknowledges the notification.
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
