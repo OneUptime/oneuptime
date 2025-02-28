@@ -82,7 +82,9 @@ export class Service extends DatabaseService<Model> {
         logger.debug(`Subscribers Count: ${subscribersCount.toNumber()}`);
 
         if (subscribersCount.toNumber() >= AllowedSubscribersCountInFreePlan) {
-          logger.debug("Reached maximum allowed subscriber limit for the free plan.");
+          logger.debug(
+            "Reached maximum allowed subscriber limit for the free plan.",
+          );
           throw new BadDataException(
             `You have reached the maximum allowed subscriber limit for the free plan. Please upgrade your plan to add more subscribers.`,
           );
@@ -195,16 +197,20 @@ export class Service extends DatabaseService<Model> {
     } else {
       data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers.
     }
-    logger.debug(`Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`);
+    logger.debug(
+      `Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`,
+    );
 
     data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
       100000,
       999999,
     ).toString();
-    logger.debug(`Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`);
+    logger.debug(
+      `Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`,
+    );
 
     logger.debug("onBeforeCreate processed data:");
-    logger.debug(data); 
+    logger.debug(data);
 
     return { createBy: data, carryForward: statuspage };
   }
@@ -244,7 +250,9 @@ export class Service extends DatabaseService<Model> {
       createdItem._id &&
       createdItem.sendYouHaveSubscribedMessage
     ) {
-      logger.debug("Subscriber has a phone number and sendYouHaveSubscribedMessage is true.");
+      logger.debug(
+        "Subscriber has a phone number and sendYouHaveSubscribedMessage is true.",
+      );
       const statusPage: StatusPage | null = await StatusPageService.findOneBy({
         query: {
           _id: createdItem.statusPageId.toString(),
@@ -268,7 +276,9 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
       }
 
-      logger.debug(`Status Page Call SMS Config: ${JSON.stringify(statusPage.callSmsConfig)}`);
+      logger.debug(
+        `Status Page Call SMS Config: ${JSON.stringify(statusPage.callSmsConfig)}`,
+      );
 
       SmsService.sendSms(
         {
@@ -299,14 +309,18 @@ export class Service extends DatabaseService<Model> {
       logger.debug(`Is Subscription Confirmed: ${isSubcriptionConfirmed}`);
 
       if (!isSubcriptionConfirmed) {
-        logger.debug("Subscription is not confirmed. Sending confirmation email.");
+        logger.debug(
+          "Subscription is not confirmed. Sending confirmation email.",
+        );
         await this.sendConfirmSubscriptionEmail({
           subscriberId: createdItem.id!,
         });
       }
 
       if (isSubcriptionConfirmed && createdItem.sendYouHaveSubscribedMessage) {
-        logger.debug("Subscription is confirmed and sendYouHaveSubscribedMessage is true. Sending 'You have subscribed' email.");
+        logger.debug(
+          "Subscription is confirmed and sendYouHaveSubscribedMessage is true. Sending 'You have subscribed' email.",
+        );
         await this.sendYouHaveSubscribedEmail({
           subscriberId: createdItem.id!,
         });
@@ -584,11 +598,15 @@ export class Service extends DatabaseService<Model> {
     logger.debug("getConfirmSubscriptionLink called with data:");
     logger.debug(data);
 
-    const confirmSubscriptionLink: URL = URL.fromString(data.statusPageUrl).addRoute(
+    const confirmSubscriptionLink: URL = URL.fromString(
+      data.statusPageUrl,
+    ).addRoute(
       `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
 
-    logger.debug(`Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`);
+    logger.debug(
+      `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
+    );
     return confirmSubscriptionLink;
   }
 
@@ -601,7 +619,7 @@ export class Service extends DatabaseService<Model> {
     logger.debug("DatabaseCommonInteractionProps:");
     logger.debug(props);
 
-    const subscribers = await this.findBy({
+    const subscribers: Array<Model> = await this.findBy({
       query: {
         statusPageId: statusPageId,
         isUnsubscribed: false,
@@ -637,9 +655,9 @@ export class Service extends DatabaseService<Model> {
     logger.debug("statusPageSubscriberId:");
     logger.debug(statusPageSubscriberId);
 
-    const unsubscribeLink = URL.fromString(statusPageUrl.toString()).addRoute(
-      "/update-subscription/" + statusPageSubscriberId.toString(),
-    );
+    const unsubscribeLink: URL = URL.fromString(
+      statusPageUrl.toString(),
+    ).addRoute("/update-subscription/" + statusPageSubscriberId.toString());
 
     logger.debug("Generated Unsubscribe Link:");
     logger.debug(unsubscribeLink);
@@ -669,7 +687,9 @@ export class Service extends DatabaseService<Model> {
       !data.subscriber.isSubscribedToAllResources &&
       data.eventType !== StatusPageEventType.Announcement // announcements dont have resources
     ) {
-      logger.debug("Subscriber can choose resources and is not subscribed to all resources.");
+      logger.debug(
+        "Subscriber can choose resources and is not subscribed to all resources.",
+      );
       const subscriberResourceIds: Array<string> =
         data.subscriber.statusPageResources?.map(
           (resource: StatusPageResource) => {
@@ -708,7 +728,9 @@ export class Service extends DatabaseService<Model> {
       data.statusPage.allowSubscribersToChooseEventTypes &&
       !data.subscriber.isSubscribedToAllEventTypes
     ) {
-      logger.debug("Subscriber can choose event types and is not subscribed to all event types.");
+      logger.debug(
+        "Subscriber can choose event types and is not subscribed to all event types.",
+      );
       const subscriberEventTypes: Array<StatusPageEventType> =
         data.subscriber.statusPageEventTypes || [];
 
@@ -727,7 +749,9 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    logger.debug(`Final decision on shouldSendNotification: ${shouldSendNotification}`);
+    logger.debug(
+      `Final decision on shouldSendNotification: ${shouldSendNotification}`,
+    );
     return shouldSendNotification;
   }
 
@@ -737,7 +761,7 @@ export class Service extends DatabaseService<Model> {
     logger.debug("getStatusPagesToSendNotification called with statusPageIds:");
     logger.debug(statusPageIds);
 
-    const statusPages = await StatusPageService.findBy({
+    const statusPages: Array<StatusPage> = await StatusPageService.findBy({
       query: {
         _id: QueryHelper.any(statusPageIds),
       },
