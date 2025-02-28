@@ -196,17 +196,57 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               projectId: true,
               triggeredByIncidentId: true,
               triggeredByAlertId: true,
+              triggeredByAlert: {
+                title: true,
+              },
+              triggeredByIncident: {
+                title: true,  
+              },
+              acknowledgedAt: true,
+              isAcknowledged: true,
             },
             props: {
               isRoot: true,
             },
           });
 
+
+         
+
         if (!timelineItem) {
           return Response.sendErrorResponse(
             req,
             res,
             new BadDataException("Invalid item Id"),
+          );
+        }
+
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+
+        if(timelineItem.isAcknowledged){
+          // already acknowledged. Then show already acknowledged page with view details button.
+
+          const viewDetailsUrl: URL = new URL(
+            httpProtocol,
+            host,
+            DashboardRoute.addRoute(
+              `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
+            ),
+          );
+
+          return Response.render(
+            req,
+            res,
+            "/usr/src/Common/Server/Views/ViewMessage.ejs",
+            {
+              title: `Notification Already Acknowledged - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+              message: `This notification has already been acknowledged.`,
+              viewDetailsText: `View ${timelineItem.triggeredByIncidentId ? "Incident" : "Alert"}`,
+              viewDetailsUrl: viewDetailsUrl.toString(),
+            },
           );
         }
 
@@ -225,8 +265,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
         // redirect to dashboard to incidents page.
 
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+      
 
         if (timelineItem.triggeredByIncidentId) {
           return Response.redirect(
