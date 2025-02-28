@@ -86,7 +86,7 @@ export default class SlackIncidentMessages {
     if (incident.rootCause) {
       const markdownBlock5: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `:page_facing_up: **Root Cause**:
+        text: `:page_facing_up: **Root Cause**:\n\n
         ${incident.rootCause}`,
       };
       blockSlack.push(markdownBlock5);
