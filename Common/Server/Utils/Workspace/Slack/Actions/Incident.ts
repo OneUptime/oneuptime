@@ -4,7 +4,7 @@ import IncidentService from "../../../../Services/IncidentService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
-import { SlackRequest } from "./Auth";
+import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
   WorkspaceDropdownBlock,
@@ -37,18 +37,20 @@ export default class SlackIncidentActions {
 
   public static async acknowledgeIncident(data: {
     slackRequest: SlackRequest;
+    action: SlackAction;
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
     const {
-      actionValue,
       slackChannelId,
-      slackUserName,
       botUserId,
       userId,
       projectAuthToken,
+      slackUserFullName,
     } = slackRequest;
+
+    const { actionValue } = data.action;
 
     if (!actionValue) {
       return Response.sendErrorResponse(
@@ -82,7 +84,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (data.slackRequest.actionType === SlackActionType.AcknowledgeIncident) {
+    if (data.action.actionType === SlackActionType.AcknowledgeIncident) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 
       await IncidentService.acknowledgeIncident(incidentId, userId);
@@ -91,7 +93,7 @@ export default class SlackIncidentActions {
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserName} has acknowledged the incident.`,
+        text: `${slackUserFullName} has acknowledged the incident.`,
       };
 
       await SlackUtil.sendMessage({
@@ -121,14 +123,15 @@ export default class SlackIncidentActions {
 
   public static async resolveIncident(data: {
     slackRequest: SlackRequest;
+    action: SlackAction;
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
+    const { actionValue } = data.action;
     const {
-      actionValue,
       slackChannelId,
-      slackUserName,
+      slackUserFullName,
       botUserId,
       userId,
       projectAuthToken,
@@ -166,7 +169,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (data.slackRequest.actionType === SlackActionType.ResolveIncident) {
+    if (data.action.actionType === SlackActionType.ResolveIncident) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 
       await IncidentService.resolveIncident(incidentId, userId);
@@ -175,7 +178,7 @@ export default class SlackIncidentActions {
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserName} has resolved the incident.`,
+        text: `${slackUserFullName} has resolved the incident.`,
       };
 
       await SlackUtil.sendMessage({
@@ -207,11 +210,12 @@ export default class SlackIncidentActions {
 
   public static async addIncidentNote(data: {
     slackRequest: SlackRequest;
+    action: SlackAction;
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
-    const { slackRequest, req, res } = data;
-    const { actionValue } = slackRequest;
+    const { req, res } = data;
+    const { actionValue } = data.action;
 
     if (!actionValue) {
       return Response.sendErrorResponse(
@@ -266,12 +270,12 @@ export default class SlackIncidentActions {
 
   public static async handleIncidentAction(data: {
     slackRequest: SlackRequest;
+    action: SlackAction;
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
     // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
-    const actionType: SlackActionType | undefined =
-      data.slackRequest.actionType;
+    const actionType: SlackActionType | undefined = data.action.actionType;
 
     if (actionType === SlackActionType.AcknowledgeIncident) {
       return await this.acknowledgeIncident(data);
@@ -285,7 +289,7 @@ export default class SlackIncidentActions {
       return await this.addIncidentNote(data);
     }
 
-    if(actionType === SlackActionType.ViewIncident) {
+    if (actionType === SlackActionType.ViewIncident) {
       // do nothing. This is just a view incident action.
       // clear response.
       return Response.sendJsonObjectResponse(data.req, data.res, {

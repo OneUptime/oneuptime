@@ -16,9 +16,8 @@ export default class SlackAuthorization {
     _res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-
-    next(); 
-    return; 
+    next();
+    return;
     // logger.debug("Starting Slack request authorization");
 
     // if (!SlackAppSigningSecret) {

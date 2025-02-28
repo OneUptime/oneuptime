@@ -10,7 +10,12 @@ import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../../../Logger";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../../../Types/JSON";
+
+export interface SlackAction {
+  actionValue?: string | undefined;
+  actionType?: SlackActionType | undefined;
+}
 
 export interface SlackRequest {
   isAuthorized: boolean;
@@ -21,9 +26,8 @@ export interface SlackRequest {
   botUserId?: string | undefined;
   slackChannelId?: string | undefined;
   slackMessageId?: string | undefined;
-  slackUserName?: string | undefined;
-  actionValue?: string | undefined;
-  actionType?: SlackActionType | undefined;
+  slackUserFullName?: string | undefined;
+  actions?: SlackAction[] | undefined;
 }
 
 export default class SlackAuthAction {
@@ -38,35 +42,46 @@ export default class SlackAuthAction {
 
     let payload: JSONObject = req.body;
 
-    if(payload['payload'] && typeof payload['payload'] === 'string') {
-      payload = JSON.parse(payload['payload']);
+    if (payload["payload"] && typeof payload["payload"] === "string") {
+      payload = JSON.parse(payload["payload"]);
     }
 
-    const slackUserId: string | undefined = req.body["user"]["id"];
-    const slackTeamId: string | undefined = req.body["team"]["id"];
+    logger.debug(`Payload: `);
+    logger.debug(payload);
+
+    const slackUserId: string | undefined = (
+      (payload as JSONObject)["user"] as JSONObject
+    )["id"] as string;
+    const slackTeamId: string | undefined = (
+      (payload as JSONObject)["team"] as JSONObject
+    )["id"] as string;
 
     // if there are no actions then return.
-    if (!req.body["actions"] || req.body["actions"].length === 0) {
+    if (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) {
       return {
         isAuthorized: false,
       };
     }
 
-    // interaction value.
-    const actionValue: string | undefined = req.body["actions"][0]["value"];
-    const actionType: SlackActionType | undefined = req.body["actions"][0][
-      "action_id"
-    ] as SlackActionType;
-    const slackChannelId: string | undefined = req.body["channel"]["id"];
+    const actions: SlackAction[] = (payload["actions"] as JSONArray).map(
+      (action: JSONObject) => {
+        return {
+          actionValue: action["value"] as string,
+          actionType: action["action_id"] as SlackActionType,
+        };
+      },
+    );
 
-    if (!actionValue) {
-      return {
-        isAuthorized: false,
-      };
-    }
+    const slackChannelId: string | undefined = (
+      (payload as JSONObject)["channel"] as JSONObject
+    )["id"] as string;
 
-    const slackMessageId: string | undefined = req.body["message"]["ts"];
-    const slackUserName: string | undefined = req.body["user"]["name"];
+    const slackMessageId: string | undefined = (
+      (payload as JSONObject)["message"] as JSONObject
+    )["ts"] as string;
+    const slackUserFullName: string | undefined = (
+      (payload as JSONObject)["user"] as JSONObject
+    )["name"] as string;
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
@@ -121,7 +136,7 @@ export default class SlackAuthAction {
     if (!userAuth || !userId) {
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserName}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and connect then your slack account.`,
+        text: `${slackUserFullName}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and connect then your slack account.`,
       };
 
       await SlackUtil.sendMessage({
@@ -150,9 +165,8 @@ export default class SlackAuthAction {
       botUserId: botUserId,
       slackChannelId: slackChannelId,
       slackMessageId: slackMessageId,
-      slackUserName: slackUserName,
-      actionValue: actionValue,
-      actionType: actionType,
+      slackUserFullName: slackUserFullName,
+      actions: actions,
     };
   }
 }

@@ -271,24 +271,27 @@ export default class SlackAPI {
           );
         }
 
-        if (!authResult.actionType) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
+        for (const action of authResult.actions || []) {
+          if (!action.actionType) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid request"),
+            );
+          }
 
-        if (
-          SlackIncidentActions.isIncidentAction({
-            actionType: authResult.actionType,
-          })
-        ) {
-          return SlackIncidentActions.handleIncidentAction({
-            slackRequest: authResult,
-            req: req,
-            res: res,
-          });
+          if (
+            SlackIncidentActions.isIncidentAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackIncidentActions.handleIncidentAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
         }
       },
     );
