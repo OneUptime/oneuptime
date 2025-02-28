@@ -24,6 +24,10 @@ import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTo
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import SlackAuthAction, {
+  SlackRequest,
+} from "../Utils/Workspace/Slack/Actions/Auth";
+import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -251,10 +255,44 @@ export default class SlackAPI {
     router.post(
       "/slack/interactive",
       SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendJsonObjectResponse(req, res, {
-          response_action: "clear",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const authResult: SlackRequest = await SlackAuthAction.isAuthorized({
+          req: req,
         });
+
+        logger.debug("Slack Interactive Auth Result: ");
+        logger.debug(authResult);
+
+        if (authResult.isAuthorized === false) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request"),
+          );
+        }
+
+        for (const action of authResult.actions || []) {
+          if (!action.actionType) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid request"),
+            );
+          }
+
+          if (
+            SlackIncidentActions.isIncidentAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackIncidentActions.handleIncidentAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+        }
       },
     );
 
@@ -277,89 +315,6 @@ export default class SlackAPI {
         return Response.sendJsonObjectResponse(req, res, {
           response_action: "clear",
         });
-      },
-    );
-
-    router.post(
-      "/slack/events",
-      SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        // respond to slack challenge
-
-        const body: any = req.body;
-
-        if (body.challenge) {
-          return Response.sendJsonObjectResponse(req, res, {
-            challenge: body.challenge,
-          });
-        }
-
-        // if event is "create-incident" then show the incident create modal with title and description and add a button to submit the form.
-
-        if (body.event && body.event.type === "create-incident") {
-          return Response.sendJsonObjectResponse(req, res, {
-            type: "modal",
-            title: {
-              type: "plain_text",
-              text: "Create Incident",
-            },
-            blocks: [
-              {
-                type: "input",
-                block_id: "title",
-                element: {
-                  type: "plain_text_input",
-                  action_id: "title",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Incident Title",
-                  },
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Title",
-                },
-              },
-              {
-                type: "input",
-                block_id: "description",
-                element: {
-                  type: "plain_text_input",
-                  action_id: "description",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Incident Description",
-                  },
-                },
-                label: {
-                  type: "plain_text",
-                  text: "Description",
-                },
-              },
-              // button
-              {
-                type: "actions",
-                elements: [
-                  {
-                    type: "button",
-                    text: {
-                      type: "plain_text",
-                      text: "Submit",
-                    },
-                    style: "primary",
-                    value: "submit",
-                  },
-                ],
-              },
-            ],
-          });
-        }
-
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Invalid request"),
-        );
       },
     );
 

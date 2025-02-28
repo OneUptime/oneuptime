@@ -4,17 +4,99 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
+  WorkspaceDropdownBlock,
+  WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
+  WorkspaceModalBlock,
+  WorkspacePayloadButtons,
   WorkspacePayloadHeader,
+  WorkspacePayloadImage,
   WorkspacePayloadMarkdown,
+  WorkspaceTextAreaBlock,
+  WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
-import WorkspaceBase, { WorkspaceChannel } from "../WorkspaceBase";
+import WorkspaceBase, {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+  WorkspaceThread,
+} from "../WorkspaceBase";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import SlackifyMarkdown from "slackify-markdown";
+import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
+
+  public static override async showModalToUser(data: {
+    authToken: string;
+    triggerId: string;
+    modalBlock: WorkspaceModalBlock;
+  }): Promise<void> {
+
+    logger.debug("Showing modal to user with data:");
+    logger.debug(data);
+
+    const modalJson: JSONObject = this.getModalBlock({
+      payloadModalBlock: data.modalBlock,
+    });
+
+    logger.debug("Modal JSON generated:");
+    logger.debug(modalJson);
+
+  // use view.open API to show modal
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      URL.fromString("https://slack.com/api/views.open"),
+      {
+        trigger_id: data.triggerId,
+        view: modalJson,
+      },
+      {
+        Authorization: `Bearer ${data.authToken}`,
+        ["Content-Type"]: "application/json",
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(result);
+      throw result;
+    }
+
+    if ((result.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(result.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
+    logger.debug("Modal shown to user successfully.");
+  }
+
+  public static override async sendDirectMessageToUser(data: {
+    authToken: string;
+    workspaceUserId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+    // Send direct message to user
+
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.messageBlocks,
+      },
+    );
+
+    await this.sendPayloadBlocksToChannel({
+      authToken: data.authToken,
+      workspaceChannel: {
+        id: data.workspaceUserId,
+        name: "",
+        workspaceType: WorkspaceType.Slack,
+      },
+      blocks: blocks,
+    });
+  }
+
   public static override async joinChannel(data: {
     authToken: string;
     channelId: string;
@@ -300,11 +382,17 @@ export default class SlackUtil extends WorkspaceBase {
     return channels;
   }
 
+  public static override getDividerBlock(): JSONObject {
+    return {
+      type: "divider",
+    };
+  }
+
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
     userId: string;
-  }): Promise<void> {
+  }): Promise<WorkspaceSendMessageResponse> {
     logger.debug("Sending message to Slack with data:");
     logger.debug(data);
 
@@ -323,7 +411,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Existing workspace channels:");
     logger.debug(existingWorkspaceChannels);
 
-    const channelIdsToPostTo: Array<string> = [];
+    const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
     for (let channelName of data.workspaceMessagePayload.channelNames) {
       if (channelName && channelName.startsWith("#")) {
@@ -338,21 +426,36 @@ export default class SlackUtil extends WorkspaceBase {
       }
 
       if (channel) {
-        channelIdsToPostTo.push(channel.id);
+        workspaceChannelsToPostTo.push(channel);
       } else {
         logger.debug(`Channel ${channelName} does not exist.`);
       }
     }
 
-    logger.debug("Channel IDs to post to:");
-    logger.debug(channelIdsToPostTo);
+    // add channel ids.
+    for (const channelId of data.workspaceMessagePayload.channelIds) {
+      const channel: WorkspaceChannel = {
+        id: channelId,
+        name: "",
+        workspaceType: WorkspaceType.Slack,
+      };
 
-    for (const channelId of channelIdsToPostTo) {
+      workspaceChannelsToPostTo.push(channel);
+    }
+
+    logger.debug("Channel IDs to post to:");
+    logger.debug(workspaceChannelsToPostTo);
+
+    const workspaspaceMessageResponse: WorkspaceSendMessageResponse = {
+      threads: [],
+    };
+
+    for (const channel of workspaceChannelsToPostTo) {
       try {
         // check if the user is in the channel.
         const isUserInChannel: boolean = await this.isUserInChannel({
           authToken: data.authToken,
-          channelId: channelId,
+          channelId: channel.id,
           userId: data.userId,
         });
 
@@ -360,29 +463,36 @@ export default class SlackUtil extends WorkspaceBase {
           // add user to the channel
           await this.joinChannel({
             authToken: data.authToken,
-            channelId: channelId,
+            channelId: channel.id,
           });
         }
 
-        await this.sendPayloadBlocksToChannel({
+        const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({
           authToken: data.authToken,
-          channelId: channelId,
+          workspaceChannel: channel,
           blocks: blocks,
         });
 
-        logger.debug(`Message sent to channel ID ${channelId} successfully.`);
+        workspaspaceMessageResponse.threads.push(thread);
+
+        logger.debug(`Message sent to channel ID ${channel.id} successfully.`);
       } catch (e) {
-        logger.error(`Error sending message to channel ID ${channelId}:`);
+        logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);
       }
     }
+
+    logger.debug("Message sent successfully.");
+    logger.debug(workspaspaceMessageResponse);
+
+    return workspaspaceMessageResponse;
   }
 
   public static override async sendPayloadBlocksToChannel(data: {
     authToken: string;
-    channelId: string;
+    workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
-  }): Promise<void> {
+  }): Promise<WorkspaceThread> {
     logger.debug("Sending payload blocks to channel with data:");
     logger.debug(JSON.stringify(data, null, 2));
 
@@ -390,8 +500,9 @@ export default class SlackUtil extends WorkspaceBase {
       await API.post(
         URL.fromString("https://slack.com/api/chat.postMessage"),
         {
-          channel: data.channelId,
+          channel: data.workspaceChannel.id,
           blocks: data.blocks,
+          unfurl_links: false,
         },
         {
           Authorization: `Bearer ${data.authToken}`,
@@ -415,6 +526,31 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Payload blocks sent to channel successfully.");
+
+    return {
+      channel: data.workspaceChannel,
+      threadId: (response.jsonData as JSONObject)["ts"] as string,
+    };
+  }
+
+  public static override getButtonsBlock(data: {
+    payloadButtonsBlock: WorkspacePayloadButtons;
+  }): JSONObject {
+    logger.debug("Getting buttons block with data:");
+    logger.debug(data);
+
+    const buttonsBlock: JSONObject = {
+      type: "actions",
+      elements: data.payloadButtonsBlock.buttons.map(
+        (button: WorkspaceMessagePayloadButton) => {
+          return this.getButtonBlock({ payloadButtonBlock: button });
+        },
+      ),
+    };
+
+    logger.debug("Buttons block generated:");
+    logger.debug(buttonsBlock);
+    return buttonsBlock;
   }
 
   public static override async createChannel(data: {
@@ -495,6 +631,157 @@ export default class SlackUtil extends WorkspaceBase {
     return headerBlock;
   }
 
+  public static override getTextAreaBlock(data: {
+    payloadTextAreaBlock: WorkspaceTextAreaBlock;
+  }): JSONObject {
+    logger.debug("Getting text area block with data:");
+    logger.debug(data);
+
+    const textAreaBlock: JSONObject = {
+      type: "input",
+      element: {
+        type: "plain_text_input",
+        action_id: data.payloadTextAreaBlock.blockId,
+        placeholder: {
+          type: "plain_text",
+          text: data.payloadTextAreaBlock.placeholder,
+        },
+        initial_value: data.payloadTextAreaBlock.initialValue,
+      },
+      label: {
+        type: "plain_text",
+        text: data.payloadTextAreaBlock.label,
+      },
+    };
+
+    logger.debug("Text area block generated:");
+    logger.debug(textAreaBlock);
+    return textAreaBlock;
+  }
+
+  public static override getTextBoxBlock(data: {
+    payloadTextBoxBlock: WorkspaceTextBoxBlock;
+  }): JSONObject {
+    logger.debug("Getting text box block with data:");
+    logger.debug(data);
+
+    const textBoxBlock: JSONObject = {
+      type: "input",
+      element: {
+        type: "plain_text_input",
+        action_id: data.payloadTextBoxBlock.blockId,
+        placeholder: {
+          type: "plain_text",
+          text: data.payloadTextBoxBlock.placeholder,
+        },
+        initial_value: data.payloadTextBoxBlock.initialValue,
+      },
+      label: {
+        type: "plain_text",
+        text: data.payloadTextBoxBlock.label,
+      },
+    };
+
+    logger.debug("Text box block generated:");
+    logger.debug(textBoxBlock);
+    return textBoxBlock;
+  }
+
+  public static override getImageBlock(data: {
+    payloadImageBlock: WorkspacePayloadImage;
+  }): JSONObject {
+    logger.debug("Getting image block with data:");
+    logger.debug(data);
+
+    const imageBlock: JSONObject = {
+      type: "image",
+      image_url: data.payloadImageBlock.imageUrl.toString(),
+      alt_text: data.payloadImageBlock.altText,
+    };
+
+    logger.debug("Image block generated:");
+    logger.debug(imageBlock);
+    return imageBlock;
+  }
+
+  public static override getDropdownBlock(data: {
+    payloadDropdownBlock: WorkspaceDropdownBlock;
+  }): JSONObject {
+    logger.debug("Getting dropdown block with data:");
+    logger.debug(data);
+
+    const dropdownBlock: JSONObject = {
+      type: "input",
+      element: {
+        type: "static_select",
+        action_id: data.payloadDropdownBlock.blockId,
+        placeholder: {
+          type: "plain_text",
+          text: data.payloadDropdownBlock.placeholder,
+        },
+        options: data.payloadDropdownBlock.options.map(
+          (option: DropdownOption) => {
+            return {
+              text: {
+                type: "plain_text",
+                text: option.label,
+              },
+              value: option.value,
+            };
+          },
+        ),
+        initial_option: data.payloadDropdownBlock.initialValue
+          ? {
+              text: {
+                type: "plain_text",
+                text: data.payloadDropdownBlock.initialValue,
+              },
+              value: data.payloadDropdownBlock.initialValue,
+            }
+          : undefined,
+      },
+      label: {
+        type: "plain_text",
+        text: data.payloadDropdownBlock.label,
+      },
+    };
+
+    logger.debug("Dropdown block generated:");
+    logger.debug(dropdownBlock);
+    return dropdownBlock;
+  }
+
+  public static override getModalBlock(data: {
+    payloadModalBlock: WorkspaceModalBlock;
+  }): JSONObject {
+    logger.debug("Getting modal block with data:");
+    logger.debug(data);
+
+    const modalBlock: JSONObject = {
+      type: "modal",
+      title: {
+        type: "plain_text",
+        text: data.payloadModalBlock.title,
+      },
+      callback_id: data.payloadModalBlock.callbackId,
+      submit: {
+        type: "plain_text",
+        text: data.payloadModalBlock.submitButtonTitle,
+      },
+      close: {
+        type: "plain_text",
+        text: data.payloadModalBlock.cancelButtonTitle,
+      },
+      blocks: this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.payloadModalBlock.blocks,
+      }),
+    };
+
+    logger.debug("Modal block generated:");
+    logger.debug(modalBlock);
+    return modalBlock;
+  }
+
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
@@ -505,7 +792,9 @@ export default class SlackUtil extends WorkspaceBase {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: data.payloadMarkdownBlock.text,
+        text: data.payloadMarkdownBlock.text
+          ? SlackifyMarkdown(data.payloadMarkdownBlock.text)
+          : "",
       },
     };
 
@@ -595,9 +884,13 @@ export default class SlackUtil extends WorkspaceBase {
       text: {
         type: "plain_text",
         text: data.payloadButtonBlock.title,
+        emoji: true,
       },
-      value: data.payloadButtonBlock.title,
-      action_id: data.payloadButtonBlock.title,
+      value: data.payloadButtonBlock.value,
+      action_id: data.payloadButtonBlock.actionId,
+      url: data.payloadButtonBlock.url
+        ? data.payloadButtonBlock.url.toString()
+        : undefined,
     };
 
     logger.debug("Button block generated:");
