@@ -276,7 +276,7 @@ export class Service extends DatabaseService<Model> {
                   ),
                   unsubscribeUrl: unsubscribeUrl,
                 },
-                subject: "[Scheduled Maintenance] " + statusPageName,
+                subject: "[Scheduled Maintenance] " + (event.title || statusPageName),
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
