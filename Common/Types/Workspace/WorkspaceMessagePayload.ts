@@ -56,8 +56,6 @@ export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
   callbackId: string;
   submitButtonTitle: string;
   cancelButtonTitle: string;
-  submitButtonActionId?: string | undefined;
-  submitButtonValue?: string | undefined;
   blocks: Array<WorkspaceMessageBlock>;
 }
 

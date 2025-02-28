@@ -38,27 +38,19 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Showing modal to user with data:");
     logger.debug(data);
 
-    // Show modal to user
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      {
-        messageBlocks: [data.modalBlock],
-      },
-    );
+    const modalJson: JSONObject = this.getModalBlock({
+      payloadModalBlock: data.modalBlock,
+    });
+
+    logger.debug("Modal JSON generated:");
+    logger.debug(modalJson);
 
   // use view.open API to show modal
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
       URL.fromString("https://slack.com/api/views.open"),
       {
         trigger_id: data.triggerId,
-        view: {
-          type: "modal",
-          callback_id: data.modalBlock.callbackId,
-          title: {
-            type: "plain_text",
-            text: data.modalBlock.title,
-          },
-          blocks: blocks,
-        },
+        view: modalJson,
       },
       {
         Authorization: `Bearer ${data.authToken}`,
@@ -771,11 +763,10 @@ export default class SlackUtil extends WorkspaceBase {
         type: "plain_text",
         text: data.payloadModalBlock.title,
       },
+      callback_id: data.payloadModalBlock.callbackId,
       submit: {
         type: "plain_text",
         text: data.payloadModalBlock.submitButtonTitle,
-        action_id: data.payloadModalBlock.submitButtonActionId,
-        value: data.payloadModalBlock.submitButtonActionId,
       },
       close: {
         type: "plain_text",
