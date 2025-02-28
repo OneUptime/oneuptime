@@ -111,7 +111,7 @@ export default class SlackIncidentActions {
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})** has already been acknowledged.`,
+          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been acknowledged.`,
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -119,6 +119,8 @@ export default class SlackIncidentActions {
           authToken: projectAuthToken,
           workspaceUserId: slackRequest.slackUserId!
         });
+
+        return;
       }
 
       const incident: Incident = await IncidentService.acknowledgeIncident(incidentId, userId);
@@ -175,14 +177,14 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { actionValue } = data.action;
     const {
-      slackChannelId,
-      slackUserFullName,
       botUserId,
       userId,
       projectAuthToken,
+      slackUsername
     } = slackRequest;
+
+    const { actionValue } = data.action;
 
     if (!actionValue) {
       return Response.sendErrorResponse(
@@ -219,35 +221,78 @@ export default class SlackIncidentActions {
     if (data.action.actionType === SlackActionType.ResolveIncident) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 
-      await IncidentService.resolveIncident(incidentId, userId);
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
 
-      // send a message to the channel that the incident has been acknowledged.
+      const isAlreadyResolved: boolean = await IncidentService.isIncidentResolved(
+        {
+          incidentId: incidentId,
+        }
+      );
+
+      if(isAlreadyResolved) {
+
+
+        const incidentNumber: number | null = await IncidentService.getIncidentNumber({
+          incidentId: incidentId
+        });
+        // send a message to the channel visible to user, that the incident has already been Resolved.
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackUsername}, unfortunately you cannot resolve the **[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdwonPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!
+        });
+
+        return;
+      }
+
+      const incident: Incident = await IncidentService.resolveIncident(incidentId, userId);
+
+      // send a message to the channel that the incident has been Resolved.
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserFullName} has resolved the incident.`,
+        text: `@${slackUsername} has **resolved** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
+          incident.projectId!,
+          incident.id!
+        )})**.`,
       };
+
+      const channelNames: string[] = await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+        {
+          projectId: slackRequest.projectId!,
+          notificationRuleEventType: NotificationRuleEventType.Incident,  
+          workspaceType: WorkspaceType.Slack
+        });
+
+        const incidentChannels: Array<WorkspaceChannel> = await IncidentService.getWorkspaceChannelForIncident({
+          incidentId: incidentId,
+          workspaceType: WorkspaceType.Slack
+        });
+
 
       await SlackUtil.sendMessage({
         workspaceMessagePayload: {
           _type: "WorkspaceMessagePayload",
           messageBlocks: [markdwonPayload],
-          channelNames: [],
-          channelIds: slackChannelId ? [slackChannelId] : [],
+          channelNames: channelNames,
+          channelIds: incidentChannels.map((channel) => channel.id) || [],
         },
         authToken: projectAuthToken,
         userId: botUserId,
       });
 
-      // clear response.
-
-      return Response.sendJsonObjectResponse(req, res, {
-        response_action: "clear",
-      });
+      return 
     }
 
     // invlaid action type.
-
     return Response.sendErrorResponse(
       req,
       res,

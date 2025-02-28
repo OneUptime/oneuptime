@@ -70,6 +70,51 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  public async isIncidentResolved(data: {
+    incidentId: ObjectID;
+  }): Promise<boolean> {
+    const incident: Model | null = await this.findOneBy({
+      query: {
+        _id: data.incidentId,
+      },
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    const resolvedIncidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const resolvedIncidentStateOrder: number = resolvedIncidentState.order!;
+
+    if (currentIncidentStateOrder >= resolvedIncidentStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
   public async isIncidentAcknowledged(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
@@ -1455,6 +1500,8 @@ ${incidentSeverity.name}
 
     return incident.incidentNumber || null;
   }
+
+
 }
 
 

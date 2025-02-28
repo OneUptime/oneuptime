@@ -201,6 +201,31 @@ export class Service extends DatabaseService<IncidentState> {
     return unresolvedIncidentStates;
   }
 
+  public async getResolvedIncidentState(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<IncidentState> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: data.props,
+      });
+
+    const resolvedIncidentState: IncidentState | undefined = incidentStates.find(
+      (incidentState: IncidentState) => {
+        return incidentState?.isResolvedState;
+      },
+    );
+
+    if (!resolvedIncidentState) {
+      throw new BadDataException(
+        "Resolved Incident State not found for this project",
+      );
+    }
+
+    return resolvedIncidentState
+  }
+
   public async getAcknowledgedIncidentState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
