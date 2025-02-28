@@ -28,18 +28,18 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
-
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
   }): Promise<void> {
-
     // Send direct message to user
 
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
-      messageBlocks: data.messageBlocks,
-    });
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.messageBlocks,
+      },
+    );
 
     await this.sendPayloadBlocksToChannel({
       authToken: data.authToken,
@@ -49,7 +49,7 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceType: WorkspaceType.Slack,
       },
       blocks: blocks,
-    })
+    });
   }
 
   public static override async joinChannel(data: {
@@ -387,8 +387,8 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
-    // add channel ids. 
-    for (let channelId of data.workspaceMessagePayload.channelIds) {
+    // add channel ids.
+    for (const channelId of data.workspaceMessagePayload.channelIds) {
       const channel: WorkspaceChannel = {
         id: channelId,
         name: "",

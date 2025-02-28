@@ -89,7 +89,6 @@ export default class SlackAuthAction {
       (payload as JSONObject)["user"] as JSONObject
     )["username"] as string;
 
-
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
         query: {
@@ -162,8 +161,6 @@ export default class SlackAuthAction {
         isAuthorized: false,
       };
     }
-
-
 
     return {
       isAuthorized: true,

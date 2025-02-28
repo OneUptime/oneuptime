@@ -168,7 +168,7 @@ export class Service extends DatabaseService<Model> {
       id: incidentId,
       select: {
         projectId: true,
-        incidentNumber:   true,
+        incidentNumber: true,
       },
       props: {
         isRoot: true,
@@ -215,7 +215,7 @@ export class Service extends DatabaseService<Model> {
 
     // store incident metric
 
-      return incident;
+    return incident;
   }
 
   public async acknowledgeIncident(
@@ -1471,14 +1471,15 @@ ${incidentSeverity.name}
       },
     });
 
-
-    if(!incident) {
+    if (!incident) {
       throw new BadDataException("Incident not found.");
     }
 
-    return (incident.postUpdatesToWorkspaceChannels || []).filter((channel: WorkspaceChannel) => {  
-      return channel.workspaceType === data.workspaceType;
-    });
+    return (incident.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: WorkspaceChannel) => {
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
   }
 
   public async getIncidentNumber(data: {
@@ -1500,10 +1501,6 @@ ${incidentSeverity.name}
 
     return incident.incidentNumber || null;
   }
-
-
 }
-
-
 
 export default new Service();

@@ -36,17 +36,13 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
-
   public static sendDirectMessageToUser(_data: {
     authToken: string;
-    workspaceUserId: string
+    workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
   }): Promise<void> {
-
     throw new NotImplementedException();
-
   }
-
 
   public static async joinChannel(_data: {
     authToken: string;

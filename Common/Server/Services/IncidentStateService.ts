@@ -211,11 +211,10 @@ export class Service extends DatabaseService<IncidentState> {
         props: data.props,
       });
 
-    const resolvedIncidentState: IncidentState | undefined = incidentStates.find(
-      (incidentState: IncidentState) => {
+    const resolvedIncidentState: IncidentState | undefined =
+      incidentStates.find((incidentState: IncidentState) => {
         return incidentState?.isResolvedState;
-      },
-    );
+      });
 
     if (!resolvedIncidentState) {
       throw new BadDataException(
@@ -223,7 +222,7 @@ export class Service extends DatabaseService<IncidentState> {
       );
     }
 
-    return resolvedIncidentState
+    return resolvedIncidentState;
   }
 
   public async getAcknowledgedIncidentState(data: {
