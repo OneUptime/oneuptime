@@ -200,7 +200,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 title: true,
               },
               triggeredByIncident: {
-                title: true,  
+                title: true,
               },
               acknowledgedAt: true,
               isAcknowledged: true,
@@ -210,9 +210,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             },
           });
 
-
-         
-
         if (!timelineItem) {
           return Response.sendErrorResponse(
             req,
@@ -221,12 +218,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           );
         }
 
-
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-
-        if(timelineItem.isAcknowledged){
+        if (timelineItem.isAcknowledged) {
           // already acknowledged. Then show already acknowledged page with view details button.
 
           const viewDetailsUrl: URL = new URL(
@@ -264,8 +259,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         });
 
         // redirect to dashboard to incidents page.
-
-      
 
         if (timelineItem.triggeredByIncidentId) {
           return Response.redirect(
