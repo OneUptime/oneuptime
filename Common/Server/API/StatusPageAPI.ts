@@ -1942,6 +1942,8 @@ export default class StatusPageAPI extends BaseAPI<
       req.params["statusPageId"] as string,
     );
 
+    logger.debug(`Subscribing to status page with ID: ${objectId}`);
+
     if (
       !(await this.service.hasReadAccess(
         objectId,
@@ -1949,6 +1951,7 @@ export default class StatusPageAPI extends BaseAPI<
         req,
       ))
     ) {
+      logger.debug(`No read access to status page with ID: ${objectId}`);
       throw new NotAuthenticatedException(
         "You are not authenticated to access this status page",
       );
@@ -1972,19 +1975,28 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
+      logger.debug(`Status page not found with ID: ${objectId}`);
       throw new BadDataException("Status Page not found");
     }
+
+    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);
 
     if (
       req.body.data["subscriberEmail"] &&
       !statusPage.enableEmailSubscribers
     ) {
+      logger.debug(
+        `Email subscribers not enabled for status page with ID: ${objectId}`,
+      );
       throw new BadDataException(
         "Email subscribers not enabled for this status page.",
       );
     }
 
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
+      logger.debug(
+        `SMS subscribers not enabled for status page with ID: ${objectId}`,
+      );
       throw new BadDataException(
         "SMS subscribers not enabled for this status page.",
       );
@@ -1996,6 +2008,9 @@ export default class StatusPageAPI extends BaseAPI<
       !req.body.data["subscriberEmail"] &&
       !req.body.data["subscriberPhone"]
     ) {
+      logger.debug(
+        `No email or phone provided for subscription to status page with ID: ${objectId}`,
+      );
       throw new BadDataException(
         "Email or phone is required to subscribe to this status page.",
       );
@@ -2014,12 +2029,18 @@ export default class StatusPageAPI extends BaseAPI<
     let isUpdate: boolean = false;
 
     if (!req.params["subscriberId"]) {
+      logger.debug(
+        `Creating new subscriber for status page with ID: ${objectId}`,
+      );
       statusPageSubscriber = new StatusPageSubscriber();
     } else {
       const subscriberId: ObjectID = new ObjectID(
         req.params["subscriberId"] as string,
       );
 
+      logger.debug(
+        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
+      );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           _id: subscriberId.toString(),
@@ -2030,6 +2051,7 @@ export default class StatusPageAPI extends BaseAPI<
       });
 
       if (!statusPageSubscriber) {
+        logger.debug(`Subscriber not found with ID: ${subscriberId}`);
         throw new BadDataException("Subscriber not found");
       }
 
@@ -2037,10 +2059,12 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (email) {
+      logger.debug(`Setting subscriber email: ${email}`);
       statusPageSubscriber.subscriberEmail = email;
     }
 
     if (phone) {
+      logger.debug(`Setting subscriber phone: ${phone}`);
       statusPageSubscriber.subscriberPhone = phone;
     }
 
@@ -2048,6 +2072,9 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageResources"] &&
       !statusPage.allowSubscribersToChooseResources
     ) {
+      logger.debug(
+        `Subscribers not allowed to choose resources for status page with ID: ${objectId}`,
+      );
       throw new BadDataException(
         "Subscribers are not allowed to choose resources for this status page.",
       );
@@ -2057,6 +2084,9 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageEventTypes"] &&
       !statusPage.allowSubscribersToChooseEventTypes
     ) {
+      logger.debug(
+        `Subscribers not allowed to choose event types for status page with ID: ${objectId}`,
+      );
       throw new BadDataException(
         "Subscribers are not allowed to choose event types for this status page.",
       );
@@ -2077,6 +2107,9 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageResources"] &&
       req.body.data["statusPageResources"].length > 0
     ) {
+      logger.debug(
+        `Setting subscriber resources: ${JSON.stringify(req.body.data["statusPageResources"])}`,
+      );
       statusPageSubscriber.statusPageResources = req.body.data[
         "statusPageResources"
       ] as Array<StatusPageResource>;
@@ -2086,6 +2119,9 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageEventTypes"] &&
       req.body.data["statusPageEventTypes"].length > 0
     ) {
+      logger.debug(
+        `Setting subscriber event types: ${JSON.stringify(req.body.data["statusPageEventTypes"])}`,
+      );
       statusPageSubscriber.statusPageEventTypes = req.body.data[
         "statusPageEventTypes"
       ] as Array<StatusPageEventType>;
@@ -2093,7 +2129,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (isUpdate) {
       // check isUnsubscribed is set to false.
-
+      logger.debug(`Updating subscriber with ID: ${statusPageSubscriber.id}`);
       statusPageSubscriber.isUnsubscribed = Boolean(
         req.body.data["isUnsubscribed"],
       );
@@ -2111,6 +2147,9 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
     } else {
+      logger.debug(
+        `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
+      );
       await StatusPageSubscriberService.create({
         data: statusPageSubscriber,
         props: {
@@ -2118,6 +2157,10 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
     }
+
+    logger.debug(
+      `Subscription process completed for status page with ID: ${objectId}`,
+    );
   }
 
   public async getSubscriber(

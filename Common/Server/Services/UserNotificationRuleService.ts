@@ -763,7 +763,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ).toString(),
     };
 
@@ -807,7 +807,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ).toString(),
     };
 

@@ -10,7 +10,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { DashboardRoute } from "Common/ServiceRoute";
+import { AppApiRoute, DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -20,6 +20,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import Route from "../../Types/API/Route";
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
   UserOnCallLogTimeline,
@@ -92,6 +93,84 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       },
     );
 
+    // We have this ack page to show the user a confirmation page before acknowledging the notification.
+    // this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
+    // so we need to create this page for the user to confirm that they want to acknowledge the notification.
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/acknowledge-page/:itemId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        req = req as OneUptimeRequest;
+
+        if (!req.params["itemId"]) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Item ID is required"),
+          );
+        }
+
+        const itemId: ObjectID = new ObjectID(req.params["itemId"]);
+
+        const timelineItem: UserOnCallLogTimeline | null =
+          await this.service.findOneById({
+            id: itemId,
+            select: {
+              _id: true,
+              projectId: true,
+              triggeredByIncidentId: true,
+              triggeredByIncident: {
+                title: true,
+                description: true,
+              },
+              triggeredByAlertId: true,
+              triggeredByAlert: {
+                title: true,
+                description: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!timelineItem) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid item Id"),
+          );
+        }
+
+        const notificationType: string = timelineItem.triggeredByIncidentId
+          ? "Incident"
+          : "Alert";
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        return Response.render(
+          req,
+          res,
+          "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
+          {
+            title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+            message: `Do you want to acknowledge this ${notificationType}?`,
+            acknowledgeText: `Acknowledge ${notificationType}`,
+            acknowledgeUrl: new URL(
+              httpProtocol,
+              host,
+              new Route(AppApiRoute.toString())
+                .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+                .addRoute("/acknowledge/" + itemId.toString()),
+            ).toString(),
+          },
+        );
+      },
+    );
+
+    // This is the link that actually acknowledges the notification.
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
@@ -117,6 +196,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               projectId: true,
               triggeredByIncidentId: true,
               triggeredByAlertId: true,
+              triggeredByAlert: {
+                title: true,
+              },
+              triggeredByIncident: {
+                title: true,
+              },
+              acknowledgedAt: true,
+              isAcknowledged: true,
             },
             props: {
               isRoot: true,
@@ -128,6 +215,33 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             req,
             res,
             new BadDataException("Invalid item Id"),
+          );
+        }
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        if (timelineItem.isAcknowledged) {
+          // already acknowledged. Then show already acknowledged page with view details button.
+
+          const viewDetailsUrl: URL = new URL(
+            httpProtocol,
+            host,
+            DashboardRoute.addRoute(
+              `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
+            ),
+          );
+
+          return Response.render(
+            req,
+            res,
+            "/usr/src/Common/Server/Views/ViewMessage.ejs",
+            {
+              title: `Notification Already Acknowledged - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+              message: `This notification has already been acknowledged.`,
+              viewDetailsText: `View ${timelineItem.triggeredByIncidentId ? "Incident" : "Alert"}`,
+              viewDetailsUrl: viewDetailsUrl.toString(),
+            },
           );
         }
 
@@ -145,9 +259,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         });
 
         // redirect to dashboard to incidents page.
-
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
         if (timelineItem.triggeredByIncidentId) {
           return Response.redirect(
