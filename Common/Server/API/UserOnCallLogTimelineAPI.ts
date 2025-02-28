@@ -10,7 +10,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { DashboardRoute } from "Common/ServiceRoute";
+import { AppApiRoute, DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -20,6 +20,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import Route from "../../Types/API/Route";
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
   UserOnCallLogTimeline,
@@ -91,6 +92,72 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         return NotificationMiddleware.sendResponse(req, res, token as any);
       },
     );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/acknowledge-page/:itemId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        req = req as OneUptimeRequest;
+
+        if (!req.params["itemId"]) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Item ID is required"),
+          );
+        }
+
+        const itemId: ObjectID = new ObjectID(req.params["itemId"]);
+
+        const timelineItem: UserOnCallLogTimeline | null =
+          await this.service.findOneById({
+            id: itemId,
+            select: {
+              _id: true,
+              projectId: true,
+              triggeredByIncidentId: true,
+              triggeredByIncident: {
+                title: true,
+                description: true
+              },
+              triggeredByAlertId: true,
+              triggeredByAlert: {
+                title: true,
+                description: true
+              }
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!timelineItem) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid item Id"),
+          );
+        }
+
+        const notificationType: string = timelineItem.triggeredByIncidentId ? "Incident" : "Alert";
+
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        return Response.render(req, res, "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs", {
+          title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+          message: `Do you want to acknowledge this ${notificationType}?`,
+          acknowledgeText: `Acknowledge ${notificationType}`,
+          acknowledgeUrl: new URL(
+            httpProtocol,
+            host,
+            new Route(AppApiRoute.toString())
+              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+              .addRoute("/acknowledge/" + itemId.toString()),
+          ).toString()
+        })
+      });
 
     this.router.get(
       `${new this.entityType()
