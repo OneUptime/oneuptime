@@ -85,6 +85,38 @@ export class Service extends DatabaseService<Model> {
     throw new BadDataException("Workspace type not supported");
   }
 
+
+  public async getExistingChannelNamesBasedOnEventType(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    notificationRuleEventType: NotificationRuleEventType;
+  }): Promise<Array<string>> {
+    logger.debug("getExistingChannelNamesBasedOnEventType called with data:");
+    logger.debug(data);
+
+    const notificationRules: Array<Model> =
+      await this.getNotificationRules({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        notificationRuleEventType: data.notificationRuleEventType,
+      });
+
+    logger.debug("Notification rules retrieved:");
+    logger.debug(notificationRules);
+
+    const existingChannelNames: Array<string> =
+      this.getExistingChannelNamesFromNotificationRules({
+        notificationRules: notificationRules.map((rule: Model) => {
+          return rule.notificationRule as BaseNotificationRule;
+        }),
+      }) || [];
+
+    logger.debug("Existing channel names:");
+    logger.debug(existingChannelNames);
+
+    return existingChannelNames;
+  }
+
   public async createInviteAndPostToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;

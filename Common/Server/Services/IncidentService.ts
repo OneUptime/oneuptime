@@ -60,6 +60,7 @@ import {
   WorkspaceSendMessageResponse,
 } from "../Utils/Workspace/WorkspaceBase";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -117,11 +118,12 @@ export class Service extends DatabaseService<Model> {
   public async resolveIncident(
     incidentId: ObjectID,
     resolvedByUserId: ObjectID,
-  ): Promise<void> {
+  ): Promise<Model> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         projectId: true,
+        incidentNumber:   true,
       },
       props: {
         isRoot: true,
@@ -167,16 +169,19 @@ export class Service extends DatabaseService<Model> {
     });
 
     // store incident metric
+
+      return incident;
   }
 
   public async acknowledgeIncident(
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,
-  ): Promise<void> {
+  ): Promise<Model> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         projectId: true,
+        incidentNumber: true,
       },
       props: {
         isRoot: true,
@@ -222,6 +227,8 @@ export class Service extends DatabaseService<Model> {
     });
 
     // store incident metric
+
+    return incident;
   }
 
   public async getExistingIncidentNumberForProject(data: {
@@ -1404,5 +1411,52 @@ ${incidentSeverity.name}
       logger.error(err);
     });
   }
+
+  public async getWorkspaceChannelForIncident(data: {
+    incidentId: ObjectID;
+    workspaceType: WorkspaceType;
+  }): Promise<Array<WorkspaceChannel>> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+
+    if(!incident) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    return (incident.postUpdatesToWorkspaceChannels || []).filter((channel: WorkspaceChannel) => {  
+      return channel.workspaceType === data.workspaceType;
+    });
+  }
+
+  public async getIncidentNumber(data: {
+    incidentId: ObjectID;
+  }): Promise<number | null> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        incidentNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    return incident.incidentNumber || null;
+  }
 }
+
+
+
 export default new Service();

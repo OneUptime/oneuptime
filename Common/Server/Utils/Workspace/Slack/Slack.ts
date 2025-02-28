@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceDropdownBlock,
+  WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
@@ -27,6 +28,30 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
+
+  public static override async sendDirectMessageToUser(data: {
+    authToken: string;
+    workspaceUserId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+
+    // Send direct message to user
+
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
+      messageBlocks: data.messageBlocks,
+    });
+
+    await this.sendPayloadBlocksToChannel({
+      authToken: data.authToken,
+      workspaceChannel: {
+        id: data.workspaceUserId,
+        name: "",
+        workspaceType: WorkspaceType.Slack,
+      },
+      blocks: blocks,
+    })
+  }
+
   public static override async joinChannel(data: {
     authToken: string;
     channelId: string;
@@ -360,6 +385,17 @@ export default class SlackUtil extends WorkspaceBase {
       } else {
         logger.debug(`Channel ${channelName} does not exist.`);
       }
+    }
+
+    // add channel ids. 
+    for (let channelId of data.workspaceMessagePayload.channelIds) {
+      const channel: WorkspaceChannel = {
+        id: channelId,
+        name: "",
+        workspaceType: WorkspaceType.Slack,
+      };
+
+      workspaceChannelsToPostTo.push(channel);
     }
 
     logger.debug("Channel IDs to post to:");

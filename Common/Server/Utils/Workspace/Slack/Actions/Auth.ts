@@ -27,6 +27,8 @@ export interface SlackRequest {
   slackChannelId?: string | undefined;
   slackMessageId?: string | undefined;
   slackUserFullName?: string | undefined;
+  slackUserId?: string | undefined;
+  slackUsername?: string | undefined;
   actions?: SlackAction[] | undefined;
 }
 
@@ -82,6 +84,11 @@ export default class SlackAuthAction {
     const slackUserFullName: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
     )["name"] as string;
+
+    const slackUsername: string | undefined = (
+      (payload as JSONObject)["user"] as JSONObject
+    )["username"] as string;
+
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
@@ -156,14 +163,18 @@ export default class SlackAuthAction {
       };
     }
 
+
+
     return {
       isAuthorized: true,
+      slackUserId: slackUserId,
       userId: userId,
       projectId: projectId,
       projectAuthToken: projectAuth.authToken!,
       userAuthToken: userAuth.authToken!,
       botUserId: botUserId,
       slackChannelId: slackChannelId,
+      slackUsername: slackUsername,
       slackMessageId: slackMessageId,
       slackUserFullName: slackUserFullName,
       actions: actions,

@@ -12,6 +12,11 @@ import {
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import { JSONObject } from "../../../../../Types/JSON";
+import WorkspaceNotificationRuleService from "../../../../Services/WorkspaceNotificationRuleService";
+import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { WorkspaceChannel } from "../../WorkspaceBase";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -43,11 +48,10 @@ export default class SlackIncidentActions {
   }): Promise<void> {
     const { slackRequest, req, res } = data;
     const {
-      slackChannelId,
       botUserId,
       userId,
       projectAuthToken,
-      slackUserFullName,
+      slackUsername
     } = slackRequest;
 
     const { actionValue } = data.action;
@@ -87,30 +91,73 @@ export default class SlackIncidentActions {
     if (data.action.actionType === SlackActionType.AcknowledgeIncident) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 
-      await IncidentService.acknowledgeIncident(incidentId, userId);
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      const isAlreadyAcknowledged: boolean = await IncidentService.isIncidentAcknowledged(
+        {
+          incidentId: incidentId,
+        }
+      );
+
+      if(isAlreadyAcknowledged) {
+
+
+        const incidentNumber: number | null = await IncidentService.getIncidentNumber({
+          incidentId: incidentId
+        });
+        // send a message to the channel visible to user, that the incident has already been acknowledged.
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `**[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})** has already been acknowledged.`,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdwonPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!
+        });
+      }
+
+      const incident: Incident = await IncidentService.acknowledgeIncident(incidentId, userId);
 
       // send a message to the channel that the incident has been acknowledged.
 
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserFullName} has acknowledged the incident.`,
+        text: `@${slackUsername} has **acknowledged** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
+          incident.projectId!,
+          incident.id!
+        )})**.`,
       };
+
+      const channelNames: string[] = await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+        {
+          projectId: slackRequest.projectId!,
+          notificationRuleEventType: NotificationRuleEventType.Incident,  
+          workspaceType: WorkspaceType.Slack
+        });
+
+        const incidentChannels: Array<WorkspaceChannel> = await IncidentService.getWorkspaceChannelForIncident({
+          incidentId: incidentId,
+          workspaceType: WorkspaceType.Slack
+        });
+
 
       await SlackUtil.sendMessage({
         workspaceMessagePayload: {
           _type: "WorkspaceMessagePayload",
           messageBlocks: [markdwonPayload],
-          channelNames: [],
-          channelIds: slackChannelId ? [slackChannelId] : [],
+          channelNames: channelNames,
+          channelIds: incidentChannels.map((channel) => channel.id) || [],
         },
         authToken: projectAuthToken,
         userId: botUserId,
       });
 
-      // clear response.
-      return Response.sendJsonObjectResponse(req, res, {
-        response_action: "clear",
-      });
+      return 
     }
 
     // invlaid action type.
