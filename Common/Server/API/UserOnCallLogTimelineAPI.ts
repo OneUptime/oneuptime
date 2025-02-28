@@ -163,6 +163,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         })
       });
 
+
+      // This is the link that actually acknowledges the notification.
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
