@@ -10,7 +10,9 @@ import DatabaseService from "./DatabaseService";
 import IncidentFeed, {
   IncidentFeedEventType,
 } from "Common/Models/DatabaseModels/IncidentFeed";
-import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, {
+  MessageBlocksByWorkspaceType,
+} from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import IncidentService from "./IncidentService";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
@@ -35,10 +37,14 @@ export class Service extends DatabaseService<IncidentFeed> {
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
     // send notifificatin to slack and teams. This is optional
-    workspaceNotification?: {
-      sendWorkspaceNotification: boolean;
-      overrideMessageBlocksByWorkspace?: Array<MessageBlocksByWorkspaceType> | undefined;
-    } | undefined;
+    workspaceNotification?:
+      | {
+          sendWorkspaceNotification: boolean;
+          overrideMessageBlocksByWorkspace?:
+            | Array<MessageBlocksByWorkspaceType>
+            | undefined;
+        }
+      | undefined;
   }): Promise<void> {
     try {
       logger.debug("IncidentFeedService.createIncidentFeedItem");
@@ -97,43 +103,51 @@ export class Service extends DatabaseService<IncidentFeed> {
       try {
         // send notification to slack and teams
         if (data.workspaceNotification?.sendWorkspaceNotification) {
+          let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
+            [];
 
-          let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = []; 
-
-          if(data.workspaceNotification.overrideMessageBlocksByWorkspace) {
-            // override these blocks. 
-            messageBlocksByWorkspaceTypes = data.workspaceNotification.overrideMessageBlocksByWorkspace;
-          }else{
-
+          if (data.workspaceNotification.overrideMessageBlocksByWorkspace) {
+            // override these blocks.
+            messageBlocksByWorkspaceTypes =
+              data.workspaceNotification.overrideMessageBlocksByWorkspace;
+          } else {
             // use markdown to create blocks
-            messageBlocksByWorkspaceTypes = await WorkspaceUtil.getMessageBlocksByMarkdown({
-              userId: data.userId,
-              markdown: data.feedInfoInMarkdown,
-            });
+            messageBlocksByWorkspaceTypes =
+              await WorkspaceUtil.getMessageBlocksByMarkdown({
+                userId: data.userId,
+                markdown: data.feedInfoInMarkdown,
+              });
           }
 
-          const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
+          const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> =
+            [];
 
           for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
+            const existingChannels: Array<string> =
+              await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+                {
+                  projectId: data.projectId,
+                  notificationRuleEventType: NotificationRuleEventType.Incident,
+                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                },
+              );
 
-            const existingChannels: Array<string> = await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType({
-              projectId: data.projectId,
-              notificationRuleEventType: NotificationRuleEventType.Incident,
-              workspaceType: messageBlocksByWorkspaceType.workspaceType,
-            });
-
-            const incidentChannels: Array<WorkspaceChannel> = await IncidentService.getWorkspaceChannelForIncident({
-              incidentId: data.incidentId,
-              workspaceType: messageBlocksByWorkspaceType.workspaceType,
-            })
+            const incidentChannels: Array<WorkspaceChannel> =
+              await IncidentService.getWorkspaceChannelForIncident({
+                incidentId: data.incidentId,
+                workspaceType: messageBlocksByWorkspaceType.workspaceType,
+              });
 
             const workspaceMessagePayload: WorkspaceMessagePayload = {
               _type: "WorkspaceMessagePayload",
               workspaceType: messageBlocksByWorkspaceType.workspaceType,
               messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
               channelNames: existingChannels,
-              channelIds: incidentChannels.map((channel) => channel.id) || [],
-            }
+              channelIds:
+                incidentChannels.map((channel) => {
+                  return channel.id;
+                }) || [],
+            };
 
             workspaceNotificationPaylaods.push(workspaceMessagePayload);
           }
@@ -143,14 +157,12 @@ export class Service extends DatabaseService<IncidentFeed> {
             messagePayloadsByWorkspace: workspaceNotificationPaylaods,
           });
         }
-
       } catch (e) {
         logger.error("Error in sending notification to slack and teams");
         logger.error(e);
 
         // we dont throw this error as it is not a critical error
       }
-
     } catch (e) {
       logger.error("Error in creating incident feed");
       logger.error(e);

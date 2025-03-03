@@ -80,7 +80,7 @@ export class Service extends DatabaseService<Model> {
             feedInfoInMarkdown: feedInfoInMarkdown,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-            }
+            },
           });
         }
 
@@ -261,7 +261,7 @@ On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyEx
               feedInfoInMarkdown: feedInfoInMarkdown,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
-              }
+              },
             });
           }
 

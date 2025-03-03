@@ -96,7 +96,7 @@ export default class SlackIncidentActions {
           await IncidentService.getIncidentNumber({
             incidentId: incidentId,
           });
-          
+
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -112,10 +112,7 @@ export default class SlackIncidentActions {
         return;
       }
 
-      await IncidentService.acknowledgeIncident(
-        incidentId,
-        userId,
-      );
+      await IncidentService.acknowledgeIncident(incidentId, userId);
 
       // Incident Feed will send a message to the channel that the incident has been Acknowledged.
       return;
@@ -205,10 +202,7 @@ export default class SlackIncidentActions {
         return;
       }
 
-      await IncidentService.resolveIncident(
-        incidentId,
-        userId,
-      );
+      await IncidentService.resolveIncident(incidentId, userId);
 
       return;
     }

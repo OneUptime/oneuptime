@@ -28,7 +28,6 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
-
   public static override async getUsernameFromUserId(data: {
     authToken: string;
     userId: string;
@@ -72,15 +71,14 @@ export default class SlackUtil extends WorkspaceBase {
       throw new Error("Invalid response");
     }
 
-    const username: string = ((response.jsonData as JSONObject)["user"] as JSONObject)[
-      "name"
-    ] as string;
+    const username: string = (
+      (response.jsonData as JSONObject)["user"] as JSONObject
+    )["name"] as string;
 
     logger.debug("Username obtained:");
     logger.debug(username);
     return username;
   }
-
 
   public static override async showModalToUser(data: {
     authToken: string;

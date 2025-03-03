@@ -10,6 +10,29 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  public async getUserAuth(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    workspaceType: WorkspaceType;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        userId: data.userId,
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      },
+      select: {
+        authToken: true,
+        workspaceUserId: true,
+        miscData: true,
+        workspaceType: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   public async doesExist(data: {
     projectId: ObjectID;
     userId: ObjectID;

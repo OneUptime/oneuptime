@@ -230,7 +230,7 @@ RunCron(
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-        }
+        },
       });
     }
   },

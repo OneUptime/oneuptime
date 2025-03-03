@@ -207,7 +207,7 @@ ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-      }
+      },
     });
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;

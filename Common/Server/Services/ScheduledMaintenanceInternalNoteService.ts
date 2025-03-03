@@ -63,19 +63,21 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-          scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-          projectId: updatedItem.projectId!,
-          scheduledMaintenanceFeedEventType:
-            ScheduledMaintenanceFeedEventType.PrivateNote,
-          displayColor: Blue500,
-          userId: userId || undefined,
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+            projectId: updatedItem.projectId!,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.PrivateNote,
+            displayColor: Blue500,
+            userId: userId || undefined,
 
-          feedInfoInMarkdown: `**Updated Private Note**
+            feedInfoInMarkdown: `**Updated Private Note**
       
 ${updatedItem.note}
                 `,
-        });
+          },
+        );
       }
     }
     return onUpdate;

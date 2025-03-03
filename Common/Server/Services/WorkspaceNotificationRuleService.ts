@@ -22,15 +22,11 @@ import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
-import {
-  WorkspaceChannel,
-} from "../Utils/Workspace/WorkspaceBase";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
-import  {
-  WorkspaceMessageBlock,
-} from "../../Types/Workspace/WorkspaceMessagePayload";
+import { WorkspaceMessageBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceProjectAuthToken, {
   MiscData,
   SlackMiscData,
@@ -122,8 +118,6 @@ export class Service extends DatabaseService<Model> {
   }): Promise<{
     channelsCreated: Array<WorkspaceChannel>;
   } | null> {
-
-
     logger.debug(
       "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
     );
@@ -235,8 +229,6 @@ export class Service extends DatabaseService<Model> {
       channelsCreated: channelsCreated,
     };
   }
-
-
 
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;

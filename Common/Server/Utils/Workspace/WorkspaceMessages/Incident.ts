@@ -10,12 +10,9 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackIncidentMessages from "../Slack/Messages/Incident";
-import {
-  WorkspaceChannel,
-} from "../WorkspaceBase";
+import { WorkspaceChannel } from "../WorkspaceBase";
 
 export default class IncidentWorkspaceMessages {
-
   public static async createChannelsAndInviteUsersToChannels(data: {
     projectId: ObjectID;
     incidentId: ObjectID;

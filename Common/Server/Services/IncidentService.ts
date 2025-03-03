@@ -55,9 +55,7 @@ import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
 
-import {
-  WorkspaceChannel,
-} from "../Utils/Workspace/WorkspaceBase";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
@@ -344,16 +342,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-        projectId.toString() +
-        " at " +
-        OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -431,16 +429,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+            projectId.toString() +
+            " at " +
+            OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -449,8 +447,7 @@ export class Service extends DatabaseService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-
-      let feedInfoInMarkdown: string =`**Incident #${createdItem.incidentNumber?.toString()} Created**: 
+    let feedInfoInMarkdown: string = `**Incident #${createdItem.incidentNumber?.toString()} Created**: 
       
 **Incident Title**:
 
@@ -462,25 +459,24 @@ ${createdItem.description || "No description provided."}
 
       `;
 
-      if(createdItem.rootCause){
-        feedInfoInMarkdown += `**Root Cause**:
+    if (createdItem.rootCause) {
+      feedInfoInMarkdown += `**Root Cause**:
 
 ${createdItem.rootCause || "No root cause provided."}
 `;
-      }
+    }
 
-      if(createdItem.remediationNotes){
-        feedInfoInMarkdown += `**Remediation Notes**:
+    if (createdItem.remediationNotes) {
+      feedInfoInMarkdown += `**Remediation Notes**:
 
 ${createdItem.remediationNotes || "No remediation notes provided."}
 `;
-      }
+    }
 
-      const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> = await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks(
-        {
-          incidentId: createdItem.id!,
-        },
-      );
+    const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
+        incidentId: createdItem.id!,
+      });
 
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.id!,
@@ -492,7 +488,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
       workspaceNotification: {
         overrideMessageBlocksByWorkspace: incidentCreateMessageBlocks,
         sendWorkspaceNotification: true,
-      }
+      },
     });
 
     if (!createdItem.currentIncidentStateId) {
@@ -509,9 +505,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-        "Status was changed because incident " +
-        createdItem.id.toString() +
-        " was created.",
+          "Status was changed because incident " +
+            createdItem.id.toString() +
+            " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -538,16 +534,14 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     // send message to workspaces - slack, teams,   etc.
     const workspaceResult: {
       channelsCreated: Array<WorkspaceChannel>;
-    } | null = await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
-      projectId: createdItem.projectId,
-      incidentId: createdItem.id!,
-      incidentNumber: createdItem.incidentNumber!,
-    });
+    } | null =
+      await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+        projectId: createdItem.projectId,
+        incidentId: createdItem.id!,
+        incidentNumber: createdItem.incidentNumber!,
+      });
 
-    if (
-      workspaceResult &&
-      (workspaceResult.channelsCreated?.length > 0)
-    ) {
+    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
       // update incident with these channels.
       await this.updateOneById({
         id: createdItem.id!,
@@ -571,9 +565,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-        [],
+          [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-        [],
+          [],
         false,
         onCreate.createBy.props,
       );
@@ -612,8 +606,6 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         });
       }
     }
-
-
 
     return createdItem;
   }
@@ -876,10 +868,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-                .map((label: Label) => {
-                  return `- ${label.name}`;
-                })
-                .join("\n")}
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
 `;
 
             shouldAddIncidentFeed = true;
@@ -926,7 +918,7 @@ ${incidentSeverity.name}
             userId: createdByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-            }
+            },
           });
         }
       }
@@ -1037,7 +1029,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-            resolvedMonitorState.id!.toString()
+              resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -1150,7 +1142,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-      incidentStateId.toString()
+        incidentStateId.toString()
     ) {
       return;
     }
@@ -1368,7 +1360,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-          OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";

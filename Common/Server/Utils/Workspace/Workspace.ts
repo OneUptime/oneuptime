@@ -9,10 +9,15 @@ import logger from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import { SlackMiscData } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
+import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
+import UserService from "../../Services/UserService";
 
 export default class WorkspaceUtil {
 
   public static async getMessageBlocksByMarkdown(data: {
+    projectId: ObjectID;
+    // this is oneuptime user id.
     userId: ObjectID | undefined;
     markdown: string;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
@@ -23,7 +28,27 @@ export default class WorkspaceUtil {
 
     for(const workspaceType of workspaceTypes) {
 
-      const userStringToAppend = data.userId ? `<@${data.userId}> ` : "";
+      let userStringToAppend = "";
+
+      if(data.userId) {
+        const workspaceUserToken: WorkspaceUserAuthToken | null = await WorkspaceUserAuthTokenService.getUserAuth({
+          userId: data.userId,
+          workspaceType: workspaceType,
+          projectId: data.projectId,
+        });
+
+        if(workspaceUserToken && workspaceUserToken.workspaceUserId) {
+          userStringToAppend = `@${workspaceUserToken.workspaceUserId} `;
+        }else{
+          const userstring: string = await UserService.getUserMarkdownString({
+            userId: data.userId,
+          })
+
+          userStringToAppend = `${userstring} `;
+        }
+      }
+
+      
 
       messageBlocksByWorkspaceType.push({
         workspaceType: workspaceType,

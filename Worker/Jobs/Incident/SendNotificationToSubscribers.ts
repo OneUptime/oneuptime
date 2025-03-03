@@ -284,7 +284,7 @@ RunCron(
         feedInfoInMarkdown: incidentFeedText,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-        }
+        },
       });
 
       logger.debug("Incident Feed created");

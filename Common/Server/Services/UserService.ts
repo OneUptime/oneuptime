@@ -39,6 +39,38 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+
+  public async getUserMarkdownString(data: {
+    userId: ObjectID;
+  }): Promise<string> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: data.userId,
+      },
+      select: {
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      return "";
+    }
+
+    if(!user.name && user.email) {
+      return `[user.email.toString()](mailto:${user.email.toString()})`;
+    }
+
+    if(user.name && user.email) {
+      return `${user.name.toString()} ([${user.email.toString()}](mailto:${user.email.toString()}))`;
+    }
+
+    return user.name?.toString() || "";
+  }
+
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,

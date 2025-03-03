@@ -78,5 +78,5 @@ export default interface WorkspaceMessagePayload {
   channelNames: Array<string>; // Channel ids to send message to.
   channelIds: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
-  workspaceType: WorkspaceType; 
+  workspaceType: WorkspaceType;
 }

@@ -30,9 +30,9 @@ export class Service extends DatabaseService<Model> {
 
 ${createdItem.note}
           `,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-          }
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+      },
     });
 
     return createdItem;
@@ -78,7 +78,7 @@ ${updatedItem.note}
           `,
           workspaceNotification: {
             sendWorkspaceNotification: true,
-          }
+          },
         });
       }
     }

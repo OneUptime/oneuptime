@@ -66,15 +66,17 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (team && team.name) {
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            projectId: projectId,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
-            displayColor: Red500,
-            feedInfoInMarkdown: `**Team ${team.name}** was removed from the scheduled maintenance as the owner.`,
-            userId: deleteByUserId || undefined,
-          });
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              projectId: projectId,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
+              displayColor: Red500,
+              feedInfoInMarkdown: `**Team ${team.name}** was removed from the scheduled maintenance as the owner.`,
+              userId: deleteByUserId || undefined,
+            },
+          );
         }
       }
     }
@@ -107,15 +109,17 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-          scheduledMaintenanceId: scheduledMaintenanceId,
-          projectId: projectId,
-          scheduledMaintenanceFeedEventType:
-            ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
-          displayColor: Gray500,
-          feedInfoInMarkdown: `**Team ${team.name}** was added to the scheduled maintenance as the owner.`,
-          userId: createdByUserId || undefined,
-        });
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            projectId: projectId,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**Team ${team.name}** was added to the scheduled maintenance as the owner.`,
+            userId: createdByUserId || undefined,
+          },
+        );
       }
     }
 

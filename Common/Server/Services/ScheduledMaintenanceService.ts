@@ -940,15 +940,17 @@ ${labels
         }
 
         if (shouldAddScheduledMaintenanceFeed) {
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
-            displayColor: Gray500,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-            userId: createdByUserId || undefined,
-          });
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated,
+              displayColor: Gray500,
+              feedInfoInMarkdown: feedInfoInMarkdown,
+              userId: createdByUserId || undefined,
+            },
+          );
         }
       }
     }

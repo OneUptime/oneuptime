@@ -208,7 +208,7 @@ Notification sent to owners of this incident because this incident was created.`
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-        }
+        },
       });
     }
   },

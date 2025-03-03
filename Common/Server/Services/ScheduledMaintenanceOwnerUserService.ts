@@ -67,15 +67,17 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.name) {
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            projectId: projectId,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
-            displayColor: Red500,
-            feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was removed from the scheduled maintenance as the owner.`,
-            userId: deleteByUserId || undefined,
-          });
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              projectId: projectId,
+              scheduledMaintenanceFeedEventType:
+                ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
+              displayColor: Red500,
+              feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was removed from the scheduled maintenance as the owner.`,
+              userId: deleteByUserId || undefined,
+            },
+          );
         }
       }
     }
@@ -109,15 +111,17 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-          scheduledMaintenanceId: scheduledMaintenanceId,
-          projectId: projectId,
-          scheduledMaintenanceFeedEventType:
-            ScheduledMaintenanceFeedEventType.OwnerUserAdded,
-          displayColor: Gray500,
-          feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was added to the scheduled maintenance as the owner.`,
-          userId: createdByUserId || undefined,
-        });
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            projectId: projectId,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.OwnerUserAdded,
+            displayColor: Gray500,
+            feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was added to the scheduled maintenance as the owner.`,
+            userId: createdByUserId || undefined,
+          },
+        );
       }
     }
 
