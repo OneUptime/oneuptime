@@ -359,16 +359,13 @@ export default class SlackIncidentActions {
       cancelButtonTitle: "Cancel",
       callbackId: "add_incident_note",
       blocks: [notePickerDropdown, noteTextArea],
-    }; 
-
+    };
 
     await SlackUtil.showModalToUser({
       authToken: data.slackRequest.projectAuthToken!,
       modalBlock: modalBlock,
       triggerId: data.slackRequest.triggerId!,
-    })
-
-
+    });
   }
 
   public static async handleIncidentAction(data: {

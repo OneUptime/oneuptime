@@ -90,7 +90,6 @@ export default class SlackAuthAction {
       (payload as JSONObject)["user"] as JSONObject
     )["username"] as string;
 
-
     const triggerId: string | undefined = payload["trigger_id"] as string;
 
     const projectAuth: WorkspaceProjectAuthToken | null =

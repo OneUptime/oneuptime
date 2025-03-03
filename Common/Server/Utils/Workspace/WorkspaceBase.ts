@@ -36,13 +36,11 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
-
   public static async showModalToUser(_data: {
     authToken: string;
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
   }): Promise<void> {
-
     throw new NotImplementedException();
   }
 

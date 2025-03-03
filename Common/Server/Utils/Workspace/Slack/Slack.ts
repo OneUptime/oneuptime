@@ -28,13 +28,11 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
-
   public static override async showModalToUser(data: {
     authToken: string;
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
   }): Promise<void> {
-
     logger.debug("Showing modal to user with data:");
     logger.debug(data);
 
@@ -45,7 +43,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Modal JSON generated:");
     logger.debug(modalJson);
 
-  // use view.open API to show modal
+    // use view.open API to show modal
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
       URL.fromString("https://slack.com/api/views.open"),
       {
