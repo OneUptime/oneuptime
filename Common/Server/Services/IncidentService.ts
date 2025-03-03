@@ -57,7 +57,6 @@ import IncidentSeverityService from "./IncidentSeverityService";
 
 import {
   WorkspaceChannel,
-  WorkspaceSendMessageResponse,
 } from "../Utils/Workspace/WorkspaceBase";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";

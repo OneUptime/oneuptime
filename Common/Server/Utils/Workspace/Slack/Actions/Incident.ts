@@ -12,11 +12,6 @@ import {
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceNotificationRuleService from "../../../../Services/WorkspaceNotificationRuleService";
-import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
-import { WorkspaceChannel } from "../../WorkspaceBase";
-import Incident from "../../../../../Models/DatabaseModels/Incident";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -210,49 +205,10 @@ export default class SlackIncidentActions {
         return;
       }
 
-      const incident: Incident = await IncidentService.resolveIncident(
+      await IncidentService.resolveIncident(
         incidentId,
         userId,
       );
-
-      // send a message to the channel that the incident has been Resolved.
-
-      const markdwonPayload: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:white_check_mark: @${slackUsername} has **resolved** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
-          incident.projectId!,
-          incident.id!,
-        )})**.`,
-      };
-
-      const channelNames: string[] =
-        await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
-          {
-            projectId: slackRequest.projectId!,
-            notificationRuleEventType: NotificationRuleEventType.Incident,
-            workspaceType: WorkspaceType.Slack,
-          },
-        );
-
-      const incidentChannels: Array<WorkspaceChannel> =
-        await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: incidentId,
-          workspaceType: WorkspaceType.Slack,
-        });
-
-      await SlackUtil.sendMessage({
-        workspaceMessagePayload: {
-          _type: "WorkspaceMessagePayload",
-          messageBlocks: [markdwonPayload],
-          channelNames: channelNames,
-          channelIds:
-            incidentChannels.map((channel: WorkspaceChannel) => {
-              return channel.id;
-            }) || [],
-        },
-        authToken: projectAuthToken,
-        userId: botUserId,
-      });
 
       return;
     }

@@ -11,6 +11,7 @@ import SlackActionType from "./ActionTypes";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -154,6 +155,7 @@ export default class SlackAuthAction {
           messageBlocks: [markdwonPayload],
           channelNames: [],
           channelIds: slackChannelId ? [slackChannelId] : [],
+          workspaceType: WorkspaceType.Slack,
         },
         authToken: projectAuth.authToken!,
         userId: botUserId,

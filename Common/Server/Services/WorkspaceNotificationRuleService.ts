@@ -24,7 +24,6 @@ import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNo
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
 import {
   WorkspaceChannel,
-  WorkspaceSendMessageResponse,
 } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
