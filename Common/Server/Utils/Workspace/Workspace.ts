@@ -9,7 +9,9 @@ import WorkspaceMessagePayload, {
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceProjectAuthToken, { SlackMiscData } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  SlackMiscData,
+} from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
