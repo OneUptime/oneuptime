@@ -39,7 +39,6 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-
   public async getUserMarkdownString(data: {
     userId: ObjectID;
   }): Promise<string> {
@@ -60,11 +59,11 @@ export class Service extends DatabaseService<Model> {
       return "";
     }
 
-    if(!user.name && user.email) {
+    if (!user.name && user.email) {
       return `[user.email.toString()](mailto:${user.email.toString()})`;
     }
 
-    if(user.name && user.email) {
+    if (user.name && user.email) {
       return `${user.name.toString()} ([${user.email.toString()}](mailto:${user.email.toString()}))`;
     }
 

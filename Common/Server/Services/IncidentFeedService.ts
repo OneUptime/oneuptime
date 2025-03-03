@@ -116,6 +116,7 @@ export class Service extends DatabaseService<IncidentFeed> {
               await WorkspaceUtil.getMessageBlocksByMarkdown({
                 userId: data.userId,
                 markdown: data.feedInfoInMarkdown,
+                projectId: data.projectId,
               });
           }
 
