@@ -228,6 +228,9 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: incidentFeedText,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        }
       });
     }
   },

@@ -78,6 +78,9 @@ export class Service extends DatabaseService<Model> {
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            }
           });
         }
 
@@ -256,6 +259,9 @@ On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyEx
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+              }
             });
           }
 

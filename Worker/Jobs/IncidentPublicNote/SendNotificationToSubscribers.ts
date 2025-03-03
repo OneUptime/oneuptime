@@ -294,6 +294,9 @@ RunCron(
         moreInformationInMarkdown: `**Public Note:**
         
 ${incidentPublicNote.note}`,
+workspaceNotification: {
+  sendWorkspaceNotification: true,
+}
       });
 
       logger.debug("Incident Feed created");

@@ -36,7 +36,8 @@ export class Service extends DatabaseService<IncidentFeed> {
     postedAt?: Date | undefined;
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?: {
-      messageBlocksByWorkspace: Array<MessageBlocksByWorkspaceType>;
+      sendWorkspaceNotification: boolean;
+      overrideMessageBlocksByWorkspace?: Array<MessageBlocksByWorkspaceType> | undefined;
     } | undefined;
   }): Promise<void> {
     try {
@@ -95,9 +96,22 @@ export class Service extends DatabaseService<IncidentFeed> {
 
       try {
         // send notification to slack and teams
-        if (data.workspaceNotification) {
+        if (data.workspaceNotification?.sendWorkspaceNotification) {
 
-          const messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = data.workspaceNotification.messageBlocksByWorkspace;
+          let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = []; 
+
+          if(data.workspaceNotification.overrideMessageBlocksByWorkspace) {
+            // override these blocks. 
+            messageBlocksByWorkspaceTypes = data.workspaceNotification.overrideMessageBlocksByWorkspace;
+          }else{
+
+            // use markdown to create blocks
+            messageBlocksByWorkspaceTypes = await WorkspaceUtil.getMessageBlocksByMarkdown({
+              userId: data.userId,
+              markdown: data.feedInfoInMarkdown,
+            });
+          }
+
           const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
           for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {

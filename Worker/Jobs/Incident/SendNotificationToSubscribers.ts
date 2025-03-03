@@ -282,6 +282,9 @@ RunCron(
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: incidentFeedText,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        }
       });
 
       logger.debug("Incident Feed created");

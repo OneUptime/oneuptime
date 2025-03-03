@@ -491,7 +491,8 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: createdByUserId || undefined,
       workspaceNotification: {
-        messageBlocksByWorkspace: incidentCreateMessageBlocks,
+        overrideMessageBlocksByWorkspace: incidentCreateMessageBlocks,
+        sendWorkspaceNotification: true,
       }
     });
 
@@ -924,6 +925,9 @@ ${incidentSeverity.name}
             displayColor: Gray500,
             feedInfoInMarkdown: feedInfoInMarkdown,
             userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            }
           });
         }
       }

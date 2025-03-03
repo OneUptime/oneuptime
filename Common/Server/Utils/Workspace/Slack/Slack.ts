@@ -28,6 +28,60 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 
 export default class SlackUtil extends WorkspaceBase {
+
+  public static override async getUsernameFromUserId(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<string> {
+    logger.debug("Getting username from user ID with data:");
+    logger.debug(data);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>(
+        URL.fromString("https://slack.com/api/users.info"),
+        {
+          user: data.userId,
+        },
+        {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+      );
+
+    logger.debug("Response from Slack API for getting user info:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+    // check for ok response
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new BadRequestException("Invalid response");
+    }
+
+    if (
+      !((response.jsonData as JSONObject)?.["user"] as JSONObject)?.["name"]
+    ) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      throw new Error("Invalid response");
+    }
+
+    const username: string = ((response.jsonData as JSONObject)["user"] as JSONObject)[
+      "name"
+    ] as string;
+
+    logger.debug("Username obtained:");
+    logger.debug(username);
+    return username;
+  }
+
+
   public static override async showModalToUser(data: {
     authToken: string;
     triggerId: string;
@@ -446,6 +500,7 @@ export default class SlackUtil extends WorkspaceBase {
 
     const workspaspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
+      workspaceType: WorkspaceType.Slack,
     };
 
     for (const channel of workspaceChannelsToPostTo) {

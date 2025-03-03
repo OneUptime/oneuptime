@@ -309,6 +309,9 @@ RunCron(
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        }
       });
 
       logger.debug("Incident Feed created");

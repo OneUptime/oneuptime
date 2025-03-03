@@ -134,6 +134,9 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: displayColor,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            }
           });
         }
 
@@ -144,6 +147,7 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
             alertFeedEventType: AlertFeedEventType.OnCallPolicy,
             displayColor: displayColor,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            
           });
         }
 

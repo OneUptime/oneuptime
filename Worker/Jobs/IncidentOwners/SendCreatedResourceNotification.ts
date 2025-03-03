@@ -206,6 +206,9 @@ Notification sent to owners of this incident because this incident was created.`
         displayColor: Yellow500,
         feedInfoInMarkdown: incidentFeedText,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        }
       });
     }
   },

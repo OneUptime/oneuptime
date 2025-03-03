@@ -4,12 +4,52 @@ import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsWorkspace from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMessagePayload, { WorkspacePayloadMarkdown } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import { SlackMiscData } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 
 export default class WorkspaceUtil {
+
+  public static async getMessageBlocksByMarkdown(data: {
+    userId: ObjectID | undefined;
+    markdown: string;
+  }): Promise<Array<MessageBlocksByWorkspaceType>> {
+
+    const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
+
+    const messageBlocksByWorkspaceType: Array<MessageBlocksByWorkspaceType> = []; 
+
+    for(const workspaceType of workspaceTypes) {
+
+      const userStringToAppend = data.userId ? `<@${data.userId}> ` : "";
+
+      messageBlocksByWorkspaceType.push({
+        workspaceType: workspaceType,
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: userStringToAppend + data.markdown,
+          } as WorkspacePayloadMarkdown
+        ],
+      });
+    }
+
+    return messageBlocksByWorkspaceType;
+  }
+
+  public static getAllWorkspaceTypes(): Array<WorkspaceType> {
+
+    const workspaceTypes: Array<WorkspaceType> = [];
+
+    for(const workspaceType in WorkspaceType) {
+      workspaceTypes.push(workspaceType as WorkspaceType);
+    }
+
+    return workspaceTypes;
+  }
+
   public static getWorkspaceTypeUtil(
     workspaceType: WorkspaceType,
   ): typeof WorkspaceBase {

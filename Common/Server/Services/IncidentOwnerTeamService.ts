@@ -72,6 +72,9 @@ export class Service extends DatabaseService<Model> {
             displayColor: Red500,
             feedInfoInMarkdown: `**Team ${team.name}** was removed from the incident as the owner.`,
             userId: deleteByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            }
           });
         }
       }
@@ -111,6 +114,9 @@ export class Service extends DatabaseService<Model> {
           displayColor: Gray500,
           feedInfoInMarkdown: `**Team ${team.name}** was added to the incident as the owner.`,
           userId: createdByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+          }
         });
       }
     }

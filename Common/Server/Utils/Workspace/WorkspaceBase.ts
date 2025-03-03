@@ -38,6 +38,16 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
+
+  public static async getUsernameFromUserId(_data: {
+    authToken: string;
+    userId: string;
+  }): Promise<string> {
+
+    throw new NotImplementedException();
+  }
+
+
   public static async showModalToUser(_data: {
     authToken: string;
     triggerId: string;
