@@ -303,7 +303,7 @@ RunCron(
         "Notification sent to subscribers for incident state change",
       );
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,

@@ -72,7 +72,7 @@ export class Service extends DatabaseService<Model> {
           onCallPolicy.id &&
           createdItem.triggeredByIncidentId
         ) {
-          await IncidentFeedService.createIncidentFeed({
+          await IncidentFeedService.createIncidentFeedItem({
             incidentId: createdItem.triggeredByIncidentId,
             projectId: createdItem.projectId!,
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
@@ -82,7 +82,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (onCallPolicy && onCallPolicy.id && createdItem.triggeredByAlertId) {
-          await AlertFeedService.createAlertFeed({
+          await AlertFeedService.createAlertFeedItem({
             alertId: createdItem.triggeredByAlertId,
             projectId: createdItem.projectId!,
             alertFeedEventType: AlertFeedEventType.OnCallPolicy,
@@ -245,7 +245,7 @@ export class Service extends DatabaseService<Model> {
 On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
-            await IncidentFeedService.createIncidentFeed({
+            await IncidentFeedService.createIncidentFeedItem({
               incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
               projectId: onCalldutyPolicyExecutionLog.projectId!,
               incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
@@ -260,7 +260,7 @@ On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyEx
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
-            await AlertFeedService.createAlertFeed({
+            await AlertFeedService.createAlertFeedItem({
               alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
               projectId: onCalldutyPolicyExecutionLog.projectId!,
               alertFeedEventType: AlertFeedEventType.OnCallPolicy,

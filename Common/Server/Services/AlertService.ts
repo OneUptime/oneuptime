@@ -270,7 +270,7 @@ export class Service extends DatabaseService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await AlertFeedService.createAlertFeed({
+    await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.id!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.AlertCreated,
@@ -289,7 +289,7 @@ export class Service extends DatabaseService<Model> {
       userId: createdByUserId || undefined,
     });
 
-    await AlertFeedService.createAlertFeed({
+    await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.id!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.RootCause,
@@ -299,7 +299,7 @@ export class Service extends DatabaseService<Model> {
 ${createdItem.rootCause || "No root cause provided."}`,
     });
 
-    await AlertFeedService.createAlertFeed({
+    await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.id!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.RemediationNotes,
@@ -652,7 +652,7 @@ ${alertSeverity.name}
         }
 
         if (shouldAddAlertFeed) {
-          await AlertFeedService.createAlertFeed({
+          await AlertFeedService.createAlertFeedItem({
             alertId: alertId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             alertFeedEventType: AlertFeedEventType.AlertUpdated,

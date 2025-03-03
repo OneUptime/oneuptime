@@ -65,7 +65,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (team && team.name) {
-          await AlertFeedService.createAlertFeed({
+          await AlertFeedService.createAlertFeedItem({
             alertId: alertId,
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerTeamRemoved,
@@ -104,7 +104,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        await AlertFeedService.createAlertFeed({
+        await AlertFeedService.createAlertFeedItem({
           alertId: alertId,
           projectId: projectId,
           alertFeedEventType: AlertFeedEventType.OwnerTeamAdded,

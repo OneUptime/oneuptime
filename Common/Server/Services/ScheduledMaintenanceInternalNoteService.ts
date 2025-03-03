@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
       scheduledMaintenanceFeedEventType:
@@ -63,7 +63,7 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
           scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
           projectId: updatedItem.projectId!,
           scheduledMaintenanceFeedEventType:

@@ -276,7 +276,7 @@ RunCron(
 
       logger.debug("Creating incident feed for subscriber notification");
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,

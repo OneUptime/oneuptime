@@ -210,7 +210,7 @@ RunCron(
 
       const scheduledMaintenanceFeedText: string = `**Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the scheduled maintenance.`;
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
         projectId: scheduledMaintenance.projectId!,
         scheduledMaintenanceFeedEventType:

@@ -12,21 +12,20 @@ import logger from "../../Logger";
 import SlackIncidentMessages from "../Slack/Messages/Incident";
 import {
   WorkspaceChannel,
-  WorkspaceSendMessageResponse,
 } from "../WorkspaceBase";
 
 export default class IncidentWorkspaceMessages {
-  public static async notifyWorkspaceOnIncidentCreate(data: {
+
+  public static async createChannelsAndInviteUsersToChannels(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
     incidentNumber: number;
   }): Promise<{
     channelsCreated: WorkspaceChannel[];
-    workspaceSendMessageResponse: WorkspaceSendMessageResponse;
   } | null> {
     try {
       // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
-      return await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules(
+      return await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
         {
           projectId: data.projectId,
           notificationFor: {
@@ -34,10 +33,6 @@ export default class IncidentWorkspaceMessages {
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
           channelNameSiffix: data.incidentNumber.toString(),
-          messageBlocksByWorkspaceType:
-            await this.getIncidentCreateMessageBlocks({
-              incidentId: data.incidentId,
-            }),
         },
       );
     } catch (err) {

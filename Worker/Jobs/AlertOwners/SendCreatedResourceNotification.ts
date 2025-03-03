@@ -190,7 +190,7 @@ RunCron(
         }
       }
 
-      await AlertFeedService.createAlertFeed({
+      await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,

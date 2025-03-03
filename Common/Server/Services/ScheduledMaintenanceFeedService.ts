@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  public async createScheduledMaintenanceFeed(data: {
+  public async createScheduledMaintenanceFeedItem(data: {
     scheduledMaintenanceId: ObjectID;
     feedInfoInMarkdown: string;
     scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType;
@@ -83,7 +83,7 @@ export class Service extends DatabaseService<Model> {
       });
     } catch (error) {
       logger.error(
-        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed",
+        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem",
       );
       logger.error(error);
       // we dont want to throw the error here, as this is not critical but we still log it.

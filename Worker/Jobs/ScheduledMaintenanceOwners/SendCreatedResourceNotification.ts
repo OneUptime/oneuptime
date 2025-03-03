@@ -139,7 +139,7 @@ RunCron(
 
 Notification sent to owners of this incident because this incident was created.`;
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
         projectId: scheduledMaintenance.projectId!,
         scheduledMaintenanceFeedEventType:

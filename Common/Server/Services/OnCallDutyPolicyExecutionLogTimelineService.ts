@@ -127,7 +127,7 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
-          await IncidentFeedService.createIncidentFeed({
+          await IncidentFeedService.createIncidentFeedItem({
             incidentId:
               onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
@@ -138,7 +138,7 @@ The on-call policy **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.nam
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
-          await AlertFeedService.createAlertFeed({
+          await AlertFeedService.createAlertFeedItem({
             alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
             alertFeedEventType: AlertFeedEventType.OnCallPolicy,

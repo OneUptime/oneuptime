@@ -29,7 +29,7 @@ import {
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
-import WorkspaceMessagePayload, {
+import  {
   WorkspaceMessageBlock,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceProjectAuthToken, {
@@ -115,19 +115,15 @@ export class Service extends DatabaseService<Model> {
     return existingChannelNames;
   }
 
-  public async createInviteAndPostToChannelsBasedOnRules(data: {
+  public async createChannelsAndInviteUsersToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
     channelNameSiffix: string;
-    messageBlocksByWorkspaceType: Array<MessageBlocksByWorkspaceType>;
   }): Promise<{
     channelsCreated: Array<WorkspaceChannel>;
-    workspaceSendMessageResponse: WorkspaceSendMessageResponse;
   } | null> {
-    let workspaceSendMessageResponse: WorkspaceSendMessageResponse = {
-      threads: [],
-    };
+
 
     logger.debug(
       "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
@@ -229,30 +225,6 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug("Posting messages to workspace channels");
 
-      const messageBlocks: Array<WorkspaceMessageBlock> =
-        data.messageBlocksByWorkspaceType.find(
-          (messageBlock: MessageBlocksByWorkspaceType) => {
-            return messageBlock.workspaceType === workspaceType;
-          },
-        )?.messageBlocks || [];
-
-      if (messageBlocks.length > 0) {
-        workspaceSendMessageResponse = await this.postToWorkspaceChannels({
-          workspaceUserId: this.getBotUserIdFromprojectAuthToken({
-            projectAuthToken: projectAuth,
-            workspaceType: workspaceType,
-          }),
-          projectOrUserAuthTokenForWorkspasce: authToken,
-          workspaceType: workspaceType,
-          workspaceMessagePayload: {
-            _type: "WorkspaceMessagePayload",
-            channelNames: existingChannelNames,
-            channelIds: [],
-            messageBlocks: messageBlocks,
-          },
-        });
-      }
-
       logger.debug("Channels created:");
       logger.debug(createdWorkspaceChannels);
 
@@ -262,32 +234,10 @@ export class Service extends DatabaseService<Model> {
     logger.debug("Returning created channels");
     return {
       channelsCreated: channelsCreated,
-      workspaceSendMessageResponse: workspaceSendMessageResponse,
     };
   }
 
-  public async postToWorkspaceChannels(data: {
-    workspaceUserId: string;
-    projectOrUserAuthTokenForWorkspasce: string;
-    workspaceType: WorkspaceType;
-    workspaceMessagePayload: WorkspaceMessagePayload;
-  }): Promise<WorkspaceSendMessageResponse> {
-    logger.debug("postToWorkspaceChannels called with data:");
-    logger.debug(data);
 
-    const result: WorkspaceSendMessageResponse =
-      await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
-        userId: data.workspaceUserId,
-        workspaceMessagePayload: data.workspaceMessagePayload,
-        authToken: data.projectOrUserAuthTokenForWorkspasce,
-      });
-
-    logger.debug("Message posted to workspace channels successfully");
-    logger.debug("Returning thread IDs");
-    logger.debug(result);
-
-    return result;
-  }
 
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;

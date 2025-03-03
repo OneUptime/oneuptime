@@ -196,7 +196,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
     const stateName: string = incidentState?.name || "";
 
-    await IncidentFeedService.createIncidentFeed({
+    await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,

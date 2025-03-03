@@ -1,9 +1,9 @@
 import { DropdownOption } from "../../UI/Components/Dropdown/Dropdown";
 import URL from "../API/URL";
+import WorkspaceType from "./WorkspaceType";
 
 export interface WorkspaceMessageBlock {
   _type: string;
-  onlyPostToTheseChannelNames?: Array<string>;
 }
 
 export interface WorkspaceMessagePayloadButton {
@@ -78,4 +78,5 @@ export default interface WorkspaceMessagePayload {
   channelNames: Array<string>; // Channel ids to send message to.
   channelIds: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
+  workspaceType: WorkspaceType; 
 }

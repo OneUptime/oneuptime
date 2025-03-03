@@ -285,7 +285,7 @@ RunCron(
         `Notification sent to subscribers for public note added to incident: ${incident.id}`,
       );
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,

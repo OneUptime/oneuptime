@@ -190,7 +190,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
 
     const stateName: string = alertState?.name || "";
 
-    await AlertFeedService.createAlertFeed({
+    await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.alertId!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.AlertStateChanged,

@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await AlertFeedService.createAlertFeed({
+    await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.alertId!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.PrivateNote,
@@ -62,7 +62,7 @@ export class Service extends DatabaseService<Model> {
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await AlertFeedService.createAlertFeed({
+        await AlertFeedService.createAlertFeedItem({
           alertId: updatedItem.alertId!,
           projectId: updatedItem.projectId!,
           alertFeedEventType: AlertFeedEventType.PrivateNote,

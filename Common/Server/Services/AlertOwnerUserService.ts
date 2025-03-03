@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.name) {
-          await AlertFeedService.createAlertFeed({
+          await AlertFeedService.createAlertFeedItem({
             alertId: alertId,
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerUserRemoved,
@@ -106,7 +106,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        await AlertFeedService.createAlertFeed({
+        await AlertFeedService.createAlertFeedItem({
           alertId: alertId,
           projectId: projectId,
           alertFeedEventType: AlertFeedEventType.OwnerUserAdded,

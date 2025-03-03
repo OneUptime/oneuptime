@@ -199,7 +199,7 @@ Notification sent to owners of this incident because this incident was created.`
         }
       }
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,

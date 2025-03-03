@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  public async createAlertFeed(data: {
+  public async createAlertFeedItem(data: {
     alertId: ObjectID;
     feedInfoInMarkdown: string;
     alertFeedEventType: AlertFeedEventType;
@@ -78,7 +78,7 @@ export class Service extends DatabaseService<Model> {
         },
       });
     } catch (error) {
-      logger.error("AlertFeedService.createAlertFeed");
+      logger.error("AlertFeedService.createAlertFeedItem");
       logger.error(error);
       // we dont want to throw the error here, as this is a non-critical operation
     }

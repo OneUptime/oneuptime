@@ -27,7 +27,9 @@ export interface WorkspaceThread {
 
 export interface WorkspaceSendMessageResponse {
   threads: Array<WorkspaceThread>;
+  workspaceType: WorkspaceType;
 }
+
 
 export interface WorkspaceChannel {
   id: string;

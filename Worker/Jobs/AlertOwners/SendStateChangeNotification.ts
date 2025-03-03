@@ -198,7 +198,7 @@ RunCron(
         moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
-      await AlertFeedService.createAlertFeed({
+      await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,

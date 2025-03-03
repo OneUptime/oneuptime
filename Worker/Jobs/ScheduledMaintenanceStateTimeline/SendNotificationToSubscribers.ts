@@ -298,7 +298,7 @@ RunCron(
         }
       }
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
         scheduledMaintenanceFeedEventType:

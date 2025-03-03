@@ -99,7 +99,7 @@ RunCron(
             
 Reminder notification sent to status page subscribers for this scheduled maintenance event.`;
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
         scheduledMaintenanceFeedEventType:

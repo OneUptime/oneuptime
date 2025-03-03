@@ -221,7 +221,7 @@ RunCron(
 
       const incidentFeedText: string = `**Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,

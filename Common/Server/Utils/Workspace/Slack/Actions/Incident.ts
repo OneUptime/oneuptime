@@ -101,6 +101,7 @@ export default class SlackIncidentActions {
           await IncidentService.getIncidentNumber({
             incidentId: incidentId,
           });
+          
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -116,50 +117,12 @@ export default class SlackIncidentActions {
         return;
       }
 
-      const incident: Incident = await IncidentService.acknowledgeIncident(
+      await IncidentService.acknowledgeIncident(
         incidentId,
         userId,
       );
 
-      // send a message to the channel that the incident has been acknowledged.
-
-      const markdwonPayload: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:eyes: @${slackUsername} has **acknowledged** **[Incident ${incident.incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(
-          incident.projectId!,
-          incident.id!,
-        )})**.`,
-      };
-
-      const channelNames: string[] =
-        await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
-          {
-            projectId: slackRequest.projectId!,
-            notificationRuleEventType: NotificationRuleEventType.Incident,
-            workspaceType: WorkspaceType.Slack,
-          },
-        );
-
-      const incidentChannels: Array<WorkspaceChannel> =
-        await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: incidentId,
-          workspaceType: WorkspaceType.Slack,
-        });
-
-      await SlackUtil.sendMessage({
-        workspaceMessagePayload: {
-          _type: "WorkspaceMessagePayload",
-          messageBlocks: [markdwonPayload],
-          channelNames: channelNames,
-          channelIds:
-            incidentChannels.map((channel: WorkspaceChannel) => {
-              return channel.id;
-            }) || [],
-        },
-        authToken: projectAuthToken,
-        userId: botUserId,
-      });
-
+      // Incident Feed will send a message to the channel that the incident has been Acknowledged.
       return;
     }
 

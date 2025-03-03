@@ -179,7 +179,7 @@ RunCron(
 
       const alertFeedText: string = `**Owners Notified because note is posted** Owners have been notified about the new note posted on the alert.`;
 
-      await AlertFeedService.createAlertFeed({
+      await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,

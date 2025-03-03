@@ -65,7 +65,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (team && team.name) {
-          await IncidentFeedService.createIncidentFeed({
+          await IncidentFeedService.createIncidentFeedItem({
             incidentId: incidentId,
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerTeamRemoved,
@@ -104,7 +104,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        await IncidentFeedService.createIncidentFeed({
+        await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,

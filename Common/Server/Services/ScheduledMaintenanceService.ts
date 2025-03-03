@@ -487,7 +487,7 @@ export class Service extends DatabaseService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.id!,
       projectId: createdItem.projectId!,
       scheduledMaintenanceFeedEventType:
@@ -940,7 +940,7 @@ ${labels
         }
 
         if (shouldAddScheduledMaintenanceFeed) {
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
             scheduledMaintenanceId: scheduledMaintenanceId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             scheduledMaintenanceFeedEventType:

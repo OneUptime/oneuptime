@@ -161,7 +161,7 @@ RunCron(
         moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
         projectId: scheduledMaintenance.projectId!,
         scheduledMaintenanceFeedEventType:

@@ -217,7 +217,7 @@ RunCron(
         moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
-      await IncidentFeedService.createIncidentFeed({
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,

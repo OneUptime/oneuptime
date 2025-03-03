@@ -155,7 +155,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
     const stateName: string = scheduledMaintenanceState?.name || "";
 
-    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
       scheduledMaintenanceFeedEventType:

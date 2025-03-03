@@ -67,7 +67,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.name) {
-          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+          await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
             scheduledMaintenanceId: scheduledMaintenanceId,
             projectId: projectId,
             scheduledMaintenanceFeedEventType:
@@ -109,7 +109,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeed({
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
           scheduledMaintenanceId: scheduledMaintenanceId,
           projectId: projectId,
           scheduledMaintenanceFeedEventType:

@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await IncidentFeedService.createIncidentFeed({
+    await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PrivateNote,
@@ -62,7 +62,7 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await IncidentFeedService.createIncidentFeed({
+        await IncidentFeedService.createIncidentFeedItem({
           incidentId: updatedItem.incidentId!,
           projectId: updatedItem.projectId!,
           incidentFeedEventType: IncidentFeedEventType.PrivateNote,

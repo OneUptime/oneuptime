@@ -39,7 +39,6 @@ import {
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import {
   WorkspaceChannel,
-  WorkspaceSendMessageResponse,
 } from "../../Server/Utils/Workspace/WorkspaceBase";
 
 @EnableDocumentation()
@@ -1142,25 +1141,6 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Workspace Send Message Response",
-    description: "Workspace Send Message Response (thread ids for slack etc)",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public workspaceSendMessageResponse?: WorkspaceSendMessageResponse =
-    undefined;
 
   @ColumnAccessControl({
     create: [
