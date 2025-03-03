@@ -144,7 +144,7 @@ export class Service extends DatabaseService<IncidentFeed> {
               messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
               channelNames: existingChannels,
               channelIds:
-                incidentChannels.map((channel) => {
+                incidentChannels.map((channel: WorkspaceChannel) => {
                   return channel.id;
                 }) || [],
             };

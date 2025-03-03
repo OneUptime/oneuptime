@@ -28,7 +28,7 @@ export default class WorkspaceUtil {
 
     for(const workspaceType of workspaceTypes) {
 
-      let userStringToAppend = "";
+      let userStringToAppend: string = "";
 
       if(data.userId) {
         const workspaceUserToken: WorkspaceUserAuthToken | null = await WorkspaceUserAuthTokenService.getUserAuth({
@@ -48,8 +48,7 @@ export default class WorkspaceUtil {
         }
       }
 
-      
-
+    
       messageBlocksByWorkspaceType.push({
         workspaceType: workspaceType,
         messageBlocks: [
