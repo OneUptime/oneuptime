@@ -54,13 +54,13 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
+
 import {
-  WorkspaceMessageBlock,
-  WorkspacePayloadMarkdown,
-} from "../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "../Utils/Workspace/WorkspaceBase";
+import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -68,6 +68,51 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 120);
     }
+  }
+
+  public async isIncidentResolved(data: {
+    incidentId: ObjectID;
+  }): Promise<boolean> {
+    const incident: Model | null = await this.findOneBy({
+      query: {
+        _id: data.incidentId,
+      },
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    const resolvedIncidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const resolvedIncidentStateOrder: number = resolvedIncidentState.order!;
+
+    if (currentIncidentStateOrder >= resolvedIncidentStateOrder) {
+      return true;
+    }
+
+    return false;
   }
 
   public async isIncidentAcknowledged(data: {
@@ -115,14 +160,73 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
-  public async acknowledgeIncident(
+  public async resolveIncident(
     incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<void> {
+    resolvedByUserId: ObjectID,
+  ): Promise<Model> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         projectId: true,
+        incidentNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    const incidentState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: incident.projectId,
+          isResolvedState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentState || !incidentState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const incidentStateTimeline: IncidentStateTimeline =
+      new IncidentStateTimeline();
+    incidentStateTimeline.projectId = incident.projectId;
+    incidentStateTimeline.incidentId = incidentId;
+    incidentStateTimeline.incidentStateId = incidentState.id;
+    incidentStateTimeline.createdByUserId = resolvedByUserId;
+
+    await IncidentStateTimelineService.create({
+      data: incidentStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store incident metric
+
+    return incident;
+  }
+
+  public async acknowledgeIncident(
+    incidentId: ObjectID,
+    acknowledgedByUserId: ObjectID,
+  ): Promise<Model> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        projectId: true,
+        incidentNumber: true,
       },
       props: {
         isRoot: true,
@@ -168,6 +272,8 @@ export class Service extends DatabaseService<Model> {
     });
 
     // store incident metric
+
+    return incident;
   }
 
   public async getExistingIncidentNumberForProject(data: {
@@ -475,31 +581,34 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
       }
     }
 
-    // // send message to workspaces - slack, teams,   etc.
-    // const createdChannels: {
-    //   channelsCreated: Array<WorkspaceChannel>;
-    // } | null = await this.notifyWorkspaceOnIncidentCreate({
-    //   projectId: createdItem.projectId,
-    //   incidentId: createdItem.id!,
-    //   incidentNumber: createdItem.incidentNumber!,
-    // });
+    // send message to workspaces - slack, teams,   etc.
+    const workspaceResult: {
+      channelsCreated: Array<WorkspaceChannel>;
+      workspaceSendMessageResponse: WorkspaceSendMessageResponse;
+    } | null = await IncidentWorkspaceMessages.notifyWorkspaceOnIncidentCreate({
+      projectId: createdItem.projectId,
+      incidentId: createdItem.id!,
+      incidentNumber: createdItem.incidentNumber!,
+    });
 
-    // if (
-    //   createdChannels &&
-    //   createdChannels.channelsCreated &&
-    //   createdChannels.channelsCreated.length > 0
-    // ) {
-    //   // update incident with these channels.
-    //   await this.updateOneById({
-    //     id: createdItem.id!,
-    //     data: {
-    //       postUpdatesToWorkspaceChannels: createdChannels.channelsCreated,
-    //     },
-    //     props: {
-    //       isRoot: true,
-    //     },
-    //   });
-    // }
+    if (
+      workspaceResult &&
+      (workspaceResult.channelsCreated?.length > 0 ||
+        workspaceResult?.workspaceSendMessageResponse?.threads?.length > 0)
+    ) {
+      // update incident with these channels.
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
+          workspaceSendMessageResponse:
+            workspaceResult.workspaceSendMessageResponse,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return createdItem;
   }
@@ -1348,53 +1457,14 @@ ${incidentSeverity.name}
     });
   }
 
-  public async notifyWorkspaceOnIncidentCreate(data: {
-    projectId: ObjectID;
+  public async getWorkspaceChannelForIncident(data: {
     incidentId: ObjectID;
-    incidentNumber: number;
-  }): Promise<{
-    channelsCreated: WorkspaceChannel[];
-  } | null> {
-    try {
-      // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.
-      return await WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules(
-        {
-          projectId: data.projectId,
-          notificationFor: {
-            incidentId: data.incidentId,
-          },
-          notificationRuleEventType: NotificationRuleEventType.Incident,
-          channelNameSiffix: data.incidentNumber.toString(),
-          messageBlocks: await this.getWorkspaceMessageBlocksForIncidentCreate({
-            incidentId: data.incidentId,
-          }),
-        },
-      );
-    } catch (err) {
-      // log the error and continue.
-      logger.error(err);
-      return null;
-    }
-  }
-
-  public async getWorkspaceMessageBlocksForIncidentCreate(data: {
-    incidentId: ObjectID;
-  }): Promise<Array<WorkspaceMessageBlock>> {
+    workspaceType: WorkspaceType;
+  }): Promise<Array<WorkspaceChannel>> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
-        projectId: true,
-        incidentNumber: true,
-        title: true,
-        description: true,
-        incidentSeverity: {
-          name: true,
-        },
-        rootCause: true,
-        remediationNotes: true,
-        currentIncidentState: {
-          name: true,
-        },
+        postUpdatesToWorkspaceChannels: true,
       },
       props: {
         isRoot: true,
@@ -1402,76 +1472,35 @@ ${incidentSeverity.name}
     });
 
     if (!incident) {
-      throw new BadDataException("Incident not found");
+      throw new BadDataException("Incident not found.");
     }
 
-    const blocks: Array<WorkspaceMessageBlock> = [];
+    return (incident.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: WorkspaceChannel) => {
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
 
-    if (incident.incidentNumber) {
-      const markdownBlock1: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Incident #${incident.incidentNumber} Created**`,
-      };
-      blocks.push(markdownBlock1);
+  public async getIncidentNumber(data: {
+    incidentId: ObjectID;
+  }): Promise<number | null> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        incidentNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found.");
     }
 
-    if (incident.title) {
-      const markdownBlock2: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Incident Title**:
-${incident.title}`,
-      };
-      blocks.push(markdownBlock2);
-    }
-
-    if (incident.description) {
-      const markdownBlock3: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Description**:
-${incident.description}`,
-      };
-      blocks.push(markdownBlock3);
-    }
-
-    if (incident.incidentSeverity?.name) {
-      const markdownBlock4: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Severity**:
-${incident.incidentSeverity.name}`,
-      };
-      blocks.push(markdownBlock4);
-    }
-
-    if (incident.rootCause) {
-      const markdownBlock5: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Root Cause**:
-${incident.rootCause}`,
-      };
-      blocks.push(markdownBlock5);
-    }
-
-    if (incident.remediationNotes) {
-      const markdownBlock6: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Remediation Notes**:
-${incident.remediationNotes}`,
-      };
-      blocks.push(markdownBlock6);
-    }
-
-    if (incident.currentIncidentState?.name) {
-      const markdownBlock7: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**Incident State**:
-${incident.currentIncidentState.name}`,
-      };
-      blocks.push(markdownBlock7);
-    }
-
-    // TODO: Add buttons to Post Private Note, Ack Incident, Resolve Incident. etc.
-
-    return blocks as Array<WorkspaceMessageBlock>;
+    return incident.incidentNumber || null;
   }
 }
+
 export default new Service();
