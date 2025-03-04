@@ -505,7 +505,7 @@ export class Service extends DatabaseService<Model> {
 
 ${createdItem.description || "No description provided."}
 
-      `;
+`;
 
     if (incident.currentIncidentState?.name) {
       feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
@@ -855,7 +855,7 @@ ${onUpdate.updateBy.data.title || "No title provided."}
           if (onUpdate.updateBy.data.title) {
             // add incident feed.
 
-            feedInfoInMarkdown += `\n\n**Root Cause**: 
+            feedInfoInMarkdown += `\n\n**📄 Root Cause**: 
 ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
   `;
             shouldAddIncidentFeed = true;
@@ -874,7 +874,7 @@ ${onUpdate.updateBy.data.rootCause || "No root cause provided."}
         if (onUpdate.updateBy.data.remediationNotes) {
           // add incident feed.
 
-          feedInfoInMarkdown += `\n\n**Remediation Notes**: 
+          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: 
 ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
         `;
           shouldAddIncidentFeed = true;
@@ -914,7 +914,7 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
           });
 
           if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**Labels**:
+            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
 
 ${labels
   .map((label: Label) => {
@@ -949,7 +949,7 @@ ${labels
             });
 
           if (incidentSeverity) {
-            feedInfoInMarkdown += `\n\n**Incident Severity**:
+            feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
 ${incidentSeverity.name}
 `;
 

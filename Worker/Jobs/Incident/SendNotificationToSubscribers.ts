@@ -67,7 +67,7 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `**Subscriber Incident Created Notification Sent**:
+      const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent**:
       Notification sent to status page subscribers because this incident was created.`;
 
       if (!incident.monitors || incident.monitors.length === 0) {

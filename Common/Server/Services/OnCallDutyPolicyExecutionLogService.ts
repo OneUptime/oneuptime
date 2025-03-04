@@ -65,7 +65,7 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (onCallPolicy && onCallPolicy.id) {
-        const feedInfoInMarkdown: string = `**On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`;
+        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`;
 
         if (
           onCallPolicy &&
@@ -194,6 +194,23 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  public getEmojiByStatus(status: OnCallDutyPolicyStatus | undefined): string {
+    switch (status) {
+      case OnCallDutyPolicyStatus.Scheduled:
+        return "📅";
+      case OnCallDutyPolicyStatus.Started:
+        return "🚀";
+      case OnCallDutyPolicyStatus.Executing:
+        return "▶️";
+      case OnCallDutyPolicyStatus.Completed:
+        return "✅";
+      case OnCallDutyPolicyStatus.Error:
+        return "❌";
+      default:
+        return "📅";
+    }
+  }
+
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
@@ -243,7 +260,7 @@ export class Service extends DatabaseService<Model> {
 
 **Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`;
 
-          const feedInfoInMarkdown: string = `**On Call Policy Status Updated:**
+          const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated:**
 
 On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
@@ -254,8 +271,8 @@ On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyEx
               incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
+                  onCalldutyPolicyExecutionLog.status,
+                )
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
@@ -272,8 +289,8 @@ On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyEx
               alertFeedEventType: AlertFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
+                  onCalldutyPolicyExecutionLog.status,
+                )
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,

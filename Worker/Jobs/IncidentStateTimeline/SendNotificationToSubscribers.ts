@@ -317,7 +317,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Status Page Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
+        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },
