@@ -19,6 +19,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
       ["Project", "Incidents", "Workspace Slack Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ["Project", "Incidents", "Workspace Microsoft Teams Connection"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_CREATE, [
       "Project",
       "Incidents",

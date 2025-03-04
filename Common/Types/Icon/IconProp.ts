@@ -5,6 +5,7 @@ enum IconProp {
   Automation = "Automation",
   Workflow = "Workflow",
   TableCells = "TableCells",
+  MicrosoftTeams = "MicrosoftTeams",
   Layout = "Layout",
   Compass = "Compass",
   ShieldCheck = "ShieldCheck",

@@ -10,6 +10,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 const IncidentsPage: FunctionComponent<
   PageComponentProps
@@ -19,11 +20,11 @@ const IncidentsPage: FunctionComponent<
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const loadItems = async () => {
+  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setError(null);
       setIsLoading(true);
-      const isSlackConnected = await WorkspaceUtil.isWorkspaceConnected(
+      const isSlackConnected: boolean = await WorkspaceUtil.isWorkspaceConnected(
         WorkspaceType.Slack,
       );
 

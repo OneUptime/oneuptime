@@ -141,6 +141,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
 export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_INCIDENTS]: "unresolved",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: "workspace-connection-microsoft-teams",
   [PageMap.INCIDENT_CREATE]: "create",
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -159,6 +160,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
 export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_ALERTS]: "unresolved",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: "workspace-connection-microsoft-teams",
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.ALERT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -175,6 +177,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]:
     "workspace-connection-slack",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
+    "workspace-connection-microsoft-teams",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -434,6 +438,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
   [PageMap.ALERT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW]
@@ -513,6 +523,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
     }`,
   ),
 
@@ -631,6 +647,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
       ]
     }`,
   ),

@@ -60,6 +60,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Slack}
         />
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] as Route,
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
+        />
       </SideMenuSection>
     </SideMenu>
   );

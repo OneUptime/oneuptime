@@ -49,6 +49,12 @@ const IncidentWorkspaceConnectionSlack: LazyExoticComponent<
   return import("../Pages/Incidents/WorkspaceConnectionSlack");
 });
 
+const IncidentWorkspaceConnectionMicrosoftTeams: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/WorkspaceConnectionMicrosoftTeams");
+});
+
 const IncidentViewStateTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -154,6 +160,26 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentWorkspaceConnectionMicrosoftTeams
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                   ] as Route
                 }
               />
