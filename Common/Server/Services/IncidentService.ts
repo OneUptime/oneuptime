@@ -499,7 +499,7 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    let feedInfoInMarkdown: string = `## 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
+    let feedInfoInMarkdown: string = `#### 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
       
 **${createdItem.title || "No title provided."}**:
 
