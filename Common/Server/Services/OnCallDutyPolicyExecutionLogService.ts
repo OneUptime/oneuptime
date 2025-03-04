@@ -203,7 +203,7 @@ export class Service extends DatabaseService<Model> {
       case OnCallDutyPolicyStatus.Executing:
         return "▶️";
       case OnCallDutyPolicyStatus.Completed:
-        return "✅";
+        return "🏁";
       case OnCallDutyPolicyStatus.Error:
         return "❌";
       default:

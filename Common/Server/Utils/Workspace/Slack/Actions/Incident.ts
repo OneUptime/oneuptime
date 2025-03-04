@@ -21,6 +21,7 @@ import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateService from "../../../../Services/IncidentStateService";
+import logger from "../../../Logger";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -335,6 +336,9 @@ export default class SlackIncidentActions {
         },
       });
 
+      logger.debug("Incident States: ");
+      logger.debug(incidentStates);
+
     const dropdownOptions: Array<DropdownOption> = incidentStates
       .map((state: IncidentState) => {
         return {
@@ -345,6 +349,9 @@ export default class SlackIncidentActions {
       .filter((option: DropdownOption) => {
         return option.label !== "" || option.value !== "";
       });
+
+      logger.debug("Dropdown Options: ");
+      logger.debug(dropdownOptions);
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
