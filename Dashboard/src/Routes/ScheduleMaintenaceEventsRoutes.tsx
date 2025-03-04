@@ -43,6 +43,12 @@ const ScheduledMaintenanceEventViewOwner: LazyExoticComponent<
   return import("../Pages/ScheduledMaintenanceEvents/View/Owners");
 });
 
+const ScheduledMaintenanceEventsWorkspaceConnectionSlack: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack");
+});
+
 const ScheduledMaintenanceEventsViewSettings: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -134,6 +140,26 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceEventsWorkspaceConnectionSlack
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
                   ] as Route
                 }
               />
