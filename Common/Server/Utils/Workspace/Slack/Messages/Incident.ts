@@ -156,7 +156,7 @@ export default class SlackIncidentMessages {
     // resolve incident.
     const resolveIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: ":white_check_mark: Resolve Incident",
+      title: "✅ Resolve Incident",
       value: incident.id?.toString() || "",
       actionId: SlackActionType.ResolveIncident,
     };
@@ -166,7 +166,7 @@ export default class SlackIncidentMessages {
     // change incident state.
     const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: ":arrow_right: Change Incident State",
+      title: "➡️ Change Incident State",
       value: incident.id?.toString() || "",
       actionId: SlackActionType.ViewChangeIncidentState,
     };
@@ -176,7 +176,7 @@ export default class SlackIncidentMessages {
     // add note.
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: ":page_facing_up: Add Note",
+      title: "📄 Add Note",
       value: incident.id?.toString() || "",
       actionId: SlackActionType.ViewAddIncidentNote,
     };
