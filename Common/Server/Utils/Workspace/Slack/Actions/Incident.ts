@@ -527,12 +527,7 @@ export default class SlackIncidentActions {
         new BadDataException("Invalid Incident ID"),
       );
     }
-
-    // We send this early let slack know we're ok. We'll do the rest in the background.
-    Response.sendJsonObjectResponse(req, res, {
-      response_action: "clear",
-    });
-
+    
     // const incidentId: ObjectID = new ObjectID(actionValue);
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
