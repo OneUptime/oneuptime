@@ -62,6 +62,7 @@ export default class SlackAuthAction {
 
     // if there are no actions then return.
     if (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) {
+      logger.debug("No actions found in payload. Returning unauthorized.");
       return {
         isAuthorized: false,
       };
@@ -117,6 +118,9 @@ export default class SlackAuthAction {
     const projectId: ObjectID | undefined = projectAuth.projectId;
 
     if (!projectId) {
+      logger.debug(
+        "Project ID not found in project auth. Returning unauthorized.",
+      );
       return {
         isAuthorized: false,
       };
@@ -162,6 +166,7 @@ export default class SlackAuthAction {
       });
 
       // clear response.
+      logger.debug("User auth not found. Returning unauthorized.");
       return {
         isAuthorized: false,
       };
