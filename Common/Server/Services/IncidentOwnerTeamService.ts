@@ -70,7 +70,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `**Team ${team.name}** was removed from the incident as the owner.`,
+            feedInfoInMarkdown: `Removed **Team ${team.name}** from the incident as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -113,11 +113,11 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `**Team ${team.name}** was added to the incident as the owner.`,
+          feedInfoInMarkdown: `Added **Team ${team.name}** to the incident as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: userId || undefined,
+            notifyUserId: createdByUserId || undefined,
           },
         });
       }

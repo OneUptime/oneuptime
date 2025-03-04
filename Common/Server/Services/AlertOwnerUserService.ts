@@ -71,7 +71,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was removed from the alert as the owner.`,
+            feedInfoInMarkdown: `Removed **${user.name.toString()}** (${user.email?.toString()}) from the alert as the owner.`,
             userId: deleteByUserId || undefined,
           });
         }
