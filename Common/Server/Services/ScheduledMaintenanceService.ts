@@ -162,7 +162,7 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        if(!statuspage.showScheduledMaintenanceEventsOnStatusPage){
+        if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
           continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 

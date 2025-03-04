@@ -114,7 +114,7 @@ RunCron(
         continue;
       }
 
-      if(!event.isVisibleOnStatusPage) {
+      if (!event.isVisibleOnStatusPage) {
         continue; // skip if not visible on status page.
       }
 
@@ -177,7 +177,7 @@ RunCron(
           continue;
         }
 
-        if(!statuspage.showScheduledMaintenanceEventsOnStatusPage){
+        if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
           continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 

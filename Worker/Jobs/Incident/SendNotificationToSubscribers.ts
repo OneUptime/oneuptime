@@ -85,7 +85,7 @@ RunCron(
         },
       });
 
-      if(!incident.isVisibleOnStatusPage){
+      if (!incident.isVisibleOnStatusPage) {
         continue; // Do not send notification to subscribers if incident is not visible on status page.
       }
 
@@ -146,7 +146,7 @@ RunCron(
             continue;
           }
 
-          if(!statuspage.showIncidentsOnStatusPage){
+          if (!statuspage.showIncidentsOnStatusPage) {
             continue; // Do not send notification to subscribers if incidents are not visible on status page.
           }
 

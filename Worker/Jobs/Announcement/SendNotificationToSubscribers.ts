@@ -88,7 +88,7 @@ RunCron(
             continue;
           }
 
-          if(!statuspage.showAnnouncementsOnStatusPage){
+          if (!statuspage.showAnnouncementsOnStatusPage) {
             continue; // Do not send notification to subscribers if incidents are not visible on status page.
           }
 

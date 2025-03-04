@@ -53,7 +53,7 @@ RunCron(
         },
       });
 
-      if(!event.isVisibleOnStatusPage) {
+      if (!event.isVisibleOnStatusPage) {
         continue; // skip if not visible on status page.
       }
 
