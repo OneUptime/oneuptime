@@ -82,11 +82,12 @@ export default class SlackAuthAction {
 
     const slackChannelId: string | undefined = (
       (payload as JSONObject)["channel"] as JSONObject
-    )["id"] as string;
+    )?.["id"] as string;
 
     const slackMessageId: string | undefined = (
       (payload as JSONObject)["message"] as JSONObject
-    )["ts"] as string;
+    )?.["ts"] as string;
+
     const slackUserFullName: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
     )["name"] as string;
@@ -95,7 +96,7 @@ export default class SlackAuthAction {
       (payload as JSONObject)["user"] as JSONObject
     )["username"] as string;
 
-    const triggerId: string | undefined = payload["trigger_id"] as string;
+    const triggerId: string | undefined = payload?.["trigger_id"] as string;
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
