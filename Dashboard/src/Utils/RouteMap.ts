@@ -140,6 +140,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
 
 export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_INCIDENTS]: "unresolved",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENT_CREATE]: "create",
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -497,6 +498,13 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.UNRESOLVED_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS]
+    }`,
+  ),
+  
+
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]
     }`,
   ),
 

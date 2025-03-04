@@ -42,6 +42,13 @@ const IncidentViewDelete: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Incidents/View/Delete");
 });
+
+const IncidentWorkspaceConnectionSlack: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/WorkspaceConnectionSlack");
+});
+
 const IncidentViewStateTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -130,6 +137,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <UnresolvedIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentWorkspaceConnectionSlack
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route}
               />
             </Suspense>
           }

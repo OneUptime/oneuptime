@@ -444,7 +444,7 @@ export default class SlackUtil extends WorkspaceBase {
   }): Dictionary<string | number> { 
 
     logger.debug("Getting values from view with data:");
-    logger.debug(data);
+    logger.debug(JSON.stringify(data, null, 2));
 
     const slackView: JSONObject = data.view;
     const values: Dictionary<string | number> = {};
@@ -458,7 +458,7 @@ export default class SlackUtil extends WorkspaceBase {
 
         const valueObject: JSONObject = ((slackView["state"] as JSONObject)["values"] as JSONObject)[valueId] as JSONObject; 
         const value: JSONObject = valueObject[blockId] as JSONObject;
-        values[blockId] = value["value"] as string | number;
+        values[blockId] = value["value"] as string | number || (value["selected_option"] as JSONObject)?.["value"] as string | number;
       }
     }
 

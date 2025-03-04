@@ -187,14 +187,19 @@ export default class SlackAuthAction {
 
       // add actionId and actionValue 
 
-      const action: JSONObject = {
+      const action: SlackAction = {
         // view callbackId
-        actionId: view["callback_id"],
+        actionType: view["callback_id"] as SlackActionType,
         // private metadata
-        actionValue: view["private_metadata"],
+        actionValue: view["private_metadata"]?.toString(),
       };
 
       actions.push(action);
+      logger.debug("View values: ");
+      logger.debug(viewValues);
+
+      logger.debug("Actions: ");
+      logger.debug(actions);
     }
 
     return {
