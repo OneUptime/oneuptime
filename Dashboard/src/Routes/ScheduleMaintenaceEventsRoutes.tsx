@@ -38,11 +38,12 @@ const ScheduledMaintenanceEventViewDelete: LazyExoticComponent<
   return import("../Pages/ScheduledMaintenanceEvents/View/Delete");
 });
 
-
 const ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams"
+  );
 });
 
 const ScheduledMaintenanceEventViewOwner: LazyExoticComponent<
@@ -176,10 +177,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              PageMap
+                .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             ] || ""
           }
           element={

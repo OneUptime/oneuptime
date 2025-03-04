@@ -64,7 +64,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] as Route,
+              RouteMap[
+                PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              ] as Route,
             ),
           }}
           icon={IconProp.MicrosoftTeams}

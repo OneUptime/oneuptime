@@ -31,7 +31,6 @@ const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
   return import("../Pages/Alerts/WorkspaceConnectionSlack");
 });
 
-
 const AlertsWorkspaceConnectionMicrosoftTeams: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -137,16 +136,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={
-            AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] || ""
+            AlertsRoutePath[
+              PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
               <AlertsWorkspaceConnectionMicrosoftTeams
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] as Route
+                  RouteMap[
+                    PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                  ] as Route
                 }
               />
             </Suspense>

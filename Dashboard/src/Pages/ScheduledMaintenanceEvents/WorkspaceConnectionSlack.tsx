@@ -20,13 +20,12 @@ const IncidentsPage: FunctionComponent<
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-    const loadItems: PromiseVoidFunction = async (): Promise<void> => {
+  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setError(null);
       setIsLoading(true);
-      const isSlackConnected: boolean = await WorkspaceUtil.isWorkspaceConnected(
-        WorkspaceType.Slack,
-      );
+      const isSlackConnected: boolean =
+        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.Slack);
 
       setIsSlackConnected(isSlackConnected);
       setIsLoading(false);

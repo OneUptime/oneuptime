@@ -24,9 +24,8 @@ const IncidentsPage: FunctionComponent<
     try {
       setError(null);
       setIsLoading(true);
-      const isSlackConnected: boolean = await WorkspaceUtil.isWorkspaceConnected(
-        WorkspaceType.Slack,
-      );
+      const isSlackConnected: boolean =
+        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.Slack);
 
       setIsSlackConnected(isSlackConnected);
       setIsLoading(false);

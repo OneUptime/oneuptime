@@ -7,13 +7,18 @@ export interface ComponentProps {
   description?: string | undefined;
 }
 
-const ComingSoon: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const ComingSoon: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   return (
     <EmptyState
       id="coming-soon"
       icon={IconProp.CursorArrowRays}
       title={props.title || "Coming soon!"}
-      description={props.description || "We will be launching this feature very soon. Stay Tuned!"}
+      description={
+        props.description ||
+        "We will be launching this feature very soon. Stay Tuned!"
+      }
     />
   );
 };

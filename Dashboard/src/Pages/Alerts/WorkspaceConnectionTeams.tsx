@@ -28,9 +28,8 @@ const IncidentsPage: FunctionComponent<
     try {
       setError(null);
       setIsLoading(true);
-      const isMicrosoftTeamsConnected: boolean = await WorkspaceUtil.isWorkspaceConnected(
-        WorkspaceType.MicrosoftTeams,
-      );
+      const isMicrosoftTeamsConnected: boolean =
+        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.MicrosoftTeams);
 
       setIsMicrosoftTeamsConnected(isMicrosoftTeamsConnected);
       setIsLoading(false);
@@ -54,11 +53,13 @@ const IncidentsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if(showComingSoon){
-    return <ComingSoon
-      title="Microsoft Teams Integration is coming soon, but you can still integrate with Workflows!"
-      description="We are working hard to bring you the Microsoft Teams integration. In the meantime, you can still integrate with Workflows to receive alerts in Microsoft Teams. Please click on Workflows in the top navigation to get started."
-    /> 
+  if (showComingSoon) {
+    return (
+      <ComingSoon
+        title="Microsoft Teams Integration is coming soon, but you can still integrate with Workflows!"
+        description="We are working hard to bring you the Microsoft Teams integration. In the meantime, you can still integrate with Workflows to receive alerts in Microsoft Teams. Please click on Workflows in the top navigation to get started."
+      />
+    );
   }
 
   return (
