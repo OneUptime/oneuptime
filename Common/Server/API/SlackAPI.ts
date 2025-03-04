@@ -85,7 +85,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-          `/${projectId.toString()}/settings/slack-integration`,
+            `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -303,8 +303,6 @@ export default class SlackAPI {
           new BadRequestException("Invalid request"),
         );
       },
-
-
     );
 
     // options load endpoint.

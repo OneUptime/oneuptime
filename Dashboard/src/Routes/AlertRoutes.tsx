@@ -114,13 +114,17 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
-          path={AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] || ""}
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] || ""
+          }
           element={
             <Suspense fallback={Loader}>
               <AlertsWorkspaceConnectionSlack
                 {...props}
-                pageRoute={RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route}
+                pageRoute={
+                  RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route
+                }
               />
             </Suspense>
           }

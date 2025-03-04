@@ -142,13 +142,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] || ""}
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] ||
+            ""
+          }
           element={
             <Suspense fallback={Loader}>
               <IncidentWorkspaceConnectionSlack
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK
+                  ] as Route
+                }
               />
             </Suspense>
           }

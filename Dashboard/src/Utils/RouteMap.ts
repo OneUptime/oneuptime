@@ -173,7 +173,8 @@ export const AlertsRoutePath: Dictionary<string> = {
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]:
+    "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -427,7 +428,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]
@@ -509,7 +509,6 @@ const RouteMap: Dictionary<Route> = {
       IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS]
     }`,
   ),
-  
 
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
@@ -627,7 +626,6 @@ const RouteMap: Dictionary<Route> = {
       ]
     }`,
   ),
-
 
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${

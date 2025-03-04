@@ -60,7 +60,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Slack}
         />
-        </SideMenuSection>
+      </SideMenuSection>
     </SideMenu>
   );
 };

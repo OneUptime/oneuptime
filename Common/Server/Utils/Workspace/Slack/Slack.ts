@@ -441,24 +441,32 @@ export default class SlackUtil extends WorkspaceBase {
 
   public static getValuesFromView(data: {
     view: JSONObject;
-  }): Dictionary<string | number> { 
-
+  }): Dictionary<string | number> {
     logger.debug("Getting values from view with data:");
     logger.debug(JSON.stringify(data, null, 2));
 
     const slackView: JSONObject = data.view;
     const values: Dictionary<string | number> = {};
 
-    if(!slackView["state"] || !(slackView["state"] as JSONObject)["values"]) {
+    if (!slackView["state"] || !(slackView["state"] as JSONObject)["values"]) {
       return {};
     }
 
-    for (const valueId in ((slackView["state"] as JSONObject)["values"] as JSONObject)) {
-      for (const blockId in ((slackView["state"] as JSONObject)["values"] as JSONObject)[valueId] as JSONObject) {
-
-        const valueObject: JSONObject = ((slackView["state"] as JSONObject)["values"] as JSONObject)[valueId] as JSONObject; 
+    for (const valueId in (slackView["state"] as JSONObject)[
+      "values"
+    ] as JSONObject) {
+      for (const blockId in (
+        (slackView["state"] as JSONObject)["values"] as JSONObject
+      )[valueId] as JSONObject) {
+        const valueObject: JSONObject = (
+          (slackView["state"] as JSONObject)["values"] as JSONObject
+        )[valueId] as JSONObject;
         const value: JSONObject = valueObject[blockId] as JSONObject;
-        values[blockId] = value["value"] as string | number || (value["selected_option"] as JSONObject)?.["value"] as string | number;
+        values[blockId] =
+          (value["value"] as string | number) ||
+          ((value["selected_option"] as JSONObject)?.["value"] as
+            | string
+            | number);
       }
     }
 
@@ -750,9 +758,9 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    // if description then add hint. 
+    // if description then add hint.
 
-    if(data.payloadCheckboxBlock.description) {
+    if (data.payloadCheckboxBlock.description) {
       checkboxBlock["hint"] = {
         type: "plain_text",
         text: data.payloadCheckboxBlock.description,
@@ -774,7 +782,7 @@ export default class SlackUtil extends WorkspaceBase {
       type: "input",
       element: {
         type: "plain_text_input",
-        "multiline": true,
+        multiline: true,
         action_id: data.payloadTextAreaBlock.blockId,
         placeholder: {
           type: "plain_text",
@@ -788,9 +796,9 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    // if description then add hint. 
+    // if description then add hint.
 
-    if(data.payloadTextAreaBlock.description) {
+    if (data.payloadTextAreaBlock.description) {
       textAreaBlock["hint"] = {
         type: "plain_text",
         text: data.payloadTextAreaBlock.description,
@@ -825,9 +833,9 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
-    // if description then add hint. 
+    // if description then add hint.
 
-    if(data.payloadTextBoxBlock.description) {
+    if (data.payloadTextBoxBlock.description) {
       textBoxBlock["hint"] = {
         type: "plain_text",
         text: data.payloadTextBoxBlock.description,
@@ -892,16 +900,16 @@ export default class SlackUtil extends WorkspaceBase {
             }
           : undefined,
       },
-      
+
       label: {
         type: "plain_text",
         text: data.payloadDropdownBlock.label,
       },
     };
 
-    // if description then add hint. 
+    // if description then add hint.
 
-    if(data.payloadDropdownBlock.description) {
+    if (data.payloadDropdownBlock.description) {
       dropdownBlock["hint"] = {
         type: "plain_text",
         text: data.payloadDropdownBlock.description,

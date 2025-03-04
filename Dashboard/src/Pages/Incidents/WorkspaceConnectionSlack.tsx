@@ -12,67 +12,63 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 
 const IncidentsPage: FunctionComponent<
-    PageComponentProps
+  PageComponentProps
 > = (): ReactElement => {
+  const [isSlackConnected, setIsSlackConnected] =
+    React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-    const [isSlackConnected, setIsSlackConnected] =
-        React.useState<boolean>(false);
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [error, setError] = React.useState<string | null>(null);
+  const loadItems = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      const isSlackConnected = await WorkspaceUtil.isWorkspaceConnected(
+        WorkspaceType.Slack,
+      );
 
-    const loadItems = async () => {
-
-        try {
-            setError(null);
-            setIsLoading(true);
-            const isSlackConnected = await WorkspaceUtil.isWorkspaceConnected(
-                WorkspaceType.Slack,
-            );
-
-            setIsSlackConnected(isSlackConnected);
-            setIsLoading(false);
-        } catch (error) {
-            setIsLoading(false);
-            setError(API.getFriendlyErrorMessage(error as Exception));
-
-        }
+      setIsSlackConnected(isSlackConnected);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setError(API.getFriendlyErrorMessage(error as Exception));
     }
+  };
 
-    React.useEffect(() => {
-        loadItems().catch(() => {
-            // Do nothing
-        });
-    }, []);
+  React.useEffect(() => {
+    loadItems().catch(() => {
+      // Do nothing
+    });
+  }, []);
 
-    if (isLoading) {
-        return <PageLoader isVisible={true} />;
-    }
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
 
-    if (error) {
-        return <ErrorMessage message={error} />;
-    }
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
-
-    return (
+  return (
+    <div>
+      {isSlackConnected && (
+        <WorkspaceNotificationRuleTable
+          workspaceType={WorkspaceType.Slack}
+          eventType={NotificationRuleEventType.Incident}
+        />
+      )}
+      {!isSlackConnected && (
         <div>
-            {isSlackConnected && (
-                <WorkspaceNotificationRuleTable
-                    workspaceType={WorkspaceType.Slack}
-                    eventType={NotificationRuleEventType.Incident}
-                />
-            )}
-            {!isSlackConnected && (
-                <div>
-                    <EmptyState
-                        id="slack-connection"
-                        icon={IconProp.Slack}
-                        title="Slack is not connected yet!"
-                        description="Connect your slack workspace to receive incident notifications. Please go to Project Settings > Workspace Connections > Slack to connect your workspace."
-                    />
-                </div>
-            )}
+          <EmptyState
+            id="slack-connection"
+            icon={IconProp.Slack}
+            title="Slack is not connected yet!"
+            description="Connect your slack workspace to receive incident notifications. Please go to Project Settings > Workspace Connections > Slack to connect your workspace."
+          />
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default IncidentsPage;

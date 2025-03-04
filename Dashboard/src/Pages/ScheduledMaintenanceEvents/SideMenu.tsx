@@ -55,12 +55,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Slack",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK] as Route,
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+              ] as Route,
             ),
           }}
           icon={IconProp.Slack}
         />
-        </SideMenuSection>
+      </SideMenuSection>
     </SideMenu>
   );
 };

@@ -123,7 +123,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelId: string;
     workspaceUserId: string;
-  }): Promise<void> { }
+  }): Promise<void> {}
 
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;

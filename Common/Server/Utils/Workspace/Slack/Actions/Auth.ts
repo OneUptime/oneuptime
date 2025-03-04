@@ -64,21 +64,24 @@ export default class SlackAuthAction {
     )["id"] as string;
 
     // if there are no actions then return.
-    if ((!payload["actions"] || (payload["actions"] as JSONArray).length === 0) && payload["type"] !== "view_submission") {
+    if (
+      (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
+      payload["type"] !== "view_submission"
+    ) {
       logger.debug("No actions found in payload. Returning unauthorized.");
       return {
         isAuthorized: false,
       };
     }
 
-    const actions: SlackAction[] = ((payload["actions"] || []) as JSONArray).map(
-      (action: JSONObject) => {
-        return {
-          actionValue: action["value"] as string,
-          actionType: action["action_id"] as SlackActionType,
-        };
-      },
-    );
+    const actions: SlackAction[] = (
+      (payload["actions"] || []) as JSONArray
+    ).map((action: JSONObject) => {
+      return {
+        actionValue: action["value"] as string,
+        actionType: action["action_id"] as SlackActionType,
+      };
+    });
 
     const slackChannelId: string | undefined = (
       (payload as JSONObject)["channel"] as JSONObject
@@ -176,16 +179,17 @@ export default class SlackAuthAction {
       };
     }
 
-    const view: JSONObject | undefined = payload["view"] as JSONObject || undefined;
+    const view: JSONObject | undefined =
+      (payload["view"] as JSONObject) || undefined;
 
     let viewValues: Dictionary<string | number> = {};
 
-    if(view){
+    if (view) {
       viewValues = SlackUtil.getValuesFromView({
         view: view,
       });
 
-      // add actionId and actionValue 
+      // add actionId and actionValue
 
       const action: SlackAction = {
         // view callbackId

@@ -20,7 +20,6 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     note: string;
   }): Promise<Model> {
-
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
     publicNote.incidentId = data.incidentId;
@@ -31,11 +30,10 @@ export class Service extends DatabaseService<Model> {
     return this.create({
       data: publicNote,
       props: {
-        isRoot: true
-      }
+        isRoot: true,
+      },
     });
   }
-
 
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

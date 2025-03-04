@@ -250,33 +250,38 @@ export default class SlackIncidentActions {
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
-    const onCallPolicies: Array<OnCallDutyPolicy> = await OnCallDutyPolicyService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+    const onCallPolicies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
 
-    const dropdownOption: Array<DropdownOption> = onCallPolicies.map((policy: OnCallDutyPolicy) => {
-      return {
-        label: policy.name || "",
-        value: policy._id?.toString() || "",
-      };
-    }).filter((option: DropdownOption) => option.label !== "" || option.value !== "");
+    const dropdownOption: Array<DropdownOption> = onCallPolicies
+      .map((policy: OnCallDutyPolicy) => {
+        return {
+          label: policy.name || "",
+          value: policy._id?.toString() || "",
+        };
+      })
+      .filter((option: DropdownOption) => {
+        return option.label !== "" || option.value !== "";
+      });
 
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "On Call Policy",
       blockId: "onCallPolicy",
       placeholder: "Select On Call Policy",
-      options: dropdownOption
+      options: dropdownOption,
     };
 
     const modalBlock: WorkspaceModalBlock = {
@@ -295,7 +300,6 @@ export default class SlackIncidentActions {
       triggerId: data.slackRequest.triggerId!,
     });
   }
-
 
   public static async viewChangeIncidentState(data: {
     slackRequest: SlackRequest;
@@ -323,20 +327,24 @@ export default class SlackIncidentActions {
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
-    const incidentStates: Array<IncidentState> = await IncidentStateService.getAllIncidentStates({
-      projectId: data.slackRequest.projectId!,
-      props: {
-        isRoot: true,
-      }
-    });
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: data.slackRequest.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const dropdownOptions: Array<DropdownOption> = incidentStates.map((state: IncidentState) => {
-      return {
-        label: state.name || "",
-        value: state._id?.toString() || "",
-      };
-    }
-    ).filter((option: DropdownOption) => option.label !== "" || option.value !== "");
+    const dropdownOptions: Array<DropdownOption> = incidentStates
+      .map((state: IncidentState) => {
+        return {
+          label: state.name || "",
+          value: state._id?.toString() || "",
+        };
+      })
+      .filter((option: DropdownOption) => {
+        return option.label !== "" || option.value !== "";
+      });
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -389,7 +397,10 @@ export default class SlackIncidentActions {
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
-    if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['incidentState']) {
+    if (
+      !data.slackRequest.viewValues ||
+      !data.slackRequest.viewValues["incidentState"]
+    ) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -398,7 +409,8 @@ export default class SlackIncidentActions {
     }
 
     const incidentId: ObjectID = new ObjectID(actionValue);
-    const stateString: string = data.slackRequest.viewValues['incidentState'].toString();
+    const stateString: string =
+      data.slackRequest.viewValues["incidentState"].toString();
 
     const stateId: ObjectID = new ObjectID(stateString);
 
@@ -409,9 +421,8 @@ export default class SlackIncidentActions {
       },
       props: {
         userId: data.slackRequest.userId!,
-      }
-    })
-
+      },
+    });
   }
 
   public static async executeOnCallPolicy(data: {
@@ -457,7 +468,9 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (data.action.actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy) {
+    if (
+      data.action.actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy
+    ) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 
       // We send this early let slack know we're ok. We'll do the rest in the background.
@@ -490,7 +503,10 @@ export default class SlackIncidentActions {
         return;
       }
 
-      if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['onCallPolicy']) {
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -498,7 +514,8 @@ export default class SlackIncidentActions {
         );
       }
 
-      const onCallPolicyString: string = data.slackRequest.viewValues['onCallPolicy'].toString();
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
 
       // get the on call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
@@ -507,7 +524,6 @@ export default class SlackIncidentActions {
         triggeredByIncidentId: incidentId,
         userNotificationEventType: UserNotificationEventType.IncidentCreated,
       });
-
     }
   }
 
@@ -527,12 +543,12 @@ export default class SlackIncidentActions {
         new BadDataException("Invalid Incident ID"),
       );
     }
-    
+
     // const incidentId: ObjectID = new ObjectID(actionValue);
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
-    // if view values is empty, then return error. 
+    // if view values is empty, then return error.
 
     if (!data.slackRequest.viewValues) {
       return Response.sendErrorResponse(
@@ -542,7 +558,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (!data.slackRequest.viewValues['noteType']) {
+    if (!data.slackRequest.viewValues["noteType"]) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -550,7 +566,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (!data.slackRequest.viewValues['note']) {
+    if (!data.slackRequest.viewValues["note"]) {
       // return error.
       return Response.sendErrorResponse(
         req,
@@ -560,10 +576,11 @@ export default class SlackIncidentActions {
     }
 
     const incidentId: ObjectID = new ObjectID(actionValue);
-    const note: string = data.slackRequest.viewValues['note'].toString();
-    const noteType: string = data.slackRequest.viewValues['noteType'].toString();
+    const note: string = data.slackRequest.viewValues["note"].toString();
+    const noteType: string =
+      data.slackRequest.viewValues["noteType"].toString();
 
-    if (noteType !== 'public' && noteType !== 'private') {
+    if (noteType !== "public" && noteType !== "private") {
       return Response.sendErrorResponse(
         req,
         res,
@@ -571,14 +588,13 @@ export default class SlackIncidentActions {
       );
     }
 
-
     // send empty response.
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
 
-    // if public note then, add a note. 
-    if (noteType === 'public') {
+    // if public note then, add a note.
+    if (noteType === "public") {
       await IncidentPublicNoteService.addNote({
         incidentId: incidentId!,
         note: note || "",
@@ -588,7 +604,7 @@ export default class SlackIncidentActions {
     }
 
     // if private note then, add a note.
-    if (noteType === 'private') {
+    if (noteType === "private") {
       await IncidentInternalNoteService.addNote({
         incidentId: incidentId!,
         note: note || "",
@@ -596,7 +612,6 @@ export default class SlackIncidentActions {
         userId: data.slackRequest.userId!,
       });
     }
-
   }
 
   public static async viewAddIncidentNote(data: {
@@ -647,7 +662,7 @@ export default class SlackIncidentActions {
       label: "Note",
       blockId: "note",
       placeholder: "Note",
-      description: "Please type in plain text or markdown."
+      description: "Please type in plain text or markdown.",
     };
 
     const modalBlock: WorkspaceModalBlock = {
@@ -692,11 +707,11 @@ export default class SlackIncidentActions {
       return await this.submitIncidentNote(data);
     }
 
-    if(actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy) {
+    if (actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy) {
       return await this.viewExecuteOnCallPolicy(data);
     }
 
-    if(actionType === SlackActionType.SubmitExecuteIncidentOnCallPolicy) {
+    if (actionType === SlackActionType.SubmitExecuteIncidentOnCallPolicy) {
       return await this.executeOnCallPolicy(data);
     }
 

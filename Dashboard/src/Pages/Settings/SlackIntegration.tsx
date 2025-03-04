@@ -5,17 +5,9 @@ import SlackIntegration from "../../Components/Slack/SlackIntegration";
 const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-
   return (
     <div>
-      <SlackIntegration
-        onConnected={() => {
-          
-        }}
-        onDisconnected={() => {
-          
-        }}
-      />
+      <SlackIntegration onConnected={() => {}} onDisconnected={() => {}} />
     </div>
   );
 };

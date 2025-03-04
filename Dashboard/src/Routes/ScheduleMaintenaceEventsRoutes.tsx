@@ -147,7 +147,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
@@ -159,7 +159,8 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+                    PageMap
+                      .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
                   ] as Route
                 }
               />

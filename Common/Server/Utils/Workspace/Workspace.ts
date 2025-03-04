@@ -81,7 +81,6 @@ export default class WorkspaceUtil {
 
     return messageBlocksByWorkspaceType;
   }
-  
 
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
     const workspaceTypes: Array<WorkspaceType> = [];

@@ -21,11 +21,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
-      [
-        "Project",
-        "Scheduled Maintenance Events",
-        "Slack Workspace Connection",
-      ],
+      ["Project", "Scheduled Maintenance Events", "Slack Workspace Connection"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
