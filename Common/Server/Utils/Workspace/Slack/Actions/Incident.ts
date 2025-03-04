@@ -7,7 +7,6 @@ import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
-  WorkspaceCheckboxBlock,
   WorkspaceDropdownBlock,
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
