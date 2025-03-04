@@ -73,7 +73,7 @@ export class Service extends DatabaseService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `**Team ${team.name}** was removed from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown: `Removed **Team ${team.name}** from the scheduled maintenance as the owner.`,
               userId: deleteByUserId || undefined,
             },
           );
@@ -116,7 +116,7 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**Team ${team.name}** was added to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown: `Added **Team ${team.name}** to the scheduled maintenance as the owner.`,
             userId: createdByUserId || undefined,
           },
         );

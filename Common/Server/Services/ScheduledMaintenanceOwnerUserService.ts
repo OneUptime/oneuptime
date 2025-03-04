@@ -74,7 +74,7 @@ export class Service extends DatabaseService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was removed from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown: `Removed **${user.name.toString()}** (${user.email?.toString()}) from the scheduled maintenance as the owner.`,
               userId: deleteByUserId || undefined,
             },
           );
@@ -118,7 +118,7 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `**${user.name.toString()}** (${user.email?.toString()}) was added to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown: `Added **${user.name.toString()}** (${user.email?.toString()}) to the scheduled maintenance as the owner.`,
             userId: createdByUserId || undefined,
           },
         );
