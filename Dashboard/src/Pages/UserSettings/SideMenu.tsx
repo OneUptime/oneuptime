@@ -92,7 +92,9 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           link={{
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
+              RouteMap[
+                PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
+              ] as Route,
             ),
           }}
           icon={IconProp.MicrosoftTeams}

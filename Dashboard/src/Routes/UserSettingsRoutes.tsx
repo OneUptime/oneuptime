@@ -25,7 +25,6 @@ const UserSettingsIncidentNotificationRules: LazyExoticComponent<
   return import("../Pages/UserSettings/IncidentOnCallRules");
 });
 
-
 const UserSettingsMicrosoftTeamsIntegration: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -180,16 +179,20 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION] || ""
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
               <UserSettingsMicrosoftTeamsIntegration
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
+                  RouteMap[
+                    PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
+                  ] as Route
                 }
               />
             </Suspense>

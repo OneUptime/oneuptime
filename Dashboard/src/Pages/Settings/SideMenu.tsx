@@ -43,7 +43,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Slack}
         />
 
-<SideMenuItem
+        <SideMenuItem
           link={{
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
