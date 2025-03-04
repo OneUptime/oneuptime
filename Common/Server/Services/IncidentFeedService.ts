@@ -39,6 +39,7 @@ export class Service extends DatabaseService<IncidentFeed> {
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?:
       | {
+          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
           overrideMessageBlocksByWorkspace?:
             | Array<MessageBlocksByWorkspaceType>
@@ -114,7 +115,7 @@ export class Service extends DatabaseService<IncidentFeed> {
             // use markdown to create blocks
             messageBlocksByWorkspaceTypes =
               await WorkspaceUtil.getMessageBlocksByMarkdown({
-                userId: data.userId,
+                userId: data.workspaceNotification.notifyUserId,
                 markdown: data.feedInfoInMarkdown,
                 projectId: data.projectId,
               });

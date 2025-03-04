@@ -41,7 +41,24 @@ export default class WorkspaceUtil {
           });
 
         if (workspaceUserToken && workspaceUserToken.workspaceUserId) {
-          userStringToAppend = `@${workspaceUserToken.workspaceUserId} `;
+          const projectAuthToken: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: data.projectId,
+              workspaceType: workspaceType,
+            });
+
+          if (!projectAuthToken || !projectAuthToken.authToken) {
+            userStringToAppend = "";
+          } else {
+            const workspaceUsername: string =
+              await this.getUserNameFromWorkspace({
+                userId: workspaceUserToken.workspaceUserId,
+                workspaceType: workspaceType,
+                authToken: projectAuthToken.authToken,
+              });
+
+            userStringToAppend = `@${workspaceUsername} `;
+          }
         } else {
           const userstring: string = await UserService.getUserMarkdownString({
             userId: data.userId,
@@ -89,6 +106,21 @@ export default class WorkspaceUtil {
     throw new BadDataException(
       `Workspace type ${workspaceType} is not supported`,
     );
+  }
+
+  public static async getUserNameFromWorkspace(data: {
+    userId: string;
+    workspaceType: WorkspaceType;
+    authToken: string;
+  }): Promise<string> {
+    const userName: string = await WorkspaceUtil.getWorkspaceTypeUtil(
+      data.workspaceType,
+    ).getUsernameFromUserId({
+      userId: data.userId,
+      authToken: data.authToken,
+    });
+
+    return userName;
   }
 
   public static async postMessageToAllWorkspaceChannelsAsBot(data: {

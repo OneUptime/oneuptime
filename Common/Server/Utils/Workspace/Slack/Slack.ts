@@ -438,6 +438,13 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
+  public static getValueFromPayloadBlock(data: {
+    payload: JSONObject; 
+    controlId: string; 
+  }): string | null { 
+    return data.payload[data.controlId] as string; 
+  }
+
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
