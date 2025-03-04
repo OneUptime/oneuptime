@@ -11,6 +11,11 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Alerts",
       "Active Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK, [
+      "Project",
+      "Alerts",
+      "Slack Connection",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW, [
       "Project",
       "Alerts",

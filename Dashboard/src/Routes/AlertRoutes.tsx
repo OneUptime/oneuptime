@@ -25,6 +25,12 @@ const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
   },
 );
 
+const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/WorkspaceConnectionSlack");
+});
+
 const AlertOnCallPolicyExecutionLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -103,6 +109,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               <UnresolvedAlerts
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+<PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertsWorkspaceConnectionSlack
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route}
               />
             </Suspense>
           }
