@@ -55,7 +55,8 @@
                 "channels:read",
                 "channels:write.invites",
                 "channels:write.topic",
-                "chat:write"
+                "chat:write",
+                "users:read"
             ]
         }
     },

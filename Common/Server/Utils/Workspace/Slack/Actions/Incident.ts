@@ -715,6 +715,14 @@ export default class SlackIncidentActions {
       return await this.executeOnCallPolicy(data);
     }
 
+    if(actionType === SlackActionType.ViewChangeIncidentState) {
+      return await this.viewChangeIncidentState(data);
+    }
+
+    if(actionType === SlackActionType.SubmitChangeIncidentState) {
+      return await this.submitChangeIncidentState(data);
+    }
+
     if (actionType === SlackActionType.ViewIncident) {
       // do nothing. This is just a view incident action.
       // clear response.
