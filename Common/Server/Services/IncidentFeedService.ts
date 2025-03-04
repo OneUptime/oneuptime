@@ -42,9 +42,7 @@ export class Service extends DatabaseService<IncidentFeed> {
       | {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
-          appendMessageBlocks?:
-            | Array<MessageBlocksByWorkspaceType>
-            | undefined;
+          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -108,25 +106,31 @@ export class Service extends DatabaseService<IncidentFeed> {
           let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
             [];
 
-          
-            // use markdown to create blocks
-            messageBlocksByWorkspaceTypes =
-              await WorkspaceUtil.getMessageBlocksByMarkdown({
-                userId: data.workspaceNotification.notifyUserId,
-                markdown: data.feedInfoInMarkdown,
-                projectId: data.projectId,
-              });
-          
-              if(data.workspaceNotification.appendMessageBlocks) {
-                
-                for(const messageBlocksByWorkspaceType of data.workspaceNotification.appendMessageBlocks) {
-                 const workspaceType: WorkspaceType = messageBlocksByWorkspaceType.workspaceType;
+          // use markdown to create blocks
+          messageBlocksByWorkspaceTypes =
+            await WorkspaceUtil.getMessageBlocksByMarkdown({
+              userId: data.workspaceNotification.notifyUserId,
+              markdown: data.feedInfoInMarkdown,
+              projectId: data.projectId,
+            });
 
-                 messageBlocksByWorkspaceTypes.find((messageBlocksByWorkspaceType) => {
-                    return messageBlocksByWorkspaceType.workspaceType === workspaceType;
-                  })?.messageBlocks.push(...messageBlocksByWorkspaceType.messageBlocks);
-                }
-              }
+          if (data.workspaceNotification.appendMessageBlocks) {
+            for (const messageBlocksByWorkspaceType of data
+              .workspaceNotification.appendMessageBlocks) {
+              const workspaceType: WorkspaceType =
+                messageBlocksByWorkspaceType.workspaceType;
+
+              messageBlocksByWorkspaceTypes
+                .find((messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+                  return (
+                    messageBlocksByWorkspaceType.workspaceType === workspaceType
+                  );
+                })
+                ?.messageBlocks.push(
+                  ...messageBlocksByWorkspaceType.messageBlocks,
+                );
+            }
+          }
 
           const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> =
             [];

@@ -205,14 +205,15 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       stateEmoji = "👍";
     } else if (incidentState?.isCreatedState) {
       stateEmoji = "🔴";
-    };
+    }
 
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
-      feedInfoInMarkdown: stateEmoji + " **Incident State** changed to **" + stateName + "**",
+      feedInfoInMarkdown:
+        stateEmoji + " **Incident State** changed to **" + stateName + "**",
       moreInformationInMarkdown: `**Cause:** 
 ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,

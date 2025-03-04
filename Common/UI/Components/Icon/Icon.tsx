@@ -95,18 +95,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
   type GetSvgWrapperFunction = (
     children: ReactElement | Array<ReactElement>,
-    props?: {
-      viewBox?: string;
-      strokeWidth?: string;
-    } | undefined
+    props?:
+      | {
+          viewBox?: string;
+          strokeWidth?: string;
+        }
+      | undefined,
   ) => ReactElement;
 
   const getSvgWrapper: GetSvgWrapperFunction = (
     children: ReactElement | Array<ReactElement>,
-    props?: {
-      viewBox?: string;
-      strokeWidth?: string;
-    } | undefined
+    props?:
+      | {
+          viewBox?: string;
+          strokeWidth?: string;
+        }
+      | undefined,
   ): ReactElement => {
     return (
       <div role="icon">
@@ -155,16 +159,30 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.MicrosoftTeams) {
-
-    const icon: ReactElement = <><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><circle  cx="37.07" cy="13.19" r="4.16"></circle><path  d="M33.46,35.73a4,4,0,0,0,1.28.79,6.42,6.42,0,0,0,8.76-6V21.14a1.75,1.75,0,0,0-1.72-1.76H32.42"></path><path  d="M24.37,17.5s1.07-.17,1.42-.25A5.89,5.89,0,0,0,29.71,9.7,6,6,0,0,0,18,11.52a6.16,6.16,0,0,0,.15,1.36L18.43,14"></path><path  d="M14,34a16.15,16.15,0,0,0,.55,2.07A10.5,10.5,0,0,0,24,42.5,10.43,10.43,0,0,0,34.12,31.83V21.16a1.74,1.74,0,0,0-1.7-1.78h-8"></path><line x1="10.35" y1="18.5" x2="18.65" y2="18.5"></line><line x1="14.5" y1="29.5" x2="14.5" y2="18.5"></line><path  d="M4.5,16V32a2,2,0,0,0,2,2h16a2,2,0,0,0,2-2V16a2,2,0,0,0-2-2H6.5A2,2,0,0,0,4.5,16Z"></path></g></>;
-
-    return getSvgWrapper(
-      icon,
-      {
-        viewBox: "0 0 48 48",
-        strokeWidth: "3.5",
-      }
+    const icon: ReactElement = (
+      <>
+        <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+        <g
+          id="SVGRepo_tracerCarrier"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        ></g>
+        <g id="SVGRepo_iconCarrier">
+          <circle cx="37.07" cy="13.19" r="4.16"></circle>
+          <path d="M33.46,35.73a4,4,0,0,0,1.28.79,6.42,6.42,0,0,0,8.76-6V21.14a1.75,1.75,0,0,0-1.72-1.76H32.42"></path>
+          <path d="M24.37,17.5s1.07-.17,1.42-.25A5.89,5.89,0,0,0,29.71,9.7,6,6,0,0,0,18,11.52a6.16,6.16,0,0,0,.15,1.36L18.43,14"></path>
+          <path d="M14,34a16.15,16.15,0,0,0,.55,2.07A10.5,10.5,0,0,0,24,42.5,10.43,10.43,0,0,0,34.12,31.83V21.16a1.74,1.74,0,0,0-1.7-1.78h-8"></path>
+          <line x1="10.35" y1="18.5" x2="18.65" y2="18.5"></line>
+          <line x1="14.5" y1="29.5" x2="14.5" y2="18.5"></line>
+          <path d="M4.5,16V32a2,2,0,0,0,2,2h16a2,2,0,0,0,2-2V16a2,2,0,0,0-2-2H6.5A2,2,0,0,0,4.5,16Z"></path>
+        </g>
+      </>
     );
+
+    return getSvgWrapper(icon, {
+      viewBox: "0 0 48 48",
+      strokeWidth: "3.5",
+    });
   } else if (icon === IconProp.ShieldCheck) {
     return getSvgWrapper(
       <path

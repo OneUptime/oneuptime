@@ -715,11 +715,11 @@ export default class SlackIncidentActions {
       return await this.executeOnCallPolicy(data);
     }
 
-    if(actionType === SlackActionType.ViewChangeIncidentState) {
+    if (actionType === SlackActionType.ViewChangeIncidentState) {
       return await this.viewChangeIncidentState(data);
     }
 
-    if(actionType === SlackActionType.SubmitChangeIncidentState) {
+    if (actionType === SlackActionType.SubmitChangeIncidentState) {
       return await this.submitChangeIncidentState(data);
     }
 

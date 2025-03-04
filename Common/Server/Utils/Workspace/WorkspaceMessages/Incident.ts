@@ -41,7 +41,7 @@ export default class IncidentWorkspaceMessages {
     projectId: ObjectID;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     const { incidentId, projectId } = data;
-    
+
     const slackBlocks: WorkspaceMessageBlock[] =
       await SlackIncidentMessages.getIncidentCreateMessageBlocks({
         incidentId: incidentId,

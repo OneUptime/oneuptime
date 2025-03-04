@@ -14,14 +14,13 @@ export default class SlackIncidentMessages {
     incidentId: ObjectID;
     projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-  if(!data.incidentId) {
-    throw new BadDataException("Incident ID is required");
-  }
+    if (!data.incidentId) {
+      throw new BadDataException("Incident ID is required");
+    }
 
     // Slack.
 
     const blockSlack: Array<WorkspaceMessageBlock> = [];
-
 
     // add divider.
 
