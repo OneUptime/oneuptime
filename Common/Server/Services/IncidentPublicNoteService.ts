@@ -14,6 +14,29 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  public async addNote(data: {
+    userId: ObjectID;
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    note: string;
+  }): Promise<Model> {
+
+    const publicNote: Model = new Model();
+    publicNote.createdByUserId = data.userId;
+    publicNote.incidentId = data.incidentId;
+    publicNote.projectId = data.projectId;
+    publicNote.note = data.note;
+    publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    return this.create({
+      data: publicNote,
+      props: {
+        isRoot: true
+      }
+    });
+  }
+
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -46,6 +69,7 @@ ${createdItem.note}
           `,
       workspaceNotification: {
         sendWorkspaceNotification: true,
+        notifyUserId: userId || undefined,
       },
     });
 
@@ -92,6 +116,7 @@ ${updatedItem.note}
             `,
           workspaceNotification: {
             sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
           },
         });
       }

@@ -12,6 +12,8 @@ import {
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
+import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -215,6 +217,99 @@ export default class SlackIncidentActions {
     );
   }
 
+  public static async submitIncidentNote(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Incident ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const incidentId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    // if view values is empty, then return error. 
+
+    if (!data.slackRequest.viewValues) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid View Values"),
+      );
+    }
+
+    if(!data.slackRequest.viewValues['noteType']){
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
+
+    if(!data.slackRequest.viewValues['note']){
+      // return error.
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note"),
+      );
+    }
+
+    const incidentId: ObjectID = new ObjectID(actionValue);
+    const note: string = data.slackRequest.viewValues['note'].toString();
+    const noteType: string = data.slackRequest.viewValues['noteType'].toString();
+
+    if(noteType !== 'public' && noteType !== 'private'){
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
+
+
+    // send empty response.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // if public note then, add a note. 
+    if(noteType === 'public'){
+      await IncidentPublicNoteService.addNote({
+        incidentId: incidentId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
+
+    // if private note then, add a note.
+    if(noteType === 'private'){
+      await IncidentInternalNoteService.addNote({
+        incidentId: incidentId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
+    
+  }
+
   public static async addIncidentNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -244,15 +339,15 @@ export default class SlackIncidentActions {
     const notePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "Note Type",
-      blockId: "note_type",
+      blockId: "noteType",
       placeholder: "Select Note Type",
       options: [
         {
-          label: "Public Note",
+          label: "Public Note (Will be posted on Status Page)",
           value: "public",
         },
         {
-          label: "Private Note",
+          label: "Private Note (Only visible to team members)",
           value: "private",
         },
       ],
@@ -263,6 +358,7 @@ export default class SlackIncidentActions {
       label: "Note",
       blockId: "note",
       placeholder: "Note",
+      description: "Please type in plain text or markdown."
     };
 
     const modalBlock: WorkspaceModalBlock = {
@@ -270,7 +366,8 @@ export default class SlackIncidentActions {
       title: "Add Note",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
-      callbackId: "add_incident_note",
+      actionId: SlackActionType.SubmitIncidentNote,
+      actionValue: actionValue,
       blocks: [notePickerDropdown, noteTextArea],
     };
 

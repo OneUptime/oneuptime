@@ -25,6 +25,7 @@ export interface WorkspaceTextAreaBlock extends WorkspaceMessageBlock {
   blockId: string;
   placeholder: string;
   initialValue?: string | undefined;
+  description?: string | undefined;
 }
 
 export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
@@ -33,6 +34,7 @@ export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
   blockId: string;
   placeholder: string;
   initialValue?: string | undefined;
+  description?: string | undefined;
 }
 
 export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
@@ -48,12 +50,14 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   options: Array<DropdownOption>;
   placeholder: string;
   initialValue?: string | undefined;
+  description?: string | undefined;
 }
 
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
   _type: "WorkspaceModalBlock";
   title: string;
-  callbackId: string;
+  actionId: string;
+  actionValue: string;
   submitButtonTitle: string;
   cancelButtonTitle: string;
   blocks: Array<WorkspaceMessageBlock>;

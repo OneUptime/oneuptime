@@ -12,6 +12,7 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { Dictionary } from "lodash";
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -32,6 +33,8 @@ export interface SlackRequest {
   slackUsername?: string | undefined;
   actions?: SlackAction[] | undefined;
   triggerId?: string | undefined;
+  view?: JSONObject | undefined; // view object from slack.
+  viewValues?: Dictionary<string | number> | undefined;
 }
 
 export default class SlackAuthAction {
@@ -61,7 +64,7 @@ export default class SlackAuthAction {
     )["id"] as string;
 
     // if there are no actions then return.
-    if (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) {
+    if ((!payload["actions"] || (payload["actions"] as JSONArray).length === 0) || payload["type"] !== "view_submission") {
       logger.debug("No actions found in payload. Returning unauthorized.");
       return {
         isAuthorized: false,
@@ -172,6 +175,27 @@ export default class SlackAuthAction {
       };
     }
 
+    const view: JSONObject | undefined = payload["view"] as JSONObject || undefined;
+
+    let viewValues: Dictionary<string | number> = {};
+
+    if(view){
+      viewValues = SlackUtil.getValuesFromView({
+        view: view,
+      });
+
+      // add actionId and actionValue 
+
+      const action: JSONObject = {
+        // view callbackId
+        actionId: view["callback_id"],
+        // private metadata
+        actionValue: view["private_metadata"],
+      };
+
+      actions.push(action);
+    }
+
     return {
       isAuthorized: true,
       slackUserId: slackUserId,
@@ -186,6 +210,8 @@ export default class SlackAuthAction {
       slackUserFullName: slackUserFullName,
       actions: actions,
       triggerId: triggerId,
+      view: view,
+      viewValues: viewValues,
     };
   }
 }

@@ -438,11 +438,26 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
-  public static getValueFromPayloadBlock(data: {
-    payload: JSONObject; 
-    controlId: string; 
-  }): string | null { 
-    return data.payload[data.controlId] as string; 
+  public static getValuesFromView(data: {
+    view: JSONObject;
+  }): Dictionary<string | number> { 
+    const slackView: JSONObject = data.view;
+    const values: Dictionary<string | number> = {};
+
+    if(!slackView["state"] || !(slackView["state"] as JSONObject)["values"]) {
+      return {};
+    }
+
+    for (const valueId in ((slackView["state"] as JSONObject)["values"] as JSONObject)) {
+      for (const blockId in ((slackView["state"] as JSONObject)["values"] as JSONObject)[valueId] as JSONObject) {
+
+        const valueObject: JSONObject = ((slackView["state"] as JSONObject)["values"] as JSONObject)[valueId] as JSONObject; 
+        const value: JSONObject = valueObject[blockId] as JSONObject;
+        values[blockId] = value["value"] as string | number;
+      }
+    }
+
+    return values;
   }
 
   public static override async sendMessage(data: {
@@ -699,6 +714,7 @@ export default class SlackUtil extends WorkspaceBase {
       type: "input",
       element: {
         type: "plain_text_input",
+        "multiline": true,
         action_id: data.payloadTextAreaBlock.blockId,
         placeholder: {
           type: "plain_text",
@@ -711,6 +727,15 @@ export default class SlackUtil extends WorkspaceBase {
         text: data.payloadTextAreaBlock.label,
       },
     };
+
+    // if description then add hint. 
+
+    if(data.payloadTextAreaBlock.description) {
+      textAreaBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadTextAreaBlock.description,
+      };
+    }
 
     logger.debug("Text area block generated:");
     logger.debug(textAreaBlock);
@@ -739,6 +764,15 @@ export default class SlackUtil extends WorkspaceBase {
         text: data.payloadTextBoxBlock.label,
       },
     };
+
+    // if description then add hint. 
+
+    if(data.payloadTextBoxBlock.description) {
+      textBoxBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadTextBoxBlock.description,
+      };
+    }
 
     logger.debug("Text box block generated:");
     logger.debug(textBoxBlock);
@@ -798,11 +832,21 @@ export default class SlackUtil extends WorkspaceBase {
             }
           : undefined,
       },
+      
       label: {
         type: "plain_text",
         text: data.payloadDropdownBlock.label,
       },
     };
+
+    // if description then add hint. 
+
+    if(data.payloadDropdownBlock.description) {
+      dropdownBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadDropdownBlock.description,
+      };
+    }
 
     logger.debug("Dropdown block generated:");
     logger.debug(dropdownBlock);
@@ -821,7 +865,8 @@ export default class SlackUtil extends WorkspaceBase {
         type: "plain_text",
         text: data.payloadModalBlock.title,
       },
-      callback_id: data.payloadModalBlock.callbackId,
+      callback_id: data.payloadModalBlock.actionId,
+      private_metadata: data.payloadModalBlock.actionValue,
       submit: {
         type: "plain_text",
         text: data.payloadModalBlock.submitButtonTitle,

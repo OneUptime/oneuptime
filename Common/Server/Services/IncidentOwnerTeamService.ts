@@ -74,6 +74,7 @@ export class Service extends DatabaseService<Model> {
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              notifyUserId: deleteByUserId || undefined,
             },
           });
         }
@@ -116,6 +117,7 @@ export class Service extends DatabaseService<Model> {
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
           },
         });
       }
