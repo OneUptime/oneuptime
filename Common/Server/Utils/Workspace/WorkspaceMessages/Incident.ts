@@ -1,10 +1,7 @@
-import Incident from "../../../../Models/DatabaseModels/Incident";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import IncidentService from "../../../Services/IncidentService";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "../../../Services/WorkspaceNotificationRuleService";
@@ -41,47 +38,20 @@ export default class IncidentWorkspaceMessages {
 
   public static async getIncidentCreateMessageBlocks(data: {
     incidentId: ObjectID;
+    projectId: ObjectID;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
-    const { incidentId } = data;
-    // slack and teams workspasce types.
-
-    const incident: Incident | null = await IncidentService.findOneById({
-      id: incidentId,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-        title: true,
-        description: true,
-        incidentSeverity: {
-          name: true,
-        },
-        rootCause: true,
-        remediationNotes: true,
-        currentIncidentState: {
-          name: true,
-        },
-        monitors: {
-          name: true,
-          _id: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!incident) {
-      throw new BadDataException("Incident not found");
-    }
-
+    const { incidentId, projectId } = data;
+    
     const slackBlocks: WorkspaceMessageBlock[] =
       await SlackIncidentMessages.getIncidentCreateMessageBlocks({
-        incident: incident,
+        incidentId: incidentId,
+        projectId: projectId!,
       });
 
     const microsoftTeamsBlocks: WorkspaceMessageBlock[] =
       await SlackIncidentMessages.getIncidentCreateMessageBlocks({
-        incident: incident,
+        incidentId: incidentId,
+        projectId: projectId!,
       });
 
     return [

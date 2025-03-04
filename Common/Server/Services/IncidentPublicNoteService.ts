@@ -61,7 +61,7 @@ export class Service extends DatabaseService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `**Posted public note for this incident on status page**
+      feedInfoInMarkdown: `📄 **Posted public note for this incident on status page**
 
 ${createdItem.note}
           `,
@@ -108,7 +108,7 @@ ${createdItem.note}
           displayColor: Blue500,
           userId: userId || undefined,
 
-          feedInfoInMarkdown: `**Updated Public Note**
+          feedInfoInMarkdown: `📄 **Updated Public Note**
   
 ${updatedItem.note}
             `,

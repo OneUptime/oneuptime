@@ -342,16 +342,16 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+        projectId.toString() +
+        " at " +
+        OneUptimeDate.getCurrentDateAsFormattedString(),
       );
       logger.error(err);
     }
@@ -420,6 +420,36 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("id is required");
     }
 
+
+    const incident: Model | null = await this.findOneById({
+      id: createdItem.id,
+      select: {
+        projectId: true,
+        incidentNumber: true,
+        title: true,
+        description: true,
+        incidentSeverity: {
+          name: true,
+        },
+        rootCause: true,
+        remediationNotes: true,
+        currentIncidentState: {
+          name: true,
+        },
+        monitors: {
+          name: true,
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if(!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
     // release the mutex.
     if (onCreate.carryForward && onCreate.carryForward.mutex) {
       const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
@@ -429,16 +459,16 @@ export class Service extends DatabaseService<Model> {
         await Semaphore.release(mutex);
         logger.debug(
           "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
         );
         logger.error(err);
       }
@@ -470,21 +500,36 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    let feedInfoInMarkdown: string = `**Incident #${createdItem.incidentNumber?.toString()} Created**: 
+    let feedInfoInMarkdown: string = `🚨 **Incident #${createdItem.incidentNumber?.toString()} Created**: 
       
-**Incident Title**:
-
-${createdItem.title || "No title provided."}
-
-**Description**:
+**${createdItem.title || "No title provided."}**:
 
 ${createdItem.description || "No description provided."}
 
       `;
 
+      if (incident.currentIncidentState?.name) {
+        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+      }
+  
+      if (incident.incidentSeverity?.name) {
+        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name}`;
+      }
+
+
+      if (incident.monitors && incident.monitors.length > 0) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+  
+        for (const monitor of incident.monitors) {
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+        }
+  
+        feedInfoInMarkdown += `\n\n`;
+      }
+
     if (createdItem.rootCause) {
       feedInfoInMarkdown += `\n
-**Root Cause**:
+📄 **Root Cause**:
 
 ${createdItem.rootCause || "No root cause provided."}
 
@@ -493,7 +538,7 @@ ${createdItem.rootCause || "No root cause provided."}
 
     if (createdItem.remediationNotes) {
       feedInfoInMarkdown += `\n 
-**Remediation Notes**:
+🎯 **Remediation Notes**:
 
 ${createdItem.remediationNotes || "No remediation notes provided."}
 
@@ -503,7 +548,8 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
     const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
-        incidentId: createdItem.id!,
+       incidentId: createdItem.id!,
+       projectId: createdItem.projectId!,
       });
 
     await IncidentFeedService.createIncidentFeedItem({
@@ -514,7 +560,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: createdByUserId || undefined,
       workspaceNotification: {
-        overrideMessageBlocksByWorkspace: incidentCreateMessageBlocks,
+        appendMessageBlocks: incidentCreateMessageBlocks,
         sendWorkspaceNotification: true,
       },
     });
@@ -533,9 +579,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.changeMonitorStatusToId,
         true, // notifyMonitorOwners
         createdItem.rootCause ||
-          "Status was changed because incident " +
-            createdItem.id.toString() +
-            " was created.",
+        "Status was changed because incident " +
+        createdItem.id.toString() +
+        " was created.",
         createdItem.createdStateLog,
         onCreate.createBy.props,
       );
@@ -570,9 +616,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.projectId,
         createdItem.id,
         (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
+        [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
+        [],
         false,
         onCreate.createBy.props,
       );
@@ -873,10 +919,10 @@ ${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
             feedInfoInMarkdown += `\n\n**Labels**:
 
 ${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
+                .map((label: Label) => {
+                  return `- ${label.name}`;
+                })
+                .join("\n")}
 `;
 
             shouldAddIncidentFeed = true;
@@ -1034,7 +1080,7 @@ ${incidentSeverity.name}
           if (
             latestState &&
             latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
+            resolvedMonitorState.id!.toString()
           ) {
             // already on this state. Skip.
             continue;
@@ -1147,7 +1193,7 @@ ${incidentSeverity.name}
       lastIncidentStatusTimeline &&
       lastIncidentStatusTimeline.incidentStateId &&
       lastIncidentStatusTimeline.incidentStateId.toString() ===
-        incidentStateId.toString()
+      incidentStateId.toString()
     ) {
       return;
     }
@@ -1365,7 +1411,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         timeToResolveMetric.unit = "seconds";

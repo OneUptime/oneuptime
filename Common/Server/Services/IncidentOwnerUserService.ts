@@ -71,7 +71,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `Removed **${user.name.toString()}** (${user.email?.toString()}) from the incident as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the incident as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -115,7 +115,7 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `Added **${user.name.toString()}** (${user.email?.toString()}) to the incident as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍💻 Added **${user.name.toString()}** (${user.email?.toString()}) to the incident as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

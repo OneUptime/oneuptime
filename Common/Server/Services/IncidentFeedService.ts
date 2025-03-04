@@ -17,6 +17,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import IncidentService from "./IncidentService";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export class Service extends DatabaseService<IncidentFeed> {
   public constructor() {
@@ -41,7 +42,7 @@ export class Service extends DatabaseService<IncidentFeed> {
       | {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
-          overrideMessageBlocksByWorkspace?:
+          appendMessageBlocks?:
             | Array<MessageBlocksByWorkspaceType>
             | undefined;
         }
@@ -107,11 +108,7 @@ export class Service extends DatabaseService<IncidentFeed> {
           let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
             [];
 
-          if (data.workspaceNotification.overrideMessageBlocksByWorkspace) {
-            // override these blocks.
-            messageBlocksByWorkspaceTypes =
-              data.workspaceNotification.overrideMessageBlocksByWorkspace;
-          } else {
+          
             // use markdown to create blocks
             messageBlocksByWorkspaceTypes =
               await WorkspaceUtil.getMessageBlocksByMarkdown({
@@ -119,7 +116,17 @@ export class Service extends DatabaseService<IncidentFeed> {
                 markdown: data.feedInfoInMarkdown,
                 projectId: data.projectId,
               });
-          }
+          
+              if(data.workspaceNotification.appendMessageBlocks) {
+                
+                for(const messageBlocksByWorkspaceType of data.workspaceNotification.appendMessageBlocks) {
+                 const workspaceType: WorkspaceType = messageBlocksByWorkspaceType.workspaceType;
+
+                 messageBlocksByWorkspaceTypes.find((messageBlocksByWorkspaceType) => {
+                    return messageBlocksByWorkspaceType.workspaceType === workspaceType;
+                  })?.messageBlocks.push(...messageBlocksByWorkspaceType.messageBlocks);
+                }
+              }
 
           const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> =
             [];

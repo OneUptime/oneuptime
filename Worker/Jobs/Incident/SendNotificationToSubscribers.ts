@@ -292,7 +292,7 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: incidentFeedText,
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
 

@@ -195,13 +195,24 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       });
 
     const stateName: string = incidentState?.name || "";
+    let stateEmoji: string = "➡️";
+
+    // if resolved state then change emoji to ✅.
+
+    if (incidentState?.isResolvedState) {
+      stateEmoji = "✅";
+    } else if (incidentState?.isAcknowledgedState) {
+      stateEmoji = "👍";
+    } else if (incidentState?.isCreatedState) {
+      stateEmoji = "🔴";
+    };
 
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
-      feedInfoInMarkdown: "**Incident State** changed to **" + stateName + "**",
+      feedInfoInMarkdown: stateEmoji + " **Incident State** changed to **" + stateName + "**",
       moreInformationInMarkdown: `**Cause:** 
 ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,

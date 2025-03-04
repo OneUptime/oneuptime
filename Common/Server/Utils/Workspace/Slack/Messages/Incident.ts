@@ -1,105 +1,27 @@
-import Incident from "../../../../../Models/DatabaseModels/Incident";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import ObjectID from "../../../../../Types/ObjectID";
 import {
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspacePayloadButtons,
   WorkspacePayloadDivider,
-  WorkspacePayloadHeader,
-  WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import IncidentService from "../../../../Services/IncidentService";
-import MonitorService from "../../../../Services/MonitorService";
 import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export default class SlackIncidentMessages {
   public static async getIncidentCreateMessageBlocks(data: {
-    incident: Incident;
+    incidentId: ObjectID;
+    projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-    const incident: Incident = data.incident;
-
-    if (!incident) {
-      throw new BadDataException("Incident not found");
-    }
+  if(!data.incidentId) {
+    throw new BadDataException("Incident ID is required");
+  }
 
     // Slack.
 
     const blockSlack: Array<WorkspaceMessageBlock> = [];
 
-    if (incident.incidentNumber) {
-      const markdownBlock1: WorkspacePayloadHeader = {
-        _type: "WorkspacePayloadHeader",
-        text: `:rotating_light: Incident #${incident.incidentNumber}`,
-      };
-      blockSlack.push(markdownBlock1);
-    }
-
-    if (incident.title) {
-      const markdownBlock2: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `**[${incident.title}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**`,
-      };
-      blockSlack.push(markdownBlock2);
-    }
-
-    if (incident.description) {
-      const markdownBlock3: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `${incident.description}`,
-      };
-      blockSlack.push(markdownBlock3);
-    }
-
-    if (incident.currentIncidentState?.name) {
-      const markdownBlock7: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:arrow_right: **Incident State**: ${incident.currentIncidentState.name}`,
-      };
-      blockSlack.push(markdownBlock7);
-    }
-
-    if (incident.incidentSeverity?.name) {
-      const markdownBlock4: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:warning: **Severity**: ${incident.incidentSeverity.name}`,
-      };
-      blockSlack.push(markdownBlock4);
-    }
-
-    // check for monitors.
-    if (incident.monitors && incident.monitors.length > 0) {
-      let text: string = `:earth_americas: **Resources Affected**:\n`;
-
-      for (const monitor of incident.monitors) {
-        text += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
-      }
-
-      // now add text to markdwon block.
-      const markdownBlock5: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: text,
-      };
-
-      blockSlack.push(markdownBlock5);
-    }
-
-    if (incident.rootCause) {
-      const markdownBlock5: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:page_facing_up: **Root Cause**:\n\n
-        ${incident.rootCause}`,
-      };
-      blockSlack.push(markdownBlock5);
-    }
-
-    if (incident.remediationNotes) {
-      const markdownBlock6: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `:dart: **Remediation Notes**:
-        ${incident.remediationNotes}`,
-      };
-      blockSlack.push(markdownBlock6);
-    }
 
     // add divider.
 
@@ -110,24 +32,24 @@ export default class SlackIncidentMessages {
     blockSlack.push(dividerBlock);
 
     // now add buttons.
-    // View Incident.
+    // View data.
     // Execute On Call
     // Acknowledge incident
-    // Resolve Incident.
+    // Resolve data.
     // Change Incident State.
     // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
-    // view incident.
+    // view data.
     const viewIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "🔗 View Incident",
       url: await IncidentService.getIncidentLinkInDashboard(
-        incident.projectId!,
-        incident.id!,
+        data.projectId!,
+        data.projectId!,
       ),
-      value: incident.id?.toString() || "",
+      value: data.projectId?.toString() || "",
       actionId: SlackActionType.ViewIncident,
     };
 
@@ -143,21 +65,21 @@ export default class SlackIncidentMessages {
 
     buttons.push(executeOnCallButton);
 
-    // acknowledge incident.
+    // acknowledge data.
     const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "👀 Acknowledge Incident",
-      value: incident.id?.toString() || "",
+      value: data.projectId?.toString() || "",
       actionId: SlackActionType.AcknowledgeIncident,
     };
 
     buttons.push(acknowledgeIncidentButton);
 
-    // resolve incident.
+    // resolve data.
     const resolveIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "✅ Resolve Incident",
-      value: incident.id?.toString() || "",
+      value: data.projectId?.toString() || "",
       actionId: SlackActionType.ResolveIncident,
     };
 
@@ -167,7 +89,7 @@ export default class SlackIncidentMessages {
     const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Incident State",
-      value: incident.id?.toString() || "",
+      value: data.projectId?.toString() || "",
       actionId: SlackActionType.ViewChangeIncidentState,
     };
 
@@ -177,7 +99,7 @@ export default class SlackIncidentMessages {
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: incident.id?.toString() || "",
+      value: data.projectId?.toString() || "",
       actionId: SlackActionType.ViewAddIncidentNote,
     };
 
