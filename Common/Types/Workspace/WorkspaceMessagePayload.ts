@@ -43,6 +43,14 @@ export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
   altText: string;
 }
 
+export interface WorkspaceCheckboxBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceCheckboxBlock";
+  label: string;
+  blockId: string;
+  initialValue?: boolean | undefined;
+  description?: string | undefined;
+}
+
 export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   _type: "WorkspaceDropdownBlock";
   label: string;

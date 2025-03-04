@@ -7,6 +7,7 @@ import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
+  WorkspaceCheckboxBlock,
   WorkspaceDropdownBlock,
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
@@ -19,6 +20,8 @@ import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyServic
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
+import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
+import IncidentStateService from "../../../../Services/IncidentStateService";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -31,8 +34,8 @@ export default class SlackIncidentActions {
       case SlackActionType.ResolveIncident:
       case SlackActionType.ViewAddIncidentNote:
       case SlackActionType.SubmitIncidentNote:
-      case SlackActionType.ChangeIncidentState:
-      case SlackActionType.SubmitIncidentState:
+      case SlackActionType.ViewChangeIncidentState:
+      case SlackActionType.SubmitChangeIncidentState:
       case SlackActionType.ViewExecuteIncidentOnCallPolicy:
       case SlackActionType.SubmitExecuteIncidentOnCallPolicy:
       case SlackActionType.ViewIncident:
@@ -293,6 +296,130 @@ export default class SlackIncidentActions {
       triggerId: data.slackRequest.triggerId!,
     });
   }
+
+
+  public static async viewChangeIncidentState(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Incident ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const incidentId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    const incidentStates: Array<IncidentState> = await IncidentStateService.getAllIncidentStates({
+      projectId: data.slackRequest.projectId!,
+      props: {
+        isRoot: true,
+      }
+    });
+
+    const dropdownOptions: Array<DropdownOption> = incidentStates.map((state: IncidentState) => {
+      return {
+        label: state.name || "",
+        value: state._id?.toString() || "",
+      };
+    }
+    ).filter((option: DropdownOption) => option.label !== "" || option.value !== "");
+
+    const statePickerDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "State",
+      blockId: "state",
+      placeholder: "Select State",
+      options: dropdownOptions,
+    };
+
+    const shouldNotifyStatusPageSubscribers: WorkspaceCheckboxBlock = {
+      _type: "WorkspaceCheckboxBlock",
+      label: "Notify Status Page Subscribers",
+      blockId: "shouldNotifyStatusPageSubscribers",
+      initialValue: false,
+    }
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "Change Incident State",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitChangeIncidentState,
+      actionValue: actionValue,
+      blocks: [statePickerDropdown, shouldNotifyStatusPageSubscribers],
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
+  }
+
+  public static async submitChangeIncidentState(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Incident ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const incidentId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['state']) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid View Values"),
+      );
+    }
+
+    const incidentId: ObjectID = new ObjectID(actionValue);
+    const stateString: string = data.slackRequest.viewValues['state'].toString();
+
+    const stateId: ObjectID = new ObjectID(stateString);
+
+    await IncidentService.changeIncidentState({
+      incidentId: incidentId,
+      incidentStateId: stateId,
+      projectId: data.slackRequest.projectId!,
+      userId: data.slackRequest.userId!,
+      shouldNotifyStatusPageSubscribers: 
+    });
+
+  }
+
 
 
   public static async executeOnCallPolicy(data: {

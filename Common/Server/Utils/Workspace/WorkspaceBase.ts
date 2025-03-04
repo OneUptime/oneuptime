@@ -5,6 +5,7 @@ import NotImplementedException from "../../../Types/Exception/NotImplementedExce
 import { JSONObject } from "../../../Types/JSON";
 import WorkspaceChannelInvitationPayload from "../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceMessagePayload, {
+  WorkspaceCheckboxBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
@@ -49,6 +50,12 @@ export default class WorkspaceBase {
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
   }): Promise<void> {
+    throw new NotImplementedException();
+  }
+
+  public static getCheckboxBlock(_data: {
+    payloadCheckboxBlock: WorkspaceCheckboxBlock;
+  }): JSONObject {
     throw new NotImplementedException();
   }
 
@@ -116,7 +123,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelId: string;
     workspaceUserId: string;
-  }): Promise<void> {}
+  }): Promise<void> { }
 
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;

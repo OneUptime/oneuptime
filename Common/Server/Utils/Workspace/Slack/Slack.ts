@@ -4,6 +4,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
+  WorkspaceCheckboxBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
@@ -702,6 +703,58 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Header block generated:");
     logger.debug(headerBlock);
     return headerBlock;
+  }
+
+  public static override getCheckboxBlock(data: {
+    payloadCheckboxBlock: WorkspaceCheckboxBlock;
+  }): JSONObject {
+    logger.debug("Getting checkbox block with data:");
+    logger.debug(data);
+
+    const checkboxBlock: JSONObject = {
+      type: "input",
+      element: {
+        type: "checkboxes",
+        action_id: data.payloadCheckboxBlock.blockId,
+        options: [
+          {
+            text: {
+              type: "plain_text",
+              text: data.payloadCheckboxBlock.label,
+            },
+            value: "value",
+          },
+        ],
+        initial_options: data.payloadCheckboxBlock.initialValue
+          ? [
+              {
+                text: {
+                  type: "plain_text",
+                  text: data.payloadCheckboxBlock.label,
+                },
+                value: "value",
+              },
+            ]
+          : undefined,
+      },
+      label: {
+        type: "plain_text",
+        text: data.payloadCheckboxBlock.label,
+      },
+    };
+
+    // if description then add hint. 
+
+    if(data.payloadCheckboxBlock.description) {
+      checkboxBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadCheckboxBlock.description,
+      };
+    }
+
+    logger.debug("Checkbox block generated:");
+    logger.debug(checkboxBlock);
+    return checkboxBlock;
   }
 
   public static override getTextAreaBlock(data: {
