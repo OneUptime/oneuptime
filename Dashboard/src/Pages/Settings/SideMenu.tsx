@@ -42,6 +42,16 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Slack}
         />
+
+<SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Monitors">

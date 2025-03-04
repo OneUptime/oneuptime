@@ -233,6 +233,13 @@ const ScheduledMaintenanceNoteTemplateView: LazyExoticComponent<
   return import("../Pages/Settings/ScheduledMaintenanceNoteTemplateView");
 });
 
+
+const SettingsMicrosoftTeamsIntegration: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/MicrosoftTeamsIntegration");
+});
+
 const SettingsUsageHistory: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -320,7 +327,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
                   ] as Route
                 }
               />
@@ -339,7 +346,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW
                   ] as Route
                 }
               />
@@ -414,7 +421,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
+                  PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW
                   ] as Route
                 }
               />
@@ -449,7 +456,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
                   ] as Route
                 }
               />
@@ -468,7 +475,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                   ] as Route
                 }
               />
@@ -555,6 +562,20 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsMicrosoftTeamsIntegration
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_ALERTS_STATE)}
           element={
             <Suspense fallback={Loader}>
@@ -576,7 +597,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                   ] as Route
                 }
               />
@@ -687,7 +708,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW
+                  PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW
                   ] as Route
                 }
               />
@@ -749,7 +770,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
+                  PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
                   ] as Route
                 }
               />
@@ -799,7 +820,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
+                  PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
                   ] as Route
                 }
               />
