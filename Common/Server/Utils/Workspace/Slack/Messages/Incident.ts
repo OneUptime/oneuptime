@@ -122,7 +122,7 @@ export default class SlackIncidentMessages {
     // view incident.
     const viewIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "View Incident",
+      title: "🔗 View Incident",
       url: await IncidentService.getIncidentLinkInDashboard(
         incident.projectId!,
         incident.id!,
@@ -136,7 +136,7 @@ export default class SlackIncidentMessages {
     // execute on call.
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: ":telephone_receiver: Execute On Call",
+      title: "📞 Execute On Call",
       value: "execute_on_call",
       actionId: SlackActionType.ViewExecuteIncidentOnCallPolicy,
     };
@@ -146,7 +146,7 @@ export default class SlackIncidentMessages {
     // acknowledge incident.
     const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: ":eyes: Acknowledge Incident",
+      title: "👀 Acknowledge Incident",
       value: incident.id?.toString() || "",
       actionId: SlackActionType.AcknowledgeIncident,
     };
