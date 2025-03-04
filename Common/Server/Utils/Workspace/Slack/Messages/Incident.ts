@@ -138,7 +138,7 @@ export default class SlackIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":telephone_receiver: Execute On Call",
       value: "execute_on_call",
-      actionId: SlackActionType.ExecuteIncidentOnCallPolicy,
+      actionId: SlackActionType.ViewExecuteIncidentOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
@@ -178,7 +178,7 @@ export default class SlackIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":page_facing_up: Add Note",
       value: incident.id?.toString() || "",
-      actionId: SlackActionType.AddIncidentNote,
+      actionId: SlackActionType.ViewAddIncidentNote,
     };
 
     buttons.push(addNoteButton);

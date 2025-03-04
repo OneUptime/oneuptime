@@ -14,6 +14,11 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
+import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
+import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
+import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -24,11 +29,11 @@ export default class SlackIncidentActions {
     switch (actionType) {
       case SlackActionType.AcknowledgeIncident:
       case SlackActionType.ResolveIncident:
-      case SlackActionType.AddIncidentNote:
+      case SlackActionType.ViewAddIncidentNote:
       case SlackActionType.SubmitIncidentNote:
       case SlackActionType.ChangeIncidentState:
       case SlackActionType.SubmitIncidentState:
-      case SlackActionType.ExecuteIncidentOnCallPolicy:
+      case SlackActionType.ViewExecuteIncidentOnCallPolicy:
       case SlackActionType.SubmitExecuteIncidentOnCallPolicy:
       case SlackActionType.ViewIncident:
         return true;
@@ -217,6 +222,176 @@ export default class SlackIncidentActions {
     );
   }
 
+  public static async viewExecuteOnCallPolicy(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Incident ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const incidentId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    const onCallPolicies: Array<OnCallDutyPolicy> = await OnCallDutyPolicyService.findBy({
+      query: {
+        projectId: data.slackRequest.projectId!,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const dropdownOption: Array<DropdownOption> = onCallPolicies.map((policy: OnCallDutyPolicy) => {
+      return {
+        label: policy.name || "",
+        value: policy._id?.toString() || "",
+      };
+    }).filter((option: DropdownOption) => option.label !== "" || option.value !== "");
+
+    const onCallPolicyDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "On Call Policy",
+      blockId: "onCallPolicy",
+      placeholder: "Select On Call Policy",
+      options: dropdownOption
+    };
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "Execute On Call Policy for Incident",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitExecuteIncidentOnCallPolicy,
+      actionValue: actionValue,
+      blocks: [onCallPolicyDropdown],
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
+  }
+
+
+  public static async executeOnCallPolicy(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Incident ID"),
+      );
+    }
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
+
+    if (!projectAuthToken) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project Auth Token"),
+      );
+    }
+
+    if (!botUserId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Bot User ID"),
+      );
+    }
+
+    if (data.action.actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy) {
+      const incidentId: ObjectID = new ObjectID(actionValue);
+
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      const isAlreadyResolved: boolean =
+        await IncidentService.isIncidentResolved({
+          incidentId: incidentId,
+        });
+
+      if (isAlreadyResolved) {
+        const incidentNumber: number | null =
+          await IncidentService.getIncidentNumber({
+            incidentId: incidentId,
+          });
+        // send a message to the channel visible to user, that the incident has already been Resolved.
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackUsername}, unfortunately you cannot execute the on call policy for **[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdwonPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+
+        return;
+      }
+
+      if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['onCallPolicy']) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string = data.slackRequest.viewValues['onCallPolicy'].toString();
+
+      // get the on call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
+        triggeredByIncidentId: incidentId,
+        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      });
+
+    }
+  }
+
   public static async submitIncidentNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -253,7 +428,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if(!data.slackRequest.viewValues['noteType']){
+    if (!data.slackRequest.viewValues['noteType']) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -261,7 +436,7 @@ export default class SlackIncidentActions {
       );
     }
 
-    if(!data.slackRequest.viewValues['note']){
+    if (!data.slackRequest.viewValues['note']) {
       // return error.
       return Response.sendErrorResponse(
         req,
@@ -274,7 +449,7 @@ export default class SlackIncidentActions {
     const note: string = data.slackRequest.viewValues['note'].toString();
     const noteType: string = data.slackRequest.viewValues['noteType'].toString();
 
-    if(noteType !== 'public' && noteType !== 'private'){
+    if (noteType !== 'public' && noteType !== 'private') {
       return Response.sendErrorResponse(
         req,
         res,
@@ -289,7 +464,7 @@ export default class SlackIncidentActions {
     });
 
     // if public note then, add a note. 
-    if(noteType === 'public'){
+    if (noteType === 'public') {
       await IncidentPublicNoteService.addNote({
         incidentId: incidentId!,
         note: note || "",
@@ -299,7 +474,7 @@ export default class SlackIncidentActions {
     }
 
     // if private note then, add a note.
-    if(noteType === 'private'){
+    if (noteType === 'private') {
       await IncidentInternalNoteService.addNote({
         incidentId: incidentId!,
         note: note || "",
@@ -307,10 +482,10 @@ export default class SlackIncidentActions {
         userId: data.slackRequest.userId!,
       });
     }
-    
+
   }
 
-  public static async addIncidentNote(data: {
+  public static async viewAddIncidentNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
     req: ExpressRequest;
@@ -395,8 +570,20 @@ export default class SlackIncidentActions {
       return await this.resolveIncident(data);
     }
 
-    if (actionType === SlackActionType.AddIncidentNote) {
-      return await this.addIncidentNote(data);
+    if (actionType === SlackActionType.ViewAddIncidentNote) {
+      return await this.viewAddIncidentNote(data);
+    }
+
+    if (actionType === SlackActionType.SubmitIncidentNote) {
+      return await this.submitIncidentNote(data);
+    }
+
+    if(actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy) {
+      return await this.viewExecuteOnCallPolicy(data);
+    }
+
+    if(actionType === SlackActionType.SubmitExecuteIncidentOnCallPolicy) {
+      return await this.executeOnCallPolicy(data);
     }
 
     if (actionType === SlackActionType.ViewIncident) {

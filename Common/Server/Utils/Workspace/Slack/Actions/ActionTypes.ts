@@ -1,11 +1,11 @@
 enum SlackActionType {
   AcknowledgeIncident = "AcknowledgeIncident",
   ResolveIncident = "ResolveIncident",
-  AddIncidentNote = "AddIncidentNote",
+  ViewAddIncidentNote = "ViewAddIncidentNote",
   SubmitIncidentNote = "SubmitIncidentNote",
   ChangeIncidentState = "ChangeIncidentState",
   SubmitIncidentState = "SubmitIncidentState",
-  ExecuteIncidentOnCallPolicy = "ExecuteIncidentOnCallPolicy",
+  ViewExecuteIncidentOnCallPolicy = "ViewExecuteIncidentOnCallPolicy",
   SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
   ViewIncident = "ViewIncident",
 }
