@@ -62,7 +62,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Slack",
+            title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
