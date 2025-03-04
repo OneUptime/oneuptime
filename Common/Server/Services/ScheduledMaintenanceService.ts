@@ -162,6 +162,10 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
+        if(!statuspage.showScheduledMaintenanceEventsOnStatusPage){
+          continue; // Do not send notification to subscribers if incidents are not visible on status page.
+        }
+
         const subscribers: Array<StatusPageSubscriber> =
           await StatusPageSubscriberService.getSubscribersByStatusPage(
             statuspage.id!,

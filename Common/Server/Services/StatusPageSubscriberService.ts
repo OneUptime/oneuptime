@@ -800,6 +800,9 @@ export class Service extends DatabaseService<Model> {
         subscriberTimezones: true,
         reportDataInDays: true,
         isReportEnabled: true,
+        showAnnouncementsOnStatusPage: true,
+        showIncidentsOnStatusPage: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
       },
     });
 

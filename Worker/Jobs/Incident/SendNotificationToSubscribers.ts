@@ -53,6 +53,7 @@ RunCron(
         title: true,
         description: true,
         projectId: true,
+        isVisibleOnStatusPage: true,
         monitors: {
           _id: true,
         },
@@ -83,6 +84,10 @@ RunCron(
           ignoreHooks: true,
         },
       });
+
+      if(!incident.isVisibleOnStatusPage){
+        continue; // Do not send notification to subscribers if incident is not visible on status page.
+      }
 
       // get status page resources from monitors.
 
@@ -139,6 +144,10 @@ RunCron(
         try {
           if (!statuspage.id) {
             continue;
+          }
+
+          if(!statuspage.showIncidentsOnStatusPage){
+            continue; // Do not send notification to subscribers if incidents are not visible on status page.
           }
 
           const subscribers: Array<StatusPageSubscriber> =

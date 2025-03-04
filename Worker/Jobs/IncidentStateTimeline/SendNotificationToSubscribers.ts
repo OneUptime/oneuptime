@@ -105,6 +105,7 @@ RunCron(
           incidentSeverity: {
             name: true,
           },
+          isVisibleOnStatusPage: true,
         },
       });
 
@@ -114,6 +115,10 @@ RunCron(
 
       if (!incident.monitors || incident.monitors.length === 0) {
         continue;
+      }
+
+      if(!incident.isVisibleOnStatusPage) {
+        continue; // skip if not visible on status page.
       }
 
       // get status page resources from monitors.
@@ -170,6 +175,10 @@ RunCron(
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
           continue;
+        }
+
+        if(!statuspage.showIncidentsOnStatusPage){
+          continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 
         const subscribers: Array<StatusPageSubscriber> =
@@ -308,7 +317,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
+        feedInfoInMarkdown: `**Status Page Subscribers have been notified** about the state change of the incident to **${incidentStateTimeline.incidentState.name}**`,
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },

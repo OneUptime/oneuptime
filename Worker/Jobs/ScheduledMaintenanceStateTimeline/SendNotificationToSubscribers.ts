@@ -106,11 +106,16 @@ RunCron(
             statusPages: {
               _id: true,
             },
+            isVisibleOnStatusPage: true,
           },
         });
 
       if (!event) {
         continue;
+      }
+
+      if(!event.isVisibleOnStatusPage) {
+        continue; // skip if not visible on status page.
       }
 
       // get status page resources from monitors.
@@ -170,6 +175,10 @@ RunCron(
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
           continue;
+        }
+
+        if(!statuspage.showScheduledMaintenanceEventsOnStatusPage){
+          continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 
         const subscribers: Array<StatusPageSubscriber> =
@@ -304,7 +313,7 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Subscribers have been notified** about the state change of the scheduled maintenance to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+        feedInfoInMarkdown: `**Status Page Subscribers have been notified** about the state change of the scheduled maintenance to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
       });
     }
   },

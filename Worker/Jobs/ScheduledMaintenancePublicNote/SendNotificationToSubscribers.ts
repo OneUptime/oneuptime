@@ -82,6 +82,7 @@ RunCron(
             statusPages: {
               _id: true,
             },
+            isVisibleOnStatusPage: true,
           },
         });
 
@@ -99,6 +100,10 @@ RunCron(
           ignoreHooks: true,
         },
       });
+
+      if (!event.isVisibleOnStatusPage) {
+        continue; // skip if not visible on status page.
+      }
 
       // get status page resources from monitors.
 
@@ -157,6 +162,10 @@ RunCron(
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
           continue;
+        }
+
+        if(!statuspage.showScheduledMaintenanceEventsOnStatusPage){
+          continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 
         const subscribers: Array<StatusPageSubscriber> =
