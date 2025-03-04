@@ -24,6 +24,11 @@ export function getUserSettingsBreadcrumbs(
       "User Settings",
       "Slack Integration",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION, [
+      "Project",
+      "User Settings",
+      "Microsoft Teams Integration",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES, [
       "Project",
       "User Settings",

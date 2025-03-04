@@ -282,6 +282,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
   [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: "incident-on-call-rules",
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
+  [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
@@ -1387,6 +1388,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_SLACK_INTEGRATION]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
     }`,
   ),
 
