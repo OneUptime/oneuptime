@@ -341,18 +341,11 @@ export default class SlackIncidentActions {
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "State",
-      blockId: "state",
-      placeholder: "Select State",
+      label: "Incident State",
+      blockId: "incidentState",
+      placeholder: "Select Incident State",
       options: dropdownOptions,
     };
-
-    const shouldNotifyStatusPageSubscribers: WorkspaceCheckboxBlock = {
-      _type: "WorkspaceCheckboxBlock",
-      label: "Notify Status Page Subscribers",
-      blockId: "shouldNotifyStatusPageSubscribers",
-      initialValue: false,
-    }
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
@@ -361,7 +354,7 @@ export default class SlackIncidentActions {
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitChangeIncidentState,
       actionValue: actionValue,
-      blocks: [statePickerDropdown, shouldNotifyStatusPageSubscribers],
+      blocks: [statePickerDropdown],
     };
 
     await SlackUtil.showModalToUser({
@@ -397,7 +390,7 @@ export default class SlackIncidentActions {
 
     // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
 
-    if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['state']) {
+    if (!data.slackRequest.viewValues || !data.slackRequest.viewValues['incidentState']) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -406,21 +399,21 @@ export default class SlackIncidentActions {
     }
 
     const incidentId: ObjectID = new ObjectID(actionValue);
-    const stateString: string = data.slackRequest.viewValues['state'].toString();
+    const stateString: string = data.slackRequest.viewValues['incidentState'].toString();
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    await IncidentService.changeIncidentState({
-      incidentId: incidentId,
-      incidentStateId: stateId,
-      projectId: data.slackRequest.projectId!,
-      userId: data.slackRequest.userId!,
-      shouldNotifyStatusPageSubscribers: 
-    });
+    await IncidentService.updateOneById({
+      id: incidentId,
+      data: {
+        currentIncidentStateId: stateId,
+      },
+      props: {
+        userId: data.slackRequest.userId!,
+      }
+    })
 
   }
-
-
 
   public static async executeOnCallPolicy(data: {
     slackRequest: SlackRequest;

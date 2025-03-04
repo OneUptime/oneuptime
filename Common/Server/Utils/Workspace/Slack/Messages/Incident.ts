@@ -168,7 +168,7 @@ export default class SlackIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":arrow_right: Change Incident State",
       value: incident.id?.toString() || "",
-      actionId: SlackActionType.ChangeIncidentState,
+      actionId: SlackActionType.ViewChangeIncidentState,
     };
 
     buttons.push(changeIncidentStateButton);
