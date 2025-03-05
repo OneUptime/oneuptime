@@ -26,7 +26,7 @@ import UserElement from "../../Components/User/User";
 import TeamsElement from "../../Components/Team/TeamsElement";
 
 const Teams: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
+  _props: PageComponentProps,
 ): ReactElement => {
   interface TeamMemberItem {
     user: User | undefined;
@@ -47,11 +47,12 @@ const Teams: FunctionComponent<PageComponentProps> = (
         modelType: TeamMember,
         query: {
           projectId: DashboardNavigation.getProjectId()!,
+          hasAcceptedInvitation: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         sort: {
-          createdAt: SortOrder.Descending,
+          
         },
         select: {
           user: {
@@ -82,6 +83,11 @@ const Teams: FunctionComponent<PageComponentProps> = (
             teams: [teamMember.team!],
           });
         }
+      }
+
+      // add thirty items of the same user to test the pagination
+      for (let i = 0; i < 30; i++) {
+        teamMemberItems.push(teamMemberItems[0]!);
       }
 
       setTeamMembers(teamMemberItems);
