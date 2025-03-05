@@ -1,195 +1,144 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Team from "Common/Models/DatabaseModels/Team";
+import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useState,
 } from "react";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import API from "Common/UI/Utils/API/API";
-import Exception from "Common/Types/Exception/Exception";
-import TableCard from "Common/UI/Components/Table/TableCard";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Team from "Common/Models/DatabaseModels/Team";
 import TeamsElement from "../../Components/Team/TeamsElement";
+import Route from "Common/Types/API/Route";
 
 const Teams: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
+  props: PageComponentProps,
 ): ReactElement => {
-  interface TeamMemberItem {
-    user: User | undefined;
-    teams: Array<Team> | undefined;
-  }
-
-  const [teamMembers, setTeamMembers] = useState<TeamMemberItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
-
-  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setError(null);
-      setIsLoading(true);
-
-      const teamMembers: ListResult<TeamMember> = await ModelAPI.getList({
-        modelType: TeamMember,
-        query: {
-          projectId: DashboardNavigation.getProjectId()!,
-          hasAcceptedInvitation: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: {
-          
-        },
-        select: {
-          user: {
-            name: true,
-            email: true,
-            _id: true,
-            profilePictureId: true,
-          },
-          team: {
-            name: true,
-            _id: true,
-          },
-        },
-      });
-
-      const teamMemberItems: TeamMemberItem[] = [];
-
-      for (const teamMember of teamMembers.data) {
-        // check if team member already exists in teamMemberItems. If it does, add the team to the existing team member. If it does not then, create a new team member and add the team to it.
-        const teamMemberItemIndex = teamMemberItems.findIndex((item) => {
-          return item.user?.id?.toString() === teamMember.user?._id?.toString();
-        });
-        if (teamMemberItemIndex !== -1) {
-          teamMemberItems[teamMemberItemIndex]!.teams?.push(teamMember.team!);
-        } else {
-          teamMemberItems.push({
-            user: teamMember.user!,
-            teams: [teamMember.team!],
-          });
-        }
-      }
-
-      // add thirty items of the same user to test the pagination
-      for (let i = 0; i < 30; i++) {
-        teamMemberItems.push(teamMemberItems[0]!);
-      }
-
-      setTeamMembers(teamMemberItems);
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      setError(API.getFriendlyErrorMessage(error as Exception));
-    }
-  };
-
-  React.useEffect(() => {
-    loadItems().catch(() => {
-      // Do nothing
-    });
-  }, []);
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
 
   return (
     <Fragment>
-      <TableCard<TeamMemberItem>
-        title="Users"
-        description="Here is a list of all the users in this project."
-        headerButtons={[
+      <ModelTable<ProjectUser>
+        modelType={ProjectUser}
+        id="teams-table"
+        name="Settings > Users"
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={true}
+        isViewable={true}
+        cardProps={{
+          title: "Users",
+          description: "Here is a list of all the users in this project.",
+        }}
+        noItemsMessage={"No users found."}
+        query={{
+          projectId: DashboardNavigation.getProjectId()!,
+        }}
+        showRefreshButton={true}
+        onViewPage={(item: ProjectUser) => {
+          const viewPageRoute: string = props.pageRoute.toString() + "/" + item.user?.id?.toString(); 
+          // add user id to the route
+          return Promise.resolve(new Route(viewPageRoute)); 
+        }}
+        filters={[
           {
-            // add user button
-            icon: IconProp.Add,
-            title: "Add User",
-            buttonStyle: ButtonStyleType.NORMAL,
-            onClick: () => {
-              setShowAddUserModal(true);
+            field: {
+              user: {
+                name: true,
+              },
+            },
+            title: "User",
+            type: FieldType.Entity,
+
+            filterEntityType: User,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
             },
           },
           {
-            icon: IconProp.Refresh,
-            title: "Refresh",
-            buttonStyle: ButtonStyleType.ICON,
-            onClick: loadItems,
+            field: {
+              acceptedTeams: {
+                name: true,
+              },
+            },
+            title: "Teams",
+            type: FieldType.EntityArray,
+            filterEntityType: Team,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              invitedTeams: {
+                name: true,
+              },
+            },
+            title: "Invited to Teams",
+            type: FieldType.EntityArray,
+            filterEntityType: Team,
+            filterQuery: {
+              projectId: DashboardNavigation.getProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
         ]}
-        tableProps={{
-          id: "users-table",
-          data: teamMembers,
-          itemsOnPage: 10,
-          totalItemsCount: teamMembers.length,
-          singularLabel: "User",
-          pluralLabel: "Users",
-          error: error || "",
-          isLoading: isLoading,
-          currentPageNumber: 1,
-          onNavigateToPage: () => {},
-
-          sortOrder: SortOrder.Descending,
-          sortBy: "user",
-          onSortChanged: () => {},
-          onFilterModalClose: () => {},
-          onFilterModalOpen: () => {},
-          onFilterChanged: () => {},
-          bulkActions: {
-            buttons: [],
+        columns={[
+          {
+            field: {
+              user: {
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            title: "User",
+            type: FieldType.Element,
+            getElement: (item: ProjectUser) => {
+              if (!item.user) {
+                return <p>User not found</p>;
+              }
+              return <UserElement user={item.user!} />;
+            },
           },
-          bulkSelectedItems: [],
-          onBulkActionEnd: () => {},
-          onBulkActionStart: () => {},
-          onBulkClearAllItems: () => {},
-          onBulkSelectedItemAdded: () => {},
-          onBulkSelectedItemRemoved: () => {},
-          onBulkSelectAllItems: () => {},
-          bulkItemToString: () => "",
-          onBulkSelectItemsOnCurrentPage: () => {},
-          matchBulkSelectedItemByField: "user", 
-          columns: [
-            {
-              key: "user",
-              title: "User",
-              type: FieldType.Element,
-              getElement: (item: TeamMemberItem) => {
-                if (!item.user) {
-                  return <p>User not found</p>;
-                }
-                return <UserElement user={item.user!} />;
-              },
+          {
+            field: {
+              acceptedTeams: {
+                name: true,
+              }
             },
-            {
-              key: "teams",
-              title: "Teams",
-              type: FieldType.Element,
-              getElement: (item: TeamMemberItem) => {
-                if (!item.teams) {
-                  return <p>Not added to any team.</p>;
-                }
-                return <TeamsElement teams={item.teams!} />;
-              },
+            title: "Teams",
+            type: FieldType.Element,
+            getElement: (item: ProjectUser) => {
+              return <TeamsElement teams={item.acceptedTeams || []} />;
             },
-          ],
-        }}
+          },
+          {
+            field: {
+              invitedTeams: {
+                name: true,
+              }
+            },
+            title: "Invited to Teams",
+            type: FieldType.Element,
+            getElement: (item: ProjectUser) => {
+              return <TeamsElement teams={item.invitedTeams || []} />;
+            },
+          },
+        ]}
       />
     </Fragment>
   );
