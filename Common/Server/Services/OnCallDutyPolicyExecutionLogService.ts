@@ -17,6 +17,8 @@ import Color from "../../Types/Color";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
+import IncidentService from "./IncidentService";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -65,7 +67,27 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (onCallPolicy && onCallPolicy.id) {
-        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing. Users on call on this policy will now be notified.`;
+        let incidentOrAlertLink: string = "";
+
+        if (createdItem.triggeredByIncidentId) {
+          const projectId: ObjectID | undefined = createdItem.projectId;
+          const incidentId: ObjectID | undefined =
+            createdItem.triggeredByIncidentId;
+          const incidentNumber: number | null =
+            await IncidentService.getIncidentNumber({
+              incidentId: incidentId,
+            });
+          incidentOrAlertLink = `[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+        }
+
+        if (createdItem.triggeredByAlertId) {
+          const alertNumber: number | null = await AlertService.getAlertNumber({
+            alertId: createdItem.triggeredByAlertId,
+          });
+          incidentOrAlertLink = `[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertId)).toString()})`;
+        }
+
+        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
 
         if (
           onCallPolicy &&
@@ -260,7 +282,29 @@ export class Service extends DatabaseService<Model> {
 
 **Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`;
 
-          const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated:**
+          let incidentOrAlertLink: string = "";
+
+          if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
+            const projectId: ObjectID | undefined =
+              onCalldutyPolicyExecutionLog.projectId;
+            const incidentId: ObjectID | undefined =
+              onCalldutyPolicyExecutionLog.triggeredByIncidentId;
+            const incidentNumber: number | null =
+              await IncidentService.getIncidentNumber({
+                incidentId: incidentId,
+              });
+            incidentOrAlertLink = `[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+          }
+
+          if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
+            const alertNumber: number | null =
+              await AlertService.getAlertNumber({
+                alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
+              });
+            incidentOrAlertLink = `[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertId)).toString()})`;
+          }
+
+          const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated for ${incidentOrAlertLink}:**
 
  On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
@@ -271,8 +315,8 @@ export class Service extends DatabaseService<Model> {
               incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
-                  onCalldutyPolicyExecutionLog.status,
-                )
+                    onCalldutyPolicyExecutionLog.status,
+                  )
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
@@ -289,8 +333,8 @@ export class Service extends DatabaseService<Model> {
               alertFeedEventType: AlertFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
-                  onCalldutyPolicyExecutionLog.status,
-                )
+                    onCalldutyPolicyExecutionLog.status,
+                  )
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,

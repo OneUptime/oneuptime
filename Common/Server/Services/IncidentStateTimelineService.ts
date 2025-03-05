@@ -208,13 +208,24 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       stateEmoji = "🔴";
     }
 
+    const incidentNumber: number | null =
+      await IncidentService.getIncidentNumber({
+        incidentId: createdItem.incidentId,
+      });
+
+    const projectId: ObjectID = createdItem.projectId!;
+    const incidentId: ObjectID = createdItem.incidentId!;
+
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji + " Changed **Incident State** to **" + stateName + "**",
+        stateEmoji +
+        ` Changed **[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
+        stateName +
+        "**",
       moreInformationInMarkdown: `**Cause:** 
 ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,

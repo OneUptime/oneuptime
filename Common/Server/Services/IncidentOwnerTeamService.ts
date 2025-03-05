@@ -8,6 +8,7 @@ import { Gray500, Red500 } from "../../Types/BrandColors";
 import TeamService from "./TeamService";
 import Team from "../../Models/DatabaseModels/Team";
 import DeleteBy from "../Types/Database/DeleteBy";
+import IncidentService from "./IncidentService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -64,13 +65,18 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
+        const incidentNumber: number | null =
+          await IncidentService.getIncidentNumber({
+            incidentId: incidentId,
+          });
+
         if (team && team.name) {
           await IncidentFeedService.createIncidentFeedItem({
             incidentId: incidentId,
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the incident as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -108,12 +114,17 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
+        const incidentNumber: number | null =
+          await IncidentService.getIncidentNumber({
+            incidentId: incidentId,
+          });
+
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the incident as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

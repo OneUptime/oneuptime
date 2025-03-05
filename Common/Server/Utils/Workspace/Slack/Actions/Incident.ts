@@ -336,8 +336,8 @@ export default class SlackIncidentActions {
         },
       });
 
-      logger.debug("Incident States: ");
-      logger.debug(incidentStates);
+    logger.debug("Incident States: ");
+    logger.debug(incidentStates);
 
     const dropdownOptions: Array<DropdownOption> = incidentStates
       .map((state: IncidentState) => {
@@ -350,8 +350,8 @@ export default class SlackIncidentActions {
         return option.label !== "" || option.value !== "";
       });
 
-      logger.debug("Dropdown Options: ");
-      logger.debug(dropdownOptions);
+    logger.debug("Dropdown Options: ");
+    logger.debug(dropdownOptions);
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -476,7 +476,8 @@ export default class SlackIncidentActions {
     }
 
     if (
-      data.action.actionType === SlackActionType.SubmitExecuteIncidentOnCallPolicy
+      data.action.actionType ===
+      SlackActionType.SubmitExecuteIncidentOnCallPolicy
     ) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 

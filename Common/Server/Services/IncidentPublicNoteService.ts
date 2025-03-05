@@ -8,6 +8,7 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import { Blue500, Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import IncidentService from "./IncidentService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -55,13 +56,20 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
+    const incidentId: ObjectID = createdItem.incidentId!;
+    const projectId: ObjectID = createdItem.projectId!;
+    const incidentNumber: number | null =
+      await IncidentService.getIncidentNumber({
+        incidentId: incidentId,
+      });
+
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **public note** for this incident on status page:
+      feedInfoInMarkdown: `📄 posted **public note** for this [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) on status page:
 
 ${createdItem.note}
           `,

@@ -8,7 +8,7 @@ export interface ComponentProps {
   shouldAnimate: boolean;
 }
 
-const TeamElement: FunctionComponent<ComponentProps> = (
+const MonitorStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
@@ -20,4 +20,4 @@ const TeamElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default TeamElement;
+export default MonitorStatusElement;

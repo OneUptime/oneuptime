@@ -60,6 +60,7 @@ RunCron(
         incidentSeverity: {
           name: true,
         },
+        incidentNumber: true,
       },
     });
 
@@ -67,7 +68,11 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incident of incidents) {
-      const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent**:
+      const incidentId: ObjectID = incident.id!;
+      const projectId: ObjectID = incident.projectId!;
+      const incidentNumber: string =
+        incident.incidentNumber?.toString() || " - ";
+      const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
       Notification sent to status page subscribers because this incident was created.`;
 
       if (!incident.monitors || incident.monitors.length === 0) {

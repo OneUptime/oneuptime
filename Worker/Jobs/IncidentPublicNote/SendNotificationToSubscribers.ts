@@ -86,6 +86,7 @@ RunCron(
             name: true,
           },
           isVisibleOnStatusPage: true,
+          incidentNumber: true,
         },
       });
 
@@ -299,7 +300,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})).`,
+        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
         moreInformationInMarkdown: `**Public Note:**
         
 ${incidentPublicNote.note}`,

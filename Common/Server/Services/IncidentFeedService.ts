@@ -121,11 +121,16 @@ export class Service extends DatabaseService<IncidentFeed> {
                 messageBlocksByWorkspaceType.workspaceType;
 
               messageBlocksByWorkspaceTypes
-                .find((messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-                  return (
-                    messageBlocksByWorkspaceType.workspaceType === workspaceType
-                  );
-                })
+                .find(
+                  (
+                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
+                  ) => {
+                    return (
+                      messageBlocksByWorkspaceType.workspaceType ===
+                      workspaceType
+                    );
+                  },
+                )
                 ?.messageBlocks.push(
                   ...messageBlocksByWorkspaceType.messageBlocks,
                 );

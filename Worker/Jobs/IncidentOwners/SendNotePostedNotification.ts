@@ -124,6 +124,7 @@ RunCron(
           monitors: {
             name: true,
           },
+          incidentNumber: true,
         },
       });
 
@@ -219,7 +220,11 @@ RunCron(
         note._id!.toString(),
       );
 
-      const incidentFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the incident.`;
+      const projectId: ObjectID = incident.projectId!;
+      const incidentId: ObjectID = incident.id!;
+      const incidentNumber: number = incident.incidentNumber!; // incident number is not null here.
+
+      const incidentFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,

@@ -235,6 +235,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
   [PageMap.SETTINGS_TEAMS]: "teams",
+  [PageMap.SETTINGS_USERS]: "users",
+  [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
 
   [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]:
     "scheduled-maintenance-templates",
@@ -1595,6 +1597,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TEAMS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USERS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_USER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_USER_VIEW]
     }`,
   ),
 

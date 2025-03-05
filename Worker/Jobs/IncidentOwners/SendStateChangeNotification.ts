@@ -78,6 +78,7 @@ RunCron(
           monitors: {
             name: true,
           },
+          incidentNumber: true,
         },
       });
 
@@ -217,12 +218,15 @@ RunCron(
         moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
+      const incidentNumber: number = incident.incidentNumber!;
+      const projectId: ObjectID = incident.projectId!;
+
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the incident.**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,

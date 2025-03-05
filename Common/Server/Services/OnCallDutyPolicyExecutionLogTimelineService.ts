@@ -12,6 +12,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import AlertService from "./AlertService";
+import IncidentService from "./IncidentService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -38,7 +40,6 @@ export class Service extends DatabaseService<Model> {
         return Blue500;
     }
   }
-
 
   public getEmojiBasedOnStatus(
     status: OnCallDutyExecutionLogTimelineStatus,
@@ -143,7 +144,28 @@ export class Service extends DatabaseService<Model> {
           ? this.getColorBasedOnStatus(status)
           : Blue500;
 
-        const feedInfoInMarkdown: string = `**${this.getEmojiBasedOnStatus(status)} On-call alert ${status} to ${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name?.toString().trim()}**
+        let incidentOrAlertLink: string = "";
+
+        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
+          const projectId: ObjectID | undefined =
+            onCallDutyPolicyExecutionLogTimeline.projectId;
+          const incidentId: ObjectID | undefined =
+            onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId;
+          const incidentNumber: number | null =
+            await IncidentService.getIncidentNumber({
+              incidentId: incidentId,
+            });
+          incidentOrAlertLink = `[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+        }
+
+        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
+          const alertNumber: number | null = await AlertService.getAlertNumber({
+            alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
+          });
+          incidentOrAlertLink = `[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
+        }
+
+        const feedInfoInMarkdown: string = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-call alert ${status} to ${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name?.toString().trim()}**
 
 The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})** has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule **" + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name + "**") : ""} were applied. The user **${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.name}** (${onCallDutyPolicyExecutionLogTimeline.alertSentToUser?.email}) was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "**" : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "**" : ""}`;
 

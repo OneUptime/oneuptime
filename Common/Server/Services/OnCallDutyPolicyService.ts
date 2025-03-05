@@ -14,18 +14,16 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     super(OnCallDutyPolicy);
   }
 
+  public async getOnCallPolicyLinkInDashboard(
+    projectId: ObjectID,
+    onCallDutyPolicyId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    public async getOnCallPolicyLinkInDashboard(
-      projectId: ObjectID,
-      onCallDutyPolicyId: ObjectID,
-    ): Promise<URL> {
-      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-  
-      return URL.fromString(dashboardUrl.toString()).addRoute(
-        `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
-      );
-    }
-  
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
+    );
+  }
 
   public async executePolicy(
     policyId: ObjectID,

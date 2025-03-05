@@ -8,6 +8,7 @@ import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
+import IncidentService from "./IncidentService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -65,13 +66,18 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
+        const incidentNumber: number | null =
+          await IncidentService.getIncidentNumber({
+            incidentId: incidentId,
+          });
+
         if (user && user.name) {
           await IncidentFeedService.createIncidentFeedItem({
             incidentId: incidentId,
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the incident as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -109,13 +115,18 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      const incidentNumber: number | null =
+        await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+
       if (user && user.name) {
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${user.name.toString()}** (${user.email?.toString()}) to the incident as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍💻 Added **${user.name.toString()}** (${user.email?.toString()}) to the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

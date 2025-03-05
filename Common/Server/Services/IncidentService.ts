@@ -836,8 +836,22 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
+        const incident: Model | null = await this.findOneById({
+          id: incidentId,
+          select: {
+            projectId: true,
+            incidentNumber: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const projectId: ObjectID = incident!.projectId!;
+        const incidentNumber: number = incident!.incidentNumber!;
+
         let shouldAddIncidentFeed: boolean = false;
-        let feedInfoInMarkdown: string = "**Incident was updated.**";
+        let feedInfoInMarkdown: string = `**[Incident ${incidentNumber}](${(await this.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) was updated.**`;
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;

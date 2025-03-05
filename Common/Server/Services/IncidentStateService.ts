@@ -171,7 +171,7 @@ export class Service extends DatabaseService<IncidentState> {
         isAcknowledgedState: true,
         isCreatedState: true,
         order: true,
-        name: true
+        name: true,
       },
       props: data.props,
     });

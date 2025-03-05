@@ -126,6 +126,17 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Teams",
       "View Team",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USERS, [
+      "Project",
+      "Settings",
+      "Users",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_USER_VIEW, [
+      "Project",
+      "Settings",
+      "Users",
+      "View User",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_SETTINGS, [
       "Project",
       "Settings",

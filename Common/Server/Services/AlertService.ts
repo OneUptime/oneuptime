@@ -1053,5 +1053,25 @@ ${alertSeverity.name}
       logger.error(err);
     });
   }
+
+  public async getAlertNumber(data: {
+    alertId: ObjectID;
+  }): Promise<number | null> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        alertNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found.");
+    }
+
+    return alert.alertNumber || null;
+  }
 }
 export default new Service();
