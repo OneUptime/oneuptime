@@ -97,7 +97,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
         pluralName=" "
         cardProps={{
           title: "Teams",
-          description: "See a list of teams this user is a member of.",
+          description: "See a list of teams this user is a members of.",
         }}
         noItemsMessage={"This user is not a member of any team."}
         formFields={[
@@ -106,7 +106,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
               team: true,
             },
             title: "Team",
-            description: "Select the team this user is a member of.",
+            description: "Select the team you would like to add this user to.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Team,

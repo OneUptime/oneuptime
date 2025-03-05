@@ -35,6 +35,7 @@ import User from "Common/Models/DatabaseModels/User";
 import ProjectUserService from "./ProjectUserService";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
+  
   public constructor() {
     super(TeamMember);
   }
@@ -191,9 +192,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
-    await ProjectUserService.refreshProjectUsersByProject({
+    ProjectUserService.refreshProjectUsersByProject({
       projectId: onCreate.createBy.data.projectId!,
-    });
+    }).catch((err: Error) => {
+      logger.error(err);
+    });;
 
     return createdItem;
   }
@@ -238,8 +241,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         );
       }
 
-      await ProjectUserService.refreshProjectUsersByProject({
+      ProjectUserService.refreshProjectUsersByProject({
         projectId: item.projectId!,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
     }
 
@@ -315,8 +320,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
 
       // refresh project users.
-      await ProjectUserService.refreshProjectUsersByProject({
+      ProjectUserService.refreshProjectUsersByProject({
         projectId: item.projectId!,
+      }).catch((err: Error) => {
+        logger.error(err);
       });
     }
 
