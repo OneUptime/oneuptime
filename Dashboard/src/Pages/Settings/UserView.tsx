@@ -36,11 +36,17 @@ const UserView: FunctionComponent<PageComponentProps> = (
           modelType: User,
           id: "model-detail-User",
           fields: [
+            
             {
               field: {
-                _id: true,
+                profilePictureFile: {
+                  file: true,
+                  type: true,
+                },
               },
-              title: "User ID",
+              fieldType: FieldType.ImageFile,
+              title: "Profile Picture",
+              placeholder: "No profile picture uploaded.",
             },
             {
               field: {
@@ -53,6 +59,12 @@ const UserView: FunctionComponent<PageComponentProps> = (
                 email: true,
               },
               title: "Email",
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "User ID",
             },
           ],
           modelId: Navigation.getLastParamAsObjectID(),
