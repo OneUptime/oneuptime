@@ -24,7 +24,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      {/* API Key View  */}
+     
       <CardModelDetail
         name="User Details"
         cardProps={{
@@ -67,7 +67,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
               title: "User ID",
             },
           ],
-          modelId: Navigation.getLastParamAsObjectID(),
+          modelId: modelId,
         }}
       />
 
