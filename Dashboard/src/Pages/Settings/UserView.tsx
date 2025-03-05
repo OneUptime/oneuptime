@@ -81,8 +81,8 @@ const UserView: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
-        singularName="Team"
-        pluralName="Teams"
+        singularName=" "
+        pluralName=" "
         cardProps={{
           title: "Teams",
           description: "See a list of teams this user is a member of.",

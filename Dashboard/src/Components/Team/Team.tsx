@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement } from "react";
+import Navigation from "../../Utils/Navigation";
 
 export interface ComponentProps {
   team: Team;
@@ -13,13 +14,17 @@ const TeamElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (
     props.team._id &&
-    (props.team.projectId || (props.team.project && props.team.project._id))
+    (props.team.projectId || (props.team.project && props.team.project._id || Navigation.getProjectId()))
   ) {
-    const projectId: string | undefined = props.team.projectId
+    let projectId: string | undefined = props.team.projectId
       ? props.team.projectId.toString()
       : props.team.project
         ? props.team.project._id
         : "";
+
+        if(!projectId) {
+          projectId = Navigation.getProjectId()?.toString();
+        }
     return (
       <Link
         onNavigateComplete={props.onNavigateComplete}
