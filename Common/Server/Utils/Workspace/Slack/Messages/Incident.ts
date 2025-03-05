@@ -46,9 +46,9 @@ export default class SlackIncidentMessages {
       title: "🔗 View Incident",
       url: await IncidentService.getIncidentLinkInDashboard(
         data.projectId!,
-        data.projectId!,
+        data.incidentId!,
       ),
-      value: data.projectId?.toString() || "",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.ViewIncident,
     };
 
@@ -58,7 +58,7 @@ export default class SlackIncidentMessages {
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
-      value: "execute_on_call",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.ViewExecuteIncidentOnCallPolicy,
     };
 
@@ -68,7 +68,7 @@ export default class SlackIncidentMessages {
     const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "👀 Acknowledge Incident",
-      value: data.projectId?.toString() || "",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.AcknowledgeIncident,
     };
 
@@ -78,7 +78,7 @@ export default class SlackIncidentMessages {
     const resolveIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "✅ Resolve Incident",
-      value: data.projectId?.toString() || "",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.ResolveIncident,
     };
 
@@ -88,7 +88,7 @@ export default class SlackIncidentMessages {
     const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Incident State",
-      value: data.projectId?.toString() || "",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.ViewChangeIncidentState,
     };
 
@@ -98,7 +98,7 @@ export default class SlackIncidentMessages {
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: data.projectId?.toString() || "",
+      value: data.incidentId?.toString() || "",
       actionId: SlackActionType.ViewAddIncidentNote,
     };
 

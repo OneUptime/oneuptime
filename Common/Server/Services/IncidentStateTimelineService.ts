@@ -202,7 +202,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     if (incidentState?.isResolvedState) {
       stateEmoji = "✅";
     } else if (incidentState?.isAcknowledgedState) {
-      stateEmoji = "👍";
+      // eyes emoji for acknowledged state.
+      stateEmoji = "👀";
     } else if (incidentState?.isCreatedState) {
       stateEmoji = "🔴";
     }
@@ -213,12 +214,13 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji + " **Incident State** changed to **" + stateName + "**",
+        stateEmoji + "Changed **Incident State** to **" + stateName + "**",
       moreInformationInMarkdown: `**Cause:** 
 ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
+        notifyUserId: createdItem.createdByUserId,
       },
     });
 

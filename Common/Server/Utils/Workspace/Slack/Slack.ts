@@ -94,7 +94,7 @@ export default class SlackUtil extends WorkspaceBase {
     });
 
     logger.debug("Modal JSON generated:");
-    logger.debug(modalJson);
+    logger.debug(JSON.stringify(modalJson, null, 2));
 
     // use view.open API to show modal
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(

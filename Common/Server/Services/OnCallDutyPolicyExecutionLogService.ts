@@ -262,7 +262,7 @@ export class Service extends DatabaseService<Model> {
 
           const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated:**
 
-On-call policy **${onCallPolicy.name}** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
+On-call policy **${(await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()}** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
             await IncidentFeedService.createIncidentFeedItem({

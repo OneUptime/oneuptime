@@ -6,11 +6,26 @@ import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolic
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor() {
     super(OnCallDutyPolicy);
   }
+
+
+    public async getOnCallPolicyLinkInDashboard(
+      projectId: ObjectID,
+      onCallDutyPolicyId: ObjectID,
+    ): Promise<URL> {
+      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+  
+      return URL.fromString(dashboardUrl.toString()).addRoute(
+        `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
+      );
+    }
+  
 
   public async executePolicy(
     policyId: ObjectID,
