@@ -534,6 +534,10 @@ import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNot
 import WorkspaceNotificationRuleService, {
   Service as WorkspaceNotificationRuleServiceType,
 } from "Common/Server/Services/WorkspaceNotificationRuleService";
+import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
+import ProjectUserService, {
+  Service as ProjectUserServiceType
+} from "Common/Server/Services/ProjectUserService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -575,6 +579,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorTest, MonitorTestServiceType>(
         MonitorTest,
         MonitorTestService,
+      ).getRouter(),
+    );
+
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectUser, ProjectUserServiceType>(
+        ProjectUser,
+        ProjectUserService,
       ).getRouter(),
     );
 
