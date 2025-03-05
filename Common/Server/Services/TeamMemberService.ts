@@ -35,7 +35,6 @@ import User from "Common/Models/DatabaseModels/User";
 import ProjectUserService from "./ProjectUserService";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
-  
   public constructor() {
     super(TeamMember);
   }
@@ -196,7 +195,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       projectId: onCreate.createBy.data.projectId!,
     }).catch((err: Error) => {
       logger.error(err);
-    });;
+    });
 
     return createdItem;
   }

@@ -1364,7 +1364,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onFilterChanged(filterData);
           setTableView(null);
 
-          // check if there's anything in the filter data and update the isFilterApplied prop. 
+          // check if there's anything in the filter data and update the isFilterApplied prop.
           let isFilterApplied: boolean = false;
 
           for (const key in filterData) {
@@ -1374,10 +1374,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }
           }
 
-          if(props.onFilterApplied){
+          if (props.onFilterApplied) {
             props.onFilterApplied(isFilterApplied);
           }
-
         }}
         filterData={filterData}
         className={

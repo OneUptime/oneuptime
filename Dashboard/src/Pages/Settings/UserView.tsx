@@ -24,7 +24,6 @@ const UserView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-     
       <CardModelDetail
         name="User Details"
         cardProps={{

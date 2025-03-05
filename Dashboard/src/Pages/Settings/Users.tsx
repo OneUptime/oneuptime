@@ -3,7 +3,6 @@ import PageComponentProps from "../PageComponentProps";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -21,8 +20,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-
-  const [showInviteUserModal, setShowInviteUserModal] = React.useState<boolean>(false);
+  const [showInviteUserModal, setShowInviteUserModal] =
+    React.useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
 
   return (
@@ -49,39 +48,27 @@ const Teams: FunctionComponent<PageComponentProps> = (
               onClick: () => {
                 setShowInviteUserModal(true);
               },
-            }
-          ]
+            },
+          ],
         }}
-        noItemsMessage={isFilterApplied ? "No users found": "Please wait, we are refreshing the list of users for this project. Please try again in sometime."}
+        noItemsMessage={
+          isFilterApplied
+            ? "No users found"
+            : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
+        }
         query={{
           projectId: DashboardNavigation.getProjectId()!,
         }}
         showRefreshButton={true}
         onViewPage={(item: ProjectUser) => {
           const viewPageRoute: string =
-            RouteUtil.populateRouteParams(props.pageRoute).toString() + "/" + item.user?.id?.toString();
+            RouteUtil.populateRouteParams(props.pageRoute).toString() +
+            "/" +
+            item.user?.id?.toString();
           // add user id to the route
           return Promise.resolve(new Route(viewPageRoute));
         }}
         filters={[
-          {
-            field: {
-              user: {
-                name: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-
-            filterEntityType: User,
-            filterQuery: {
-              
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
           {
             field: {
               acceptedTeams: {
@@ -172,11 +159,16 @@ const Teams: FunctionComponent<PageComponentProps> = (
           }}
           submitButtonText="Invite"
           onSuccess={(teamMember: TeamMember | null) => {
-            // go to users page. 
+            // go to users page.
             if (teamMember) {
-              const userId: string = teamMember.user?.id?.toString() || teamMember.userId?.toString() || "";
+              const userId: string =
+                teamMember.user?.id?.toString() ||
+                teamMember.userId?.toString() ||
+                "";
               const viewPageRoute: string =
-                RouteUtil.populateRouteParams(props.pageRoute).toString() + "/" + userId;
+                RouteUtil.populateRouteParams(props.pageRoute).toString() +
+                "/" +
+                userId;
               Navigation.navigate(new Route(viewPageRoute));
             }
             setShowInviteUserModal(false);
@@ -185,34 +177,36 @@ const Teams: FunctionComponent<PageComponentProps> = (
             name: "Create New Project",
             modelType: TeamMember,
             id: "create-project-from",
-            fields: [{
-              field: {
-                user: true,
+            fields: [
+              {
+                field: {
+                  user: true,
+                },
+                title: "User Email",
+                description:
+                  "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
+                fieldType: FormFieldSchemaType.Email,
+                required: true,
+                placeholder: "member@company.com",
+                overrideFieldKey: "email",
               },
-              title: "User Email",
-              description:
-                "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
-              fieldType: FormFieldSchemaType.Email,
-              required: true,
-              placeholder: "member@company.com",
-              overrideFieldKey: "email",
-            },
-            {
-              field: {
-                team: true,
+              {
+                field: {
+                  team: true,
+                },
+                title: "Team",
+                description:
+                  "Select the team you would like to add this user to.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                required: true,
+                dropdownModal: {
+                  type: Team,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                placeholder: "Select a team",
               },
-              title: "Team",
-              description:
-                "Select the team you would like to add this user to.",
-              fieldType: FormFieldSchemaType.Dropdown,
-              required: true,
-              dropdownModal: {
-                type: Team,
-                labelField: "name",
-                valueField: "_id",
-              },
-              placeholder: "Select a team",
-            }],
+            ],
             formType: FormType.Create,
           }}
         />

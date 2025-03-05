@@ -14,7 +14,9 @@ const TeamElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (
     props.team._id &&
-    (props.team.projectId || (props.team.project && props.team.project._id || Navigation.getProjectId()))
+    (props.team.projectId ||
+      (props.team.project && props.team.project._id) ||
+      Navigation.getProjectId())
   ) {
     let projectId: string | undefined = props.team.projectId
       ? props.team.projectId.toString()
@@ -22,9 +24,9 @@ const TeamElement: FunctionComponent<ComponentProps> = (
         ? props.team.project._id
         : "";
 
-        if(!projectId) {
-          projectId = Navigation.getProjectId()?.toString();
-        }
+    if (!projectId) {
+      projectId = Navigation.getProjectId()?.toString();
+    }
     return (
       <Link
         onNavigateComplete={props.onNavigateComplete}

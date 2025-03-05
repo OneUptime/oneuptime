@@ -22,7 +22,7 @@ const TeamsElement: FunctionComponent<ComponentProps> = (
       getEachElement={(team: Team) => {
         return (
           <TeamElement
-          team={team}
+            team={team}
             onNavigateComplete={props.onNavigateComplete}
           />
         );
