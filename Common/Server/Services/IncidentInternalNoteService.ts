@@ -46,7 +46,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 **Private Note**
+      feedInfoInMarkdown: `📄 posted **private note** for this incident:
 
 ${createdItem.note}
           `,

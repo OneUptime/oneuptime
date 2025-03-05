@@ -287,7 +287,7 @@ export default class SlackIncidentActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Execute On Call Policy for Incident",
+      title: "Execute On Call Policy",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitExecuteIncidentOnCallPolicy,
@@ -476,7 +476,7 @@ export default class SlackIncidentActions {
     }
 
     if (
-      data.action.actionType === SlackActionType.ViewExecuteIncidentOnCallPolicy
+      data.action.actionType === SlackActionType.SubmitExecuteIncidentOnCallPolicy
     ) {
       const incidentId: ObjectID = new ObjectID(actionValue);
 

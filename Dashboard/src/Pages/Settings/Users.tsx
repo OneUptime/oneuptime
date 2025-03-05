@@ -143,9 +143,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
                     currentPageNumber: 1, 
                     onNavigateToPage: () => {
                     },
+                    
                     sortOrder: SortOrder.Descending,
                     sortBy: "user", 
-                    
+
                     columns: [
                         {
                             key: "user",
