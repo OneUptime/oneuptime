@@ -536,7 +536,7 @@ import WorkspaceNotificationRuleService, {
 } from "Common/Server/Services/WorkspaceNotificationRuleService";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import ProjectUserService, {
-  Service as ProjectUserServiceType
+  Service as ProjectUserServiceType,
 } from "Common/Server/Services/ProjectUserService";
 
 const BaseAPIFeatureSet: FeatureSet = {
@@ -581,7 +581,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         MonitorTestService,
       ).getRouter(),
     );
-
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

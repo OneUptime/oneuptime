@@ -13,25 +13,14 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamElement from "../../Components/Team/Team";
-
-export enum PermissionType {
-  AllowPermissions = "AllowPermissions",
-  BlockPermissions = "BlockPermissions",
-}
 
 const UserView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-
-  
 
   return (
     <Fragment>
@@ -98,24 +87,24 @@ const UserView: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"This user is not a member of any team."}
         formFields={[
-            {
-                field: {
-                  team: true,
-                },
-                title: "Team",
-                description: "Select the team this user is a member of.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: Team,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: true,
-                placeholder: "Select Team",
-            }
+          {
+            field: {
+              team: true,
+            },
+            title: "Team",
+            description: "Select the team this user is a member of.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Team,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: true,
+            placeholder: "Select Team",
+          },
         ]}
         showRefreshButton={true}
-        deleteButtonText="Remove Member"
+        deleteButtonText="Remove"
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[
           {
@@ -134,7 +123,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
               label: "name",
               value: "_id",
             },
-          }
+          },
         ]}
         columns={[
           {
@@ -147,7 +136,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
             title: "Team",
             type: FieldType.Element,
             getElement: (item: TeamMember): ReactElement => {
-              if (item["user"]) {
+              if (item["team"]) {
                 return <TeamElement team={item["team"]!} />;
               }
 

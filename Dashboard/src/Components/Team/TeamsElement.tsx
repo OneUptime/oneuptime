@@ -1,5 +1,6 @@
 import TeamElement from "./Team";
 import Team from "Common/Models/DatabaseModels/Team";
+import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,19 +16,19 @@ const TeamsElement: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
-      {props.teams.map((team: Team, i: number) => {
+    <TableColumnListComponent
+      items={props.teams}
+      moreText="more teams"
+      getEachElement={(team: Team) => {
         return (
-          <span key={i}>
-            <TeamElement
-              team={team}
-              onNavigateComplete={props.onNavigateComplete}
-            />
-            {i !== props.teams.length - 1 && <span>,&nbsp;</span>}
-          </span>
+          <TeamElement
+          team={team}
+            onNavigateComplete={props.onNavigateComplete}
+          />
         );
-      })}
-    </div>
+      }}
+      noItemsMessage="No monitors."
+    />
   );
 };
 

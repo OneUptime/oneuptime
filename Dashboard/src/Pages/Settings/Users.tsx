@@ -2,22 +2,18 @@ import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamsElement from "../../Components/Team/TeamsElement";
 import Route from "Common/Types/API/Route";
+import { RouteUtil } from "../../Utils/RouteMap";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-
   return (
     <Fragment>
       <ModelTable<ProjectUser>
@@ -38,9 +34,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
         }}
         showRefreshButton={true}
         onViewPage={(item: ProjectUser) => {
-          const viewPageRoute: string = props.pageRoute.toString() + "/" + item.user?.id?.toString(); 
+          const viewPageRoute: string =
+            RouteUtil.populateRouteParams(props.pageRoute).toString() + "/" + item.user?.id?.toString();
           // add user id to the route
-          return Promise.resolve(new Route(viewPageRoute)); 
+          return Promise.resolve(new Route(viewPageRoute));
         }}
         filters={[
           {
@@ -67,7 +64,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 name: true,
               },
             },
-            title: "Teams",
+            title: "Teams member of",
             type: FieldType.EntityArray,
             filterEntityType: Team,
             filterQuery: {
@@ -84,7 +81,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 name: true,
               },
             },
-            title: "Invited to Teams",
+            title: "Teams invited to",
             type: FieldType.EntityArray,
             filterEntityType: Team,
             filterQuery: {
@@ -118,9 +115,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
             field: {
               acceptedTeams: {
                 name: true,
-              }
+              },
             },
-            title: "Teams",
+            title: "Teams member of",
             type: FieldType.Element,
             getElement: (item: ProjectUser) => {
               return <TeamsElement teams={item.acceptedTeams || []} />;
@@ -130,9 +127,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
             field: {
               invitedTeams: {
                 name: true,
-              }
+              },
             },
-            title: "Invited to Teams",
+            title: "Teams invited to",
             type: FieldType.Element,
             getElement: (item: ProjectUser) => {
               return <TeamsElement teams={item.invitedTeams || []} />;

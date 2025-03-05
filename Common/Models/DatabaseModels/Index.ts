@@ -355,7 +355,7 @@ const AllModelTypes: Array<{
   WorkspaceSetting,
   WorkspaceNotificationRule,
 
-  ProjectUser
+  ProjectUser,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

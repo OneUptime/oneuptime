@@ -243,8 +243,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       });
     }
 
-    
-
     return { updateBy, carryForward: onUpdate.carryForward };
   }
 

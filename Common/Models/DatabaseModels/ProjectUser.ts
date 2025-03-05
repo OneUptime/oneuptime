@@ -17,12 +17,18 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @TableAccessControl({
-  create: [
-
-  ],
+  create: [],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -30,11 +36,8 @@ import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } f
     Permission.ReadProjectTeam,
     Permission.CurrentUser,
   ],
-  delete: [
-  ],
-  update: [
-   
-  ],
+  delete: [],
+  update: [],
 })
 @MultiTenentQueryAllowed(true)
 @AllowUserQueryWithoutTenant(true)
@@ -49,14 +52,12 @@ import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } f
   singularName: "User",
   pluralName: "Users",
   icon: IconProp.User,
-  tableDescription: "This model connects users and teams. This is an internal table. Its a view on TeamMembers table.",
+  tableDescription:
+    "This model connects users and teams. This is an internal table. Its a view on TeamMembers table.",
 })
 export default class ProjectUser extends BaseModel {
-
-
   @ColumnAccessControl({
-    create: [
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -93,8 +94,7 @@ export default class ProjectUser extends BaseModel {
   public acceptedTeams?: Array<Team> = undefined; // user is accepted to these teams. This is a view on TeamMembers table.
 
   @ColumnAccessControl({
-    create: [
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -131,9 +131,7 @@ export default class ProjectUser extends BaseModel {
   public invitedTeams?: Array<Team> = undefined; // user is invited to these teams.
 
   @ColumnAccessControl({
-    create: [
-      
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -165,9 +163,7 @@ export default class ProjectUser extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [
-      
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -193,9 +189,7 @@ export default class ProjectUser extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -226,9 +220,7 @@ export default class ProjectUser extends BaseModel {
   public user?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -340,6 +332,4 @@ export default class ProjectUser extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
-
 }

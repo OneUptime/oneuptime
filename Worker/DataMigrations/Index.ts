@@ -94,7 +94,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddSubscriberFooterTextToStatusPage(),
   new AddAlertNumber(),
   new AddScheduledMaintenanceNumber(),
-  new RefreshProjectUsers()
+  new RefreshProjectUsers(),
 ];
 
 export default DataMigrations;
