@@ -14,7 +14,7 @@ type TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
-const TableRow: TableRowFunction = <T extends GenericObject>(
+const TableCard: TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   return (
@@ -28,4 +28,4 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   );
 };
 
-export default TableRow;
+export default TableCard;
