@@ -36,7 +36,6 @@ const UserView: FunctionComponent<PageComponentProps> = (
           modelType: User,
           id: "model-detail-User",
           fields: [
-            
             {
               field: {
                 profilePictureFile: {

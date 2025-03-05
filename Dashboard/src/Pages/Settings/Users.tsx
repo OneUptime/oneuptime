@@ -23,6 +23,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
 
   const [showInviteUserModal, setShowInviteUserModal] = React.useState<boolean>(false);
+  const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
 
   return (
     <Fragment>
@@ -33,6 +34,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        onFilterApplied={(isApplied: boolean) => {
+          setIsFilterApplied(isApplied);
+        }}
         isViewable={true}
         cardProps={{
           title: "Users",
@@ -48,7 +52,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             }
           ]
         }}
-        noItemsMessage={"Please wait, we are refreshing the list of users for this project. Please try again in sometime."}
+        noItemsMessage={isFilterApplied ? "No users found": "Please wait, we are refreshing the list of users for this project. Please try again in sometime."}
         query={{
           projectId: DashboardNavigation.getProjectId()!,
         }}
@@ -71,7 +75,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
             filterEntityType: User,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              
             },
             filterDropdownField: {
               label: "name",

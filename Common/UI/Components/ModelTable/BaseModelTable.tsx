@@ -216,6 +216,8 @@ export interface BaseTableProps<
 
   saveFilterProps?: SaveFilterProps | undefined;
 
+  onFilterApplied?: ((isFilterApplied: boolean) => void) | undefined;
+
   formSummary?: FormSummaryConfig | undefined;
 }
 
@@ -1361,6 +1363,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
           setTableView(null);
+
+          // check if there's anything in the filter data and update the isFilterApplied prop. 
+          let isFilterApplied: boolean = false;
+
+          for (const key in filterData) {
+            if (filterData[key]) {
+              isFilterApplied = true;
+              break;
+            }
+          }
+
+          if(props.onFilterApplied){
+            props.onFilterApplied(isFilterApplied);
+          }
+
         }}
         filterData={filterData}
         className={
