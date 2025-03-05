@@ -165,6 +165,7 @@ import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
+import ProjectUser from "./ProjectUser";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -353,6 +354,8 @@ const AllModelTypes: Array<{
 
   WorkspaceSetting,
   WorkspaceNotificationRule,
+
+  ProjectUser
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

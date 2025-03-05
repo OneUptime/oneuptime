@@ -269,6 +269,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection title="Users and Teams">
+      <SideMenuItem
+          link={{
+            title: "Users",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_USERS] as Route,
+            ),
+          }}
+          icon={IconProp.User}
+        />
         <SideMenuItem
           link={{
             title: "Teams",
@@ -278,15 +287,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Team}
         />
-        <SideMenuItem
-          link={{
-            title: "Users",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_USERS] as Route,
-            ),
-          }}
-          icon={IconProp.User}
-        />
+        
       </SideMenuSection>
       <SideMenuSection title="Notifications">
         <SideMenuItem

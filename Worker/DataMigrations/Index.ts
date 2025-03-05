@@ -44,6 +44,7 @@ import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotifica
 import AddSubscriberFooterTextToStatusPage from "./AddSubscriberFooterTextToStatusPage";
 import AddAlertNumber from "./AddAlertNumber";
 import AddScheduledMaintenanceNumber from "./AddScheduledMaintenanceNumber";
+import RefreshProjectUsers from "./RefreshProjectUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -93,6 +94,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddSubscriberFooterTextToStatusPage(),
   new AddAlertNumber(),
   new AddScheduledMaintenanceNumber(),
+  new RefreshProjectUsers()
 ];
 
 export default DataMigrations;

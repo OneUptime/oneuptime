@@ -32,6 +32,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import ProjectUserService from "./ProjectUserService";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
   public constructor() {
@@ -190,6 +191,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
+    await ProjectUserService.refreshProjectUsersByProject({
+      projectId: onCreate.createBy.data.projectId!,
+    });
+
     return createdItem;
   }
 
@@ -232,7 +237,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           item.user?.email as Email,
         );
       }
+
+      await ProjectUserService.refreshProjectUsersByProject({
+        projectId: item.projectId!,
+      });
     }
+
+    
 
     return { updateBy, carryForward: onUpdate.carryForward };
   }
@@ -304,6 +315,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         item.userId!,
         item.projectId!,
       );
+
+      // refresh project users.
+      await ProjectUserService.refreshProjectUsersByProject({
+        projectId: item.projectId!,
+      });
     }
 
     return onDelete;
