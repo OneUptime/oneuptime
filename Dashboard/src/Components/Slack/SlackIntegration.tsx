@@ -394,7 +394,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   }
 
 
-  if(SlackAppClientId){
+  if(!SlackAppClientId){
     return (
       <SlackIntegrationDocumentation manifest={manifest as JSONObject} />
     )
