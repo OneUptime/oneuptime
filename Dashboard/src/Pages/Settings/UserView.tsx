@@ -6,68 +6,142 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamElement from "../../Components/Team/Team";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Image from "Common/UI/Components/Image/Image";
+import API from "Common/UI/Utils/API/API";
+import Exception from "Common/Types/Exception/Exception";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Card from "Common/UI/Components/Card/Card";
+import FileUtil from "Common/UI/Utils/File";
+import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 
 const UserView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const userId: ObjectID = Navigation.getLastParamAsObjectID();
+
+
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error,   setError] = useState<string | null>(null);
+
+  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+     const teamMembers: ListResult<TeamMember>  = await ModelAPI.getList<TeamMember>({
+      modelType: TeamMember,
+      query: {
+        userId: userId,
+        projectId: DashboardNavigation.getProjectId()!,
+      },
+      select: {
+        user: {
+          name: true,
+          email: true,
+          profilePictureId: true,
+        }
+      },
+      sort: {
+        
+      },
+      skip: 0, 
+      limit: 1
+     });
+
+     if(teamMembers.data.length === 0) {
+      setError("User not found.");
+      return;
+     }
+
+      const user: User = teamMembers!.data[0]!.user!;
+
+      setUser(user);
+
+    } catch (error) {
+      setError(API.getFriendlyErrorMessage(error as Exception));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // get team member with user. 
+    loadPage().catch((error) => {
+      setError(API.getFriendlyErrorMessage(error as Exception));
+    })
+  }, []); 
+
+  if(isLoading){
+    return <PageLoader isVisible={true} />;
+  }
+
+  if(error){
+    return <ErrorMessage message={error} />;
+  }
 
   return (
     <Fragment>
-      <CardModelDetail
-        name="User Details"
-        cardProps={{
-          title: "User Details",
-          description: "Here are more details for this user.",
-        }}
-        isEditable={false}
-        modelDetailProps={{
-          modelType: User,
-          id: "model-detail-User",
-          fields: [
-            {
-              field: {
-                profilePictureFile: {
-                  file: true,
-                  type: true,
-                },
-              },
-              fieldType: FieldType.ImageFile,
-              title: "Profile Picture",
-              placeholder: "No profile picture uploaded.",
-            },
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-            },
-            {
-              field: {
-                email: true,
-              },
-              title: "Email",
-            },
-            {
-              field: {
-                _id: true,
-              },
-              title: "User ID",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      <Card title={user?.name?.toString() || user?.email?.toString() || "User Details"} description="View details about this user.">
+        <Detail
+        item={user!}
+        fields={[
+          {
+            key: "profilePictureId",
+            fieldType: FieldType.Element,
+            title: "Profile Picture",
+            placeholder: "No profile picture uploaded.",
+            getElement: (item: User): ReactElement => {
+
+
+              if(!item.profilePictureId){
+                return (<Image
+                  className="h-12 w-12 rounded-full"
+                  
+                  imageUrl={BlankProfilePic}
+                  alt={item.name?.toString() || item.email?.toString() || "User Profile Picture"}
+                />)
+              }
+
+              return (<Image
+              className="h-12 w-12 rounded-full"
+              
+              imageUrl={FileUtil.getFileRoute(item.profilePictureId!)}
+              alt={item.name?.toString() || item.email?.toString() || "User Profile Picture"}
+            />)
+            }
+          },
+          {
+            key: "name",
+            title: "Name",
+            fieldType: FieldType.Name,
+            placeholder: "No name provided.",
+          },
+          {
+            key: "email",
+            title: "Email",
+            fieldType: FieldType.Email,
+          },
+          {
+            key: "_id",
+            title: "User ID",
+            fieldType: FieldType.ObjectID,
+          },
+        ]}
+        />
+      </Card>
 
       {/* User Members Table */}
 
@@ -80,14 +154,14 @@ const UserView: FunctionComponent<PageComponentProps> = (
         isCreateable={true}
         isViewable={false}
         query={{
-          userId: modelId,
+          userId: userId,
           projectId: DashboardNavigation.getProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");
           }
-          item.userId = modelId;
+          item.userId = userId;
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
