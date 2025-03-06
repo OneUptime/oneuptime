@@ -31,6 +31,7 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -390,6 +391,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     cardTitle = `Connect with Slack`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
+  }
+
+
+  if(!SlackAppClientId){
+    return (
+      <SlackIntegrationDocumentation manifest={manifest as JSONObject} />
+    )
   }
 
   return (
