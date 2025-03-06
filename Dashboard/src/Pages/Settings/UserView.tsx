@@ -84,7 +84,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
 
   useEffect(() => {
     // get team member with user.
-    loadPage().catch((error) => {
+    loadPage().catch((error: Error) => {
       setError(API.getFriendlyErrorMessage(error as Exception));
     });
   }, []);
