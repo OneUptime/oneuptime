@@ -535,27 +535,24 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 `;
     }
 
-    IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
+    const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
         incidentId: createdItem.id!,
         projectId: createdItem.projectId!,
-      }).then((incidentCreateMessageBlocks: MessageBlocksByWorkspaceType[]) => {
-         return IncidentFeedService.createIncidentFeedItem({
-          incidentId: createdItem.id!,
-          projectId: createdItem.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
-          displayColor: Red500,
-          feedInfoInMarkdown: feedInfoInMarkdown,
-          userId: createdByUserId || undefined,
-          workspaceNotification: {
-            appendMessageBlocks: incidentCreateMessageBlocks,
-            sendWorkspaceNotification: true,
-          },
-        });
-      }).catch((err: Error) => {
-        logger.error(err);
-      }); 
+      });
 
-    
+    await IncidentFeedService.createIncidentFeedItem({
+      incidentId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
+      displayColor: Red500,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+      userId: createdByUserId || undefined,
+      workspaceNotification: {
+        appendMessageBlocks: incidentCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
+    });
 
     if (!createdItem.currentIncidentStateId) {
       throw new BadDataException("currentIncidentStateId is required");
