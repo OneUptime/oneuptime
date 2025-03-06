@@ -70,6 +70,18 @@ export class Service extends DatabaseService<Model> {
     return user.name?.toString() || "";
   }
 
+
+    public async getUserLinkInDashboard(
+      projectId: ObjectID,
+      userId: ObjectID,
+    ): Promise<URL> {
+      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+  
+      return URL.fromString(dashboardUrl.toString()).addRoute(
+        `/${projectId.toString()}//settings/users/${userId.toString()}`,
+      );
+    }
+
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,

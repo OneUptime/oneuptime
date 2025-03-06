@@ -1,4 +1,3 @@
-
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -12,69 +11,61 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps {
-projectId: ObjectID;
+  projectId: ObjectID;
   userId: ObjectID;
-  onActionComplete: (() => void);
+  onActionComplete: () => void;
+  onError: (error: string) => void;
 }
 
-const ResetObjectID: (
-  props: ComponentProps,
-) => ReactElement = (
+const ResetObjectID: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
-    
-  
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
- 
 
+  const removeUserFromProject: PromiseVoidFunction =
+    async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const teamMembers: ListResult<TeamMember> =
+          await ModelAPI.getList<TeamMember>({
+            modelType: TeamMember,
+            query: {
+              userId: props.userId,
+              projectId: props.projectId,
+            },
+            select: {
+              user: {
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            sort: {},
+            skip: 0,
+            limit: 1,
+          });
 
-  const removeUserFromProject: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-    
-      const teamMembers: ListResult<TeamMember>  = await ModelAPI.getList<TeamMember>({
-        modelType: TeamMember,
-        query: {
-          userId: props.userId,
-          projectId: props.projectId,
-        },
-        select: {
-          user: {
-            name: true,
-            email: true,
-            profilePictureId: true,
-          }
-        },
-        sort: {
-          
-        },
-        skip: 0, 
-        limit: 1
-      });
+        for (const teamMember of teamMembers.data) {
+          // remove team member from the team.
+          await ModelAPI.deleteItem<TeamMember>({
+            modelType: TeamMember,
+            id: teamMember!.id!,
+          });
+        }
 
-
-      for(const teamMember of teamMembers.data) {
-        // remove team member from the team. 
-        await ModelAPI.deleteItem<TeamMember>({
-          modelType: TeamMember,
-          id: teamMember!.id!
-        });
+        setShowModal(false);
+        props.onActionComplete?.();
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+        setShowErrorModal(true);
+        props.onError?.(API.getFriendlyMessage(err));
       }
 
-      setShowModal(false);
-      props.onActionComplete?.();
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-      setShowErrorModal(true);
-    }
-
-    setIsLoading(false);
-  };
-
-
+      setIsLoading(false);
+    };
 
   return (
     <>

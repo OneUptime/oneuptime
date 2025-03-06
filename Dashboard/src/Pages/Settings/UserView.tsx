@@ -1,6 +1,6 @@
 import DashboardNavigation from "../../Utils/Navigation";
 import ProjectUser from "../../Utils/ProjectUser";
-import { RouteUtil } from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -12,7 +12,13 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamElement from "../../Components/Team/Team";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -26,120 +32,132 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import Card from "Common/UI/Components/Card/Card";
 import FileUtil from "Common/UI/Utils/File";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
+import RemoveUserFromProject from "../../Components/User/RemoveUserFromProject";
+import PageMap from "../../Utils/PageMap";
 
 const UserView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const userId: ObjectID = Navigation.getLastParamAsObjectID();
 
-
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error,   setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
-     const teamMembers: ListResult<TeamMember>  = await ModelAPI.getList<TeamMember>({
-      modelType: TeamMember,
-      query: {
-        userId: userId,
-        projectId: DashboardNavigation.getProjectId()!,
-      },
-      select: {
-        user: {
-          name: true,
-          email: true,
-          profilePictureId: true,
-        }
-      },
-      sort: {
-        
-      },
-      skip: 0, 
-      limit: 1
-     });
+      const teamMembers: ListResult<TeamMember> =
+        await ModelAPI.getList<TeamMember>({
+          modelType: TeamMember,
+          query: {
+            userId: userId,
+            projectId: DashboardNavigation.getProjectId()!,
+          },
+          select: {
+            user: {
+              name: true,
+              email: true,
+              profilePictureId: true,
+            },
+          },
+          sort: {},
+          skip: 0,
+          limit: 1,
+        });
 
-     if(teamMembers.data.length === 0) {
-      setError("User not found.");
-      return;
-     }
+      if (teamMembers.data.length === 0) {
+        setError("User not found.");
+        return;
+      }
 
       const user: User = teamMembers!.data[0]!.user!;
 
       setUser(user);
-
     } catch (error) {
       setError(API.getFriendlyErrorMessage(error as Exception));
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    // get team member with user. 
+    // get team member with user.
     loadPage().catch((error) => {
       setError(API.getFriendlyErrorMessage(error as Exception));
-    })
-  }, []); 
+    });
+  }, []);
 
-  if(isLoading){
+  if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if(error){
+  if (error) {
     return <ErrorMessage message={error} />;
   }
 
   return (
     <Fragment>
-      <Card title={user?.name?.toString() || user?.email?.toString() || "User Details"} description="View details about this user.">
+      <Card
+        title={
+          user?.name?.toString() || user?.email?.toString() || "User Details"
+        }
+        description="View details about this user."
+      >
         <Detail
-        item={user!}
-        fields={[
-          {
-            key: "profilePictureId",
-            fieldType: FieldType.Element,
-            title: "Profile Picture",
-            placeholder: "No profile picture uploaded.",
-            getElement: (item: User): ReactElement => {
+          item={user!}
+          fields={[
+            {
+              key: "profilePictureId",
+              fieldType: FieldType.Element,
+              title: "Profile Picture",
+              placeholder: "No profile picture uploaded.",
+              getElement: (item: User): ReactElement => {
+                if (!item.profilePictureId) {
+                  return (
+                    <Image
+                      className="h-12 w-12 rounded-full"
+                      imageUrl={BlankProfilePic}
+                      alt={
+                        item.name?.toString() ||
+                        item.email?.toString() ||
+                        "User Profile Picture"
+                      }
+                    />
+                  );
+                }
 
-
-              if(!item.profilePictureId){
-                return (<Image
-                  className="h-12 w-12 rounded-full"
-                  
-                  imageUrl={BlankProfilePic}
-                  alt={item.name?.toString() || item.email?.toString() || "User Profile Picture"}
-                />)
-              }
-
-              return (<Image
-              className="h-12 w-12 rounded-full"
-              
-              imageUrl={FileUtil.getFileRoute(item.profilePictureId!)}
-              alt={item.name?.toString() || item.email?.toString() || "User Profile Picture"}
-            />)
-            }
-          },
-          {
-            key: "name",
-            title: "Name",
-            fieldType: FieldType.Name,
-            placeholder: "No name provided.",
-          },
-          {
-            key: "email",
-            title: "Email",
-            fieldType: FieldType.Email,
-          },
-          {
-            key: "_id",
-            title: "User ID",
-            fieldType: FieldType.ObjectID,
-          },
-        ]}
+                return (
+                  <Image
+                    className="h-12 w-12 rounded-full"
+                    imageUrl={FileUtil.getFileRoute(item.profilePictureId!)}
+                    alt={
+                      item.name?.toString() ||
+                      item.email?.toString() ||
+                      "User Profile Picture"
+                    }
+                  />
+                );
+              },
+            },
+            {
+              key: "name",
+              title: "Name",
+              fieldType: FieldType.Name,
+              placeholder: "No name provided.",
+            },
+            {
+              key: "email",
+              title: "Email",
+              fieldType: FieldType.Email,
+            },
+            {
+              key: "_id",
+              title: "User ID",
+              fieldType: FieldType.ObjectID,
+            },
+          ]}
         />
       </Card>
 
@@ -243,6 +261,20 @@ const UserView: FunctionComponent<PageComponentProps> = (
             },
           },
         ]}
+      />
+
+      <RemoveUserFromProject
+        userId={userId}
+        projectId={DashboardNavigation.getProjectId()!}
+        onError={async () => {
+          // do nothing.
+        }}
+        onActionComplete={() => {
+          // navigate to users list.
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_USERS]!),
+          );
+        }}
       />
     </Fragment>
   );
