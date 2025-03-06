@@ -12,9 +12,8 @@ const SlackIntegrationDocumentation: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
 
     const markdwonText: string = `
-## Integrating Slack with your OneUptime Project
 
-### Step 1: Since this is a self hosted install, you need to create a Slack App with this manifest. 
+##### Step 1: Since this is a self hosted install, you need to create a Slack App with this manifest. 
 
 Please create a Slack App with the following manifest. You can do this by going to https://api.slack.com/apps and creating a new app. 
 
@@ -22,27 +21,27 @@ Please create a Slack App with the following manifest. You can do this by going 
 ${JSON.stringify(props.manifest, null, 2)}
 \`\`\`
 
-### Step 2: Add these env variables to your OneUptime server
+##### Step 2: Add these env variables to your OneUptime server
 
 If you are using Docker Compose then, 
 
-\`\`\`
+\`\`\`bash
 SLACK_APP_CLIENT_ID=YOUR_SLACK_APP_CLIENT_ID
 SLACK_APP_CLIENT_SECRET=YOUR_SLACK_APP_CLIENT_SECRET
 SLACK_APP_SIGNING_SECRET=YOUR_SLACK_APP_SIGNING_SECRET
 \`\`\`
 
 
-If you are using Kubernetes with Helm then, add these to your values.yaml file
+If you are using Kubernetes with Helm then, add these to your \`values.yaml\` file
 
-\`\`\`
+\`\`\`text
 slackApp: 
   clientId:
   clientSecret:
   signingSecret:
 \`\`\`
 
-### Step 3: Restart your OneUptime server
+##### Step 3: Restart your OneUptime server
 
 You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Slack" button on this page. 
 
