@@ -41,6 +41,7 @@ export class Service extends DatabaseService<Model> {
 
   public async getUserMarkdownString(data: {
     userId: ObjectID;
+    projectId: ObjectID;
   }): Promise<string> {
     const user: Model | null = await this.findOneBy({
       query: {
@@ -58,17 +59,16 @@ export class Service extends DatabaseService<Model> {
     if (!user) {
       return "";
     }
-
-    if (!user.name && user.email) {
-      return `[user.email.toString()](mailto:${user.email.toString()})`;
-    }
-
-    if (user.name && user.email) {
-      return `${user.name.toString()} ([${user.email.toString()}](mailto:${user.email.toString()}))`;
-    }
-
-    return user.name?.toString() || "";
+    
+      return `[${user.name?.toString() || user.email?.toString() || "User"}](
+        ${this.getUserLinkInDashboard(data.projectId, data.userId).toString()}
+      )`;
+    
   }
+
+
+
+    
 
 
     public async getUserLinkInDashboard(

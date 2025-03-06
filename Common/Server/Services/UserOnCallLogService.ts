@@ -266,7 +266,7 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.onCallDutyPolicyExecutionLogTimelineId!,
       data: {
         status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-        statusMessage: "Initial notification sent to the user.",
+        statusMessage: "Alert Sent",
       },
       props: {
         isRoot: true,

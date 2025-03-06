@@ -62,22 +62,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         userId = createBy.data.createdByUser.id;
       }
 
-      const user: User | null = await UserService.findOneBy({
-        query: {
-          _id: userId?.toString() as string,
-        },
-        select: {
-          _id: true,
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (user) {
-        createBy.data.rootCause = `Monitor status created by ${user.name} (${user.email})`;
+      if (userId) {
+        createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString({
+          userId: userId!,
+          projectId: createBy.data.projectId || createBy.props.tenantId!,
+        })}`;
       }
     }
 

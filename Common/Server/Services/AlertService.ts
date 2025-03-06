@@ -229,22 +229,12 @@ export class Service extends DatabaseService<Model> {
         userId = createBy.data.createdByUser.id;
       }
 
-      const user: User | null = await UserService.findOneBy({
-        query: {
-          _id: userId?.toString() as string,
-        },
-        select: {
-          _id: true,
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (user) {
-        createBy.data.rootCause = `Alert created by ${user.name} (${user.email})`;
+      
+      if (userId) {
+        createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString({
+          userId: userId!,
+          projectId: projectId,
+        })}`;
       }
     }
 

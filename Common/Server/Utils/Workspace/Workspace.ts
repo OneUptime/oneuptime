@@ -62,6 +62,7 @@ export default class WorkspaceUtil {
         } else {
           const userstring: string = await UserService.getUserMarkdownString({
             userId: data.userId,
+            projectId: data.projectId,
           });
 
           userStringToAppend = `${userstring} `;
