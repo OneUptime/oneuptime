@@ -13,7 +13,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
@@ -63,10 +62,12 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       }
 
       if (userId) {
-        createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString({
-          userId: userId!,
-          projectId: createBy.data.projectId || createBy.props.tenantId!,
-        })}`;
+        createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId!,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
     }
 

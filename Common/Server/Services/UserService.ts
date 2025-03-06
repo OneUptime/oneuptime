@@ -59,28 +59,22 @@ export class Service extends DatabaseService<Model> {
     if (!user) {
       return "";
     }
-    
-      return `[${user.name?.toString() || user.email?.toString() || "User"}](
+
+    return `[${user.name?.toString() || user.email?.toString() || "User"}](
         ${this.getUserLinkInDashboard(data.projectId, data.userId).toString()}
       )`;
-    
   }
 
+  public async getUserLinkInDashboard(
+    projectId: ObjectID,
+    userId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-
-    
-
-
-    public async getUserLinkInDashboard(
-      projectId: ObjectID,
-      userId: ObjectID,
-    ): Promise<URL> {
-      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-  
-      return URL.fromString(dashboardUrl.toString()).addRoute(
-        `/${projectId.toString()}//settings/users/${userId.toString()}`,
-      );
-    }
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}//settings/users/${userId.toString()}`,
+    );
+  }
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,

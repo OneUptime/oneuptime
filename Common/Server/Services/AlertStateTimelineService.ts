@@ -13,7 +13,6 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
@@ -80,13 +79,14 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         userId = createBy.data.createdByUser.id;
       }
 
-      if(userId){
-        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString({
-          userId: userId,
-          projectId: createBy.data.projectId || createBy.props.tenantId!,
-        })}`;
+      if (userId) {
+        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
-      
     }
 
     const lastAlertStateTimeline: AlertStateTimeline | null =

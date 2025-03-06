@@ -229,12 +229,13 @@ export class Service extends DatabaseService<Model> {
         userId = createBy.data.createdByUser.id;
       }
 
-      
       if (userId) {
-        createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString({
-          userId: userId!,
-          projectId: projectId,
-        })}`;
+        createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId!,
+            projectId: projectId,
+          },
+        )}`;
       }
     }
 

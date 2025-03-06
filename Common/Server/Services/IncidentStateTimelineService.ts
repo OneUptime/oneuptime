@@ -17,7 +17,6 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import User from "Common/Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
@@ -83,12 +82,13 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       }
 
       if (userId) {
-        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString({
-          userId: userId!,
-          projectId: createBy.data.projectId || createBy.props.tenantId!,
-        })}`;
+        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId!,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
-
     }
 
     const lastIncidentStateTimeline: IncidentStateTimeline | null =
