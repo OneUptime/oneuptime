@@ -60,9 +60,7 @@ export class Service extends DatabaseService<Model> {
       return "";
     }
 
-    return `[${user.name?.toString() || user.email?.toString() || "User"}](
-        ${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()}
-      )`;
+    return `[${user.name?.toString() || user.email?.toString() || "User"}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
   public async getUserLinkInDashboard(

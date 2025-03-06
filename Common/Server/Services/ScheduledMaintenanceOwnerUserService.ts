@@ -109,7 +109,7 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added **${UserService.getUserMarkdownString({
+            feedInfoInMarkdown: `Added **${await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
             })}** to the scheduled maintenance as the owner.`,
