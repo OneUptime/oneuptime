@@ -1,12 +1,7 @@
-import {
-  CallDefaultCostInCentsPerMinute,
-  CallHighRiskCostInCentsPerMinute,
-  getTwilioConfig,
-} from "../Config";
 import CallRequest, {
   GatherInput,
-  Say,
   isHighRiskPhoneNumber,
+  Say,
 } from "Common/Types/Call/CallRequest";
 import CallStatus from "Common/Types/Call/CallStatus";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
@@ -27,6 +22,18 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 
+import {
+  CallDefaultCostInCentsPerMinute,
+  CallHighRiskCostInCentsPerMinute,
+  getTwilioConfig,
+} from "../Config";
+
+function sleep(time: number): Promise<void> {
+  return new Promise((r: () => void) => {
+    setTimeout(r, time);
+  });
+}
+
 export default class CallService {
   public static async makeCall(
     callRequest: CallRequest,
@@ -45,7 +52,8 @@ export default class CallService {
 
       let callCost: number = 0;
 
-      // is no custom twilio config is provided, use default twilio config and charge for call.
+      // is no custom twilio config is provided, use default twilio config and
+      // charge for call.
       const shouldChargeForCall: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
@@ -186,7 +194,9 @@ export default class CallService {
                 "Low SMS and Call Balance for " + (project.name || ""),
                 `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
                   (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance to send this SMS should is ${callCost} USD. Please enable auto recharge or recharge manually.`,
+                } USD. Required balance to send this SMS should is ${
+                  callCost
+                } USD. Please enable auto recharge or recharge manually.`,
               );
             }
             return;
@@ -219,7 +229,9 @@ export default class CallService {
                 "Low SMS and Call Balance for " + (project.name || ""),
                 `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
                   project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${callCost} USD to make this call. Please enable auto recharge or recharge manually.`,
+                } USD. Required balance is ${
+                  callCost
+                } USD to make this call. Please enable auto recharge or recharge manually.`,
               );
             }
             return;
@@ -235,6 +247,10 @@ export default class CallService {
         from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
       });
 
+      const callTimeout: number = 4 * 1e9;
+      const callStart: bigint = process.hrtime.bigint();
+      let callLifted: boolean = false;
+
       logger.debug("Call Request sent successfully.");
 
       callLog.status = CallStatus.Success;
@@ -243,7 +259,26 @@ export default class CallService {
       logger.debug("Call ID: " + twillioCall.sid);
       logger.debug(callLog.statusMessage);
 
-      if (shouldChargeForCall && project) {
+      while (process.hrtime.bigint() - callStart < callTimeout) {
+        await sleep(500);
+        const c: CallInstance = await client.calls.get(twillioCall.sid).fetch();
+        if (c.status === "in-progress") {
+          callLifted = true;
+          break;
+        }
+      }
+
+      // Drop the call after the timeout
+      await client.calls
+        .get(twillioCall.sid)
+        .update({ status: "completed" })
+        .catch(() => {});
+
+      // a call that wasn't lifted, is not getting charged
+      // staff can be educated to setup a special ringtone for the
+      // incoming number, to immediately note an incident and to
+      // avoid lifting this number
+      if (shouldChargeForCall && project && callLifted) {
         logger.debug("Updating Project Balance.");
 
         callLog.callCostInUSDCents = callCost * 100;
