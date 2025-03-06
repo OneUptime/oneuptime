@@ -104,29 +104,22 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (incidentId && userId && projectId) {
-      const user: User | null = await UserService.findOneById({
-        id: userId,
-        select: {
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
 
       const incidentNumber: number | null =
         await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
 
-      if (user && user.name) {
+      if (userId) {
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${user.name.toString()}** (${user.email?.toString()}) to the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍💻 Added **${UserService.getUserMarkdownString({
+            userId: userId,
+            projectId: projectId,
+          })}** to the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

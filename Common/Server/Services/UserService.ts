@@ -61,7 +61,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     return `[${user.name?.toString() || user.email?.toString() || "User"}](
-        ${this.getUserLinkInDashboard(data.projectId, data.userId).toString()}
+        ${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()}
       )`;
   }
 
@@ -72,7 +72,7 @@ export class Service extends DatabaseService<Model> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}//settings/users/${userId.toString()}`,
+      `/${projectId.toString()}/settings/users/${userId.toString()}`,
     );
   }
 

@@ -99,18 +99,9 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (scheduledMaintenanceId && userId && projectId) {
-      const user: User | null = await UserService.findOneById({
-        id: userId,
-        select: {
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
 
-      if (user && user.name) {
+
+      if (userId) {
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {
             scheduledMaintenanceId: scheduledMaintenanceId,
@@ -118,7 +109,10 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added **${user.name.toString()}** (${user.email?.toString()}) to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown: `Added **${UserService.getUserMarkdownString({
+              userId: userId,
+              projectId: projectId,
+            })}** to the scheduled maintenance as the owner.`,
             userId: createdByUserId || undefined,
           },
         );
