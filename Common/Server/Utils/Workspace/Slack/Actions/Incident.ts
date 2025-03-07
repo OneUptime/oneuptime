@@ -12,6 +12,7 @@ import {
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
+  WorkspaceTextBoxBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
@@ -33,7 +34,6 @@ import MonitorStatusService from "../../../../Services/MonitorStatusService";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
-import { block } from "marked";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -222,7 +222,7 @@ export default class SlackIncidentActions {
     const blocks: Array<WorkspaceMessageBlock> = []; 
 
     // send response to clear the action.
-    Response.sendEmptySuccessResponse(data.req, data.res);
+    Response.sendTextResponse(data.req, data.res, "");
 
     // show new incident modal.
     // new incident modal is :
@@ -233,8 +233,8 @@ export default class SlackIncidentActions {
     // Change Monitor Status to (dropdown) (single select)
     // Labels (dropdown) (multiselect)
 
-    const incidentTitle: WorkspaceTextAreaBlock = {
-      _type: "WorkspaceTextAreaBlock",
+    const incidentTitle: WorkspaceTextBoxBlock = {
+      _type: "WorkspaceTextBoxBlock",
       label: "Incident Title",
       blockId: "incidentTitle",
       placeholder: "Incident Title",
@@ -1107,6 +1107,10 @@ export default class SlackIncidentActions {
 
     if (actionType === SlackActionType.NewIncident) {
       return await this.viewNewIncidentModal(data);
+    }
+
+    if (actionType === SlackActionType.SubmitNewIncident) {
+      return await this.submitNewIncident(data);
     }
 
     if (actionType === SlackActionType.ViewIncident) {
