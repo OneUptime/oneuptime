@@ -59,6 +59,7 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   placeholder: string;
   initialValue?: string | undefined;
   description?: string | undefined;
+  multiSelect?: boolean | undefined;
 }
 
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {

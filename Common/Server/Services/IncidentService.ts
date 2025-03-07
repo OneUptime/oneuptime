@@ -1536,6 +1536,7 @@ ${incidentSeverity.name}
     );
   }
 
+
   public async getIncidentNumber(data: {
     incidentId: ObjectID;
   }): Promise<number | null> {

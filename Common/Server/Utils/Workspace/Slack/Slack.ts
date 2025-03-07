@@ -870,10 +870,12 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting dropdown block with data:");
     logger.debug(data);
 
+    const isMiltiSelect: boolean = data.payloadDropdownBlock.multiSelect || false;
+
     const dropdownBlock: JSONObject = {
       type: "input",
       element: {
-        type: "static_select",
+        type: isMiltiSelect ? "multi_static_select" : "static_select",
         action_id: data.payloadDropdownBlock.blockId,
         placeholder: {
           type: "plain_text",

@@ -8,6 +8,7 @@ import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
   WorkspaceDropdownBlock,
+  WorkspaceMessageBlock,
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
@@ -22,6 +23,17 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateService from "../../../../Services/IncidentStateService";
 import logger from "../../../Logger";
+import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MonitorService from "../../../../Services/MonitorService";
+import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusService from "../../../../Services/MonitorStatusService";
+import Label from "../../../../../Models/DatabaseModels/Label";
+import LabelService from "../../../../Services/LabelService";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
+import { block } from "marked";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -39,10 +51,372 @@ export default class SlackIncidentActions {
       case SlackActionType.ViewExecuteIncidentOnCallPolicy:
       case SlackActionType.SubmitExecuteIncidentOnCallPolicy:
       case SlackActionType.ViewIncident:
+      case SlackActionType.NewIncident:
+      case SlackActionType.SubmitNewIncident:
         return true;
       default:
         return false;
     }
+  }
+
+  public static async submitNewIncident(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID")
+      );
+    }
+
+    if (!projectAuthToken) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project Auth Token")
+      );
+    }
+
+    if (!botUserId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Bot User ID")
+      );
+    }
+
+    if (data.action.actionType === SlackActionType.SubmitNewIncident) {
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      // if view values is empty, then return error.
+      if (!data.slackRequest.viewValues) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["incidentTitle"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Incident Title")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["incidentDescription"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Incident Description")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["incidentSeverity"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Incident Severity")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["incidentMonitors"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Incident Monitors")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["monitorStatus"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Monitor Status")
+        );
+      }
+
+      if (!data.slackRequest.viewValues["labels"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Labels")
+        );
+      }
+
+      const title: string =
+        data.slackRequest.viewValues["incidentTitle"].toString();
+      const description: string =
+        data.slackRequest.viewValues["incidentDescription"].toString();
+      const severity: string =
+        data.slackRequest.viewValues["incidentSeverity"].toString();
+      const monitors: Array<string> = data.slackRequest.viewValues[
+        "incidentMonitors"
+      ]
+        .toString()
+        .split(",");
+      const monitorStatus: string =
+        data.slackRequest.viewValues["monitorStatus"].toString();
+      const labels: Array<string> = data.slackRequest.viewValues["labels"]
+        .toString()
+        .split(",");
+      const incidentMonitors: Array<ObjectID> = monitors.map(
+        (monitor: string) => {
+          return new ObjectID(monitor);
+        }
+      );
+      const incidentLabels: Array<ObjectID> = labels.map((label: string) => {
+        return new ObjectID(label);
+      });
+
+      const incidentSeverityId: ObjectID = new ObjectID(severity);
+      const monitorStatusId: ObjectID = new ObjectID(monitorStatus);
+
+      const incident: Incident = new Incident();
+      incident.title = title;
+      incident.description = description;
+      incident.projectId = slackRequest.projectId!;
+      incident.createdByUserId = userId;
+      incident.incidentSeverityId = incidentSeverityId;
+      incident.monitors = incidentMonitors.map((monitorId: ObjectID) => {
+        const monitor: Monitor = new Monitor();
+        monitor.id = monitorId;
+        return monitor;
+      });
+
+      incident.changeMonitorStatusToId = monitorStatusId;
+
+      incident.labels = incidentLabels.map((labelId: ObjectID) => {
+        const label: Label = new Label();
+        label.id = labelId;
+        return label;
+      });
+
+      await IncidentService.create({
+        data: incident,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  public static async viewNewIncidentModal(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+
+    const blocks: Array<WorkspaceMessageBlock> = []; 
+
+    // send response to clear the action.
+    Response.sendEmptySuccessResponse(data.req, data.res);
+
+    // show new incident modal.
+    // new incident modal is :
+    // Incident Title (this can be prefilled with actionValue)
+    // Incident Description
+    // Incident Severity (dropdown) (single select)
+    // Monitors (dropdown) (miltiselect)
+    // Change Monitor Status to (dropdown) (single select)
+    // Labels (dropdown) (multiselect)
+
+    const incidentTitle: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: "Incident Title",
+      blockId: "incidentTitle",
+      placeholder: "Incident Title",
+      initialValue: data.action.actionValue || "",
+    };
+
+    blocks.push(incidentTitle); 
+
+    const incidentDescription: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: "Incident Description",
+      blockId: "incidentDescription",
+      placeholder: "Incident Description",
+    };
+
+    blocks.push(incidentDescription);
+
+    const incidentSeveritiesForProject: Array<IncidentSeverity> =
+      await IncidentSeverityService.findBy({
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const dropdownOptions: Array<DropdownOption> =
+      incidentSeveritiesForProject.map((severity: IncidentSeverity) => {
+        return {
+          label: severity.name || "",
+          value: severity._id?.toString() || "",
+        };
+      });
+
+    const incidentSeverity: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Incident Severity",
+      blockId: "incidentSeverity",
+      placeholder: "Select Incident Severity",
+      options: dropdownOptions,
+    };
+
+    if(incidentSeveritiesForProject.length > 0) {
+      blocks.push(incidentSeverity);
+    }
+
+    const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: data.slackRequest.projectId!,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const monitorDropdownOptions: Array<DropdownOption> =
+      monitorsForProject.map((monitor: Monitor) => {
+        return {
+          label: monitor.name || "",
+          value: monitor._id?.toString() || "",
+        };
+      });
+
+    const incidentMonitors: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Monitors",
+      blockId: "incidentMonitors",
+      placeholder: "Select Monitors",
+      options: monitorDropdownOptions,
+      multiSelect: true,
+    };
+
+    if(monitorsForProject.length > 0) {
+      blocks.push(incidentMonitors);
+    }
+
+    const monitorStatusForProject: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const monitorStatusDropdownOptions: Array<DropdownOption> =
+      monitorStatusForProject.map((status: MonitorStatus) => {
+        return {
+          label: status.name || "",
+          value: status._id?.toString() || "",
+        };
+      });
+
+    const monitorStatusDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Change Monitor Status to",
+      blockId: "monitorStatus",
+      placeholder: "Select Monitor Status",
+      options: monitorStatusDropdownOptions,
+    };
+
+  if(monitorStatusForProject.length > 0 && monitorDropdownOptions.length > 0) {
+    blocks.push(monitorStatusDropdown);
+  }
+
+    const labelsForProject: Array<Label> = await LabelService.findBy({
+      query: {
+        projectId: data.slackRequest.projectId!,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
+      (label: Label) => {
+        return {
+          label: label.name || "",
+          value: label._id?.toString() || "",
+        };
+      }
+    );
+
+    const labelsDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Labels",
+      blockId: "labels",
+      placeholder: "Select Labels",
+      options: labelsDropdownOptions,
+      multiSelect: true,
+    };
+
+    if(labelsForProject.length > 0) {
+      blocks.push(labelsDropdown);
+    }
+
+
+    
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "New Incident",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitNewIncident,
+      actionValue: "",
+      blocks: blocks,
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
   }
 
   public static async acknowledgeIncident(data: {
@@ -60,7 +434,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -68,7 +442,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -76,7 +450,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -84,7 +458,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -132,7 +506,7 @@ export default class SlackIncidentActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -151,7 +525,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -159,7 +533,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -167,7 +541,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -175,7 +549,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -221,7 +595,7 @@ export default class SlackIncidentActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -238,7 +612,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -315,7 +689,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -391,7 +765,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -411,7 +785,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -447,7 +821,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -455,7 +829,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -463,7 +837,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -471,7 +845,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -518,7 +892,7 @@ export default class SlackIncidentActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid View Values"),
+          new BadDataException("Invalid View Values")
         );
       }
 
@@ -548,7 +922,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -562,7 +936,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -570,7 +944,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note Type"),
+        new BadDataException("Invalid Note Type")
       );
     }
 
@@ -579,7 +953,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note"),
+        new BadDataException("Invalid Note")
       );
     }
 
@@ -592,7 +966,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note Type"),
+        new BadDataException("Invalid Note Type")
       );
     }
 
@@ -635,7 +1009,7 @@ export default class SlackIncidentActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Incident ID"),
+        new BadDataException("Invalid Incident ID")
       );
     }
 
@@ -731,6 +1105,10 @@ export default class SlackIncidentActions {
       return await this.submitChangeIncidentState(data);
     }
 
+    if (actionType === SlackActionType.NewIncident) {
+      return await this.viewNewIncidentModal(data);
+    }
+
     if (actionType === SlackActionType.ViewIncident) {
       // do nothing. This is just a view incident action.
       // clear response.
@@ -743,7 +1121,7 @@ export default class SlackIncidentActions {
     return Response.sendErrorResponse(
       data.req,
       data.res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 }
