@@ -66,7 +66,7 @@ export default class SlackAuthAction {
     // if there are no actions then return.
     if (
       (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
-      payload["type"] !== "view_submission" && payload["type"] !== "shortcut"
+      payload["type"] !== "view_submission" && payload["type"] !== "shortcut" && !payload["command"]
     ) {
       logger.debug("No actions found in payload. Returning unauthorized.");
       return {
