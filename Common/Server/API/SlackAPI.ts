@@ -257,7 +257,6 @@ export default class SlackAPI {
       SlackAuthorization.isAuthorizedSlackRequest,
       async (req: ExpressRequest, res: ExpressResponse) => {
         logger.debug("Slack Interactive Request: ");
-        logger.debug(JSON.stringify(JSON.parse(req.body.payload), null, 2));
 
         const authResult: SlackRequest = await SlackAuthAction.isAuthorized({
           req: req,

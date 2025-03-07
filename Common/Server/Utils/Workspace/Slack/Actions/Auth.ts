@@ -35,6 +35,8 @@ export interface SlackRequest {
   triggerId?: string | undefined;
   view?: JSONObject | undefined; // view object from slack.
   viewValues?: Dictionary<string | number> | undefined;
+  command?: string | undefined;
+  commandText?: string | undefined;
 }
 
 export default class SlackAuthAction {
@@ -56,17 +58,17 @@ export default class SlackAuthAction {
     logger.debug(`Payload: `);
     logger.debug(payload);
 
-    const slackUserId: string | undefined = (
+    let slackUserId: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
     )["id"] as string;
-    const slackTeamId: string | undefined = (
+    let slackTeamId: string | undefined = (
       (payload as JSONObject)["team"] as JSONObject
     )["id"] as string;
 
     // if there are no actions then return.
     if (
       (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
-      payload["type"] !== "view_submission"
+      payload["type"] !== "view_submission" && payload["type"] !== "shortcut"
     ) {
       logger.debug("No actions found in payload. Returning unauthorized.");
       return {
@@ -84,20 +86,33 @@ export default class SlackAuthAction {
     });
 
     const slackChannelId: string | undefined = (
-      (payload as JSONObject)["channel"] as JSONObject
+      (payload as JSONObject)?.["channel"] as JSONObject
     )?.["id"] as string;
 
     const slackMessageId: string | undefined = (
-      (payload as JSONObject)["message"] as JSONObject
+      (payload as JSONObject)?.["message"] as JSONObject
     )?.["ts"] as string;
 
     const slackUserFullName: string | undefined = (
-      (payload as JSONObject)["user"] as JSONObject
-    )["name"] as string;
+      (payload as JSONObject)?.["user"] as JSONObject
+    )?.["name"] as string;
 
-    const slackUsername: string | undefined = (
-      (payload as JSONObject)["user"] as JSONObject
-    )["username"] as string;
+    let slackUsername: string | undefined = (
+      (payload as JSONObject)?.["user"] as JSONObject
+    )?.["username"] as string;
+
+
+    if(payload['user_id']) {
+      slackUserId = payload['user_id'] as string;
+    }
+
+    if(payload['user_name']) {
+      slackUsername = payload['user_name'] as string;
+    }
+
+    if(payload['team_id']) {
+      slackTeamId = payload['team_id'] as string;
+    }
 
     const triggerId: string | undefined = payload?.["trigger_id"] as string;
 
@@ -206,7 +221,19 @@ export default class SlackAuthAction {
       logger.debug(actions);
     }
 
-    return {
+    if(payload['callback_id']) {
+      const action: SlackAction = {
+        actionType: payload['callback_id'] as SlackActionType,
+      };
+
+      actions.push(action);
+    }
+
+
+    const command: string | undefined = payload["command"] as string;
+    const commandText: string | undefined = payload["text"] as string;    
+
+    const slackRequest: SlackRequest =  {
       isAuthorized: true,
       slackUserId: slackUserId,
       userId: userId,
@@ -222,6 +249,15 @@ export default class SlackAuthAction {
       triggerId: triggerId,
       view: view,
       viewValues: viewValues,
+      command: command,
+      commandText: commandText,
     };
+
+
+    logger.debug("Slack request authorized successfully");
+    logger.debug("Slack request: ");
+    logger.debug(slackRequest);
+
+    return slackRequest;  
   }
 }
