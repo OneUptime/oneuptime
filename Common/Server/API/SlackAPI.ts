@@ -316,15 +316,6 @@ export default class SlackAPI {
       },
     );
 
-    router.post(
-      "/slack/command",
-      SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendJsonObjectResponse(req, res, {
-          response_action: "clear",
-        });
-      },
-    );
 
     return router;
   }

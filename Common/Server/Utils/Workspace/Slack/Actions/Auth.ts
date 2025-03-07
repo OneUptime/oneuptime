@@ -35,8 +35,6 @@ export interface SlackRequest {
   triggerId?: string | undefined;
   view?: JSONObject | undefined; // view object from slack.
   viewValues?: Dictionary<string | number> | undefined;
-  command?: string | undefined;
-  commandText?: string | undefined;
 }
 
 export default class SlackAuthAction {
@@ -60,10 +58,10 @@ export default class SlackAuthAction {
 
     let slackUserId: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
-    )["id"] as string;
+    )?.["id"] as string;
     let slackTeamId: string | undefined = (
       (payload as JSONObject)["team"] as JSONObject
-    )["id"] as string;
+    )?.["id"] as string;
 
     // if there are no actions then return.
     if (
@@ -231,7 +229,17 @@ export default class SlackAuthAction {
 
 
     const command: string | undefined = payload["command"] as string;
-    const commandText: string | undefined = payload["text"] as string;    
+    const commandText: string | undefined = payload["text"] as string; 
+    
+    // add command to actions.
+    if(command) {
+      const action: SlackAction = {
+        actionType: command as SlackActionType,
+        actionValue: commandText,
+      };
+
+      actions.push(action);
+    }
 
     const slackRequest: SlackRequest =  {
       isAuthorized: true,
@@ -249,8 +257,6 @@ export default class SlackAuthAction {
       triggerId: triggerId,
       view: view,
       viewValues: viewValues,
-      command: command,
-      commandText: commandText,
     };
 
 
