@@ -31,10 +31,17 @@
         ],
         "slash_commands": [
             {
-                "command": "/oneuptime",
-                "url": "https://local.genosyn.com/api/slack/command",
-                "description": "OneUptime command",
-                "usage_hint": "incident, scheduled event.",
+                "command": "/incident",
+                "url": "https://local.genosyn.com/api/slack/interactive",
+                "description": "Create a new Incident in OneUptime",
+                "usage_hint": "/incident [incident title]",
+                "should_escape": false
+            },
+            {
+                "command": "/maintenance",
+                "url": "https://local.genosyn.com/api/slack/interactive",
+                "description": "Create a new Scheduled Maintenance in OneUptime",
+                "usage_hint": "/maintenance [maintenance title]",
                 "should_escape": false
             }
         ]
