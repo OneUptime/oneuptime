@@ -99,8 +99,6 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (scheduledMaintenanceId && userId && projectId) {
-
-
       if (userId) {
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {
@@ -109,10 +107,12 @@ export class Service extends DatabaseService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added **${await UserService.getUserMarkdownString({
-              userId: userId,
-              projectId: projectId,
-            })}** to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown: `Added **${await UserService.getUserMarkdownString(
+              {
+                userId: userId,
+                projectId: projectId,
+              },
+            )}** to the scheduled maintenance as the owner.`,
             userId: createdByUserId || undefined,
           },
         );

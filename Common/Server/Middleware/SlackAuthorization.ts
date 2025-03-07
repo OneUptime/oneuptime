@@ -35,14 +35,15 @@ export default class SlackAuthorization {
     const timestamp: string = req.headers[
       "x-slack-request-timestamp"
     ] as string;
-    const requestBody: string = (req as OneUptimeRequest).rawFormUrlEncodedBody || "";
+    const requestBody: string =
+      (req as OneUptimeRequest).rawFormUrlEncodedBody || "";
 
     logger.debug(`slackSignature: ${slackSignature}`);
     logger.debug(`timestamp: ${timestamp}`);
     logger.debug(`requestBody: `);
     logger.debug(requestBody);
 
-    const baseString: string = `v0:${timestamp}:${(requestBody)}`;
+    const baseString: string = `v0:${timestamp}:${requestBody}`;
     const signature: string = `v0=${crypto.createHmac("sha256", slackSigningSecret).update(baseString).digest("hex")}`;
 
     logger.debug(`Generated signature: ${signature}`);

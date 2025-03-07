@@ -4,14 +4,13 @@ import Card from "Common/UI/Components/Card/Card";
 import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
-    manifest: JSONObject;
+  manifest: JSONObject;
 }
 
 const SlackIntegrationDocumentation: FunctionComponent<ComponentProps> = (
-    props: ComponentProps,
+  props: ComponentProps,
 ): ReactElement => {
-
-    const markdwonText: string = `
+  const markdwonText: string = `
 
 ##### Step 1: Since this is a self hosted install, you need to create a Slack App with this manifest. 
 
@@ -50,19 +49,14 @@ We would like to improve this integration, so feedback is more than welcome. Ple
 
     `;
 
-
-
-
-    return (<Card
-        title={`Integrating Slack with your OneUptime Project`}
-        description={
-            `Slack is not connected to OneUptime. Here are some of the steps you need to do to integrate Slack with your OneUptime Project`
-        }
+  return (
+    <Card
+      title={`Integrating Slack with your OneUptime Project`}
+      description={`Slack is not connected to OneUptime. Here are some of the steps you need to do to integrate Slack with your OneUptime Project`}
     >
-        <MarkdownViewer
-            text={markdwonText}
-        />
-    </Card>)
+      <MarkdownViewer text={markdwonText} />
+    </Card>
+  );
 };
 
 export default SlackIntegrationDocumentation;

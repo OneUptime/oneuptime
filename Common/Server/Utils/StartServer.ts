@@ -51,14 +51,16 @@ const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded({
   extended: true,
   verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
     (req as OneUptimeRequest).rawFormUrlEncodedBody = buf.toString();
-    logger.debug(`Raw Form Url Encoded Body: ${ (req as OneUptimeRequest).rawFormUrlEncodedBody}`);
-  }
+    logger.debug(
+      `Raw Form Url Encoded Body: ${(req as OneUptimeRequest).rawFormUrlEncodedBody}`,
+    );
+  },
 }); // 50 MB limit.
 
 const setDefaultHeaders: RequestHandler = (
   req: ExpressRequest,
   res: ExpressResponse,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (typeof req.body === Typeof.String) {
     req.body = JSONFunctions.parse(req.body);
@@ -69,7 +71,7 @@ const setDefaultHeaders: RequestHandler = (
   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
-    "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Type"
+    "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Type",
   );
 
   next();
@@ -80,7 +82,6 @@ app.use(setDefaultHeaders);
 
 // Set the view engine to ejs
 app.set("view engine", "ejs");
-
 
 /*
  * Add limit of 10 MB to avoid "Request Entity too large error"
@@ -103,7 +104,7 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
           return Response.sendErrorResponse(
             req,
             res,
-            new ServerException("Error decompressing data")
+            new ServerException("Error decompressing data"),
           );
         }
 
@@ -143,11 +144,11 @@ export interface InitFuctionOptions {
 }
 
 type InitFunction = (
-  options: InitFuctionOptions
+  options: InitFuctionOptions,
 ) => Promise<ExpressApplication>;
 
 const init: InitFunction = async (
-  data: InitFuctionOptions
+  data: InitFuctionOptions,
 ): Promise<ExpressApplication> => {
   const { appName, port, isFrontendApp = false } = data;
 
@@ -186,7 +187,7 @@ const init: InitFunction = async (
   `;
 
         Response.sendJavaScriptResponse(req, res, script);
-      }
+      },
     );
 
     app.use(`/${appName}`, ExpressStatic("/usr/src/app/public"));
@@ -195,7 +196,7 @@ const init: InitFunction = async (
       `/${appName}/dist/bundle.js`,
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.sendFile("/usr/src/app/public/dist/bundle.js");
-      }
+      },
     );
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -211,7 +212,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     return Response.sendErrorResponse(
       req,
       res,
-      new NotFoundException(`Page not found - ${req.url}`)
+      new NotFoundException(`Page not found - ${req.url}`),
     );
   });
 
@@ -219,7 +220,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     return Response.sendErrorResponse(
       req,
       res,
-      new NotFoundException(`Page not found - ${req.url}`)
+      new NotFoundException(`Page not found - ${req.url}`),
     );
   });
 
@@ -227,7 +228,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     return Response.sendErrorResponse(
       req,
       res,
-      new NotFoundException(`Page not found - ${req.url}`)
+      new NotFoundException(`Page not found - ${req.url}`),
     );
   });
 
@@ -235,7 +236,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     return Response.sendErrorResponse(
       req,
       res,
-      new NotFoundException(`Page not found - ${req.url}`)
+      new NotFoundException(`Page not found - ${req.url}`),
     );
   });
 
@@ -245,14 +246,14 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
       err: Error | Exception,
       _req: ExpressRequest,
       res: ExpressResponse,
-      next: NextFunction
+      next: NextFunction,
     ) => {
       logger.error(err);
 
       // Mark span as error.
       if (err) {
         const span: api.Span | undefined = api.trace.getSpan(
-          api.context.active()
+          api.context.active(),
         );
         if (span) {
           // record exception
@@ -287,7 +288,7 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
         res.status(500);
         res.send({ error: "Server Error" });
       }
-    }
+    },
   );
 };
 

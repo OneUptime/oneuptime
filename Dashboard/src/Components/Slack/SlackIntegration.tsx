@@ -393,11 +393,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
   }
 
-
-  if(!SlackAppClientId){
-    return (
-      <SlackIntegrationDocumentation manifest={manifest as JSONObject} />
-    )
+  if (!SlackAppClientId) {
+    return <SlackIntegrationDocumentation manifest={manifest as JSONObject} />;
   }
 
   return (
