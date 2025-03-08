@@ -94,10 +94,7 @@ export default class SlackIncidentActions {
 
     if (data.action.actionType === SlackActionType.SubmitNewIncident) {
       // We send this early let slack know we're ok. We'll do the rest in the background.
-      Response.sendJsonObjectResponse(req, res, {
-        response_action: "clear",
-      });
-
+      
       // if view values is empty, then return error.
       if (!data.slackRequest.viewValues) {
         return Response.sendErrorResponse(
@@ -131,13 +128,10 @@ export default class SlackIncidentActions {
         );
       }
 
-      if (!data.slackRequest.viewValues["labels"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid Labels")
-        );
-      }
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
 
       const title: string =
         data.slackRequest.viewValues["incidentTitle"].toString();
