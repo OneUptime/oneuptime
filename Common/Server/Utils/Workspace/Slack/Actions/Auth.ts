@@ -66,7 +66,9 @@ export default class SlackAuthAction {
     // if there are no actions then return.
     if (
       (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
-      payload["type"] !== "view_submission" && payload["type"] !== "shortcut" && !payload["command"]
+      payload["type"] !== "view_submission" &&
+      payload["type"] !== "shortcut" &&
+      !payload["command"]
     ) {
       logger.debug("No actions found in payload. Returning unauthorized.");
       return {
@@ -99,17 +101,16 @@ export default class SlackAuthAction {
       (payload as JSONObject)?.["user"] as JSONObject
     )?.["username"] as string;
 
-
-    if(payload['user_id']) {
-      slackUserId = payload['user_id'] as string;
+    if (payload["user_id"]) {
+      slackUserId = payload["user_id"] as string;
     }
 
-    if(payload['user_name']) {
-      slackUsername = payload['user_name'] as string;
+    if (payload["user_name"]) {
+      slackUsername = payload["user_name"] as string;
     }
 
-    if(payload['team_id']) {
-      slackTeamId = payload['team_id'] as string;
+    if (payload["team_id"]) {
+      slackTeamId = payload["team_id"] as string;
     }
 
     const triggerId: string | undefined = payload?.["trigger_id"] as string;
@@ -219,20 +220,19 @@ export default class SlackAuthAction {
       logger.debug(actions);
     }
 
-    if(payload['callback_id']) {
+    if (payload["callback_id"]) {
       const action: SlackAction = {
-        actionType: payload['callback_id'] as SlackActionType,
+        actionType: payload["callback_id"] as SlackActionType,
       };
 
       actions.push(action);
     }
 
-
     const command: string | undefined = payload["command"] as string;
-    const commandText: string | undefined = payload["text"] as string; 
-    
+    const commandText: string | undefined = payload["text"] as string;
+
     // add command to actions.
-    if(command) {
+    if (command) {
       const action: SlackAction = {
         actionType: command as SlackActionType,
         actionValue: commandText,
@@ -241,7 +241,7 @@ export default class SlackAuthAction {
       actions.push(action);
     }
 
-    const slackRequest: SlackRequest =  {
+    const slackRequest: SlackRequest = {
       isAuthorized: true,
       slackUserId: slackUserId,
       userId: userId,
@@ -259,11 +259,10 @@ export default class SlackAuthAction {
       viewValues: viewValues,
     };
 
-
     logger.debug("Slack request authorized successfully");
     logger.debug("Slack request: ");
     logger.debug(slackRequest);
 
-    return slackRequest;  
+    return slackRequest;
   }
 }

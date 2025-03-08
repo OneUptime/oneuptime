@@ -316,7 +316,6 @@ export default class SlackAPI {
       },
     );
 
-
     return router;
   }
 }
