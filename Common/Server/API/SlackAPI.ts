@@ -30,6 +30,7 @@ import SlackAuthAction, {
   SlackRequest,
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
+import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -303,6 +304,19 @@ export default class SlackAPI {
             })
           ) {
             return SlackIncidentActions.handleIncidentAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
+          if (
+            SlackAlertActions.isAlertAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackAlertActions.handleAlertAction({
               slackRequest: authResult,
               action: action,
               req: req,

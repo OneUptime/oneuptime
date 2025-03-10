@@ -47,6 +47,10 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorService from "./MonitorService";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -260,46 +264,122 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
+    const alert: Model | null = await this.findOneById({
+      id: createdItem.id,
+      select: {
+        projectId: true,
+        alertNumber: true,
+        title: true,
+        description: true,
+        alertSeverity: {
+          name: true,
+        },
+        rootCause: true,
+        remediationNotes: true,
+        currentAlertState: {
+          name: true,
+        },
+        monitor: {
+          name: true,
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Incident not found");
+    }
+
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    // send message to workspaces - slack, teams,   etc.
+    const workspaceResult: {
+      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+    } | null =
+      await AlertWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+        projectId: createdItem.projectId,
+        alertId: createdItem.id!,
+        alertNumber: createdItem.alertNumber!,
+      });
+
+    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+      // update alert with these channels.
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
+         
+   **${createdItem.title || "No title provided."}**:
+   
+   ${createdItem.description || "No description provided."}
+   
+   `;
+
+    if (alert.currentAlertState?.name) {
+      feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
+    }
+
+    if (alert.alertSeverity?.name) {
+      feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
+    }
+
+    if (alert.monitor) {
+      feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+      const monitor: Monitor = alert.monitor;
+      feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+
+      feedInfoInMarkdown += `\n\n`;
+    }
+
+    if (createdItem.rootCause) {
+      feedInfoInMarkdown += `\n
+📄 **Root Cause**:
+   
+   ${createdItem.rootCause || "No root cause provided."}
+   
+   `;
+    }
+
+    if (createdItem.remediationNotes) {
+      feedInfoInMarkdown += `\n 
+🎯 **Remediation Notes**:
+   
+   ${createdItem.remediationNotes || "No remediation notes provided."}
+   
+   
+   `;
+    }
+
+    const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
+        alertId: createdItem.id!,
+        projectId: createdItem.projectId!,
+      });
 
     await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.id!,
       projectId: createdItem.projectId!,
       alertFeedEventType: AlertFeedEventType.AlertCreated,
       displayColor: Red500,
-      feedInfoInMarkdown: `**Alert #${createdItem.alertNumber?.toString()} Created**:
-          
-  **Alert Title**:
-  
-  ${createdItem.title || "No title provided."}
-  
-  **Description**:
-  
-  ${createdItem.description || "No description provided."}
-    
-          `,
+      feedInfoInMarkdown: feedInfoInMarkdown,
       userId: createdByUserId || undefined,
-    });
-
-    await AlertFeedService.createAlertFeedItem({
-      alertId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      alertFeedEventType: AlertFeedEventType.RootCause,
-      displayColor: Red500,
-      feedInfoInMarkdown: `**Root Cause**
-        
-${createdItem.rootCause || "No root cause provided."}`,
-    });
-
-    await AlertFeedService.createAlertFeedItem({
-      alertId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      alertFeedEventType: AlertFeedEventType.RemediationNotes,
-      displayColor: Red500,
-      feedInfoInMarkdown: `**Remediation Notes**
-        
-${createdItem.remediationNotes || "No remediation notes provided."}`,
+      workspaceNotification: {
+        appendMessageBlocks: alertCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
     });
 
     await this.changeAlertState({
@@ -1138,63 +1218,60 @@ ${alertSeverity.name}
     return alert.alertNumber || null;
   }
 
-    public async resolveAlert(
-      alertId: ObjectID,
-      resolvedByUserId: ObjectID,
-    ): Promise<Model> {
-      const alert: Model | null = await this.findOneById({
-        id: alertId,
-        select: {
-          projectId: true,
-          alertNumber: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      if (!alert || !alert.projectId) {
-        throw new BadDataException("Alert not found.");
-      }
-  
-      const alertState: AlertState | null =
-        await AlertStateService.findOneBy({
-          query: {
-            projectId: alert.projectId,
-            isResolvedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-  
-      if (!alertState || !alertState.id) {
-        throw new BadDataException(
-          "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-        );
-      }
-  
-      const alertStateTimeline: AlertStateTimeline =
-        new AlertStateTimeline();
-      alertStateTimeline.projectId = alert.projectId;
-      alertStateTimeline.alertId = alertId;
-      alertStateTimeline.alertStateId = alertState.id;
-      alertStateTimeline.createdByUserId = resolvedByUserId;
-  
-      await AlertStateTimelineService.create({
-        data: alertStateTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      // store alert metric
-  
-      return alert;
+  public async resolveAlert(
+    alertId: ObjectID,
+    resolvedByUserId: ObjectID
+  ): Promise<Model> {
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        projectId: true,
+        alertNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert || !alert.projectId) {
+      throw new BadDataException("Alert not found.");
     }
 
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: alert.projectId,
+        isResolvedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alertState || !alertState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+      );
+    }
+
+    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
+    alertStateTimeline.projectId = alert.projectId;
+    alertStateTimeline.alertId = alertId;
+    alertStateTimeline.alertStateId = alertState.id;
+    alertStateTimeline.createdByUserId = resolvedByUserId;
+
+    await AlertStateTimelineService.create({
+      data: alertStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store alert metric
+
+    return alert;
+  }
 }
 export default new Service();
