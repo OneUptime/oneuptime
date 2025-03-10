@@ -359,6 +359,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
   }): Promise<void> {
+
+    logger.debug("inviteUsersBasedOnRulesAndWorkspaceChannels called with data:");
+    logger.debug(data);
     const userIds: Array<ObjectID> = data.userIds;
 
     logger.debug("Users:");
@@ -375,6 +378,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           return rule.workspaceType === workspaceType;
         });
 
+        logger.debug("Notification rules for workspace type:");
+        logger.debug(notificationRules);
+
       const channelsToInviteToBasedOnRule: Array<NotificationRuleWorkspaceChannel> =
         data.workspaceChannels.filter(
           (channel: NotificationRuleWorkspaceChannel) => {
@@ -383,6 +389,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             });
           },
         );
+
+      logger.debug("Channels to invite to based on rule:");
+      logger.debug(channelsToInviteToBasedOnRule);
 
       if (channelsToInviteToBasedOnRule.length === 0) {
         logger.debug("No channels to invite to based on rule.");
@@ -427,16 +436,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
 
+      logger.debug("Workspace User IDs to invite:");
+      logger.debug(workspaceUserIds);
+
+      const channelNames: Array<string> = channelsToInviteToBasedOnRule.map(
+        (channel: NotificationRuleWorkspaceChannel) => {
+          return channel.name;
+        },
+      );
+
+      logger.debug("Channel names to invite to:");
+      logger.debug(channelNames);
+
       await WorkspaceUtil.getWorkspaceTypeUtil(
         workspaceType,
       ).inviteUsersToChannels({
         authToken: projectAuth.authToken!,
         workspaceChannelInvitationPayload: {
-          channelNames: channelsToInviteToBasedOnRule.map(
-            (channel: NotificationRuleWorkspaceChannel) => {
-              return channel.name;
-            },
-          ),
+          channelNames: channelNames,
           workspaceUserIds: workspaceUserIds,
         },
       });
@@ -452,6 +469,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(
       data.teamIds,
     );
+
+    logger.debug("Users in teams:");
+    logger.debug(usersInTeam);
 
     return this.inviteUsersBasedOnRulesAndWorkspaceChannels({
       workspaceChannels: data.workspaceChannels,
@@ -511,7 +531,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       [];
     const createdChannelNames: Array<string> = [];
 
-    const notificationChannelss: Array<{
+    const notificationChannels: Array<{
       channelName: string;
       notificationRuleId: string;
     }> = this.getnotificationChannelssFromNotificationRules({
@@ -521,37 +541,37 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     });
 
     logger.debug("New channel names to be created:");
-    logger.debug(notificationChannelss);
+    logger.debug(notificationChannels);
 
-    if (!notificationChannelss || notificationChannelss.length === 0) {
+    if (!notificationChannels || notificationChannels.length === 0) {
       logger.debug("No new channel names found. Returning empty array.");
       return [];
     }
 
-    for (const notificationChannels of notificationChannelss) {
+    for (const notificationChannel of notificationChannels) {
       if (
         createdChannelNames.filter((name: string) => {
-          return name === notificationChannels.channelName;
-        })
+          return name === notificationChannel.channelName;
+        }).length > 0
       ) {
         logger.debug(
-          `Channel name ${notificationChannels} already created. Skipping.`,
+          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
         );
         continue;
       }
 
-      logger.debug(`Creating new channel with name: ${notificationChannels}`);
+      logger.debug(`Creating new channel with name: ${notificationChannel.channelName}`);
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
           data.workspaceType,
         ).createChannel({
           authToken: data.projectOrUserAuthTokenForWorkspasce,
-          channelName: notificationChannels.channelName,
+          channelName: notificationChannel.channelName,
         });
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
-        notificationRuleId: notificationChannels.notificationRuleId,
+        notificationRuleId: notificationChannel.notificationRuleId,
       };
 
       logger.debug("Channel created:");
