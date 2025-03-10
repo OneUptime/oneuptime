@@ -35,7 +35,6 @@ import {
   ManyToOne,
 } from "typeorm";
 import Recurring from "../../Types/Events/Recurring";
-import { WorkspaceChannel } from "../../Server/Utils/Workspace/WorkspaceBase";
 import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
